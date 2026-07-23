@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { SourceMapTable } from "@/components/source-map-table";
+import { demoCompany } from "@/lib/demo-data";
+import { requireViewer } from "@/lib/auth";
+import { loadSourceMap } from "@/lib/data";
+
+export default async function SourceMapPage() { const viewer = await requireViewer("/app/source-map"); const entries = await loadSourceMap(viewer); const category = viewer.mode === "demo" ? demoCompany.category : "your active category"; return <main className="workspace"><div className="workspace-heading"><div><span className="eyebrow">Hero product</span><h1>Source Map</h1><p>The third-party pages shaping {category}, who they name, and the credible route into each.</p></div><Link className="button button--ink" href="/api/export/source-map">Export evidence ↓</Link></div><section className="panel panel--flush"><div className="map-summary"><div><strong>{entries.length}</strong><span>mapped URLs</span></div><div><strong>{entries.reduce((sum,s) => sum+s.evidenceCount,0)}</strong><span>citation observations</span></div><div><strong>{entries.filter(s => !s.clientPresent).length}</strong><span>source gaps</span></div><div><strong>{entries.filter(s => s.feasibility === "high").length}</strong><span>high-feasibility routes</span></div></div>{entries.length ? <SourceMapTable entries={entries} /> : <div className="empty-state"><h2>No Source Map yet.</h2><p>Create the organization, category, prompts, and first run to begin mapping sources.</p></div>}</section></main>; }

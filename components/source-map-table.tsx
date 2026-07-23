@@ -1,0 +1,10 @@
+"use client";
+import { useMemo, useState } from "react";
+import { StatusDot } from "@/components/brand";
+import type { SourceMapEntry } from "@/lib/types";
+
+export function SourceMapTable({ entries }: { entries: SourceMapEntry[] }) {
+  const [query, setQuery] = useState(""); const [gapOnly, setGapOnly] = useState(false);
+  const rows = useMemo(() => entries.filter((entry) => (!gapOnly || !entry.clientPresent) && `${entry.domain} ${entry.title} ${entry.route}`.toLowerCase().includes(query.toLowerCase())), [entries, query, gapOnly]);
+  return <><div className="table-tools"><label><span>Search sources</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Domain, page, or route" /></label><label className="toggle"><input type="checkbox" checked={gapOnly} onChange={(e) => setGapOnly(e.target.checked)} /><span>Show gaps only</span></label></div><div className="data-table"><div className="data-row data-row--head"><span># / source</span><span>Evidence</span><span>Presence</span><span>Crawler</span><span>Entry route</span><span>Feasibility</span></div>{rows.map(entry => <div className="data-row" key={entry.id}><div className="data-source"><span>{String(entry.rank).padStart(2,"0")}</span><div><a href={entry.url} target="_blank" rel="noreferrer">{entry.domain} ↗</a><small>{entry.title}</small></div></div><div><strong>{entry.evidenceCount}</strong><small>{entry.engines.join(" · ")}</small></div><div className="presence-cell"><StatusDot tone={entry.clientPresent ? "green" : "red"} />{entry.clientPresent ? "Present" : "Absent"}</div><div><strong className={`pill pill--${entry.crawlerAccess}`}>{entry.crawlerAccess}</strong></div><div><strong>{entry.route}</strong><small>Competitors: {entry.competitors.join(", ")}</small></div><div><strong className={`feasibility feasibility--${entry.feasibility}`}>{entry.feasibility}</strong></div></div>)}</div><p className="table-caption">{rows.length} sources shown. Influence and feasibility are analyst judgments; citation counts are observed evidence.</p></>;
+}
