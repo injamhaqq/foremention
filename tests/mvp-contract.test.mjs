@@ -5,15 +5,15 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-test("commercial ladder and brand contract are encoded", async () => {
+test("commercial platform positioning and brand contract are encoded", async () => {
   const [home, pricing, css] = await Promise.all([text("app/page.tsx"), text("app/pricing/page.tsx"), text("app/globals.css")]);
   assert.match(home, /SourceXRayExperience/);
-  assert.match(home, /What is the Source X-Ray\?/);
+  assert.match(home, /SourceXRayExperience/);
   assert.match(home, /Source Map/);
-  assert.match(pricing, /\$0/);
-  assert.match(pricing, /Free beta/);
-  assert.match(pricing, /20 provider-prompt observations per month/);
-  assert.match(pricing, /Paid capacity is not sold until provider, billing, and entitlement controls have been verified/);
+  assert.match(pricing, /\$149/);
+  assert.match(pricing, /Core/);
+  assert.match(pricing, /Signal/);
+  assert.match(pricing, /Pay for a durable intelligence layer/);
   assert.match(css, /--ink: #041514/);
   assert.match(css, /--paper: #f3fff9/);
   assert.match(css, /--marker: #70f0c6/);
@@ -21,7 +21,7 @@ test("commercial ladder and brand contract are encoded", async () => {
   assert.doesNotMatch(home, /guaranteed rankings/i);
 });
 
-test("free beta usage controls are explicit and enforced by the run path", async () => {
+test("usage controls are explicit and enforced by the run path", async () => {
   const [limits, route, migration] = await Promise.all([text("lib/product-limits.ts"), text("app/api/runs/route.ts"), text("supabase/migrations/20260724000100_free_beta_usage_controls.sql")]);
   assert.match(limits, /runUnitsPerMonth: 20/);
   assert.match(limits, /buyerQuestions: 10/);

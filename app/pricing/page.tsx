@@ -3,22 +3,17 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
 
-export const metadata: Metadata = { title: "Pricing", description: "Self-serve recommendation intelligence for teams tracking how AI systems discover, support, and recommend their brand." };
+export const metadata: Metadata = { title: "Pricing", description: "Platform plans for teams building a durable recommendation intelligence layer." };
 
-const offers = [
-  { name: "Free beta", price: "$0", suffix: "/ month", label: "Available now", lead: true, items: ["1 brand and category", "10 approved buyer questions", "20 provider-prompt observations per month", "90 days of observation history", "Source Map CSV export"], cta: "Create free account", href: "/signup" },
-  { name: "Product demo", price: "$0", suffix: "/ forever", label: "Explore safely", lead: false, items: ["Full fictional workspace", "Recommendation journey", "Source X-Ray and Source Map", "No API key required", "No card required"], cta: "Open the demo", href: "/login" },
-  { name: "Future paid plans", price: "Later", label: "Not for sale yet", lead: false, items: ["Higher verified provider capacity", "More brands and team members", "Longer evidence history", "Automation and integrations", "Billing only after webhook verification"], cta: "Contact us", href: "/contact" },
+const plans = [
+  { name: "Core", price: "$149", label: "For one category", items: ["One brand workspace", "Up to 25 buyer questions", "Monthly collection cadence", "Source Map and evidence history", "Workspace exports"], cta: "Create workspace", href: "/signup" },
+  { name: "Signal", price: "$499", label: "For growing teams", lead: true, items: ["Up to three brand workspaces", "Up to 100 buyer questions", "Weekly collection cadence", "Source movement alerts", "Team access and integrations"], cta: "Create workspace", href: "/signup" },
+  { name: "Intelligence", price: "Custom", label: "For category leaders", items: ["Multi-brand portfolio", "Daily collection options", "Custom data retention", "API and webhooks", "Implementation support"], cta: "Talk to Foremention", href: "/contact" },
 ];
 
 export default function PricingPage() {
-  return (
-    <PublicShell>
-      <section className="page-hero"><div className="shell narrow-heading"><span className="eyebrow">Self-serve beta</span><h1>Start with one question. Build your recommendation data layer.</h1><p>The beta has one clear usage limit and no credit card. Paid capacity is not sold until provider, billing, and entitlement controls have been verified.</p></div></section>
-      <section className="section section--paper">
-        <div className="shell pricing-grid">{offers.map((offer) => <article className={`pricing-card${offer.lead ? " pricing-card--lead" : ""}`} key={offer.name}><span className="pricing-label">{offer.label}</span><h2>{offer.name}</h2><div className="price"><strong>{offer.price}</strong>{offer.suffix && <span>{offer.suffix}</span>}</div><ul>{offer.items.map((item) => <li key={item}>{item}</li>)}</ul><Link className={`button ${offer.lead ? "button--ink" : "button--outline"}`} href={offer.href}>{offer.cta} <Arrow /></Link></article>)}</div>
-        <div className="shell pricing-truth"><strong>Commercial honesty</strong><p>Foremention stores dated observations and workflow data. It does not sell editorial influence, guarantee rankings, citations, traffic, or revenue, or quietly activate a paid plan from a checkout page.</p></div>
-      </section>
-    </PublicShell>
-  );
+  return <PublicShell>
+    <section className="page-hero"><div className="shell narrow-heading"><span className="eyebrow">Platform pricing</span><h1>Pay for a durable intelligence layer—not a promised mention.</h1><p>Every plan is built around a workspace your team can run: buyer questions, observed answers, source evidence, competitor context, and movement over time.</p></div></section>
+    <section className="section section--paper"><div className="shell pricing-grid">{plans.map((plan) => <article className={`pricing-card${plan.lead ? " pricing-card--lead" : ""}`} key={plan.name}><span className="pricing-label">{plan.label}</span><h2>{plan.name}</h2><div className="price"><strong>{plan.price}</strong>{plan.price !== "Custom" && <span>/ month</span>}</div><ul>{plan.items.map((item) => <li key={item}>{item}</li>)}</ul><Link className={`button ${plan.lead ? "button--ink" : "button--outline"}`} href={plan.href}>{plan.cta} <Arrow /></Link></article>)}</div><div className="shell pricing-truth"><strong>Built for accountable growth</strong><p>Capacity is visible, evidence is dated, and plan changes are deliberate. Foremention never charges for guaranteed placement, ranking, citation, traffic, or revenue.</p></div></section>
+  </PublicShell>;
 }

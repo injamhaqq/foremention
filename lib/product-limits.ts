@@ -1,5 +1,5 @@
 export const FREE_BETA_LIMITS = {
-  plan: "Free beta",
+  plan: "Core",
   brands: 1,
   buyerQuestions: 10,
   runUnitsPerMonth: 20,

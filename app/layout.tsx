@@ -32,7 +32,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description: "Self-serve recommendation intelligence for AI answer monitoring, exact-source mapping, competitive analytics, and change tracking.",
-        offers: [{ "@type": "Offer", name: "Free beta", price: "0", priceCurrency: "USD" }],
+        offers: [{ "@type": "Offer", name: "Foremention Core", price: "149", priceCurrency: "USD" }],
       },
     ],
   };
