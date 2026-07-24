@@ -820,7 +820,7 @@ textarea { resize: vertical; }
 .xray-experience__intro h2 { max-width: 850px; margin: 24px 0 0; font-size: clamp(50px,6.3vw,88px); letter-spacing: -.075em; line-height: .9; }
 .xray-experience__intro p { margin: 0; color: #afc0c6; font-size: 17px; line-height: 1.65; }
 .xray-product-shell { display: grid; grid-template-columns: minmax(0,1fr) 310px; overflow: hidden; border: 1px solid #52717f; background: var(--xray-panel); box-shadow: 15px 15px 0 var(--marker); }
-.xray-stage { position: relative; min-width: 0; height: 535px; overflow: hidden; outline: none; cursor: crosshair; touch-action: pan-y; overscroll-behavior: contain; }
+.xray-stage { --xray-x: 50%; --xray-y: 50%; --xray-radius: 145px; position: relative; min-width: 0; height: 535px; overflow: hidden; outline: none; cursor: crosshair; touch-action: pan-y; overscroll-behavior: contain; }
 .xray-stage:focus-visible { box-shadow: inset 0 0 0 4px var(--marker); }
 .xray-answer { position: absolute; inset: 0; padding: 30px; }
 .xray-answer--clean { background: var(--paper); color: var(--ink); }
@@ -844,6 +844,11 @@ textarea { resize: vertical; }
 .xray-absence { position: absolute; right: 26px; bottom: 24px; padding: 8px 11px; border-left: 4px solid var(--xray-coral); background: #123a37; color: #9ef5df; font-size: 10px; }
 .xray-beam { position: absolute; left: calc(var(--xray-x) - var(--xray-radius)); top: calc(var(--xray-y) - var(--xray-radius)); width: calc(var(--xray-radius) * 2); height: calc(var(--xray-radius) * 2); border: 2px solid var(--xray); border-radius: 50%; box-shadow: 0 0 0 1px rgba(12,23,33,.7), 0 0 32px rgba(51,214,194,.35), inset 0 0 30px rgba(51,214,194,.08); pointer-events: none; transition: width .12s linear, height .12s linear, left .12s linear, top .12s linear; }
 .xray-stage.is-all .xray-beam, .xray-stage[style*="--xray-radius: 0px"] .xray-beam { opacity: 0; }
+.xray-stage.is-idle .xray-beam { animation: xray-breathe 2.3s ease-in-out infinite; }
+.xray-toggle { width: 100%; min-height: 42px; display: flex; justify-content: space-between; align-items: center; margin-top: 22px; padding: 11px 13px; border: 1px solid var(--xray); background: transparent; color: var(--paper); font-size: 10px; font-weight: 800; text-align: left; transition: background-color .2s ease, color .2s ease, transform .2s ease; }
+.xray-toggle:hover { background: var(--xray); color: var(--xray-ink); transform: translateY(-2px); }
+.xray-hint { display: block; margin-top: 12px; color: #9db5b7; font-size: 9px; line-height: 1.45; }
+@keyframes xray-breathe { 0%,100% { transform: scale(.92); opacity: .72; } 50% { transform: scale(1.06); opacity: 1; } }
 .xray-hint { position: absolute; left: 22px; bottom: 20px; padding: 7px 10px; background: var(--xray-ink); color: var(--paper); font-size: 9px; pointer-events: none; }
 .xray-controls { display: flex; flex-direction: column; gap: 10px; padding: 23px; border-left: 1px solid var(--xray-line); }
 .xray-controls > div:first-child > span { color: var(--xray); font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }

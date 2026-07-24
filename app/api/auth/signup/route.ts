@@ -20,5 +20,9 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ ok: true, session: true });
     response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: Number(data.expires_in || 3600) });
     return response;
-  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Could not create the account." }, { status: 400 }); }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not create the account.";
+    if (/email rate limit|rate limit/i.test(message)) return NextResponse.json({ error: "Email delivery is temporarily limited by the email provider. Please wait a few minutes before trying again." }, { status: 429 });
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 }
