@@ -31,16 +31,13 @@ export function SiteMotion() {
     root.classList.add("motion-ready");
     targets.forEach((target, index) => {
       target.classList.add("fm-reveal");
-      target.classList.remove("is-visible");
       target.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 55}ms`);
     });
 
     let observer: IntersectionObserver | null = null;
     let revealFrame = 0;
     let settleFrame = 0;
-    if (reduceMotion.matches || !("IntersectionObserver" in window)) {
-      targets.forEach((target) => target.classList.add("is-visible"));
-    } else {
+    if (!reduceMotion.matches && "IntersectionObserver" in window) {
       observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {

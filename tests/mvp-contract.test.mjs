@@ -13,11 +13,11 @@ test("commercial platform positioning and brand contract are encoded", async () 
   assert.match(pricing, /\$149/);
   assert.match(pricing, /Core/);
   assert.match(pricing, /Signal/);
-  assert.match(pricing, /Pay for a durable intelligence layer/);
+  assert.match(pricing, /Start with a category/);
   assert.match(css, /--ink: #041514/);
   assert.match(css, /--paper: #f3fff9/);
   assert.match(css, /--marker: #70f0c6/);
-  assert.match(css, /--copper: #cf8b5c/);
+  assert.match(css, /--copper: #0f9f91/);
   assert.doesNotMatch(home, /guaranteed rankings/i);
 });
 
@@ -53,8 +53,10 @@ test("database migration enables RLS and preserves the placement evidence chain"
 });
 
 test("auth, provider adapters, and background run route are present", async () => {
-  const [auth, types, gemini, job, route] = await Promise.all([text("lib/auth.ts"), text("lib/providers/types.ts"), text("lib/providers/gemini.ts"), text("lib/jobs/inngest.ts"), text("app/api/runs/route.ts")]);
+  const [auth, signup, session, types, gemini, job, route] = await Promise.all([text("lib/auth.ts"), text("app/api/auth/signup/route.ts"), text("app/api/auth/session/route.ts"), text("lib/providers/types.ts"), text("lib/providers/gemini.ts"), text("lib/jobs/inngest.ts"), text("app/api/runs/route.ts")]);
   assert.match(auth, /requireViewer/);
+  assert.match(signup, /emailRedirectTo/);
+  assert.match(session, /auth\/v1\/user/);
   assert.match(types, /AnswerProviderAdapter/);
   assert.match(types, /"gemini"/);
   assert.match(gemini, /google_search/);

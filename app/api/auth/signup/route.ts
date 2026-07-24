@@ -6,7 +6,15 @@ export async function POST(request: Request) {
   try {
     const { email, password, full_name } = (await request.json()) as { email?: string; password?: string; full_name?: string };
     if (!email || !password || !full_name) return NextResponse.json({ error: "Name, email, and password are required." }, { status: 400 });
-    const data = await supabaseAuth("signup", { email, password, data: { full_name } });
+    const origin = new URL(request.url).origin;
+    const data = await supabaseAuth("signup", {
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        data: { full_name: full_name.trim() },
+        emailRedirectTo: `${origin}/auth/callback?next=/app`,
+      },
+    });
     const token = String(data.access_token || "");
     if (!token) return NextResponse.json({ ok: true, session: false, message: "Check your email to confirm the account, then sign in." });
     const response = NextResponse.json({ ok: true, session: true });

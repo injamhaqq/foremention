@@ -25,7 +25,7 @@ test("the selected Meridian OS Source Eclipse identity is preserved", async () =
   assert.match(brand, /source-eclipse__point/);
   assert.match(css, /--ink: #041514/);
   assert.match(css, /--marker: #70f0c6/);
-  assert.match(css, /--copper: #cf8b5c/);
+  assert.match(css, /--copper: #0f9f91/);
   assert.match(mergeRecord, /Source Eclipse/);
 });
 
