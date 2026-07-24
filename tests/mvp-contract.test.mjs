@@ -11,14 +11,24 @@ test("commercial ladder and brand contract are encoded", async () => {
   assert.match(home, /What is the Source X-Ray\?/);
   assert.match(home, /Source Map/);
   assert.match(pricing, /\$0/);
-  assert.match(pricing, /\$49/);
-  assert.match(pricing, /\$199/);
-  assert.match(pricing, /Every plan is software/);
+  assert.match(pricing, /Free beta/);
+  assert.match(pricing, /20 provider-prompt observations per month/);
+  assert.match(pricing, /Paid capacity is not sold until provider, billing, and entitlement controls have been verified/);
   assert.match(css, /--ink: #041514/);
   assert.match(css, /--paper: #f3fff9/);
   assert.match(css, /--marker: #70f0c6/);
   assert.match(css, /--copper: #cf8b5c/);
   assert.doesNotMatch(home, /guaranteed rankings/i);
+});
+
+test("free beta usage controls are explicit and enforced by the run path", async () => {
+  const [limits, route, migration] = await Promise.all([text("lib/product-limits.ts"), text("app/api/runs/route.ts"), text("supabase/migrations/20260724000100_free_beta_usage_controls.sql")]);
+  assert.match(limits, /runUnitsPerMonth: 20/);
+  assert.match(limits, /buyerQuestions: 10/);
+  assert.match(route, /reserve_run_quota/);
+  assert.match(route, /organizationId !== body\.organizationId/);
+  assert.match(migration, /create table public\.usage_events/i);
+  assert.match(migration, /reserve_run_quota/i);
 });
 
 test("extended Recommendation Graph data model is secured with RLS", async () => {

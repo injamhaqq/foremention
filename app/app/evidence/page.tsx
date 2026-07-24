@@ -12,14 +12,14 @@ const evidence = [
 
 export default async function EvidencePage() {
   const viewer = await requireViewer("/app/evidence");
+  const live = viewer.mode !== "demo";
   return (
     <main className="workspace">
       <div className="workspace-heading">
         <div><span className="eyebrow">Claim readiness</span><h1>Evidence Vault</h1><p>Every usable claim has an owner, supporting source, verification date, usage boundary, and visible limitation.</p></div>
         <Link className="button button--ink" href="/app/settings#evidence-import">Set up evidence intake →</Link>
       </div>
-      <div className="evidence-summary"><div><strong>3</strong><span>verified claims</span></div><div><strong>1</strong><span>needs evidence</span></div><div><strong>1</strong><span>expired item</span></div><div><strong>60%</strong><span>readiness coverage</span></div></div>
-      <section className="panel panel--flush"><div className="evidence-table"><div className="evidence-row evidence-row--head"><span>Claim</span><span>Approved wording</span><span>Status</span><span>Verified</span></div>{evidence.map(([name, wording, status, date]) => <div className="evidence-row" key={name}><strong>{name}</strong><p>{wording}</p><span className="presence-cell"><StatusDot tone={status === "Verified" ? "green" : status === "Expired" ? "red" : "yellow"} />{status}</span><span>{date}</span></div>)}</div></section>
+      {live ? <section className="panel empty-state empty-state--border"><h2>No workspace evidence has been entered.</h2><p>Live evidence records will appear only after they include an owner, source, verification date, limitations, and usage boundary.</p></section> : <><div className="evidence-summary"><div><strong>3</strong><span>verified claims</span></div><div><strong>1</strong><span>needs evidence</span></div><div><strong>1</strong><span>expired item</span></div><div><strong>60%</strong><span>readiness coverage</span></div></div><section className="panel panel--flush"><div className="evidence-table"><div className="evidence-row evidence-row--head"><span>Claim</span><span>Approved wording</span><span>Status</span><span>Verified</span></div>{evidence.map(([name, wording, status, date]) => <div className="evidence-row" key={name}><strong>{name}</strong><p>{wording}</p><span className="presence-cell"><StatusDot tone={status === "Verified" ? "green" : status === "Expired" ? "red" : "yellow"} />{status}</span><span>{date}</span></div>)}</div></section></>}
       <div className="evidence-note"><strong>Evidence rule</strong><p>Unsupported claims are excluded from outreach. Expired evidence must be re-verified before it returns to an approved pitch.</p><small>{viewer.mode === "demo" ? "Fictional demo records. Changes are intentionally disabled." : "Live evidence writes require an approved project, owner, and source record."}</small></div>
     </main>
   );

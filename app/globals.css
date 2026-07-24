@@ -625,6 +625,8 @@ textarea { resize: vertical; }
 .prompt-list article strong { font-size: 12px; }
 .prompt-list button { min-width: 100px; padding: 8px; border: 1px solid var(--ink); background: #eee9df; font-size: 8px; font-weight: 700; text-transform: uppercase; }
 .prompt-list button.is-approved { background: #dcecdf; }
+.status-chip { min-width: 100px; padding: 8px; border: 1px solid var(--line); background: #eee9df; color: var(--muted); font-size: 8px; font-weight: 700; text-align: center; text-transform: uppercase; }
+.status-chip--active { border-color: var(--ink); background: #dcecdf; color: var(--ink); }
 .record-grid { display: grid; grid-template-columns: 1.3fr .7fr; gap: 20px; }
 .record-url { padding-bottom: 20px; margin-bottom: 22px; border-bottom: 1px solid var(--ink); }
 .record-url span, .record-url a { display: block; }
