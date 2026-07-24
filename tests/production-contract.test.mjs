@@ -10,12 +10,21 @@ test("production public and workspace routes exist", async () => {
   const routes = [
     "app/source-map/page.tsx", "app/sample-report/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx",
     "app/product/page.tsx", "app/about/page.tsx", "app/teardowns/page.tsx", "app/contact/page.tsx", "app/monitoring-vs-execution/page.tsx",
-    "app/forgot-password/page.tsx", "app/auth/callback/page.tsx", "app/not-found.tsx", "app/error.tsx",
+    "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/not-found.tsx", "app/error.tsx",
     "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/sources/[id]/page.tsx",
     "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
     "app/api/onboarding/route.ts",
   ];
   await Promise.all(routes.map(exists));
+});
+
+test("account recovery requires and confirms a new password", async () => {
+  const [callback, form, route] = await Promise.all([text("components/auth-callback.tsx"), text("components/set-password-form.tsx"), text("app/api/auth/password/route.ts")]);
+  assert.match(callback, /recovery/);
+  assert.match(callback, /reset-password/);
+  assert.match(form, /Confirm new password/);
+  assert.match(form, /password !== confirmation/);
+  assert.match(route, /auth\/v1\/user/);
 });
 
 test("the selected Meridian OS Source Eclipse identity is preserved", async () => {

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
     const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
     const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
-    await fetch(`${url}/auth/v1/recover?redirect_to=${encodeURIComponent(`${origin}/auth/callback`)}`, { method: "POST", headers: { apikey: anon, "content-type": "application/json" }, body: JSON.stringify({ email }) });
+    await fetch(`${url}/auth/v1/recover?redirect_to=${encodeURIComponent(`${origin}/auth/callback?next=/reset-password`)}`, { method: "POST", headers: { apikey: anon, "content-type": "application/json" }, body: JSON.stringify({ email }) });
   }
   return NextResponse.json({ message: "If an account exists for that email, a recovery link is on its way." });
 }

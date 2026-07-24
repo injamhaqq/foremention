@@ -14,7 +14,8 @@ export function AuthCallback() {
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const token = hash.get("access_token");
-    const next = searchParams.get("next")?.startsWith("/") ? searchParams.get("next")! : "/app";
+    const isRecovery = hash.get("type") === "recovery" || searchParams.get("type") === "recovery";
+    const next = isRecovery ? "/reset-password" : (searchParams.get("next")?.startsWith("/") ? searchParams.get("next")! : "/app");
     if (!token) {
       const timeout = window.setTimeout(() => {
         setMessage("This confirmation link is incomplete or has expired. Please sign in or request another email.");
@@ -28,7 +29,7 @@ export function AuthCallback() {
       body: JSON.stringify({ access_token: token, expires_in: Number(hash.get("expires_in") || 3600) }),
     }).then(async (response) => {
       if (!response.ok) throw new Error((await response.json()).error || "The verification link could not be completed.");
-      setMessage("Email verified. Opening your workspace…");
+      setMessage(isRecovery ? "Recovery link verified. Choose your new password…" : "Email verified. Opening your workspace…");
       router.replace(next);
       router.refresh();
     }).catch((error: Error) => {
