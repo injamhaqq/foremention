@@ -7,13 +7,16 @@ export async function POST(request: Request) {
     const { email, password, full_name } = (await request.json()) as { email?: string; password?: string; full_name?: string };
     if (!email || !password || !full_name) return NextResponse.json({ error: "Name, email, and password are required." }, { status: 400 });
     const origin = new URL(request.url).origin;
+    // This route calls the GoTrue REST endpoint directly, rather than the
+    // Supabase JavaScript client. Its field names are snake_case. Sending the
+    // client-library `options.emailRedirectTo` shape silently falls back to
+    // the project default URL, which strands a confirmed user outside the
+    // callback that creates their Foremention session.
     const data = await supabaseAuth("signup", {
       email: email.trim().toLowerCase(),
       password,
-      options: {
-        data: { full_name: full_name.trim() },
-        emailRedirectTo: `${origin}/auth/callback?next=/app`,
-      },
+      data: { full_name: full_name.trim() },
+      email_redirect_to: `${origin}/auth/callback?next=/app`,
     });
     const token = String(data.access_token || "");
     if (!token) return NextResponse.json({ ok: true, session: false, message: "Check your email to confirm the account, then sign in." });

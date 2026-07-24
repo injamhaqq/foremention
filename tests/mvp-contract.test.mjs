@@ -55,7 +55,7 @@ test("database migration enables RLS and preserves the placement evidence chain"
 test("auth, provider adapters, and background run route are present", async () => {
   const [auth, signup, session, types, gemini, job, route] = await Promise.all([text("lib/auth.ts"), text("app/api/auth/signup/route.ts"), text("app/api/auth/session/route.ts"), text("lib/providers/types.ts"), text("lib/providers/gemini.ts"), text("lib/jobs/inngest.ts"), text("app/api/runs/route.ts")]);
   assert.match(auth, /requireViewer/);
-  assert.match(signup, /emailRedirectTo/);
+  assert.match(signup, /email_redirect_to/);
   assert.match(session, /auth\/v1\/user/);
   assert.match(types, /AnswerProviderAdapter/);
   assert.match(types, /"gemini"/);
