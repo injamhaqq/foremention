@@ -1,4 +1,5 @@
 /** Cloudflare Worker entry point for the foremention Next.js application. */
+import * as Sentry from "@sentry/cloudflare";
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
@@ -26,6 +27,8 @@ interface AssetFetcher {
 interface Env {
   ASSETS: AssetFetcher;
   DB?: D1Database;
+  SENTRY_DSN?: string;
+  SENTRY_ENVIRONMENT?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -138,4 +141,14 @@ const worker = {
   },
 };
 
-export default worker;
+// Monitoring stays inactive until SENTRY_DSN is configured as an encrypted
+// host secret. This also instruments unhandled Worker errors and D1 spans.
+export default Sentry.withSentry(
+  (env: Env) => env.SENTRY_DSN ? {
+    dsn: env.SENTRY_DSN,
+    environment: env.SENTRY_ENVIRONMENT || "production",
+    tracesSampleRate: 0.05,
+    sendDefaultPii: false,
+  } : undefined,
+  worker,
+);

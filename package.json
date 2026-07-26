@@ -17,6 +17,8 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
+    "@sentry/cloudflare": "^10.68.0",
+    "@sentry/react": "^10.68.0",
     "inngest": "^4.13.0",
     "next": "16.2.6",
     "react": "19.2.6",

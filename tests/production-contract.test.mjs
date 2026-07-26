@@ -75,3 +75,13 @@ test("SEO, social preview, and accessibility states are bundled", async () => {
   assert.match(css, /prefers-reduced-motion/);
   assert.match(css, /:focus-visible/);
 });
+
+test("error monitoring is optional, privacy-conscious, and configured outside source", async () => {
+  const [worker, client, env] = await Promise.all([text("worker/index.ts"), text("components/sentry-client.tsx"), text(".env.example")]);
+  assert.match(worker, /@sentry\/cloudflare/);
+  assert.match(worker, /Sentry\.withSentry/);
+  assert.match(worker, /sendDefaultPii: false/);
+  assert.match(client, /@sentry\/react/);
+  assert.match(client, /NEXT_PUBLIC_SENTRY_DSN/);
+  assert.match(env, /SENTRY_DSN=/);
+});
