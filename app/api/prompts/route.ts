@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { loadPrompts, loadWorkspaceContext } from "@/lib/data";
-import { FREE_BETA_LIMITS } from "@/lib/product-limits";
+import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const [context, existing] = await Promise.all([loadWorkspaceContext(viewer), loadPrompts(viewer)]);
   if (!context) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
-  if (existing.length >= FREE_BETA_LIMITS.buyerQuestions) return NextResponse.json({ error: `This plan allows ${FREE_BETA_LIMITS.buyerQuestions} buyer questions.` }, { status: 429 });
+  if (existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions) return NextResponse.json({ error: `This access level allows ${FOUNDATION_ACCESS_LIMITS.buyerQuestions} buyer questions. Paid capacity is enabled only after billing activation.` }, { status: 429 });
 
   let clusterId = context.clusterId;
   if (!clusterId) {

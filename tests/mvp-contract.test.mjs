@@ -13,7 +13,7 @@ test("commercial platform positioning and brand contract are encoded", async () 
   assert.match(pricing, /\$149/);
   assert.match(pricing, /Core/);
   assert.match(pricing, /Signal/);
-  assert.match(pricing, /Start with a category/);
+  assert.match(pricing, /repeatable intelligence system/);
   assert.match(css, /--ink: #041514/);
   assert.match(css, /--paper: #f3fff9/);
   assert.match(css, /--marker: #70f0c6/);
@@ -23,6 +23,7 @@ test("commercial platform positioning and brand contract are encoded", async () 
 
 test("usage controls are explicit and enforced by the run path", async () => {
   const [limits, route, migration] = await Promise.all([text("lib/product-limits.ts"), text("app/api/runs/route.ts"), text("supabase/migrations/20260724000100_free_beta_usage_controls.sql")]);
+  assert.match(limits, /FOUNDATION_ACCESS_LIMITS/);
   assert.match(limits, /runUnitsPerMonth: 20/);
   assert.match(limits, /buyerQuestions: 10/);
   assert.match(route, /reserve_run_quota/);

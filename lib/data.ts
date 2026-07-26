@@ -45,6 +45,29 @@ export type WorkspaceRunAnswer = {
   collectedAt: string;
 };
 export type ProviderStatus = { id: "openai" | "gemini" | "anthropic" | "perplexity"; label: string; configured: boolean };
+export type DecisionSignal = {
+  reviewedRuns: number;
+  latestRunId: string | null;
+  latestRunDate: string | null;
+  providerCount: number;
+  promptCount: number;
+  answerCount: number;
+  answerCompletionPct: number | null;
+  recommendationConsensusPct: number | null;
+  presenceRange: number | null;
+  presenceDelta: number | null;
+  sourceReviewPct: number | null;
+  sourceDependencyPct: number | null;
+  recurringSourcePct: number | null;
+  evidenceObservations: number;
+  decisionReadiness: "ready" | "directional" | "insufficient";
+  actions: Array<{
+    priority: "now" | "next" | "watch";
+    title: string;
+    reason: string;
+    href: string;
+  }>;
+};
 
 const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
 const route = (value: string | null): EntryRoute => routes.includes(value as EntryRoute) ? value as EntryRoute : "editorial outreach";
@@ -158,4 +181,95 @@ export async function loadWorkspaceSummary(viewer: Viewer): Promise<WorkspaceSum
   const organization = organizations[0];
   if (!organization) return null;
   return { organizationId, organizationName: organization.name, website: organization.website, category: categories[0]?.name || null, promptCount: prompts.length };
+}
+
+const clampPct = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+
+function buildDecisionActions(signal: Omit<DecisionSignal, "actions">): DecisionSignal["actions"] {
+  const actions: DecisionSignal["actions"] = [];
+  if (signal.reviewedRuns < 2) actions.push({ priority: "now", title: "Establish a repeatable baseline", reason: "One reviewed run cannot separate a durable pattern from answer variation.", href: "/app/runs" });
+  if (signal.answerCompletionPct !== null && signal.answerCompletionPct < 90) actions.push({ priority: "now", title: "Repair collection coverage", reason: `${signal.answerCompletionPct}% of the expected answer matrix was reviewed. Diagnose failed provider or prompt combinations before acting.`, href: signal.latestRunId ? `/app/runs/${signal.latestRunId}` : "/app/runs" });
+  if (signal.providerCount < 2) actions.push({ priority: "now", title: "Add a second answer provider", reason: "Cross-provider agreement cannot be measured from a single provider.", href: "/app/settings#providers" });
+  if (signal.sourceReviewPct !== null && signal.sourceReviewPct < 80) actions.push({ priority: "next", title: "Complete the source review", reason: `${signal.sourceReviewPct}% of mapped sources have a documented page review.`, href: "/app/source-map" });
+  if (signal.sourceDependencyPct !== null && signal.sourceDependencyPct >= 50) actions.push({ priority: "next", title: "Reduce source concentration risk", reason: `The top three sources account for ${signal.sourceDependencyPct}% of observed citations. Diversify credible evidence routes.`, href: "/app/opportunities" });
+  if (signal.recommendationConsensusPct !== null && signal.recommendationConsensusPct < 70) actions.push({ priority: "watch", title: "Treat the latest recommendation pattern as unstable", reason: `Providers agree on brand presence for ${signal.recommendationConsensusPct}% of comparable buyer questions.`, href: "/app/runs" });
+  if (!actions.length) actions.push({ priority: "next", title: "Advance the highest-evidence gap", reason: "Collection coverage, cross-provider agreement, and source review are sufficient for a controlled next action.", href: "/app/opportunities" });
+  return actions.slice(0, 4);
+}
+
+export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal> {
+  if (viewer.mode === "demo") {
+    const base: Omit<DecisionSignal, "actions"> = {
+      reviewedRuns: 3,
+      latestRunId: demoRuns[0].id,
+      latestRunDate: demoRuns[0].date,
+      providerCount: 4,
+      promptCount: demoRuns[0].prompts,
+      answerCount: demoRuns[0].answers,
+      answerCompletionPct: 100,
+      recommendationConsensusPct: 68,
+      presenceRange: 7,
+      presenceDelta: 3,
+      sourceReviewPct: 88,
+      sourceDependencyPct: 57,
+      recurringSourcePct: 75,
+      evidenceObservations: sourceMapEntries.reduce((sum, source) => sum + source.evidenceCount, 0),
+      decisionReadiness: "directional",
+    };
+    return { ...base, actions: buildDecisionActions(base) };
+  }
+
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  const empty: Omit<DecisionSignal, "actions"> = {
+    reviewedRuns: 0, latestRunId: null, latestRunDate: null, providerCount: 0, promptCount: 0, answerCount: 0,
+    answerCompletionPct: null, recommendationConsensusPct: null, presenceRange: null, presenceDelta: null,
+    sourceReviewPct: null, sourceDependencyPct: null, recurringSourcePct: null, evidenceObservations: 0, decisionReadiness: "insufficient",
+  };
+  if (!organizationId) return { ...empty, actions: buildDecisionActions(empty) };
+
+  type DecisionRunRow = RunRow & { provider_ids: string[] };
+  const [rows, sources] = await Promise.all([
+    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&status=eq.complete&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
+    loadSourceMap(viewer),
+  ]);
+  const latest = rows[0];
+  if (!latest) return { ...empty, sourceReviewPct: sources.length ? clampPct((sources.filter((source) => source.reviewedAt).length / sources.length) * 100) : null, actions: buildDecisionActions(empty) };
+
+  const answers = await supabaseRest<Array<{ prompt_key: string; provider: string; brand_present: boolean | null }>>(
+    `run_answers?select=prompt_key,provider,brand_present&organization_id=eq.${organizationId}&run_id=eq.${latest.id}&review_status=eq.verified`,
+    { token: viewer.accessToken },
+  );
+  const providerCount = latest.provider_ids?.length || new Set(answers.map((answer) => answer.provider)).size;
+  const expectedAnswers = latest.prompt_count * providerCount;
+  const promptAnswers = new Map<string, Array<boolean>>();
+  answers.forEach((answer) => {
+    if (answer.brand_present === null) return;
+    const group = promptAnswers.get(answer.prompt_key) || [];
+    group.push(answer.brand_present);
+    promptAnswers.set(answer.prompt_key, group);
+  });
+  const comparable = Array.from(promptAnswers.values()).filter((group) => group.length >= 2);
+  const agreed = comparable.filter((group) => group.every((value) => value === group[0])).length;
+  const presences = rows.map((row) => Number(row.brand_presence_pct));
+  const observationTotal = sources.reduce((sum, source) => sum + source.evidenceCount, 0);
+  const topThreeObservations = [...sources].sort((a, b) => b.evidenceCount - a.evidenceCount).slice(0, 3).reduce((sum, source) => sum + source.evidenceCount, 0);
+  const sourceReviewPct = sources.length ? clampPct((sources.filter((source) => source.reviewedAt).length / sources.length) * 100) : null;
+  const signalBase: Omit<DecisionSignal, "actions"> = {
+    reviewedRuns: rows.length,
+    latestRunId: latest.id,
+    latestRunDate: dateLabel(latest.created_at),
+    providerCount,
+    promptCount: latest.prompt_count,
+    answerCount: latest.answer_count,
+    answerCompletionPct: expectedAnswers ? clampPct((latest.answer_count / expectedAnswers) * 100) : null,
+    recommendationConsensusPct: comparable.length ? clampPct((agreed / comparable.length) * 100) : null,
+    presenceRange: rows.length > 1 ? Math.round((Math.max(...presences) - Math.min(...presences)) * 10) / 10 : null,
+    presenceDelta: rows.length > 1 ? Math.round((presences[0] - presences[1]) * 10) / 10 : null,
+    sourceReviewPct,
+    sourceDependencyPct: observationTotal ? clampPct((topThreeObservations / observationTotal) * 100) : null,
+    recurringSourcePct: sources.length ? clampPct((sources.filter((source) => source.evidenceCount > 1).length / sources.length) * 100) : null,
+    evidenceObservations: observationTotal,
+    decisionReadiness: rows.length >= 2 && providerCount >= 2 && (sourceReviewPct ?? 0) >= 80 && (expectedAnswers ? latest.answer_count / expectedAnswers >= .9 : false) ? "ready" : rows.length && latest.answer_count ? "directional" : "insufficient",
+  };
+  return { ...signalBase, actions: buildDecisionActions(signalBase) };
 }

@@ -12,7 +12,7 @@ test("production public and workspace routes exist", async () => {
     "app/product/page.tsx", "app/about/page.tsx", "app/teardowns/page.tsx", "app/contact/page.tsx", "app/monitoring-vs-execution/page.tsx",
     "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/not-found.tsx", "app/error.tsx",
     "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/runs/[id]/page.tsx", "app/app/sources/[id]/page.tsx",
-    "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
+    "app/app/decision-lab/page.tsx", "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
     "app/api/onboarding/route.ts", "app/api/prompts/route.ts", "app/api/evidence/route.ts", "app/api/runs/[id]/review/route.ts", "app/api/sources/[id]/review/route.ts",
   ];
   await Promise.all(routes.map(exists));
@@ -101,6 +101,23 @@ test("source review converts citation candidates into audited customer decisions
   assert.match(route, /after_state/);
   assert.match(map, /Review completion/);
   assert.match(map, /Evidence concentration/);
+});
+
+test("Decision Lab gates action on evidence reliability instead of a magic score", async () => {
+  const [page, data, shell] = await Promise.all([
+    text("app/app/decision-lab/page.tsx"),
+    text("lib/data.ts"),
+    text("components/app-shell.tsx"),
+  ]);
+  assert.match(page, /Decision Lab/);
+  assert.match(page, /Collection coverage/);
+  assert.match(page, /Provider agreement/);
+  assert.match(page, /Source concentration/);
+  assert.match(page, /No composite score hides missing evidence/);
+  assert.match(data, /loadDecisionSignal/);
+  assert.match(data, /review_status=eq\.verified/);
+  assert.match(data, /decisionReadiness/);
+  assert.match(shell, /\/app\/decision-lab/);
 });
 
 test("SEO, social preview, and accessibility states are bundled", async () => {

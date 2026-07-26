@@ -1,7 +1,40 @@
+import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
 
-export const metadata = { title: "Terms" };
+export const metadata: Metadata = {
+  title: "Terms",
+  description: "The operating terms, customer responsibilities, evidence limits, and subscription boundaries for Foremention.",
+};
 
 export default function TermsPage() {
-  return <PublicShell><section className="page-hero"><div className="shell narrow-heading"><span className="eyebrow">Legal-review template · updated July 24, 2026</span><h1>Terms</h1><p>The operating boundaries for the Foremention recommendation intelligence platform.</p></div></section><article className="legal-copy shell"><div className="legal-warning"><strong>Founder action required</strong><p>This is a clearly labeled template, not final counsel-approved terms. Add the operating legal entity and jurisdiction before accepting paid production users.</p></div><h2>Platform access</h2><p>Foremention provides subscription software for collecting approved buyer questions, recording AI-answer observations, mapping public sources, organizing evidence, and monitoring change. Plan limits, supported providers, retention, and available features may vary by subscription.</p><h2>No outcome guarantee</h2><p>Foremention does not guarantee publisher acceptance, placement, indexing, AI citation, recommendation position, traffic, pipeline, or revenue. The product records observations and supports customer decisions; independent providers and publishers control their own systems.</p><h2>Customer responsibilities</h2><p>Customers must provide accurate information, substantiated claims, authorized access, and lawful inputs. The platform may not be used for fabricated reviews, undisclosed promotion, harassment, unlawful scraping, or misleading representations.</p><h2>Data and access</h2><p>Customers retain ownership of their submitted data. Foremention receives limited permission to process it to operate, secure, support, and improve the platform. Customers are responsible for account security and least-privilege integration access.</p><h2>Subscriptions and termination</h2><p>Billing cadence, renewals, cancellation, refunds, exports, and deletion periods must be displayed during checkout and in the applicable order confirmation. Questions may be sent to <a href="mailto:hello@foremention.com">hello@foremention.com</a>.</p></article></PublicShell>;
+  return <PublicShell>
+    <section className="page-hero"><div className="shell narrow-heading"><span className="eyebrow">Effective July 27, 2026</span><h1>Terms</h1><p>These terms set the operating boundaries for using the Foremention recommendation intelligence platform.</p></div></section>
+    <article className="legal-copy shell">
+      <div className="legal-summary"><strong>Plain-language summary</strong><p>Foremention provides evidence and workflow software. Customers control their questions, claims, integrations, and actions. Independent AI systems and publishers control their own outputs and decisions.</p></div>
+      <h2>Agreement and account authority</h2>
+      <p>By creating or using an account, you confirm that you can accept these terms for yourself or the organization you represent. You are responsible for accurate registration information, authorized users, and account security.</p>
+      <h2>Platform access</h2>
+      <p>Foremention provides subscription software for defining buyer questions, collecting connected AI-provider observations, reviewing answers, mapping public sources, evaluating reliability, organizing evidence, and tracking actions. Available features, providers, capacity, retention, and support may vary by plan or order form.</p>
+      <h2>Evidence and outcome limits</h2>
+      <p>AI answers are variable, probabilistic observations. Foremention does not guarantee publisher acceptance, placement, indexing, recommendation, citation, rank, traffic, leads, pipeline, or revenue. Metrics describe reviewed records within their stated collection boundary.</p>
+      <h2>Acceptable use</h2>
+      <p>You may not use the service for unlawful access, fabricated reviews, false identities, undisclosed promotion, harassment, malware, unreasonable automated requests, intellectual-property infringement, deceptive claims, or interference with another system or user.</p>
+      <h2>Customer data and permissions</h2>
+      <p>You retain rights in data you submit. You give Foremention the limited permission needed to host, process, secure, transmit, and display that data to operate and support the service. You confirm that you have authority for submitted content, connected accounts, credentials, and external claims.</p>
+      <h2>Third-party services</h2>
+      <p>AI providers, publishers, databases, email services, analytics systems, and payment processors are independent services. Their availability, terms, models, access rules, and outputs may change. Foremention is not responsible for a third party&apos;s independent decision or outage.</p>
+      <h2>Plans, billing, and changes</h2>
+      <p>Price, currency, billing cadence, included capacity, renewal, cancellation, and any refund terms are shown during paid activation or in an order form. Creating a workspace alone does not charge a card. Material plan changes will be communicated before they take effect.</p>
+      <h2>Suspension and termination</h2>
+      <p>Access may be limited or suspended to protect the service, investigate misuse, comply with law, address nonpayment, or prevent harm. You may stop using the service and request account closure. Export and deletion windows may depend on plan, security, backup, and legal obligations.</p>
+      <h2>Ownership</h2>
+      <p>Foremention and its licensors retain rights in the platform, software, product design, documentation, and aggregated or de-identified learnings. These terms do not transfer ownership of customer data or third-party materials.</p>
+      <h2>Service changes and availability</h2>
+      <p>The service will evolve, and no uninterrupted or error-free operation is promised. Foremention will use reasonable care to protect customer records and communicate material changes, but early or unconnected features may remain unavailable until their stated dependencies are active.</p>
+      <h2>Order of documents</h2>
+      <p>If a signed order form or written enterprise agreement conflicts with these terms, that signed document controls for the conflicting subject. Additional legal-entity, tax, or jurisdiction details may be stated in the applicable order form.</p>
+      <h2>Contact</h2>
+      <p>Questions about these terms may be sent to <a href="mailto:hello@foremention.com">hello@foremention.com</a>.</p>
+    </article>
+  </PublicShell>;
 }

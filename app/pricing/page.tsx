@@ -5,71 +5,73 @@ import { PublicShell } from "@/components/public-shell";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Straightforward platform plans for teams building durable AI recommendation intelligence.",
+  description: "Foremention plans for recurring AI recommendation monitoring, source intelligence, evidence review, and decision reliability.",
 };
 
 const plans = [
   {
     name: "Core",
     price: "$149",
-    label: "Build the baseline",
-    summary: "A focused operating view for one category and the questions buyers ask before choosing.",
-    items: ["One brand workspace", "Up to 25 buyer questions", "Monthly collection cadence", "Source Map and evidence history", "Workspace exports"],
-    cta: "Explore Core",
+    label: "Establish the baseline",
+    summary: "For one team building a defensible view of how its category appears in AI answers.",
+    items: ["One brand and category", "Up to 25 buyer questions", "Monthly reviewed collection", "Source Map and evidence history", "Decision Lab reliability checks", "CSV workspace exports"],
+    cta: "Create Core workspace",
     href: "/signup",
   },
   {
     name: "Signal",
     price: "$499",
-    label: "Turn movement into decisions",
+    label: "Make movement actionable",
     lead: true,
-    summary: "For teams that need a dependable weekly read on competitors, sources, and changes.",
-    items: ["Up to three brand workspaces", "Up to 100 buyer questions", "Weekly collection cadence", "Source movement alerts", "Team access and integrations"],
-    cta: "Explore Signal",
+    summary: "For growth teams that need weekly competitive evidence and a controlled path from signal to action.",
+    items: ["Up to three brand workspaces", "Up to 100 buyer questions", "Weekly reviewed collection", "Cross-provider agreement analysis", "Source movement and priority gaps", "Team workflow and integrations"],
+    cta: "Create Signal workspace",
     href: "/signup",
   },
   {
-    name: "Scale",
+    name: "Intelligence",
     price: "Custom",
-    label: "Grow with your category",
-    summary: "Portfolio-wide monitoring and a tailored data layer as your intelligence operation expands.",
-    items: ["Multi-brand portfolio", "Daily collection options", "Longer evidence retention", "API and webhooks", "Custom capacity planning"],
-    cta: "Discuss Scale",
+    label: "Operate across a portfolio",
+    summary: "For multi-brand or high-volume teams that need a tailored evidence and data layer.",
+    items: ["Multi-brand portfolio", "Custom question and run capacity", "Longer evidence retention", "API, webhooks, and exports", "Access controls and onboarding", "Custom measurement design"],
+    cta: "Discuss Intelligence",
     href: "/contact",
   },
 ];
 
+const shared = [
+  ["Dated answer records", "Keep the question, provider, model label, response, citations, and review state together."],
+  ["No hidden composite score", "See the evidence checks separately so missing coverage cannot be disguised by an average."],
+  ["Customer-owned workflow", "Your team creates questions, reviews runs, inspects sources, and controls actions inside the workspace."],
+];
+
 export default function PricingPage() {
-  return (
-    <PublicShell>
-      <section className="page-hero">
-        <div className="shell narrow-heading">
-          <span className="eyebrow">Platform pricing</span>
-          <h1>Start with a category. Scale the intelligence layer when it proves useful.</h1>
-          <p>Every plan is software your team operates: buyer questions, observed answers, source evidence, competitor context, and movement over time.</p>
-        </div>
-      </section>
-      <section className="section section--paper">
-        <div className="shell pricing-grid">
-          {plans.map((plan) => (
-            <article className={`pricing-card${plan.lead ? " pricing-card--lead" : ""}`} key={plan.name}>
-              <span className="pricing-label">{plan.label}</span>
-              <h2>{plan.name}</h2>
-              <div className="price">
-                <strong>{plan.price}</strong>
-                {plan.price !== "Custom" && <span>/ month</span>}
-              </div>
-              <p className="pricing-summary">{plan.summary}</p>
-              <ul>{plan.items.map((item) => <li key={item}>{item}</li>)}</ul>
-              <Link className={`button ${plan.lead ? "button--ink" : "button--outline"}`} href={plan.href}>{plan.cta} <Arrow /></Link>
-            </article>
-          ))}
-        </div>
-        <div className="shell pricing-truth">
-          <strong>Clear by design</strong>
-          <p>Foremention is priced for collection capacity and software access—not promised placement, ranking, citation, traffic, or revenue. Plan capacity is always visible before it changes.</p>
-        </div>
-      </section>
-    </PublicShell>
-  );
+  return <PublicShell>
+    <section className="page-hero">
+      <div className="shell narrow-heading">
+        <span className="eyebrow">Platform pricing</span>
+        <h1>Pay for a repeatable intelligence system—not a one-off audit.</h1>
+        <p>Plans scale with brands, buyer questions, collection frequency, evidence history, and team workflow. Outcomes such as ranking, citation, traffic, or revenue are never sold as guarantees.</p>
+      </div>
+    </section>
+    <section className="section section--paper">
+      <div className="shell pricing-grid">
+        {plans.map((plan) => <article className={`pricing-card${plan.lead ? " pricing-card--lead" : ""}`} key={plan.name}>
+          <span className="pricing-label">{plan.label}</span>
+          <h2>{plan.name}</h2>
+          <div className="price"><strong>{plan.price}</strong>{plan.price !== "Custom" && <span>/ month</span>}</div>
+          <p className="pricing-summary">{plan.summary}</p>
+          <ul>{plan.items.map((item) => <li key={item}>{item}</li>)}</ul>
+          <Link className={`button ${plan.lead ? "button--ink" : "button--outline"}`} href={plan.href}>{plan.cta} <Arrow /></Link>
+        </article>)}
+      </div>
+      <div className="shell pricing-activation">
+        <strong>Commercial activation is explicit.</strong>
+        <p>Creating a workspace does not charge a card. Provider capacity, collection frequency, and billing are confirmed before paid activation; features that need a live integration remain labelled until connected.</p>
+      </div>
+    </section>
+    <section className="section section--yellow">
+      <div className="shell"><div className="platform-heading"><span className="eyebrow">Included by design</span><h2>Evidence customers can challenge.</h2></div><div className="pricing-shared">{shared.map(([title, body], index) => <article key={title}><span>{String(index + 1).padStart(2, "0")}</span><h3>{title}</h3><p>{body}</p></article>)}</div></div>
+    </section>
+  </PublicShell>;
 }

@@ -1,13 +1,29 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
 
-export const metadata: Metadata = { title: "Honesty clause", description: "The limits and exclusions behind Foremention's recommendation intelligence platform." };
+export const metadata: Metadata = {
+  title: "Standards",
+  description: "The evidence, review, ethics, and outcome standards behind the Foremention recommendation intelligence platform.",
+};
+
+const standards = [
+  ["01", "Outcomes are not for sale", "Foremention does not guarantee placement, ranking, recommendation, citation, traffic, pipeline, revenue, or editorial acceptance."],
+  ["02", "AI answers are observations", "An answer is tied to a question, provider, visible model label, collection time, and available context. It is not a permanent statement of truth."],
+  ["03", "Review precedes reporting", "Unreviewed answers and failed provider attempts do not enter approved customer metrics. Missing data remains visible."],
+  ["04", "Stability must be earned", "A single run cannot establish a trend. Cross-provider agreement and repeat observations are shown before the product calls a signal decision-ready."],
+  ["05", "Facts and judgments stay separate", "Counts and dated observations are not mixed with analyst judgments such as influence, feasibility, relevance, or priority."],
+  ["06", "No synthetic authority", "No fake reviews, false identities, fabricated experts, undisclosed promotion, link schemes, or paid coverage presented as independent editorial evidence."],
+  ["07", "Customers control material claims", "Quotes, product claims, research inputs, and external submissions need accurate customer information and a recorded approval path."],
+  ["08", "Attribution has confidence labels", "Referral or revenue impact appears only when connected data exists, and verified, assisted, inferred, and unknown attribution remain distinct."],
+  ["09", "Independent systems change", "AI providers, publishers, search systems, and review sites can change access, rules, models, and outputs without notice."],
+];
 
 export default function HonestyPage() {
-  return (
-    <PublicShell>
-      <section className="page-hero page-hero--yellow"><div className="shell narrow-heading"><span className="eyebrow">Product standards</span><h1>Useful data, without invented certainty.</h1><p>Foremention is designed to help teams make decisions from dated evidence—not to promise outcomes that nobody can control.</p></div></section>
-      <section className="section section--paper"><div className="shell honesty-intro"><span>How the platform behaves</span><p>Every score, source, and recommendation should have a clear origin, a timestamp, and a visible limit.</p></div><div className="shell honesty-grid"><article><span>01</span><h2>Outcomes are not for sale</h2><p>We do not guarantee rankings, citations, traffic, leads, revenue, editorial acceptance, or AI model behavior.</p></article><article><span>02</span><h2>Evidence is time-bound</h2><p>AI answers vary and sources change. Observations are tied to a question, provider, model label, geography, and collection time.</p></article><article><span>03</span><h2>Absence is a valid result</h2><p>If a brand is not present, a source is inaccessible, or evidence is thin, the platform shows that directly.</p></article><article><span>04</span><h2>Measured facts stay separate</h2><p>Source counts and brand presence are not mixed with product judgments such as fit, influence, or feasibility.</p></article><article><span>05</span><h2>No synthetic authority</h2><p>No fake reviews, undisclosed promotion, fabricated experts, or paid placement presented as independent evidence.</p></article><article><span>06</span><h2>Customers own their claims</h2><p>Any material input, quote, or external claim needs accurate customer information and a recorded approval path.</p></article><article><span>07</span><h2>Independent systems change</h2><p>AI providers, publishers, review sites, and search systems can change their rules, access, and outputs without notice.</p></article><article><span>08</span><h2>Ask how it was formed</h2><p>For a collection or scoring question, contact <a href="mailto:hello@foremention.com">hello@foremention.com</a>.</p></article></div></section>
-    </PublicShell>
-  );
+  return <PublicShell>
+    <section className="page-hero page-hero--yellow"><div className="shell narrow-heading"><span className="eyebrow">Product standards</span><h1>Useful evidence, without invented certainty.</h1><p>Foremention is designed to help teams make better decisions from dated, reviewable records—not to promise outcomes that nobody can control.</p></div></section>
+    <section className="section section--paper">
+      <div className="shell honesty-intro"><span>How the platform behaves</span><p>Every metric should have a clear origin, a review state, a timestamp, and a visible limit.</p></div>
+      <div className="shell honesty-grid">{standards.map(([number, title, body]) => <article key={number}><span>{number}</span><h2>{title}</h2><p>{body}</p></article>)}<article><span>10</span><h2>Questions are welcome</h2><p>Ask how a collection, score, or recommendation was formed at <a href="mailto:hello@foremention.com">hello@foremention.com</a>.</p></article></div>
+    </section>
+  </PublicShell>;
 }
