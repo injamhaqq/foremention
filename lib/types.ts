@@ -9,18 +9,19 @@ export type EntryRoute =
 
 export type SourceMapEntry = {
   id: string;
+  sourceId?: string;
   rank: number;
   domain: string;
   title: string;
   url: string;
   type: string;
-  influence: "high" | "medium" | "emerging";
+  influence: "high" | "medium" | "low" | "emerging";
   engines: Engine[];
   clientPresent: boolean;
   competitors: string[];
-  crawlerAccess: "open" | "partial" | "blocked";
+  crawlerAccess: "open" | "partial" | "blocked" | "unknown";
   route: EntryRoute;
-  feasibility: "high" | "medium" | "low";
+  feasibility: "high" | "medium" | "low" | "unknown";
   evidenceCount: number;
 };
 

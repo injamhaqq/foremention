@@ -11,9 +11,9 @@ test("production public and workspace routes exist", async () => {
     "app/source-map/page.tsx", "app/sample-report/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx",
     "app/product/page.tsx", "app/about/page.tsx", "app/teardowns/page.tsx", "app/contact/page.tsx", "app/monitoring-vs-execution/page.tsx",
     "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/not-found.tsx", "app/error.tsx",
-    "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/sources/[id]/page.tsx",
+    "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/runs/[id]/page.tsx", "app/app/sources/[id]/page.tsx",
     "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
-    "app/api/onboarding/route.ts",
+    "app/api/onboarding/route.ts", "app/api/prompts/route.ts", "app/api/evidence/route.ts", "app/api/runs/[id]/review/route.ts",
   ];
   await Promise.all(routes.map(exists));
 });
@@ -63,6 +63,24 @@ test("onboarding writes the first organization and prompt baseline transactional
   assert.match(route, /rpc\/complete_onboarding/);
   assert.match(migration, /function public\.complete_onboarding/);
   assert.match(migration, /onboarding\.completed/);
+});
+
+test("the paying workspace keeps customer data truthful and server-scoped", async () => {
+  const [overview, analytics, sourceMap, runRoute, reviewRoute] = await Promise.all([
+    text("app/app/page.tsx"),
+    text("app/app/analytics/page.tsx"),
+    text("app/app/source-map/page.tsx"),
+    text("app/api/runs/route.ts"),
+    text("app/api/runs/[id]/review/route.ts"),
+  ]);
+  assert.match(overview, /Workspace readiness/);
+  assert.match(overview, /No approved runs/);
+  assert.match(analytics, /never substitute demo values for customer data/i);
+  assert.match(sourceMap, /page-level brand presence stays unreviewed/i);
+  assert.match(runRoute, /loadWorkspaceContext/);
+  assert.doesNotMatch(runRoute, /body\.organizationId/);
+  assert.match(reviewRoute, /review_status/);
+  assert.match(reviewRoute, /published/);
 });
 
 test("SEO, social preview, and accessibility states are bundled", async () => {

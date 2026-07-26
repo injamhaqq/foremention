@@ -26,7 +26,8 @@ test("usage controls are explicit and enforced by the run path", async () => {
   assert.match(limits, /runUnitsPerMonth: 20/);
   assert.match(limits, /buyerQuestions: 10/);
   assert.match(route, /reserve_run_quota/);
-  assert.match(route, /organizationId !== body\.organizationId/);
+  assert.match(route, /loadWorkspaceContext/);
+  assert.doesNotMatch(route, /body\.organizationId/);
   assert.match(migration, /create table public\.usage_events/i);
   assert.match(migration, /reserve_run_quota/i);
 });
@@ -63,5 +64,5 @@ test("auth, provider adapters, and background run route are present", async () =
   assert.match(job, /run-multi-engine-scan/);
   assert.match(job, /failures/);
   assert.match(route, /foremention\/run\.requested/);
-  assert.match(route, /1–100 prompts/);
+  assert.match(route, /Select between 1 and 10 active buyer questions/);
 });
