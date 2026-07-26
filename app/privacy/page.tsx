@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Privacy",
-  description: "How Foremention collects, uses, protects, retains, and removes account, workspace, integration, and public-source data.",
-};
+  description: "How Foremention collects, uses, protects, retains, and removes account, workspace, integration, public-source, analytics, and support data.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return <PublicShell>
@@ -19,6 +21,8 @@ export default function PrivacyPage() {
       <p>Data is used to authenticate users, operate customer-requested collection, maintain evidence history, generate workspace recommendations, secure and troubleshoot the service, provide support, enforce plan capacity, and improve product reliability.</p>
       <h2>Service providers and integrations</h2>
       <p>Foremention may rely on infrastructure, database, email, analytics, error-monitoring, payment, and AI providers. A feature that requires a provider or customer integration remains labelled until that connection is active. Providers process data under their own terms as applicable.</p>
+      <h2>Website measurement</h2>
+      <p>The public website does not currently load a Google Analytics or Google Tag Manager identifier. If non-essential measurement is enabled later, this notice and the consent experience will be updated before that collection is treated as active.</p>
       <h2>Public-source research</h2>
       <p>Foremention can record public AI answers and public webpages as dated observations. Public availability does not remove access controls, contractual restrictions, robots directives, intellectual-property rights, or reasonable request limits.</p>
       <h2>Security and access</h2>

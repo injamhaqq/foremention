@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Pricing",
-  description: "Foremention plans for recurring AI recommendation monitoring, source intelligence, evidence review, and decision reliability.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "AI Visibility Platform Pricing",
+  description: "Compare Foremention Core, Signal, and Intelligence plans for AI answer monitoring, Source Maps, evidence review, reliability checks, and team workflows.",
+  path: "/pricing",
+});
 
 const plans = [
   {

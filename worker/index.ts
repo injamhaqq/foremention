@@ -144,7 +144,7 @@ const worker = {
 // Monitoring stays inactive until SENTRY_DSN is configured as an encrypted
 // host secret. This also instruments unhandled Worker errors and D1 spans.
 export default Sentry.withSentry(
-  (env: Env) => env.SENTRY_DSN ? {
+  (env?: Env) => env?.SENTRY_DSN ? {
     dsn: env.SENTRY_DSN,
     environment: env.SENTRY_ENVIRONMENT || "production",
     tracesSampleRate: 0.05,

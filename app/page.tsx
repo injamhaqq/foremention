@@ -1,7 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { MissingAnswerExperience, SourceXRayExperience } from "@/components/goat-home-experience";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "AI Visibility and Recommendation Intelligence Platform",
+  description:
+    "Track buyer questions, AI answer visibility, exact source pages, competitor presence, evidence reliability, and change over time in one customer-operated platform.",
+  path: "/",
+});
 
 const faq = [
   { q: "What does Foremention do?", a: "Foremention turns the buyer questions that matter in your category into a dated record of AI answers, named brands, source pages, and movement over time." },

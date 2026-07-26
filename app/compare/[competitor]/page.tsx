@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
 
 const comparisons = {
   "monitoring-tools": { label: "AI monitoring tools", intro: "Monitoring tools tell you where a brand appeared. Foremention connects that observation to the outside pages that shaped the answer and a customer-owned action workflow.", rows: [["Buyer-question monitoring", "Core", "Included"], ["Third-party URL map", "Often a report or export", "Core Source Map"], ["Entry-route feasibility", "Usually recommendations", "Structured workflow"], ["Evidence and action workspace", "Usually limited", "Included"], ["Outcome guarantees", "No", "No"]] },
@@ -14,7 +15,11 @@ export function generateStaticParams() { return Object.keys(comparisons).map((co
 
 export async function generateMetadata({ params }: { params: Promise<{ competitor: string }> }): Promise<Metadata> {
   const { competitor } = await params; const item = comparisons[competitor as keyof typeof comparisons];
-  return item ? { title: `Foremention vs ${item.label}` } : {};
+  return item ? pageMetadata({
+    title: `Foremention vs ${item.label}`,
+    description: item.intro,
+    path: `/compare/${competitor}`,
+  }) : {};
 }
 
 export default async function ComparePage({ params }: { params: Promise<{ competitor: string }> }) {

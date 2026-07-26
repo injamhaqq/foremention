@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Terms",
-  description: "The operating terms, customer responsibilities, evidence limits, and subscription boundaries for Foremention.",
-};
+  description: "The Foremention platform terms covering accounts, customer responsibilities, AI evidence limits, integrations, subscriptions, acceptable use, and external systems.",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return <PublicShell>

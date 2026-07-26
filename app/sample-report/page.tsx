@@ -2,8 +2,14 @@ import Link from "next/link";
 import { Arrow, StatusDot } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
 import { sourceMapEntries } from "@/lib/demo-data";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Sample Category Leadership Audit" };
+export const metadata = pageMetadata({
+  title: "Fictional Product Report Sample",
+  description: "A clearly fictional demonstration of Foremention report structure. No company, source, observation, or outcome on this page is real.",
+  path: "/sample-report",
+  noIndex: true,
+});
 
 export default function SampleReportPage() {
   const gaps = sourceMapEntries.filter((source) => !source.clientPresent);

@@ -3,8 +3,9 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { SourceXRayExperience } from "@/components/goat-home-experience";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Platform", description: "Recommendation intelligence that connects buyer questions, AI answers, sources, brands, and movement over time." };
+export const metadata: Metadata = pageMetadata({ title: "AI Visibility Platform with Source Intelligence", description: "Explore Foremention Source X-Ray, Source Map, Decision Lab, evidence review, buyer-question monitoring, and action tracking.", path: "/product" });
 
 const systems = [
   ["01", "Source X-Ray", "Connects an answer record to the outside pages and brands that help explain it."],

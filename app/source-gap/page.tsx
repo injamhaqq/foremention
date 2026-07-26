@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
 import { SourceGapForm } from "@/components/source-gap-form";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Free Source Gap Check", description: "See which third-party pages shape AI answers in your category." };
+export const metadata: Metadata = pageMetadata({ title: "Free AI Search Source Gap Check", description: "Submit your company and category for a source-gap review of the third-party pages that may shape AI answers and competitor shortlists.", path: "/source-gap" });
 
 export default function SourceGapPage() {
   return (

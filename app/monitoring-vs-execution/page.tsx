@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Monitoring vs intelligence", description: "How Foremention turns AI monitoring data into a customer-operated recommendation intelligence workflow." };
+export const metadata: Metadata = pageMetadata({ title: "AI Visibility Monitoring vs Source Intelligence", description: "Compare basic AI mention monitoring with Foremention source mapping, evidence review, reliability checks, customer-owned actions, and dated change tracking.", path: "/monitoring-vs-execution" });
 
 const rows = [
   ["Buyer-question and mention tracking", "Yes", "Yes"],

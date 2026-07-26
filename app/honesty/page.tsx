@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Standards",
-  description: "The evidence, review, ethics, and outcome standards behind the Foremention recommendation intelligence platform.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "AI Visibility Evidence and Ethics Standards",
+  description: "The evidence, stability, review, attribution, crawler, and ethical-promotion standards behind the Foremention recommendation intelligence platform.",
+  path: "/honesty",
+});
 
 const standards = [
   ["01", "Outcomes are not for sale", "Foremention does not guarantee placement, ranking, recommendation, citation, traffic, pipeline, revenue, or editorial acceptance."],

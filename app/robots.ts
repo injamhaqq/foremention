@@ -1,6 +1,14 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://foremention.com";
-  return { rules: [{ userAgent: "*", allow: "/", disallow: ["/app/", "/api/"] }], sitemap: `${base}/sitemap.xml` };
+  const privatePaths = ["/app/", "/api/"];
+  return {
+    rules: [
+      { userAgent: "*", allow: "/", disallow: privatePaths },
+      { userAgent: "OAI-SearchBot", allow: "/", disallow: privatePaths },
+    ],
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
+  };
 }

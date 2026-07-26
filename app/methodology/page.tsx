@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Methodology",
-  description: "How Foremention collects AI answer evidence, resolves sources, checks reliability, and keeps observed facts separate from recommendations.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "AI Visibility Measurement Methodology",
+  description: "How Foremention defines buyer questions, collects AI answer evidence, reviews exact sources, checks reliability, tracks actions, and separates facts from judgment.",
+  path: "/methodology",
+});
 
 const steps = [
   ["01", "Define the decision boundary", "The customer fixes the category, buyer stage, geography, brands, and buyer questions before collection. A changed question becomes a new record instead of silently rewriting history."],

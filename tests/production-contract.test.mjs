@@ -10,6 +10,7 @@ test("production public and workspace routes exist", async () => {
   const routes = [
     "app/source-map/page.tsx", "app/sample-report/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx",
     "app/product/page.tsx", "app/about/page.tsx", "app/teardowns/page.tsx", "app/contact/page.tsx", "app/monitoring-vs-execution/page.tsx",
+    "app/insights/page.tsx", "app/insights/ai-visibility-measurement/page.tsx", "app/insights/seo-geo-technical-checklist/page.tsx",
     "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/not-found.tsx", "app/error.tsx",
     "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/runs/[id]/page.tsx", "app/app/sources/[id]/page.tsx",
     "app/app/decision-lab/page.tsx", "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
@@ -121,20 +122,54 @@ test("Decision Lab gates action on evidence reliability instead of a magic score
 });
 
 test("SEO, social preview, and accessibility states are bundled", async () => {
-  const [layout, css] = await Promise.all([text("app/layout.tsx"), text("app/globals.css")]);
+  const [layout, css, seo, sitemap, robots, sourceMap, sample] = await Promise.all([
+    text("app/layout.tsx"),
+    text("app/globals.css"),
+    text("lib/seo.ts"),
+    text("app/sitemap.ts"),
+    text("app/robots.ts"),
+    text("app/source-map/page.tsx"),
+    text("app/sample-report/page.tsx"),
+  ]);
   await exists("public/og.png");
   await exists("app/sitemap.ts");
   await exists("app/robots.ts");
   assert.match(layout, /SoftwareApplication/);
-  assert.match(layout, /og\.png/);
+  assert.match(layout, /SOCIAL_IMAGE/);
+  assert.match(seo, /og\.png/);
+  assert.match(seo, /https:\/\/foremention\.com/);
+  assert.match(seo, /alternates: \{ canonical \}/);
+  assert.doesNotMatch(sitemap, /localhost/);
+  assert.match(sitemap, /\/insights\/ai-visibility-measurement/);
+  assert.match(robots, /OAI-SearchBot/);
+  assert.doesNotMatch(robots, /localhost/);
+  assert.match(sourceMap, /not a fictional customer report/i);
+  assert.match(sourceMap, /LiveSiteAudit/);
+  assert.doesNotMatch(sourceMap, /Northstar HR/);
+  assert.match(sample, /noIndex: true/);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(css, /:focus-visible/);
+});
+
+test("public insight content is original, sourced, and avoids ranking guarantees", async () => {
+  const [hub, measurement, checklist] = await Promise.all([
+    text("app/insights/page.tsx"),
+    text("app/insights/ai-visibility-measurement/page.tsx"),
+    text("app/insights/seo-geo-technical-checklist/page.tsx"),
+  ]);
+  assert.match(hub, /AI visibility measurement/);
+  assert.match(measurement, /Five evidence layers/);
+  assert.match(measurement, /developers\.google\.com/);
+  assert.match(checklist, /OAI-SearchBot/);
+  assert.match(checklist, /help\.openai\.com/);
+  assert.match(checklist, /ranking cannot be guaranteed/);
 });
 
 test("error monitoring is optional, privacy-conscious, and configured outside source", async () => {
   const [worker, client, env] = await Promise.all([text("worker/index.ts"), text("components/sentry-client.tsx"), text(".env.example")]);
   assert.match(worker, /@sentry\/cloudflare/);
   assert.match(worker, /Sentry\.withSentry/);
+  assert.match(worker, /env\?\.SENTRY_DSN/);
   assert.match(worker, /sendDefaultPii: false/);
   assert.match(client, /@sentry\/react/);
   assert.match(client, /NEXT_PUBLIC_SENTRY_DSN/);
