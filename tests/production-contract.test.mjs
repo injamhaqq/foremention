@@ -13,7 +13,7 @@ test("production public and workspace routes exist", async () => {
     "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/not-found.tsx", "app/error.tsx",
     "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/runs/[id]/page.tsx", "app/app/sources/[id]/page.tsx",
     "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
-    "app/api/onboarding/route.ts", "app/api/prompts/route.ts", "app/api/evidence/route.ts", "app/api/runs/[id]/review/route.ts",
+    "app/api/onboarding/route.ts", "app/api/prompts/route.ts", "app/api/evidence/route.ts", "app/api/runs/[id]/review/route.ts", "app/api/sources/[id]/review/route.ts",
   ];
   await Promise.all(routes.map(exists));
 });
@@ -81,6 +81,26 @@ test("the paying workspace keeps customer data truthful and server-scoped", asyn
   assert.doesNotMatch(runRoute, /body\.organizationId/);
   assert.match(reviewRoute, /review_status/);
   assert.match(reviewRoute, /published/);
+});
+
+test("source review converts citation candidates into audited customer decisions", async () => {
+  const [record, form, route, map] = await Promise.all([
+    text("app/app/sources/[id]/page.tsx"),
+    text("components/source-review-form.tsx"),
+    text("app/api/sources/[id]/review/route.ts"),
+    text("app/app/source-map/page.tsx"),
+  ]);
+  assert.match(record, /SourceReviewForm/);
+  assert.match(form, /Crawler access/);
+  assert.match(form, /Our brand is present on this page/);
+  assert.match(form, /Review note/);
+  assert.match(route, /getPrimaryOrganizationId/);
+  assert.doesNotMatch(route, /body\.organizationId/);
+  assert.match(route, /source\.reviewed/);
+  assert.match(route, /before_state/);
+  assert.match(route, /after_state/);
+  assert.match(map, /Review completion/);
+  assert.match(map, /Evidence concentration/);
 });
 
 test("SEO, social preview, and accessibility states are bundled", async () => {

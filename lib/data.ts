@@ -8,7 +8,7 @@ type SourceEntryRow = {
   id: string; source_id: string; rank: number; citation_observations: number; engines: SourceMapEntry["engines"];
   client_present: boolean; competitors_present: string[]; entry_route: string | null;
   feasibility: SourceMapEntry["feasibility"]; influence: SourceMapEntry["influence"];
-  source: { domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_access: SourceMapEntry["crawlerAccess"] } | null;
+  source: { domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_access: SourceMapEntry["crawlerAccess"]; crawler_checked_at: string | null } | null;
 };
 type RunRow = { id: string; status: VisibilityRun["status"]; prompt_count: number; answer_count: number; citation_count: number; brand_presence_pct: number | string; first_mention_pct: number | string; new_source_count: number; created_at: string };
 type PlacementRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string; target_prompt_ids: string[]; owner_id: string | null };
@@ -63,8 +63,8 @@ export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
   const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
   const maps = await supabaseRest<Array<{ id: string }>>(`source_maps?select=id&organization_id=eq.${organizationId}&order=created_at.desc&limit=1`, { token: viewer.accessToken });
   if (!maps[0]) return [];
-  const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access)&source_map_id=eq.${maps[0].id}&order=rank.asc`, { token: viewer.accessToken });
-  return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence === "low" ? "emerging" : row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: route(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations }));
+  const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&order=rank.asc`, { token: viewer.accessToken });
+  return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence === "low" ? "emerging" : row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: route(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
 }
 
 export async function loadRuns(viewer: Viewer): Promise<VisibilityRun[]> {

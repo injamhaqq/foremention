@@ -23,6 +23,7 @@ export type SourceMapEntry = {
   route: EntryRoute;
   feasibility: "high" | "medium" | "low" | "unknown";
   evidenceCount: number;
+  reviewedAt?: string | null;
 };
 
 export type VisibilityRun = {
