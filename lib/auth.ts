@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { supabaseConfigured } from "@/lib/supabase-rest";
 
 export const SESSION_COOKIE = "foremention-session";
@@ -7,7 +8,7 @@ export const DEMO_COOKIE = "foremention-demo";
 
 export type Viewer = { id: string; email: string; name: string; mode: "demo" | "supabase"; accessToken?: string };
 
-export async function getViewer(): Promise<Viewer | null> {
+export const getViewer = cache(async function getViewer(): Promise<Viewer | null> {
   const store = await cookies();
   if (store.get(DEMO_COOKIE)?.value === "1") {
     return { id: "00000000-0000-4000-8000-000000000001", email: "demo@foremention.example", name: "Maya Chen", mode: "demo" };
@@ -25,7 +26,7 @@ export async function getViewer(): Promise<Viewer | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireViewer(returnTo = "/app") {
   const viewer = await getViewer();

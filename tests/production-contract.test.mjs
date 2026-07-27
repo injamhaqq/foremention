@@ -46,6 +46,24 @@ test("account recovery requires and confirms a new password", async () => {
   assert.match(fallback, /window\.location\.replace/);
 });
 
+test("verified authentication uses a deterministic cookie handoff and sends new customers to onboarding", async () => {
+  const [loginForm, callback, resetForm, overview, auth, data] = await Promise.all([
+    text("components/auth-form.tsx"),
+    text("components/auth-callback.tsx"),
+    text("components/set-password-form.tsx"),
+    text("app/app/page.tsx"),
+    text("lib/auth.ts"),
+    text("lib/data.ts"),
+  ]);
+  assert.match(loginForm, /window\.location\.assign/);
+  assert.match(loginForm, /onSubmit=\{submit\}/);
+  assert.match(callback, /window\.location\.replace/);
+  assert.match(resetForm, /window\.location\.replace/);
+  assert.match(overview, /redirect\("\/app\/onboarding"\)/);
+  assert.match(auth, /cache\(async function getViewer/);
+  assert.match(data, /getPrimaryOrganizationIdCached = cache/);
+});
+
 test("the selected Meridian OS Source Eclipse identity is preserved", async () => {
   const [brand, css, mergeRecord] = await Promise.all([text("components/brand.tsx"), text("app/globals.css"), text("docs/FIRST-WAVE-MERGE.md")]);
   assert.match(brand, /SourceEclipseMark/);

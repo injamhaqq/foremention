@@ -1,4 +1,5 @@
 import type { Viewer } from "@/lib/auth";
+import { cache } from "react";
 import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, Placement, SourceMapEntry, VisibilityRun } from "@/lib/types";
@@ -75,10 +76,14 @@ const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", { month: "
 const relativeLabel = (value: string) => dateLabel(value);
 const hostname = (value: string) => { try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return value; } };
 
+const getPrimaryOrganizationIdCached = cache(async (userId: string, accessToken: string) => {
+  const rows = await supabaseRest<MembershipRow[]>(`organization_members?select=organization_id&user_id=eq.${userId}&limit=1`, { token: accessToken });
+  return rows[0]?.organization_id || null;
+});
+
 export async function getPrimaryOrganizationId(viewer: Viewer) {
   if (viewer.mode === "demo") return "10000000-0000-4000-8000-000000000001";
-  const rows = await supabaseRest<MembershipRow[]>(`organization_members?select=organization_id&user_id=eq.${viewer.id}&limit=1`, { token: viewer.accessToken });
-  return rows[0]?.organization_id || null;
+  return getPrimaryOrganizationIdCached(viewer.id, viewer.accessToken || "");
 }
 
 export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {

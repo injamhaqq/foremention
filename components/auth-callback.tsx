@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Wordmark } from "@/components/brand";
 
 export function AuthCallback() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Verifying your email and opening your workspace…");
   const [failed, setFailed] = useState(false);
@@ -31,13 +30,14 @@ export function AuthCallback() {
     }).then(async (response) => {
       if (!response.ok) throw new Error((await response.json()).error || "The verification link could not be completed.");
       setMessage(isRecovery ? "Recovery link verified. Choose your new password…" : "Email verified. Opening your workspace…");
-      router.replace(next);
-      router.refresh();
+      // The callback has just written an HTTP-only cookie. A document
+      // navigation makes the cookie/session handoff deterministic.
+      window.location.replace(next);
     }).catch((error: Error) => {
       setMessage(error.message);
       setFailed(true);
     });
-  }, [router, searchParams]);
+  }, [searchParams]);
 
   return <main className="auth-page"><div className="auth-brand"><Wordmark /><div><span>One clear step.</span><span>One verified account.</span><span>One secure workspace.</span></div><Link href="/">← Back to site</Link></div><section className="auth-card auth-card--status"><span className="eyebrow">Account verification</span><h1>{failed ? "Let’s get you back in." : "Confirming your workspace."}</h1><p role="status" aria-live="polite">{message}</p>{failed && <div className="auth-status-actions"><Link className="button button--ink button--wide" href="/login">Go to sign in</Link><Link className="text-button" href="/forgot-password">Request a new link</Link></div>}</section></main>;
 }

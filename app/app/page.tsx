@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Arrow, StatusDot } from "@/components/brand";
 import { demoCompany, engineCoverage } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
@@ -6,8 +7,14 @@ import { getProviderStatuses, loadDecisionSignal, loadPlacements, loadPrompts, l
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
-  const [context, prompts, runs, sources, placements, decision] = await Promise.all([
-    loadWorkspaceContext(viewer),
+  const context = await loadWorkspaceContext(viewer);
+
+  // A confirmed customer without an organization has nothing useful to load
+  // on the dashboard yet. Send them directly to the first product step instead
+  // of issuing five empty workspace queries and presenting a stalled sign-in.
+  if (viewer.mode === "supabase" && !context) redirect("/app/onboarding");
+
+  const [prompts, runs, sources, placements, decision] = await Promise.all([
     loadPrompts(viewer),
     loadRuns(viewer),
     loadSourceMap(viewer),

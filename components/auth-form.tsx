@@ -1,16 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 export function AuthForm({ mode, next = "/app" }: { mode: "login" | "signup"; next?: string }) {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  async function submit(formData: FormData) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
     setError("");
     setNotice("");
 
@@ -37,8 +37,10 @@ export function AuthForm({ mode, next = "/app" }: { mode: "login" | "signup"; ne
         setNotice(data.message || "Check your inbox to confirm your account.");
         return;
       }
-      router.push(next.startsWith("/") ? next : "/app");
-      router.refresh();
+      // Use a full navigation after the server sets the HTTP-only session
+      // cookie. This guarantees that the first protected request includes the
+      // new cookie instead of racing a client-router refresh.
+      window.location.assign(next.startsWith("/") ? next : "/app");
     } catch {
       setError("The connection failed. Please try again.");
     } finally {
@@ -75,7 +77,7 @@ export function AuthForm({ mode, next = "/app" }: { mode: "login" | "signup"; ne
             : "Start with your category, then connect buyer questions, answer evidence, sources, competitors, and change over time."}
         </p>
       </div>
-      <form action={submit}>
+      <form onSubmit={submit}>
         {!isLogin && <label>Full name<input name="full_name" required autoComplete="name" placeholder="Your name" /></label>}
         <label>Work email<input type="email" name="email" required autoComplete="email" placeholder="you@company.com" /></label>
         <label>
