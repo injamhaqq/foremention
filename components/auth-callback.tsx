@@ -16,9 +16,10 @@ export function AuthCallback() {
     const token = hash.get("access_token");
     const isRecovery = hash.get("type") === "recovery" || searchParams.get("type") === "recovery";
     const next = isRecovery ? "/reset-password" : (searchParams.get("next")?.startsWith("/") ? searchParams.get("next")! : "/app");
+    const authError = hash.get("error_description") || hash.get("error") || searchParams.get("error_description");
     if (!token) {
       const timeout = window.setTimeout(() => {
-        setMessage("This confirmation link is incomplete or has expired. Please sign in or request another email.");
+        setMessage(authError ? decodeURIComponent(authError.replace(/\+/g, " ")) : "This confirmation link is incomplete or has expired. Please sign in or request another email.");
         setFailed(true);
       }, 0);
       return () => window.clearTimeout(timeout);

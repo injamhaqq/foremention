@@ -20,12 +20,30 @@ test("production public and workspace routes exist", async () => {
 });
 
 test("account recovery requires and confirms a new password", async () => {
-  const [callback, form, route] = await Promise.all([text("components/auth-callback.tsx"), text("components/set-password-form.tsx"), text("app/api/auth/password/route.ts")]);
+  const [callback, form, route, recovery, signup, authForm, layout, fallback] = await Promise.all([
+    text("components/auth-callback.tsx"),
+    text("components/set-password-form.tsx"),
+    text("app/api/auth/password/route.ts"),
+    text("app/api/auth/forgot-password/route.ts"),
+    text("app/api/auth/signup/route.ts"),
+    text("components/auth-form.tsx"),
+    text("app/layout.tsx"),
+    text("components/auth-hash-redirect.tsx"),
+  ]);
   assert.match(callback, /recovery/);
   assert.match(callback, /reset-password/);
   assert.match(form, /Confirm new password/);
   assert.match(form, /password !== confirmation/);
   assert.match(route, /auth\/v1\/user/);
+  assert.match(authForm, /Confirm password/);
+  assert.match(authForm, /password !== confirmation/);
+  assert.match(signup, /password !== confirmation/);
+  assert.match(signup, /email_redirect_to: `\$\{origin\}\/auth\/callback`/);
+  assert.match(recovery, /redirect_to=.*auth\/callback/);
+  assert.doesNotMatch(recovery, /auth\/callback\?next=/);
+  assert.match(layout, /AuthHashRedirect/);
+  assert.match(fallback, /access_token/);
+  assert.match(fallback, /window\.location\.replace/);
 });
 
 test("the selected Meridian OS Source Eclipse identity is preserved", async () => {
@@ -163,6 +181,20 @@ test("public insight content is original, sourced, and avoids ranking guarantees
   assert.match(checklist, /OAI-SearchBot/);
   assert.match(checklist, /help\.openai\.com/);
   assert.match(checklist, /ranking cannot be guaranteed/);
+});
+
+test("the public Source Map uses inspectable real-company evidence without inventing AI citations", async () => {
+  const [page, market] = await Promise.all([
+    text("app/source-map/page.tsx"),
+    text("lib/market-evidence-data.ts"),
+  ]);
+  for (const company of ["Profound", "Scrunch", "Peec AI", "OtterlyAI"]) {
+    assert.match(market, new RegExp(company));
+  }
+  assert.match(page, /Real-company market evidence/);
+  assert.match(page, /not that an AI engine cited the/i);
+  assert.match(market, /first-party product evidence/i);
+  assert.doesNotMatch(market, /evidenceCount/);
 });
 
 test("error monitoring is optional, privacy-conscious, and configured outside source", async () => {

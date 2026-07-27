@@ -4,9 +4,14 @@ import { supabaseAuth } from "@/lib/supabase-rest";
 
 export async function POST(request: Request) {
   try {
-    const { email, password, full_name } = (await request.json()) as { email?: string; password?: string; full_name?: string };
-    if (!email || !password || !full_name) return NextResponse.json({ error: "Name, email, and password are required." }, { status: 400 });
-    const origin = new URL(request.url).origin;
+    const { email, password, confirmation, full_name } = (await request.json()) as { email?: string; password?: string; confirmation?: string; full_name?: string };
+    if (!email || !password || !confirmation || !full_name) return NextResponse.json({ error: "Name, email, password, and password confirmation are required." }, { status: 400 });
+    if (password.length < 8) return NextResponse.json({ error: "Use a password with at least 8 characters." }, { status: 400 });
+    if (password !== confirmation) return NextResponse.json({ error: "The two passwords do not match." }, { status: 400 });
+    const incomingOrigin = new URL(request.url).origin;
+    const origin = /localhost|127\.0\.0\.1|\[::1\]/.test(incomingOrigin)
+      ? incomingOrigin
+      : (process.env.NEXT_PUBLIC_SITE_URL || incomingOrigin).replace(/\/$/, "");
     // This route calls the GoTrue REST endpoint directly, rather than the
     // Supabase JavaScript client. Its field names are snake_case. Sending the
     // client-library `options.emailRedirectTo` shape silently falls back to
@@ -16,7 +21,7 @@ export async function POST(request: Request) {
       email: email.trim().toLowerCase(),
       password,
       data: { full_name: full_name.trim() },
-      email_redirect_to: `${origin}/auth/callback?next=/app`,
+      email_redirect_to: `${origin}/auth/callback`,
     });
     const token = String(data.access_token || "");
     if (!token) return NextResponse.json({ ok: true, session: false, message: "Check your email to confirm the account, then sign in." });

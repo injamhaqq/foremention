@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { LiveSiteAudit } from "@/components/live-site-audit";
 import { PublicShell } from "@/components/public-shell";
+import { marketEvidenceRecords, marketEvidenceSnapshot } from "@/lib/market-evidence-data";
 import { pageMetadata } from "@/lib/seo";
 import { siteAuditRecords, siteAuditSnapshot } from "@/lib/site-audit-data";
 
@@ -81,6 +82,37 @@ export default function SourceMapProductPage() {
             </p>
           </div>
           <LiveSiteAudit records={siteAuditRecords} />
+        </div>
+      </section>
+
+      <section className="section section--yellow">
+        <div className="shell">
+          <div className="section-heading">
+            <span className="eyebrow">Real-company market evidence</span>
+            <h2>Four real platforms. Four inspectable first-party sources.</h2>
+            <p>
+              Buyer question: <strong>{marketEvidenceSnapshot.buyerQuestion}</strong> These
+              records were collected from official company pages on July 27, 2026. They
+              prove what each company publicly describes, not that an AI engine cited the
+              page or that the claim is independently true.
+            </p>
+          </div>
+          <div className="market-evidence">
+            {marketEvidenceRecords.map((record, index) => (
+              <article key={record.company}>
+                <div className="market-evidence__head">
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <b>Official source verified</b>
+                </div>
+                <h3>{record.company}</h3>
+                <a href={record.officialUrl} target="_blank" rel="noreferrer">{record.domain} ↗</a>
+                <dl>
+                  <div><dt>Observed on the page</dt><dd>{record.observed}</dd></div>
+                  <div><dt>Evidence boundary</dt><dd>{record.evidenceBoundary}</dd></div>
+                </dl>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 

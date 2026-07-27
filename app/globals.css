@@ -1470,6 +1470,60 @@ textarea { resize: vertical; }
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+.market-evidence {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--ink);
+  background: var(--paper);
+}
+.market-evidence article {
+  min-height: 420px;
+  padding: 30px;
+  border-right: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+.market-evidence article:nth-child(2n) { border-right: 0; }
+.market-evidence article:nth-last-child(-n+2) { border-bottom: 0; }
+.market-evidence__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 42px;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.market-evidence__head b {
+  padding: 7px 9px;
+  border: 1px solid #006f5d;
+  background: #d9fff2;
+  color: #006f5d;
+}
+.market-evidence h3 {
+  margin: 0 0 8px;
+  font-size: clamp(34px, 4vw, 54px);
+  letter-spacing: -.055em;
+}
+.market-evidence article > a {
+  display: inline-flex;
+  margin-bottom: 30px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.market-evidence dl { display: grid; gap: 18px; margin: 0; }
+.market-evidence dl > div { padding-top: 16px; border-top: 1px solid #b7c7c2; }
+.market-evidence dt {
+  margin-bottom: 8px;
+  color: #4e6660;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.market-evidence dd { margin: 0; line-height: 1.55; }
 
 /* Insights and long-form search content */
 .insight-grid {
@@ -1695,6 +1749,7 @@ textarea { resize: vertical; }
 @media (max-width: 640px) {
   .audit-provenance,
   .site-audit__records,
+  .market-evidence,
   .insight-grid,
   .checklist-grid { grid-template-columns: 1fr; }
   .audit-provenance > div,
@@ -1718,6 +1773,15 @@ textarea { resize: vertical; }
   .site-audit-card:last-child { border-bottom: 0; }
   .site-audit-card__head { align-items: flex-start; }
   .site-audit-card h3 { font-size: 30px; }
+  .market-evidence article,
+  .market-evidence article:nth-child(2n),
+  .market-evidence article:nth-last-child(-n+2) {
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+  .market-evidence article:last-child { border-bottom: 0; }
+  .market-evidence__head { align-items: flex-start; }
   .insight-card {
     min-height: 430px;
     padding: 26px;
