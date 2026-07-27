@@ -11,7 +11,7 @@ test("production public and workspace routes exist", async () => {
     "app/source-map/page.tsx", "app/sample-report/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx",
     "app/product/page.tsx", "app/about/page.tsx", "app/teardowns/page.tsx", "app/contact/page.tsx", "app/monitoring-vs-execution/page.tsx",
     "app/insights/page.tsx", "app/insights/ai-visibility-measurement/page.tsx", "app/insights/seo-geo-technical-checklist/page.tsx",
-    "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/not-found.tsx", "app/error.tsx",
+    "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/api/auth/verify/route.ts", "app/not-found.tsx", "app/error.tsx",
     "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/runs/[id]/page.tsx", "app/app/sources/[id]/page.tsx",
     "app/app/decision-lab/page.tsx", "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
     "app/api/onboarding/route.ts", "app/api/prompts/route.ts", "app/api/evidence/route.ts", "app/api/runs/[id]/review/route.ts", "app/api/sources/[id]/review/route.ts",
@@ -20,10 +20,11 @@ test("production public and workspace routes exist", async () => {
 });
 
 test("account recovery requires and confirms a new password", async () => {
-  const [callback, form, route, recovery, signup, authForm, layout, fallback] = await Promise.all([
+  const [callback, form, route, verify, recovery, signup, authForm, layout, fallback] = await Promise.all([
     text("components/auth-callback.tsx"),
     text("components/set-password-form.tsx"),
     text("app/api/auth/password/route.ts"),
+    text("app/api/auth/verify/route.ts"),
     text("app/api/auth/forgot-password/route.ts"),
     text("app/api/auth/signup/route.ts"),
     text("components/auth-form.tsx"),
@@ -35,6 +36,9 @@ test("account recovery requires and confirms a new password", async () => {
   assert.match(form, /Confirm new password/);
   assert.match(form, /password !== confirmation/);
   assert.match(route, /auth\/v1\/user/);
+  assert.match(verify, /auth\/v1\/verify/);
+  assert.match(verify, /token_hash/);
+  assert.match(verify, /type === "recovery"/);
   assert.match(authForm, /Confirm password/);
   assert.match(authForm, /password !== confirmation/);
   assert.match(signup, /password !== confirmation/);
@@ -58,6 +62,8 @@ test("verified authentication uses a deterministic cookie handoff and sends new 
   assert.match(loginForm, /window\.location\.assign/);
   assert.match(loginForm, /onSubmit=\{submit\}/);
   assert.match(callback, /window\.location\.replace/);
+  assert.match(callback, /\/api\/auth\/verify/);
+  assert.match(callback, /token_hash/);
   assert.match(resetForm, /window\.location\.replace/);
   assert.match(overview, /redirect\("\/app\/onboarding"\)/);
   assert.match(auth, /cache\(async function getViewer/);
@@ -96,6 +102,8 @@ test("Sites D1 intake and migration are configured", async () => {
 test("onboarding writes the first organization and prompt baseline transactionally", async () => {
   const [wizard, route, migration] = await Promise.all([text("components/onboarding-wizard.tsx"), text("app/api/onboarding/route.ts"), text("supabase/migrations/20260722000100_recommendation_graph.sql")]);
   assert.match(wizard, /\/api\/onboarding/);
+  assert.match(wizard, /Review your evidence boundary/);
+  assert.match(wizard, /Private by default/);
   assert.match(wizard, /no customer data was saved/);
   assert.match(route, /rpc\/complete_onboarding/);
   assert.match(migration, /function public\.complete_onboarding/);

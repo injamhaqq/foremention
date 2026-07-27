@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 export function AuthForm({ mode, next = "/app" }: { mode: "login" | "signup"; next?: string }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeEmail, setNoticeEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -28,13 +29,14 @@ export function AuthForm({ mode, next = "/app" }: { mode: "login" | "signup"; ne
         headers: { "content-type": "application/json" },
         body: JSON.stringify(Object.fromEntries(formData.entries())),
       });
-      const data = (await response.json()) as { error?: string; message?: string; session?: boolean };
+      const data = (await response.json()) as { error?: string; message?: string; session?: boolean; email?: string };
       if (!response.ok) {
         setError(data.error || "We could not complete that request. Check your details and try again.");
         return;
       }
       if (data.session === false) {
         setNotice(data.message || "Check your inbox to confirm your account.");
+        setNoticeEmail(data.email || String(formData.get("email") || ""));
         return;
       }
       // Use a full navigation after the server sets the HTTP-only session
@@ -54,13 +56,14 @@ export function AuthForm({ mode, next = "/app" }: { mode: "login" | "signup"; ne
         <span className="eyebrow">Check your inbox</span>
         <h1>Confirm your email.</h1>
         <p role="status" aria-live="polite">{notice}</p>
+        {noticeEmail && <p className="auth-email-receipt">Sent to <strong>{noticeEmail}</strong></p>}
         <ol className="auth-steps">
-          <li>Open the newest confirmation email sent to the address you entered.</li>
+          <li>Open the newest email from <strong>Foremention</strong>.</li>
           <li>Select <strong>Confirm my email</strong>.</li>
-          <li>The verified link opens your workspace automatically.</li>
+          <li>The verified link opens guided workspace setup automatically.</li>
         </ol>
-        <a className="button button--ink button--wide" href="/login">Go to sign in</a>
-        <button className="text-button" type="button" onClick={() => setNotice("")}>Use a different email</button>
+        <a className="button button--ink button--wide" href="/login">Already confirmed? Sign in</a>
+        <button className="text-button" type="button" onClick={() => { setNotice(""); setNoticeEmail(""); }}>Use a different email</button>
       </div>
     );
   }

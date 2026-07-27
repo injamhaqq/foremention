@@ -17,14 +17,20 @@ export async function POST(request: Request) {
     // client-library `options.emailRedirectTo` shape silently falls back to
     // the project default URL, which strands a confirmed user outside the
     // callback that creates their Foremention session.
+    const normalizedEmail = email.trim().toLowerCase();
     const data = await supabaseAuth("signup", {
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       data: { full_name: full_name.trim() },
       email_redirect_to: `${origin}/auth/callback`,
     });
     const token = String(data.access_token || "");
-    if (!token) return NextResponse.json({ ok: true, session: false, message: "Check your email to confirm the account, then sign in." });
+    if (!token) return NextResponse.json({
+      ok: true,
+      session: false,
+      email: normalizedEmail,
+      message: "We sent a confirmation link from Foremention to your work email.",
+    });
     const response = NextResponse.json({ ok: true, session: true });
     response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: Number(data.expires_in || 3600) });
     return response;

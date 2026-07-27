@@ -7,7 +7,10 @@ import { getProviderStatuses, loadDecisionSignal, loadPlacements, loadPrompts, l
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
-  const context = await loadWorkspaceContext(viewer);
+  const context = await loadWorkspaceContext(viewer).catch((error) => {
+    console.error("Workspace context unavailable", error);
+    return null;
+  });
 
   // A confirmed customer without an organization has nothing useful to load
   // on the dashboard yet. Send them directly to the first product step instead

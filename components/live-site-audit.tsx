@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import type { SiteAuditRecord, SiteAuditStatus } from "@/lib/site-audit-data";
 
 const filters: Array<{ label: string; value: "all" | SiteAuditStatus }> = [
@@ -41,7 +40,7 @@ export function LiveSiteAudit({ records }: { records: SiteAuditRecord[] }) {
       </div>
       <div className="site-audit__records" aria-live="polite">
         {visible.map((record, index) => (
-          <article className={`site-audit-card site-audit-card--${record.status}`} key={record.id}>
+          <article id={record.id} className={`site-audit-card site-audit-card--${record.status}`} key={record.id}>
             <div className="site-audit-card__head">
               <span>{String(index + 1).padStart(2, "0")}</span>
               <b>{statusLabels[record.status]}</b>
@@ -61,7 +60,18 @@ export function LiveSiteAudit({ records }: { records: SiteAuditRecord[] }) {
                 <dd>{record.resolution}</dd>
               </div>
             </dl>
-            <Link href={record.evidenceUrl}>Inspect the evidence →</Link>
+            <details className="site-audit-card__evidence">
+              <summary>Inspect this evidence</summary>
+              <div>
+                <strong>What was checked</strong>
+                <p>{record.evidence}</p>
+                <strong>Why it matters</strong>
+                <p>{record.resolution}</p>
+                <a href={record.evidenceUrl} target="_blank" rel="noreferrer">
+                  Open the supporting page ↗
+                </a>
+              </div>
+            </details>
           </article>
         ))}
       </div>

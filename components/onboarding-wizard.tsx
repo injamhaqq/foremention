@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const steps = ["Organization", "Category", "Competitors", "Goals", "Buyer questions"];
+const steps = ["Organization", "Category", "Competitors", "Goals", "Buyer questions", "Review"];
 
 function initialValues(demo: boolean) {
   return demo ? {
@@ -66,15 +66,30 @@ export function OnboardingWizard({ demo }: { demo: boolean }) {
   </div>;
 
   return <div className="onboarding-wizard">
-    <ol>{steps.map((label, index) => <li className={step === index ? "is-active" : step > index ? "is-complete" : ""} key={label}><span>{String(index + 1).padStart(2, "0")}</span>{label}</li>)}</ol>
+    <ol aria-label="Workspace setup progress">{steps.map((label, index) => <li className={step === index ? "is-active" : step > index ? "is-complete" : ""} key={label}><span>{String(index + 1).padStart(2, "0")}</span>{label}</li>)}</ol>
     <form onSubmit={(event) => { event.preventDefault(); if (step < steps.length - 1) setStep(step + 1); else void submit(); }}>
+      <div className="wizard-progress" aria-live="polite">
+        <span>Step {step + 1} of {steps.length}</span>
+        <div aria-hidden="true"><i style={{ width: `${((step + 1) / steps.length) * 100}%` }} /></div>
+      </div>
       {step === 0 && <fieldset><legend>Define the organization</legend><label>Company name<input value={values.companyName} onChange={(event) => setValues({ ...values, companyName: event.target.value })} required autoComplete="organization" /></label><label>Company website<input type="url" value={values.domain} onChange={(event) => setValues({ ...values, domain: event.target.value })} placeholder="https://yourcompany.com" required /></label><label>Primary market<select value={values.market} onChange={(event) => setValues({ ...values, market: event.target.value })}><option>Global</option><option>North America</option><option>Europe</option><option>Asia Pacific</option><option>Middle East and Africa</option><option>Latin America</option></select></label></fieldset>}
       {step === 1 && <fieldset><legend>Choose the category buyers use</legend><label>Canonical category<input value={values.category} onChange={(event) => setValues({ ...values, category: event.target.value })} placeholder="Example: CRM software for small B2B teams" required /></label><label>Category definition<textarea value={values.categoryDescription} onChange={(event) => setValues({ ...values, categoryDescription: event.target.value })} placeholder="Describe what belongs in this category and who buys it." rows={4} required /></label></fieldset>}
       {step === 2 && <fieldset><legend>Map the comparison set</legend><label>Direct competitors<textarea value={values.competitors} onChange={(event) => setValues({ ...values, competitors: event.target.value })} placeholder={"Competitor one\nCompetitor two\nCompetitor three"} rows={5} required /></label><p className="field-hint">One company per line. Include only brands a real buyer would compare.</p></fieldset>}
       {step === 3 && <fieldset><legend>Define the measurement goal</legend><label>Primary goal<select value={values.goal} onChange={(event) => setValues({ ...values, goal: event.target.value })}><option>Establish a measurement baseline</option><option>Find credible source gaps</option><option>Defend existing recommendation visibility</option></select></label><label>Evidence constraint<textarea value={values.constraint} onChange={(event) => setValues({ ...values, constraint: event.target.value })} rows={4} required /></label></fieldset>}
       {step === 4 && <fieldset><legend>Add the questions buyers ask</legend><label>Buyer questions<textarea value={values.prompts} onChange={(event) => setValues({ ...values, prompts: event.target.value })} placeholder={"What is the best [category] for [buyer]?\nWhich [category] handles [important use case]?\nWhat are credible alternatives to [competitor]?"} rows={8} required /></label><p className="field-hint">One complete question per line. Foremention keeps the wording stable so later runs remain comparable. {prompts.length}/10 questions prepared.</p></fieldset>}
+      {step === 5 && <fieldset>
+        <legend>Review your evidence boundary</legend>
+        <p className="field-hint">Nothing is collected from an AI provider yet. This creates your private workspace and approved baseline.</p>
+        <div className="onboarding-review">
+          <div><span>Organization</span><strong>{values.companyName}</strong><small>{values.domain} · {values.market}</small><button type="button" onClick={() => setStep(0)}>Edit</button></div>
+          <div><span>Category</span><strong>{values.category}</strong><small>{values.categoryDescription}</small><button type="button" onClick={() => setStep(1)}>Edit</button></div>
+          <div><span>Comparison set</span><strong>{values.competitors.split("\n").map((value) => value.trim()).filter(Boolean).length} competitors</strong><small>{values.competitors.split("\n").map((value) => value.trim()).filter(Boolean).join(", ")}</small><button type="button" onClick={() => setStep(2)}>Edit</button></div>
+          <div><span>Approved baseline</span><strong>{prompts.length} buyer {prompts.length === 1 ? "question" : "questions"}</strong><small>{values.goal}</small><button type="button" onClick={() => setStep(4)}>Edit</button></div>
+        </div>
+        <p className="onboarding-security-note"><strong>Private by default.</strong> Row-level access controls isolate this workspace to authorized members. Provider credentials are added later and never entered in this form.</p>
+      </fieldset>}
       {message && <p className="auth-message" role="alert">{message}</p>}
-      <div className="wizard-actions">{step > 0 && <button type="button" className="button button--outline" onClick={() => setStep(step - 1)} disabled={status === "saving"}>&larr; Back</button>}<button className="button button--ink" type="submit" disabled={status === "saving" || (step === steps.length - 1 && (prompts.length === 0 || prompts.length > 10))}>{status === "saving" ? "Saving..." : step === steps.length - 1 ? "Finish setup" : "Continue"} &rarr;</button></div>
+      <div className="wizard-actions">{step > 0 && <button type="button" className="button button--outline" onClick={() => setStep(step - 1)} disabled={status === "saving"}>&larr; Back</button>}<button className="button button--ink" type="submit" disabled={status === "saving" || (step >= 4 && (prompts.length === 0 || prompts.length > 10))}>{status === "saving" ? "Creating secure workspace..." : step === steps.length - 1 ? "Create my workspace" : "Continue"} &rarr;</button></div>
     </form>
   </div>;
 }

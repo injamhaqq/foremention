@@ -78,7 +78,8 @@ export default function SourceMapProductPage() {
             <p>
               “Resolved” means the problem was observed on the live site and repaired
               in this release. “Needs live connection” means the website alone cannot
-              truthfully produce the signal.
+              truthfully produce the signal. Open “Inspect this evidence” to read the
+              record here; raw technical files open only as a clearly labelled secondary source.
             </p>
           </div>
           <LiveSiteAudit records={siteAuditRecords} />
@@ -97,9 +98,17 @@ export default function SourceMapProductPage() {
               page or that the claim is independently true.
             </p>
           </div>
+          <nav className="market-evidence__index" aria-label="Companies in this evidence set">
+            {marketEvidenceRecords.map((record, index) => (
+              <a href={`#company-${record.company.toLowerCase().replaceAll(" ", "-")}`} key={record.company}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                {record.company}
+              </a>
+            ))}
+          </nav>
           <div className="market-evidence">
             {marketEvidenceRecords.map((record, index) => (
-              <article key={record.company}>
+              <article id={`company-${record.company.toLowerCase().replaceAll(" ", "-")}`} key={record.company}>
                 <div className="market-evidence__head">
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <b>Official source verified</b>
