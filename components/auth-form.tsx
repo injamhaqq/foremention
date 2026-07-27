@@ -2,7 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 
-export function AuthForm({ mode, next = "/app" }: { mode: "login" | "signup"; next?: string }) {
+export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
+  mode: "login" | "signup";
+  next?: string;
+  statusMessage?: string;
+}) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [noticeEmail, setNoticeEmail] = useState("");
@@ -92,6 +96,7 @@ export function AuthForm({ mode, next = "/app" }: { mode: "login" | "signup"; ne
           <small>Use at least 8 characters.</small>
         </label>
         {!isLogin && <label>Confirm password<input type={showPassword ? "text" : "password"} name="confirmation" required minLength={8} autoComplete="new-password" /></label>}
+        {statusMessage && !error && <p className="auth-session-notice" role="status">{statusMessage}</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="button button--ink button--wide" type="submit" disabled={busy}>{busy ? "Working..." : isLogin ? "Sign in" : "Create workspace"}</button>
       </form>

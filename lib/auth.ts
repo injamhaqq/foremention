@@ -2,9 +2,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { supabaseConfigured } from "@/lib/supabase-rest";
+import { DEMO_COOKIE, REFRESH_COOKIE, SESSION_COOKIE } from "@/lib/session-cookies";
 
-export const SESSION_COOKIE = "foremention-session";
-export const DEMO_COOKIE = "foremention-demo";
+export { DEMO_COOKIE, REFRESH_COOKIE, SESSION_COOKIE };
 
 export type Viewer = { id: string; email: string; name: string; mode: "demo" | "supabase"; accessToken?: string };
 
@@ -30,6 +30,12 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer | null
 
 export async function requireViewer(returnTo = "/app") {
   const viewer = await getViewer();
-  if (!viewer) redirect(`/login?next=${encodeURIComponent(returnTo)}`);
+  if (!viewer) {
+    const store = await cookies();
+    if (store.get(REFRESH_COOKIE)?.value) {
+      redirect(`/api/auth/refresh?next=${encodeURIComponent(returnTo)}`);
+    }
+    redirect(`/login?next=${encodeURIComponent(returnTo)}`);
+  }
   return viewer;
 }

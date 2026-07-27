@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth";
+import { setSessionCookies } from "@/lib/session-cookies";
 
 export async function POST(request: Request) {
-  const { access_token, expires_in } = await request.json().catch(() => ({})) as { access_token?: string; expires_in?: number };
+  const { access_token, expires_in, refresh_token } = await request.json().catch(() => ({})) as {
+    access_token?: string;
+    expires_in?: number;
+    refresh_token?: string;
+  };
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -15,12 +19,10 @@ export async function POST(request: Request) {
   if (!profile.ok) return NextResponse.json({ error: "This verification link is invalid or has expired. Please request a new one." }, { status: 401 });
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, access_token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: Math.max(60, Number(expires_in || 3600)),
+  setSessionCookies(response, {
+    accessToken: access_token,
+    expiresIn: Math.max(60, Number(expires_in || 3600)),
+    refreshToken: refresh_token,
   });
   return response;
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth";
+import { setSessionCookies } from "@/lib/session-cookies";
 import { supabaseAuth } from "@/lib/supabase-rest";
 
 export async function POST(request: Request) {
@@ -10,7 +10,11 @@ export async function POST(request: Request) {
     const token = String(data.access_token || "");
     if (!token) throw new Error("No session was returned.");
     const response = NextResponse.json({ ok: true, session: true });
-    response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: Number(data.expires_in || 3600) });
+    setSessionCookies(response, {
+      accessToken: token,
+      expiresIn: Number(data.expires_in || 3600),
+      refreshToken: String(data.refresh_token || ""),
+    });
     response.cookies.delete("foremention-demo");
     return response;
   } catch (error) {

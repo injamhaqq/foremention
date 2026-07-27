@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth";
+import { setSessionCookies } from "@/lib/session-cookies";
 import { supabaseAuth } from "@/lib/supabase-rest";
 
 export async function POST(request: Request) {
@@ -32,7 +32,11 @@ export async function POST(request: Request) {
       message: "We sent a confirmation link from Foremention to your work email.",
     });
     const response = NextResponse.json({ ok: true, session: true });
-    response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: Number(data.expires_in || 3600) });
+    setSessionCookies(response, {
+      accessToken: token,
+      expiresIn: Number(data.expires_in || 3600),
+      refreshToken: String(data.refresh_token || ""),
+    });
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not create the account.";

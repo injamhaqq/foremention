@@ -11,7 +11,7 @@ test("production public and workspace routes exist", async () => {
     "app/source-map/page.tsx", "app/sample-report/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx",
     "app/product/page.tsx", "app/about/page.tsx", "app/teardowns/page.tsx", "app/contact/page.tsx", "app/monitoring-vs-execution/page.tsx",
     "app/insights/page.tsx", "app/insights/ai-visibility-measurement/page.tsx", "app/insights/seo-geo-technical-checklist/page.tsx",
-    "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/api/auth/verify/route.ts", "app/not-found.tsx", "app/error.tsx",
+    "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/api/auth/verify/route.ts", "app/api/auth/refresh/route.ts", "app/not-found.tsx", "app/error.tsx",
     "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/runs/[id]/page.tsx", "app/app/sources/[id]/page.tsx",
     "app/app/decision-lab/page.tsx", "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
     "app/api/onboarding/route.ts", "app/api/prompts/route.ts", "app/api/evidence/route.ts", "app/api/runs/[id]/review/route.ts", "app/api/sources/[id]/review/route.ts",
@@ -51,13 +51,15 @@ test("account recovery requires and confirms a new password", async () => {
 });
 
 test("verified authentication uses a deterministic cookie handoff and sends new customers to onboarding", async () => {
-  const [loginForm, callback, resetForm, overview, auth, data] = await Promise.all([
+  const [loginForm, callback, resetForm, overview, auth, data, refresh, cookies] = await Promise.all([
     text("components/auth-form.tsx"),
     text("components/auth-callback.tsx"),
     text("components/set-password-form.tsx"),
     text("app/app/page.tsx"),
     text("lib/auth.ts"),
     text("lib/data.ts"),
+    text("app/api/auth/refresh/route.ts"),
+    text("lib/session-cookies.ts"),
   ]);
   assert.match(loginForm, /window\.location\.assign/);
   assert.match(loginForm, /onSubmit=\{submit\}/);
@@ -67,7 +69,14 @@ test("verified authentication uses a deterministic cookie handoff and sends new 
   assert.match(resetForm, /window\.location\.replace/);
   assert.match(overview, /redirect\("\/app\/onboarding"\)/);
   assert.match(auth, /cache\(async function getViewer/);
+  assert.match(auth, /\/api\/auth\/refresh/);
   assert.match(data, /getPrimaryOrganizationIdCached = cache/);
+  assert.match(callback, /refresh_token/);
+  assert.match(refresh, /grant_type=refresh_token/);
+  assert.match(refresh, /safeNext/);
+  assert.match(cookies, /httpOnly: true/);
+  assert.match(cookies, /sameSite: "lax"/);
+  assert.match(cookies, /REFRESH_COOKIE/);
 });
 
 test("the selected Meridian OS Source Eclipse identity is preserved", async () => {
@@ -232,4 +241,14 @@ test("error monitoring is optional, privacy-conscious, and configured outside so
   assert.match(client, /@sentry\/react/);
   assert.match(client, /NEXT_PUBLIC_SENTRY_DSN/);
   assert.match(env, /SENTRY_DSN=/);
+});
+
+test("production responses carry defense-in-depth browser protections", async () => {
+  const worker = await text("worker/index.ts");
+  assert.match(worker, /Content-Security-Policy/);
+  assert.match(worker, /frame-ancestors 'none'/);
+  assert.match(worker, /Strict-Transport-Security/);
+  assert.match(worker, /X-Content-Type-Options/);
+  assert.match(worker, /Permissions-Policy/);
+  assert.match(worker, /private, no-store/);
 });

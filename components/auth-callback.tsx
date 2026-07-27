@@ -13,6 +13,7 @@ export function AuthCallback() {
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const accessToken = hash.get("access_token");
+    const refreshToken = hash.get("refresh_token");
     const tokenHash = searchParams.get("token_hash");
     const verificationType = searchParams.get("type") || hash.get("type") || "";
     const isRecovery = verificationType === "recovery";
@@ -33,7 +34,11 @@ export function AuthCallback() {
     const endpoint = tokenHash ? "/api/auth/verify" : "/api/auth/session";
     const body = tokenHash
       ? { token_hash: tokenHash, type: verificationType }
-      : { access_token: accessToken, expires_in: Number(hash.get("expires_in") || 3600) };
+      : {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: Number(hash.get("expires_in") || 3600),
+        };
 
     void fetch(endpoint, {
       method: "POST",

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth";
+import { setSessionCookies } from "@/lib/session-cookies";
 
 const allowedTypes = new Set(["signup", "recovery", "invite", "magiclink", "email_change"]);
 
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   });
   const data = await verification.json().catch(() => ({})) as {
     access_token?: string;
+    refresh_token?: string;
     expires_in?: number;
     msg?: string;
     message?: string;
@@ -37,12 +38,10 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true, recovery: type === "recovery" });
-  response.cookies.set(SESSION_COOKIE, data.access_token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: Math.max(60, Number(data.expires_in || 3600)),
+  setSessionCookies(response, {
+    accessToken: data.access_token,
+    expiresIn: Math.max(60, Number(data.expires_in || 3600)),
+    refreshToken: data.refresh_token,
   });
   return response;
 }
