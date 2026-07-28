@@ -73,6 +73,13 @@ export async function supabaseRest<T>(path: string, options: RestOptions = {}): 
   if (!response.ok) {
     const detail = await response.text();
     const safe = safeDatabaseMessage(response.status, detail);
+    console.warn("Supabase REST request failed.", {
+      resource: path.split("?")[0],
+      method: options.method || "GET",
+      status: response.status,
+      code: safe.code || null,
+      authorization: options.serviceRole ? "service-role" : options.token ? "user" : "anonymous",
+    });
     throw new SupabaseRequestError(response.status, safe.message, safe.code);
   }
   const responseText = await response.text();
