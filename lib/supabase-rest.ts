@@ -80,7 +80,10 @@ export async function supabaseRest<T>(path: string, options: RestOptions = {}): 
       code: safe.code || null,
       authorization: options.serviceRole ? "service-role" : options.token ? "user" : "anonymous",
     });
-    throw new SupabaseRequestError(response.status, safe.message, safe.code);
+    const diagnosticMessage = options.serviceRole
+      ? `${safe.message} (database status ${response.status}${safe.code ? `, code ${safe.code}` : ""})`
+      : safe.message;
+    throw new SupabaseRequestError(response.status, diagnosticMessage, safe.code);
   }
   const responseText = await response.text();
   if (!responseText.trim()) return undefined as T;
