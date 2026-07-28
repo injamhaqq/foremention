@@ -5,6 +5,7 @@ import {
   estimateMaximumRunCost,
   getProviderCostRates,
   LIVE_COLLECTION_LIMITS,
+  safeOperationalError,
 } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, getProviderStatuses, loadPrompts, loadRuns, loadWorkspaceContext } from "@/lib/data";
 import { inngest } from "@/lib/jobs/inngest";
@@ -175,6 +176,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    console.warn("Collection capacity could not be reserved.", safeOperationalError(error));
     const concurrentDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
       `runs?select=id,status&organization_id=eq.${context.organizationId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
       { token: viewer.accessToken },
@@ -218,7 +220,8 @@ export async function POST(request: Request) {
         body: { queue_event_id: queueEventId },
       });
     }
-  } catch {
+  } catch (error) {
+    console.warn("Background collection could not be queued.", safeOperationalError(error));
     await supabaseRest("rpc/release_queued_run", {
       method: "POST",
       token: viewer.accessToken,

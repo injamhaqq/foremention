@@ -21,8 +21,13 @@ export function RunLauncher({ prompts, providers, demo }: { prompts: WorkspacePr
         headers: { "content-type": "application/json", "idempotency-key": idempotencyKey.current },
         body: JSON.stringify({ promptIds: selectedPrompts, providers: selectedProviders }),
       });
-      const result = (await response.json()) as { error?: string; note?: string };
-      if (!response.ok) throw new Error(result.error || "Could not start collection.");
+      const responseText = await response.text();
+      const result = responseText
+        ? JSON.parse(responseText) as { error?: string; note?: string }
+        : {};
+      if (!response.ok) {
+        throw new Error(result.error || `Could not start collection (HTTP ${response.status}).`);
+      }
       setMessage(result.note || "Collection queued. Results will move to review when providers finish.");
       idempotencyKey.current = crypto.randomUUID();
       router.refresh();
