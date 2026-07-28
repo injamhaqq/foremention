@@ -127,6 +127,7 @@ export async function POST(request: Request) {
   const runId = crypto.randomUUID();
   const requestedUnits = runUnits(prompts.length, 1);
   let quotaReserved = false;
+  let capacityStage = "create-run";
   try {
     await supabaseRest("runs", {
       method: "POST",
@@ -147,6 +148,7 @@ export async function POST(request: Request) {
         created_by: viewer.id,
       },
     });
+    capacityStage = "snapshot-prompts";
     await supabaseRest("run_prompt_selections", {
       method: "POST",
       token: viewer.accessToken,
@@ -160,12 +162,14 @@ export async function POST(request: Request) {
         locale: prompt.locale,
       })),
     });
+    capacityStage = "reserve-usage";
     await supabaseRest("rpc/reserve_run_quota", {
       method: "POST",
       token: viewer.accessToken,
       body: { p_organization_id: context.organizationId, p_units: requestedUnits, p_run_id: runId },
     });
     quotaReserved = true;
+    capacityStage = "reserve-budget";
     await supabaseRest("rpc/reserve_run_budget", {
       method: "POST",
       token: viewer.accessToken,
@@ -176,7 +180,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.warn("Collection capacity could not be reserved.", safeOperationalError(error));
+    console.warn(`Collection capacity failed during ${capacityStage}.`, safeOperationalError(error));
     const concurrentDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
       `runs?select=id,status&organization_id=eq.${context.organizationId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
       { token: viewer.accessToken },
