@@ -75,8 +75,9 @@ export async function supabaseRest<T>(path: string, options: RestOptions = {}): 
     const safe = safeDatabaseMessage(response.status, detail);
     throw new SupabaseRequestError(response.status, safe.message, safe.code);
   }
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  const responseText = await response.text();
+  if (!responseText.trim()) return undefined as T;
+  return JSON.parse(responseText) as T;
 }
 
 export async function supabaseAuth(path: string, body: unknown) {

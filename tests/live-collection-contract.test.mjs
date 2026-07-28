@@ -37,6 +37,12 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
   assert.doesNotMatch(migration, /delete from public\.source_observations/);
 });
 
+test("successful empty Supabase write responses are not treated as failures", async () => {
+  const source = await readFile(new URL("../lib/supabase-rest.ts", import.meta.url), "utf8");
+  assert.match(source, /const responseText = await response\.text\(\)/);
+  assert.match(source, /if \(!responseText\.trim\(\)\) return undefined as T/);
+});
+
 test("only reviewed persisted observations create a truthful Source Map", async () => {
   const [review, generator, loader] = await Promise.all([
     text("app/api/runs/[id]/review/route.ts"),
