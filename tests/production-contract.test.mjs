@@ -13,8 +13,9 @@ test("production public and workspace routes exist", async () => {
     "app/insights/page.tsx", "app/insights/ai-visibility-measurement/page.tsx", "app/insights/seo-geo-technical-checklist/page.tsx",
     "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "app/auth/callback/page.tsx", "app/api/auth/password/route.ts", "app/api/auth/verify/route.ts", "app/api/auth/refresh/route.ts", "app/not-found.tsx", "app/error.tsx",
     "app/app/onboarding/page.tsx", "app/app/prompts/page.tsx", "app/app/runs/[id]/page.tsx", "app/app/sources/[id]/page.tsx",
-    "app/app/decision-lab/page.tsx", "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/settings/page.tsx",
+    "app/app/decision-lab/page.tsx", "app/app/opportunities/page.tsx", "app/app/evidence/page.tsx", "app/app/analytics/page.tsx", "app/app/alerts/page.tsx", "app/app/team/page.tsx", "app/app/settings/page.tsx", "app/invite/[token]/page.tsx",
     "app/api/onboarding/route.ts", "app/api/prompts/route.ts", "app/api/evidence/route.ts", "app/api/runs/[id]/review/route.ts", "app/api/sources/[id]/review/route.ts",
+    "app/api/team/invitations/route.ts", "app/api/team/invitations/accept/route.ts", "app/api/notifications/route.ts", "app/api/account/deletion/route.ts",
   ];
   await Promise.all(routes.map(exists));
 });
@@ -255,4 +256,52 @@ test("production responses carry defense-in-depth browser protections", async ()
   assert.match(worker, /X-Content-Type-Options/);
   assert.match(worker, /Permissions-Policy/);
   assert.match(worker, /private, no-store/);
+});
+
+test("collaboration, in-app alerts, and reversible lifecycle controls are explicit", async () => {
+  const [roleMigration, lifecycleMigration, invite, accept, members, deletion, alerts, emailBoundary, shell, settings] = await Promise.all([
+    text("supabase/migrations/20260729000100_collaboration_lifecycle_alerts.sql"),
+    text("supabase/migrations/20260729000110_collaboration_lifecycle_alerts.sql"),
+    text("app/api/team/invitations/route.ts"),
+    text("app/api/team/invitations/accept/route.ts"),
+    text("app/api/team/members/[id]/route.ts"),
+    text("app/api/account/deletion/route.ts"),
+    text("app/api/notifications/route.ts"),
+    text("lib/application-email.ts"),
+    text("components/app-shell.tsx"),
+    text("app/app/settings/page.tsx"),
+  ]);
+  assert.match(roleMigration, /add value if not exists 'admin'/);
+  assert.doesNotMatch(roleMigration, /array\['admin'\]/);
+  assert.match(lifecycleMigration, /create table if not exists public\.notifications/);
+  assert.match(lifecycleMigration, /create table if not exists public\.account_deletion_requests/);
+  assert.match(lifecycleMigration, /notifications_select_self/);
+  assert.match(invite, /sha256Hex/);
+  assert.match(invite, /expires_at/);
+  assert.match(invite, /emailDelivery: "not_configured"/);
+  assert.match(accept, /invitation\.email\.toLowerCase\(\) !== viewer\.email\.toLowerCase\(\)/);
+  assert.match(accept, /status !== "pending"/);
+  assert.match(members, /last owner/i);
+  assert.match(deletion, /isRecentAccessToken/);
+  assert.match(deletion, /DELETE FOREMENTION/);
+  assert.match(deletion, /execution: "not_active"/);
+  assert.doesNotMatch(deletion, /organizations\?.*method: "DELETE"/s);
+  assert.match(alerts, /user_id=eq\.\$\{viewer\.id\}/);
+  assert.match(emailBoundary, /Authentication email is separate/);
+  assert.match(shell, /\/app\/alerts/);
+  assert.match(shell, /\/app\/team/);
+  assert.match(settings, /Automated application-email delivery remains unavailable/);
+});
+
+test("real collection events create tenant-scoped, idempotent in-app alerts", async () => {
+  const [job, review] = await Promise.all([
+    text("lib/jobs/inngest.ts"),
+    text("app/api/runs/[id]/review/route.ts"),
+  ]);
+  assert.match(job, /on_conflict=organization_id,user_id,event_key/);
+  assert.match(job, /run_ready/);
+  assert.match(job, /run_failed/);
+  assert.match(job, /organization_id: run\.organization_id/);
+  assert.match(review, /source_map_published/);
+  assert.match(review, /organization_id: context\.organizationId/);
 });

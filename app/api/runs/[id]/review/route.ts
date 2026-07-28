@@ -69,6 +69,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         after_state: { status: finalStatus, source_map_id: sourceMapId, verified_sources: sourceCount },
       },
     }),
+    supabaseRest("notifications?on_conflict=organization_id,user_id,event_key", {
+      method: "POST",
+      serviceRole: true,
+      prefer: "resolution=ignore-duplicates,return=minimal",
+      body: {
+        organization_id: context.organizationId,
+        user_id: viewer.id,
+        event_key: `source_map_published:${run.id}`,
+        kind: "source_map_published",
+        title: "Source Map updated from reviewed evidence",
+        body: `${sourceCount} verified source${sourceCount === 1 ? "" : "s"} are now available in the Source Map.`,
+        href: "/app/source-map",
+      },
+    }),
   ]);
   return NextResponse.json({ ok: true, status: finalStatus, sourceMapId, sourceCount });
 }

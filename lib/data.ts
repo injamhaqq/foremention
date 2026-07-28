@@ -5,7 +5,7 @@ import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, Placement, SourceMapEntry, VisibilityRun } from "@/lib/types";
 
-export type WorkspaceRole = "owner" | "analyst" | "viewer";
+export type WorkspaceRole = "owner" | "admin" | "analyst" | "viewer";
 type MembershipRow = { organization_id: string; role: WorkspaceRole };
 type SourceEntryRow = {
   id: string; source_id: string; rank: number; citation_observations: number; engines: SourceMapEntry["engines"];
@@ -48,6 +48,35 @@ export type WorkspaceRunAnswer = {
   collectedAt: string;
 };
 export type ProviderStatus = { id: "openai" | "gemini" | "anthropic" | "perplexity"; label: string; configured: boolean };
+export type WorkspaceTeamMember = {
+  userId: string;
+  email: string;
+  role: WorkspaceRole;
+  joinedAt: string;
+  current: boolean;
+};
+export type WorkspaceInvitation = {
+  id: string;
+  email: string;
+  role: Exclude<WorkspaceRole, "owner">;
+  status: "pending" | "accepted" | "revoked" | "expired";
+  expiresAt: string;
+};
+export type WorkspaceNotification = {
+  id: string;
+  kind: "run_ready" | "run_failed" | "source_map_published" | "evidence_review" | "workspace";
+  title: string;
+  body: string;
+  href: string | null;
+  read: boolean;
+  createdAt: string;
+};
+export type DeletionRequest = {
+  id: string;
+  status: "pending" | "cancelled" | "completed";
+  scheduledFor: string;
+  createdAt: string;
+};
 export type DecisionSignal = {
   reviewedRuns: number;
   latestRunId: string | null;
@@ -284,4 +313,87 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
     decisionReadiness: rows.length >= 2 && providerCount >= 2 && (sourceReviewPct ?? 0) >= 80 && (expectedAnswers ? latest.answer_count / expectedAnswers >= .9 : false) ? "ready" : rows.length && latest.answer_count ? "directional" : "insufficient",
   };
   return { ...signalBase, actions: buildDecisionActions(signalBase) };
+}
+
+export async function loadTeam(viewer: Viewer): Promise<{
+  members: WorkspaceTeamMember[];
+  invitations: WorkspaceInvitation[];
+  role: WorkspaceRole | null;
+}> {
+  if (viewer.mode === "demo") {
+    return {
+      members: [{ userId: viewer.id, email: viewer.email, role: "owner", joinedAt: "Demo session", current: true }],
+      invitations: [],
+      role: "owner",
+    };
+  }
+  const membership = await getPrimaryMembershipCached(viewer.id, viewer.accessToken || "");
+  if (!membership) return { members: [], invitations: [], role: null };
+  const [memberRows, invitationRows] = await Promise.all([
+    supabaseRest<Array<{ user_id: string; member_email: string | null; role: WorkspaceRole; created_at: string }>>(
+      `organization_members?select=user_id,member_email,role,created_at&organization_id=eq.${membership.organization_id}&order=created_at.asc`,
+      { token: viewer.accessToken },
+    ),
+    supabaseRest<Array<{ id: string; email: string; role: Exclude<WorkspaceRole, "owner">; status: WorkspaceInvitation["status"]; expires_at: string }>>(
+      `invitations?select=id,email,role,status,expires_at&organization_id=eq.${membership.organization_id}&status=eq.pending&order=created_at.desc`,
+      { token: viewer.accessToken },
+    ),
+  ]);
+  const now = Date.now();
+  return {
+    role: membership.role,
+    members: memberRows.map((row) => ({
+      userId: row.user_id,
+      email: row.user_id === viewer.id ? viewer.email : row.member_email || "Workspace member",
+      role: row.role,
+      joinedAt: dateLabel(row.created_at),
+      current: row.user_id === viewer.id,
+    })),
+    invitations: invitationRows.map((row) => ({
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      status: new Date(row.expires_at).getTime() <= now ? "expired" : row.status,
+      expiresAt: dateLabel(row.expires_at),
+    })),
+  };
+}
+
+export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotification[]> {
+  if (viewer.mode === "demo") return [];
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return [];
+  const rows = await supabaseRest<Array<{
+    id: string;
+    kind: WorkspaceNotification["kind"];
+    title: string;
+    body: string;
+    href: string | null;
+    read_at: string | null;
+    created_at: string;
+  }>>(
+    `notifications?select=id,kind,title,body,href,read_at,created_at&organization_id=eq.${organizationId}&user_id=eq.${viewer.id}&order=created_at.desc&limit=50`,
+    { token: viewer.accessToken },
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    kind: row.kind,
+    title: row.title,
+    body: row.body,
+    href: row.href,
+    read: Boolean(row.read_at),
+    createdAt: dateLabel(row.created_at),
+  }));
+}
+
+export async function loadPendingDeletionRequest(viewer: Viewer): Promise<DeletionRequest | null> {
+  if (viewer.mode === "demo") return null;
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return null;
+  const rows = await supabaseRest<Array<{ id: string; status: DeletionRequest["status"]; scheduled_for: string; created_at: string }>>(
+    `account_deletion_requests?select=id,status,scheduled_for,created_at&organization_id=eq.${organizationId}&requested_by=eq.${viewer.id}&status=eq.pending&limit=1`,
+    { token: viewer.accessToken },
+  );
+  const row = rows[0];
+  return row ? { id: row.id, status: row.status, scheduledFor: dateLabel(row.scheduled_for), createdAt: dateLabel(row.created_at) } : null;
 }

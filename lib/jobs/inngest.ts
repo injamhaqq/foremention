@@ -51,9 +51,36 @@ async function recordedRunCost(data: RunRequestedData) {
   return roundUsd(events.reduce((total, event) => total + Number(event.estimated_cost_usd || 0), 0));
 }
 
+async function notifyRunOwner(
+  run: Pick<RunRow, "id" | "organization_id" | "created_by">,
+  kind: "run_ready" | "run_failed",
+  title: string,
+  body: string,
+) {
+  if (!run.created_by) return;
+  try {
+    await supabaseRest("notifications?on_conflict=organization_id,user_id,event_key", {
+      method: "POST",
+      serviceRole: true,
+      prefer: "resolution=ignore-duplicates,return=minimal",
+      body: {
+        organization_id: run.organization_id,
+        user_id: run.created_by,
+        event_key: `${kind}:${run.id}`,
+        kind,
+        title,
+        body,
+        href: `/app/runs/${run.id}`,
+      },
+    });
+  } catch (error) {
+    console.warn("Operational notification could not be recorded.", safeOperationalError(error));
+  }
+}
+
 async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNeverStarted = false) {
-  const runs = await supabaseRest<Array<{ id: string; status: string; started_at: string | null }>>(
-    `runs?select=id,status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&limit=1`,
+  const runs = await supabaseRest<Array<{ id: string; organization_id: string; created_by: string | null; status: string; started_at: string | null }>>(
+    `runs?select=id,organization_id,created_by,status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&limit=1`,
     { serviceRole: true },
   );
   const run = runs[0];
@@ -77,6 +104,12 @@ async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNe
       error_summary: safeOperationalError(reason),
     },
   });
+  await notifyRunOwner(
+    run,
+    "run_failed",
+    "Collection run needs attention",
+    "The run failed without inventing evidence. Open the run to inspect the provider error and retry safely.",
+  );
 }
 
 async function loadRun(data: RunRequestedData) {
@@ -492,6 +525,13 @@ export const runMultiEngineScan = inngest.createFunction(
           error_summary: failures.length ? `${failures.length} provider attempt(s) failed. Review the successful evidence before publishing.` : null,
         },
       }));
+    await step.run("notify-run-owner", () =>
+      notifyRunOwner(
+        run,
+        "run_ready",
+        "Collection is ready for review",
+        `${answerCount} real answer${answerCount === 1 ? "" : "s"} and ${citationCount} returned citation${citationCount === 1 ? "" : "s"} are ready for human review.`,
+      ));
     return { runId: run.id, answers: answerCount, citations: citationCount, failures: failures.length, completedAt };
   },
 );

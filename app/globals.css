@@ -810,6 +810,52 @@ textarea { resize: vertical; }
 .member-row small, .member-row b { font-size: 8px; }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 .danger-button { padding: 10px 13px; border: 1px solid var(--red); background: transparent; color: var(--red); font-size: 9px; font-weight: 700; }
+.team-stack { display: grid; gap: 20px; margin-top: 20px; }
+.panel-heading--padded { padding: 24px 24px 0; }
+.team-invite-form { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(150px, .6fr) auto; gap: 12px; align-items: end; margin-top: 24px; }
+.team-invite-form label,
+.invite-link label,
+.deletion-request label { display: grid; gap: 7px; color: var(--muted); font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.team-invite-form input,
+.team-invite-form select,
+.invite-link input,
+.deletion-request input,
+.team-row-actions select { width: 100%; padding: 11px; border: 1px solid var(--ink); border-radius: 0; background: #fff; color: var(--ink); font: inherit; text-transform: none; }
+.invite-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; margin-top: 18px; padding: 16px; border: 1px solid var(--ink); background: var(--marker-soft); }
+.invite-link small { grid-column: 1 / -1; color: var(--muted); font-size: 8px; }
+.invite-link button,
+.team-row-actions button,
+.team-list > article > button { padding: 10px 12px; border: 1px solid var(--ink); background: transparent; font-size: 8px; font-weight: 700; }
+.team-list { border-top: 1px solid var(--line); }
+.team-list article { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--line); }
+.team-list article > div:first-child { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.team-list article > div:first-child > span { flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--ink); background: var(--marker); }
+.team-list strong,
+.team-list small { display: block; }
+.team-list strong { overflow-wrap: anywhere; font-size: 10px; }
+.team-list small { margin-top: 4px; color: var(--muted); font-size: 8px; text-transform: capitalize; }
+.team-row-actions { display: flex; gap: 8px; align-items: center; }
+.notification-list { border-top: 1px solid var(--ink); }
+.notification-list article { display: grid; grid-template-columns: 1fr auto; gap: 20px; padding: 20px 24px; border-bottom: 1px solid var(--line); }
+.notification-list article.is-unread { border-left: 6px solid var(--marker); background: var(--marker-soft); }
+.notification-list span,
+.notification-list strong,
+.notification-list small { display: block; }
+.notification-list span { margin-bottom: 7px; color: var(--muted); font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.notification-list strong { font-size: 14px; }
+.notification-list p { max-width: 680px; margin: 7px 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.notification-list small,
+.notification-list a { font-size: 8px; }
+.notification-list a { align-self: center; font-weight: 700; }
+.deletion-request { display: grid; gap: 12px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+.deletion-request strong { font-size: 11px; }
+.deletion-request p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
+.deletion-request .danger-button,
+.deletion-request .button { justify-self: start; }
+.invite-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--marker); }
+.invitation-card { width: min(100%, 620px); padding: clamp(28px, 6vw, 64px); border: 1px solid var(--ink); background: var(--paper); box-shadow: 12px 12px 0 var(--ink); }
+.invitation-card h1 { margin: 14px 0; font-size: clamp(38px, 7vw, 70px); letter-spacing: -.065em; line-height: .95; }
+.invitation-card p { color: var(--muted); line-height: 1.7; }
 .action-update { display: grid; gap: 13px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
 .action-update label { font-size: 8px; font-weight: 700; text-transform: uppercase; }
 .action-update input, .action-update textarea, .action-update select { width: 100%; display: block; margin-top: 6px; padding: 10px; border: 1px solid var(--ink); background: #fff; font-size: 10px; text-transform: none; }
@@ -1031,6 +1077,13 @@ textarea { resize: vertical; }
 }
 
 @media (max-width: 780px) {
+  .team-invite-form { grid-template-columns: 1fr; }
+  .invite-link { grid-template-columns: 1fr; }
+  .invite-link small { grid-column: auto; }
+  .team-list article,
+  .notification-list article { grid-template-columns: 1fr; align-items: stretch; }
+  .team-list article { flex-direction: column; align-items: stretch; }
+  .team-row-actions { display: grid; grid-template-columns: 1fr auto; }
   .goat-xray-section { padding: 82px 0; }
   .xray-experience__intro h2 { font-size: clamp(44px,13vw,66px); }
   .xray-stage { height: 650px; }

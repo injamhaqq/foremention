@@ -12,6 +12,8 @@ const nav = [
   ["/app/placements", "Action tracker"],
   ["/app/evidence", "Evidence Vault"],
   ["/app/analytics", "Analytics"],
+  ["/app/alerts", "Alerts"],
+  ["/app/team", "Team"],
   ["/app/settings", "Settings"],
 ];
 

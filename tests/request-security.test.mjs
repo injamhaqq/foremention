@@ -29,6 +29,12 @@ test("every authenticated workspace mutation uses the origin guard", async () =>
     "app/api/evidence/route.ts",
     "app/api/placements/route.ts",
     "app/api/sources/[id]/review/route.ts",
+    "app/api/team/invitations/route.ts",
+    "app/api/team/invitations/[id]/route.ts",
+    "app/api/team/invitations/accept/route.ts",
+    "app/api/team/members/[id]/route.ts",
+    "app/api/notifications/route.ts",
+    "app/api/account/deletion/route.ts",
   ];
   for (const route of routes) {
     const source = await readFile(new URL(route, root), "utf8");
