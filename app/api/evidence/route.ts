@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { loadEvidence, loadWorkspaceContext } from "@/lib/data";
+import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
@@ -12,6 +13,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = (await request.json()) as { title?: string; type?: string; sourceUrl?: string; rights?: string };

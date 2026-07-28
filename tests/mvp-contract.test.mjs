@@ -65,5 +65,5 @@ test("auth, provider adapters, and background run route are present", async () =
   assert.match(job, /run-multi-engine-scan/);
   assert.match(job, /failures/);
   assert.match(route, /foremention\/run\.requested/);
-  assert.match(route, /Select between 1 and 10 active buyer questions/);
+  assert.match(route, /LIVE_COLLECTION_LIMITS\.maxPromptsPerRun/);
 });

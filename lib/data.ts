@@ -1,10 +1,12 @@
 import type { Viewer } from "@/lib/auth";
+import { getProviderCostRates } from "@/lib/collection-policy";
 import { cache } from "react";
 import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, Placement, SourceMapEntry, VisibilityRun } from "@/lib/types";
 
-type MembershipRow = { organization_id: string };
+export type WorkspaceRole = "owner" | "analyst" | "viewer";
+type MembershipRow = { organization_id: string; role: WorkspaceRole };
 type SourceEntryRow = {
   id: string; source_id: string; rank: number; citation_observations: number; engines: SourceMapEntry["engines"];
   client_present: boolean; competitors_present: string[]; entry_route: string | null;
@@ -76,23 +78,28 @@ const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", { month: "
 const relativeLabel = (value: string) => dateLabel(value);
 const hostname = (value: string) => { try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return value; } };
 
-const getPrimaryOrganizationIdCached = cache(async (userId: string, accessToken: string) => {
-  const rows = await supabaseRest<MembershipRow[]>(`organization_members?select=organization_id&user_id=eq.${userId}&limit=1`, { token: accessToken });
-  return rows[0]?.organization_id || null;
+const getPrimaryMembershipCached = cache(async (userId: string, accessToken: string) => {
+  const rows = await supabaseRest<MembershipRow[]>(`organization_members?select=organization_id,role&user_id=eq.${userId}&order=created_at.asc&limit=1`, { token: accessToken });
+  return rows[0] || null;
 });
 
 export async function getPrimaryOrganizationId(viewer: Viewer) {
   if (viewer.mode === "demo") return "10000000-0000-4000-8000-000000000001";
-  return getPrimaryOrganizationIdCached(viewer.id, viewer.accessToken || "");
+  return (await getPrimaryMembershipCached(viewer.id, viewer.accessToken || ""))?.organization_id || null;
+}
+
+export async function getPrimaryWorkspaceRole(viewer: Viewer): Promise<WorkspaceRole | null> {
+  if (viewer.mode === "demo") return "owner";
+  return (await getPrimaryMembershipCached(viewer.id, viewer.accessToken || ""))?.role || null;
 }
 
 export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
   if (viewer.mode === "demo") return sourceMapEntries;
   const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const maps = await supabaseRest<Array<{ id: string }>>(`source_maps?select=id&organization_id=eq.${organizationId}&order=created_at.desc&limit=1`, { token: viewer.accessToken });
+  const maps = await supabaseRest<Array<{ id: string }>>(`source_maps?select=id&organization_id=eq.${organizationId}&status=eq.published&order=created_at.desc&limit=1`, { token: viewer.accessToken });
   if (!maps[0]) return [];
   const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&order=rank.asc`, { token: viewer.accessToken });
-  return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence === "low" ? "emerging" : row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: route(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
+  return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: route(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
 }
 
 export async function loadRuns(viewer: Viewer): Promise<VisibilityRun[]> {
@@ -111,10 +118,10 @@ export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
 
 export function getProviderStatuses(): ProviderStatus[] {
   return [
-    { id: "openai", label: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) },
-    { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL) },
-    { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL) },
-    { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY) },
+    { id: "openai", label: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL && getProviderCostRates("openai")) },
+    { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")) },
+    { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")) },
+    { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")) },
   ];
 }
 
@@ -147,11 +154,11 @@ export async function loadRunAnswers(viewer: Viewer, runId: string): Promise<Wor
   if (viewer.mode === "demo") return [];
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return [];
-  const rows = await supabaseRest<Array<{ id: string; prompt_key: string; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string }>>(
-    `run_answers?select=id,prompt_key,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${organizationId}&run_id=eq.${runId}&order=collected_at.asc`,
+  const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string }>>(
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${organizationId}&run_id=eq.${runId}&order=collected_at.asc`,
     { token: viewer.accessToken },
   );
-  return rows.map((row) => ({ id: row.id, prompt: row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
+  return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
 }
 
 const demoPrompts: WorkspacePrompt[] = [

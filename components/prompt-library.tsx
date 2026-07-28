@@ -11,6 +11,8 @@ export function PromptLibrary({ initialPrompts, demo }: { initialPrompts: Worksp
   const [text, setText] = useState("");
   const [cluster, setCluster] = useState("Discovery");
   const [busy, setBusy] = useState("");
+  const [editingId, setEditingId] = useState("");
+  const [editingText, setEditingText] = useState("");
   const [message, setMessage] = useState("");
   const visible = useMemo(() => prompts.filter((prompt) => filter === "All" || prompt.cluster === filter), [prompts, filter]);
   const clusters = ["All", ...Array.from(new Set(prompts.map((prompt) => prompt.cluster)))];
@@ -47,6 +49,37 @@ export function PromptLibrary({ initialPrompts, demo }: { initialPrompts: Worksp
     finally { setBusy(""); }
   }
 
+  async function saveEdit(prompt: WorkspacePrompt) {
+    const nextText = editingText.trim();
+    if (nextText.length < 10) {
+      setMessage("Write a specific buyer question with at least 10 characters.");
+      return;
+    }
+    setBusy(prompt.id); setMessage("");
+    if (demo) {
+      setPrompts((current) => current.map((item) => item.id === prompt.id ? { ...item, text: nextText } : item));
+      setEditingId(""); setEditingText(""); setBusy("");
+      return;
+    }
+    try {
+      const response = await fetch("/api/prompts", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: prompt.id, text: nextText }),
+      });
+      const result = (await response.json()) as { data?: { text: string }; error?: string };
+      if (!response.ok || !result.data) throw new Error(result.error || "Could not update the question.");
+      setPrompts((current) => current.map((item) => item.id === prompt.id ? { ...item, text: result.data!.text } : item));
+      setEditingId(""); setEditingText("");
+      setMessage("Buyer question updated. Existing run snapshots remain unchanged.");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not update the question.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   return <div>
     <form className="prompt-create" onSubmit={addPrompt}>
       <div><span className="eyebrow">Add buyer question</span><h2>Use the language a real buyer would type.</h2></div>
@@ -56,7 +89,23 @@ export function PromptLibrary({ initialPrompts, demo }: { initialPrompts: Worksp
     </form>
     {message && <p className="inline-notice" role="status">{message}</p>}
     <div className="prompt-tools"><label>Cluster<select value={filter} onChange={(event) => setFilter(event.target.value)}>{clusters.map((value) => <option key={value}>{value}</option>)}</select></label><span>{prompts.filter((prompt) => prompt.approved).length} of {prompts.length} active</span></div>
-    {visible.length ? <div className="prompt-list">{visible.map((prompt) => <article key={prompt.id}><div><span>{prompt.cluster}</span><strong>{prompt.text}</strong></div><button className={prompt.approved ? "is-approved" : ""} type="button" aria-pressed={prompt.approved} disabled={busy === prompt.id} onClick={() => void toggle(prompt)}>{busy === prompt.id ? "Saving…" : prompt.approved ? "Active" : "Paused"}</button></article>)}</div> : <div className="empty-state"><h2>No buyer questions yet.</h2><p>Add the first controlled question above or complete guided onboarding.</p></div>}
+    {visible.length ? <div className="prompt-list">{visible.map((prompt) => <article key={prompt.id}>
+      <div>
+        <span>{prompt.cluster}</span>
+        {editingId === prompt.id
+          ? <input value={editingText} onChange={(event) => setEditingText(event.target.value)} minLength={10} maxLength={1000} aria-label="Edit buyer question" />
+          : <strong>{prompt.text}</strong>}
+      </div>
+      <div className="prompt-row-actions">
+        {editingId === prompt.id
+          ? <>
+            <button type="button" disabled={busy === prompt.id} onClick={() => void saveEdit(prompt)}>{busy === prompt.id ? "Saving…" : "Save"}</button>
+            <button type="button" disabled={busy === prompt.id} onClick={() => { setEditingId(""); setEditingText(""); }}>Cancel</button>
+          </>
+          : <button type="button" onClick={() => { setEditingId(prompt.id); setEditingText(prompt.text); }}>Edit</button>}
+        <button className={prompt.approved ? "is-approved" : ""} type="button" aria-pressed={prompt.approved} disabled={busy === prompt.id} onClick={() => void toggle(prompt)}>{busy === prompt.id ? "Saving…" : prompt.approved ? "Active" : "Paused"}</button>
+      </div>
+    </article>)}</div> : <div className="empty-state"><h2>No buyer questions yet.</h2><p>Add the first controlled question above or complete guided onboarding.</p></div>}
     <p className="table-caption">{demo ? "Demo changes stay in this preview and never enter a customer workspace." : "Every collection uses only the active questions shown here. Pause a question to remove it from future runs without deleting history."}</p>
   </div>;
 }

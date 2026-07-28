@@ -3,7 +3,7 @@ import { OpportunityList } from "@/components/opportunity-list";
 import { requireViewer } from "@/lib/auth";
 import { loadSourceMap } from "@/lib/data";
 
-const influence = { high: 90, medium: 68, low: 44, emerging: 44 };
+const influence = { high: 90, medium: 68, low: 44, emerging: 44, unknown: 20 };
 const feasibility = { high: 90, medium: 62, low: 28, unknown: 20 };
 
 export default async function OpportunitiesPage() {

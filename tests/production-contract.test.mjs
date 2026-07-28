@@ -74,7 +74,7 @@ test("verified authentication uses a deterministic cookie handoff and sends new 
   assert.match(overview, /redirect\("\/app\/onboarding"\)/);
   assert.match(auth, /cache\(async function getViewer/);
   assert.match(auth, /\/api\/auth\/refresh/);
-  assert.match(data, /getPrimaryOrganizationIdCached = cache/);
+  assert.match(data, /getPrimaryMembershipCached = cache/);
   assert.match(callback, /refresh_token/);
   assert.match(refresh, /grant_type=refresh_token/);
   assert.match(refresh, /safeNext/);
@@ -138,7 +138,7 @@ test("the paying workspace keeps customer data truthful and server-scoped", asyn
   assert.match(runRoute, /loadWorkspaceContext/);
   assert.doesNotMatch(runRoute, /body\.organizationId/);
   assert.match(reviewRoute, /review_status/);
-  assert.match(reviewRoute, /published/);
+  assert.match(reviewRoute, /generateReviewedSourceMap/);
 });
 
 test("source review converts citation candidates into audited customer decisions", async () => {

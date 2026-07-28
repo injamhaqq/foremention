@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const steps = ["Organization", "Category", "Competitors", "Goals", "Buyer questions", "Review"];
 
@@ -28,12 +28,36 @@ function initialValues(demo: boolean) {
   };
 }
 
-export function OnboardingWizard({ demo }: { demo: boolean }) {
+export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: string }) {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(() => initialValues(demo));
+  const [hydrated, setHydrated] = useState(demo);
   const [status, setStatus] = useState<"idle" | "saving" | "complete" | "error">("idle");
   const [message, setMessage] = useState("");
   const prompts = values.prompts.split("\n").map((value) => value.trim()).filter(Boolean);
+
+  useEffect(() => {
+    if (demo) return;
+    const restored = (() => {
+      try {
+        const saved = window.localStorage.getItem(draftKey);
+        return saved ? JSON.parse(saved) as { step?: number; values?: ReturnType<typeof initialValues> } : null;
+      } catch {
+        // A malformed device-local draft should never block onboarding.
+        return null;
+      }
+    })();
+    queueMicrotask(() => {
+      if (restored?.values) setValues(restored.values);
+      if (typeof restored?.step === "number") setStep(Math.max(0, Math.min(steps.length - 1, restored.step)));
+      setHydrated(true);
+    });
+  }, [demo, draftKey]);
+
+  useEffect(() => {
+    if (demo || !hydrated || status === "complete") return;
+    window.localStorage.setItem(draftKey, JSON.stringify({ step, values }));
+  }, [demo, draftKey, hydrated, status, step, values]);
 
   async function submit() {
     setStatus("saving");
@@ -51,6 +75,7 @@ export function OnboardingWizard({ demo }: { demo: boolean }) {
       });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not save onboarding.");
+      if (!demo) window.localStorage.removeItem(draftKey);
       setStatus("complete");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save onboarding.");
@@ -65,6 +90,8 @@ export function OnboardingWizard({ demo }: { demo: boolean }) {
     <div className="settings-actions"><a className="button button--ink" href="/app/settings#providers">Connect a provider &rarr;</a><a className="button button--outline" href="/app/prompts">Review questions</a></div>
   </div>;
 
+  if (!hydrated) return <div className="empty-state" role="status"><h2>Restoring your setup…</h2><p>Your saved progress stays on this device until the workspace is created.</p></div>;
+
   return <div className="onboarding-wizard">
     <ol aria-label="Workspace setup progress">{steps.map((label, index) => <li className={step === index ? "is-active" : step > index ? "is-complete" : ""} key={label}><span>{String(index + 1).padStart(2, "0")}</span>{label}</li>)}</ol>
     <form onSubmit={(event) => { event.preventDefault(); if (step < steps.length - 1) setStep(step + 1); else void submit(); }}>
@@ -72,6 +99,7 @@ export function OnboardingWizard({ demo }: { demo: boolean }) {
         <span>Step {step + 1} of {steps.length}</span>
         <div aria-hidden="true"><i style={{ width: `${((step + 1) / steps.length) * 100}%` }} /></div>
       </div>
+      {!demo && <p className="field-hint">Progress is saved on this device so you can return before creating the workspace.</p>}
       {step === 0 && <fieldset><legend>Define the organization</legend><label>Company name<input value={values.companyName} onChange={(event) => setValues({ ...values, companyName: event.target.value })} required autoComplete="organization" /></label><label>Company website<input type="url" value={values.domain} onChange={(event) => setValues({ ...values, domain: event.target.value })} placeholder="https://yourcompany.com" required /></label><label>Primary market<select value={values.market} onChange={(event) => setValues({ ...values, market: event.target.value })}><option>Global</option><option>North America</option><option>Europe</option><option>Asia Pacific</option><option>Middle East and Africa</option><option>Latin America</option></select></label></fieldset>}
       {step === 1 && <fieldset><legend>Choose the category buyers use</legend><label>Canonical category<input value={values.category} onChange={(event) => setValues({ ...values, category: event.target.value })} placeholder="Example: CRM software for small B2B teams" required /></label><label>Category definition<textarea value={values.categoryDescription} onChange={(event) => setValues({ ...values, categoryDescription: event.target.value })} placeholder="Describe what belongs in this category and who buys it." rows={4} required /></label></fieldset>}
       {step === 2 && <fieldset><legend>Map the comparison set</legend><label>Direct competitors<textarea value={values.competitors} onChange={(event) => setValues({ ...values, competitors: event.target.value })} placeholder={"Competitor one\nCompetitor two\nCompetitor three"} rows={5} required /></label><p className="field-hint">One company per line. Include only brands a real buyer would compare.</p></fieldset>}

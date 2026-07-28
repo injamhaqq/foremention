@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
-import { loadPrompts, loadWorkspaceContext } from "@/lib/data";
+import { getPrimaryWorkspaceRole, loadPrompts, loadWorkspaceContext } from "@/lib/data";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
+import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
@@ -13,6 +14,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = (await request.json()) as { text?: string; cluster?: string };
@@ -21,8 +23,9 @@ export async function POST(request: Request) {
   if (text.length < 10) return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: crypto.randomUUID(), text, cluster: clusterName, approved: true }, mode: "demo" }, { status: 201 });
 
-  const [context, existing] = await Promise.all([loadWorkspaceContext(viewer), loadPrompts(viewer)]);
-  if (!context) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
+  const [context, role, existing] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer), loadPrompts(viewer)]);
+  if (!context || !role) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
+  if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
   if (existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions) return NextResponse.json({ error: `This access level allows ${FOUNDATION_ACCESS_LIMITS.buyerQuestions} buyer questions. Paid capacity is enabled only after billing activation.` }, { status: 429 });
 
   let clusterId = context.clusterId;
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
     });
     clusterId = clusters[0]?.id || null;
   }
-  const rows = await supabaseRest<Array<{ id: string }>>("prompts", {
+  const rows = await supabaseRest<Array<{ id: string; version: number }>>("prompts", {
     method: "POST", token: viewer.accessToken, prefer: "return=representation",
     body: {
       organization_id: context.organizationId,
@@ -48,19 +51,79 @@ export async function POST(request: Request) {
       active: true,
     },
   });
+  await supabaseRest("prompt_versions", {
+    method: "POST",
+    token: viewer.accessToken,
+    prefer: "return=minimal",
+    body: {
+      organization_id: context.organizationId,
+      prompt_id: rows[0].id,
+      version: rows[0].version,
+      prompt_text: text,
+      change_reason: "Created by workspace member",
+      created_by: viewer.id,
+    },
+  });
   return NextResponse.json({ data: { id: rows[0].id, text, cluster: clusterName, approved: true } }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = (await request.json()) as { id?: string; active?: boolean };
-  if (!body.id || typeof body.active !== "boolean") return NextResponse.json({ error: "Prompt ID and active status are required." }, { status: 400 });
+  const body = (await request.json()) as { id?: string; active?: boolean; text?: string };
+  const hasActive = typeof body.active === "boolean";
+  const hasText = typeof body.text === "string";
+  const text = hasText ? clean(body.text, 1000) : "";
+  if (!body.id || !/^[0-9a-f-]{36}$/i.test(body.id) || (!hasActive && !hasText)) {
+    return NextResponse.json({ error: "Prompt ID and at least one change are required." }, { status: 400 });
+  }
+  if (hasText && text.length < 10) {
+    return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
+  }
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo" });
-  const context = await loadWorkspaceContext(viewer);
-  if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  await supabaseRest(`prompts?id=eq.${body.id}&organization_id=eq.${context.organizationId}`, {
-    method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { active: body.active },
+  const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
+  if (!context || !role) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+  if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can edit buyer questions." }, { status: 403 });
+  const currentRows = await supabaseRest<Array<{ id: string; prompt_text: string; active: boolean; version: number }>>(
+    `prompts?select=id,prompt_text,active,version&id=eq.${body.id}&organization_id=eq.${context.organizationId}&limit=1`,
+    { token: viewer.accessToken },
+  );
+  const current = currentRows[0];
+  if (!current) return NextResponse.json({ error: "Buyer question not found." }, { status: 404 });
+  const nextVersion = hasText && text !== current.prompt_text ? current.version + 1 : current.version;
+  const rows = await supabaseRest<Array<{ id: string; prompt_text: string; active: boolean }>>(
+    `prompts?id=eq.${body.id}&organization_id=eq.${context.organizationId}`,
+    {
+      method: "PATCH",
+      token: viewer.accessToken,
+      prefer: "return=representation",
+      body: {
+        ...(hasActive ? { active: body.active } : {}),
+        ...(hasText ? { prompt_text: text, version: nextVersion } : {}),
+      },
+    },
+  );
+  if (nextVersion !== current.version) {
+    await supabaseRest("prompt_versions", {
+      method: "POST",
+      token: viewer.accessToken,
+      prefer: "return=minimal",
+      body: {
+        organization_id: context.organizationId,
+        prompt_id: current.id,
+        version: nextVersion,
+        prompt_text: text,
+        change_reason: "Edited by workspace member",
+        created_by: viewer.id,
+      },
+    });
+  }
+  return NextResponse.json({
+    data: {
+      id: rows[0].id,
+      text: rows[0].prompt_text,
+      approved: rows[0].active,
+    },
   });
-  return NextResponse.json({ ok: true });
 }

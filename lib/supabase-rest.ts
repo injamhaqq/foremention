@@ -13,9 +13,52 @@ type RestOptions = {
   serviceRole?: boolean;
 };
 
+export class SupabaseRequestError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(status: number, message: string, code?: string) {
+    super(message);
+    this.name = "SupabaseRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+function safeDatabaseMessage(status: number, detail: string) {
+  let parsed: { message?: string; code?: string } = {};
+  try { parsed = JSON.parse(detail) as { message?: string; code?: string }; } catch { /* Non-JSON response. */ }
+  const message = String(parsed.message || "");
+  const allowed = [
+    /authentication required/i,
+    /permission/i,
+    /workspace is not active/i,
+    /free beta limit reached/i,
+    /monthly ai spending ceiling reached/i,
+    /maximum number of active collection runs/i,
+    /incomplete workspace already exists/i,
+    /queued run not found/i,
+    /prompt limit exceeded/i,
+    /competitor limit exceeded/i,
+    /company, domain, and category are required/i,
+    /at least one approved prompt is required/i,
+  ];
+  const safe = allowed.some((pattern) => pattern.test(message))
+    ? message.slice(0, 300)
+    : status === 404 ? "The requested workspace record was not found."
+      : status === 409 ? "That change conflicts with the current workspace state."
+        : status === 429 ? "This workspace has reached its current capacity."
+          : "The workspace database could not complete this request.";
+  return { message: safe, code: parsed.code };
+}
+
 export async function supabaseRest<T>(path: string, options: RestOptions = {}): Promise<T> {
   if (!supabaseUrl || !anonKey) throw new Error("Supabase is not configured.");
-  const key = options.serviceRole ? process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey : anonKey;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (options.serviceRole && !serviceRoleKey) {
+    throw new Error("Server-side database processing is not configured.");
+  }
+  const key = options.serviceRole ? serviceRoleKey as string : anonKey;
   const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     method: options.method || "GET",
     headers: {
@@ -29,7 +72,8 @@ export async function supabaseRest<T>(path: string, options: RestOptions = {}): 
   });
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`Supabase request failed (${response.status}): ${detail}`);
+    const safe = safeDatabaseMessage(response.status, detail);
+    throw new SupabaseRequestError(response.status, safe.message, safe.code);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;

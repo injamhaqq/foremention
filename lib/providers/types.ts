@@ -13,6 +13,12 @@ export type ProviderCitation = {
   endIndex?: number;
 };
 
+export type ProviderUsage = {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+};
+
 export type ProviderAnswer = {
   provider: ProviderId;
   model: string;
@@ -22,12 +28,42 @@ export type ProviderAnswer = {
   raw: unknown;
   collectedAt: string;
   latencyMs: number;
+  usage?: ProviderUsage;
+  billedCostUsd?: number;
+  requestId?: string;
+  finishReason?: string;
+};
+
+export type ProviderRunOptions = {
+  signal?: AbortSignal;
+  maxOutputTokens: number;
 };
 
 export interface AnswerProviderAdapter {
   id: ProviderId;
   configured(): boolean;
-  run(prompt: ProviderPrompt): Promise<ProviderAnswer>;
+  run(prompt: ProviderPrompt, options: ProviderRunOptions): Promise<ProviderAnswer>;
+}
+
+export class ProviderRequestError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly retryable: boolean;
+
+  constructor(provider: string, status: number) {
+    super(`${provider} request failed (${status}).`);
+    this.name = "ProviderRequestError";
+    this.status = status;
+    this.code = status === 429 ? "rate_limited" : status >= 500 || status === 408 ? "provider_unavailable" : "provider_rejected";
+    this.retryable = status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+  }
+}
+
+export function requestIdFrom(response: Response, bodyId?: string) {
+  return response.headers.get("x-request-id")
+    || response.headers.get("request-id")
+    || bodyId
+    || undefined;
 }
 
 export function extractUrls(text: string) {

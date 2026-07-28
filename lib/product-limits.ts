@@ -2,7 +2,9 @@ export const FOUNDATION_ACCESS_LIMITS = {
   plan: "Foundation access",
   brands: 1,
   buyerQuestions: 10,
+  providersPerRun: 1,
   runUnitsPerMonth: 20,
+  monthlyAiSpendCapUsd: 1,
   historyDays: 90,
   teamMembers: 1,
 } as const;

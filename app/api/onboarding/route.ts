@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
+import { loadWorkspaceContext } from "@/lib/data";
+import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type OnboardingPayload = {
@@ -18,6 +20,7 @@ type OnboardingPayload = {
 const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const raw = (await request.json()) as OnboardingPayload;
@@ -30,13 +33,28 @@ export async function POST(request: Request) {
     competitors: (raw.competitors || []).map((value) => clean(value, 120)).filter(Boolean).slice(0, 20),
     goal: clean(raw.goal, 500),
     constraint: clean(raw.constraint, 1000),
-    prompts: (raw.prompts || []).map((value) => clean(value, 1000)).filter(Boolean).slice(0, 100),
+    prompts: (raw.prompts || []).map((value) => clean(value, 1000)).filter(Boolean).slice(0, 10),
     locale: clean(raw.locale, 20) || "en-US",
   };
   if (!payload.companyName || !payload.domain || !payload.category || !payload.prompts.length) return NextResponse.json({ error: "Company, domain, category, and one approved prompt are required." }, { status: 400 });
-  try { new URL(payload.domain); } catch { return NextResponse.json({ error: "Enter a complete company URL, including https://." }, { status: 400 }); }
+  try {
+    const url = new URL(payload.domain);
+    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) throw new Error("Invalid company URL.");
+  } catch {
+    return NextResponse.json({ error: "Enter a complete public company URL, including https://." }, { status: 400 });
+  }
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, demo: true, promptCount: payload.prompts.length });
   try {
+    const existing = await loadWorkspaceContext(viewer);
+    if (existing) {
+      return NextResponse.json({
+        ok: true,
+        existing: true,
+        organizationId: existing.organizationId,
+        projectId: existing.projectId,
+        categoryId: existing.categoryId,
+      });
+    }
     const result = await supabaseRest<Record<string, unknown>>("rpc/complete_onboarding", { method: "POST", token: viewer.accessToken, body: { payload } });
     return NextResponse.json({ ok: true, ...result }, { status: 201 });
   } catch (error) {

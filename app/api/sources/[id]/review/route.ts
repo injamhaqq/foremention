@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryOrganizationId } from "@/lib/data";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
+import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 const crawlerValues: SourceMapEntry["crawlerAccess"][] = ["open", "partial", "blocked"];
@@ -10,6 +11,7 @@ const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "exp
 const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;

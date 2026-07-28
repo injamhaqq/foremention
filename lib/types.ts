@@ -15,7 +15,7 @@ export type SourceMapEntry = {
   title: string;
   url: string;
   type: string;
-  influence: "high" | "medium" | "low" | "emerging";
+  influence: "high" | "medium" | "low" | "emerging" | "unknown";
   engines: Engine[];
   clientPresent: boolean;
   competitors: string[];
@@ -29,7 +29,7 @@ export type SourceMapEntry = {
 export type VisibilityRun = {
   id: string;
   date: string;
-  status: "queued" | "complete" | "running" | "review" | "failed";
+  status: "queued" | "complete" | "partial" | "cancelled" | "running" | "review" | "failed";
   prompts: number;
   answers: number;
   citations: number;
