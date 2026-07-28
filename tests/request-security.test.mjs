@@ -13,6 +13,32 @@ test("customer mutations require a same-origin browser request", () => {
     assert.equal(security.isTrustedMutationOrigin(new Request("https://foremention.com/api/runs", { headers: { origin: "https://foremention.com" } })), true);
     assert.equal(security.isTrustedMutationOrigin(new Request("https://foremention.com/api/runs", { headers: { origin: "https://attacker.example" } })), false);
     assert.equal(security.isTrustedMutationOrigin(new Request("https://foremention.com/api/runs")), false);
+    assert.equal(security.isTrustedMutationOrigin(new Request("https://foremention-mvp.workers.dev/api/runs", {
+      method: "POST",
+      headers: {
+        origin: "https://foremention.com",
+        host: "foremention.com",
+        "x-forwarded-proto": "https",
+      },
+    })), true);
+    assert.equal(security.isTrustedMutationOrigin(new Request("https://foremention-mvp.workers.dev/api/runs", {
+      method: "POST",
+      headers: {
+        referer: "https://foremention.com/app/onboarding",
+        "sec-fetch-site": "same-origin",
+        host: "foremention.com",
+        "x-forwarded-proto": "https",
+      },
+    })), true);
+    assert.equal(security.isTrustedMutationOrigin(new Request("https://foremention-mvp.workers.dev/api/runs", {
+      method: "POST",
+      headers: {
+        referer: "https://attacker.example/form",
+        "sec-fetch-site": "cross-site",
+        host: "foremention.com",
+        "x-forwarded-proto": "https",
+      },
+    })), false);
   } finally {
     if (originalSite === undefined) delete process.env.NEXT_PUBLIC_SITE_URL; else process.env.NEXT_PUBLIC_SITE_URL = originalSite;
     if (originalNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = originalNodeEnv;
