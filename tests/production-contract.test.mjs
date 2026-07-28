@@ -43,6 +43,10 @@ test("account recovery requires and confirms a new password", async () => {
   assert.match(authForm, /password !== confirmation/);
   assert.match(signup, /password !== confirmation/);
   assert.match(signup, /email_redirect_to: `\$\{origin\}\/auth\/callback`/);
+  assert.match(signup, /user\.identities\.length === 0/);
+  assert.match(signup, /account_help: true/);
+  assert.match(authForm, /Continue to your account/);
+  assert.match(authForm, /Reset password/);
   assert.match(recovery, /redirect_to=.*auth\/callback/);
   assert.doesNotMatch(recovery, /auth\/callback\?next=/);
   assert.match(layout, /AuthHashRedirect/);

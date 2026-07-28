@@ -24,6 +24,22 @@ export async function POST(request: Request) {
       data: { full_name: full_name.trim() },
       email_redirect_to: `${origin}/auth/callback`,
     });
+    const user = data.user && typeof data.user === "object"
+      ? data.user as { identities?: unknown[] }
+      : null;
+    // With email confirmation enabled, Supabase deliberately returns an
+    // obfuscated user with no identities when the address is already
+    // registered. Treating that as a new signup incorrectly tells the person
+    // to wait for an email that will never arrive.
+    if (user && Array.isArray(user.identities) && user.identities.length === 0) {
+      return NextResponse.json({
+        ok: true,
+        session: false,
+        account_help: true,
+        email: normalizedEmail,
+        message: "This email may already be connected to Foremention. Sign in, or reset the password if you cannot access the account.",
+      });
+    }
     const token = String(data.access_token || "");
     if (!token) return NextResponse.json({
       ok: true,

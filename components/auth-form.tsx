@@ -10,6 +10,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [noticeEmail, setNoticeEmail] = useState("");
+  const [accountHelp, setAccountHelp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -18,6 +19,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
     const formData = new FormData(event.currentTarget);
     setError("");
     setNotice("");
+    setAccountHelp(false);
 
     const password = String(formData.get("password") || "");
     const confirmation = String(formData.get("confirmation") || "");
@@ -33,12 +35,13 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(Object.fromEntries(formData.entries())),
       });
-      const data = (await response.json()) as { error?: string; message?: string; session?: boolean; email?: string };
+      const data = (await response.json()) as { error?: string; message?: string; session?: boolean; email?: string; account_help?: boolean };
       if (!response.ok) {
         setError(data.error || "We could not complete that request. Check your details and try again.");
         return;
       }
       if (data.session === false) {
+        setAccountHelp(Boolean(data.account_help));
         setNotice(data.message || "Check your inbox to confirm your account.");
         setNoticeEmail(data.email || String(formData.get("email") || ""));
         return;
@@ -55,6 +58,19 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
   }
 
   if (notice) {
+    if (accountHelp) {
+      return (
+        <div className="auth-card auth-card--status">
+          <span className="eyebrow">Account found</span>
+          <h1>Continue to your account.</h1>
+          <p role="status" aria-live="polite">{notice}</p>
+          {noticeEmail && <p className="auth-email-receipt">Account email <strong>{noticeEmail}</strong></p>}
+          <a className="button button--ink button--wide" href="/login">Go to sign in</a>
+          <a className="auth-recovery" href="/forgot-password">Reset password</a>
+          <button className="text-button" type="button" onClick={() => { setNotice(""); setNoticeEmail(""); setAccountHelp(false); }}>Use a different email</button>
+        </div>
+      );
+    }
     return (
       <div className="auth-card auth-card--status">
         <span className="eyebrow">Check your inbox</span>
@@ -67,7 +83,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
           <li>The verified link opens guided workspace setup automatically.</li>
         </ol>
         <a className="button button--ink button--wide" href="/login">Already confirmed? Sign in</a>
-        <button className="text-button" type="button" onClick={() => { setNotice(""); setNoticeEmail(""); }}>Use a different email</button>
+        <button className="text-button" type="button" onClick={() => { setNotice(""); setNoticeEmail(""); setAccountHelp(false); }}>Use a different email</button>
       </div>
     );
   }
