@@ -1,4 +1,5 @@
 import type { ProviderId, ProviderUsage } from "@/lib/providers/types";
+import { redactOperationalText } from "./operational-error.js";
 
 export const LIVE_COLLECTION_LIMITS = {
   maxPromptsPerRun: 10,
@@ -109,8 +110,5 @@ export function hostnameFromUrl(value: string) {
 
 export function safeOperationalError(error: unknown) {
   const message = typeof error === "string" ? error : error instanceof Error ? error.message : "Unknown collection failure.";
-  return message
-    .replace(/(?:sk|key|token|secret|password)[-_a-z0-9]*\s*[:=]\s*[^\s,;]+/gi, "[redacted]")
-    .replace(/Bearer\s+[^\s,;]+/gi, "Bearer [redacted]")
-    .slice(0, 500);
+  return redactOperationalText(message);
 }

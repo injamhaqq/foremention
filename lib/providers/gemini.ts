@@ -2,6 +2,11 @@ import { extractUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAd
 
 type GeminiResponse = {
   modelVersion?: string;
+  error?: {
+    code?: number;
+    message?: string;
+    status?: string;
+  };
   candidates?: Array<{
     finishReason?: string;
     content?: { parts?: Array<{ text?: string }> };
@@ -28,8 +33,19 @@ export const geminiAdapter: AnswerProviderAdapter = {
         generationConfig: { maxOutputTokens: options.maxOutputTokens },
       }),
     });
-    const raw = (await response.json()) as GeminiResponse;
-    if (!response.ok) throw new ProviderRequestError("Gemini", response.status);
+    const responseText = await response.text();
+    let raw: GeminiResponse = {};
+    try {
+      raw = responseText ? JSON.parse(responseText) as GeminiResponse : {};
+    } catch {
+      if (response.ok) throw new Error("Gemini returned an unreadable success response.");
+    }
+    if (!response.ok) {
+      const statusLabel = raw.error?.status?.trim();
+      const message = raw.error?.message?.trim();
+      const detail = [statusLabel ? `[${statusLabel}]` : "", message || ""].filter(Boolean).join(" ");
+      throw new ProviderRequestError("Gemini", response.status, detail);
+    }
     const candidate = raw.candidates?.[0];
     const answer = (candidate?.content?.parts || []).map((part) => part.text || "").join("\n");
     const citations: ProviderCitation[] = (candidate?.groundingMetadata?.groundingChunks || [])

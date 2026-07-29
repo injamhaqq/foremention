@@ -482,7 +482,11 @@ export const runMultiEngineScan = inngest.createFunction(
       ));
     if (finalState[0]?.status === "cancelled") return { runId: run.id, cancelled: true };
     if (!answerCount) {
-      await markRunFailed(data, "Every provider attempt failed. No evidence was invented.");
+      const failureReasons = Array.from(new Set(failures.map((failure) => failure.error).filter(Boolean)));
+      await markRunFailed(
+        data,
+        failureReasons[0] || "Every provider attempt failed. No evidence was invented.",
+      );
       return { runId: run.id, answers: 0, citations: 0, failures: failures.length };
     }
 

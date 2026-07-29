@@ -1,3 +1,5 @@
+import { redactOperationalText } from "../operational-error.js";
+
 export type ProviderId = "openai" | "gemini" | "anthropic" | "perplexity" | "mock";
 
 export type ProviderPrompt = {
@@ -50,8 +52,9 @@ export class ProviderRequestError extends Error {
   readonly code: string;
   readonly retryable: boolean;
 
-  constructor(provider: string, status: number) {
-    super(`${provider} request failed (${status}).`);
+  constructor(provider: string, status: number, detail?: string) {
+    const safeDetail = detail ? redactOperationalText(detail, 300) : "";
+    super(`${provider} request failed (${status})${safeDetail ? `: ${safeDetail}` : "."}`);
     this.name = "ProviderRequestError";
     this.status = status;
     this.code = status === 429 ? "rate_limited" : status >= 500 || status === 408 ? "provider_unavailable" : "provider_rejected";
