@@ -151,11 +151,16 @@ test("source review converts citation candidates into audited customer decisions
   ]);
   assert.match(record, /SourceReviewForm/);
   assert.match(form, /Crawler access/);
+  assert.match(form, /Select after inspection/);
+  assert.match(form, /Observed influence/);
+  assert.match(form, /crawlerAccess === "unknown"/);
   assert.match(form, /Our brand is present on this page/);
   assert.match(form, /Review note/);
   assert.match(route, /getPrimaryOrganizationId/);
   assert.doesNotMatch(route, /body\.organizationId/);
   assert.match(route, /source\.reviewed/);
+  assert.match(route, /influenceValues/);
+  assert.match(route, /influence: body\.influence/);
   assert.match(route, /before_state/);
   assert.match(route, /after_state/);
   assert.match(map, /Review completion/);

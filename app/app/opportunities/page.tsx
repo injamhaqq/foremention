@@ -11,7 +11,7 @@ export default async function OpportunitiesPage() {
   const entries = await loadSourceMap(viewer);
   const contexts = await loadSourceEvidenceContexts(viewer, entries.flatMap((source) => source.sourceId ? [source.sourceId] : []));
   const rows = entries.filter((source) => !source.clientPresent).map((source) => {
-    const reviewed = source.crawlerAccess !== "unknown" && source.influence !== "unknown" && source.feasibility !== "unknown";
+    const reviewed = source.crawlerAccess !== "unknown" && source.influence !== "unknown" && source.feasibility !== "unknown" && source.route !== "unknown";
     return {
       ...source,
       score: reviewed ? Math.round(influence[source.influence] * .6 + feasibility[source.feasibility] * .4) : null,

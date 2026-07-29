@@ -125,7 +125,8 @@ export type DecisionSignal = {
 };
 
 const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
-const route = (value: string | null): EntryRoute => routes.includes(value as EntryRoute) ? value as EntryRoute : "editorial outreach";
+const sourceRoute = (value: string | null): SourceMapEntry["route"] => routes.includes(value as EntryRoute) ? value as EntryRoute : "unknown";
+const placementRoute = (value: string | null): EntryRoute => routes.includes(value as EntryRoute) ? value as EntryRoute : "editorial outreach";
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(value));
 const relativeLabel = (value: string) => dateLabel(value);
 const hostname = (value: string) => { try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return value; } };
@@ -151,7 +152,7 @@ export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
   const maps = await supabaseRest<Array<{ id: string }>>(`source_maps?select=id&organization_id=eq.${organizationId}&status=eq.published&order=created_at.desc&limit=1`, { token: viewer.accessToken });
   if (!maps[0]) return [];
   const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&order=rank.asc`, { token: viewer.accessToken });
-  return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: route(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
+  return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: sourceRoute(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
 }
 
 const excerpt = (value: string, limit = 240) => {
@@ -223,7 +224,7 @@ export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
   if (viewer.mode === "demo") return demoPlacements;
   const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
   const rows = await supabaseRest<PlacementRow[]>(`placements?select=id,source_url,page_title,entry_route,stage,updated_at,target_prompt_ids,owner_id&organization_id=eq.${organizationId}&order=updated_at.desc`, { token: viewer.accessToken });
-  return rows.map((row) => ({ id: row.id, source: hostname(row.source_url), page: row.page_title || row.source_url, route: route(row.entry_route), owner: row.owner_id ? "Assigned" : "Unassigned", stage: row.stage.replaceAll("_", " ") as Placement["stage"], updated: relativeLabel(row.updated_at), promptImpact: row.target_prompt_ids?.length || 0 }));
+  return rows.map((row) => ({ id: row.id, source: hostname(row.source_url), page: row.page_title || row.source_url, route: placementRoute(row.entry_route), owner: row.owner_id ? "Assigned" : "Unassigned", stage: row.stage.replaceAll("_", " ") as Placement["stage"], updated: relativeLabel(row.updated_at), promptImpact: row.target_prompt_ids?.length || 0 }));
 }
 
 export function getProviderStatuses(): ProviderStatus[] {

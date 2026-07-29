@@ -20,7 +20,7 @@ export type SourceMapEntry = {
   clientPresent: boolean;
   competitors: string[];
   crawlerAccess: "open" | "partial" | "blocked" | "unknown";
-  route: EntryRoute;
+  route: EntryRoute | "unknown";
   feasibility: "high" | "medium" | "low" | "unknown";
   evidenceCount: number;
   reviewedAt?: string | null;
