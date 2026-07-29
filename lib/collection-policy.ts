@@ -108,7 +108,7 @@ export function hostnameFromUrl(value: string) {
 }
 
 export function safeOperationalError(error: unknown) {
-  const message = error instanceof Error ? error.message : "Unknown collection failure.";
+  const message = typeof error === "string" ? error : error instanceof Error ? error.message : "Unknown collection failure.";
   return message
     .replace(/(?:sk|key|token|secret|password)[-_a-z0-9]*\s*[:=]\s*[^\s,;]+/gi, "[redacted]")
     .replace(/Bearer\s+[^\s,;]+/gi, "Bearer [redacted]")

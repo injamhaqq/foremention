@@ -22,6 +22,7 @@ test("operational errors redact credential-shaped values", () => {
   const safe = policy.safeOperationalError(new Error("token=secret-value Bearer another-secret"));
   assert.doesNotMatch(safe, /secret-value|another-secret/);
   assert.match(safe, /redacted/);
+  assert.equal(policy.safeOperationalError("Every provider attempt failed. No evidence was invented."), "Every provider attempt failed. No evidence was invented.");
 });
 
 test("provider circuit counts distinct failed runs instead of retry attempts", () => {
