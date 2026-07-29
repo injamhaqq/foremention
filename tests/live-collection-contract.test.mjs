@@ -51,6 +51,15 @@ test("new Supabase API keys stay in the apikey header instead of impersonating a
   assert.match(source, /isOpaqueApiKey\(key\) \? null/);
 });
 
+test("the server-only Supabase role can execute trusted background collection", async () => {
+  const migration = await text("supabase/migrations/20260729000200_service_role_background_permissions.sql");
+  assert.match(migration, /grant usage on schema public to service_role/i);
+  assert.match(migration, /grant select, insert, update, delete on all tables in schema public to service_role/i);
+  assert.match(migration, /grant execute on all functions in schema public to service_role/i);
+  assert.match(migration, /alter default privileges in schema public/i);
+  assert.doesNotMatch(migration, /grant .* to anon/i);
+});
+
 test("only reviewed persisted observations create a truthful Source Map", async () => {
   const [review, generator, loader] = await Promise.all([
     text("app/api/runs/[id]/review/route.ts"),
