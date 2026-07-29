@@ -6,7 +6,7 @@ import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
 const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
 
-export function SourceReviewForm({ source, demo }: { source: SourceMapEntry; demo: boolean }) {
+export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapEntry; demo: boolean; canEdit: boolean }) {
   const router = useRouter();
   const [crawlerAccess, setCrawlerAccess] = useState<Exclude<SourceMapEntry["crawlerAccess"], "unknown">>(source.crawlerAccess === "unknown" ? "open" : source.crawlerAccess);
   const [clientPresent, setClientPresent] = useState(source.clientPresent);
@@ -48,7 +48,7 @@ export function SourceReviewForm({ source, demo }: { source: SourceMapEntry; dem
       <label className="source-review-wide">Competitors actually present<textarea value={competitors} onChange={(event) => setCompetitors(event.target.value)} rows={4} placeholder={"Competitor one\nCompetitor two"} /></label>
       <label className="source-review-wide">Review note<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="What was verified, what remains uncertain, and what evidence would make this actionable?" /></label>
     </div>
-    <div className="source-review-actions"><small>Saving this review changes gap status and records the reviewer, time, before-state, and after-state.</small><button className="button button--ink" type="submit" disabled={busy}>{busy ? "Saving..." : "Save reviewed source"}</button></div>
+    <div className="source-review-actions"><small>{canEdit ? "Saving this review changes gap status and records the reviewer, time, before-state, and after-state." : "Viewer access is read-only. An owner, admin, or analyst can save this review."}</small><button className="button button--ink" type="submit" disabled={busy || !canEdit}>{busy ? "Saving..." : "Save reviewed source"}</button></div>
     {message && <p className="inline-notice" role="status">{message}</p>}
   </form>;
 }

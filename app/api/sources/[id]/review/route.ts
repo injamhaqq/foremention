@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
-import { getPrimaryOrganizationId } from "@/lib/data";
+import { getPrimaryOrganizationId, getPrimaryWorkspaceRole } from "@/lib/data";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -30,8 +30,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const note = clean(body.note, 2000);
 
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo", reviewedAt: new Date().toISOString() });
-  const organizationId = await getPrimaryOrganizationId(viewer);
+  const [organizationId, role] = await Promise.all([getPrimaryOrganizationId(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!organizationId) return NextResponse.json({ error: "Complete onboarding before reviewing a source." }, { status: 409 });
+  if (!role || role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
   const rows = await supabaseRest<Array<{ id: string; source_id: string; client_present: boolean; competitors_present: string[]; entry_route: string | null; feasibility: string; analyst_note: string | null }>>(
     `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,analyst_note&id=eq.${encodeURIComponent(id)}&organization_id=eq.${organizationId}&limit=1`,
     { token: viewer.accessToken },

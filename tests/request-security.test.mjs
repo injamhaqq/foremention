@@ -55,6 +55,7 @@ test("every authenticated workspace mutation uses the origin guard", async () =>
     "app/api/evidence/route.ts",
     "app/api/placements/route.ts",
     "app/api/sources/[id]/review/route.ts",
+    "app/api/sources/[id]/inspect/route.ts",
     "app/api/team/invitations/route.ts",
     "app/api/team/invitations/[id]/route.ts",
     "app/api/team/invitations/accept/route.ts",
