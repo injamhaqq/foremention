@@ -48,6 +48,16 @@ export type WorkspaceRunAnswer = {
   status: "unreviewed" | "verified" | "excluded";
   collectedAt: string;
 };
+export type SourceEvidenceContext = {
+  sourceId: string;
+  answerId: string;
+  prompt: string;
+  provider: string;
+  model: string | null;
+  answerExcerpt: string;
+  citationOrdinal: number | null;
+  observedAt: string;
+};
 export type ProviderHealth = "available" | "limited" | "untested";
 export type ProviderStatus = {
   id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter";
@@ -82,6 +92,7 @@ export type WorkspaceNotification = {
   href: string | null;
   read: boolean;
   createdAt: string;
+  count: number;
 };
 export type DeletionRequest = {
   id: string;
@@ -141,6 +152,64 @@ export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
   if (!maps[0]) return [];
   const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&order=rank.asc`, { token: viewer.accessToken });
   return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: route(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
+}
+
+const excerpt = (value: string, limit = 240) => {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > limit ? `${normalized.slice(0, limit - 1).trimEnd()}…` : normalized;
+};
+
+export async function loadSourceEvidenceContexts(
+  viewer: Viewer,
+  sourceIds: string[],
+): Promise<Record<string, SourceEvidenceContext[]>> {
+  if (viewer.mode === "demo" || !sourceIds.length) return {};
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return {};
+  const safeSourceIds = sourceIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (!safeSourceIds.length) return {};
+  const observations = await supabaseRest<Array<{
+    source_id: string;
+    run_answer_id: string | null;
+    provider: string;
+    citation_ordinal: number | null;
+    observed_at: string;
+  }>>(
+    `source_observations?select=source_id,run_answer_id,provider,citation_ordinal,observed_at&organization_id=eq.${organizationId}&source_id=in.(${safeSourceIds.join(",")})&review_status=eq.verified&order=observed_at.desc&limit=500`,
+    { token: viewer.accessToken },
+  );
+  const answerIds = Array.from(new Set(observations.flatMap((row) => row.run_answer_id ? [row.run_answer_id] : [])));
+  if (!answerIds.length) return {};
+  const answers = await supabaseRest<Array<{
+    id: string;
+    prompt_key: string;
+    prompt_text: string | null;
+    provider: string;
+    model: string | null;
+    answer_text: string;
+  }>>(
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text&organization_id=eq.${organizationId}&id=in.(${answerIds.join(",")})&review_status=eq.verified`,
+    { token: viewer.accessToken },
+  );
+  const answerById = new Map(answers.map((answer) => [answer.id, answer]));
+  return observations.reduce<Record<string, SourceEvidenceContext[]>>((result, observation) => {
+    if (!observation.run_answer_id) return result;
+    const answer = answerById.get(observation.run_answer_id);
+    if (!answer) return result;
+    const current = result[observation.source_id] || [];
+    current.push({
+      sourceId: observation.source_id,
+      answerId: answer.id,
+      prompt: answer.prompt_text || answer.prompt_key,
+      provider: observation.provider || answer.provider,
+      model: answer.model,
+      answerExcerpt: excerpt(answer.answer_text),
+      citationOrdinal: observation.citation_ordinal,
+      observedAt: dateLabel(observation.observed_at),
+    });
+    result[observation.source_id] = current;
+    return result;
+  }, {});
 }
 
 export async function loadRuns(viewer: Viewer): Promise<VisibilityRun[]> {
@@ -238,6 +307,18 @@ export async function loadRunAnswers(viewer: Viewer, runId: string): Promise<Wor
   if (!organizationId) return [];
   const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string }>>(
     `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${organizationId}&run_id=eq.${runId}&order=collected_at.asc`,
+    { token: viewer.accessToken },
+  );
+  return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
+}
+
+export async function loadLatestReviewedAnswers(viewer: Viewer, limit = 12): Promise<WorkspaceRunAnswer[]> {
+  if (viewer.mode === "demo") return [];
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return [];
+  const safeLimit = Math.max(1, Math.min(50, Math.round(limit)));
+  const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string }>>(
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${organizationId}&review_status=eq.verified&order=collected_at.desc&limit=${safeLimit}`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
@@ -435,15 +516,27 @@ export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotifi
     `notifications?select=id,kind,title,body,href,read_at,created_at&organization_id=eq.${organizationId}&user_id=eq.${viewer.id}&order=created_at.desc&limit=50`,
     { token: viewer.accessToken },
   );
-  return rows.map((row) => ({
-    id: row.id,
-    kind: row.kind,
-    title: row.title,
-    body: row.body,
-    href: row.href,
-    read: Boolean(row.read_at),
-    createdAt: dateLabel(row.created_at),
-  }));
+  const groups = new Map<string, WorkspaceNotification>();
+  for (const row of rows) {
+    const key = `${row.kind}\u0000${row.title}\u0000${row.body}`;
+    const current = groups.get(key);
+    if (current) {
+      current.count += 1;
+      current.read = current.read && Boolean(row.read_at);
+      continue;
+    }
+    groups.set(key, {
+      id: row.id,
+      kind: row.kind,
+      title: row.title,
+      body: row.body,
+      href: row.href,
+      read: Boolean(row.read_at),
+      createdAt: dateLabel(row.created_at),
+      count: 1,
+    });
+  }
+  return Array.from(groups.values());
 }
 
 export async function loadPendingDeletionRequest(viewer: Viewer): Promise<DeletionRequest | null> {

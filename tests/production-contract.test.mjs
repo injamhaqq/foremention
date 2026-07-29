@@ -209,7 +209,32 @@ test("workspace navigation and customer controls are complete on desktop and mob
   assert.match(evidenceRoute, /evidence\.verified/);
   assert.match(team, /member\.current \|\| busy/);
   assert.match(alerts, /Could not update alerts/);
-  assert.match(overview, /provider\.verifiedAnswers > 0/);
+  assert.match(overview, /Latest verified answer/);
+  assert.match(overview, /loadLatestReviewedAnswers/);
+});
+
+test("customer insight pages use real evidence without pseudo-priority scores or duplicate alert noise", async () => {
+  const [data, opportunities, opportunityList, overview, sourceRecord, analytics, alerts] = await Promise.all([
+    text("lib/data.ts"),
+    text("app/app/opportunities/page.tsx"),
+    text("components/opportunity-list.tsx"),
+    text("app/app/page.tsx"),
+    text("app/app/sources/[id]/page.tsx"),
+    text("app/app/analytics/page.tsx"),
+    text("components/notification-center.tsx"),
+  ]);
+  assert.match(data, /loadSourceEvidenceContexts/);
+  assert.match(data, /source_observations\?select=source_id,run_answer_id,provider,citation_ordinal,observed_at/);
+  assert.match(data, /review_status=eq\.verified/);
+  assert.match(data, /const groups = new Map/);
+  assert.match(opportunities, /score: reviewed \?/);
+  assert.match(opportunityList, /source\.score === null \? "Evidence"/);
+  assert.match(opportunityList, /source\.score === null \? <strong>Review<\/strong> :/);
+  assert.match(opportunityList, /disabled=.*source\.score === null/);
+  assert.match(overview, /latestAnswer\.answer/);
+  assert.match(sourceRecord, /Observed evidence chain/);
+  assert.match(analytics, /Current reviewed baseline/);
+  assert.match(alerts, /similar events/);
 });
 
 test("SEO, social preview, and accessibility states are bundled", async () => {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Arrow, StatusDot } from "@/components/brand";
 import { demoCompany, engineCoverage } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
-import { loadDecisionSignal, loadPlacements, loadPrompts, loadProviderStatuses, loadRuns, loadSourceMap, loadWorkspaceContext } from "@/lib/data";
+import { loadDecisionSignal, loadLatestReviewedAnswers, loadPlacements, loadPrompts, loadProviderStatuses, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceContext } from "@/lib/data";
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
@@ -27,6 +27,11 @@ export default async function DashboardPage() {
   ]);
   const reviewedRuns = runs.filter((run) => run.status === "complete");
   const latest = reviewedRuns[0] || { presence: 0, firstMention: 0, answers: 0 };
+  const [reviewedAnswers, sourceContexts] = await Promise.all([
+    loadLatestReviewedAnswers(viewer, 1),
+    loadSourceEvidenceContexts(viewer, sources.flatMap((source) => source.sourceId ? [source.sourceId] : [])),
+  ]);
+  const latestAnswer = reviewedAnswers[0];
   const published = placements.filter((placement) => ["published", "indexed", "first cited", "repeatedly cited"].includes(placement.stage)).length;
   const setup = [
     { label: "Create workspace", done: Boolean(context), href: "/app/onboarding" },
@@ -49,9 +54,9 @@ export default async function DashboardPage() {
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
     </div>
 
-    <section className="setup-rail">
+    <section className={`setup-rail ${setup.every((item) => item.done) ? "setup-rail--complete" : ""}`}>
       <div><span className="eyebrow">Workspace readiness</span><strong>{setup.filter((item) => item.done).length}/{setup.length} foundation steps complete</strong></div>
-      <ol>{setup.map((item, index) => <li className={item.done ? "is-complete" : ""} key={item.label}><Link href={item.href}><span>{String(index + 1).padStart(2, "0")}</span><strong>{item.label}</strong><small>{item.done ? "Complete" : item.label === next.label ? "Next action" : "Pending"}</small></Link></li>)}</ol>
+      {setup.every((item) => item.done) ? <div className="setup-complete"><strong>Foundation complete.</strong><span>Your workspace is collecting reviewed evidence. Continue with source review and a second comparable run.</span><Link href={next.href}>{next.label} <Arrow /></Link></div> : <ol>{setup.map((item, index) => <li className={item.done ? "is-complete" : ""} key={item.label}><Link href={item.href}><span>{String(index + 1).padStart(2, "0")}</span><strong>{item.label}</strong><small>{item.done ? "Complete" : item.label === next.label ? "Next action" : "Pending"}</small></Link></li>)}</ol>}
     </section>
 
     <div className="metric-grid">
@@ -68,12 +73,12 @@ export default async function DashboardPage() {
 
     <div className="dashboard-grid">
       <section className="panel panel--wide">
-        <div className="panel-heading"><div><span className="eyebrow">Engine coverage</span><h2>{viewer.mode === "demo" ? "Presence is uneven by engine." : reviewedRuns.length ? "Reviewed collection is available." : "Coverage begins after the first approved run."}</h2></div><Link href="/app/runs">Run evidence &rarr;</Link></div>
-        {viewer.mode === "demo" ? <div className="engine-list">{engineCoverage.map((row) => <div key={row.engine}><span>{row.engine}</span><div className="bar"><i style={{ width: `${row.presence}%` }} /></div><strong>{row.presence}%</strong><small>+{row.delta}</small></div>)}</div> : providers.some((provider) => provider.verifiedAnswers > 0) ? <div className="engine-list">{providers.filter((provider) => provider.verifiedAnswers > 0).map((provider) => <div key={provider.id}><span>{provider.label}</span><div className="bar"><i style={{ width: `${provider.presencePct || 0}%` }} /></div><strong>{provider.presencePct === null ? "—" : `${provider.presencePct}%`}</strong><small>{provider.verifiedAnswers} verified</small></div>)}</div> : <div className="empty-state empty-state--compact"><p>{runs.some((run) => run.status === "review") ? "A collection is waiting for human review before its metrics enter the workspace." : "Per-provider coverage appears only after connected providers return answers and a workspace owner approves the evidence."}</p></div>}
+        <div className="panel-heading"><div><span className="eyebrow">{viewer.mode === "demo" ? "Engine coverage · fictional demo" : "Latest verified answer"}</span><h2>{latestAnswer?.prompt || (viewer.mode === "demo" ? "Presence is uneven by engine." : "Coverage begins after the first approved run.")}</h2></div><Link href={reviewedRuns[0] ? `/app/runs/${reviewedRuns[0].id}` : "/app/runs"}>Inspect run &rarr;</Link></div>
+        {latestAnswer ? <div className="latest-answer"><div><span>{latestAnswer.provider}{latestAnswer.model ? ` · ${latestAnswer.model}` : ""}</span><strong>{latestAnswer.citations.length} cited source{latestAnswer.citations.length === 1 ? "" : "s"} · {latestAnswer.collectedAt}</strong></div><p>{latestAnswer.answer.length > 520 ? `${latestAnswer.answer.slice(0, 519).trimEnd()}…` : latestAnswer.answer}</p></div> : viewer.mode === "demo" ? <div className="engine-list">{engineCoverage.map((row) => <div key={row.engine}><span>{row.engine}</span><div className="bar"><i style={{ width: `${row.presence}%` }} /></div><strong>{row.presence}%</strong><small>+{row.delta}</small></div>)}</div> : <div className="empty-state empty-state--compact"><p>{runs.some((run) => run.status === "review") ? "A collection is waiting for human review before its answer enters the workspace." : "A real provider answer will appear here after collection and human review."}</p></div>}
       </section>
       <section className="panel">
-        <div className="panel-heading"><div><span className="eyebrow">Priority candidates</span><h2>Where evidence suggests a review.</h2></div></div>
-        {sources.length ? <div className="compact-sources">{sources.slice(0, 4).map((source) => <Link href={`/app/sources/${source.id}`} key={source.id}><span><StatusDot tone={source.crawlerAccess === "unknown" ? "gray" : source.clientPresent ? "green" : "red"} /><strong>{source.domain}</strong></span><small>{source.crawlerAccess === "unknown" ? "Presence not reviewed" : source.route}</small></Link>)}</div> : <div className="empty-state empty-state--compact"><p>No mapped sources yet.</p></div>}
+        <div className="panel-heading"><div><span className="eyebrow">Evidence review queue</span><h2>{sources.filter((source) => source.crawlerAccess === "unknown").length} cited pages need verification.</h2></div></div>
+        {sources.length ? <div className="compact-sources">{sources.slice(0, 4).map((source) => { const evidence = source.sourceId ? sourceContexts[source.sourceId]?.[0] : undefined; return <Link href={`/app/sources/${source.id}`} key={source.id}><span><StatusDot tone={source.crawlerAccess === "unknown" ? "gray" : source.clientPresent ? "green" : "red"} /><strong>{source.domain}</strong></span><small>{evidence ? `${evidence.provider} · citation ${evidence.citationOrdinal || "recorded"}` : source.crawlerAccess === "unknown" ? "Presence not reviewed" : source.route}</small></Link>; })}</div> : <div className="empty-state empty-state--compact"><p>No mapped sources yet.</p></div>}
       </section>
       <section className="panel">
         <div className="panel-heading"><div><span className="eyebrow">Pipeline</span><h2>Action state, not promises.</h2></div></div>

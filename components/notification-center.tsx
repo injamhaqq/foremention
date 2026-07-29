@@ -31,9 +31,9 @@ export function NotificationCenter({ initialItems, demo }: { initialItems: Works
   }
 
   return <section className="panel panel--flush">
-    <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Operational changes</span><h2>{unread} unread alert{unread === 1 ? "" : "s"}</h2></div><button className="button button--outline" type="button" disabled={demo || busy || !unread} onClick={() => void markAllRead()}>{busy ? "Updating…" : "Mark all read"}</button></div>
+    <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Operational changes</span><h2>{unread} unread alert group{unread === 1 ? "" : "s"}</h2></div><button className="button button--outline" type="button" disabled={demo || busy || !unread} onClick={() => void markAllRead()}>{busy ? "Updating…" : "Mark all read"}</button></div>
     {message && <p className="inline-notice" role="status">{message}</p>}
-    {items.length ? <div className="notification-list">{items.map((item) => <article className={item.read ? "" : "is-unread"} key={item.id}><div><span>{item.kind.replaceAll("_", " ")}</span><strong>{item.title}</strong><p>{item.body}</p><small>{item.createdAt}</small></div>{item.href && <Link href={item.href}>Open →</Link>}</article>)}</div> : <div className="empty-state"><h2>No operational alerts yet.</h2><p>Run completion, failures, reviewed Source Maps, and workspace access changes will appear here from real customer events.</p></div>}
+    {items.length ? <div className="notification-list">{items.map((item) => <article className={item.read ? "" : "is-unread"} key={item.id}><div><span>{item.kind.replaceAll("_", " ")}{item.count > 1 ? ` · ${item.count} similar events` : ""}</span><strong>{item.title}</strong><p>{item.body}</p><small>Most recent: {item.createdAt}</small></div>{item.href && <Link href={item.href}>Open →</Link>}</article>)}</div> : <div className="empty-state"><h2>No operational alerts yet.</h2><p>Run completion, failures, reviewed Source Maps, and workspace access changes will appear here from real customer events.</p></div>}
     <p className="table-caption">These are in-app alerts. Foremention does not claim application email delivery is active.</p>
   </section>;
 }
