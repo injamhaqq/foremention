@@ -122,3 +122,14 @@ test("provider requests and persistence are separate durable steps", async () =>
   assert.match(workflow, /step\.run\(`collect-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
   assert.match(workflow, /step\.run\(\s*`persist-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
 });
+
+test("citation persistence is batched below Worker subrequest ceilings", async () => {
+  const workflow = await text("lib/jobs/inngest.ts");
+  assert.match(workflow, /body: uniqueCitations\.map/);
+  assert.match(workflow, /body: persistedCitations\.map/);
+  const citationCollectionLoop = workflow.match(
+    /for \(const \[index, citation\][\s\S]*?\n  }\n\n  if \(!uniqueCitations\.length\)/,
+  )?.[0];
+  assert.ok(citationCollectionLoop);
+  assert.doesNotMatch(citationCollectionLoop, /await /);
+});

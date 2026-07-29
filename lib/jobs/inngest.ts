@@ -281,53 +281,70 @@ const providerReportedCost = typeof answer.billedCostUsd === "number" && Number.
   }
 
   const seen = new Set<string>();
-  let citationCount = 0;
+  const uniqueCitations: Array<{ canonicalUrl: string; title: string; ordinal: number }> = [];
   for (const [index, citation] of answer.citations.entries()) {
     const canonicalUrl = canonicalizeEvidenceUrl(citation.url);
     if (!canonicalUrl || seen.has(canonicalUrl)) continue;
     seen.add(canonicalUrl);
-    const sourceRows = await supabaseRest<Array<{ id: string }>>("sources?on_conflict=organization_id,canonical_url", {
+    uniqueCitations.push({
+      canonicalUrl,
+      title: citation.title || hostnameFromUrl(canonicalUrl),
+      ordinal: index + 1,
+    });
+  }
+
+  if (!uniqueCitations.length) return { answer, citationCount: 0, estimatedCost };
+
+  const sourceRows = await supabaseRest<Array<{ id: string; canonical_url: string }>>("sources?on_conflict=organization_id,canonical_url", {
       method: "POST",
       serviceRole: true,
       prefer: "resolution=merge-duplicates,return=representation",
-      body: {
+      body: uniqueCitations.map((citation) => ({
         organization_id: run.organization_id,
-        canonical_url: canonicalUrl,
-        domain: hostnameFromUrl(canonicalUrl),
-        page_title: citation.title || hostnameFromUrl(canonicalUrl),
+        canonical_url: citation.canonicalUrl,
+        domain: hostnameFromUrl(citation.canonicalUrl),
+        page_title: citation.title,
         source_type: "provider-returned citation",
         last_observed_at: answer.collectedAt,
-      },
+      })),
     });
-    const sourceId = sourceRows[0]?.id;
-    if (!sourceId) continue;
-    await Promise.all([
+  const sourceByUrl = new Map(sourceRows.map((source) => [source.canonical_url, source.id]));
+  const persistedCitations = uniqueCitations.flatMap((citation) => {
+    const sourceId = sourceByUrl.get(citation.canonicalUrl);
+    return sourceId ? [{ ...citation, sourceId }] : [];
+  });
+  if (!persistedCitations.length) return { answer, citationCount: 0, estimatedCost };
+
+  await Promise.all([
       supabaseRest("citations?on_conflict=run_answer_id,source_id", {
         method: "POST",
         serviceRole: true,
         prefer: "resolution=merge-duplicates,return=minimal",
-        body: { organization_id: run.organization_id, run_answer_id: answerId, source_id: sourceId, ordinal: index + 1 },
+        body: persistedCitations.map((citation) => ({
+          organization_id: run.organization_id,
+          run_answer_id: answerId,
+          source_id: citation.sourceId,
+          ordinal: citation.ordinal,
+        })),
       }),
       supabaseRest("source_observations?on_conflict=observation_key", {
         method: "POST",
         serviceRole: true,
         prefer: "resolution=merge-duplicates,return=minimal",
-        body: {
+        body: persistedCitations.map((citation) => ({
           organization_id: run.organization_id,
-          source_id: sourceId,
+          source_id: citation.sourceId,
           run_answer_id: answerId,
-          observation_key: `${answerId}:${sourceId}`,
+          observation_key: `${answerId}:${citation.sourceId}`,
           prompt_id: prompt.prompt_id,
           provider: providerId,
-          citation_ordinal: index + 1,
+          citation_ordinal: citation.ordinal,
           observed_at: answer.collectedAt,
           review_status: "unreviewed",
-        },
+        })),
       }),
-    ]);
-    citationCount += 1;
-  }
-  return { answer, citationCount, estimatedCost };
+  ]);
+  return { answer, citationCount: persistedCitations.length, estimatedCost };
 }
 
 export const runMultiEngineScan = inngest.createFunction(
