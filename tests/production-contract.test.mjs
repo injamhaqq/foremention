@@ -258,6 +258,19 @@ test("production responses carry defense-in-depth browser protections", async ()
   assert.match(worker, /private, no-store/);
 });
 
+test("production builds preserve the existing Worker resources", async () => {
+  const [packageJson, deployConfig] = await Promise.all([
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/prepare-worker-config.mjs", import.meta.url), "utf8"),
+  ]);
+  assert.match(packageJson, /prepare-worker-config\.mjs/);
+  assert.match(deployConfig, /name = "foremention-mvp"/);
+  assert.match(deployConfig, /binding: "DB"/);
+  assert.match(deployConfig, /database_name: "foremention-intake"/);
+  assert.match(deployConfig, /binding: "AI"/);
+  assert.match(deployConfig, /keep_vars = true/);
+});
+
 test("collaboration, in-app alerts, and reversible lifecycle controls are explicit", async () => {
   const [roleMigration, lifecycleMigration, invite, accept, members, deletion, alerts, emailBoundary, shell, settings] = await Promise.all([
     text("supabase/migrations/20260729000100_collaboration_lifecycle_alerts.sql"),

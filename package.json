@@ -8,14 +8,14 @@
     },
     "scripts": {
         "dev": "vinext dev",
-        "build": "vinext build",
+        "build": "vinext build && node scripts/prepare-worker-config.mjs",
         "start": "vinext start",
         "dev:next": "next dev",
         "build:next": "next build",
         "start:next": "next start",
         "test": "node --experimental-strip-types --test tests/*.test.mjs",
         "typecheck": "tsc --noEmit",
-        "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
+        "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .wrangler-dry-run"
     },
     "dependencies": {
         "@sentry/cloudflare": "^10.68.0",

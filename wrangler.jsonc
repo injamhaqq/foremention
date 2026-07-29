@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "foremention-mvp",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
+  "assets": {
+    "directory": "dist/client",
+    "run_worker_first": false
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "foremention-intake",
+      "database_id": "f934019a-2f3d-4385-9b60-055e7c22a598",
+      "migrations_dir": "dist/.openai/drizzle"
+    }
+  ]
+}
