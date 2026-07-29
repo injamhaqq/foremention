@@ -52,6 +52,10 @@ function safeDatabaseMessage(status: number, detail: string) {
   return { message: safe, code: parsed.code };
 }
 
+function isOpaqueApiKey(value: string) {
+  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
+}
+
 export async function supabaseRest<T>(path: string, options: RestOptions = {}): Promise<T> {
   if (!supabaseUrl || !anonKey) throw new Error("Supabase is not configured.");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -59,11 +63,14 @@ export async function supabaseRest<T>(path: string, options: RestOptions = {}): 
     throw new Error("Server-side database processing is not configured.");
   }
   const key = options.serviceRole ? serviceRoleKey as string : anonKey;
+  const authorization = options.token
+    ? `Bearer ${options.token}`
+    : isOpaqueApiKey(key) ? null : `Bearer ${key}`;
   const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     method: options.method || "GET",
     headers: {
       apikey: key,
-      authorization: `Bearer ${options.token || key}`,
+      ...(authorization ? { authorization } : {}),
       "content-type": "application/json",
       ...(options.prefer ? { prefer: options.prefer } : {}),
     },

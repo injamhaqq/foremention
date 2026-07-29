@@ -43,6 +43,14 @@ test("successful empty Supabase write responses are not treated as failures", as
   assert.match(source, /if \(!responseText\.trim\(\)\) return undefined as T/);
 });
 
+test("new Supabase API keys stay in the apikey header instead of impersonating a user JWT", async () => {
+  const source = await readFile(new URL("../lib/supabase-rest.ts", import.meta.url), "utf8");
+  assert.match(source, /value\.startsWith\("sb_publishable_"\)/);
+  assert.match(source, /value\.startsWith\("sb_secret_"\)/);
+  assert.match(source, /options\.token[\s\S]*Bearer \$\{options\.token\}/);
+  assert.match(source, /isOpaqueApiKey\(key\) \? null/);
+});
+
 test("only reviewed persisted observations create a truthful Source Map", async () => {
   const [review, generator, loader] = await Promise.all([
     text("app/api/runs/[id]/review/route.ts"),
