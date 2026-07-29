@@ -56,7 +56,6 @@ export const groqAdapter: AnswerProviderAdapter = {
       },
       body: JSON.stringify({
         model,
-        citation_options: "enabled",
         compound_custom: { tools: { enabled_tools: ["web_search"] } },
         messages: [
           {

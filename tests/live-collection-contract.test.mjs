@@ -103,6 +103,7 @@ test("Groq Compound is a first-class, citation-preserving provider", async () =>
   assert.match(adapter, /executed_tools/);
   assert.match(adapter, /search_results/);
   assert.doesNotMatch(adapter, /extractUrls/);
+  assert.doesNotMatch(adapter, /citation_options/);
   assert.match(registry, /groqAdapter/);
   assert.match(data, /Groq Compound/);
   assert.match(route, /"groq"/);
