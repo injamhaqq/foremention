@@ -30,6 +30,7 @@ export type VisibilityRun = {
   id: string;
   date: string;
   status: "queued" | "complete" | "partial" | "cancelled" | "running" | "review" | "failed";
+  errorSummary?: string | null;
   prompts: number;
   answers: number;
   citations: number;

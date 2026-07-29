@@ -13,7 +13,7 @@ type SourceEntryRow = {
   feasibility: SourceMapEntry["feasibility"]; influence: SourceMapEntry["influence"];
   source: { domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_access: SourceMapEntry["crawlerAccess"]; crawler_checked_at: string | null } | null;
 };
-type RunRow = { id: string; status: VisibilityRun["status"]; prompt_count: number; answer_count: number; citation_count: number; brand_presence_pct: number | string; first_mention_pct: number | string; new_source_count: number; created_at: string };
+type RunRow = { id: string; status: VisibilityRun["status"]; error_summary: string | null; prompt_count: number; answer_count: number; citation_count: number; brand_presence_pct: number | string; first_mention_pct: number | string; new_source_count: number; created_at: string };
 type PlacementRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string; target_prompt_ids: string[]; owner_id: string | null };
 
 export type WorkspacePrompt = { id: string; cluster: string; text: string; approved: boolean };
@@ -134,8 +134,8 @@ export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
 export async function loadRuns(viewer: Viewer): Promise<VisibilityRun[]> {
   if (viewer.mode === "demo") return demoRuns;
   const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&order=created_at.desc`, { token: viewer.accessToken });
-  return rows.map((row) => ({ id: row.id, date: dateLabel(row.created_at), status: row.status, prompts: row.prompt_count, answers: row.answer_count, citations: row.citation_count, presence: Number(row.brand_presence_pct), firstMention: Number(row.first_mention_pct), newSources: row.new_source_count }));
+  const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&order=created_at.desc`, { token: viewer.accessToken });
+  return rows.map((row) => ({ id: row.id, date: dateLabel(row.created_at), status: row.status, errorSummary: row.error_summary, prompts: row.prompt_count, answers: row.answer_count, citations: row.citation_count, presence: Number(row.brand_presence_pct), firstMention: Number(row.first_mention_pct), newSources: row.new_source_count }));
 }
 
 export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
