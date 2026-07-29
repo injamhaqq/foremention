@@ -87,6 +87,7 @@ Connect a payment provider only after prices, refund terms, taxes, and the legal
 | `INNGEST_SIGNING_KEY` | Verifies hosted function requests |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Optional OpenAI adapter |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Optional Gemini adapter |
+| `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_MODEL_VERSION` | Optional Groq Compound adapter with structured web-search citations |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Optional Anthropic adapter |
 | `PERPLEXITY_API_KEY`, `PERPLEXITY_MODEL` | Optional Perplexity adapter |
 
@@ -118,4 +119,3 @@ pnpm build
 ```
 
 Before a public launch, also complete the deployed browser journeys, production Supabase/RLS test, provider evaluation, Inngest run, verified billing-webhook test, legal review, backup/restore drill, error monitoring, accessibility review, and real-device QA described in `docs/PRODUCTION-READINESS.md`.
-

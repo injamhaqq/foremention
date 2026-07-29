@@ -36,6 +36,7 @@ const engineLabels: Record<string, string> = {
   gemini: "Google AI",
   anthropic: "Claude",
   perplexity: "Perplexity",
+  groq: "Groq Compound",
 };
 
 /**

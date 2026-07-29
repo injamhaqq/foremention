@@ -1,4 +1,4 @@
-export type Engine = "ChatGPT" | "Perplexity" | "Claude" | "Google AI";
+export type Engine = "ChatGPT" | "Perplexity" | "Claude" | "Google AI" | "Groq Compound";
 export type EntryRoute =
   | "editorial outreach"
   | "comparison inclusion"

@@ -89,3 +89,22 @@ test("customer mutations explicitly enforce workspace roles and organization fil
     assert.match(source, /isTrustedMutationOrigin/);
   }
 });
+
+test("Groq Compound is a first-class, citation-preserving provider", async () => {
+  const [adapter, registry, data, route, sourceMap] = await Promise.all([
+    text("lib/providers/groq.ts"),
+    text("lib/providers/index.ts"),
+    text("lib/data.ts"),
+    text("app/api/runs/route.ts"),
+    text("lib/source-map-generation.ts"),
+  ]);
+  assert.match(adapter, /groq\/compound-mini|process\.env\.GROQ_MODEL/);
+  assert.match(adapter, /enabled_tools: \["web_search"\]/);
+  assert.match(adapter, /executed_tools/);
+  assert.match(adapter, /search_results/);
+  assert.doesNotMatch(adapter, /extractUrls/);
+  assert.match(registry, /groqAdapter/);
+  assert.match(data, /Groq Compound/);
+  assert.match(route, /"groq"/);
+  assert.match(sourceMap, /groq: "Groq Compound"/);
+});

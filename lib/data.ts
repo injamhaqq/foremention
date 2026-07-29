@@ -47,7 +47,7 @@ export type WorkspaceRunAnswer = {
   status: "unreviewed" | "verified" | "excluded";
   collectedAt: string;
 };
-export type ProviderStatus = { id: "openai" | "gemini" | "anthropic" | "perplexity"; label: string; configured: boolean };
+export type ProviderStatus = { id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq"; label: string; configured: boolean };
 export type WorkspaceTeamMember = {
   userId: string;
   email: string;
@@ -151,6 +151,7 @@ export function getProviderStatuses(): ProviderStatus[] {
     { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")) },
     { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")) },
     { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")) },
+    { id: "groq", label: "Groq Compound", configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")) },
   ];
 }
 
