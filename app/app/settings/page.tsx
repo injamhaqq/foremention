@@ -3,17 +3,17 @@ import { AccountLifecycle } from "@/components/account-lifecycle";
 import { StatusDot } from "@/components/brand";
 import { requireViewer } from "@/lib/auth";
 import { getApplicationEmailStatus } from "@/lib/application-email";
-import { getProviderStatuses, loadPendingDeletionRequest, loadTeam, loadWorkspaceSummary } from "@/lib/data";
+import { loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 
 export default async function SettingsPage() {
   const viewer = await requireViewer("/app/settings");
-  const [workspace, team, deletionRequest] = await Promise.all([
+  const [workspace, team, deletionRequest, providers] = await Promise.all([
     loadWorkspaceSummary(viewer),
     loadTeam(viewer),
     loadPendingDeletionRequest(viewer),
+    loadProviderStatuses(viewer),
   ]);
-  const providers = getProviderStatuses();
   const applicationEmail = getApplicationEmailStatus();
   const jobsReady = viewer.mode === "demo" || Boolean(process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY);
   const serviceReady = viewer.mode === "demo" || Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -45,8 +45,8 @@ export default async function SettingsPage() {
         <h2>Provider readiness</h2>
         <div className="integration-list">
           {providers.map((provider) => <div key={provider.id}>
-            <span><StatusDot tone={viewer.mode === "demo" || provider.configured ? "green" : "gray"} /><strong>{provider.label}</strong></span>
-            <small>{viewer.mode === "demo" ? "Demo adapter" : provider.configured ? "Key, model and cost settings present · live test required" : "Not connected"}</small>
+            <span><StatusDot tone={viewer.mode === "demo" || provider.health === "available" ? "green" : provider.health === "limited" ? "yellow" : "gray"} /><strong>{provider.label}</strong></span>
+            <small>{viewer.mode === "demo" ? "Demo adapter" : !provider.configured ? "Not connected" : provider.health === "available" ? `Live collection proven${provider.lastTestedAt ? ` · ${provider.lastTestedAt}` : ""}` : provider.health === "limited" ? `Configured · latest attempt ${provider.latestStatus?.replaceAll("_", " ") || "failed"}${provider.lastTestedAt ? ` · ${provider.lastTestedAt}` : ""}` : "Configured · production run not yet proven"}</small>
           </div>)}
         </div>
         <p className="table-caption">Provider credentials stay in the secure hosting environment. Customers never paste shared platform keys into the browser.</p>

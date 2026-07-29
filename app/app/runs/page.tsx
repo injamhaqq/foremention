@@ -2,12 +2,11 @@ import Link from "next/link";
 import { StatusDot } from "@/components/brand";
 import { RunLauncher } from "@/components/run-launcher";
 import { requireViewer } from "@/lib/auth";
-import { getProviderStatuses, loadPrompts, loadRuns } from "@/lib/data";
+import { loadPrompts, loadProviderStatuses, loadRuns } from "@/lib/data";
 
 export default async function RunsPage() {
   const viewer = await requireViewer("/app/runs");
-  const [runs, prompts] = await Promise.all([loadRuns(viewer), loadPrompts(viewer)]);
-  const providers = getProviderStatuses();
+  const [runs, prompts, providers] = await Promise.all([loadRuns(viewer), loadPrompts(viewer), loadProviderStatuses(viewer)]);
   return <main className="workspace">
     <div className="workspace-heading"><div><span className="eyebrow">Evidence trail</span><h1>Answer runs</h1><p>Collect the same approved buyer questions across connected providers. Every result retains its model, time, answer, citations, failures, and review state.</p></div><Link className="button button--outline" href="/app/prompts">Manage questions</Link></div>
     <RunLauncher prompts={prompts} providers={providers} demo={viewer.mode === "demo"} />

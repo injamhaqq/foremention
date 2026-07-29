@@ -134,8 +134,12 @@ test("citation persistence is batched below Worker subrequest ceilings", async (
   assert.doesNotMatch(citationCollectionLoop, /await /);
 });
 
-test("credential presence is labelled configured rather than falsely connected", async () => {
-  const launcher = await text("components/run-launcher.tsx");
-  assert.match(launcher, /provider\.configured \? "Configured" : "Not configured"/);
+test("credential presence is separated from proven provider health", async () => {
+  const [launcher, data] = await Promise.all([text("components/run-launcher.tsx"), text("lib/data.ts")]);
+  assert.match(launcher, /Configured · production run not yet proven/);
+  assert.match(launcher, /Proven available/);
+  assert.match(launcher, /Latest attempt/);
+  assert.match(data, /health: ProviderHealth/);
+  assert.match(data, /latest\?\.status === "complete"/);
   assert.doesNotMatch(launcher, /provider\.configured \? "Connected"/);
 });

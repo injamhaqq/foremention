@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Arrow, StatusDot } from "@/components/brand";
 import { demoCompany, engineCoverage } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
-import { getProviderStatuses, loadDecisionSignal, loadPlacements, loadPrompts, loadRuns, loadSourceMap, loadWorkspaceContext } from "@/lib/data";
+import { loadDecisionSignal, loadPlacements, loadPrompts, loadProviderStatuses, loadRuns, loadSourceMap, loadWorkspaceContext } from "@/lib/data";
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
@@ -17,14 +17,14 @@ export default async function DashboardPage() {
   // of issuing five empty workspace queries and presenting a stalled sign-in.
   if (viewer.mode === "supabase" && !context) redirect("/app/onboarding");
 
-  const [prompts, runs, sources, placements, decision] = await Promise.all([
+  const [prompts, runs, sources, placements, decision, providers] = await Promise.all([
     loadPrompts(viewer),
     loadRuns(viewer),
     loadSourceMap(viewer),
     loadPlacements(viewer),
     loadDecisionSignal(viewer),
+    loadProviderStatuses(viewer),
   ]);
-  const providers = getProviderStatuses();
   const reviewedRuns = runs.filter((run) => run.status === "complete");
   const latest = reviewedRuns[0] || { presence: 0, firstMention: 0, answers: 0 };
   const published = placements.filter((placement) => ["published", "indexed", "first cited", "repeatedly cited"].includes(placement.stage)).length;
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
     <div className="dashboard-grid">
       <section className="panel panel--wide">
         <div className="panel-heading"><div><span className="eyebrow">Engine coverage</span><h2>{viewer.mode === "demo" ? "Presence is uneven by engine." : reviewedRuns.length ? "Reviewed collection is available." : "Coverage begins after the first approved run."}</h2></div><Link href="/app/runs">Run evidence &rarr;</Link></div>
-        {viewer.mode === "demo" ? <div className="engine-list">{engineCoverage.map((row) => <div key={row.engine}><span>{row.engine}</span><div className="bar"><i style={{ width: `${row.presence}%` }} /></div><strong>{row.presence}%</strong><small>+{row.delta}</small></div>)}</div> : <div className="empty-state empty-state--compact"><p>{runs.some((run) => run.status === "review") ? "A collection is waiting for human review before its metrics enter the workspace." : "Per-provider coverage appears only after connected providers return answers and a workspace owner approves the evidence."}</p></div>}
+        {viewer.mode === "demo" ? <div className="engine-list">{engineCoverage.map((row) => <div key={row.engine}><span>{row.engine}</span><div className="bar"><i style={{ width: `${row.presence}%` }} /></div><strong>{row.presence}%</strong><small>+{row.delta}</small></div>)}</div> : providers.some((provider) => provider.verifiedAnswers > 0) ? <div className="engine-list">{providers.filter((provider) => provider.verifiedAnswers > 0).map((provider) => <div key={provider.id}><span>{provider.label}</span><div className="bar"><i style={{ width: `${provider.presencePct || 0}%` }} /></div><strong>{provider.presencePct === null ? "—" : `${provider.presencePct}%`}</strong><small>{provider.verifiedAnswers} verified</small></div>)}</div> : <div className="empty-state empty-state--compact"><p>{runs.some((run) => run.status === "review") ? "A collection is waiting for human review before its metrics enter the workspace." : "Per-provider coverage appears only after connected providers return answers and a workspace owner approves the evidence."}</p></div>}
       </section>
       <section className="panel">
         <div className="panel-heading"><div><span className="eyebrow">Priority candidates</span><h2>Where evidence suggests a review.</h2></div></div>

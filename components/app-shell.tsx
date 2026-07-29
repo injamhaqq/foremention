@@ -1,42 +1,13 @@
-import Link from "next/link";
-import { Arrow, Wordmark } from "@/components/brand";
+import { Wordmark } from "@/components/brand";
+import { WorkspaceMobileNavigation, WorkspaceSidebar } from "@/components/workspace-navigation";
 import type { Viewer } from "@/lib/auth";
-
-const nav = [
-  ["/app", "Overview"],
-  ["/app/prompts", "Buyer questions"],
-  ["/app/runs", "Answer runs"],
-  ["/app/source-map", "Source Map"],
-  ["/app/decision-lab", "Decision Lab"],
-  ["/app/opportunities", "Priority gaps"],
-  ["/app/placements", "Action tracker"],
-  ["/app/evidence", "Evidence Vault"],
-  ["/app/analytics", "Analytics"],
-  ["/app/alerts", "Alerts"],
-  ["/app/team", "Team"],
-  ["/app/settings", "Settings"],
-];
 
 export function AppShell({ viewer, workspaceName, children }: { viewer: Viewer; workspaceName?: string; children: React.ReactNode }) {
   return <div className="app-frame">
-    <aside className="app-sidebar">
-      <Wordmark inverse />
-      <nav aria-label="Workspace">
-        {nav.map(([href, label]) => <Link key={href} href={href}>{label}<span>&rarr;</span></Link>)}
-      </nav>
-      <div className="sidebar-company">
-        <span>Workspace</span>
-        <strong>{viewer.mode === "demo" ? "Northstar HR" : workspaceName || "Setup required"}</strong>
-        <small>{viewer.mode === "demo" ? "Seeded demo · fictional data" : workspaceName ? "Customer workspace" : "Complete onboarding"}</small>
-      </div>
-      <form action="/api/auth/logout" method="post"><button type="submit">Sign out <Arrow /></button></form>
-    </aside>
+    <WorkspaceSidebar viewer={viewer} workspaceName={workspaceName} />
     <div className="app-main">
       <header className="app-topbar">
-        <details className="app-mobile-nav">
-          <summary>Workspace menu</summary>
-          <nav>{nav.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}</nav>
-        </details>
+        <WorkspaceMobileNavigation viewer={viewer} workspaceName={workspaceName} />
         <div>
           <span className="mobile-wordmark"><Wordmark /></span>
           <span className="demo-badge">{viewer.mode === "demo" ? "Fictional demo" : workspaceName ? "Customer data" : "Setup required"}</span>

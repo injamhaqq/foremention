@@ -137,10 +137,10 @@ export function TeamManagement({
       <div className="team-list">{initialMembers.map((member) => <article key={member.userId}>
         <div><span>{member.email.slice(0, 1).toUpperCase()}</span><div><strong>{member.email}{member.current ? " · You" : ""}</strong><small>Joined {member.joinedAt}</small></div></div>
         <div className="team-row-actions">
-          <select aria-label={`Role for ${member.email}`} value={member.role} disabled={!canManageRoles || busy === member.userId} onChange={(event) => void updateMember(member.userId, event.target.value as WorkspaceRole)}>
+          <select aria-label={`Role for ${member.email}`} value={member.role} disabled={!canManageRoles || member.current || busy === member.userId} onChange={(event) => void updateMember(member.userId, event.target.value as WorkspaceRole)}>
             <option value="owner">Owner</option><option value="admin">Admin</option><option value="analyst">Analyst</option><option value="viewer">Viewer</option>
           </select>
-          <button type="button" disabled={!canManageRoles || busy === member.userId} onClick={() => void removeMember(member.userId)}>Remove</button>
+          <button type="button" disabled={!canManageRoles || member.current || busy === member.userId} title={member.current ? "Use the account lifecycle controls to leave or close your own workspace." : undefined} onClick={() => void removeMember(member.userId)}>{member.current ? "Current account" : "Remove"}</button>
         </div>
       </article>)}</div>
     </section>

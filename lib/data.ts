@@ -47,7 +47,17 @@ export type WorkspaceRunAnswer = {
   status: "unreviewed" | "verified" | "excluded";
   collectedAt: string;
 };
-export type ProviderStatus = { id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq"; label: string; configured: boolean };
+export type ProviderHealth = "available" | "limited" | "untested";
+export type ProviderStatus = {
+  id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq";
+  label: string;
+  configured: boolean;
+  health: ProviderHealth;
+  latestStatus: string | null;
+  lastTestedAt: string | null;
+  verifiedAnswers: number;
+  presencePct: number | null;
+};
 export type WorkspaceTeamMember = {
   userId: string;
   email: string;
@@ -147,12 +157,50 @@ export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
 
 export function getProviderStatuses(): ProviderStatus[] {
   return [
-    { id: "openai", label: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL && getProviderCostRates("openai")) },
-    { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")) },
-    { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")) },
-    { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")) },
-    { id: "groq", label: "Groq Compound", configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")) },
+    { id: "openai", label: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL && getProviderCostRates("openai")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "groq", label: "Groq Compound", configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
   ];
+}
+
+export async function loadProviderStatuses(viewer: Viewer): Promise<ProviderStatus[]> {
+  const configured = getProviderStatuses();
+  if (viewer.mode === "demo") return configured.map((provider) => ({ ...provider, configured: true, health: "available" }));
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return configured;
+  const [attempts, answers] = await Promise.all([
+    supabaseRest<Array<{ provider: string; status: string; completed_at: string | null; created_at: string }>>(
+      `run_attempts?select=provider,status,completed_at,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=100`,
+      { token: viewer.accessToken },
+    ),
+    supabaseRest<Array<{ provider: string; brand_present: boolean | null }>>(
+      `run_answers?select=provider,brand_present&organization_id=eq.${organizationId}&review_status=eq.verified`,
+      { token: viewer.accessToken },
+    ),
+  ]);
+  return configured.map((provider) => {
+    const latest = attempts.find((attempt) => attempt.provider === provider.id);
+    const verified = answers.filter((answer) => answer.provider === provider.id);
+    const presenceKnown = verified.filter((answer) => answer.brand_present !== null);
+    const presencePct = presenceKnown.length
+      ? clampPct((presenceKnown.filter((answer) => answer.brand_present).length / presenceKnown.length) * 100)
+      : null;
+    const health: ProviderHealth = latest?.status === "complete"
+      ? "available"
+      : latest && ["failed", "rate_limited", "excluded"].includes(latest.status)
+        ? "limited"
+        : "untested";
+    return {
+      ...provider,
+      health,
+      latestStatus: latest?.status || null,
+      lastTestedAt: latest ? dateLabel(latest.completed_at || latest.created_at) : null,
+      verifiedAnswers: verified.length,
+      presencePct,
+    };
+  });
 }
 
 export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceContext | null> {
@@ -271,17 +319,24 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
 
   type DecisionRunRow = RunRow & { provider_ids: string[] };
   const [rows, sources] = await Promise.all([
-    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&status=eq.complete&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
+    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&status=in.(complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
     loadSourceMap(viewer),
   ]);
   const latest = rows[0];
   if (!latest) return { ...empty, sourceReviewPct: sources.length ? clampPct((sources.filter((source) => source.reviewedAt).length / sources.length) * 100) : null, actions: buildDecisionActions(empty) };
 
-  const answers = await supabaseRest<Array<{ prompt_key: string; provider: string; brand_present: boolean | null }>>(
-    `run_answers?select=prompt_key,provider,brand_present&organization_id=eq.${organizationId}&run_id=eq.${latest.id}&review_status=eq.verified`,
+  const runIds = rows.map((row) => row.id);
+  const answerRows = await supabaseRest<Array<{ prompt_key: string; provider: string; brand_present: boolean | null; collected_at: string }>>(
+    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.desc`,
     { token: viewer.accessToken },
   );
-  const providerCount = latest.provider_ids?.length || new Set(answers.map((answer) => answer.provider)).size;
+  const latestComparableAnswers = new Map<string, typeof answerRows[number]>();
+  answerRows.forEach((answer) => {
+    const key = `${answer.prompt_key}:${answer.provider}`;
+    if (!latestComparableAnswers.has(key)) latestComparableAnswers.set(key, answer);
+  });
+  const answers = Array.from(latestComparableAnswers.values());
+  const providerCount = new Set(answers.map((answer) => answer.provider)).size;
   const expectedAnswers = latest.prompt_count * providerCount;
   const promptAnswers = new Map<string, Array<boolean>>();
   answers.forEach((answer) => {
@@ -302,8 +357,8 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
     latestRunDate: dateLabel(latest.created_at),
     providerCount,
     promptCount: latest.prompt_count,
-    answerCount: latest.answer_count,
-    answerCompletionPct: expectedAnswers ? clampPct((latest.answer_count / expectedAnswers) * 100) : null,
+    answerCount: answers.length,
+    answerCompletionPct: expectedAnswers ? clampPct((answers.length / expectedAnswers) * 100) : null,
     recommendationConsensusPct: comparable.length ? clampPct((agreed / comparable.length) * 100) : null,
     presenceRange: rows.length > 1 ? Math.round((Math.max(...presences) - Math.min(...presences)) * 10) / 10 : null,
     presenceDelta: rows.length > 1 ? Math.round((presences[0] - presences[1]) * 10) / 10 : null,
@@ -311,7 +366,7 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
     sourceDependencyPct: observationTotal ? clampPct((topThreeObservations / observationTotal) * 100) : null,
     recurringSourcePct: sources.length ? clampPct((sources.filter((source) => source.evidenceCount > 1).length / sources.length) * 100) : null,
     evidenceObservations: observationTotal,
-    decisionReadiness: rows.length >= 2 && providerCount >= 2 && (sourceReviewPct ?? 0) >= 80 && (expectedAnswers ? latest.answer_count / expectedAnswers >= .9 : false) ? "ready" : rows.length && latest.answer_count ? "directional" : "insufficient",
+    decisionReadiness: rows.length >= 2 && providerCount >= 2 && (sourceReviewPct ?? 0) >= 80 && (expectedAnswers ? answers.length / expectedAnswers >= .9 : false) ? "ready" : rows.length && answers.length ? "directional" : "insufficient",
   };
   return { ...signalBase, actions: buildDecisionActions(signalBase) };
 }

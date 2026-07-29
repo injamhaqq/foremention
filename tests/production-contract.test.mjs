@@ -163,10 +163,10 @@ test("source review converts citation candidates into audited customer decisions
 });
 
 test("Decision Lab gates action on evidence reliability instead of a magic score", async () => {
-  const [page, data, shell] = await Promise.all([
+  const [page, data, navigation] = await Promise.all([
     text("app/app/decision-lab/page.tsx"),
     text("lib/data.ts"),
-    text("components/app-shell.tsx"),
+    text("components/workspace-navigation.tsx"),
   ]);
   assert.match(page, /Decision Lab/);
   assert.match(page, /Collection coverage/);
@@ -176,7 +176,40 @@ test("Decision Lab gates action on evidence reliability instead of a magic score
   assert.match(data, /loadDecisionSignal/);
   assert.match(data, /review_status=eq\.verified/);
   assert.match(data, /decisionReadiness/);
-  assert.match(shell, /\/app\/decision-lab/);
+  assert.match(navigation, /\/app\/decision-lab/);
+  assert.match(data, /run_id=in\.\(\$\{runIds\.join\(","\)\}\)/);
+  assert.match(data, /latestComparableAnswers/);
+});
+
+test("workspace navigation and customer controls are complete on desktop and mobile", async () => {
+  const [navigation, shell, css, launcher, evidence, evidenceRoute, team, alerts, overview] = await Promise.all([
+    text("components/workspace-navigation.tsx"),
+    text("components/app-shell.tsx"),
+    text("app/globals.css"),
+    text("components/run-launcher.tsx"),
+    text("components/evidence-manager.tsx"),
+    text("app/api/evidence/route.ts"),
+    text("components/team-management.tsx"),
+    text("components/notification-center.tsx"),
+    text("app/app/page.tsx"),
+  ]);
+  for (const route of ["/app/prompts", "/app/runs", "/app/source-map", "/app/decision-lab", "/app/opportunities", "/app/placements", "/app/evidence", "/app/analytics", "/app/alerts", "/app/team", "/app/settings"]) {
+    assert.match(navigation, new RegExp(route.replaceAll("/", "\\/")));
+  }
+  assert.match(navigation, /aria-current/);
+  assert.match(navigation, /mobileMenu\.current\.open = false/);
+  assert.match(navigation, /Sign out/);
+  assert.match(shell, /WorkspaceMobileNavigation/);
+  assert.match(css, /\.app-mobile-nav__panel/);
+  assert.match(launcher, /provider\.health === "available"/);
+  assert.match(launcher, /Latest attempt/);
+  assert.match(evidence, /Verify evidence/);
+  assert.match(evidenceRoute, /Only owners, admins, and analysts can review evidence/);
+  assert.match(evidenceRoute, /organization_id=eq\.\$\{context\.organizationId\}/);
+  assert.match(evidenceRoute, /evidence\.verified/);
+  assert.match(team, /member\.current \|\| busy/);
+  assert.match(alerts, /Could not update alerts/);
+  assert.match(overview, /provider\.verifiedAnswers > 0/);
 });
 
 test("SEO, social preview, and accessibility states are bundled", async () => {
@@ -272,7 +305,7 @@ test("production builds preserve the existing Worker resources", async () => {
 });
 
 test("collaboration, in-app alerts, and reversible lifecycle controls are explicit", async () => {
-  const [roleMigration, lifecycleMigration, invite, accept, members, deletion, alerts, emailBoundary, shell, settings] = await Promise.all([
+  const [roleMigration, lifecycleMigration, invite, accept, members, deletion, alerts, emailBoundary, navigation, settings] = await Promise.all([
     text("supabase/migrations/20260729000100_collaboration_lifecycle_alerts.sql"),
     text("supabase/migrations/20260729000110_collaboration_lifecycle_alerts.sql"),
     text("app/api/team/invitations/route.ts"),
@@ -281,7 +314,7 @@ test("collaboration, in-app alerts, and reversible lifecycle controls are explic
     text("app/api/account/deletion/route.ts"),
     text("app/api/notifications/route.ts"),
     text("lib/application-email.ts"),
-    text("components/app-shell.tsx"),
+    text("components/workspace-navigation.tsx"),
     text("app/app/settings/page.tsx"),
   ]);
   assert.match(roleMigration, /add value if not exists 'admin'/);
@@ -301,8 +334,8 @@ test("collaboration, in-app alerts, and reversible lifecycle controls are explic
   assert.doesNotMatch(deletion, /organizations\?.*method: "DELETE"/s);
   assert.match(alerts, /user_id=eq\.\$\{viewer\.id\}/);
   assert.match(emailBoundary, /Authentication email is separate/);
-  assert.match(shell, /\/app\/alerts/);
-  assert.match(shell, /\/app\/team/);
+  assert.match(navigation, /\/app\/alerts/);
+  assert.match(navigation, /\/app\/team/);
   assert.match(settings, /Automated application-email delivery remains unavailable/);
 });
 
