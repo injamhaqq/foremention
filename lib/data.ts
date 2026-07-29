@@ -50,7 +50,7 @@ export type WorkspaceRunAnswer = {
 };
 export type ProviderHealth = "available" | "limited" | "untested";
 export type ProviderStatus = {
-  id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare";
+  id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter";
   label: string;
   configured: boolean;
   supportsCitations: boolean;
@@ -165,6 +165,7 @@ export function getProviderStatuses(): ProviderStatus[] {
     { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "groq", label: "Groq Compound", configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "cloudflare", label: "Cloudflare Workers AI", configured: Boolean(cloudflareAiConfigured() && getProviderCostRates("cloudflare")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "openrouter", label: "OpenRouter · GLM 5.2", configured: Boolean(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL && getProviderCostRates("openrouter")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
   ];
 }
 

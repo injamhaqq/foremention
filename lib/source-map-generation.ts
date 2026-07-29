@@ -38,6 +38,7 @@ const engineLabels: Record<string, string> = {
   perplexity: "Perplexity",
   groq: "Groq Compound",
   cloudflare: "Cloudflare Workers AI",
+  openrouter: "OpenRouter",
 };
 
 /**

@@ -143,6 +143,38 @@ test("Cloudflare Workers AI is a cost-capped answer-only comparison provider", a
   assert.match(launcher, /answer comparison only; no returned web citations/);
 });
 
+test("OpenRouter uses an explicit GLM model and never fabricates citation evidence", async () => {
+  const [adapter, types, registry, policy, data, route, sourceMap, config, prepare, launcher] = await Promise.all([
+    text("lib/providers/openrouter.ts"),
+    text("lib/providers/types.ts"),
+    text("lib/providers/index.ts"),
+    text("lib/collection-policy.ts"),
+    text("lib/data.ts"),
+    text("app/api/runs/route.ts"),
+    text("lib/source-map-generation.ts"),
+    text("wrangler.jsonc"),
+    text("scripts/prepare-worker-config.mjs"),
+    text("components/run-launcher.tsx"),
+  ]);
+  assert.match(types, /"openrouter"/);
+  assert.match(adapter, /openrouter\.ai\/api\/v1\/chat\/completions/);
+  assert.match(adapter, /process\.env\.OPENROUTER_MODEL/);
+  assert.match(adapter, /citations: \[\]/);
+  assert.match(adapter, /grounded: false/);
+  assert.match(adapter, /Do not invent citations, URLs/);
+  assert.doesNotMatch(adapter, /extractUrls/);
+  assert.doesNotMatch(adapter, /openrouter\/free/);
+  assert.match(registry, /openRouterAdapter/);
+  assert.match(policy, /openrouter: "OPENROUTER"/);
+  assert.match(data, /OpenRouter · GLM 5\.2/);
+  assert.match(data, /id: "openrouter"[\s\S]*supportsCitations: false/);
+  assert.match(route, /"openrouter"/);
+  assert.match(sourceMap, /openrouter: "OpenRouter"/);
+  assert.match(config, /z-ai\/glm-5\.2/);
+  assert.match(prepare, /OPENROUTER_INPUT_COST_PER_MILLION_USD/);
+  assert.match(launcher, /answer comparison only; no returned web citations/);
+});
+
 test("source observation upserts use a non-partial unique index", async () => {
   const migration = await text("supabase/migrations/20260729000300_source_observation_upsert_fix.sql");
   assert.match(migration, /create unique index source_observations_observation_key_idx/i);

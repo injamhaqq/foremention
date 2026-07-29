@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   if (providers.length !== LIVE_COLLECTION_LIMITS.maxProvidersPerRun) {
     return NextResponse.json({ error: "Choose exactly one provider for this controlled collection." }, { status: 400 });
   }
-  const allowedProviders = new Set<ProviderId>(["openai", "gemini", "anthropic", "perplexity", "groq", "cloudflare", "mock"]);
+  const allowedProviders = new Set<ProviderId>(["openai", "gemini", "anthropic", "perplexity", "groq", "cloudflare", "openrouter", "mock"]);
   if (providers.some((provider) => !allowedProviders.has(provider))) {
     return NextResponse.json({ error: "The selected provider is not supported." }, { status: 400 });
   }
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   const rates = getProviderCostRates(providerId);
   if (!configured.has(providerId) || !rates) {
     return NextResponse.json({
-      error: "This provider requires a server-side API key, explicit model ID, and current input/output cost rates before it can run.",
+      error: "This provider requires a secure server connection, explicit model ID, and current input/output cost rates before it can run.",
     }, { status: 503 });
   }
   if (

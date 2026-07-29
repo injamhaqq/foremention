@@ -91,8 +91,11 @@ Connect a payment provider only after prices, refund terms, taxes, and the legal
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Optional Anthropic adapter |
 | `PERPLEXITY_API_KEY`, `PERPLEXITY_MODEL` | Optional Perplexity adapter |
 | `CLOUDFLARE_MODEL` and `CLOUDFLARE_*_COST_*` | Optional Workers AI binding adapter; answer comparison only because this model does not return web citations |
+| `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_*_COST_*` | Optional explicit-model OpenRouter adapter; GLM 5.2 is low-cost rather than free and remains answer-only without returned web citations |
 
 Never commit `.env.local` or expose server secrets to browser code.
+
+See [`docs/integration-boundaries.md`](docs/integration-boundaries.md) before adding another provider, crawler, agent, or gateway.
 
 ## Repository map
 
