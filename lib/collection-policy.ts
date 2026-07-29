@@ -66,6 +66,13 @@ export function configuredMaxRunCostUsd() {
   return finiteNonNegative(process.env.FOREMENTION_MAX_RUN_COST_USD) ?? LIVE_COLLECTION_LIMITS.maxRunCostUsd;
 }
 
+export function hasOpenProviderCircuit(
+  failures: Array<{ run_id: string }>,
+  threshold = LIVE_COLLECTION_LIMITS.circuitFailureThreshold,
+) {
+  return new Set(failures.map((failure) => failure.run_id).filter(Boolean)).size >= threshold;
+}
+
 export function roundUsd(value: number) {
   return Math.round(Math.max(0, value) * 1_000_000) / 1_000_000;
 }

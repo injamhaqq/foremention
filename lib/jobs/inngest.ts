@@ -4,6 +4,7 @@ import {
   estimateMaximumRunCost,
   estimateProviderCost,
   getProviderCostRates,
+  hasOpenProviderCircuit,
   hostnameFromUrl,
   LIVE_COLLECTION_LIMITS,
   roundUsd,
@@ -383,11 +384,11 @@ export const runMultiEngineScan = inngest.createFunction(
     if (!model || !providerRates) throw new Error("The selected provider model or cost ceiling is not configured.");
     const recentFailureWindow = new Date(Date.now() - LIVE_COLLECTION_LIMITS.circuitWindowMinutes * 60_000).toISOString();
     const recentFailures = await step.run("check-provider-circuit", () =>
-      supabaseRest<Array<{ id: string }>>(
-        `run_attempts?select=id&organization_id=eq.${run.organization_id}&provider=eq.${providerId}&status=in.(failed,rate_limited)&created_at=gte.${encodeURIComponent(recentFailureWindow)}&limit=${LIVE_COLLECTION_LIMITS.circuitFailureThreshold}`,
+      supabaseRest<Array<{ run_id: string }>>(
+        `run_attempts?select=run_id&organization_id=eq.${run.organization_id}&provider=eq.${providerId}&status=in.(failed,rate_limited)&created_at=gte.${encodeURIComponent(recentFailureWindow)}&order=created_at.desc&limit=${LIVE_COLLECTION_LIMITS.circuitFailureThreshold * (LIVE_COLLECTION_LIMITS.providerRetries + 1)}`,
         { serviceRole: true },
       ));
-    if (recentFailures.length >= LIVE_COLLECTION_LIMITS.circuitFailureThreshold) {
+    if (hasOpenProviderCircuit(recentFailures)) {
       for (const prompt of prompts) {
         await supabaseRest("run_attempts", {
           method: "POST",

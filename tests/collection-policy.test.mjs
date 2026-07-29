@@ -23,3 +23,22 @@ test("operational errors redact credential-shaped values", () => {
   assert.doesNotMatch(safe, /secret-value|another-secret/);
   assert.match(safe, /redacted/);
 });
+
+test("provider circuit counts distinct failed runs instead of retry attempts", () => {
+  assert.equal(
+    policy.hasOpenProviderCircuit([
+      { run_id: "run-a" },
+      { run_id: "run-a" },
+      { run_id: "run-a" },
+    ]),
+    false,
+  );
+  assert.equal(
+    policy.hasOpenProviderCircuit([
+      { run_id: "run-a" },
+      { run_id: "run-b" },
+      { run_id: "run-c" },
+    ]),
+    true,
+  );
+});
