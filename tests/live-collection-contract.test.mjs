@@ -133,3 +133,9 @@ test("citation persistence is batched below Worker subrequest ceilings", async (
   assert.ok(citationCollectionLoop);
   assert.doesNotMatch(citationCollectionLoop, /await /);
 });
+
+test("credential presence is labelled configured rather than falsely connected", async () => {
+  const launcher = await text("components/run-launcher.tsx");
+  assert.match(launcher, /provider\.configured \? "Configured" : "Not configured"/);
+  assert.doesNotMatch(launcher, /provider\.configured \? "Connected"/);
+});

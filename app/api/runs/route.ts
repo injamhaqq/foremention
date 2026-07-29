@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "The collection request is not valid JSON." }, { status: 400 });
   }
   if (!body.promptIds?.length || !body.providers?.length) {
-    return NextResponse.json({ error: "Choose at least one active buyer question and one connected provider." }, { status: 400 });
+    return NextResponse.json({ error: "Choose at least one active buyer question and one configured provider." }, { status: 400 });
   }
   const promptIds = Array.from(new Set(body.promptIds));
   const providers = Array.from(new Set(body.providers));
