@@ -12,6 +12,12 @@
   "ai": {
     "binding": "AI"
   },
+  "vars": {
+    "CLOUDFLARE_MODEL": "@cf/google/gemma-4-26b-a4b-it",
+    "CLOUDFLARE_INPUT_COST_PER_MILLION_USD": "0.10",
+    "CLOUDFLARE_OUTPUT_COST_PER_MILLION_USD": "0.30",
+    "CLOUDFLARE_REQUEST_COST_USD": "0"
+  },
   "d1_databases": [
     {
       "binding": "DB",

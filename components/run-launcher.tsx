@@ -7,7 +7,9 @@ import type { ProviderStatus, WorkspacePrompt } from "@/lib/data";
 export function RunLauncher({ prompts, providers, demo }: { prompts: WorkspacePrompt[]; providers: ProviderStatus[]; demo: boolean }) {
   const router = useRouter();
   const active = prompts.filter((prompt) => prompt.approved);
-  const preferredProvider = providers.find((provider) => provider.configured && provider.health === "available")
+  const preferredProvider = providers.find((provider) => provider.configured && provider.supportsCitations && provider.health === "available")
+    || providers.find((provider) => provider.configured && provider.health === "available")
+    || providers.find((provider) => provider.configured && provider.supportsCitations)
     || providers.find((provider) => provider.configured);
   const [selectedPrompts, setSelectedPrompts] = useState(active.slice(0, 1).map((prompt) => prompt.id));
   const [selectedProviders, setSelectedProviders] = useState<string[]>(demo ? ["mock"] : preferredProvider ? [preferredProvider.id] : []);
@@ -37,12 +39,13 @@ export function RunLauncher({ prompts, providers, demo }: { prompts: WorkspacePr
     finally { setBusy(false); }
   }
 
-  const selectableProviders = demo ? [{ id: "mock", label: "Safe demo", configured: true, health: "available" as const, latestStatus: "complete", lastTestedAt: null, verifiedAnswers: 0, presencePct: null }] : providers;
+  const selectableProviders = demo ? [{ id: "mock", label: "Safe demo", configured: true, supportsCitations: true, health: "available" as const, latestStatus: "complete", lastTestedAt: null, verifiedAnswers: 0, presencePct: null }] : providers;
   const providerLabel = (provider: typeof selectableProviders[number]) => {
     if (!provider.configured) return "Not configured";
-    if (provider.health === "available") return provider.lastTestedAt ? `Proven available · tested ${provider.lastTestedAt}` : "Safe fictional adapter";
-    if (provider.health === "limited") return `Latest attempt ${provider.latestStatus?.replaceAll("_", " ") || "failed"}${provider.lastTestedAt ? ` · ${provider.lastTestedAt}` : ""}`;
-    return "Configured · production run not yet proven";
+    const evidenceNote = provider.supportsCitations ? "" : " · answer comparison only; no returned web citations";
+    if (provider.health === "available") return provider.lastTestedAt ? `Proven available · tested ${provider.lastTestedAt}${evidenceNote}` : "Safe fictional adapter";
+    if (provider.health === "limited") return `Latest attempt ${provider.latestStatus?.replaceAll("_", " ") || "failed"}${provider.lastTestedAt ? ` · ${provider.lastTestedAt}` : ""}${evidenceNote}`;
+    return `Configured · production run not yet proven${evidenceNote}`;
   };
   return <section className="panel run-launcher">
     <div className="panel-heading"><div><span className="eyebrow">New collection</span><h2>Run an approved evidence set.</h2></div><span className="capacity-chip">{selectedPrompts.length * selectedProviders.length} observations</span></div>

@@ -1,5 +1,6 @@
 import type { Viewer } from "@/lib/auth";
 import { getProviderCostRates } from "@/lib/collection-policy";
+import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
 import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -49,9 +50,10 @@ export type WorkspaceRunAnswer = {
 };
 export type ProviderHealth = "available" | "limited" | "untested";
 export type ProviderStatus = {
-  id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq";
+  id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare";
   label: string;
   configured: boolean;
+  supportsCitations: boolean;
   health: ProviderHealth;
   latestStatus: string | null;
   lastTestedAt: string | null;
@@ -157,11 +159,12 @@ export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
 
 export function getProviderStatuses(): ProviderStatus[] {
   return [
-    { id: "openai", label: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL && getProviderCostRates("openai")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "groq", label: "Groq Compound", configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")), health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "openai", label: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL && getProviderCostRates("openai")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "groq", label: "Groq Compound", configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "cloudflare", label: "Cloudflare Workers AI", configured: Boolean(cloudflareAiConfigured() && getProviderCostRates("cloudflare")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
   ];
 }
 

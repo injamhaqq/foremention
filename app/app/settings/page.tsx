@@ -46,10 +46,10 @@ export default async function SettingsPage() {
         <div className="integration-list">
           {providers.map((provider) => <div key={provider.id}>
             <span><StatusDot tone={viewer.mode === "demo" || provider.health === "available" ? "green" : provider.health === "limited" ? "yellow" : "gray"} /><strong>{provider.label}</strong></span>
-            <small>{viewer.mode === "demo" ? "Demo adapter" : !provider.configured ? "Not connected" : provider.health === "available" ? `Live collection proven${provider.lastTestedAt ? ` · ${provider.lastTestedAt}` : ""}` : provider.health === "limited" ? `Configured · latest attempt ${provider.latestStatus?.replaceAll("_", " ") || "failed"}${provider.lastTestedAt ? ` · ${provider.lastTestedAt}` : ""}` : "Configured · production run not yet proven"}</small>
+            <small>{viewer.mode === "demo" ? "Demo adapter" : !provider.configured ? "Not connected" : `${provider.health === "available" ? `Live collection proven${provider.lastTestedAt ? ` · ${provider.lastTestedAt}` : ""}` : provider.health === "limited" ? `Configured · latest attempt ${provider.latestStatus?.replaceAll("_", " ") || "failed"}${provider.lastTestedAt ? ` · ${provider.lastTestedAt}` : ""}` : "Configured · production run not yet proven"}${provider.supportsCitations ? "" : " · answer comparison only; no returned web citations"}`}</small>
           </div>)}
         </div>
-        <p className="table-caption">Provider credentials stay in the secure hosting environment. Customers never paste shared platform keys into the browser.</p>
+        <p className="table-caption">Provider credentials stay in the secure hosting environment. Customers never paste shared platform keys into the browser. Answer-only providers can support comparison, but cannot create Source Map entries without provider-returned citations.</p>
       </section>
 
       <section className="panel">

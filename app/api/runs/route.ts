@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   if (providers.length !== LIVE_COLLECTION_LIMITS.maxProvidersPerRun) {
     return NextResponse.json({ error: "Choose exactly one provider for this controlled collection." }, { status: 400 });
   }
-  const allowedProviders = new Set<ProviderId>(["openai", "gemini", "anthropic", "perplexity", "groq", "mock"]);
+  const allowedProviders = new Set<ProviderId>(["openai", "gemini", "anthropic", "perplexity", "groq", "cloudflare", "mock"]);
   if (providers.some((provider) => !allowedProviders.has(provider))) {
     return NextResponse.json({ error: "The selected provider is not supported." }, { status: 400 });
   }

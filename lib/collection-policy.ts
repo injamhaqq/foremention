@@ -25,6 +25,7 @@ const providerPrefix: Record<Exclude<ProviderId, "mock">, string> = {
   anthropic: "ANTHROPIC",
   perplexity: "PERPLEXITY",
   groq: "GROQ",
+  cloudflare: "CLOUDFLARE",
 };
 
 function finiteNonNegative(value: string | undefined) {

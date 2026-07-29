@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/cloudflare";
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
+import { setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
 
 interface D1Result<T = unknown> {
   results?: T[];
@@ -26,6 +27,7 @@ interface AssetFetcher {
 
 interface Env {
   ASSETS: AssetFetcher;
+  AI?: CloudflareAiBinding;
   DB?: D1Database;
   SENTRY_DSN?: string;
   SENTRY_ENVIRONMENT?: string;
@@ -156,6 +158,7 @@ async function handleSourceGapRequest(request: Request, env: Env) {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    setCloudflareAiBinding(env.AI);
     const url = new URL(request.url);
 
     if (url.pathname === "/api/leads/source-gap" && request.method === "POST") {

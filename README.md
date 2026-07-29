@@ -90,6 +90,7 @@ Connect a payment provider only after prices, refund terms, taxes, and the legal
 | `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_MODEL_VERSION` | Optional Groq Compound adapter with structured web-search citations |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Optional Anthropic adapter |
 | `PERPLEXITY_API_KEY`, `PERPLEXITY_MODEL` | Optional Perplexity adapter |
+| `CLOUDFLARE_MODEL` and `CLOUDFLARE_*_COST_*` | Optional Workers AI binding adapter; answer comparison only because this model does not return web citations |
 
 Never commit `.env.local` or expose server secrets to browser code.
 

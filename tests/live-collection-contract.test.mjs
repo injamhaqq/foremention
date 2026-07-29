@@ -110,6 +110,39 @@ test("Groq Compound is a first-class, citation-preserving provider", async () =>
   assert.match(sourceMap, /groq: "Groq Compound"/);
 });
 
+test("Cloudflare Workers AI is a cost-capped answer-only comparison provider", async () => {
+  const [adapter, types, registry, data, route, worker, sourceMap, config, prepare, launcher] = await Promise.all([
+    text("lib/providers/cloudflare.ts"),
+    text("lib/providers/types.ts"),
+    text("lib/providers/index.ts"),
+    text("lib/data.ts"),
+    text("app/api/runs/route.ts"),
+    text("worker/index.ts"),
+    text("lib/source-map-generation.ts"),
+    text("wrangler.jsonc"),
+    text("scripts/prepare-worker-config.mjs"),
+    text("components/run-launcher.tsx"),
+  ]);
+  assert.match(types, /"cloudflare"/);
+  assert.match(adapter, /binding\.run\(model/);
+  assert.match(adapter, /citations: \[\]/);
+  assert.match(adapter, /grounded: false/);
+  assert.match(adapter, /Do not invent citations, URLs/);
+  assert.doesNotMatch(adapter, /extractUrls/);
+  assert.doesNotMatch(adapter, /CLOUDFLARE_API_(?:KEY|TOKEN)/);
+  assert.match(registry, /cloudflareAdapter/);
+  assert.match(data, /Cloudflare Workers AI/);
+  assert.match(data, /supportsCitations: false/);
+  assert.match(route, /"cloudflare"/);
+  assert.match(worker, /setCloudflareAiBinding\(env\.AI\)/);
+  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI"/);
+  assert.match(config, /"binding": "AI"/);
+  assert.match(config, /@cf\/google\/gemma-4-26b-a4b-it/);
+  assert.match(prepare, /config\.ai = \{ binding: "AI" \}/);
+  assert.match(prepare, /CLOUDFLARE_INPUT_COST_PER_MILLION_USD/);
+  assert.match(launcher, /answer comparison only; no returned web citations/);
+});
+
 test("source observation upserts use a non-partial unique index", async () => {
   const migration = await text("supabase/migrations/20260729000300_source_observation_upsert_fix.sql");
   assert.match(migration, /create unique index source_observations_observation_key_idx/i);
