@@ -109,3 +109,16 @@ test("Groq Compound is a first-class, citation-preserving provider", async () =>
   assert.match(route, /"groq"/);
   assert.match(sourceMap, /groq: "Groq Compound"/);
 });
+
+test("source observation upserts use a non-partial unique index", async () => {
+  const migration = await text("supabase/migrations/20260729000300_source_observation_upsert_fix.sql");
+  assert.match(migration, /create unique index source_observations_observation_key_idx/i);
+  assert.match(migration, /source_observations\s*\(observation_key\)/i);
+  assert.doesNotMatch(migration, /where\s+observation_key\s+is\s+not\s+null/i);
+});
+
+test("provider requests and persistence are separate durable steps", async () => {
+  const workflow = await text("lib/jobs/inngest.ts");
+  assert.match(workflow, /step\.run\(`collect-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
+  assert.match(workflow, /step\.run\(\s*`persist-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
+});

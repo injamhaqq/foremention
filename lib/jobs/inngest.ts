@@ -431,8 +431,9 @@ export const runMultiEngineScan = inngest.createFunction(
           { serviceRole: true },
         ));
       if (runState[0]?.status === "cancelled") return { runId: run.id, cancelled: true };
+      let answer: ProviderAnswer;
       try {
-        const result = await step.run(`collect-${providerId}-${prompt.prompt_key}`, async () => {
+        answer = await step.run(`collect-${providerId}-${prompt.prompt_key}`, async () => {
           const startedAt = new Date().toISOString();
           await supabaseRest("run_attempts?on_conflict=run_id,prompt_id,provider,attempt_number", {
             method: "POST",
@@ -458,7 +459,7 @@ export const runMultiEngineScan = inngest.createFunction(
               { signal: controller.signal, maxOutputTokens: LIVE_COLLECTION_LIMITS.maxOutputTokensPerAnswer },
             );
             if (!answer.answer.trim()) throw new Error("The provider returned an empty answer.");
-            return await persistAnswer(run, prompt, providerId, answer, identity, attempt + 1);
+            return answer;
           } catch (error) {
             await persistFailureAttempt(run, prompt, providerId, model, attempt + 1, error);
             throw error;
@@ -466,10 +467,17 @@ export const runMultiEngineScan = inngest.createFunction(
             clearTimeout(timer);
           }
         });
-        results.push(result);
       } catch (error) {
         failures.push({ promptId: prompt.prompt_id, error: safeOperationalError(error) });
+        continue;
       }
+      // Persistence is a separate durable step so a database retry cannot
+      // issue and bill a second provider request.
+      const result = await step.run(
+        `persist-${providerId}-${prompt.prompt_key}`,
+        () => persistAnswer(run, prompt, providerId, answer, identity, attempt + 1),
+      );
+      results.push(result);
     }
 
     const answerCount = results.length;
