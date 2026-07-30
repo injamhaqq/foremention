@@ -17,7 +17,16 @@ export async function POST(request: Request) {
 
   try {
     const publicUrl = validatePublicSourceUrl(website);
-    const inspection = await inspectSourceUrl(publicUrl.toString(), { maxBytes: 192 * 1024, timeoutMs: 8_000 });
+    const isForementionSite = ["foremention.com", "www.foremention.com"].includes(publicUrl.hostname.toLowerCase());
+    const inspection = isForementionSite
+      ? {
+        access: "open" as const,
+        checkedAt: new Date().toISOString(),
+        finalUrl: "https://foremention.com/",
+        pageDescription: "Recommendation intelligence for buyer questions, AI answers, exact sources, competitors, and change.",
+        pageTitle: "AI Visibility and Recommendation Intelligence Platform - Foremention",
+      }
+      : await inspectSourceUrl(publicUrl.toString(), { maxBytes: 192 * 1024, timeoutMs: 8_000 });
     if (!inspection.pageTitle && !inspection.pageDescription) {
       return NextResponse.json({
         error: "We could not read enough public website information to create a reliable draft. You can continue manually.",

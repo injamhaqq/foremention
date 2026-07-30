@@ -138,6 +138,8 @@ test("onboarding writes the first organization and prompt baseline transactional
   assert.match(analysisRoute, /getViewer/);
   assert.match(analysisRoute, /validatePublicSourceUrl/);
   assert.match(analysisRoute, /inspectSourceUrl/);
+  assert.match(analysisRoute, /isForementionSite/);
+  assert.match(analysisRoute, /AI Visibility and Recommendation Intelligence Platform - Foremention/);
   assert.match(analysisRoute, /cache-control.*private, no-store/);
   assert.match(profile, /Review this draft/);
   assert.doesNotMatch(profile, /fetch\(|API_KEY|process\.env/);
