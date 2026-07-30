@@ -7,6 +7,7 @@ export type SourceInspectionResult = {
   finalUrl: string;
   httpStatus: number | null;
   message: string;
+  pageDescription?: string | null;
   pageTitle: string | null;
   redirectCount: number;
 };
@@ -179,6 +180,17 @@ function extractPageTitle(body: string) {
   return match?.[1] ? decodeTitle(match[1]) || null : null;
 }
 
+function extractMetaDescription(body: string) {
+  const tags = body.match(/<meta\b[^>]*>/gi) || [];
+  for (const tag of tags) {
+    const name = tag.match(/\b(?:name|property)\s*=\s*(["'])(.*?)\1/i)?.[2]?.toLowerCase();
+    if (name !== "description" && name !== "og:description") continue;
+    const content = tag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i)?.[2];
+    if (content) return decodeTitle(content) || null;
+  }
+  return null;
+}
+
 async function readLimitedText(response: Response, maxBytes: number) {
   const declaredLength = Number(response.headers.get("content-length") || "0");
   if (declaredLength > maxBytes) throw new Error("response_too_large");
@@ -280,6 +292,7 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
           finalUrl: current.toString(),
           httpStatus: response.status,
           message: response.status === 206 ? "The page returned partial content; metadata may be incomplete." : "The page was reachable and its bounded text metadata was inspected.",
+          pageDescription: contentType === "text/plain" ? null : extractMetaDescription(body),
           pageTitle: contentType === "text/plain" ? null : extractPageTitle(body),
           redirectCount: redirects,
         }, now);

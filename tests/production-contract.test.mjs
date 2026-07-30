@@ -121,11 +121,26 @@ test("Sites D1 intake and migration are configured", async () => {
 });
 
 test("onboarding writes the first organization and prompt baseline transactionally", async () => {
-  const [wizard, route, migration] = await Promise.all([text("components/onboarding-wizard.tsx"), text("app/api/onboarding/route.ts"), text("supabase/migrations/20260722000100_recommendation_graph.sql")]);
+  const [wizard, route, analysisRoute, profile, migration] = await Promise.all([
+    text("components/onboarding-wizard.tsx"),
+    text("app/api/onboarding/route.ts"),
+    text("app/api/onboarding/analyze/route.ts"),
+    text("lib/onboarding-profile.ts"),
+    text("supabase/migrations/20260722000100_recommendation_graph.sql"),
+  ]);
   assert.match(wizard, /\/api\/onboarding/);
+  assert.match(wizard, /\/api\/onboarding\/analyze/);
+  assert.match(wizard, /Generate my setup/);
   assert.match(wizard, /Review your evidence boundary/);
-  assert.match(wizard, /Private by default/);
+  assert.match(wizard, /Your workspace is private/);
   assert.match(wizard, /no customer data was saved/);
+  assert.match(analysisRoute, /isTrustedMutationOrigin/);
+  assert.match(analysisRoute, /getViewer/);
+  assert.match(analysisRoute, /validatePublicSourceUrl/);
+  assert.match(analysisRoute, /inspectSourceUrl/);
+  assert.match(analysisRoute, /cache-control.*private, no-store/);
+  assert.match(profile, /Review this draft/);
+  assert.doesNotMatch(profile, /fetch\(|API_KEY|process\.env/);
   assert.match(route, /rpc\/complete_onboarding/);
   assert.match(migration, /function public\.complete_onboarding/);
   assert.match(migration, /onboarding\.completed/);

@@ -15,7 +15,7 @@
         "start:next": "next start",
         "test": "node --experimental-strip-types --test tests/*.test.mjs",
         "typecheck": "tsc --noEmit",
-        "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .wrangler-dry-run"
+        "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .wrangler-dry-run --ignore-pattern scripts/codex-*"
     },
     "dependencies": {
         "@sentry/cloudflare": "^10.68.0",

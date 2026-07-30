@@ -33,7 +33,7 @@ test("source inspection follows only validated redirects and extracts bounded me
     if (url === "https://example.com/start") {
       return new Response(null, { status: 302, headers: { location: "/guide" } });
     }
-    return new Response("<html><head><title>Evidence &amp; trust</title></head><body>Not stored</body></html>", {
+    return new Response("<html><head><title>Evidence &amp; trust</title><meta name=\"description\" content=\"Dated answers &amp; exact sources\"></head><body>Not stored</body></html>", {
       status: 200,
       headers: { "content-type": "text/html; charset=utf-8" },
     });
@@ -46,6 +46,7 @@ test("source inspection follows only validated redirects and extracts bounded me
   assert.deepEqual(calls, ["https://example.com/start", "https://example.com/guide"]);
   assert.equal(result.access, "open");
   assert.equal(result.pageTitle, "Evidence & trust");
+  assert.equal(result.pageDescription, "Dated answers & exact sources");
   assert.equal(result.redirectCount, 1);
   assert.equal(result.checkedAt, "2026-07-29T12:00:00.000Z");
   assert.equal("body" in result, false);

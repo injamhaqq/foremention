@@ -703,6 +703,15 @@ textarea { resize: vertical; }
 .onboarding-wizard label { display: block; margin-bottom: 18px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
 .onboarding-wizard input, .onboarding-wizard textarea, .onboarding-wizard select { width: 100%; margin-top: 7px; padding: 12px; border: 1px solid var(--ink); background: #fff; font-size: 11px; text-transform: none; }
 .field-hint { color: var(--muted); font-size: 9px; }
+.website-draft { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px 16px; align-items: end; margin-bottom: 24px; padding: 20px; border: 1px solid var(--ink); background: #effff8; box-shadow: 6px 6px 0 var(--marker); }
+.website-draft > div { grid-column: 1 / -1; }
+.website-draft .eyebrow { display: block; margin-bottom: 7px; }
+.website-draft strong { display: block; font-size: 18px; letter-spacing: -.025em; }
+.website-draft p { max-width: 760px; margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+.website-draft label { min-width: 0; margin: 0; }
+.website-draft .button { min-height: 42px; white-space: nowrap; }
+.website-draft__status { grid-column: 1 / -1; margin: 0 !important; padding-top: 10px; border-top: 1px solid var(--line); color: var(--green) !important; font-weight: 700; }
+.website-draft__status.is-error { color: var(--danger) !important; }
 .wizard-progress { display: grid; gap: 8px; margin-bottom: 24px; color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
 .wizard-progress > div { height: 4px; background: var(--line); overflow: hidden; }
 .wizard-progress i { display: block; height: 100%; background: var(--marker); transition: width .25s ease; }
@@ -1041,6 +1050,8 @@ textarea { resize: vertical; }
   .onboarding-review > div:nth-child(2n),
   .onboarding-review > div:nth-last-child(-n+2) { border-right: 0; border-bottom: 1px solid var(--ink); }
   .onboarding-review > div:last-child { border-bottom: 0; }
+  .website-draft { grid-template-columns: 1fr; }
+  .website-draft .button { width: 100%; }
   .opportunity-list article { grid-template-columns: 70px 1fr; }
   .opportunity-list article > a { grid-column: 2; }
   .evidence-summary { grid-template-columns: 1fr 1fr; }
