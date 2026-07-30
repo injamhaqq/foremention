@@ -18,6 +18,7 @@ Observed evidence, product assessments, and customer-supplied outcomes remain vi
 - Credential-free, isolated seeded demo
 - Customer workspace for onboarding, prompts, runs, Source Map, opportunities, evidence, analytics, and settings
 - Foremention Agent Control Plane with recorded, organization-scoped execution telemetry for collection, mapping, measurement, and human review
+- Foremention Intelligence Loop for reviewed-evidence search, comparable run changes, explicit confidence checks, recorded cost, and one deterministic next action
 - Provider adapters for OpenAI, Gemini, Anthropic, Perplexity, and deterministic mock runs
 - Inngest background-run orchestration
 - D1-backed public Source Gap intake for Sites deployments

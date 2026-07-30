@@ -242,6 +242,41 @@ test("customer insight pages use real evidence without pseudo-priority scores or
   assert.match(alerts, /similar events/);
 });
 
+test("the weekly intelligence loop is tenant-scoped, review-only, cost-aware, and deterministic", async () => {
+  const [page, component, data, api, navigation, dashboard, product] = await Promise.all([
+    text("app/app/intelligence/page.tsx"),
+    text("components/intelligence-loop.tsx"),
+    text("lib/intelligence-loop.ts"),
+    text("app/api/intelligence/route.ts"),
+    text("components/workspace-navigation.tsx"),
+    text("app/app/page.tsx"),
+    text("app/product/page.tsx"),
+  ]);
+  assert.match(page, /loadWeeklyIntelligence/);
+  assert.match(page, /Measurement boundary/);
+  assert.match(component, /Search evidence/);
+  assert.match(component, /Compare runs/);
+  assert.match(component, /Confidence without a magic score/);
+  assert.match(component, /Prioritized next action/);
+  assert.match(component, /type="search"/);
+  assert.match(data, /organization_id=eq\.\$\{context\.organizationId\}/);
+  assert.match(data, /project_id=eq\.\$\{context\.projectId\}/);
+  assert.match(data, /review_status=eq\.verified/);
+  assert.match(data, /ai_cost_events/);
+  assert.match(data, /canonicalizeEvidenceUrl/);
+  assert.match(data, /comparisonSignature/);
+  assert.match(data, /candidateSignature === latestSignature/);
+  assert.match(data, /exact text comparison/i);
+  assert.match(data, /Automatic scheduling is not implied/);
+  assert.match(data, /telemetry: "fictional"/);
+  assert.doesNotMatch(data, /OPENAI_API_KEY|GEMINI_API_KEY|fetch\(/);
+  assert.match(api, /getViewer/);
+  assert.match(api, /Unauthorized/);
+  assert.match(navigation, /Intelligence Loop/);
+  assert.match(dashboard, /Weekly Intelligence Loop/);
+  assert.match(product, /Eight connected systems/);
+});
+
 test("the customer journey distinguishes collected citations from reviewed decisions", async () => {
   const [sourceMap, sourceTable, questions, launcher, decision, home, review, data] = await Promise.all([
     text("app/app/source-map/page.tsx"),

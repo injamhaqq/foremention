@@ -69,6 +69,11 @@ export default async function DashboardPage() {
       <article><span>Tracked actions</span><strong>{placements.length}</strong><small>{published} published or beyond</small></article>
     </div>
 
+    <section className="weekly-loop-teaser">
+      <div><span className="eyebrow">Weekly Intelligence Loop</span><strong>Search evidence. Compare runs. See change. Take one action.</strong><p>Foremention turns reviewed workspace records into an inspectable weekly decision brief with confidence and cost kept visible.</p></div>
+      <Link className="button button--ink" href="/app/intelligence">Open Intelligence Loop <Arrow /></Link>
+    </section>
+
     <AgentControlPlane plane={agents} compact />
 
     <section className="decision-teaser">

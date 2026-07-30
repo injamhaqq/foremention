@@ -8,6 +8,7 @@ import type { Viewer } from "@/lib/auth";
 
 const nav = [
   ["/app", "Overview"],
+  ["/app/intelligence", "Intelligence Loop"],
   ["/app/prompts", "Buyer questions"],
   ["/app/runs", "Answer runs"],
   ["/app/agents", "Agent Control Plane"],
