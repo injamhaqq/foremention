@@ -56,7 +56,7 @@ test("account recovery requires and confirms a new password", async () => {
 });
 
 test("verified authentication uses a deterministic cookie handoff and sends new customers to onboarding", async () => {
-  const [loginForm, callback, resetForm, overview, auth, data, refresh, cookies] = await Promise.all([
+  const [loginForm, callback, resetForm, overview, auth, data, refresh, cookies, demoExit, navigation] = await Promise.all([
     text("components/auth-form.tsx"),
     text("components/auth-callback.tsx"),
     text("components/set-password-form.tsx"),
@@ -65,6 +65,8 @@ test("verified authentication uses a deterministic cookie handoff and sends new 
     text("lib/data.ts"),
     text("app/api/auth/refresh/route.ts"),
     text("lib/session-cookies.ts"),
+    text("app/api/auth/demo/exit/route.ts"),
+    text("components/workspace-navigation.tsx"),
   ]);
   assert.match(loginForm, /window\.location\.assign/);
   assert.match(loginForm, /onSubmit=\{submit\}/);
@@ -82,6 +84,11 @@ test("verified authentication uses a deterministic cookie handoff and sends new 
   assert.match(cookies, /httpOnly: true/);
   assert.match(cookies, /sameSite: "lax"/);
   assert.match(cookies, /REFRESH_COOKIE/);
+  assert.match(cookies, /clearDemoCookie/);
+  assert.match(demoExit, /clearDemoCookie/);
+  assert.match(demoExit, /\/app\/runs/);
+  assert.match(navigation, /Exit demo/);
+  assert.match(navigation, /\/api\/auth\/demo\/exit/);
 });
 
 test("the selected Meridian OS Source Eclipse identity is preserved", async () => {

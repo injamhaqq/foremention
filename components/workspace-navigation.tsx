@@ -35,9 +35,9 @@ function WorkspaceIdentity({ viewer, workspaceName }: { viewer: Viewer; workspac
   </div>;
 }
 
-function SignOutButton() {
-  return <form action="/api/auth/logout" method="post">
-    <button type="submit">Sign out <Arrow /></button>
+function SignOutButton({ demo }: { demo: boolean }) {
+  return <form action={demo ? "/api/auth/demo/exit" : "/api/auth/logout"} method="post">
+    <button type="submit">{demo ? "Exit demo" : "Sign out"} <Arrow /></button>
   </form>;
 }
 
@@ -49,7 +49,7 @@ export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; wo
       {nav.map(([href, label]) => <Link className={isCurrent(pathname, href) ? "is-current" : ""} aria-current={isCurrent(pathname, href) ? "page" : undefined} key={href} href={href}>{label}<span aria-hidden="true">&rarr;</span></Link>)}
     </nav>
     <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
-    <SignOutButton />
+    <SignOutButton demo={viewer.mode === "demo"} />
   </aside>;
 }
 
@@ -63,7 +63,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
           {nav.map(([href, label]) => <Link className={isCurrent(pathname, href) ? "is-current" : ""} aria-current={isCurrent(pathname, href) ? "page" : undefined} key={href} href={href} onClick={() => { if (mobileMenu.current) mobileMenu.current.open = false; }}>{label}<span aria-hidden="true">&rarr;</span></Link>)}
         </nav>
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
-        <SignOutButton />
+        <SignOutButton demo={viewer.mode === "demo"} />
       </div>
     </details>;
 }

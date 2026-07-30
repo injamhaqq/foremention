@@ -35,3 +35,7 @@ export function clearSessionCookies(response: NextResponse) {
   response.cookies.delete(REFRESH_COOKIE);
   response.cookies.delete(DEMO_COOKIE);
 }
+
+export function clearDemoCookie(response: NextResponse) {
+  response.cookies.delete(DEMO_COOKIE);
+}
