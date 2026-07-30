@@ -195,7 +195,7 @@ export async function POST(request: Request) {
         body: {
           p_organization_id: context.organizationId,
           p_run_id: runId,
-          p_reason: "Collection capacity could not be reserved.",
+          p_reason: safeOperationalError(error),
         },
       }).catch(() => undefined);
     } else {

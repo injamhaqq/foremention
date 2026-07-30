@@ -14,6 +14,7 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
   ]);
   assert.match(route, /idempotency-key/);
   assert.match(route, /reserve_run_budget/);
+  assert.match(route, /p_reason: safeOperationalError\(error\)/);
   assert.match(route, /INNGEST_SIGNING_KEY/);
   assert.match(route, /data: \{ runId, organizationId: context\.organizationId \}/);
   assert.doesNotMatch(route, /data: \{[^}]*prompts/s);

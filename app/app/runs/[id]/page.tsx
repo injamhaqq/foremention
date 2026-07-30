@@ -11,8 +11,9 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
   const [runs, answers] = await Promise.all([loadRuns(viewer), loadRunAnswers(viewer, id)]);
   const run = runs.find((item) => item.id === id);
   if (!run) notFound();
+  const capacityFailure = run.status === "failed" && /capacity|ceiling|budget|quota|concurrent/i.test(run.errorSummary || "");
   const emptyState = run.status === "failed"
-    ? { title: "The provider did not return evidence.", body: run.errorSummary || "This run failed without creating answers or citations. Check the connected provider and try again when it is available." }
+    ? { title: capacityFailure ? "This run did not reach the provider." : "The provider did not return evidence.", body: run.errorSummary || "This run failed without creating answers or citations. Check the connected provider and try again when it is available." }
     : run.status === "cancelled"
       ? { title: "This collection was cancelled.", body: "No answers or citations were added to the evidence trail." }
       : ["complete", "partial", "review"].includes(run.status)
