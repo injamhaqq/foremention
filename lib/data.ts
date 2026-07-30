@@ -38,6 +38,18 @@ export type WorkspaceEvidence = {
   expiresAt: string | null;
   rights: string | null;
 };
+export type VerifiedClaim = {
+  id: string;
+  evidenceItemId: string | null;
+  evidenceTitle: string | null;
+  evidenceUrl: string | null;
+  claimText: string;
+  approvedWording: string;
+  limitations: string | null;
+  publicUse: boolean;
+  verifiedAt: string | null;
+  expiresAt: string | null;
+};
 export type WorkspaceRunAnswer = {
   id: string;
   prompt: string;
@@ -302,6 +314,49 @@ export async function loadEvidence(viewer: Viewer): Promise<WorkspaceEvidence[]>
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, type: row.evidence_type, title: row.title, sourceUrl: row.source_url, status: row.verification_status, verifiedAt: row.verified_at ? dateLabel(row.verified_at) : null, expiresAt: row.expires_at ? dateLabel(row.expires_at) : null, rights: row.usage_rights }));
+}
+
+export async function loadVerifiedClaims(viewer: Viewer): Promise<VerifiedClaim[]> {
+  if (viewer.mode === "demo") return [{
+    id: "demo-claim-1",
+    evidenceItemId: "demo-evidence-1",
+    evidenceTitle: "Northstar HR security review",
+    evidenceUrl: "https://northstarhr.example/security",
+    claimText: "Northstar HR encrypts customer data in transit.",
+    approvedWording: "Customer data is encrypted in transit using current transport security controls.",
+    limitations: "Fictional demonstration record. This is not a real company claim.",
+    publicUse: false,
+    verifiedAt: "Jul 24, 2026",
+    expiresAt: null,
+  }];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const rows = await supabaseRest<Array<{
+    id: string;
+    evidence_item_id: string | null;
+    claim_text: string;
+    approved_wording: string;
+    limitations: string | null;
+    public_use: boolean;
+    verified_at: string | null;
+    expires_at: string | null;
+    evidence: { title: string; source_url: string | null } | null;
+  }>>(
+    `verified_claims?select=id,evidence_item_id,claim_text,approved_wording,limitations,public_use,verified_at,expires_at,evidence:evidence_items(title,source_url)&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`,
+    { token: viewer.accessToken },
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    evidenceItemId: row.evidence_item_id,
+    evidenceTitle: row.evidence?.title || null,
+    evidenceUrl: row.evidence?.source_url || null,
+    claimText: row.claim_text,
+    approvedWording: row.approved_wording,
+    limitations: row.limitations,
+    publicUse: row.public_use,
+    verifiedAt: row.verified_at ? dateLabel(row.verified_at) : null,
+    expiresAt: row.expires_at ? dateLabel(row.expires_at) : null,
+  }));
 }
 
 export async function loadRunAnswers(viewer: Viewer, runId: string): Promise<WorkspaceRunAnswer[]> {

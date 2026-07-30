@@ -10,7 +10,7 @@ export const metadata: Metadata = pageMetadata({ title: "AI Visibility Platform 
 const systems = [
   ["01", "Source X-Ray", "Connects an answer record to the outside pages and brands that help explain it."],
   ["02", "Source Map", "Organizes recurring source pages, brand presence, evidence signals, and actions in one category record."],
-  ["03", "Evidence Vault", "Connects every approved product claim to its supporting case study, review, dataset, document, owner, and review date."],
+  ["03", "Evidence Vault + Claim Integrity Ledger", "Connects approved wording and explicit limitations to verified evidence, usage rights, an owner, and a dated audit trail."],
   ["04", "Action Graph", "Turns an evidence gap into a structured decision, owner, next action, and dated outcome."],
   ["05", "Movement Watch", "Tracks answer changes, source changes, citation survival, and competitor movement over time."],
   ["06", "Revenue Lens", "Connects observed AI referrals and self-reported discovery to leads and pipeline without claiming false causation."],

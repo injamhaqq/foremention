@@ -253,3 +253,30 @@ test("credential presence is separated from proven provider health", async () =>
   assert.match(data, /latest\?\.status === "complete"/);
   assert.doesNotMatch(launcher, /provider\.configured \? "Connected"/);
 });
+
+test("Claim Integrity Ledger binds approved wording to tenant-scoped verified evidence", async () => {
+  const [route, page, component, data, migration] = await Promise.all([
+    text("app/api/claims/route.ts"),
+    text("app/app/evidence/page.tsx"),
+    text("components/claim-ledger.tsx"),
+    text("lib/data.ts"),
+    text("supabase/migrations/20260722000100_recommendation_graph.sql"),
+  ]);
+  assert.match(migration, /create table public\.verified_claims/);
+  assert.match(route, /isTrustedMutationOrigin/);
+  assert.match(route, /getPrimaryWorkspaceRole/);
+  assert.match(route, /role === "viewer"/);
+  assert.match(route, /organization_id=eq\.\$\{context\.organizationId\}/);
+  assert.match(route, /project_id=eq\.\$\{context\.projectId\}/);
+  assert.match(route, /verification_status !== "verified"/);
+  assert.match(route, /usage_rights/);
+  assert.match(route, /expires_at/);
+  assert.match(route, /publicUse && expired/);
+  assert.match(route, /claim\.public_use_enabled/);
+  assert.match(page, /ClaimLedger/);
+  assert.match(component, /Claim Integrity Ledger/);
+  assert.match(component, /approved wording/i);
+  assert.match(component, /explicit limitations/i);
+  assert.match(data, /verified_claims\?select=/);
+  assert.match(data, /Fictional demonstration record/);
+});
