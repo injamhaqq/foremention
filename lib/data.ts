@@ -1,4 +1,13 @@
 import type { Viewer } from "@/lib/auth";
+import {
+  FOREMENTION_AGENTS,
+  getForementionAgent,
+  type AgentControlPlaneView,
+  type AgentExecutionView,
+  type AgentMetric,
+  type ForementionAgentId,
+  type ForementionAgentStatus,
+} from "@/lib/agent-control-plane";
 import { getProviderCostRates } from "@/lib/collection-policy";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
@@ -16,6 +25,18 @@ type SourceEntryRow = {
 };
 type RunRow = { id: string; status: VisibilityRun["status"]; error_summary: string | null; prompt_count: number; answer_count: number; citation_count: number; brand_presence_pct: number | string; first_mention_pct: number | string; new_source_count: number; created_at: string };
 type PlacementRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string; target_prompt_ids: string[]; owner_id: string | null };
+type AgentRunRow = RunRow & { provider_ids: string[]; started_at: string | null; completed_at: string | null };
+type AgentJobRow = {
+  id: string;
+  job_type: string;
+  status: Exclude<ForementionAgentStatus, "waiting" | "review">;
+  payload: { runId?: string; agentId?: string } | null;
+  result: Record<string, unknown> | null;
+  error_detail: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  updated_at: string;
+};
 
 export type WorkspacePrompt = { id: string; cluster: string; text: string; approved: boolean };
 export type WorkspaceSummary = { organizationId: string; organizationName: string; website: string | null; category: string | null; promptCount: number };
@@ -142,6 +163,84 @@ const placementRoute = (value: string | null): EntryRoute => routes.includes(val
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(value));
 const relativeLabel = (value: string) => dateLabel(value);
 const hostname = (value: string) => { try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return value; } };
+const agentNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : 0;
+const agentMetric = (label: string, value: unknown): AgentMetric => ({ label, value: String(value) });
+
+function recordedAgentSummary(agentId: ForementionAgentId, status: ForementionAgentStatus, result: Record<string, unknown> | null) {
+  if (status === "failed") return "The agent stopped without inventing a result. Inspect the related answer run before retrying.";
+  if (status === "cancelled") return "The run was cancelled and this agent did not publish a result.";
+  if (status === "running") return "This agent is processing the current run.";
+  if (!result) return "The agent completed without a customer-facing metric.";
+  if (agentId === "run-supervisor") return `Run controls completed with ${agentNumber(result.failedAgents)} failed stage${agentNumber(result.failedAgents) === 1 ? "" : "s"}.`;
+  if (agentId === "question-scout") return `${agentNumber(result.promptCount)} frozen buyer question${agentNumber(result.promptCount) === 1 ? "" : "s"} passed workspace validation.`;
+  if (agentId === "answer-collector") return `${agentNumber(result.answerCount)} provider answer${agentNumber(result.answerCount) === 1 ? "" : "s"} persisted; ${agentNumber(result.failureCount)} failed attempt${agentNumber(result.failureCount) === 1 ? "" : "s"} preserved.`;
+  if (agentId === "evidence-mapper") return `${agentNumber(result.citationCount)} returned citation${agentNumber(result.citationCount) === 1 ? "" : "s"} resolved to ${agentNumber(result.sourceCount)} unique source${agentNumber(result.sourceCount) === 1 ? "" : "s"}.`;
+  if (agentId === "brand-observer") return `Brand presence measured at ${agentNumber(result.presencePct)}%; first-mention share measured at ${agentNumber(result.firstMentionPct)}%.`;
+  return result.nextState === "human_review_required"
+    ? "Collected evidence is waiting for a person to approve or exclude it."
+    : "The human-review boundary completed for this run.";
+}
+
+function recordedAgentMetrics(agentId: ForementionAgentId, result: Record<string, unknown> | null): AgentMetric[] {
+  if (!result) return [];
+  if (agentId === "run-supervisor") return [agentMetric("Retries", agentNumber(result.retryCount)), agentMetric("Failed stages", agentNumber(result.failedAgents))];
+  if (agentId === "question-scout") return [agentMetric("Questions", agentNumber(result.promptCount)), agentMetric("Competitors", agentNumber(result.competitorCount))];
+  if (agentId === "answer-collector") return [agentMetric("Answers", agentNumber(result.answerCount)), agentMetric("Failures", agentNumber(result.failureCount))];
+  if (agentId === "evidence-mapper") return [agentMetric("Citations", agentNumber(result.citationCount)), agentMetric("Unique sources", agentNumber(result.sourceCount))];
+  if (agentId === "brand-observer") return [agentMetric("Brand presence", `${agentNumber(result.presencePct)}%`), agentMetric("First mention", `${agentNumber(result.firstMentionPct)}%`)];
+  return [agentMetric("Gate", result.nextState === "human_review_required" ? "Review required" : "Complete")];
+}
+
+function derivedAgentExecution(agentId: ForementionAgentId, run: AgentRunRow | null): AgentExecutionView {
+  const definition = getForementionAgent(agentId)!;
+  if (!run) return { ...definition, status: "waiting", summary: "Waiting for the first controlled collection run.", metrics: [], runId: null, observedAt: null, telemetry: "derived" };
+  const terminalEvidence = ["review", "complete", "partial"].includes(run.status) && run.answer_count > 0;
+  const failed = run.status === "failed";
+  const cancelled = run.status === "cancelled";
+  const active = ["queued", "running"].includes(run.status);
+  let status: ForementionAgentStatus = "waiting";
+  let summary = "Waiting for an earlier agent to finish.";
+  let metrics: AgentMetric[] = [];
+  if (agentId === "run-supervisor") {
+    status = failed ? "failed" : cancelled ? "cancelled" : active ? "running" : "complete";
+    summary = active ? "The latest run is queued or running under cost, retry, and cancellation controls." : failed ? "The latest run failed without manufacturing evidence." : cancelled ? "The latest run was cancelled." : "The latest persisted run reached a terminal evidence state.";
+    metrics = [agentMetric("Run state", run.status), agentMetric("Costed answers", run.answer_count)];
+  } else if (agentId === "question-scout") {
+    status = run.prompt_count > 0 ? "complete" : "waiting";
+    summary = run.prompt_count > 0 ? `${run.prompt_count} frozen buyer question${run.prompt_count === 1 ? "" : "s"} entered the persisted run.` : "No validated buyer questions were recorded.";
+    metrics = [agentMetric("Questions", run.prompt_count), agentMetric("Provider count", run.provider_ids.length)];
+  } else if (agentId === "answer-collector") {
+    status = failed ? "failed" : cancelled ? "cancelled" : active ? "running" : run.answer_count > 0 ? "complete" : "waiting";
+    summary = run.answer_count > 0 ? `${run.answer_count} real provider answer${run.answer_count === 1 ? "" : "s"} were persisted.` : failed ? "The provider returned no usable answer." : "No persisted provider answer is available yet.";
+    metrics = [agentMetric("Answers", run.answer_count), agentMetric("Citations", run.citation_count)];
+  } else if (agentId === "evidence-mapper") {
+    status = terminalEvidence ? "complete" : failed ? "failed" : "waiting";
+    summary = terminalEvidence ? `${run.citation_count} returned citation${run.citation_count === 1 ? "" : "s"} and ${run.new_source_count} unique source${run.new_source_count === 1 ? "" : "s"} are recorded.` : "Evidence mapping begins only after a provider answer is persisted.";
+    metrics = [agentMetric("Citations", run.citation_count), agentMetric("Sources", run.new_source_count)];
+  } else if (agentId === "brand-observer") {
+    status = terminalEvidence ? "complete" : failed ? "failed" : "waiting";
+    summary = terminalEvidence ? `Observed brand presence is ${Number(run.brand_presence_pct)}%; first-mention share is ${Number(run.first_mention_pct)}%.` : "Brand observations require a persisted answer.";
+    metrics = [agentMetric("Brand presence", `${Number(run.brand_presence_pct)}%`), agentMetric("First mention", `${Number(run.first_mention_pct)}%`)];
+  } else {
+    status = run.status === "review" ? "review" : ["complete", "partial"].includes(run.status) ? "complete" : failed ? "failed" : cancelled ? "cancelled" : "waiting";
+    summary = run.status === "review" ? "A person must approve or exclude the collected evidence before it enters reviewed metrics." : ["complete", "partial"].includes(run.status) ? "Human review completed for the persisted run." : "The review gate opens after collection.";
+    metrics = [agentMetric("Review state", run.status === "review" ? "Required" : run.status)];
+  }
+  return { ...definition, status, summary, metrics, runId: run.id, observedAt: dateLabel(run.completed_at || run.started_at || run.created_at), telemetry: "derived" };
+}
+
+function demoAgentControlPlane(): AgentControlPlaneView {
+  const summaries: Record<ForementionAgentId, { summary: string; metrics: AgentMetric[] }> = {
+    "run-supervisor": { summary: "Fictional run controls completed with no failed stage.", metrics: [agentMetric("Retries", 0), agentMetric("Failed stages", 0)] },
+    "question-scout": { summary: "Four fictional buyer questions passed workspace validation.", metrics: [agentMetric("Questions", 4), agentMetric("Competitors", 3)] },
+    "answer-collector": { summary: "Sixteen fictional provider answers are shown only inside this demo.", metrics: [agentMetric("Answers", 16), agentMetric("Failures", 0)] },
+    "evidence-mapper": { summary: "Thirty-two fictional citation observations resolve to eight demonstration sources.", metrics: [agentMetric("Citations", 32), agentMetric("Unique sources", 8)] },
+    "brand-observer": { summary: "Fictional brand presence and first-mention measurements demonstrate the calculation.", metrics: [agentMetric("Brand presence", "61%"), agentMetric("First mention", "29%")] },
+    "human-review-gate": { summary: "Fictional evidence passed a demonstration review gate.", metrics: [agentMetric("Gate", "Demo complete")] },
+  };
+  const agents = FOREMENTION_AGENTS.map((definition) => ({ ...definition, status: "complete" as const, ...summaries[definition.id], runId: demoRuns[0].id, observedAt: demoRuns[0].date, telemetry: "fictional" as const }));
+  return { agents, latestRunId: demoRuns[0].id, recordedExecutions: agents.length, activeAgents: 0, failedAgents: 0, waitingAgents: 0, telemetry: "fictional" };
+}
 
 const getPrimaryMembershipCached = cache(async (userId: string, accessToken: string) => {
   const rows = await supabaseRest<MembershipRow[]>(`organization_members?select=organization_id,role&user_id=eq.${userId}&order=created_at.asc&limit=1`, { token: accessToken });
@@ -230,6 +329,50 @@ export async function loadRuns(viewer: Viewer): Promise<VisibilityRun[]> {
   const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
   const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&order=created_at.desc`, { token: viewer.accessToken });
   return rows.map((row) => ({ id: row.id, date: dateLabel(row.created_at), status: row.status, errorSummary: row.error_summary, prompts: row.prompt_count, answers: row.answer_count, citations: row.citation_count, presence: Number(row.brand_presence_pct), firstMention: Number(row.first_mention_pct), newSources: row.new_source_count }));
+}
+
+export async function loadAgentControlPlane(viewer: Viewer): Promise<AgentControlPlaneView> {
+  if (viewer.mode === "demo") return demoAgentControlPlane();
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) {
+    const agents = FOREMENTION_AGENTS.map((agent) => ({ ...agent, status: "waiting" as const, summary: "Complete onboarding before the agent pipeline can run.", metrics: [], runId: null, observedAt: null, telemetry: "derived" as const }));
+    return { agents, latestRunId: null, recordedExecutions: 0, activeAgents: 0, failedAgents: 0, waitingAgents: agents.length, telemetry: "derived" };
+  }
+  const [runs, jobs] = await Promise.all([
+    supabaseRest<AgentRunRow[]>(
+      `runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,provider_ids,started_at,completed_at,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=1`,
+      { token: viewer.accessToken },
+    ),
+    supabaseRest<AgentJobRow[]>(
+      `jobs?select=id,job_type,status,payload,result,error_detail,started_at,completed_at,updated_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&job_type=like.${encodeURIComponent("foremention.agent.*")}&order=updated_at.desc&limit=60`,
+      { token: viewer.accessToken },
+    ),
+  ]);
+  const latestRun = runs[0] || null;
+  const latestRunId = latestRun?.id || jobs.find((job) => job.payload?.runId)?.payload?.runId || null;
+  const latestJobs = latestRunId ? jobs.filter((job) => job.payload?.runId === latestRunId) : [];
+  const agents = FOREMENTION_AGENTS.map((definition): AgentExecutionView => {
+    const job = latestJobs.find((candidate) => candidate.job_type === `foremention.agent.${definition.id}`);
+    if (!job) return derivedAgentExecution(definition.id, latestRun);
+    return {
+      ...definition,
+      status: definition.id === "human-review-gate" && job.result?.nextState === "human_review_required" ? "review" : job.status,
+      summary: recordedAgentSummary(definition.id, job.status, job.result),
+      metrics: recordedAgentMetrics(definition.id, job.result),
+      runId: latestRunId,
+      observedAt: dateLabel(job.completed_at || job.started_at || job.updated_at),
+      telemetry: "recorded",
+    };
+  });
+  return {
+    agents,
+    latestRunId,
+    recordedExecutions: latestJobs.length,
+    activeAgents: agents.filter((agent) => agent.status === "running").length,
+    failedAgents: agents.filter((agent) => agent.status === "failed").length,
+    waitingAgents: agents.filter((agent) => agent.status === "waiting" || agent.status === "review").length,
+    telemetry: latestJobs.length ? "recorded" : "derived",
+  };
 }
 
 export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {

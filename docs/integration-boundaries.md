@@ -21,6 +21,19 @@ Every provider uses the same authenticated, organization-scoped, queued run
 path. A configured provider is labelled untested until a real production run
 completes. Failed requests remain failures.
 
+## Foremention-owned agent control plane
+
+The hosted product owns six narrow agents: Run Supervisor, Question Scout,
+Answer Collector, Evidence Mapper, Brand Observer, and Human Review Gate. They
+are stages of the existing cost-capped collection pipeline, not six additional
+model calls.
+
+Agent telemetry is written idempotently to the tenant-scoped `jobs` ledger.
+Customer dashboards may show either recorded stage telemetry from a new run or
+an explicitly labelled view derived from an older persisted run. Demo telemetry
+is fictional and remains isolated. Agents never invent a question, answer,
+citation, page review, or approval when the preceding evidence is absent.
+
 ## Candidates requiring a separate production service
 
 - **Crawl4AI:** useful for page extraction, but it requires a separately hosted

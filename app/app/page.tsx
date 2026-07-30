@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AgentControlPlane } from "@/components/agent-control-plane";
 import { Arrow, StatusDot } from "@/components/brand";
 import { demoCompany, engineCoverage } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
-import { loadDecisionSignal, loadLatestReviewedAnswers, loadPlacements, loadPrompts, loadProviderStatuses, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceContext } from "@/lib/data";
+import { loadAgentControlPlane, loadDecisionSignal, loadLatestReviewedAnswers, loadPlacements, loadPrompts, loadProviderStatuses, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceContext } from "@/lib/data";
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
@@ -17,13 +18,14 @@ export default async function DashboardPage() {
   // of issuing five empty workspace queries and presenting a stalled sign-in.
   if (viewer.mode === "supabase" && !context) redirect("/app/onboarding");
 
-  const [prompts, runs, sources, placements, decision, providers] = await Promise.all([
+  const [prompts, runs, sources, placements, decision, providers, agents] = await Promise.all([
     loadPrompts(viewer),
     loadRuns(viewer),
     loadSourceMap(viewer),
     loadPlacements(viewer),
     loadDecisionSignal(viewer),
     loadProviderStatuses(viewer),
+    loadAgentControlPlane(viewer),
   ]);
   const reviewedRuns = runs.filter((run) => run.status === "complete");
   const latest = reviewedRuns[0] || { presence: 0, firstMention: 0, answers: 0 };
@@ -38,6 +40,7 @@ export default async function DashboardPage() {
     { label: "Approve buyer questions", done: prompts.some((prompt) => prompt.approved), href: "/app/prompts" },
     { label: "Connect a provider", done: viewer.mode === "demo" || providers.some((provider) => provider.configured), href: "/app/settings#providers" },
     { label: "Collect answers", done: runs.length > 0, href: "/app/runs" },
+    { label: "Inspect agent execution", done: Boolean(agents.latestRunId), href: "/app/agents" },
     { label: "Review evidence", done: reviewedRuns.length > 0, href: runs.find((run) => run.status === "review") ? `/app/runs/${runs.find((run) => run.status === "review")!.id}` : "/app/runs" },
     { label: "Publish Source Map", done: sources.length > 0 && reviewedRuns.length > 0, href: "/app/source-map" },
   ];
@@ -65,6 +68,8 @@ export default async function DashboardPage() {
       <article><span>Mapped sources</span><strong>{sources.length}</strong><small>{sources.filter((source) => source.crawlerAccess !== "unknown").length} page reviews complete</small></article>
       <article><span>Tracked actions</span><strong>{placements.length}</strong><small>{published} published or beyond</small></article>
     </div>
+
+    <AgentControlPlane plane={agents} compact />
 
     <section className="decision-teaser">
       <div><span className="eyebrow">Decision Lab</span><strong>{readiness}</strong><p>{decision.actions[0]?.reason}</p></div>

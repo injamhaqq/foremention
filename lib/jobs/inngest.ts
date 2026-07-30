@@ -1,4 +1,5 @@
 import { Inngest } from "inngest";
+import { recordAgentExecution } from "@/lib/agent-control-plane";
 import {
   canonicalizeEvidenceUrl,
   estimateMaximumRunCost,
@@ -80,8 +81,8 @@ async function notifyRunOwner(
 }
 
 async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNeverStarted = false) {
-  const runs = await supabaseRest<Array<{ id: string; organization_id: string; created_by: string | null; status: string; started_at: string | null }>>(
-    `runs?select=id,organization_id,created_by,status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&limit=1`,
+  const runs = await supabaseRest<Array<{ id: string; organization_id: string; project_id: string; created_by: string | null; status: string; started_at: string | null }>>(
+    `runs?select=id,organization_id,project_id,created_by,status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&limit=1`,
     { serviceRole: true },
   );
   const run = runs[0];
@@ -104,6 +105,14 @@ async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNe
       actual_cost_usd: actualCostUsd,
       error_summary: safeOperationalError(reason),
     },
+  });
+  await recordAgentExecution({
+    runId: run.id,
+    organizationId: run.organization_id,
+    projectId: run.project_id,
+    agentId: "run-supervisor",
+    status: "failed",
+    error: reason,
   });
   await notifyRunOwner(
     run,
@@ -367,6 +376,15 @@ export const runMultiEngineScan = inngest.createFunction(
     const data = event.data as RunRequestedData;
     const run = await step.run("load-and-revalidate-run", () => loadRun(data));
     if (!run) return { runId: data.runId, skipped: true };
+    await step.run("start-run-supervisor", () =>
+      recordAgentExecution({
+        runId: run.id,
+        organizationId: run.organization_id,
+        projectId: run.project_id,
+        agentId: "run-supervisor",
+        status: "running",
+        attemptCount: attempt + 1,
+      }));
 
     const [prompts, identity] = await Promise.all([
       step.run("load-run-prompt-snapshots", () =>
@@ -392,6 +410,20 @@ export const runMultiEngineScan = inngest.createFunction(
     if (!prompts.length || prompts.length > LIVE_COLLECTION_LIMITS.maxPromptsPerRun) {
       throw new Error("The queued run has an invalid prompt snapshot.");
     }
+    await step.run("record-question-scout", () =>
+      recordAgentExecution({
+        runId: run.id,
+        organizationId: run.organization_id,
+        projectId: run.project_id,
+        agentId: "question-scout",
+        status: "complete",
+        attemptCount: attempt + 1,
+        result: {
+          promptCount: prompts.length,
+          competitorCount: identity.competitors.length,
+          brandConfigured: Boolean(identity.brand),
+        },
+      }));
 
 
     const providerId = run.provider_ids[0];
@@ -427,6 +459,17 @@ export const runMultiEngineScan = inngest.createFunction(
           },
         });
       }
+      await step.run("record-open-circuit-agent-failure", () =>
+        recordAgentExecution({
+          runId: run.id,
+          organizationId: run.organization_id,
+          projectId: run.project_id,
+          agentId: "answer-collector",
+          status: "failed",
+          attemptCount: attempt + 1,
+          result: { answerCount: 0, failureCount: prompts.length },
+          error: "Provider circuit is temporarily open after repeated failures.",
+        }));
       await markRunFailed(data, "Provider circuit is temporarily open after repeated failures.", true);
       return { runId: run.id, answers: 0, citations: 0, failures: prompts.length };
     }
@@ -437,6 +480,15 @@ export const runMultiEngineScan = inngest.createFunction(
         serviceRole: true,
         prefer: "return=minimal",
         body: { status: "running", started_at: new Date().toISOString() },
+      }));
+    await step.run("start-answer-collector", () =>
+      recordAgentExecution({
+        runId: run.id,
+        organizationId: run.organization_id,
+        projectId: run.project_id,
+        agentId: "answer-collector",
+        status: "running",
+        attemptCount: attempt + 1,
       }));
 
     const results: Array<{ answer: ProviderAnswer; citationCount: number; estimatedCost: number }> = [];
@@ -508,12 +560,33 @@ export const runMultiEngineScan = inngest.createFunction(
     if (finalState[0]?.status === "cancelled") return { runId: run.id, cancelled: true };
     if (!answerCount) {
       const failureReasons = Array.from(new Set(failures.map((failure) => failure.error).filter(Boolean)));
+      await step.run("record-answer-collector-failure", () =>
+        recordAgentExecution({
+          runId: run.id,
+          organizationId: run.organization_id,
+          projectId: run.project_id,
+          agentId: "answer-collector",
+          status: "failed",
+          attemptCount: attempt + 1,
+          result: { answerCount: 0, failureCount: failures.length },
+          error: failureReasons[0] || "Every provider attempt failed.",
+        }));
       await markRunFailed(
         data,
         failureReasons[0] || "Every provider attempt failed. No evidence was invented.",
       );
       return { runId: run.id, answers: 0, citations: 0, failures: failures.length };
     }
+    await step.run("record-answer-collector", () =>
+      recordAgentExecution({
+        runId: run.id,
+        organizationId: run.organization_id,
+        projectId: run.project_id,
+        agentId: "answer-collector",
+        status: "complete",
+        attemptCount: attempt + 1,
+        result: { answerCount, failureCount: failures.length },
+      }));
 
     const presenceAnswers = results.filter((result) => includesName(result.answer.answer, identity.brand));
     const firstMentionAnswers = results.filter((result) => {
@@ -536,6 +609,31 @@ export const runMultiEngineScan = inngest.createFunction(
       );
       return new Set(citationRows.map((row) => row.source_id)).size;
     });
+    await Promise.all([
+      step.run("record-evidence-mapper", () =>
+        recordAgentExecution({
+          runId: run.id,
+          organizationId: run.organization_id,
+          projectId: run.project_id,
+          agentId: "evidence-mapper",
+          status: "complete",
+          attemptCount: attempt + 1,
+          result: { citationCount, sourceCount: uniqueSources },
+        })),
+      step.run("record-brand-observer", () =>
+        recordAgentExecution({
+          runId: run.id,
+          organizationId: run.organization_id,
+          projectId: run.project_id,
+          agentId: "brand-observer",
+          status: "complete",
+          attemptCount: attempt + 1,
+          result: {
+            presencePct: Math.round((presenceAnswers.length / answerCount) * 10_000) / 100,
+            firstMentionPct: Math.round((firstMentionAnswers.length / answerCount) * 10_000) / 100,
+          },
+        })),
+    ]);
 
     const completedAt = new Date().toISOString();
     await step.run("mark-run-for-human-review", () =>
@@ -562,6 +660,28 @@ export const runMultiEngineScan = inngest.createFunction(
         "Collection is ready for review",
         `${answerCount} real answer${answerCount === 1 ? "" : "s"} and ${citationCount} returned citation${citationCount === 1 ? "" : "s"} are ready for human review.`,
       ));
+    await Promise.all([
+      step.run("record-human-review-gate", () =>
+        recordAgentExecution({
+          runId: run.id,
+          organizationId: run.organization_id,
+          projectId: run.project_id,
+          agentId: "human-review-gate",
+          status: "complete",
+          attemptCount: attempt + 1,
+          result: { nextState: "human_review_required", answerCount, citationCount },
+        })),
+      step.run("complete-run-supervisor", () =>
+        recordAgentExecution({
+          runId: run.id,
+          organizationId: run.organization_id,
+          projectId: run.project_id,
+          agentId: "run-supervisor",
+          status: "complete",
+          attemptCount: attempt + 1,
+          result: { retryCount: attempt, failedAgents: 0, failedPrompts: failures.length },
+        })),
+    ]);
     return { runId: run.id, answers: answerCount, citations: citationCount, failures: failures.length, completedAt };
   },
 );

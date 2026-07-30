@@ -10,6 +10,7 @@ const nav = [
   ["/app", "Overview"],
   ["/app/prompts", "Buyer questions"],
   ["/app/runs", "Answer runs"],
+  ["/app/agents", "Agent Control Plane"],
   ["/app/source-map", "Source Map"],
   ["/app/decision-lab", "Decision Lab"],
   ["/app/opportunities", "Priority gaps"],

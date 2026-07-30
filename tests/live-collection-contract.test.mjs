@@ -280,3 +280,43 @@ test("Claim Integrity Ledger binds approved wording to tenant-scoped verified ev
   assert.match(data, /verified_claims\?select=/);
   assert.match(data, /Fictional demonstration record/);
 });
+
+test("Foremention Agent Control Plane records evidence-bound stages without extra provider calls", async () => {
+  const [control, workflow, data, page, api, component, navigation, migration] = await Promise.all([
+    text("lib/agent-control-plane.ts"),
+    text("lib/jobs/inngest.ts"),
+    text("lib/data.ts"),
+    text("app/app/agents/page.tsx"),
+    text("app/api/agents/route.ts"),
+    text("components/agent-control-plane.tsx"),
+    text("components/workspace-navigation.tsx"),
+    text("supabase/migrations/20260722000100_recommendation_graph.sql"),
+  ]);
+  for (const agent of ["run-supervisor", "question-scout", "answer-collector", "evidence-mapper", "brand-observer", "human-review-gate"]) {
+    assert.match(control, new RegExp(`"${agent}"`));
+  }
+  assert.match(control, /crypto\.subtle\.digest/);
+  assert.match(control, /jobs\?on_conflict=id/);
+  assert.match(control, /serviceRole: true/);
+  assert.match(control, /It never creates an answer or citation/);
+  assert.match(control, /Only provider-returned URLs become citation evidence/);
+  assert.match(workflow, /record-question-scout/);
+  assert.match(workflow, /record-answer-collector/);
+  assert.match(workflow, /record-evidence-mapper/);
+  assert.match(workflow, /record-brand-observer/);
+  assert.match(workflow, /record-human-review-gate/);
+  assert.equal((workflow.match(/adapter\.run\(/g) || []).length, 1);
+  assert.match(data, /organization_id=eq\.\$\{context\.organizationId\}/);
+  assert.match(data, /project_id=eq\.\$\{context\.projectId\}/);
+  assert.match(data, /Fictional run controls/);
+  assert.match(page, /Owned intelligence infrastructure/);
+  assert.match(api, /getViewer/);
+  assert.match(api, /Unauthorized/);
+  assert.match(api, /explicitly labelled persisted-run derivations/);
+  assert.match(component, /Six agents\. One inspectable evidence chain/);
+  assert.match(component, /Derived from persisted run records/);
+  assert.match(navigation, /Agent Control Plane/);
+  assert.match(migration, /create table public\.jobs/);
+  assert.match(migration, /'crm_attribution_events','jobs','audit_logs'/);
+  assert.match(migration, /enable row level security/);
+});

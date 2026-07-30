@@ -17,6 +17,7 @@ Observed evidence, product assessments, and customer-supplied outcomes remain vi
 - Supabase email/password authentication and organization-scoped row-level security
 - Credential-free, isolated seeded demo
 - Customer workspace for onboarding, prompts, runs, Source Map, opportunities, evidence, analytics, and settings
+- Foremention Agent Control Plane with recorded, organization-scoped execution telemetry for collection, mapping, measurement, and human review
 - Provider adapters for OpenAI, Gemini, Anthropic, Perplexity, and deterministic mock runs
 - Inngest background-run orchestration
 - D1-backed public Source Gap intake for Sites deployments
@@ -106,6 +107,7 @@ app/                     public pages, product pages, and API routes
 components/              public and product UI
 lib/
   jobs/                  Inngest orchestration
+  agent-control-plane.ts owned agent registry and idempotent stage telemetry
   providers/             provider adapters
   auth.ts                server-side session checks
   demo-data.ts           fictional, credential-free demo
