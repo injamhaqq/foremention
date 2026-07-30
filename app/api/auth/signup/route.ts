@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { setSessionCookies } from "@/lib/session-cookies";
 import { supabaseAuth } from "@/lib/supabase-rest";
 
 export async function POST(request: Request) {
@@ -33,30 +32,37 @@ export async function POST(request: Request) {
     // to wait for an email that will never arrive.
     if (user && Array.isArray(user.identities) && user.identities.length === 0) {
       return NextResponse.json({
-        ok: true,
-        session: false,
         account_help: true,
         email: normalizedEmail,
-        message: "This email may already be connected to Foremention. Sign in, or reset the password if you cannot access the account.",
-      });
+        error: "An account already exists with this email.",
+      }, { status: 409 });
     }
     const token = String(data.access_token || "");
     if (!token) return NextResponse.json({
       ok: true,
       session: false,
       email: normalizedEmail,
-      message: "We sent a confirmation link from Foremention to your work email.",
+      message: "We sent a confirmation link from Foremention to your email.",
     });
-    const response = NextResponse.json({ ok: true, session: true });
-    setSessionCookies(response, {
-      accessToken: token,
-      expiresIn: Number(data.expires_in || 3600),
-      refreshToken: String(data.refresh_token || ""),
+    // Signup and sign-in remain separate journeys. Some Supabase projects
+    // issue a session immediately when email confirmation is disabled. Never
+    // turn that signup response into a Foremention login session.
+    return NextResponse.json({
+      ok: true,
+      session: false,
+      account_help: true,
+      email: normalizedEmail,
+      message: "Your account is ready. Sign in to continue to your workspace.",
     });
-    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not create the account.";
     if (/email rate limit|rate limit/i.test(message)) return NextResponse.json({ error: "Email delivery is temporarily limited by the email provider. Please wait a few minutes before trying again." }, { status: 429 });
+    if (/already registered|already exists|user already/i.test(message)) {
+      return NextResponse.json({
+        account_help: true,
+        error: "An account already exists with this email.",
+      }, { status: 409 });
+    }
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

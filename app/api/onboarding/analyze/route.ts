@@ -13,10 +13,11 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null) as { website?: string } | null;
   const website = clean(body?.website, 500);
-  if (!website) return NextResponse.json({ error: "Enter your complete company website, including https://." }, { status: 400 });
+  if (!website) return NextResponse.json({ error: "Enter your company website." }, { status: 400 });
 
   try {
-    const publicUrl = validatePublicSourceUrl(website);
+    const candidateUrl = /^[a-z][a-z0-9+.-]*:\/\//i.test(website) ? website : `https://${website}`;
+    const publicUrl = validatePublicSourceUrl(candidateUrl);
     const isForementionSite = ["foremention.com", "www.foremention.com"].includes(publicUrl.hostname.toLowerCase());
     const inspection = isForementionSite
       ? {
@@ -27,14 +28,10 @@ export async function POST(request: Request) {
         pageTitle: "AI Visibility and Recommendation Intelligence Platform - Foremention",
       }
       : await inspectSourceUrl(publicUrl.toString(), { maxBytes: 192 * 1024, timeoutMs: 8_000 });
-    if (!inspection.pageTitle && !inspection.pageDescription) {
-      return NextResponse.json({
-        error: "We could not read enough public website information to create a reliable draft. You can continue manually.",
-      }, { status: 422 });
-    }
+    const limited = !inspection.pageTitle && !inspection.pageDescription;
 
     const draft = createOnboardingDraft({
-      websiteUrl: inspection.finalUrl,
+      websiteUrl: inspection.finalUrl || publicUrl.toString(),
       pageTitle: inspection.pageTitle,
       pageDescription: inspection.pageDescription,
     });
@@ -44,8 +41,9 @@ export async function POST(request: Request) {
       evidence: {
         checkedAt: inspection.checkedAt,
         finalUrl: inspection.finalUrl,
+        limited,
         pageTitle: inspection.pageTitle,
-        source: "Public website metadata",
+        source: limited ? "Domain name only; website metadata was unavailable" : "Public website metadata",
       },
     }, { headers: { "cache-control": "private, no-store" } });
   } catch (error) {

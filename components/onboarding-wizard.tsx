@@ -20,6 +20,7 @@ type WebsiteDraftResponse = {
   evidence?: {
     checkedAt: string;
     finalUrl: string;
+    limited?: boolean;
     pageTitle: string | null;
     source: string;
   };
@@ -105,7 +106,9 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
         prompts: result.draft.prompts.join("\n"),
       });
       setAnalysisStatus("complete");
-      setAnalysisMessage(`Draft created from ${result.evidence?.pageTitle || result.evidence?.finalUrl || "public website metadata"}. Review each step before saving.`);
+      setAnalysisMessage(result.evidence?.limited
+        ? "The site did not expose readable metadata, so Foremention created an editable starter from the domain name. Review the category and competitors before saving."
+        : `Draft created from ${result.evidence?.pageTitle || result.evidence?.finalUrl || "public website metadata"}. Review each step before saving.`);
     } catch (error) {
       setAnalysisStatus("error");
       setAnalysisMessage(error instanceof Error ? error.message : "Could not create a setup draft.");

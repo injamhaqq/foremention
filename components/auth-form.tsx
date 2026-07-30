@@ -37,6 +37,8 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
       });
       const data = (await response.json()) as { error?: string; message?: string; session?: boolean; email?: string; account_help?: boolean };
       if (!response.ok) {
+        setAccountHelp(Boolean(data.account_help));
+        setNoticeEmail(data.email || String(formData.get("email") || ""));
         setError(data.error || "We could not complete that request. Check your details and try again.");
         return;
       }
@@ -102,7 +104,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
       </div>
       <form onSubmit={submit}>
         {!isLogin && <label>Full name<input name="full_name" required autoComplete="name" placeholder="Your name" /></label>}
-        <label>Work email<input type="email" name="email" required autoComplete="email" placeholder="you@company.com" /></label>
+        <label>Email<input type="email" name="email" required autoComplete="email" placeholder="you@example.com" /></label>
         <label>
           {isLogin ? "Password" : "Create password"}
           <span className="password-control">
@@ -114,6 +116,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
         {!isLogin && <label>Confirm password<input type={showPassword ? "text" : "password"} name="confirmation" required minLength={8} autoComplete="new-password" /></label>}
         {statusMessage && !error && <p className="auth-session-notice" role="status">{statusMessage}</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
+        {error && accountHelp && <p className="auth-inline-help">Go to <a href="/login">sign in</a>, or <a href="/forgot-password">reset your password</a>.</p>}
         <button className="button button--ink button--wide" type="submit" disabled={busy}>{busy ? "Working..." : isLogin ? "Sign in" : "Create workspace"}</button>
       </form>
       {isLogin && <a className="auth-recovery" href="/forgot-password">Forgot password?</a>}

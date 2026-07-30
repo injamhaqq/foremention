@@ -46,8 +46,12 @@ test("account recovery requires and confirms a new password", async () => {
   assert.match(signup, /email_redirect_to: `\$\{origin\}\/auth\/callback`/);
   assert.match(signup, /user\.identities\.length === 0/);
   assert.match(signup, /account_help: true/);
+  assert.match(signup, /An account already exists with this email/);
+  assert.doesNotMatch(signup, /setSessionCookies/);
   assert.match(authForm, /Continue to your account/);
   assert.match(authForm, /Reset password/);
+  assert.match(authForm, /<label>Email<input/);
+  assert.doesNotMatch(authForm, /<label>Work email<input/);
   assert.match(recovery, /redirect_to=.*auth\/callback/);
   assert.doesNotMatch(recovery, /auth\/callback\?next=/);
   assert.match(layout, /AuthHashRedirect/);
@@ -140,6 +144,8 @@ test("onboarding writes the first organization and prompt baseline transactional
   assert.match(analysisRoute, /inspectSourceUrl/);
   assert.match(analysisRoute, /isForementionSite/);
   assert.match(analysisRoute, /AI Visibility and Recommendation Intelligence Platform - Foremention/);
+  assert.match(analysisRoute, /Domain name only; website metadata was unavailable/);
+  assert.doesNotMatch(analysisRoute, /We could not read enough public website information/);
   assert.match(analysisRoute, /cache-control.*private, no-store/);
   assert.match(profile, /Review this draft/);
   assert.doesNotMatch(profile, /fetch\(|API_KEY|process\.env/);
