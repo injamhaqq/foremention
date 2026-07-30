@@ -13,6 +13,8 @@ product advantage by itself.
 | Groq Compound | Grounded answer collection | Structured search results only |
 | Cloudflare Workers AI | Low-cost answer comparison | Answer-only; never creates citation evidence |
 | OpenRouter with explicit GLM 5.2 | Additional model perspective | Answer-only; low-cost, not free |
+| ZenMux | Optional explicit-model gateway | Structured provider URLs only; otherwise answer-only |
+| OmniRouters | Optional explicit-model gateway | Structured provider URLs only; otherwise answer-only |
 | OpenAI, Anthropic, Perplexity | Optional provider adapters | Available only when privately configured and proven |
 
 Every provider uses the same authenticated, organization-scoped, queued run
@@ -48,7 +50,8 @@ generators, and startup accelerators are business-development resources. They
 should be evaluated independently rather than injected into the collection
 engine.
 
-Unverified proxy gateways such as OmniRoute, Agent Router, FreeLLM, Aerolink,
-Odysseus, or other "unlimited free" routes remain excluded until there is an
-official API contract, lawful credential source, privacy policy, reliability
-record, explicit model identity, and enforceable cost ceiling.
+Unverified proxy gateways such as OmniRoute (distinct from the documented
+OmniRouters API), Agent Router, FreeLLM, Aerolink, Odysseus, or other
+"unlimited free" routes remain excluded until there is an official API
+contract, lawful credential source, privacy policy, reliability record,
+explicit model identity, and enforceable cost ceiling.

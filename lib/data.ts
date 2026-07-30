@@ -60,7 +60,7 @@ export type SourceEvidenceContext = {
 };
 export type ProviderHealth = "available" | "limited" | "untested";
 export type ProviderStatus = {
-  id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter";
+  id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter" | "zenmux" | "omnirouters";
   label: string;
   configured: boolean;
   supportsCitations: boolean;
@@ -236,6 +236,8 @@ export function getProviderStatuses(): ProviderStatus[] {
     { id: "groq", label: "Groq Compound", configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "cloudflare", label: "Cloudflare Workers AI", configured: Boolean(cloudflareAiConfigured() && getProviderCostRates("cloudflare")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "openrouter", label: "OpenRouter · GLM 5.2", configured: Boolean(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL && getProviderCostRates("openrouter")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "zenmux", label: "ZenMux Gateway", configured: Boolean(process.env.ZENMUX_API_KEY && process.env.ZENMUX_MODEL && getProviderCostRates("zenmux")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "omnirouters", label: "OmniRouters Gateway", configured: Boolean(process.env.OMNIROUTERS_API_KEY && process.env.OMNIROUTERS_MODEL && getProviderCostRates("omnirouters")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
   ];
 }
 

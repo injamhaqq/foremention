@@ -27,6 +27,8 @@ const providerPrefix: Record<Exclude<ProviderId, "mock">, string> = {
   groq: "GROQ",
   cloudflare: "CLOUDFLARE",
   openrouter: "OPENROUTER",
+  zenmux: "ZENMUX",
+  omnirouters: "OMNIROUTERS",
 };
 
 function finiteNonNegative(value: string | undefined) {

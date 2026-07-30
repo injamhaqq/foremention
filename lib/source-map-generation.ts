@@ -39,6 +39,8 @@ const engineLabels: Record<string, string> = {
   groq: "Groq Compound",
   cloudflare: "Cloudflare Workers AI",
   openrouter: "OpenRouter",
+  zenmux: "ZenMux",
+  omnirouters: "OmniRouters",
 };
 
 /**

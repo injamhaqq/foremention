@@ -175,6 +175,51 @@ test("OpenRouter uses an explicit GLM model and never fabricates citation eviden
   assert.match(launcher, /answer comparison only; no returned web citations/);
 });
 
+test("optional model gateways use fixed official endpoints and truthful evidence handling", async () => {
+  const [helper, zenmux, omnirouters, types, registry, policy, data, route, sourceMap, env] = await Promise.all([
+    text("lib/providers/openai-compatible-gateway.ts"),
+    text("lib/providers/zenmux.ts"),
+    text("lib/providers/omnirouters.ts"),
+    text("lib/providers/types.ts"),
+    text("lib/providers/index.ts"),
+    text("lib/collection-policy.ts"),
+    text("lib/data.ts"),
+    text("app/api/runs/route.ts"),
+    text("lib/source-map-generation.ts"),
+    text(".env.example"),
+  ]);
+  assert.match(zenmux, /https:\/\/zenmux\.ai\/api\/v1\/chat\/completions/);
+  assert.match(zenmux, /max_completion_tokens/);
+  assert.match(omnirouters, /https:\/\/omnirouters\.com\/v1\/chat\/completions/);
+  assert.match(omnirouters, /max_tokens/);
+  assert.match(helper, /Only structured URLs returned by the provider are recorded as citations/);
+  assert.match(helper, /structuredCitations/);
+  assert.doesNotMatch(helper, /extractUrls/);
+  assert.doesNotMatch(helper, /process\.env\.(?:BASE_URL|ENDPOINT)/);
+  assert.match(types, /"zenmux"/);
+  assert.match(types, /"omnirouters"/);
+  assert.match(registry, /zenMuxAdapter/);
+  assert.match(registry, /omniRoutersAdapter/);
+  assert.match(policy, /zenmux: "ZENMUX"/);
+  assert.match(policy, /omnirouters: "OMNIROUTERS"/);
+  assert.match(data, /id: "zenmux"[\s\S]*supportsCitations: false/);
+  assert.match(data, /id: "omnirouters"[\s\S]*supportsCitations: false/);
+  assert.match(route, /"zenmux"/);
+  assert.match(route, /"omnirouters"/);
+  assert.match(sourceMap, /zenmux: "ZenMux"/);
+  assert.match(sourceMap, /omnirouters: "OmniRouters"/);
+  for (const name of [
+    "ZENMUX_API_KEY",
+    "ZENMUX_MODEL",
+    "ZENMUX_INPUT_COST_PER_MILLION_USD",
+    "OMNIROUTERS_API_KEY",
+    "OMNIROUTERS_MODEL",
+    "OMNIROUTERS_INPUT_COST_PER_MILLION_USD",
+  ]) {
+    assert.match(env, new RegExp(`${name}=`));
+  }
+});
+
 test("source observation upserts use a non-partial unique index", async () => {
   const migration = await text("supabase/migrations/20260729000300_source_observation_upsert_fix.sql");
   assert.match(migration, /create unique index source_observations_observation_key_idx/i);
