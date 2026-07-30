@@ -25,9 +25,9 @@ Observed evidence, product assessments, and customer-supplied outcomes remain vi
 ## Plans represented in the product
 
 - Explorer: free
-- Builder: $49/month
-- Growth: $199/month
-- Scale: custom
+- Core: $149/month
+- Signal: $499/month
+- Intelligence: custom capacity and terms
 
 These are recurring software plans. Payment activation is not complete until a verified billing webhook updates the organization entitlement; a checkout return must never unlock paid access by itself.
 

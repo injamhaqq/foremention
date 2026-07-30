@@ -18,8 +18,8 @@ export function MissingAnswerExperience() {
       <ul className="goat-trust-line" aria-label="Foremention principles"><li>Buyer questions</li><li>Exact sources</li><li>Dated evidence</li><li>Clear limits</li></ul>
     </div>
     <section className="missing-demo" aria-labelledby="monitor-title">
-      <div className="missing-demo__bar"><strong id="monitor-title">Recommendation Monitor</strong><span>Workspace overview</span></div>
-      <div className="missing-demo__answer"><span>Category intelligence</span><p className="missing-demo__question">Buyer questions → observed answers → source evidence</p><div className="monitor-metrics"><div><strong>24</strong><span>tracked questions</span></div><div><strong>87</strong><span>source pages</span></div><div><strong>6</strong><span>brand movements</span></div></div><strong>Every signal links back to the date, the answer, and the underlying source.</strong></div>
+      <div className="missing-demo__bar"><strong id="monitor-title">Recommendation Monitor</strong><span>Illustrative product interface</span></div>
+      <div className="missing-demo__answer"><span>Category intelligence</span><p className="missing-demo__question">Buyer questions → observed answers → source evidence</p><div className="monitor-metrics monitor-metrics--workflow"><div><strong>01</strong><span>Approve real questions</span></div><div><strong>02</strong><span>Collect dated answers</span></div><div><strong>03</strong><span>Review exact sources</span></div></div><strong>Every signal links back to the date, the answer, and the underlying source.</strong></div>
       <div className="monitor-records"><div><span>Source Map</span><b>New comparison source detected</b><small>Evidence recorded today</small></div><div><span>Movement</span><b>Competitor presence changed</b><small>Review in workspace</small></div><div><span>Collection</span><b>Run history is complete</b><small>View answer records</small></div></div>
     </section>
   </div>;

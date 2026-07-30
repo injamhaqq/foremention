@@ -519,7 +519,12 @@ export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotifi
   );
   const groups = new Map<string, WorkspaceNotification>();
   for (const row of rows) {
-    const key = `${row.kind}\u0000${row.title}\u0000${row.body}`;
+    const mappedCount = row.kind === "source_map_published" ? Number(row.body.match(/\d+/)?.[0] || 0) : 0;
+    const title = row.kind === "source_map_published" ? "Source Map created from approved collection" : row.title;
+    const body = row.kind === "source_map_published"
+      ? `${mappedCount || "Cited"} page record${mappedCount === 1 ? "" : "s"} were mapped from provider-returned citations. Page-level review is still required before any record becomes a confirmed gap.`
+      : row.body;
+    const key = `${row.kind}\u0000${title}\u0000${body}`;
     const current = groups.get(key);
     if (current) {
       current.count += 1;
@@ -529,8 +534,8 @@ export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotifi
     groups.set(key, {
       id: row.id,
       kind: row.kind,
-      title: row.title,
-      body: row.body,
+      title,
+      body,
       href: row.href,
       read: Boolean(row.read_at),
       createdAt: dateLabel(row.created_at),

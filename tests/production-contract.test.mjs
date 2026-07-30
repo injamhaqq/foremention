@@ -242,6 +242,30 @@ test("customer insight pages use real evidence without pseudo-priority scores or
   assert.match(alerts, /similar events/);
 });
 
+test("the customer journey distinguishes collected citations from reviewed decisions", async () => {
+  const [sourceMap, sourceTable, questions, launcher, decision, home, review, data] = await Promise.all([
+    text("app/app/source-map/page.tsx"),
+    text("components/source-map-table.tsx"),
+    text("components/prompt-library.tsx"),
+    text("components/run-launcher.tsx"),
+    text("app/app/decision-lab/page.tsx"),
+    text("components/goat-home-experience.tsx"),
+    text("app/api/runs/[id]/review/route.ts"),
+    text("lib/data.ts"),
+  ]);
+  assert.match(sourceMap, /Human review queue/);
+  assert.match(sourceMap, /Review next source/);
+  assert.match(sourceTable, /Required before scoring/);
+  assert.match(questions, /Question planner/);
+  assert.match(questions, /not search-volume claims or collected evidence/);
+  assert.match(launcher, /provider-state/);
+  assert.match(decision, /Review sources/);
+  assert.match(home, /Illustrative product interface/);
+  assert.doesNotMatch(home, />24<|>87<|>6</);
+  assert.match(review, /provider-returned citations/);
+  assert.match(data, /Page-level review is still required/);
+});
+
 test("SEO, social preview, and accessibility states are bundled", async () => {
   const [layout, css, seo, sitemap, robots, sourceMap, sample] = await Promise.all([
     text("app/layout.tsx"),

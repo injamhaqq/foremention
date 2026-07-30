@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspacePrompt } from "@/lib/data";
 
-export function PromptLibrary({ initialPrompts, demo }: { initialPrompts: WorkspacePrompt[]; demo: boolean }) {
+type SuggestedQuestion = { cluster: string; text: string; why: string };
+
+export function PromptLibrary({ initialPrompts, demo, company, category }: { initialPrompts: WorkspacePrompt[]; demo: boolean; company: string; category: string }) {
   const router = useRouter();
   const [prompts, setPrompts] = useState(initialPrompts);
   const [filter, setFilter] = useState("All");
@@ -16,6 +18,20 @@ export function PromptLibrary({ initialPrompts, demo }: { initialPrompts: Worksp
   const [message, setMessage] = useState("");
   const visible = useMemo(() => prompts.filter((prompt) => filter === "All" || prompt.cluster === filter), [prompts, filter]);
   const clusters = ["All", ...Array.from(new Set(prompts.map((prompt) => prompt.cluster)))];
+  const suggestions = useMemo<SuggestedQuestion[]>(() => [
+    { cluster: "Discovery", text: `Which ${category} platforms are best for a growing B2B team?`, why: "Measures unaided category discovery." },
+    { cluster: "Comparison", text: `How does ${company} compare with other ${category} platforms?`, why: "Tests direct competitive framing." },
+    { cluster: "Alternative", text: `What are the best alternatives to ${company} for ${category}?`, why: "Surfaces replacement and shortlist language." },
+    { cluster: "Use case", text: `Which ${category} platform is best for a lean team that needs to scale?`, why: "Adds a concrete operating context." },
+    { cluster: "Trust", text: `Which ${category} providers have the strongest evidence for reliability and security?`, why: "Tests proof-sensitive recommendations." },
+    { cluster: "Constraint", text: `Which ${category} tools offer strong value for a budget-conscious team?`, why: "Measures price and constraint-led discovery." },
+  ], [category, company]);
+
+  function fillSuggestion(suggestion: SuggestedQuestion) {
+    setCluster(suggestion.cluster);
+    setText(suggestion.text);
+    document.getElementById("buyer-question-input")?.focus();
+  }
 
   async function addPrompt(event: React.FormEvent) {
     event.preventDefault();
@@ -81,10 +97,19 @@ export function PromptLibrary({ initialPrompts, demo }: { initialPrompts: Worksp
   }
 
   return <div>
+    <section className="question-planner" aria-labelledby="question-planner-title">
+      <div className="question-planner__intro"><span className="eyebrow">Question planner</span><h2 id="question-planner-title">Cover the buyer journey, not random prompts.</h2><p>These are editable starting points based on your category—not search-volume claims or collected evidence. Use only the questions a real buyer would ask.</p></div>
+      <div className="question-planner__grid">{suggestions.map((suggestion) => <article key={suggestion.cluster}>
+        <span>{suggestion.cluster}</span>
+        <strong>{suggestion.text}</strong>
+        <p>{suggestion.why}</p>
+        <button type="button" onClick={() => fillSuggestion(suggestion)}>Use this question &rarr;</button>
+      </article>)}</div>
+    </section>
     <form className="prompt-create" onSubmit={addPrompt}>
       <div><span className="eyebrow">Add buyer question</span><h2>Use the language a real buyer would type.</h2></div>
       <label>Intent<select value={cluster} onChange={(event) => setCluster(event.target.value)}><option>Discovery</option><option>Comparison</option><option>Alternative</option><option>Use case</option><option>Trust</option><option>Constraint</option></select></label>
-      <label>Question<input value={text} onChange={(event) => setText(event.target.value)} minLength={10} maxLength={1000} placeholder="What is the best…?" required /></label>
+      <label>Question<input id="buyer-question-input" value={text} onChange={(event) => setText(event.target.value)} minLength={10} maxLength={1000} placeholder="What is the best…?" required /></label>
       <button className="button button--ink" type="submit" disabled={busy === "new"}>{busy === "new" ? "Adding…" : "Add question"}</button>
     </form>
     {message && <p className="inline-notice" role="status">{message}</p>}

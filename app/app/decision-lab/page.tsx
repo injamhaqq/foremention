@@ -4,6 +4,7 @@ import { requireViewer } from "@/lib/auth";
 import { loadDecisionSignal } from "@/lib/data";
 
 const value = (number: number | null, suffix = "%") => number === null ? "Needs data" : `${number}${suffix}`;
+const actionLabel = (href: string) => href.startsWith("/app/runs") ? "Open Answer Runs" : href.startsWith("/app/settings") ? "Connect provider" : href.startsWith("/app/source-map") ? "Review sources" : href.startsWith("/app/opportunities") ? "Open Priority Gaps" : "Open next step";
 
 export default async function DecisionLabPage() {
   const viewer = await requireViewer("/app/decision-lab");
@@ -86,7 +87,7 @@ export default async function DecisionLabPage() {
         {signal.actions.map((action, index) => <article key={action.title}>
           <span className={`decision-priority decision-priority--${action.priority}`}>{action.priority}</span>
           <div><small>Action {String(index + 1).padStart(2, "0")}</small><h3>{action.title}</h3><p>{action.reason}</p></div>
-          <Link href={action.href}>Open evidence <Arrow /></Link>
+          <Link href={action.href}>{actionLabel(action.href)} <Arrow /></Link>
         </article>)}
       </div>
     </section>

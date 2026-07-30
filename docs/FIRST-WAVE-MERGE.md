@@ -29,5 +29,4 @@ This rebuild reconciles the supplied Foremention artifacts with the current prod
 
 ## Current commercial model
 
-Foremention is recurring software: Explorer free, Builder $49/month, Growth $199/month, and a custom Scale plan. Customers operate their own workspaces; the founder may support onboarding, but support is not the product.
-
+Foremention is recurring software: Explorer free, Core $149/month, Signal $499/month, and custom Intelligence capacity. Customers operate their own workspaces; the founder may support onboarding, but support is not the product.
