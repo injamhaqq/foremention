@@ -544,7 +544,9 @@ test("collaboration, in-app alerts, and reversible lifecycle controls are explic
   assert.match(members, /last owner/i);
   assert.match(deletion, /isRecentAccessToken/);
   assert.match(deletion, /DELETE FOREMENTION/);
-  assert.match(deletion, /execution: "not_active"/);
+  assert.match(deletion, /execution: "scheduled"/);
+  assert.match(deletion, /execute_foremention_account_deletion/);
+  assert.match(deletion, /seven-day safety window/i);
   assert.doesNotMatch(deletion, /organizations\?.*method: "DELETE"/s);
   assert.match(alerts, /user_id=eq\.\$\{viewer\.id\}/);
   assert.match(emailBoundary, /Authentication email is separate/);
