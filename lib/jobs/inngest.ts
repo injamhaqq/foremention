@@ -19,6 +19,7 @@ import { generateObservedSourceMap } from "@/lib/source-map-generation";
 import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
 import { deliverWorkspaceWebhooks, type DeliveryEvent } from "@/lib/workspace-webhooks";
 import { deliverHubSpotCompletedAction } from "@/lib/hubspot-connector";
+import { exportWeeklyDigestToNotion } from "@/lib/notion-connector";
 
 export const inngest = new Inngest({ id: "foremention" });
 
@@ -918,6 +919,7 @@ export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
       const prepared = await step.run(`prepare-weekly-${seed.organization_id}`, () => prepareWeeklyRun(seed, weekKey));
       if (prepared) queued.push(prepared);
       await step.run(`email-weekly-digest-${seed.organization_id}`, () => sendWeeklyDigest(seed, weekKey, Boolean(prepared)));
+      await step.run(`notion-weekly-digest-${seed.organization_id}`, () => exportWeeklyDigestToNotion(seed.organization_id, weekKey));
     }
     if (queued.length) {
       await step.sendEvent("queue-weekly-runs", queued.map((data) => ({

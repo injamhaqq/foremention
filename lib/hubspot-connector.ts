@@ -1,8 +1,8 @@
 import { decryptIntegrationCredential, encryptIntegrationCredential } from "@/lib/integration-crypto";
 import { safeOperationalError } from "@/lib/collection-policy";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { createOAuthState, verifyOAuthState } from "@/lib/oauth-state";
 
-const encoder = new TextEncoder();
 const HUBSPOT_TOKEN_URL = "https://api.hubspot.com/oauth/2026-03/token";
 const HUBSPOT_API = "https://api.hubapi.com";
 
@@ -10,34 +10,12 @@ type HubSpotTokens = { access_token: string; refresh_token: string; expires_in: 
 type IntegrationRow = { id: string; organization_id: string; status: string; configuration: Record<string, unknown> };
 type CredentialRow = { encrypted_access_token: string; encrypted_refresh_token: string };
 
-function base64Url(value: string) {
-  const bytes = encoder.encode(value); let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
-}
-
-async function hmac(value: string, secret: string) {
-  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(value)));
-  let binary = ""; for (const byte of signature) binary += String.fromCharCode(byte);
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
-}
-
 export async function createHubSpotState(organizationId: string, userId: string, secret: string) {
-  if (secret.length < 32) throw new Error("HubSpot OAuth state signing is not configured.");
-  const payload = base64Url(JSON.stringify({ organizationId, userId, expiresAt: Date.now() + 10 * 60_000, nonce: crypto.randomUUID() }));
-  return `${payload}.${await hmac(payload, secret)}`;
+  return createOAuthState("hubspot", organizationId, userId, secret);
 }
 
 export async function verifyHubSpotState(state: string, organizationId: string, userId: string, secret: string) {
-  try {
-    const [payload, signature, extra] = state.split(".");
-    if (!payload || !signature || extra || signature !== await hmac(payload, secret)) return false;
-    const normalized = payload.replaceAll("-", "+").replaceAll("_", "/");
-    const json = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
-    const parsed = JSON.parse(json) as { organizationId: string; userId: string; expiresAt: number };
-    return parsed.organizationId === organizationId && parsed.userId === userId && parsed.expiresAt > Date.now();
-  } catch { return false; }
+  return verifyOAuthState(state, "hubspot", organizationId, userId, secret);
 }
 
 export function hubSpotOAuthReady() {
