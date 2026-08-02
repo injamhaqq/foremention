@@ -321,6 +321,18 @@ textarea { resize: vertical; }
 .workspace-global-search { display: flex; width: min(360px, 34vw); border: 1px solid var(--ink); background: var(--paper); }
 .workspace-global-search input { min-width: 0; flex: 1; border: 0; padding: 10px 12px; background: transparent; font-size: 10px; }
 .workspace-global-search button { border: 0; border-left: 1px solid var(--ink); padding: 0 12px; background: var(--marker); font-size: 9px; font-weight: 700; }
+.bulk-toolbar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: var(--paper); }
+.bulk-toolbar label, .bulk-toolbar span, .bulk-toolbar button { font-size: 9px; font-weight: 700; }
+.bulk-toolbar label { display: flex; align-items: center; gap: 7px; margin-right: auto; }
+.bulk-toolbar button { padding: 9px 11px; border: 1px solid var(--ink); background: transparent; }
+.bulk-toolbar button:hover:not(:disabled) { background: var(--marker); }
+.bulk-review { display: grid; gap: 14px; padding: 20px; border-bottom: 1px solid var(--ink); background: var(--mint-wash); }
+.bulk-review > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.bulk-review label { font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.bulk-review select, .bulk-review textarea { display: block; width: 100%; margin-top: 5px; padding: 9px; border: 1px solid var(--ink); background: var(--paper); font-size: 10px; text-transform: none; }
+.bulk-review .toggle { display: flex; align-items: center; gap: 8px; }
+.bulk-review .button { justify-self: start; }
+.source-select { display: flex; align-items: center; gap: 7px; }
 .workspace { padding: 44px 36px 80px; }
 .workspace-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 34px; }
 .workspace-heading .eyebrow { margin-bottom: 13px; }
@@ -2106,6 +2118,9 @@ textarea { resize: vertical; }
 }
 
 @media (max-width: 640px) {
+  .bulk-toolbar { align-items: stretch; flex-direction: column; }
+  .bulk-toolbar label { margin-right: 0; }
+  .bulk-review > div { grid-template-columns: 1fr; }
   .getting-started__heading { align-items: flex-start; flex-direction: column; }
   .getting-started ol { grid-template-columns: 1fr; }
   .getting-started li, .getting-started li:nth-child(odd), .getting-started li:nth-last-child(-n+2) { border-right: 0; border-bottom: 1px solid var(--ink); }
