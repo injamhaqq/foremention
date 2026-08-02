@@ -9,6 +9,7 @@ import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 import { WebhookSettings } from "@/components/webhook-settings";
 import { HubSpotSettings } from "@/components/hubspot-settings";
 import { NotionSettings } from "@/components/notion-settings";
+import { GoogleSheetsSettings } from "@/components/google-sheets-settings";
 
 export default async function SettingsPage() {
   const viewer = await requireViewer("/app/settings");
@@ -64,6 +65,11 @@ export default async function SettingsPage() {
       <section className="panel panel--wide">
         <span className="eyebrow">Knowledge connector</span><h2>Notion Source Map digest.</h2>
         <NotionSettings demo={viewer.mode === "demo"} />
+      </section>
+
+      <section className="panel panel--wide">
+        <span className="eyebrow">Data connector</span><h2>Google Sheets export.</h2>
+        <GoogleSheetsSettings demo={viewer.mode === "demo"} />
       </section>
 
       <section className="panel" id="providers">
