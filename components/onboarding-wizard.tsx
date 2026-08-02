@@ -52,7 +52,9 @@ function initialValues(demo: boolean) {
   };
 }
 
-export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: string }) {
+type FirstAuditProvider = { id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter" | "zenmux" | "omnirouters"; label: string } | null;
+
+export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo: boolean; draftKey: string; firstAuditProvider: FirstAuditProvider }) {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(() => initialValues(demo));
   const [hydrated, setHydrated] = useState(demo);
@@ -200,19 +202,26 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   }, [firstRunId, status]);
 
   async function startFirstAudit() {
+    if (!firstAuditProvider) throw new Error("Connect one AI provider in Settings before starting the first audit.");
     const promptResponse = await fetch("/api/prompts", { cache: "no-store" });
-    const promptResult = await promptResponse.json() as { data?: Array<{ id: string; approved: boolean }>; error?: string };
+    const promptText = await promptResponse.text();
+    let promptResult: { data?: Array<{ id: string; approved: boolean }>; error?: string } = {};
+    try { promptResult = promptText ? JSON.parse(promptText) as typeof promptResult : {}; }
+    catch { throw new Error(`Your buyer questions could not be loaded (status ${promptResponse.status}).`); }
     if (!promptResponse.ok) throw new Error(promptResult.error || "Your buyer questions could not be loaded.");
     const promptIds = (promptResult.data || []).filter((prompt) => prompt.approved).slice(0, 5).map((prompt) => prompt.id);
     if (promptIds.length !== 5) throw new Error("Your five-question baseline is still being prepared.");
     const runResponse = await fetch("/api/runs", {
       method: "POST",
       headers: { "content-type": "application/json", "idempotency-key": `onboarding:${crypto.randomUUID()}` },
-      body: JSON.stringify({ promptIds, providers: ["groq"] }),
+      body: JSON.stringify({ promptIds, providers: [firstAuditProvider.id] }),
     });
-    const runResult = await runResponse.json() as { id?: string; error?: string };
+    const runText = await runResponse.text();
+    let runResult: { id?: string; error?: string } = {};
+    try { runResult = runText ? JSON.parse(runText) as typeof runResult : {}; }
+    catch { throw new Error(`Your first audit could not be queued (status ${runResponse.status}).`); }
     if (!runResponse.ok || !runResult.id) throw new Error(runResult.error || "Your first audit could not be queued.");
-    captureProductEvent("collection_started", { question_count: 5, provider_count: 1, provider: "groq", source: "onboarding" });
+    captureProductEvent("collection_started", { question_count: 5, provider_count: 1, provider: firstAuditProvider.id, source: "onboarding" });
     return runResult.id;
   }
 
@@ -261,7 +270,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
     <span className="eyebrow">First audit in progress</span>
     <div className="audit-loader" aria-hidden="true"><i /><i /><i /></div>
     <h2>We&apos;re running your first AI visibility audit — this takes about 2 minutes.</h2>
-    <p>Foremention is collecting five real Groq answers, preserving returned citations, and building your first evidence baseline. You can leave this page; the background run will continue safely.</p>
+    <p>Foremention is collecting five real answers with {firstAuditProvider?.label || "your configured provider"}, preserving any returned citations, and building your first evidence baseline. You can leave this page; the background run will continue safely.</p>
     <ol className="audit-progress-steps" aria-label="First audit progress">
       {["Scraping your website", "Generating questions", "Running AI audit", "Building your Source Map"].map((label, index) => {
         const stage = index + 1;

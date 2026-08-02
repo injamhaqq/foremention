@@ -34,6 +34,14 @@ type SourceAggregate = {
   url: string;
 };
 
+type PersistedInspection = {
+  access: string;
+  checkedAt: string | null;
+  clientPresent: boolean;
+  competitors: string[];
+  title: string | null;
+};
+
 const engineLabels: Record<string, string> = {
   openai: "ChatGPT",
   gemini: "Google AI",
@@ -82,6 +90,25 @@ async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
   return inspected;
 }
 
+async function loadPersistedInspections(run: RunRow, sourceMapId: string) {
+  const rows = await supabaseRest<Array<{
+    source_id: string;
+    client_present: boolean;
+    competitors_present: string[] | null;
+    source: { crawler_access: string | null; crawler_checked_at: string | null; page_title: string | null } | null;
+  }>>(
+    `source_map_entries?select=source_id,client_present,competitors_present,source:sources(crawler_access,crawler_checked_at,page_title)&organization_id=eq.${run.organization_id}&source_map_id=eq.${sourceMapId}`,
+    { serviceRole: true },
+  );
+  return new Map<string, PersistedInspection>(rows.map((row) => [row.source_id, {
+    access: row.source?.crawler_access || "unknown",
+    checkedAt: row.source?.crawler_checked_at || null,
+    clientPresent: Boolean(row.client_present),
+    competitors: row.competitors_present || [],
+    title: row.source?.page_title || null,
+  }]));
+}
+
 async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") {
   const answerRows = await supabaseRest<Array<{ id: string }>>(
     `run_answers?select=id&organization_id=eq.${run.organization_id}&run_id=eq.${run.id}`,
@@ -128,8 +155,6 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
     (latest, item) => !latest || item.lastObservedAt > latest ? item.lastObservedAt : latest,
     null,
   );
-  const inspected = await inspectMappedSources(run, ranked);
-
   const mapRows = await supabaseRest<Array<{ id: string }>>("source_maps?on_conflict=run_id", {
     method: "POST",
     serviceRole: true,
@@ -149,27 +174,39 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
   const sourceMapId = mapRows[0]?.id;
   if (!sourceMapId) throw new Error("The reviewed Source Map could not be created.");
 
+  // The background observed-map job performs bounded page inspection once.
+  // Human approval reuses that persisted result so the review click never waits
+  // on or repeats an external crawl for every cited page.
+  const inspected = reviewStatus === "all"
+    ? await inspectMappedSources(run, ranked)
+    : await loadPersistedInspections(run, sourceMapId);
+
   if (ranked.length) {
     await supabaseRest("source_map_entries?on_conflict=source_map_id,source_id", {
       method: "POST",
       serviceRole: true,
       prefer: "resolution=merge-duplicates,return=minimal",
-      body: ranked.map((item, index) => ({
-        organization_id: run.organization_id,
-        source_map_id: sourceMapId,
-        source_id: item.sourceId,
-        rank: index + 1,
-        citation_observations: item.count,
-        engines: Array.from(item.providers).sort(),
-        client_present: inspected.get(item.sourceId)?.clientPresent || false,
-        competitors_present: inspected.get(item.sourceId)?.competitors || [],
-        entry_route: null,
-        feasibility: "unknown",
-        influence: "unknown",
-        analyst_note: reviewStatus === "verified"
-          ? "Verified citation observation with bounded automated page inspection. Influence, route and feasibility still require a human decision."
-          : "Provider-returned citation with bounded automated page inspection. Answer evidence and page presence remain explicitly unreviewed until a person approves the run.",
-      })),
+      body: ranked.map((item, index) => {
+        const inspection = inspected.get(item.sourceId);
+        return {
+          organization_id: run.organization_id,
+          source_map_id: sourceMapId,
+          source_id: item.sourceId,
+          rank: index + 1,
+          citation_observations: item.count,
+          engines: Array.from(item.providers).sort(),
+          client_present: inspection?.clientPresent || false,
+          competitors_present: inspection?.competitors || [],
+          entry_route: null,
+          feasibility: "unknown",
+          influence: "unknown",
+          analyst_note: reviewStatus === "verified"
+            ? inspection?.checkedAt
+              ? "Verified citation observation using the persisted bounded page inspection. Influence, route and feasibility still require a human decision."
+              : "Verified citation observation. Page presence, influence, route and feasibility still require a separate review."
+            : "Provider-returned citation with bounded automated page inspection. Answer evidence and page presence remain explicitly unreviewed until a person approves the run.",
+        };
+      }),
     });
   }
   await supabaseRest(`source_maps?id=eq.${sourceMapId}&organization_id=eq.${run.organization_id}`, {

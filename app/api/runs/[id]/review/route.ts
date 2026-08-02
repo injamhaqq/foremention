@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
+import { safeOperationalError } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { generateReviewedSourceMap } from "@/lib/source-map-generation";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
@@ -41,21 +42,39 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     ),
   ]);
 
-  const [{ sourceMapId, sourceCount }, failedAttempts] = await Promise.all([
-    generateReviewedSourceMap(run),
-    supabaseRest<Array<{ id: string }>>(
-      `run_attempts?select=id&organization_id=eq.${context.organizationId}&run_id=eq.${run.id}&status=in.(failed,rate_limited,excluded)`,
-      { token: viewer.accessToken },
-    ),
-  ]);
+  let sourceMapId: string;
+  let sourceCount: number;
+  let failedAttempts: Array<{ id: string }>;
+  try {
+    [{ sourceMapId, sourceCount }, failedAttempts] = await Promise.all([
+      generateReviewedSourceMap(run),
+      supabaseRest<Array<{ id: string }>>(
+        `run_attempts?select=id&organization_id=eq.${context.organizationId}&run_id=eq.${run.id}&status=in.(failed,rate_limited,excluded)`,
+        { token: viewer.accessToken },
+      ),
+    ]);
+  } catch (error) {
+    console.warn("Run review could not publish the persisted Source Map.", safeOperationalError(error));
+    return NextResponse.json({
+      error: "The review could not be completed yet. Your collected answers are preserved; refresh the run before retrying.",
+    }, { status: 503 });
+  }
   const finalStatus = failedAttempts.length ? "partial" : "complete";
-  await Promise.all([
-    supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}`, {
+  try {
+    await supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}`, {
       method: "PATCH",
       token: viewer.accessToken,
       prefer: "return=minimal",
       body: { status: finalStatus },
-    }),
+    });
+  } catch (error) {
+    console.warn("Run review could not finalize the run state.", safeOperationalError(error));
+    return NextResponse.json({
+      error: "The evidence was preserved, but the run could not be finalized. Refresh the page before retrying.",
+    }, { status: 503 });
+  }
+
+  const sideEffects = await Promise.allSettled([
     supabaseRest("audit_logs", {
       method: "POST",
       token: viewer.accessToken,
@@ -84,5 +103,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       },
     }),
   ]);
+  if (sideEffects.some((result) => result.status === "rejected")) {
+    console.warn("Run review completed with a non-critical notification or audit-log failure.");
+  }
   return NextResponse.json({ ok: true, status: finalStatus, sourceMapId, sourceCount });
 }

@@ -38,9 +38,12 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
   assert.doesNotMatch(migration, /delete from public\.source_observations/);
 });
 
-test("onboarding starts a five-question Groq audit and shows durable progress", async () => {
-  const wizard = await text("components/onboarding-wizard.tsx");
-  assert.match(wizard, /providers: \["groq"\]/);
+test("onboarding starts a five-question audit with a configured provider and shows durable progress", async () => {
+  const [page, wizard] = await Promise.all([text("app/app/onboarding/page.tsx"), text("components/onboarding-wizard.tsx")]);
+  assert.match(page, /getProviderStatuses/);
+  assert.match(page, /provider\.configured/);
+  assert.match(wizard, /providers: \[firstAuditProvider\.id\]/);
+  assert.doesNotMatch(wizard, /providers: \["groq"\]/);
   assert.match(wizard, /promptIds\.length !== 5/);
   assert.match(wizard, /We&apos;re running your first AI visibility audit/);
   assert.match(wizard, /onboarding:\$\{crypto\.randomUUID\(\)\}/);

@@ -12,8 +12,15 @@ export function RunReview({ runId }: { runId: string }) {
     setBusy(true); setMessage("");
     try {
       const response = await fetch(`/api/runs/${runId}/review`, { method: "POST" });
-      const result = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(result.error || "Could not approve the run.");
+      const responseText = await response.text();
+      let result: { error?: string } = {};
+      if (responseText.trim()) {
+        try { result = JSON.parse(responseText) as { error?: string }; }
+        catch { /* The status-aware message below is safer than exposing an upstream HTML response. */ }
+      }
+      if (!response.ok) {
+        throw new Error(result.error || `The review could not be completed (status ${response.status}). Refresh the run before retrying.`);
+      }
       setMessage("Run approved. Its dated Source Map is now published inside this workspace.");
       captureProductEvent("evidence_reviewed", { review_type: "run" });
       router.refresh();
