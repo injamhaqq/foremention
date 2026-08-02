@@ -10,6 +10,7 @@ import { WebhookSettings } from "@/components/webhook-settings";
 import { HubSpotSettings } from "@/components/hubspot-settings";
 import { NotionSettings } from "@/components/notion-settings";
 import { GoogleSheetsSettings } from "@/components/google-sheets-settings";
+import { PublicReportSettings } from "@/components/public-report-settings";
 
 export default async function SettingsPage() {
   const viewer = await requireViewer("/app/settings");
@@ -130,6 +131,11 @@ export default async function SettingsPage() {
         <p>Exports include only the current organization records your account is authorized to access.</p>
         <div className="settings-actions"><a className="button button--outline" href="/api/export/source-map">Export Source Map &darr;</a></div>
         <AccountLifecycle initialRequest={deletionRequest} owner={team.role === "owner"} demo={viewer.mode === "demo"} />
+      </section>
+
+      <section className="panel">
+        <span className="eyebrow">Public reporting</span><h2>Owner-controlled visibility.</h2>
+        <PublicReportSettings demo={viewer.mode === "demo"} domain={workspace?.website} />
       </section>
 
       <section className="panel panel--wide">
