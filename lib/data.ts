@@ -69,6 +69,8 @@ export type VerifiedClaim = {
   approvedWording: string;
   limitations: string | null;
   publicUse: boolean;
+  verificationStatus: "pending" | "verified" | "disputed";
+  verificationNote: string | null;
   verifiedAt: string | null;
   expiresAt: string | null;
 };
@@ -474,6 +476,8 @@ export async function loadVerifiedClaims(viewer: Viewer): Promise<VerifiedClaim[
     approvedWording: "Customer data is encrypted in transit using current transport security controls.",
     limitations: "Fictional demonstration record. This is not a real company claim.",
     publicUse: false,
+    verificationStatus: "verified",
+    verificationNote: "Fictional demonstration record.",
     verifiedAt: "Jul 24, 2026",
     expiresAt: null,
   }];
@@ -486,11 +490,13 @@ export async function loadVerifiedClaims(viewer: Viewer): Promise<VerifiedClaim[
     approved_wording: string;
     limitations: string | null;
     public_use: boolean;
+    verification_status: VerifiedClaim["verificationStatus"];
+    verification_note: string | null;
     verified_at: string | null;
     expires_at: string | null;
     evidence: { title: string; source_url: string | null } | null;
   }>>(
-    `verified_claims?select=id,evidence_item_id,claim_text,approved_wording,limitations,public_use,verified_at,expires_at,evidence:evidence_items(title,source_url)&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`,
+    `verified_claims?select=id,evidence_item_id,claim_text,approved_wording,limitations,public_use,verification_status,verification_note,verified_at,expires_at,evidence:evidence_items(title,source_url)&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`,
     { token: viewer.accessToken },
   );
   const links = rows.length ? await supabaseRest<Array<{
@@ -511,6 +517,8 @@ export async function loadVerifiedClaims(viewer: Viewer): Promise<VerifiedClaim[
     approvedWording: row.approved_wording,
     limitations: row.limitations,
     publicUse: row.public_use,
+    verificationStatus: row.verification_status || "pending",
+    verificationNote: row.verification_note,
     verifiedAt: row.verified_at ? dateLabel(row.verified_at) : null,
     expiresAt: row.expires_at ? dateLabel(row.expires_at) : null,
   }));

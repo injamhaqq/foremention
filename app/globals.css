@@ -462,6 +462,13 @@ textarea { resize: vertical; }
 .claim-ledger__heading p { margin: 0; color: #b7c7c2; font-size: 11px; line-height: 1.65; }
 .claim-create { display: grid; grid-template-columns: .8fr 1fr 1fr 1fr; gap: 14px; align-items: end; padding: 20px; border-bottom: 1px solid var(--line); background: #e8f5ef; }
 .claim-create label { font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.claim-create fieldset { min-width: 0; margin: 0; padding: 10px; border: 1px solid var(--line); }
+.claim-create legend { padding: 0 4px; font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.claim-create .claim-evidence-choice { display: flex; gap: 7px; align-items: flex-start; margin: 6px 0; text-transform: none; line-height: 1.4; }
+.claim-create .claim-evidence-choice input { width: auto; margin: 1px 0 0; }
+.claim-verification { display: grid; gap: 8px; }
+.claim-verification label { display: grid; gap: 5px; font-size: 8px; text-transform: uppercase; }
+.claim-verification select,.claim-verification textarea { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 0; background: #fff; color: var(--ink); font: inherit; font-size: 9px; text-transform: none; }
 .claim-create select,.claim-create textarea { width: 100%; display: block; margin-top: 7px; padding: 10px; border: 1px solid var(--ink); border-radius: 0; background: #fff; color: var(--ink); font: inherit; font-size: 10px; line-height: 1.45; text-transform: none; resize: vertical; }
 .claim-public-toggle { display: flex; gap: 8px; align-items: center; min-height: 44px; }
 .claim-public-toggle input { width: 16px; height: 16px; }

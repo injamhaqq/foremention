@@ -19,6 +19,8 @@ export function ClaimLedger({ evidence, initialClaims, demo, canManage }: {
   const [busy, setBusy] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [updating, setUpdating] = useState("");
+  const [statusDrafts, setStatusDrafts] = useState<Record<string, VerifiedClaim["verificationStatus"]>>(() => Object.fromEntries(initialClaims.map((claim) => [claim.id, claim.verificationStatus])));
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>(() => Object.fromEntries(initialClaims.map((claim) => [claim.id, claim.verificationNote || ""])));
   const [message, setMessage] = useState("");
   const submissionLock = useRef(false);
 
@@ -39,8 +41,8 @@ export function ClaimLedger({ evidence, initialClaims, demo, canManage }: {
         id: String(result.data?.id || crypto.randomUUID()), evidenceItemId: source?.id || null,
         evidenceTitle: source?.title || null, evidenceUrl: source?.sourceUrl || null,
         evidenceItems: selected.map((item) => ({ id: item.id, title: item.title, url: item.sourceUrl })),
-        claimText, approvedWording, limitations, publicUse,
-        verifiedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }),
+        claimText, approvedWording, limitations, publicUse: false, verificationStatus: "pending", verificationNote: null,
+        verifiedAt: null,
         expiresAt: source?.expiresAt || null,
       }, ...current]);
       setClaimText(""); setApprovedWording(""); setLimitations(""); setPublicUse(false);
@@ -78,6 +80,20 @@ export function ClaimLedger({ evidence, initialClaims, demo, canManage }: {
     finally { setUpdating(""); }
   }
 
+  async function updateVerification(claim: VerifiedClaim) {
+    const verificationStatus = statusDrafts[claim.id] || claim.verificationStatus;
+    const verificationNote = noteDrafts[claim.id] || "";
+    setUpdating(claim.id); setMessage("");
+    try {
+      const response = await fetch("/api/claims", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: claim.id, verificationStatus, verificationNote }) });
+      const result = await response.json() as { data?: { publicUse?: boolean }; error?: string };
+      if (!response.ok) throw new Error(result.error || "Could not update claim verification.");
+      setClaims((current) => current.map((item) => item.id === claim.id ? { ...item, verificationStatus, verificationNote: verificationNote || null, publicUse: result.data?.publicUse ?? item.publicUse, verifiedAt: verificationStatus === "verified" ? new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : null } : item));
+      setMessage(`Claim marked ${verificationStatus}. The decision and note are retained in the audit trail.`);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not update claim verification."); }
+    finally { setUpdating(""); }
+  }
+
   return <section className="panel panel--flush claim-ledger">
     <div className="claim-ledger__heading"><div><span className="eyebrow">Claim Integrity Ledger</span><h2>Say only what the evidence supports.</h2></div><p>Select verified proof, draft conservative wording, and keep explicit limitations. Foremention never treats a draft as automatically true.</p></div>
     {verifiedEvidence.length > 0 && canManage ? <form className="claim-create" onSubmit={submit} aria-busy={busy}>
@@ -91,11 +107,12 @@ export function ClaimLedger({ evidence, initialClaims, demo, canManage }: {
     </form> : <div className="claim-ledger__gate"><strong>{demo ? "Fictional preview" : "Verified evidence required"}</strong><p>{demo ? "The record below demonstrates the workflow without representing a real company." : "Verify an evidence item above before drafting claim wording."}</p></div>}
     {message && <p className="inline-notice" role="status">{message}</p>}
     {claims.length > 0 ? <div className="claim-list">{claims.map((claim) => <article key={claim.id}>
-      <div className="claim-list__status"><span className={`status-chip ${claim.publicUse ? "status-chip--active" : ""}`}>{claim.publicUse ? "public use approved" : "internal only"}</span><small>{claim.verifiedAt || "Review date unavailable"}</small></div>
+      <div className="claim-list__status"><span className={`status-chip ${claim.verificationStatus === "verified" ? "status-chip--active" : ""}`}>{claim.verificationStatus}</span><small>{claim.verifiedAt || "Not verified"}</small></div>
       <div><span>Claim under review</span><p>{claim.claimText}</p></div>
       <div><span>Approved wording</span><strong>{claim.approvedWording}</strong></div>
       <div><span>Evidence and limitations</span><p>{claim.limitations || "No limitation recorded."}</p>{claim.evidenceItems?.length ? <ul>{claim.evidenceItems.map((item) => <li key={item.id}>{item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.title} ↗</a> : item.title}</li>)}</ul> : claim.evidenceUrl ? <a href={claim.evidenceUrl} target="_blank" rel="noreferrer">{claim.evidenceTitle || "Open evidence"} ↗</a> : <small>{claim.evidenceTitle || "Evidence link unavailable"}</small>}</div>
-      <button type="button" disabled={!canManage || updating === claim.id || demo} onClick={() => void togglePublicUse(claim)}>{updating === claim.id ? "Updating…" : claim.publicUse ? "Return to internal use" : "Approve public use"}</button>
+      <div className="claim-verification"><label>Verification status<select value={statusDrafts[claim.id] || claim.verificationStatus} onChange={(event) => setStatusDrafts((current) => ({ ...current, [claim.id]: event.target.value as VerifiedClaim["verificationStatus"] }))}><option value="pending">Pending</option><option value="verified">Verified</option><option value="disputed">Disputed</option></select></label><label>Review note<textarea rows={2} value={noteDrafts[claim.id] ?? claim.verificationNote ?? ""} onChange={(event) => setNoteDrafts((current) => ({ ...current, [claim.id]: event.target.value }))} /></label><button type="button" disabled={!canManage || updating === claim.id || demo} onClick={() => void updateVerification(claim)}>{updating === claim.id ? "Updating…" : "Save verification"}</button></div>
+      <button type="button" disabled={!canManage || updating === claim.id || demo || claim.verificationStatus !== "verified"} onClick={() => void togglePublicUse(claim)}>{updating === claim.id ? "Updating…" : claim.publicUse ? "Return to internal use" : "Approve public use"}</button>
     </article>)}</div> : <div className="empty-state empty-state--compact"><h2>No approved claims yet.</h2><p>The ledger stays empty until a team member ties wording and limitations to verified evidence.</p></div>}
   </section>;
 }

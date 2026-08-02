@@ -60,7 +60,6 @@ export async function POST(request: Request) {
   if (!item || invalidEvidence) {
     return NextResponse.json({ error: "Every selected item must be verified evidence from this workspace with a source URL and usage rights." }, { status: 409 });
   }
-  const verifiedAt = new Date().toISOString();
   const rows = await supabaseRest<Array<{ id: string } & Record<string, unknown>>>("verified_claims", {
     method: "POST",
     token: viewer.accessToken,
@@ -72,9 +71,11 @@ export async function POST(request: Request) {
       claim_text: claimText,
       approved_wording: approvedWording,
       limitations,
-      public_use: publicUse,
-      verified_by: viewer.id,
-      verified_at: verifiedAt,
+      public_use: false,
+      verification_status: "pending",
+      verification_note: null,
+      verified_by: null,
+      verified_at: null,
       expires_at: item.expires_at,
     },
   });
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
       action: "claim.approved",
       entity_type: "verified_claim",
       entity_id: rows[0]?.id,
-      after_state: { evidence_item_ids: evidenceItemIds, public_use: publicUse },
+      after_state: { evidence_item_ids: evidenceItemIds, public_use: false, verification_status: "pending" },
     },
   });
   return NextResponse.json({ data: { ...rows[0], evidenceTitle: item.title, evidenceUrl: item.source_url } }, { status: 201 });
@@ -137,32 +138,51 @@ export async function PATCH(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await request.json().catch(() => ({})) as { id?: string; publicUse?: boolean };
+  const body = await request.json().catch(() => ({})) as { id?: string; publicUse?: boolean; verificationStatus?: string; verificationNote?: string };
   const id = clean(body.id, 36);
-  if (!validId(id) || typeof body.publicUse !== "boolean") {
-    return NextResponse.json({ error: "Choose a valid claim and publication state." }, { status: 400 });
+  const verificationStatus = clean(body.verificationStatus, 20);
+  const verificationNote = clean(body.verificationNote, 1000);
+  const updatesVerification = ["pending", "verified", "disputed"].includes(verificationStatus);
+  if (!validId(id) || (!updatesVerification && typeof body.publicUse !== "boolean")) {
+    return NextResponse.json({ error: "Choose a valid claim and verification or publication state." }, { status: 400 });
   }
-  if (viewer.mode === "demo") return NextResponse.json({ data: { id, publicUse: body.publicUse }, mode: "demo" });
+  if (viewer.mode === "demo") return NextResponse.json({ data: { id, publicUse: body.publicUse, verificationStatus: verificationStatus || "verified", verificationNote }, mode: "demo" });
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   if (role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can change claim use." }, { status: 403 });
-  const claims = await supabaseRest<Array<{ id: string; evidence_item_id: string | null; public_use: boolean }>>(
-    `verified_claims?select=id,evidence_item_id,public_use&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+  const claims = await supabaseRest<Array<{ id: string; evidence_item_id: string | null; public_use: boolean; verification_status: "pending" | "verified" | "disputed" }>>(
+    `verified_claims?select=id,evidence_item_id,public_use,verification_status&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   const claim = claims[0];
   if (!claim) return NextResponse.json({ error: "Claim not found." }, { status: 404 });
+  const links = await supabaseRest<Array<{ evidence_item_id: string }>>(
+    `verified_claim_evidence?select=evidence_item_id&claim_id=eq.${id}&organization_id=eq.${context.organizationId}`,
+    { token: viewer.accessToken },
+  );
+  const evidenceIds = links.map((link) => link.evidence_item_id);
+  const evidence = evidenceIds.length ? await supabaseRest<Array<{ id: string; verification_status: string; source_url: string | null; usage_rights: string | null; expires_at: string | null }>>(
+    `evidence_items?select=id,verification_status,source_url,usage_rights,expires_at&id=in.(${evidenceIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`,
+    { token: viewer.accessToken },
+  ) : [];
+  const evidenceInvalid = evidence.length !== evidenceIds.length || evidence.some((entry) => entry.verification_status !== "verified" || !entry.source_url || !entry.usage_rights?.trim() || Boolean(entry.expires_at && new Date(entry.expires_at).getTime() <= Date.now()));
+  if (updatesVerification) {
+    if (verificationStatus === "verified" && evidenceInvalid) return NextResponse.json({ error: "Resolve every linked evidence item before verifying this claim." }, { status: 409 });
+    const verified = verificationStatus === "verified";
+    await Promise.all([
+      supabaseRest(`verified_claims?id=eq.${id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
+        method: "PATCH", token: viewer.accessToken, prefer: "return=minimal",
+        body: { verification_status: verificationStatus, verification_note: verificationNote || null, verified_by: verified ? viewer.id : null, verified_at: verified ? new Date().toISOString() : null, ...(verified ? {} : { public_use: false }), updated_at: new Date().toISOString() },
+      }),
+      supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "claim.verification.updated", entity_type: "verified_claim", entity_id: id, before_state: { verification_status: claim.verification_status }, after_state: { verification_status: verificationStatus, verification_note: verificationNote || null } } }),
+    ]);
+    return NextResponse.json({ data: { id, verificationStatus, verificationNote: verificationNote || null, publicUse: verified ? claim.public_use : false } });
+  }
   if (body.publicUse) {
-    if (!claim.evidence_item_id) {
+    if (!claim.evidence_item_id || claim.verification_status !== "verified") {
       return NextResponse.json({ error: "Restore and reverify the linked evidence before public use." }, { status: 409 });
     }
-    const evidence = await supabaseRest<Array<{ verification_status: string; source_url: string | null; usage_rights: string | null; expires_at: string | null }>>(
-      `evidence_items?select=verification_status,source_url,usage_rights,expires_at&id=eq.${encodeURIComponent(claim.evidence_item_id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
-      { token: viewer.accessToken },
-    );
-    const item = evidence[0];
-    const expired = Boolean(item?.expires_at && new Date(item.expires_at).getTime() <= Date.now());
-    if (!item || item.verification_status !== "verified" || !item.source_url || !item.usage_rights?.trim() || expired) {
+    if (evidenceInvalid) {
       return NextResponse.json({ error: "Reverify the linked evidence before approving this claim for public use." }, { status: 409 });
     }
   }
