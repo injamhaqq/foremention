@@ -6,6 +6,7 @@ import { requireViewer } from "@/lib/auth";
 import { getApplicationEmailStatus } from "@/lib/application-email";
 import { loadNotificationPreference, loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
+import { WebhookSettings } from "@/components/webhook-settings";
 
 export default async function SettingsPage() {
   const viewer = await requireViewer("/app/settings");
@@ -20,6 +21,7 @@ export default async function SettingsPage() {
   const jobsReady = viewer.mode === "demo" || Boolean(process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY);
   const serviceReady = viewer.mode === "demo" || Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   const monitoringReady = Boolean(process.env.SENTRY_DSN);
+  const webhooksReady = Boolean(process.env.WEBHOOK_SIGNING_SECRET && process.env.INNGEST_EVENT_KEY);
 
   return <main className="workspace">
     <div className="workspace-heading">
@@ -45,6 +47,11 @@ export default async function SettingsPage() {
       <section className="panel">
         <span className="eyebrow">Email notifications</span><h2>Choose operational alerts.</h2>
         <EmailAlertPreferences initial={emailPreference} available={applicationEmail.available} demo={viewer.mode === "demo"} />
+      </section>
+
+      <section className="panel panel--wide">
+        <span className="eyebrow">Automation</span><h2>Signed workspace webhooks.</h2>
+        <WebhookSettings available={webhooksReady} demo={viewer.mode === "demo"} />
       </section>
 
       <section className="panel" id="providers">

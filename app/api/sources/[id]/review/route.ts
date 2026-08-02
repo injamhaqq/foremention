@@ -5,6 +5,7 @@ import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
+import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
 
 const crawlerValues: SourceMapEntry["crawlerAccess"][] = ["open", "partial", "blocked"];
 const feasibilityValues: SourceMapEntry["feasibility"][] = ["high", "medium", "low", "unknown"];
@@ -86,5 +87,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       href: `/app/sources/${entry.id}`,
     });
   }
+  await queueWorkspaceWebhook({ organizationId, eventKey: `source.reviewed:${entry.id}:${reviewedAt}`, eventType: "source.reviewed", occurredAt: reviewedAt, href: `/app/sources/${entry.id}` }).catch(() => undefined);
   return NextResponse.json({ ok: true, reviewedAt });
 }

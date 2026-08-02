@@ -3,6 +3,7 @@ import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadEvidence, loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
 
 const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
 
@@ -82,5 +83,6 @@ export async function PATCH(request: Request) {
       },
     }),
   ]);
+  if (body.status === "verified") await queueWorkspaceWebhook({ organizationId: context.organizationId, eventKey: `evidence.reviewed:${id}:${verifiedAt}`, eventType: "evidence.reviewed", occurredAt: verifiedAt!, href: "/app/evidence" }).catch(() => undefined);
   return NextResponse.json({ data: { id, status: body.status, verifiedAt } });
 }

@@ -17,6 +17,7 @@ import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/li
 import { supabaseRest } from "@/lib/supabase-rest";
 import { generateObservedSourceMap } from "@/lib/source-map-generation";
 import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
+import { deliverWorkspaceWebhooks, type DeliveryEvent } from "@/lib/workspace-webhooks";
 
 export const inngest = new Inngest({ id: "foremention" });
 
@@ -824,6 +825,11 @@ export const runMultiEngineScan = inngest.createFunction(
         `${answerCount} real answer${answerCount === 1 ? "" : "s"} and ${citationCount} returned citation${citationCount === 1 ? "" : "s"} are ready for human review.`,
       ));
     await step.run("email-first-run-owner", () => notifyFirstCompletedRun(run, answerCount, citationCount, mappedSourceCount));
+    await step.sendEvent("deliver-collection-webhooks", {
+      id: `workspace-event-collection-${run.id}`,
+      name: "foremention/workspace.event",
+      data: { organizationId: run.organization_id, eventKey: `collection.completed:${run.id}`, eventType: "collection.completed", occurredAt: completedAt, href: `/app/runs/${run.id}` } satisfies DeliveryEvent,
+    });
     await Promise.all([
       step.run("record-human-review-gate", () =>
         recordAgentExecution({
@@ -921,4 +927,9 @@ export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
     }
     return { eligibleWorkspaces: seeds.length, queuedRuns: queued.length, weekKey };
   },
+);
+
+export const deliverWorkspaceWebhookEvents = inngest.createFunction(
+  { id: "deliver-workspace-webhook-events", retries: 3, triggers: { event: "foremention/workspace.event" } },
+  async ({ event, step }) => step.run("deliver-signed-webhooks", () => deliverWorkspaceWebhooks(event.data as DeliveryEvent)),
 );
