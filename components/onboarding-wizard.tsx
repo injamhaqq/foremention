@@ -56,7 +56,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(() => initialValues(demo));
   const [hydrated, setHydrated] = useState(demo);
-  const [status, setStatus] = useState<"idle" | "saving" | "auditing" | "complete" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "auditing" | "delayed" | "complete" | "error">("idle");
   const [message, setMessage] = useState("");
   const [firstRunId, setFirstRunId] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
@@ -147,6 +147,10 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
           window.location.assign("/app");
           return;
         }
+        if (!cancelled && run && ["failed", "cancelled"].includes(run.status)) {
+          setStatus("delayed");
+          return;
+        }
       } catch {
         // The durable background run continues even when a browser poll fails.
       }
@@ -196,8 +200,13 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       if (demo) setStatus("complete");
       else {
         setStatus("auditing");
-        const runId = await startFirstAudit();
-        setFirstRunId(runId);
+        try {
+          const runId = await startFirstAudit();
+          setFirstRunId(runId);
+        } catch (error) {
+          setMessage(error instanceof Error ? error.message : "The audit could not be queued yet.");
+          setStatus("delayed");
+        }
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save onboarding.");
@@ -213,6 +222,13 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
     <h2>We&apos;re running your first AI visibility audit — this takes about 2 minutes.</h2>
     <p>Foremention is collecting five real Groq answers, preserving returned citations, and building your first evidence baseline. You can leave this page; the background run will continue safely.</p>
     {firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}`}>View live run status &rarr;</a>}
+  </div>;
+
+  if (status === "delayed") return <div className="onboarding-complete onboarding-audit" role="alert">
+    <span className="eyebrow">Workspace created safely</span>
+    <h2>Your audit is taking longer than expected — we&apos;ll notify you when it&apos;s ready.</h2>
+    <p>No evidence was invented and your setup is saved. {message || "The provider or background queue needs more time."} You can enter the workspace now and retry from Answer Runs without repeating onboarding.</p>
+    <div className="settings-actions"><a className="button button--ink" href="/app">Open workspace &rarr;</a>{firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}`}>Inspect run</a>}</div>
   </div>;
 
   if (status === "complete") return <div className="onboarding-complete" role="status">

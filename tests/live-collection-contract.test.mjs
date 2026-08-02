@@ -379,3 +379,14 @@ test("weekly Inngest runs enforce capacity and record evidence changes", async (
   assert.match(jobs, /competitor_movement/);
   assert.match(route, /scheduleWeeklyWorkspaceRuns/);
 });
+
+test("failed first audits remain explicit instead of showing unexplained zeroes", async () => {
+  const [wizard, overview, analytics] = await Promise.all([
+    text("components/onboarding-wizard.tsx"),
+    text("app/app/page.tsx"),
+    text("app/app/analytics/page.tsx"),
+  ]);
+  for (const source of [wizard, overview, analytics]) assert.match(source, /Your audit is taking longer than expected/);
+  assert.match(overview, /No fake metrics were added/);
+  assert.match(analytics, /No zero-value placeholder is being presented as a result/);
+});

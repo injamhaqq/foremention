@@ -7,7 +7,10 @@ export default async function AnalyticsPage() {
   const [allRuns, sources] = await Promise.all([loadRuns(viewer), loadSourceMap(viewer)]);
   const runs = allRuns.filter((run) => ["review", "complete", "partial"].includes(run.status)).reverse();
 
-  if (!runs.length) return <main className="workspace"><div className="workspace-heading"><div><span className="eyebrow">Observed performance</span><h1>Recommendation analytics</h1><p>Analytics begin only after a workspace owner reviews and approves collected evidence.</p></div></div><section className="panel empty-state empty-state--border"><h2>No reviewed trend exists yet.</h2><p>Run connected providers, inspect their answers and citations, then approve the run. Foremention will never substitute demo values for customer data.</p><Link className="button button--ink" href="/app/runs">Open Answer Runs &rarr;</Link></section></main>;
+  if (!runs.length) {
+    const pendingOrFailed = allRuns.find((run) => ["queued", "running", "failed"].includes(run.status));
+    return <main className="workspace"><div className="workspace-heading"><div><span className="eyebrow">Observed performance</span><h1>Recommendation analytics</h1><p>Analytics begin only after a provider returns persisted observations.</p></div></div><section className="panel empty-state empty-state--border"><h2>{pendingOrFailed?.status === "failed" ? "Your audit is taking longer than expected — we'll notify you when it's ready." : pendingOrFailed ? "Your first audit is still running." : "No observed baseline exists yet."}</h2><p>{pendingOrFailed?.status === "failed" ? "No zero-value placeholder is being presented as a result. Inspect the failed run and retry when the provider is available." : pendingOrFailed ? "This page will populate automatically when real answers and citations arrive." : "Start the first connected provider run. Foremention will never substitute demo values for customer data."}</p><Link className="button button--ink" href={pendingOrFailed ? `/app/runs/${pendingOrFailed.id}` : "/app/runs"}>Open Answer Runs &rarr;</Link></section></main>;
+  }
 
   const latest = runs.at(-1)!;
   const answers = await loadRunAnswers(viewer, latest.id);

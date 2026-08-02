@@ -38,6 +38,7 @@ export default async function DashboardPage() {
   const latestAnswer = observedAnswers[0];
   const appearedCompetitors = competitors.filter((name) => observedAnswers.some((answer) => answer.answer.toLocaleLowerCase().includes(name.toLocaleLowerCase())));
   const priorityGaps = sources.filter((source) => !source.clientPresent && source.competitors.length).slice(0, 3);
+  const pendingOrFailedRun = !latest ? runs.find((run) => ["queued", "running", "failed"].includes(run.status)) : null;
   const setup = [
     { label: "Create workspace", done: Boolean(context), href: "/app/onboarding" },
     { label: "Approve buyer questions", done: prompts.some((prompt) => prompt.approved), href: "/app/prompts" },
@@ -59,6 +60,8 @@ export default async function DashboardPage() {
       </div>
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
     </div>
+
+    {pendingOrFailedRun && <section className="inline-notice" role={pendingOrFailedRun.status === "failed" ? "alert" : "status"}><strong>{pendingOrFailedRun.status === "failed" ? "Your audit is taking longer than expected — we'll notify you when it's ready." : "Your first AI visibility audit is running."}</strong><p>{pendingOrFailedRun.status === "failed" ? "No fake metrics were added. Open the run to inspect the operational error and retry safely." : "Real answers, citations, Source Map entries, and priority gaps will appear here automatically when collection finishes."}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open run status <Arrow /></Link></section>}
 
     <section className={`setup-rail ${setup.every((item) => item.done) ? "setup-rail--complete" : ""}`}>
       <div><span className="eyebrow">Workspace readiness</span><strong>{setup.filter((item) => item.done).length}/{setup.length} foundation steps complete</strong></div>
