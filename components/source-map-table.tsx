@@ -14,6 +14,10 @@ export function SourceMapTable({ entries, canEdit, demo }: { entries: SourceMapE
   const lock = useRef(false);
   const [query, setQuery] = useState("");
   const [gapOnly, setGapOnly] = useState(false);
+  const [sourceType, setSourceType] = useState("all");
+  const [presence, setPresence] = useState<"all" | "brand" | "competitor" | "neither">("all");
+  const [reachability, setReachability] = useState<"all" | SourceMapEntry["crawlerAccess"]>("all");
+  const [sortBy, setSortBy] = useState<"observations" | "domain" | "review-status">("observations");
   const [selected, setSelected] = useState<string[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [crawlerAccess, setCrawlerAccess] = useState<"open" | "partial" | "blocked">("open");
@@ -26,7 +30,11 @@ export function SourceMapTable({ entries, canEdit, demo }: { entries: SourceMapE
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState<"review" | "action" | "">("");
   const [message, setMessage] = useState("");
-  const filteredRows = useMemo(() => entries.filter((entry) => (!gapOnly || (entry.crawlerAccess !== "unknown" && !entry.clientPresent)) && `${entry.domain} ${entry.title} ${entry.route}`.toLowerCase().includes(query.toLowerCase())), [entries, query, gapOnly]);
+  const sourceTypes = useMemo(() => [...new Set(entries.map((entry) => entry.type))].sort(), [entries]);
+  const filteredRows = useMemo(() => entries.filter((entry) => {
+    const matchesPresence = presence === "all" || (presence === "brand" ? entry.clientPresent : presence === "competitor" ? entry.competitors.length > 0 : !entry.clientPresent && entry.competitors.length === 0);
+    return (!gapOnly || (entry.crawlerAccess !== "unknown" && !entry.clientPresent)) && (sourceType === "all" || entry.type === sourceType) && matchesPresence && (reachability === "all" || entry.crawlerAccess === reachability) && `${entry.domain} ${entry.title} ${entry.route}`.toLowerCase().includes(query.toLowerCase());
+  }).sort((a, b) => sortBy === "domain" ? a.domain.localeCompare(b.domain) : sortBy === "review-status" ? Number(Boolean(b.reviewedAt)) - Number(Boolean(a.reviewedAt)) || b.evidenceCount - a.evidenceCount : b.evidenceCount - a.evidenceCount || a.domain.localeCompare(b.domain)), [entries, query, gapOnly, sourceType, presence, reachability, sortBy]);
   const [visibleCount, setVisibleCount] = useState(25);
   const rows = filteredRows.slice(0, visibleCount);
   const selectedRows = entries.filter((entry) => selected.includes(entry.id));
@@ -78,7 +86,14 @@ export function SourceMapTable({ entries, canEdit, demo }: { entries: SourceMapE
 
   const allVisibleSelected = rows.length > 0 && rows.every((entry) => selected.includes(entry.id));
   return <>
-    <div className="table-tools"><label><span>Search sources</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Domain, page, or route" /></label><label className="toggle"><input type="checkbox" checked={gapOnly} onChange={(event) => setGapOnly(event.target.checked)} /><span>Show confirmed gaps only</span></label></div>
+    <div className="table-tools table-tools--source-map">
+      <label><span>Search sources</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Domain, page, or route" /></label>
+      <label><span>Source type</span><select value={sourceType} onChange={(event) => setSourceType(event.target.value)}><option value="all">All types</option>{sourceTypes.map((type) => <option value={type} key={type}>{type}</option>)}</select></label>
+      <label><span>Presence</span><select value={presence} onChange={(event) => setPresence(event.target.value as typeof presence)}><option value="all">All presence</option><option value="brand">Brand present</option><option value="competitor">Competitor present</option><option value="neither">Neither recorded</option></select></label>
+      <label><span>Reachability</span><select value={reachability} onChange={(event) => setReachability(event.target.value as typeof reachability)}><option value="all">All states</option><option value="open">Open</option><option value="partial">Partial</option><option value="blocked">Blocked</option><option value="unknown">Not reviewed</option></select></label>
+      <label><span>Sort by</span><select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="observations">Citation observations</option><option value="domain">Domain</option><option value="review-status">Review status</option></select></label>
+      <label className="toggle"><input type="checkbox" checked={gapOnly} onChange={(event) => setGapOnly(event.target.checked)} /><span>Confirmed gaps only</span></label>
+    </div>
     {rows.length ? <>
       <div className="bulk-toolbar" aria-label="Source bulk actions">
         <label><input type="checkbox" checked={allVisibleSelected} onChange={() => setSelected(allVisibleSelected ? selected.filter((id) => !rows.some((entry) => entry.id === id)) : Array.from(new Set([...selected, ...rows.map((entry) => entry.id)])))} /> Select visible</label>
