@@ -517,6 +517,27 @@ export async function loadRunAnswers(viewer: Viewer, runId: string): Promise<Wor
   return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
 }
 
+export type RunCostEvent = {
+  provider: string;
+  model: string;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
+  costUsd: number;
+  costSource: "estimated" | "provider_reported";
+};
+
+export async function loadRunCostEvents(viewer: Viewer, runId: string): Promise<RunCostEvent[]> {
+  if (viewer.mode === "demo") return [];
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return [];
+  const rows = await supabaseRest<Array<{ provider: string; model: string; input_tokens: number | null; output_tokens: number | null; total_tokens: number | null; estimated_cost_usd: number | string; cost_source: RunCostEvent["costSource"] }>>(
+    `ai_cost_events?select=provider,model,input_tokens,output_tokens,total_tokens,estimated_cost_usd,cost_source&organization_id=eq.${organizationId}&run_id=eq.${encodeURIComponent(runId)}&order=observed_at.asc&limit=500`,
+    { token: viewer.accessToken },
+  );
+  return rows.map((row) => ({ provider: row.provider, model: row.model, inputTokens: row.input_tokens, outputTokens: row.output_tokens, totalTokens: row.total_tokens, costUsd: Number(row.estimated_cost_usd), costSource: row.cost_source }));
+}
+
 export async function loadLatestReviewedAnswers(viewer: Viewer, limit = 12): Promise<WorkspaceRunAnswer[]> {
   if (viewer.mode === "demo") return [];
   const organizationId = await getPrimaryOrganizationId(viewer);
