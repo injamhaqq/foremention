@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useRef } from "react";
 import { Arrow, Wordmark } from "@/components/brand";
 import type { Viewer } from "@/lib/auth";
+import { resetProductAnalytics } from "@/lib/product-analytics";
 
 const nav = [
   ["/app", "Overview"],
@@ -37,7 +38,7 @@ function WorkspaceIdentity({ viewer, workspaceName }: { viewer: Viewer; workspac
 
 function SignOutButton({ demo }: { demo: boolean }) {
   return <form action={demo ? "/api/auth/demo/exit" : "/api/auth/logout"} method="post">
-    <button type="submit">{demo ? "Exit demo" : "Sign out"} <Arrow /></button>
+    <button type="submit" onClick={() => resetProductAnalytics()}>{demo ? "Exit demo" : "Sign out"} <Arrow /></button>
   </form>;
 }
 

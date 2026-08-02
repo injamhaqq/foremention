@@ -400,6 +400,41 @@ test("error monitoring is optional, privacy-conscious, and configured outside so
   assert.match(env, /SENTRY_DSN=/);
 });
 
+test("product analytics is optional, privacy-limited, and configured outside source", async () => {
+  const [client, events, milestone, sourceMapPage, env, worker, privacy, auth, onboarding, questions, launcher, review, sourceReview] = await Promise.all([
+    text("components/posthog-analytics.tsx"),
+    text("lib/product-analytics.ts"),
+    text("components/product-event.tsx"),
+    text("app/app/source-map/page.tsx"),
+    text(".env.example"),
+    text("worker/index.ts"),
+    text("app/privacy/page.tsx"),
+    text("components/auth-form.tsx"),
+    text("components/onboarding-wizard.tsx"),
+    text("components/prompt-library.tsx"),
+    text("components/run-launcher.tsx"),
+    text("components/run-review.tsx"),
+    text("components/source-review-form.tsx"),
+  ]);
+  assert.match(events, /NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN/);
+  assert.match(events, /autocapture: false/);
+  assert.match(events, /disable_session_recording: true/);
+  assert.match(events, /capture_exceptions: false/);
+  assert.match(client, /initializeProductAnalytics/);
+  assert.match(events, /blockedPropertyPattern/);
+  assert.match(events, /email\|name\|password\|token\|secret\|answer\|prompt\|citation\|content\|message\|url/);
+  assert.match(env, /NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN=/);
+  assert.match(env, /NEXT_PUBLIC_POSTHOG_HOST=https:\/\/eu\.i\.posthog\.com/);
+  assert.match(worker, /https:\/\/\*\.posthog\.com/);
+  assert.match(privacy, /without session replay/i);
+  for (const event of ["signup_completed", "onboarding_completed", "question_created", "collection_started"]) {
+    assert.match(`${auth}\n${onboarding}\n${questions}\n${launcher}`, new RegExp(event));
+  }
+  assert.match(milestone, /collection_completed/);
+  assert.match(sourceMapPage, /source_map_opened/);
+  assert.match(`${review}\n${sourceReview}`, /evidence_reviewed/);
+});
+
 test("production responses carry defense-in-depth browser protections", async () => {
   const worker = await text("worker/index.ts");
   assert.match(worker, /Content-Security-Policy/);

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { requireViewer } from "@/lib/auth";
 import { loadWorkspaceSummary } from "@/lib/data";
+import { PostHogIdentity } from "@/components/posthog-analytics";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -16,5 +17,5 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     console.error("Workspace summary unavailable", error);
     return null;
   });
-  return <AppShell viewer={viewer} workspaceName={workspace?.organizationName}>{children}</AppShell>;
+  return <AppShell viewer={viewer} workspaceName={workspace?.organizationName}><PostHogIdentity viewerId={viewer.id} organizationId={workspace?.organizationId} demo={viewer.mode === "demo"} />{children}</AppShell>;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { captureProductEvent } from "@/lib/product-analytics";
 
 export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
   mode: "login" | "signup";
@@ -43,11 +44,13 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
         return;
       }
       if (data.session === false) {
+        if (!isLogin) captureProductEvent("signup_completed", { confirmation_required: true });
         setAccountHelp(Boolean(data.account_help));
         setNotice(data.message || "Check your inbox to confirm your account.");
         setNoticeEmail(data.email || String(formData.get("email") || ""));
         return;
       }
+      if (!isLogin) captureProductEvent("signup_completed", { confirmation_required: false });
       // Use a full navigation after the server sets the HTTP-only session
       // cookie. This guarantees that the first protected request includes the
       // new cookie instead of racing a client-router refresh.

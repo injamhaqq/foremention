@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { captureProductEvent } from "@/lib/product-analytics";
 import { useRouter } from "next/navigation";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
@@ -31,6 +32,7 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not save the source review.");
       setMessage(demo ? "Demo review saved locally. Customer data was not changed." : "Review saved with a dated audit record.");
+      if (!demo) captureProductEvent("evidence_reviewed", { review_type: "source", brand_present: clientPresent, crawler_access: crawlerAccess, entry_route: route });
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save the source review.");

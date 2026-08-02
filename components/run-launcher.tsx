@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ProviderStatus, WorkspacePrompt } from "@/lib/data";
+import { captureProductEvent } from "@/lib/product-analytics";
 
 export function RunLauncher({ prompts, providers, demo }: { prompts: WorkspacePrompt[]; providers: ProviderStatus[]; demo: boolean }) {
   const router = useRouter();
@@ -33,9 +34,10 @@ export function RunLauncher({ prompts, providers, demo }: { prompts: WorkspacePr
         throw new Error(result.error || `Could not start collection (HTTP ${response.status}).`);
       }
       setMessage(result.note || "Collection queued. Results will move to review when providers finish.");
+      if (!demo) captureProductEvent("collection_started", { question_count: selectedPrompts.length, provider_count: selectedProviders.length, provider: selectedProviders[0] || "unknown" });
       idempotencyKey.current = crypto.randomUUID();
       router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not start collection."); }
+    } catch (error) { if (!demo) captureProductEvent("collection_queue_failed", { provider: selectedProviders[0] || "unknown" }); setMessage(error instanceof Error ? error.message : "Could not start collection."); }
     finally { setBusy(false); }
   }
 

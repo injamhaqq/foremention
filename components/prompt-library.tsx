@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspacePrompt } from "@/lib/data";
+import { captureProductEvent } from "@/lib/product-analytics";
 
 type SuggestedQuestion = { cluster: string; text: string; why: string };
 
@@ -43,6 +44,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category }: { ini
       setPrompts((current) => [...current, result.data!]);
       setText("");
       setMessage(demo ? "Demo question added locally. Customer data was not written." : "Buyer question added to the approved baseline.");
+      if (!demo) captureProductEvent("question_created", { cluster });
       router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not add the question."); }
     finally { setBusy(""); }
@@ -53,6 +55,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category }: { ini
     const next = !prompt.approved;
     if (demo) {
       setPrompts((current) => current.map((item) => item.id === prompt.id ? { ...item, approved: next } : item));
+      captureProductEvent("buyer_question_status_changed", { active: next });
       setBusy(""); return;
     }
     try {
@@ -88,6 +91,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category }: { ini
       setPrompts((current) => current.map((item) => item.id === prompt.id ? { ...item, text: result.data!.text } : item));
       setEditingId(""); setEditingText("");
       setMessage("Buyer question updated. Existing run snapshots remain unchanged.");
+      captureProductEvent("buyer_question_updated");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not update the question.");

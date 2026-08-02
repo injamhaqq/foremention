@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
+import { PostHogAnalytics } from "../components/posthog-analytics";
 import { SITE_URL, SOCIAL_IMAGE } from "../lib/seo";
 
 export const metadata: Metadata = {
@@ -50,5 +51,5 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       },
     ],
   };
-  return <html lang="en" data-scroll-behavior="smooth"><body><AuthHashRedirect /><SentryClient />{children}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></body></html>;
+  return <html lang="en" data-scroll-behavior="smooth"><body><AuthHashRedirect /><SentryClient /><PostHogAnalytics />{children}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></body></html>;
 }

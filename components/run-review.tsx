@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { captureProductEvent } from "@/lib/product-analytics";
 
 export function RunReview({ runId }: { runId: string }) {
   const router = useRouter();
@@ -14,6 +15,7 @@ export function RunReview({ runId }: { runId: string }) {
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not approve the run.");
       setMessage("Run approved. Its dated Source Map is now published inside this workspace.");
+      captureProductEvent("evidence_reviewed", { review_type: "run" });
       router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not approve the run."); }
     finally { setBusy(false); }

@@ -22,7 +22,7 @@ export default function PrivacyPage() {
       <h2>Service providers and integrations</h2>
       <p>Foremention may rely on infrastructure, database, email, analytics, error-monitoring, payment, and AI providers. A feature that requires a provider or customer integration remains labelled until that connection is active. Providers process data under their own terms as applicable.</p>
       <h2>Website measurement</h2>
-      <p>The public website does not currently load a Google Analytics or Google Tag Manager identifier. If non-essential measurement is enabled later, this notice and the consent experience will be updated before that collection is treated as active.</p>
+      <p>Foremention may use PostHog EU for limited product and web analytics. The integration is configured without session replay, automatic click or form capture, form values, AI-provider answers, citations, or customer evidence. It records page routes and selected product milestones so Foremention can find broken journeys and improve the product. Identified product events use internal account and organization IDs rather than names or email addresses. Google Analytics and Google Tag Manager are not loaded.</p>
       <h2>Public-source research</h2>
       <p>Foremention can record public AI answers and public webpages as dated observations. Public availability does not remove access controls, contractual restrictions, robots directives, intellectual-property rights, or reasonable request limits.</p>
       <h2>Security and access</h2>

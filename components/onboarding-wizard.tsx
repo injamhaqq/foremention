@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { captureProductEvent } from "@/lib/product-analytics";
 
 const steps = ["Organization", "Category", "Competitors", "Goals", "Buyer questions", "Review"];
 
@@ -106,10 +107,12 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
         prompts: result.draft.prompts.join("\n"),
       });
       setAnalysisStatus("complete");
+      captureProductEvent("onboarding_website_draft_created", { limited: Boolean(result.evidence?.limited) });
       setAnalysisMessage(result.evidence?.limited
         ? "The site did not expose readable metadata, so Foremention created an editable starter from the domain name. Review the category and competitors before saving."
         : `Draft created from ${result.evidence?.pageTitle || result.evidence?.finalUrl || "public website metadata"}. Review each step before saving.`);
     } catch (error) {
+      captureProductEvent("onboarding_website_draft_failed");
       setAnalysisStatus("error");
       setAnalysisMessage(error instanceof Error ? error.message : "Could not create a setup draft.");
     }
@@ -132,6 +135,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not save onboarding.");
       if (!demo) window.localStorage.removeItem(draftKey);
+      if (!demo) captureProductEvent("onboarding_completed", { question_count: prompts.length, competitor_count: values.competitors.split("\n").filter((value) => value.trim()).length });
       setStatus("complete");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save onboarding.");

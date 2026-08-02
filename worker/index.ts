@@ -52,11 +52,11 @@ const contentSecurityPolicy = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://*.posthog.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io",
+  "connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.posthog.com",
   "manifest-src 'self'",
   "worker-src 'self' blob:",
 ].join("; ");
