@@ -15,6 +15,7 @@ import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { getProvider } from "@/lib/providers";
 import type { ProviderId } from "@/lib/providers/types";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { correlationIdFor, logOperationalEvent } from "@/lib/structured-logger";
 
 type LiveProviderId = Exclude<ProviderId, "mock">;
 
@@ -25,6 +26,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const correlationId = correlationIdFor(request);
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -195,6 +197,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    logOperationalEvent("collection_reservation_failed", { correlationId, route: "/api/runs", errorCode: "capacity_reservation_failed" });
     console.warn(`Collection capacity failed during ${capacityStage}.`, safeOperationalError(error));
     const concurrentDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
       `runs?select=id,status&organization_id=eq.${context.organizationId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
@@ -247,6 +250,7 @@ export async function POST(request: Request) {
       });
     }
   } catch (error) {
+    logOperationalEvent("collection_queue_failed", { correlationId, route: "/api/runs", runId, provider: providerId, errorCode: "background_queue_failed" });
     console.warn("Background collection could not be queued.", safeOperationalError(error));
     await supabaseRest("rpc/release_queued_run", {
       method: "POST",

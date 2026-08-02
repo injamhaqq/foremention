@@ -20,6 +20,7 @@ import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
 import { deliverWorkspaceWebhooks, type DeliveryEvent } from "@/lib/workspace-webhooks";
 import { deliverHubSpotCompletedAction } from "@/lib/hubspot-connector";
 import { exportWeeklyDigestToNotion } from "@/lib/notion-connector";
+import { logOperationalEvent } from "@/lib/structured-logger";
 
 export const inngest = new Inngest({ id: "foremention" });
 
@@ -673,6 +674,7 @@ export const runMultiEngineScan = inngest.createFunction(
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), LIVE_COLLECTION_LIMITS.providerTimeoutMs);
           try {
+            logOperationalEvent("provider_request_started", { runId: run.id, provider: providerId, attempt: attempt + 1 });
             const budget = providerId === "groq"
               ? await Promise.all([recordedRunCost(data), recordedOrganizationMonthlyCost(data)]).then(([runSpendSoFarUsd, monthlySpendSoFarUsd]) => ({
                 runSpendSoFarUsd,
@@ -686,8 +688,10 @@ export const runMultiEngineScan = inngest.createFunction(
               { signal: controller.signal, maxOutputTokens: LIVE_COLLECTION_LIMITS.maxOutputTokensPerAnswer, budget },
             );
             if (!answer.answer.trim()) throw new Error("The provider returned an empty answer.");
+            logOperationalEvent("provider_request_completed", { runId: run.id, provider: providerId, attempt: attempt + 1, status: 200, durationMs: answer.latencyMs });
             return answer;
           } catch (error) {
+            logOperationalEvent("provider_request_failed", { runId: run.id, provider: providerId, attempt: attempt + 1, errorCode: error instanceof ProviderRequestError ? error.code : "provider_failure" });
             await persistFailureAttempt(run, prompt, providerId, model, attempt + 1, error);
             throw error;
           } finally {

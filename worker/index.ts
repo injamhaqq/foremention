@@ -5,6 +5,7 @@ import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, publicToolRateLimitsTable, publicVisibilityScoresTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
 import { setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
 import { scrubSentryEvent } from "../lib/sentry-privacy";
+import { logOperationalEvent } from "../lib/structured-logger";
 
 interface D1Result<T = unknown> {
   results?: T[];
@@ -68,7 +69,7 @@ const contentSecurityPolicy = [
   "worker-src 'self' blob:",
 ].join("; ");
 
-function secureResponse(response: Response, url: URL) {
+function secureResponse(response: Response, url: URL, correlationId?: string) {
   const secured = new Response(response.body, response);
   // Vinext currently bootstraps its client with inline module imports, so
   // unsafe-inline is narrowly retained until the runtime supports per-request
@@ -88,6 +89,7 @@ function secureResponse(response: Response, url: URL) {
   if (url.pathname.startsWith("/app") || url.pathname.startsWith("/api/auth")) {
     secured.headers.set("Cache-Control", "private, no-store, max-age=0");
   }
+  if (correlationId) secured.headers.set("X-Correlation-ID", correlationId);
   return secured;
 }
 
@@ -284,21 +286,32 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     setCloudflareAiBinding(env.AI);
     const url = new URL(request.url);
+    const correlationId = crypto.randomUUID();
+    const startedAt = Date.now();
+    const headers = new Headers(request.headers);
+    headers.set("x-correlation-id", correlationId);
+    const correlatedRequest = new Request(request, { headers });
+    const complete = (response: Response) => {
+      const secured = secureResponse(response, url, correlationId);
+      logOperationalEvent("request_completed", { correlationId, route: url.pathname, method: request.method, status: secured.status, durationMs: Date.now() - startedAt });
+      return secured;
+    };
+    logOperationalEvent("request_started", { correlationId, route: url.pathname, method: request.method });
 
-    const publicRateLimited = await enforcePublicRouteLimit(request, env, url.pathname);
-    if (publicRateLimited) return secureResponse(publicRateLimited, url);
+    const publicRateLimited = await enforcePublicRouteLimit(correlatedRequest, env, url.pathname);
+    if (publicRateLimited) return complete(publicRateLimited);
 
     if (url.pathname === "/api/leads/source-gap" && request.method === "POST") {
-      const response = await handleSourceGapRequest(request, env);
-      if (response) return secureResponse(response, url);
+      const response = await handleSourceGapRequest(correlatedRequest, env);
+      if (response) return complete(response);
     }
 
     if (url.pathname === "/api/public/score" && (request.method === "GET" || request.method === "POST")) {
-      return secureResponse(await handleVisibilityScore(request, env), url);
+      return complete(await handleVisibilityScore(correlatedRequest, env));
     }
 
     if (url.pathname === "/api/public/prompt-check" && request.method === "POST") {
-      return secureResponse(await handlePromptCoverage(request, env), url);
+      return complete(await handlePromptCoverage(correlatedRequest, env));
     }
 
     if (url.pathname === "/_vinext/image") {
@@ -310,11 +323,11 @@ const worker = {
           return result.response();
         },
       }, allowedWidths);
-      return secureResponse(response, url);
+      return complete(response);
     }
 
-    const response = await handler.fetch(request, env, ctx);
-    return secureResponse(response, url);
+    const response = await handler.fetch(correlatedRequest, env, ctx);
+    return complete(response);
   },
 };
 
