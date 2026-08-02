@@ -538,6 +538,18 @@ export async function loadRunCostEvents(viewer: Viewer, runId: string): Promise<
   return rows.map((row) => ({ provider: row.provider, model: row.model, inputTokens: row.input_tokens, outputTokens: row.output_tokens, totalTokens: row.total_tokens, costUsd: Number(row.estimated_cost_usd), costSource: row.cost_source }));
 }
 
+export async function loadRunConfiguration(viewer: Viewer, runId: string): Promise<{ promptIds: string[]; provider: string } | null> {
+  if (viewer.mode === "demo") return { promptIds: demoPrompts.slice(0, 1).map((prompt) => prompt.id), provider: "mock" };
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return null;
+  const [runs, prompts] = await Promise.all([
+    supabaseRest<Array<{ provider_ids: string[] }>>(`runs?select=provider_ids&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${organizationId}&status=in.(complete,partial)&limit=1`, { token: viewer.accessToken }),
+    supabaseRest<Array<{ prompt_id: string }>>(`run_prompt_selections?select=prompt_id&run_id=eq.${encodeURIComponent(runId)}&organization_id=eq.${organizationId}&order=created_at.asc&limit=100`, { token: viewer.accessToken }),
+  ]);
+  if (!runs[0]?.provider_ids?.[0] || !prompts.length) return null;
+  return { provider: runs[0].provider_ids[0], promptIds: prompts.map((prompt) => prompt.prompt_id) };
+}
+
 export async function loadLatestReviewedAnswers(viewer: Viewer, limit = 12): Promise<WorkspaceRunAnswer[]> {
   if (viewer.mode === "demo") return [];
   const organizationId = await getPrimaryOrganizationId(viewer);
