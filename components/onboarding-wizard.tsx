@@ -59,6 +59,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   const [status, setStatus] = useState<"idle" | "saving" | "auditing" | "delayed" | "complete" | "error">("idle");
   const [message, setMessage] = useState("");
   const [firstRunId, setFirstRunId] = useState<string | null>(null);
+  const [auditStage, setAuditStage] = useState(0);
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [manualContextRequired, setManualContextRequired] = useState(false);
@@ -117,6 +118,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
         prompts: limited ? "" : result.draft.prompts.join("\n"),
       });
       setAnalysisStatus("complete");
+      setAuditStage((current) => Math.max(current, 1));
       lastAnalyzedWebsite.current = normalized;
       captureProductEvent("onboarding_website_draft_created", { limited: Boolean(result.evidence?.limited) });
       setAnalysisMessage(limited
@@ -152,6 +154,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       });
       setManualContextRequired(false);
       setAnalysisStatus("complete");
+      setAuditStage((current) => Math.max(current, 2));
       setAnalysisMessage("Setup created from your answers. Review the category, competitors, and five buyer questions before creating the workspace.");
       captureProductEvent("onboarding_manual_context_created", { competitor_count: draft.competitors.length });
     } catch (error) {
@@ -179,7 +182,8 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
         const result = await response.json() as { data?: Array<{ id: string; status: string }> };
         const run = result.data?.find((item) => item.id === firstRunId);
         if (!cancelled && run && ["review", "complete", "partial"].includes(run.status)) {
-          window.location.assign("/app");
+          setAuditStage(5);
+          window.setTimeout(() => window.location.assign("/app"), 900);
           return;
         }
         if (!cancelled && run && ["failed", "cancelled"].includes(run.status)) {
@@ -234,10 +238,12 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       if (!demo) captureProductEvent("onboarding_completed", { question_count: prompts.length, competitor_count: values.competitors.split("\n").filter((value) => value.trim()).length });
       if (demo) setStatus("complete");
       else {
+        setAuditStage((current) => Math.max(current, 2));
         setStatus("auditing");
         try {
           const runId = await startFirstAudit();
           setFirstRunId(runId);
+          setAuditStage(3);
         } catch (error) {
           setMessage(error instanceof Error ? error.message : "The audit could not be queued yet.");
           setStatus("delayed");
@@ -256,6 +262,14 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
     <div className="audit-loader" aria-hidden="true"><i /><i /><i /></div>
     <h2>We&apos;re running your first AI visibility audit — this takes about 2 minutes.</h2>
     <p>Foremention is collecting five real Groq answers, preserving returned citations, and building your first evidence baseline. You can leave this page; the background run will continue safely.</p>
+    <ol className="audit-progress-steps" aria-label="First audit progress">
+      {["Scraping your website", "Generating questions", "Running AI audit", "Building your Source Map"].map((label, index) => {
+        const stage = index + 1;
+        const complete = auditStage > stage;
+        const active = auditStage === stage;
+        return <li className={complete ? "is-complete" : active ? "is-active" : ""} key={label}><span aria-hidden="true">{complete ? "✓" : String(stage).padStart(2, "0")}</span><strong>Step {stage}</strong><small>{label}</small></li>;
+      })}
+    </ol>
     {firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}`}>View live run status &rarr;</a>}
   </div>;
 
