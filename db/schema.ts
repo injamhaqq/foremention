@@ -28,3 +28,26 @@ CREATE TABLE IF NOT EXISTS intake_rate_limits (
   request_count INTEGER NOT NULL
 )
 `;
+
+export const publicToolRateLimitsTable = `
+CREATE TABLE IF NOT EXISTS public_tool_rate_limits (
+  endpoint TEXT NOT NULL,
+  fingerprint_hash TEXT NOT NULL,
+  window_started_at INTEGER NOT NULL,
+  request_count INTEGER NOT NULL,
+  PRIMARY KEY (endpoint, fingerprint_hash)
+)
+`;
+
+export const publicVisibilityScoresTable = `
+CREATE TABLE IF NOT EXISTS public_visibility_scores (
+  id TEXT PRIMARY KEY,
+  brand TEXT NOT NULL,
+  category TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  model TEXT NOT NULL,
+  result_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at INTEGER NOT NULL
+)
+`;
