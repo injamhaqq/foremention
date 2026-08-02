@@ -119,6 +119,31 @@ async function publicRateLimit(request: Request, env: Env, endpoint: string, lim
   return { allowed: true, configured: true };
 }
 
+type PublicRouteLimit = { endpoint: string; limit: number; windowMs: number };
+
+function publicRouteLimit(pathname: string): PublicRouteLimit | null {
+  if (pathname === "/score") return { endpoint: "score-page", limit: 60, windowMs: 60 * 60 * 1000 };
+  if (pathname === "/prompt-check") return { endpoint: "prompt-check-page", limit: 60, windowMs: 60 * 60 * 1000 };
+  if (pathname.startsWith("/report/")) return { endpoint: "report", limit: 60, windowMs: 60 * 60 * 1000 };
+  if (pathname === "/grader" || pathname.startsWith("/grader/")) return { endpoint: "grader", limit: 20, windowMs: 60 * 60 * 1000 };
+  if (pathname.startsWith("/audit/")) return { endpoint: "audit", limit: 20, windowMs: 60 * 60 * 1000 };
+  return null;
+}
+
+async function enforcePublicRouteLimit(request: Request, env: Env, pathname: string) {
+  const rule = publicRouteLimit(pathname);
+  if (!rule) return null;
+  const result = await publicRateLimit(request, env, rule.endpoint, rule.limit, rule.windowMs);
+  // Static public pages remain readable if the optional D1 rate-limit secret has
+  // not yet been configured. Cost-bearing public API calls fail closed in their
+  // own handlers above, so a missing secret can never trigger provider spend.
+  if (!result.configured) return null;
+  if (result.allowed) return null;
+  // Deliberately contains no IP address, fingerprint, prompt, brand, or other customer input.
+  console.warn(JSON.stringify({ event: "public_rate_limit_hit", endpoint: rule.endpoint }));
+  return Response.json({ error: "This public tool has reached its temporary request limit. Please try again later." }, { status: 429 });
+}
+
 function scoreQuestions(category: string) {
   return [
     `Which ${category} tools are best for a growing team?`,
@@ -134,6 +159,12 @@ async function handleVisibilityScore(request: Request, env: Env) {
   await initializeD1(env.DB);
   const url = new URL(request.url);
   if (request.method === "GET") {
+    const limited = await publicRateLimit(request, env, "score-share", 30, 60 * 60 * 1000);
+    if (!limited.configured) return Response.json({ error: "The shared score is temporarily unavailable." }, { status: 503 });
+    if (!limited.allowed) {
+      console.warn(JSON.stringify({ event: "public_rate_limit_hit", endpoint: "score-share" }));
+      return Response.json({ error: "This shared score has reached its temporary request limit. Please try again later." }, { status: 429 });
+    }
     const id = url.searchParams.get("id") || "";
     if (!/^[0-9a-f-]{36}$/i.test(id)) return Response.json({ error: "A valid shared score ID is required." }, { status: 400 });
     const row = await env.DB.prepare("SELECT result_json, expires_at FROM public_visibility_scores WHERE id = ?").bind(id).first<{ result_json: string; expires_at: number }>();
@@ -253,6 +284,9 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     setCloudflareAiBinding(env.AI);
     const url = new URL(request.url);
+
+    const publicRateLimited = await enforcePublicRouteLimit(request, env, url.pathname);
+    if (publicRateLimited) return secureResponse(publicRateLimited, url);
 
     if (url.pathname === "/api/leads/source-gap" && request.method === "POST") {
       const response = await handleSourceGapRequest(request, env);
