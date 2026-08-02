@@ -7,7 +7,7 @@ import { captureProductEvent } from "@/lib/product-analytics";
 
 type SuggestedQuestion = { cluster: string; text: string; why: string };
 
-export function PromptLibrary({ initialPrompts, demo, company, category }: { initialPrompts: WorkspacePrompt[]; demo: boolean; company: string; category: string }) {
+export function PromptLibrary({ initialPrompts, demo, company, category, sourceSuggestions = [] }: { initialPrompts: WorkspacePrompt[]; demo: boolean; company: string; category: string; sourceSuggestions?: SuggestedQuestion[] }) {
   const router = useRouter();
   const [prompts, setPrompts] = useState(initialPrompts);
   const [filter, setFilter] = useState("All");
@@ -104,6 +104,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category }: { ini
   }
 
   return <div>
+    {sourceSuggestions.length > 0 && <section className="question-planner question-planner--observed" aria-labelledby="observed-question-title"><div className="question-planner__intro"><span className="eyebrow">Suggested after your first run</span><h2 id="observed-question-title">Extend the baseline from observed source framing.</h2><p>These five editable suggestions use only domains, publisher types, providers, and competitors already recorded in your Source Map. They are not search-volume estimates.</p></div><div className="question-planner__grid">{sourceSuggestions.slice(0, 5).map((suggestion) => <article key={`${suggestion.cluster}-${suggestion.text}`}><span>{suggestion.cluster}</span><strong>{suggestion.text}</strong><p>{suggestion.why}</p><button type="button" onClick={() => fillSuggestion(suggestion)}>Use this question &rarr;</button></article>)}</div></section>}
     <section className="question-planner" aria-labelledby="question-planner-title">
       <div className="question-planner__intro"><span className="eyebrow">Question planner</span><h2 id="question-planner-title">Cover the buyer journey, not random prompts.</h2><p>These are editable starting points based on your category—not search-volume claims or collected evidence. Use only the questions a real buyer would ask.</p></div>
       <div className="question-planner__grid">{suggestions.map((suggestion) => <article key={suggestion.cluster}>
