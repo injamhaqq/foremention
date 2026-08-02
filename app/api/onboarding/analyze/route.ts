@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
+import { enrichOnboardingDraft } from "@/lib/onboarding-enrichment";
 import { createOnboardingDraft } from "@/lib/onboarding-profile";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { inspectSourceUrl, SourceInspectionError, validatePublicSourceUrl } from "@/lib/source-inspection";
@@ -36,23 +37,39 @@ export async function POST(request: Request) {
         timeoutMs: 12_000,
       });
     const publicContext = `${inspection.pageTitle || ""} ${inspection.pageDescription || ""} ${inspection.pageText || ""}`.replace(/\s+/g, " ").trim();
-    const limited = publicContext.length < 80;
+    const directFetchLimited = publicContext.length < 80;
 
-    const draft = createOnboardingDraft({
+    const baseDraft = createOnboardingDraft({
       websiteUrl: inspection.finalUrl || publicUrl.toString(),
       pageTitle: inspection.pageTitle,
       pageDescription: inspection.pageDescription,
       pageText: inspection.pageText,
     });
+    const enrichment = await enrichOnboardingDraft({
+      draft: baseDraft,
+      websiteUrl: inspection.finalUrl || publicUrl.toString(),
+      pageTitle: inspection.pageTitle,
+      pageDescription: inspection.pageDescription,
+      pageText: inspection.pageText,
+    });
+    const limited = directFetchLimited && !enrichment.enriched;
     return NextResponse.json({
       ok: true,
-      draft,
+      draft: enrichment.draft,
       evidence: {
         checkedAt: inspection.checkedAt,
         finalUrl: inspection.finalUrl,
         limited,
+        directFetchLimited,
+        enriched: enrichment.enriched,
         pageTitle: inspection.pageTitle,
-        source: limited ? "Domain name only; usable public website text was unavailable" : "Bounded public website metadata and visible text",
+        source: enrichment.enriched
+          ? directFetchLimited
+            ? "Web-assisted public profile; direct website content was unavailable"
+            : "Bounded public website content with web-assisted suggestions"
+          : limited
+            ? "Domain name only; usable public website text was unavailable"
+            : "Bounded public website metadata and visible text",
       },
     }, { headers: { "cache-control": "private, no-store" } });
   } catch (error) {

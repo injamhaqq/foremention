@@ -23,6 +23,8 @@ type WebsiteDraftResponse = {
     checkedAt: string;
     finalUrl: string;
     limited?: boolean;
+    directFetchLimited?: boolean;
+    enriched?: boolean;
     pageTitle: string | null;
     source: string;
   };
@@ -125,7 +127,11 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
       captureProductEvent("onboarding_website_draft_created", { limited: Boolean(result.evidence?.limited) });
       setAnalysisMessage(limited
         ? "We could not read enough public website content. Answer the three short questions below and Foremention will create your setup without blocking you."
-        : `Draft created from ${result.evidence?.pageTitle || result.evidence?.finalUrl || "public website metadata"}. Review each step before saving.`);
+        : result.evidence?.enriched
+          ? result.evidence?.directFetchLimited
+            ? "The website blocked direct reading, so Foremention used public web search to fill the company, category, market, suggested comparison set, and five buyer questions. Review the suggestions before creating the workspace."
+            : "Website analyzed. Foremention filled the company, category, market, suggested comparison set, and five buyer questions. Review the suggestions before creating the workspace."
+          : `Draft created from ${result.evidence?.pageTitle || result.evidence?.finalUrl || "public website metadata"}. Every supported field is filled; add competitors only when the public page did not provide a reliable comparison set.`);
     } catch (error) {
       captureProductEvent("onboarding_website_draft_failed");
       setAnalysisStatus("error");
@@ -335,7 +341,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
         <label>Primary market<select value={values.market} onChange={(event) => setValues({ ...values, market: event.target.value })}><option>Global</option><option>North America</option><option>Europe</option><option>Asia Pacific</option><option>Middle East and Africa</option><option>Latin America</option></select></label>
       </fieldset>}
       {step === 1 && <fieldset><legend>Choose the category buyers use</legend><label>Canonical category<input value={values.category} onChange={(event) => setValues({ ...values, category: event.target.value })} placeholder="Example: CRM software for small B2B teams" required /></label><label>Category definition<textarea value={values.categoryDescription} onChange={(event) => setValues({ ...values, categoryDescription: event.target.value })} placeholder="Describe what belongs in this category and who buys it." rows={4} required /></label></fieldset>}
-      {step === 2 && <fieldset><legend>Map the comparison set</legend><label>Direct competitors<textarea value={values.competitors} onChange={(event) => setValues({ ...values, competitors: event.target.value })} placeholder={"Competitor one\nCompetitor two\nCompetitor three"} rows={5} required /></label><p className="field-hint">One company per line. Include only brands a real buyer would compare.</p></fieldset>}
+      {step === 2 && <fieldset><legend>Map the comparison set</legend><label>Suggested direct competitors<textarea value={values.competitors} onChange={(event) => setValues({ ...values, competitors: event.target.value })} placeholder={"No reliable competitors were found. Add one company per line."} rows={5} required /></label><p className="field-hint">Suggestions come from public website context and web-assisted analysis. Review every company before approval and keep only brands a real buyer would compare.</p></fieldset>}
       {step === 3 && <fieldset><legend>Define the measurement goal</legend><label>Primary goal<select value={values.goal} onChange={(event) => setValues({ ...values, goal: event.target.value })}><option>Establish a measurement baseline</option><option>Find credible source gaps</option><option>Defend existing recommendation visibility</option></select></label><label>Evidence constraint<textarea value={values.constraint} onChange={(event) => setValues({ ...values, constraint: event.target.value })} rows={4} required /></label></fieldset>}
       {step === 4 && <fieldset><legend>Review the questions buyers ask</legend><label>Buyer questions<textarea value={values.prompts} onChange={(event) => setValues({ ...values, prompts: event.target.value })} placeholder={"Questions are generated automatically from your category and market."} rows={8} /></label><p className="field-hint">Foremention creates five questions automatically. Editing is optional; the saved five become the stable baseline for comparable runs. {prompts.length}/5 questions prepared.</p></fieldset>}
       {step === 5 && <fieldset>
