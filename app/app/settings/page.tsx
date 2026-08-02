@@ -11,6 +11,7 @@ import { HubSpotSettings } from "@/components/hubspot-settings";
 import { NotionSettings } from "@/components/notion-settings";
 import { GoogleSheetsSettings } from "@/components/google-sheets-settings";
 import { PublicReportSettings } from "@/components/public-report-settings";
+import { getSecretRotationStatuses, MAX_SECRET_AGE_DAYS } from "@/lib/secret-rotation";
 
 export default async function SettingsPage() {
   const viewer = await requireViewer("/app/settings");
@@ -26,6 +27,7 @@ export default async function SettingsPage() {
   const serviceReady = viewer.mode === "demo" || Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   const monitoringReady = Boolean(process.env.SENTRY_DSN);
   const webhooksReady = Boolean(process.env.WEBHOOK_SIGNING_SECRET && process.env.INNGEST_EVENT_KEY);
+  const secretRotation = getSecretRotationStatuses();
 
   return <main className="workspace">
     <div className="workspace-heading">
@@ -95,6 +97,18 @@ export default async function SettingsPage() {
           <div><span><StatusDot tone="green" /><strong>In-app alerts</strong></span><small>Stored per user and organization</small></div>
           <div><span><StatusDot tone={applicationEmail.available ? "green" : "gray"} /><strong>Application email alerts</strong></span><small>{applicationEmail.available ? "Adapter configured · delivery test required" : "Not connected · authentication email is separate"}</small></div>
           <div><span><StatusDot tone={monitoringReady ? "green" : "gray"} /><strong>Error monitoring</strong></span><small>{monitoringReady ? "Server monitoring ready" : "Optional connection not active"}</small></div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <span className="eyebrow">Security maintenance</span>
+        <h2>Secret rotation reminder</h2>
+        <p>Foremention never displays secret values. Record each replacement date in the secure hosting environment so this check can warn before a key is more than {MAX_SECRET_AGE_DAYS} days old.</p>
+        <div className="integration-list">
+          {secretRotation.map((item) => <div key={item.dateVariable}>
+            <span><StatusDot tone={item.state === "current" ? "green" : item.state === "due" ? "yellow" : "gray"} /><strong>{item.label}</strong></span>
+            <small>{item.state === "current" ? `Recorded ${item.ageDays} days ago` : item.state === "due" ? `Rotation due · ${item.ageDays} days since the recorded change` : `Set ${item.dateVariable} privately after the next rotation`}</small>
+          </div>)}
         </div>
       </section>
 
