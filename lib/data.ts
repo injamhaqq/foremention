@@ -159,6 +159,8 @@ export type DeletionRequest = {
   id: string;
   status: "pending" | "cancelled" | "completed";
   scheduledFor: string;
+  scheduledAt: string;
+  eligibleForPermanentDeletion: boolean;
   createdAt: string;
 };
 export type DecisionSignal = {
@@ -914,5 +916,12 @@ export async function loadPendingDeletionRequest(viewer: Viewer): Promise<Deleti
     { token: viewer.accessToken },
   );
   const row = rows[0];
-  return row ? { id: row.id, status: row.status, scheduledFor: dateLabel(row.scheduled_for), createdAt: dateLabel(row.created_at) } : null;
+  return row ? {
+    id: row.id,
+    status: row.status,
+    scheduledFor: dateLabel(row.scheduled_for),
+    scheduledAt: row.scheduled_for,
+    eligibleForPermanentDeletion: Date.parse(row.scheduled_for) <= Date.now(),
+    createdAt: dateLabel(row.created_at),
+  } : null;
 }
