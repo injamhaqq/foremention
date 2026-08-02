@@ -545,6 +545,17 @@ export async function loadPrompts(viewer: Viewer): Promise<WorkspacePrompt[]> {
   return rows.map((row) => ({ id: row.id, cluster: row.prompt_clusters?.name || row.prompt_key || "Baseline", text: row.prompt_text, approved: row.active }));
 }
 
+export async function loadWorkspaceCompetitors(viewer: Viewer): Promise<string[]> {
+  if (viewer.mode === "demo") return Array.from(new Set(sourceMapEntries.flatMap((source) => source.competitors)));
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const rows = await supabaseRest<Array<{ name: string }>>(
+    `competitors?select=name&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&active=eq.true&order=name.asc`,
+    { token: viewer.accessToken },
+  );
+  return rows.map((row) => row.name).filter(Boolean);
+}
+
 export async function loadWorkspaceSummary(viewer: Viewer): Promise<WorkspaceSummary | null> {
   if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "northstarhr.example", category: "HR software for distributed teams", promptCount: demoPrompts.filter((prompt) => prompt.approved).length };
   const organizationId = await getPrimaryOrganizationId(viewer);

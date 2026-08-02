@@ -4,7 +4,7 @@ import { AgentControlPlane } from "@/components/agent-control-plane";
 import { Arrow, StatusDot } from "@/components/brand";
 import { demoCompany, engineCoverage } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
-import { loadAgentControlPlane, loadDecisionSignal, loadLatestReviewedAnswers, loadPlacements, loadPrompts, loadProviderStatuses, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceContext } from "@/lib/data";
+import { loadAgentControlPlane, loadDecisionSignal, loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
@@ -27,14 +27,17 @@ export default async function DashboardPage() {
     loadProviderStatuses(viewer),
     loadAgentControlPlane(viewer),
   ]);
-  const reviewedRuns = runs.filter((run) => run.status === "complete");
-  const latest = reviewedRuns[0] || { presence: 0, firstMention: 0, answers: 0 };
-  const [reviewedAnswers, sourceContexts] = await Promise.all([
-    loadLatestReviewedAnswers(viewer, 1),
+  const observedRuns = runs.filter((run) => ["review", "complete", "partial"].includes(run.status));
+  const reviewedRuns = runs.filter((run) => ["complete", "partial"].includes(run.status));
+  const latest = observedRuns[0] || null;
+  const [observedAnswers, sourceContexts, competitors] = await Promise.all([
+    latest ? loadRunAnswers(viewer, latest.id) : Promise.resolve([]),
     loadSourceEvidenceContexts(viewer, sources.flatMap((source) => source.sourceId ? [source.sourceId] : [])),
+    loadWorkspaceCompetitors(viewer),
   ]);
-  const latestAnswer = reviewedAnswers[0];
-  const published = placements.filter((placement) => ["published", "indexed", "first cited", "repeatedly cited"].includes(placement.stage)).length;
+  const latestAnswer = observedAnswers[0];
+  const appearedCompetitors = competitors.filter((name) => observedAnswers.some((answer) => answer.answer.toLocaleLowerCase().includes(name.toLocaleLowerCase())));
+  const priorityGaps = sources.filter((source) => !source.clientPresent && source.competitors.length).slice(0, 3);
   const setup = [
     { label: "Create workspace", done: Boolean(context), href: "/app/onboarding" },
     { label: "Approve buyer questions", done: prompts.some((prompt) => prompt.approved), href: "/app/prompts" },
@@ -52,7 +55,7 @@ export default async function DashboardPage() {
       <div>
         <span className="eyebrow">{viewer.mode === "demo" ? demoCompany.category : context?.category || "New customer workspace"}</span>
         <h1>{context ? "Your recommendation workspace." : "Start with the evidence boundary."}</h1>
-        <p>{context ? "Every metric below comes from reviewed workspace records. Unreviewed collection stays visible but excluded." : "Set up your company, category, competitors, and controlled buyer questions before collecting an answer."}</p>
+        <p>{context ? "Every metric below comes from persisted provider observations. Unreviewed results remain clearly labelled until a person approves them." : "Set up your company, category, competitors, and controlled buyer questions before collecting an answer."}</p>
       </div>
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
     </div>
@@ -63,10 +66,10 @@ export default async function DashboardPage() {
     </section>
 
     <div className="metric-grid">
-      <article><span>Reviewed brand presence</span><strong>{latest.presence}%</strong><small>{reviewedRuns.length ? `Across ${latest.answers} answers` : "No approved runs"}</small></article>
-      <article><span>First-mention share</span><strong>{latest.firstMention}%</strong><small>{reviewedRuns.length ? "Latest approved run" : "No approved runs"}</small></article>
-      <article><span>Mapped sources</span><strong>{sources.length}</strong><small>{sources.filter((source) => source.crawlerAccess !== "unknown").length} page reviews complete</small></article>
-      <article><span>Tracked actions</span><strong>{placements.length}</strong><small>{published} published or beyond</small></article>
+      <article><span>Observed brand presence</span><strong>{latest ? `${latest.presence}%` : "—"}</strong><small>{latest ? `Across ${latest.answers} real answers${latest.status === "review" ? " · awaiting review" : ""}` : "First audit has not completed"}</small></article>
+      <article><span>Competitors appearing</span><strong>{latest ? appearedCompetitors.length : "—"}</strong><small>{appearedCompetitors.length ? appearedCompetitors.slice(0, 3).join(" · ") : latest ? "No configured competitor appeared" : "Waiting for collected answers"}</small></article>
+      <article><span>Citation sources</span><strong>{latest ? sources.length : "—"}</strong><small>{latest ? `${latest.citations} returned citation observations` : "Waiting for returned citations"}</small></article>
+      <article><span>Priority gaps</span><strong>{latest ? priorityGaps.length : "—"}</strong><small>{priorityGaps.length ? "Competitor-present pages where your brand was not found" : latest ? "No automatically observed page gaps yet" : "Created after the first audit"}</small></article>
     </div>
 
     <section className="weekly-loop-teaser">
@@ -83,17 +86,17 @@ export default async function DashboardPage() {
 
     <div className="dashboard-grid">
       <section className="panel panel--wide">
-        <div className="panel-heading"><div><span className="eyebrow">{viewer.mode === "demo" ? "Engine coverage · fictional demo" : "Latest verified answer"}</span><h2>{latestAnswer?.prompt || (viewer.mode === "demo" ? "Presence is uneven by engine." : "Coverage begins after the first approved run.")}</h2></div><Link href={reviewedRuns[0] ? `/app/runs/${reviewedRuns[0].id}` : "/app/runs"}>Inspect run &rarr;</Link></div>
-        {latestAnswer ? <div className="latest-answer"><div><span>{latestAnswer.provider}{latestAnswer.model ? ` · ${latestAnswer.model}` : ""}</span><strong>{latestAnswer.citations.length} cited source{latestAnswer.citations.length === 1 ? "" : "s"} · {latestAnswer.collectedAt}</strong></div><p>{latestAnswer.answer.length > 520 ? `${latestAnswer.answer.slice(0, 519).trimEnd()}…` : latestAnswer.answer}</p></div> : viewer.mode === "demo" ? <div className="engine-list">{engineCoverage.map((row) => <div key={row.engine}><span>{row.engine}</span><div className="bar"><i style={{ width: `${row.presence}%` }} /></div><strong>{row.presence}%</strong><small>+{row.delta}</small></div>)}</div> : <div className="empty-state empty-state--compact"><p>{runs.some((run) => run.status === "review") ? "A collection is waiting for human review before its answer enters the workspace." : "A real provider answer will appear here after collection and human review."}</p></div>}
+        <div className="panel-heading"><div><span className="eyebrow">{viewer.mode === "demo" ? "Engine coverage · fictional demo" : latest?.status === "review" ? "Latest observed answer · awaiting review" : "Latest verified answer"}</span><h2>{latestAnswer?.prompt || (viewer.mode === "demo" ? "Presence is uneven by engine." : "Coverage begins after the first audit.")}</h2></div><Link href={latest ? `/app/runs/${latest.id}` : "/app/runs"}>Inspect run &rarr;</Link></div>
+        {latestAnswer ? <div className="latest-answer"><div><span>{latestAnswer.provider}{latestAnswer.model ? ` · ${latestAnswer.model}` : ""}</span><strong>{latestAnswer.citations.length} cited source{latestAnswer.citations.length === 1 ? "" : "s"} · {latestAnswer.collectedAt}{latest?.status === "review" ? " · unreviewed" : ""}</strong></div><p>{latestAnswer.answer.length > 520 ? `${latestAnswer.answer.slice(0, 519).trimEnd()}…` : latestAnswer.answer}</p></div> : viewer.mode === "demo" ? <div className="engine-list">{engineCoverage.map((row) => <div key={row.engine}><span>{row.engine}</span><div className="bar"><i style={{ width: `${row.presence}%` }} /></div><strong>{row.presence}%</strong><small>+{row.delta}</small></div>)}</div> : <div className="empty-state empty-state--compact"><p>{runs.some((run) => ["queued", "running"].includes(run.status)) ? "Your first audit is running now. Real provider answers will appear here automatically." : "A real provider answer will appear here after the first collection."}</p></div>}
       </section>
       <section className="panel">
         <div className="panel-heading"><div><span className="eyebrow">Evidence review queue</span><h2>{sources.filter((source) => source.crawlerAccess === "unknown").length} cited pages need verification.</h2></div></div>
         {sources.length ? <div className="compact-sources">{sources.slice(0, 4).map((source) => { const evidence = source.sourceId ? sourceContexts[source.sourceId]?.[0] : undefined; return <Link href={`/app/sources/${source.id}`} key={source.id}><span><StatusDot tone={source.crawlerAccess === "unknown" ? "gray" : source.clientPresent ? "green" : "red"} /><strong>{source.domain}</strong></span><small>{evidence ? `${evidence.provider} · citation ${evidence.citationOrdinal || "recorded"}` : source.crawlerAccess === "unknown" ? "Presence not reviewed" : source.route}</small></Link>; })}</div> : <div className="empty-state empty-state--compact"><p>No mapped sources yet.</p></div>}
       </section>
       <section className="panel">
-        <div className="panel-heading"><div><span className="eyebrow">Pipeline</span><h2>Action state, not promises.</h2></div></div>
-        <div className="stage-summary">{["identified", "pitched", "published", "first cited"].map((stage) => <div key={stage}><strong>{placements.filter((placement) => placement.stage === stage).length}</strong><span>{stage}</span></div>)}</div>
-        <Link className="text-link" href="/app/placements">Open the Action Tracker <Arrow /></Link>
+        <div className="panel-heading"><div><span className="eyebrow">Top priority gaps</span><h2>{priorityGaps.length ? "Pages to inspect first." : "No evidence-backed gaps yet."}</h2></div></div>
+        {priorityGaps.length ? <div className="compact-sources">{priorityGaps.map((source) => <Link href={`/app/sources/${source.id}`} key={source.id}><span><StatusDot tone="red" /><strong>{source.domain}</strong></span><small>{source.competitors.join(", ")} present · your brand absent</small></Link>)}</div> : <div className="empty-state empty-state--compact"><p>{latest ? "Foremention found citations, but none yet passed the automatic competitor-present and brand-absent check." : "Your first audit will create this list automatically."}</p></div>}
+        <Link className="text-link" href="/app/opportunities">Open Priority Gaps <Arrow /></Link>
       </section>
     </div>
   </main>;
