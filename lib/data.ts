@@ -39,6 +39,20 @@ type AgentJobRow = {
 };
 
 export type WorkspacePrompt = { id: string; cluster: string; text: string; approved: boolean };
+export type CompetitorTracking = {
+  id: string;
+  name: string;
+  website: string | null;
+  type: "direct" | "leader" | "challenger" | "substitute";
+  active: boolean;
+  answerMentions: number;
+  totalAnswers: number;
+  mentionFrequencyPct: number | null;
+  reviewedCitationPages: number;
+  sourceOverlap: number;
+  trendPoints: Array<{ runId: string; date: string; frequencyPct: number }>;
+  trendDelta: number | null;
+};
 export type WorkspaceSummary = { organizationId: string; organizationName: string; website: string | null; category: string | null; promptCount: number };
 export type WorkspaceContext = {
   organizationId: string;
@@ -609,6 +623,39 @@ export async function loadWorkspaceCompetitors(viewer: Viewer): Promise<string[]
     { token: viewer.accessToken },
   );
   return rows.map((row) => row.name).filter(Boolean);
+}
+
+export async function loadCompetitorTracking(viewer: Viewer): Promise<CompetitorTracking[]> {
+  if (viewer.mode === "demo") return [
+    { id: "demo-competitor-1", name: "Deel", website: "https://deel.example", type: "direct", active: true, answerMentions: 3, totalAnswers: 4, mentionFrequencyPct: 75, reviewedCitationPages: 2, sourceOverlap: 1, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 75 }], trendDelta: 25 },
+    { id: "demo-competitor-2", name: "Rippling", website: "https://rippling.example", type: "leader", active: true, answerMentions: 2, totalAnswers: 4, mentionFrequencyPct: 50, reviewedCitationPages: 1, sourceOverlap: 0, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 50 }], trendDelta: 0 },
+  ];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const [competitors, runs, entries] = await Promise.all([
+    supabaseRest<Array<{ id: string; name: string; website: string | null; competitor_type: CompetitorTracking["type"]; active: boolean }>>(`competitors?select=id,name,website,competitor_type,active&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.asc&limit=100`, { token: viewer.accessToken }),
+    supabaseRest<Array<{ id: string; created_at: string }>>(`runs?select=id,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(review,complete,partial)&order=created_at.asc&limit=50`, { token: viewer.accessToken }),
+    loadSourceMap(viewer),
+  ]);
+  const runIds = runs.map((run) => run.id);
+  const answers = runIds.length ? await supabaseRest<Array<{ run_id: string; answer_text: string }>>(`run_answers?select=run_id,answer_text&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&limit=2000`, { token: viewer.accessToken }) : [];
+  return competitors.map((competitor) => {
+    const normalizedName = competitor.name.toLocaleLowerCase();
+    const mentions = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(normalizedName));
+    const trendPoints = runs.map((run) => {
+      const runAnswers = answers.filter((answer) => answer.run_id === run.id);
+      const runMentions = runAnswers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(normalizedName)).length;
+      return { runId: run.id, date: dateLabel(run.created_at), frequencyPct: runAnswers.length ? Math.round((runMentions / runAnswers.length) * 100) : 0 };
+    });
+    const reviewedPages = entries.filter((entry) => entry.crawlerAccess !== "unknown" && entry.competitors.some((name) => name.toLocaleLowerCase() === normalizedName));
+    return {
+      id: competitor.id, name: competitor.name, website: competitor.website, type: competitor.competitor_type, active: competitor.active,
+      answerMentions: mentions.length, totalAnswers: answers.length, mentionFrequencyPct: answers.length ? Math.round((mentions.length / answers.length) * 100) : null,
+      reviewedCitationPages: reviewedPages.length, sourceOverlap: reviewedPages.filter((entry) => entry.clientPresent).length,
+      trendPoints,
+      trendDelta: trendPoints.length > 1 ? trendPoints.at(-1)!.frequencyPct - trendPoints.at(-2)!.frequencyPct : null,
+    };
+  });
 }
 
 export async function loadWorkspaceSummary(viewer: Viewer): Promise<WorkspaceSummary | null> {

@@ -348,6 +348,17 @@ textarea { resize: vertical; }
 .run-diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
 .run-diff-grid ul { padding-left: 18px; }
 .run-diff-grid li, .run-diff-grid p { margin: 8px 0; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.competitor-add { display: grid; grid-template-columns: 1.2fr .8fr 1fr .7fr auto; gap: 14px; align-items: end; margin-bottom: 18px; }
+.competitor-add label { font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.competitor-add input,.competitor-add select { width: 100%; display: block; margin-top: 7px; padding: 10px; border: 1px solid var(--line); border-radius: 0; background: #fff; color: var(--ink); font: inherit; font-size: 10px; text-transform: none; }
+.competitor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.competitor-card__head { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+.competitor-card__head h2 { margin: 6px 0; font-size: 28px; }
+.competitor-grid dl { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 18px 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.competitor-grid dl div { padding: 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.competitor-grid dt { min-height: 22px; color: var(--muted); font-size: 7px; text-transform: uppercase; }
+.competitor-grid dd { margin: 7px 0 0; font-size: 20px; }
+.competitor-grid article > small { display: block; margin-bottom: 14px; color: var(--muted); line-height: 1.55; }
 .run-cost-breakdown { margin-bottom: 18px; }
 .run-cost-metrics { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
 .run-cost-metrics > div { padding: 18px; border-right: 1px solid var(--ink); }
@@ -2181,7 +2192,8 @@ textarea { resize: vertical; }
   .run-cost-metrics > div:nth-child(2) { border-right: 0; }
   .run-cost-metrics > div:nth-child(-n+2) { border-bottom: 1px solid var(--ink); }
   .run-cost-providers article { grid-template-columns: 1fr; }
-  .run-comparison-selector, .run-diff-grid { grid-template-columns: 1fr; }
+  .run-comparison-selector, .run-diff-grid, .competitor-add, .competitor-grid { grid-template-columns: 1fr; }
+  .competitor-grid dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .run-comparison-metrics { grid-template-columns: 1fr 1fr; }
   .run-comparison-metrics article:nth-child(2) { border-right: 0; }
   .run-comparison-metrics article:nth-child(-n+2) { border-bottom: 1px solid var(--ink); }

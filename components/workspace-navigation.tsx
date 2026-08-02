@@ -15,6 +15,7 @@ const nav = [
   ["/app/runs", "Answer runs"],
   ["/app/agents", "Agent Control Plane"],
   ["/app/source-map", "Source Map"],
+  ["/app/competitors", "Competitors"],
   ["/app/decision-lab", "Decision Lab"],
   ["/app/opportunities", "Priority gaps"],
   ["/app/placements", "Action tracker"],
