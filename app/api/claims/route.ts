@@ -19,17 +19,19 @@ export async function POST(request: Request) {
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.json().catch(() => ({})) as {
     evidenceItemId?: string;
+    evidenceItemIds?: string[];
     claimText?: string;
     approvedWording?: string;
     limitations?: string;
     publicUse?: boolean;
   };
-  const evidenceItemId = clean(body.evidenceItemId, 36);
+  const evidenceItemIds = Array.from(new Set((Array.isArray(body.evidenceItemIds) ? body.evidenceItemIds : [body.evidenceItemId]).map((value) => clean(value, 36)).filter(validId))).slice(0, 10);
+  const evidenceItemId = evidenceItemIds[0] || "";
   const claimText = clean(body.claimText, 600);
   const approvedWording = clean(body.approvedWording, 600);
   const limitations = clean(body.limitations, 1000);
   const publicUse = body.publicUse === true;
-  if (!validId(evidenceItemId) || claimText.length < 8 || approvedWording.length < 8 || limitations.length < 3) {
+  if (!evidenceItemIds.length || claimText.length < 8 || approvedWording.length < 8 || limitations.length < 3) {
     return NextResponse.json({ error: "Choose verified evidence and record the observed claim, approved wording, and limitations." }, { status: 400 });
   }
   if (viewer.mode === "demo") {
@@ -49,13 +51,14 @@ export async function POST(request: Request) {
     verification_status: string;
     expires_at: string | null;
   }>>(
-    `evidence_items?select=id,title,source_url,usage_rights,verification_status,expires_at&id=eq.${encodeURIComponent(evidenceItemId)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+    `evidence_items?select=id,title,source_url,usage_rights,verification_status,expires_at&id=in.(${evidenceItemIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=10`,
     { token: viewer.accessToken },
   );
-  const item = evidence[0];
-  const expired = Boolean(item?.expires_at && new Date(item.expires_at).getTime() <= Date.now());
-  if (!item || item.verification_status !== "verified" || !item.source_url || !item.usage_rights?.trim() || (publicUse && expired)) {
-    return NextResponse.json({ error: "This claim needs a verified evidence item with a source URL and usage rights." }, { status: 409 });
+  const item = evidence.find((entry) => entry.id === evidenceItemId);
+  const expired = evidence.some((entry) => Boolean(entry.expires_at && new Date(entry.expires_at).getTime() <= Date.now()));
+  const invalidEvidence = evidence.length !== evidenceItemIds.length || evidence.some((entry) => entry.verification_status !== "verified" || !entry.source_url || !entry.usage_rights?.trim()) || (publicUse && expired);
+  if (!item || invalidEvidence) {
+    return NextResponse.json({ error: "Every selected item must be verified evidence from this workspace with a source URL and usage rights." }, { status: 409 });
   }
   const verifiedAt = new Date().toISOString();
   const rows = await supabaseRest<Array<{ id: string } & Record<string, unknown>>>("verified_claims", {
@@ -76,6 +79,17 @@ export async function POST(request: Request) {
     },
   });
   if (!rows[0]?.id) return NextResponse.json({ error: "The claim could not be persisted." }, { status: 502 });
+  try {
+    await supabaseRest("verified_claim_evidence", {
+      method: "POST",
+      token: viewer.accessToken,
+      prefer: "return=minimal",
+      body: evidence.map((entry) => ({ organization_id: context.organizationId, claim_id: rows[0].id, evidence_item_id: entry.id })),
+    });
+  } catch {
+    await supabaseRest(`verified_claims?id=eq.${rows[0].id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "DELETE", token: viewer.accessToken });
+    return NextResponse.json({ error: "The evidence links could not be persisted, so the claim was not saved." }, { status: 502 });
+  }
   await supabaseRest("audit_logs", {
     method: "POST",
     token: viewer.accessToken,
@@ -86,10 +100,37 @@ export async function POST(request: Request) {
       action: "claim.approved",
       entity_type: "verified_claim",
       entity_id: rows[0]?.id,
-      after_state: { evidence_item_id: item.id, public_use: publicUse },
+      after_state: { evidence_item_ids: evidenceItemIds, public_use: publicUse },
     },
   });
   return NextResponse.json({ data: { ...rows[0], evidenceTitle: item.title, evidenceUrl: item.source_url } }, { status: 201 });
+}
+
+export async function PUT(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  const viewer = await getViewer();
+  if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = await request.json().catch(() => ({})) as { evidenceItemIds?: string[] };
+  const evidenceItemIds = Array.from(new Set((body.evidenceItemIds || []).map((value) => clean(value, 36)).filter(validId))).slice(0, 10);
+  if (!evidenceItemIds.length) return NextResponse.json({ error: "Select at least one verified evidence item." }, { status: 400 });
+  if (viewer.mode === "demo") return NextResponse.json({ data: { claimText: "Northstar HR maintains verified supporting evidence for its security review.", approvedWording: "Documented security evidence is available for review.", limitations: "Fictional demonstration draft; no real company claim is made." } });
+  const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
+  if (!context || !role) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+  if (role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can draft claims." }, { status: 403 });
+  const evidence = await supabaseRest<Array<{ id: string; title: string; source_url: string | null; usage_rights: string | null; verification_status: string }>>(
+    `evidence_items?select=id,title,source_url,usage_rights,verification_status&id=in.(${evidenceItemIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=10`,
+    { token: viewer.accessToken },
+  );
+  if (evidence.length !== evidenceItemIds.length || evidence.some((entry) => entry.verification_status !== "verified" || !entry.source_url || !entry.usage_rights?.trim())) {
+    return NextResponse.json({ error: "A draft can use only verified, linkable evidence from this workspace." }, { status: 409 });
+  }
+  const titles = evidence.map((entry) => entry.title.replace(/[.!?]+$/g, "")).filter(Boolean);
+  const subject = titles.length === 1 ? titles[0] : `${titles.slice(0, -1).join(", ")} and ${titles.at(-1)}`;
+  return NextResponse.json({ data: {
+    claimText: `The company maintains verified supporting evidence for ${subject}.`,
+    approvedWording: `Documented evidence is available for ${subject}.`,
+    limitations: "This draft states only that verified supporting evidence is on file. Review every linked source, its date, scope, and usage rights before publication.",
+  } });
 }
 
 export async function PATCH(request: Request) {

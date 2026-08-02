@@ -64,6 +64,7 @@ export type VerifiedClaim = {
   evidenceItemId: string | null;
   evidenceTitle: string | null;
   evidenceUrl: string | null;
+  evidenceItems?: Array<{ id: string; title: string; url: string | null }>;
   claimText: string;
   approvedWording: string;
   limitations: string | null;
@@ -492,11 +493,20 @@ export async function loadVerifiedClaims(viewer: Viewer): Promise<VerifiedClaim[
     `verified_claims?select=id,evidence_item_id,claim_text,approved_wording,limitations,public_use,verified_at,expires_at,evidence:evidence_items(title,source_url)&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`,
     { token: viewer.accessToken },
   );
+  const links = rows.length ? await supabaseRest<Array<{
+    claim_id: string;
+    evidence_item_id: string;
+    evidence: { title: string; source_url: string | null } | null;
+  }>>(
+    `verified_claim_evidence?select=claim_id,evidence_item_id,evidence:evidence_items(title,source_url)&organization_id=eq.${context.organizationId}&claim_id=in.(${rows.map((row) => row.id).join(",")})`,
+    { token: viewer.accessToken },
+  ) : [];
   return rows.map((row) => ({
     id: row.id,
     evidenceItemId: row.evidence_item_id,
     evidenceTitle: row.evidence?.title || null,
     evidenceUrl: row.evidence?.source_url || null,
+    evidenceItems: links.filter((link) => link.claim_id === row.id).map((link) => ({ id: link.evidence_item_id, title: link.evidence?.title || "Linked evidence", url: link.evidence?.source_url || null })),
     claimText: row.claim_text,
     approvedWording: row.approved_wording,
     limitations: row.limitations,
