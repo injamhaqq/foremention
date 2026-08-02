@@ -362,6 +362,17 @@ textarea { resize: vertical; }
 .source-credibility h2 { margin: 10px 0; font-size: clamp(25px, 3vw, 42px); }
 .source-credibility p, .source-credibility li { font-size: 10px; line-height: 1.55; }
 .source-credibility ul { margin: 10px 0 0; padding-left: 18px; }
+.source-clusters { display: grid; grid-template-columns: .8fr 2fr; gap: 20px; padding: 22px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: var(--paper); }
+.source-clusters > div:first-child h2 { margin: 10px 0; font-size: 25px; }
+.source-clusters > div:first-child p { color: var(--muted); font-size: 9px; line-height: 1.5; }
+.source-clusters > div:last-child { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--ink); }
+.source-clusters article { min-height: 130px; padding: 16px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.source-clusters article:nth-child(3n) { border-right: 0; }
+.source-clusters article span, .source-clusters article strong, .source-clusters article small, .source-clusters article a { display: block; }
+.source-clusters article span { font-size: 8px; text-transform: uppercase; }
+.source-clusters article strong { margin: 18px 0 7px; font-size: 21px; }
+.source-clusters article small, .source-clusters article a { font-size: 8px; line-height: 1.45; }
+.source-clusters article a { margin-top: 12px; font-weight: 700; }
 .workspace { padding: 44px 36px 80px; }
 .workspace-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 34px; }
 .workspace-heading .eyebrow { margin-bottom: 13px; }
@@ -2147,6 +2158,9 @@ textarea { resize: vertical; }
 }
 
 @media (max-width: 640px) {
+  .source-clusters { grid-template-columns: 1fr; }
+  .source-clusters > div:last-child { grid-template-columns: 1fr; }
+  .source-clusters article, .source-clusters article:nth-child(3n) { border-right: 0; }
   .source-credibility { grid-template-columns: 1fr; }
   .run-cost-metrics { grid-template-columns: 1fr 1fr; }
   .run-cost-metrics > div:nth-child(2) { border-right: 0; }
