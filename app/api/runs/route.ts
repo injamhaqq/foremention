@@ -94,6 +94,14 @@ export async function POST(request: Request) {
   if (prompts.length !== requested.size) {
     return NextResponse.json({ error: "Every selected buyer question must be active in your workspace." }, { status: 403 });
   }
+  const activeRequestKey = `${providerId}:${prompts.map((prompt) => prompt.promptId).sort().join(",")}`;
+  const activeDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
+    `runs?select=id,status&organization_id=eq.${context.organizationId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
+    { token: viewer.accessToken },
+  );
+  if (activeDuplicate[0]) {
+    return NextResponse.json({ id: activeDuplicate[0].id, status: activeDuplicate[0].status, duplicate: true }, { status: 202 });
+  }
 
   const configured = new Set(
     getProviderStatuses().filter((provider) => provider.configured).map((provider) => provider.id),
@@ -150,6 +158,7 @@ export async function POST(request: Request) {
         requested_units: requestedUnits,
         estimated_max_cost_usd: estimatedMaximumCost,
         idempotency_key: idempotencyKey,
+        active_request_key: activeRequestKey,
         methodology_version: "3.0",
         created_by: viewer.id,
       },
@@ -193,6 +202,13 @@ export async function POST(request: Request) {
     ).catch(() => []);
     if (concurrentDuplicate[0] && concurrentDuplicate[0].id !== runId) {
       return NextResponse.json({ id: concurrentDuplicate[0].id, status: concurrentDuplicate[0].status, duplicate: true }, { status: 202 });
+    }
+    const concurrentActiveDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
+      `runs?select=id,status&organization_id=eq.${context.organizationId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
+      { token: viewer.accessToken },
+    ).catch(() => []);
+    if (concurrentActiveDuplicate[0] && concurrentActiveDuplicate[0].id !== runId) {
+      return NextResponse.json({ id: concurrentActiveDuplicate[0].id, status: concurrentActiveDuplicate[0].status, duplicate: true }, { status: 202 });
     }
     if (quotaReserved) {
       await supabaseRest("rpc/release_queued_run", {

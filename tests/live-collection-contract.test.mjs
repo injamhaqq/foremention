@@ -56,6 +56,20 @@ test("Groq has fixed pre-call run and organization spend ceilings without prompt
   assert.match(adapter, /Provider messages are intentionally excluded/);
 });
 
+test("active collection requests reuse the existing run across different client idempotency keys", async () => {
+  const [route, migration] = await Promise.all([
+    text("app/api/runs/route.ts"),
+    text("supabase/migrations/20260802000100_active_run_duplicate_prevention.sql"),
+  ]);
+  assert.match(route, /activeRequestKey = `\$\{providerId\}:\$\{prompts\.map/);
+  assert.match(route, /active_request_key=eq/);
+  assert.match(route, /status=in\.\(queued,running\)/);
+  assert.match(route, /active_request_key: activeRequestKey/);
+  assert.match(route, /concurrentActiveDuplicate/);
+  assert.match(migration, /unique index if not exists runs_organization_active_request_idx/);
+  assert.match(migration, /status in \('queued', 'running'\)/);
+});
+
 test("successful empty Supabase write responses are not treated as failures", async () => {
   const source = await readFile(new URL("../lib/supabase-rest.ts", import.meta.url), "utf8");
   assert.match(source, /const responseText = await response\.text\(\)/);
