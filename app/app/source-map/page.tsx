@@ -17,7 +17,7 @@ export default async function SourceMapPage() {
   const reviewCompletion = entries.length ? Math.round(((entries.length - unreviewed) / entries.length) * 100) : 0;
   return <main className="workspace">
     {viewer.mode !== "demo" && <ProductEventOnView event="source_map_opened" />}
-    <div className="workspace-heading"><div><span className="eyebrow">Evidence graph</span><h1>Source Map</h1><p>The dated pages cited in answers about {category}. Citation observation is automatic; page-level brand presence stays unreviewed until checked.</p></div><Link className="button button--ink" href="/api/export/source-map">Export evidence &darr;</Link></div>
+    <div className="workspace-heading"><div><span className="eyebrow">Evidence graph</span><h1>Source Map</h1><p>The dated pages cited in answers about {category}. Citation observation is automatic; page-level brand presence stays unreviewed until checked.</p></div><Link className="button button--ink" data-workspace-export href="/api/export/source-map">Export evidence &darr;</Link></div>
     <section className="panel panel--flush">
       <div className="map-summary"><div><strong>{entries.length}</strong><span>mapped URLs</span></div><div><strong>{observations}</strong><span>citation observations</span></div><div><strong>{reviewedGaps}</strong><span>confirmed source gaps</span></div><div><strong>{unreviewed}</strong><span>pages awaiting review</span></div></div>
       {entries.length ? <>

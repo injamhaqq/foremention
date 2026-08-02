@@ -56,7 +56,7 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
       <label className="source-review-wide">Competitors actually present<textarea value={competitors} onChange={(event) => setCompetitors(event.target.value)} rows={4} placeholder={"Competitor one\nCompetitor two"} /></label>
       <label className="source-review-wide">Review note<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="What was verified, what remains uncertain, and what evidence would make this actionable?" /></label>
     </div>
-    <div className="source-review-actions"><small>{canEdit ? "Saving this review changes gap status and records the reviewer, time, before-state, and after-state." : "Viewer access is read-only. An owner, admin, or analyst can save this review."}</small><button className="button button--ink" type="submit" disabled={busy || !canEdit || crawlerAccess === "unknown" || route === "unknown"}>{busy ? "Saving..." : crawlerAccess === "unknown" || route === "unknown" ? "Complete required review" : "Save reviewed source"}</button></div>
+    <div className="source-review-actions"><small>{canEdit ? "Saving this review changes gap status and records the reviewer, time, before-state, and after-state." : "Viewer access is read-only. An owner, admin, or analyst can save this review."}</small><button className="button button--ink" data-workspace-review type="submit" disabled={busy || !canEdit || crawlerAccess === "unknown" || route === "unknown"}>{busy ? "Saving..." : crawlerAccess === "unknown" || route === "unknown" ? "Complete required review" : "Save reviewed source"}</button></div>
     {message && <p className="inline-notice" role="status">{message}</p>}
   </form>;
 }

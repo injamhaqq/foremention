@@ -1,9 +1,11 @@
 import { Wordmark } from "@/components/brand";
 import { WorkspaceMobileNavigation, WorkspaceSidebar } from "@/components/workspace-navigation";
+import { WorkspaceKeyboardShortcuts } from "@/components/workspace-keyboard-shortcuts";
 import type { Viewer } from "@/lib/auth";
 
 export function AppShell({ viewer, workspaceName, children }: { viewer: Viewer; workspaceName?: string; children: React.ReactNode }) {
   return <div className="app-frame">
+    <WorkspaceKeyboardShortcuts />
     <WorkspaceSidebar viewer={viewer} workspaceName={workspaceName} />
     <div className="app-main">
       <header className="app-topbar">
