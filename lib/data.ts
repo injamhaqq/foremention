@@ -53,6 +53,16 @@ export type CompetitorTracking = {
   trendPoints: Array<{ runId: string; date: string; frequencyPct: number }>;
   trendDelta: number | null;
 };
+export type QuestionPerformance = {
+  key: string;
+  question: string;
+  answerCount: number;
+  runCount: number;
+  citationCount: number;
+  citedAnswerPct: number;
+  brandMentionCount: number;
+  guidance: "Needs repeat" | "High evidence yield" | "Keep as baseline" | "Low observed yield";
+};
 export type WorkspaceSummary = { organizationId: string; organizationName: string; website: string | null; category: string | null; promptCount: number };
 export type WorkspaceContext = {
   organizationId: string;
@@ -656,6 +666,29 @@ export async function loadCompetitorTracking(viewer: Viewer): Promise<Competitor
       trendDelta: trendPoints.length > 1 ? trendPoints.at(-1)!.frequencyPct - trendPoints.at(-2)!.frequencyPct : null,
     };
   });
+}
+
+export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionPerformance[]> {
+  if (viewer.mode === "demo") return [
+    { key: "discovery", question: "Best HR software for distributed teams", answerCount: 4, runCount: 2, citationCount: 9, citedAnswerPct: 100, brandMentionCount: 2, guidance: "High evidence yield" },
+    { key: "trust", question: "Most reliable HRIS for cross-border compliance", answerCount: 2, runCount: 1, citationCount: 3, citedAnswerPct: 100, brandMentionCount: 0, guidance: "Needs repeat" },
+  ];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null }>>(
+    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json&organization_id=eq.${context.organizationId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
+    { token: viewer.accessToken },
+  );
+  const groups = new Map<string, typeof rows>();
+  for (const row of rows) groups.set(row.prompt_key, [...(groups.get(row.prompt_key) || []), row]);
+  return Array.from(groups.entries()).map(([key, answers]) => {
+    const citationCount = answers.reduce((sum, answer) => sum + (answer.citations_json || []).filter((citation) => Boolean(citation.url)).length, 0);
+    const citedAnswers = answers.filter((answer) => (answer.citations_json || []).some((citation) => Boolean(citation.url))).length;
+    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.organizationName.toLocaleLowerCase())).length;
+    const runCount = new Set(answers.map((answer) => answer.run_id)).size;
+    const guidance: QuestionPerformance["guidance"] = runCount < 2 ? "Needs repeat" : citationCount >= answers.length && brandMentionCount > 0 ? "High evidence yield" : citationCount > 0 ? "Keep as baseline" : "Low observed yield";
+    return { key, question: answers[0]?.prompt_text || key, answerCount: answers.length, runCount, citationCount, citedAnswerPct: answers.length ? Math.round((citedAnswers / answers.length) * 100) : 0, brandMentionCount, guidance };
+  }).sort((left, right) => right.citationCount - left.citationCount || right.brandMentionCount - left.brandMentionCount || left.question.localeCompare(right.question));
 }
 
 export async function loadWorkspaceSummary(viewer: Viewer): Promise<WorkspaceSummary | null> {

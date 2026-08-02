@@ -364,6 +364,11 @@ textarea { resize: vertical; }
 .brand-mention-context article { margin: 0 0 10px; padding: 10px; border-left: 3px solid var(--mint); background: #fff; }
 .brand-mention-context article strong,.brand-mention-context article p { display: block; margin: 0 0 6px; font-size: 10px; line-height: 1.55; }
 .brand-mention-context article p { color: var(--muted); }
+.question-performance { margin-top: 18px; }
+.question-performance__table { overflow-x: auto; }
+.question-performance__row { display: grid; grid-template-columns: minmax(280px, 2fr) repeat(5, minmax(80px, .6fr)); min-width: 760px; border-top: 1px solid var(--line); }
+.question-performance__row > * { padding: 12px; border-right: 1px solid var(--line); font-size: 9px; line-height: 1.45; }
+.question-performance__head { background: var(--mint-soft); text-transform: uppercase; }
 .run-cost-breakdown { margin-bottom: 18px; }
 .run-cost-metrics { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
 .run-cost-metrics > div { padding: 18px; border-right: 1px solid var(--ink); }
