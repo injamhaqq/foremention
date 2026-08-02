@@ -33,7 +33,13 @@ interface Env {
   DB?: D1Database;
   SENTRY_DSN?: string;
   SENTRY_ENVIRONMENT?: string;
+  NEXT_PUBLIC_SUPABASE_URL?: string;
+  NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
   GROQ_API_KEY?: string;
+  GEMINI_API_KEY?: string;
+  OPENROUTER_API_KEY?: string;
+  INNGEST_EVENT_KEY?: string;
+  INNGEST_SIGNING_KEY?: string;
   GROQ_MODEL?: string;
   GROQ_MODEL_VERSION?: string;
   GROQ_REQUEST_COST_USD?: string;
@@ -144,6 +150,24 @@ async function enforcePublicRouteLimit(request: Request, env: Env, pathname: str
   // Deliberately contains no IP address, fingerprint, prompt, brand, or other customer input.
   console.warn(JSON.stringify({ event: "public_rate_limit_hit", endpoint: rule.endpoint }));
   return Response.json({ error: "This public tool has reached its temporary request limit. Please try again later." }, { status: 429 });
+}
+
+async function handleHealth(env: Env) {
+  const d1 = env.DB
+    ? env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>().then((row) => row?.ok === 1 ? "reachable" : "unavailable").catch(() => "unavailable")
+    : Promise.resolve("not_configured");
+  const supabase = env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ? fetch(`${env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "")}/rest/v1/`, { headers: { apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY }, signal: AbortSignal.timeout(3_000) }).then((response) => response.ok ? "reachable" : "unavailable").catch(() => "unavailable")
+    : Promise.resolve("not_configured");
+  const [d1Status, supabaseStatus] = await Promise.all([d1, supabase]);
+  const inngestStatus = env.INNGEST_EVENT_KEY && env.INNGEST_SIGNING_KEY ? "configured_not_probed" : "not_configured";
+  const providers = {
+    gemini: env.GEMINI_API_KEY ? "configured_not_probed" : "not_configured",
+    groq: env.GROQ_API_KEY ? "configured_not_probed" : "not_configured",
+    openrouter: env.OPENROUTER_API_KEY ? "configured_not_probed" : "not_configured",
+  };
+  const status = d1Status === "reachable" && supabaseStatus === "reachable" ? "ok" : "degraded";
+  return Response.json({ status, worker: "reachable", d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. No credentials, customer data, prompts, or provider responses are included." }, { status: status === "ok" ? 200 : 503 });
 }
 
 function scoreQuestions(category: string) {
@@ -297,6 +321,8 @@ const worker = {
       return secured;
     };
     logOperationalEvent("request_started", { correlationId, route: url.pathname, method: request.method });
+
+    if (url.pathname === "/api/health" && request.method === "GET") return complete(await handleHealth(env));
 
     const publicRateLimited = await enforcePublicRouteLimit(correlatedRequest, env, url.pathname);
     if (publicRateLimited) return complete(publicRateLimited);
