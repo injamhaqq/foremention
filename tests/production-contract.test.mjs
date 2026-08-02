@@ -566,7 +566,11 @@ test("Resend application alerts are server-only, bounded, and separate from auth
   assert.match(email, /Supabase\/Zoho owns confirmation and password-recovery delivery/);
   assert.match(email, /slice\(0, 160\)/);
   assert.match(email, /slice\(0, 20_000\)/);
+  assert.match(email, /sendWelcomeEmail/);
+  assert.match(signup, /sendWelcomeEmail/);
+  assert.match(signup, /delivery_failed/);
   assert.doesNotMatch(`${signup}\n${forgot}`, /RESEND_API_KEY|sendProductAlertEmail/);
+  assert.doesNotMatch(forgot, /sendWelcomeEmail/);
 });
 
 test("real collection events create tenant-scoped, idempotent in-app alerts", async () => {

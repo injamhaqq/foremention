@@ -1,5 +1,18 @@
 import { NextResponse } from "next/server";
+import { getApplicationEmailStatus, sendWelcomeEmail } from "@/lib/application-email";
 import { supabaseAuth } from "@/lib/supabase-rest";
+
+async function attemptWelcomeEmail(email: string, origin: string) {
+  if (!getApplicationEmailStatus().available) return "not_configured" as const;
+  try {
+    await sendWelcomeEmail(email, origin);
+    return "sent" as const;
+  } catch {
+    // Welcome delivery is deliberately best-effort. Authentication and account
+    // creation must not fail because the separate product-email provider is down.
+    return "delivery_failed" as const;
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -37,11 +50,13 @@ export async function POST(request: Request) {
         error: "An account already exists with this email.",
       }, { status: 409 });
     }
+    const welcomeEmail = await attemptWelcomeEmail(normalizedEmail, origin);
     const token = String(data.access_token || "");
     if (!token) return NextResponse.json({
       ok: true,
       session: false,
       email: normalizedEmail,
+      welcome_email: welcomeEmail,
       message: "We sent a confirmation link from Foremention to your email.",
     });
     // Signup and sign-in remain separate journeys. Some Supabase projects
@@ -52,6 +67,7 @@ export async function POST(request: Request) {
       session: false,
       account_help: true,
       email: normalizedEmail,
+      welcome_email: welcomeEmail,
       message: "Your account is ready. Sign in to continue to your workspace.",
     });
   } catch (error) {

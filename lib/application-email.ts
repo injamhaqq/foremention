@@ -52,3 +52,20 @@ export async function sendProductAlertEmail(input: ProductAlertEmail) {
   if (!result.id) throw new Error("Application email provider returned no delivery identifier.");
   return { id: result.id };
 }
+
+export async function sendWelcomeEmail(to: string, siteUrl: string) {
+  const workspaceUrl = new URL("/app", siteUrl).toString();
+  return sendProductAlertEmail({
+    to,
+    subject: "Welcome to Foremention",
+    text: [
+      "Welcome to Foremention.",
+      "",
+      "Foremention maps how your company appears in AI recommendations, preserves the exact answers and returned citations, and turns reviewed evidence into a Source Map and prioritized next actions.",
+      "",
+      "After confirming your account, complete the guided setup with your website, category, competitors, and buyer questions. Your first connected-provider audit will run in the background and will never be replaced with invented evidence.",
+      "",
+      `Return to your workspace: ${workspaceUrl}`,
+    ].join("\n"),
+  });
+}
