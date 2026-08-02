@@ -167,6 +167,24 @@ async function handleVisibilityScore(request: Request, env: Env) {
   return Response.json({ data: result }, { status: 201 });
 }
 
+async function handlePromptCoverage(request: Request, env: Env) {
+  if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+  const limited = await publicRateLimit(request, env, "prompt-check", 5, 24 * 60 * 60 * 1000);
+  if (!limited.configured) return Response.json({ error: "The public prompt check is not configured safely yet." }, { status: 503 });
+  if (!limited.allowed) return Response.json({ error: "Daily prompt-check limit reached. Try again tomorrow." }, { status: 429 });
+  if (!env.GROQ_API_KEY || !env.GROQ_MODEL) return Response.json({ error: "The live prompt provider is temporarily unavailable." }, { status: 503 });
+  const estimatedRequestCost = Number(env.GROQ_REQUEST_COST_USD || "0"); const maxCost = Number(env.PUBLIC_TOOL_MAX_REQUEST_COST_USD || "0.04");
+  if (!Number.isFinite(estimatedRequestCost) || !Number.isFinite(maxCost) || estimatedRequestCost > maxCost) return Response.json({ error: "The public tool cost ceiling prevents this request." }, { status: 503 });
+  const body = await request.json().catch(() => null) as { brand?: string; question?: string } | null; const brand = String(body?.brand || "").trim(); const question = String(body?.question || "").trim();
+  if (brand.length < 2 || brand.length > 80 || question.length < 8 || question.length > 500) return Response.json({ error: "Enter a brand and one complete buyer question." }, { status: 400 });
+  const provider = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { authorization: `Bearer ${env.GROQ_API_KEY}`, "content-type": "application/json", "Groq-Model-Version": env.GROQ_MODEL_VERSION || "2025-07-23" }, body: JSON.stringify({ model: env.GROQ_MODEL, compound_custom: { tools: { enabled_tools: ["web_search"] } }, messages: [{ role: "system", content: "Use web search. Answer this buyer question directly, preserve uncertainty, and do not invent companies, claims, or URLs." }, { role: "user", content: question }], max_completion_tokens: 1000 }), signal: AbortSignal.timeout(25_000) });
+  const raw = await provider.json().catch(() => null) as { model?: string; choices?: Array<{ message?: { content?: string; executed_tools?: Array<{ search_results?: { results?: Array<{ url?: string; title?: string }> } }> } }> } | null; const answer = raw?.choices?.[0]?.message?.content || "";
+  if (!provider.ok || !answer) return Response.json({ error: "The live provider did not complete the check. No result was invented." }, { status: 502 });
+  const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); const appeared = new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i").test(answer);
+  const citations = Array.from(new Map((raw?.choices?.[0]?.message?.executed_tools || []).flatMap((tool) => tool.search_results?.results || []).filter((item) => item.url).map((item) => [item.url, { url: item.url, title: item.title || null }])).values()).slice(0, 20);
+  return Response.json({ data: { brand, question, appeared, answer, citations, provider: "Groq", model: raw?.model || env.GROQ_MODEL, observedAt: new Date().toISOString(), methodology: "One dated provider answer. Presence does not establish ranking, buyer behavior, or future visibility." } });
+}
+
 async function handleSourceGapRequest(request: Request, env: Env) {
   if (!env.DB) return null;
   const contentType = request.headers.get("content-type") || "";
@@ -243,6 +261,10 @@ const worker = {
 
     if (url.pathname === "/api/public/score" && (request.method === "GET" || request.method === "POST")) {
       return secureResponse(await handleVisibilityScore(request, env), url);
+    }
+
+    if (url.pathname === "/api/public/prompt-check" && request.method === "POST") {
+      return secureResponse(await handlePromptCoverage(request, env), url);
     }
 
     if (url.pathname === "/_vinext/image") {
