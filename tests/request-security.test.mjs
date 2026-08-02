@@ -65,7 +65,7 @@ test("every authenticated workspace mutation uses the origin guard", async () =>
   ];
   for (const route of routes) {
     const source = await readFile(new URL(route, root), "utf8");
-    const mutationCount = [...source.matchAll(/export async function (?:POST|PATCH|DELETE)\(/g)].length;
+    const mutationCount = [...source.matchAll(/export async function (?:POST|PUT|PATCH|DELETE)\(/g)].length;
     const guardCount = [...source.matchAll(/if \(!isTrustedMutationOrigin\(request\)\)/g)].length;
     assert.equal(guardCount, mutationCount, `${route} must guard every mutation`);
   }
