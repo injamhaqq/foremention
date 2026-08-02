@@ -1,6 +1,7 @@
 import type { Viewer } from "@/lib/auth";
 import { canonicalizeEvidenceUrl, roundUsd } from "@/lib/collection-policy";
-import { loadWorkspaceContext } from "@/lib/data";
+import { loadPlacements, loadWorkspaceContext } from "@/lib/data";
+import type { Placement } from "@/lib/types";
 import { demoRuns, sourceMapEntries } from "@/lib/demo-data";
 import { supabaseRest } from "@/lib/supabase-rest";
 
@@ -37,7 +38,7 @@ export type ConfidenceCheck = {
 
 export type EvidenceSearchRecord = {
   id: string;
-  kind: "Answer" | "Source" | "Evidence" | "Claim";
+  kind: "Answer" | "Source" | "Evidence" | "Claim" | "Action";
   title: string;
   detail: string;
   meta: string;
@@ -159,6 +160,7 @@ type BuildInput = {
   sources: SourceEntryRow[];
   evidence: EvidenceRow[];
   claims: ClaimRow[];
+  actions: Placement[];
 };
 
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", {
@@ -439,6 +441,14 @@ export function buildWeeklyIntelligence(input: BuildInput): WeeklyIntelligence {
       meta: `${claim.public_use ? "Public use approved" : "Internal only"}${claim.verified_at ? ` · ${dateLabel(claim.verified_at)}` : ""}`,
       href: "/app/evidence",
     })),
+    ...input.actions.map((action) => ({
+      id: `action-${action.id}`,
+      kind: "Action" as const,
+      title: action.source,
+      detail: `${action.stage} · ${action.route} · ${action.page}`,
+      meta: `${action.owner} · updated ${action.updated}`,
+      href: "/app/placements",
+    })),
   ];
   return {
     telemetry: input.telemetry,
@@ -548,14 +558,15 @@ function demoInput(): BuildInput {
       public_use: false,
       verified_at: "2026-07-18T10:00:00.000Z",
     }],
+    actions: [],
   };
 }
 
 export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyIntelligence> {
   if (viewer.mode === "demo") return buildWeeklyIntelligence(demoInput());
   const context = await loadWorkspaceContext(viewer);
-  if (!context) return buildWeeklyIntelligence({ telemetry: "empty", runs: [], answers: [], costs: [], sources: [], evidence: [], claims: [] });
-  const [runs, maps, evidence, claims] = await Promise.all([
+  if (!context) return buildWeeklyIntelligence({ telemetry: "empty", runs: [], answers: [], costs: [], sources: [], evidence: [], claims: [], actions: [] });
+  const [runs, maps, evidence, claims, actions] = await Promise.all([
     supabaseRest<RunRow[]>(
       `runs?select=id,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,actual_cost_usd,estimated_max_cost_usd,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=6`,
       { token: viewer.accessToken },
@@ -572,6 +583,7 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
       `verified_claims?select=id,approved_wording,limitations,public_use,verified_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=100`,
       { token: viewer.accessToken },
     ),
+    loadPlacements(viewer),
   ]);
   const runIds = runs.map((run) => run.id);
   const [answers, costs, sources] = await Promise.all([
@@ -596,5 +608,6 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
     sources,
     evidence,
     claims,
+    actions,
   });
 }

@@ -2,9 +2,10 @@ import { IntelligenceLoop } from "@/components/intelligence-loop";
 import { requireViewer } from "@/lib/auth";
 import { loadWeeklyIntelligence } from "@/lib/intelligence-loop";
 
-export default async function IntelligencePage() {
+export default async function IntelligencePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const viewer = await requireViewer("/app/intelligence");
   const intelligence = await loadWeeklyIntelligence(viewer);
+  const { q } = await searchParams;
   return <main className="workspace">
     <div className="workspace-heading">
       <div>
@@ -13,7 +14,7 @@ export default async function IntelligencePage() {
         <p>Search reviewed evidence, compare like-for-like runs, see exact changes, understand confidence and cost, and leave with one prioritized next action.</p>
       </div>
     </div>
-    <IntelligenceLoop intelligence={intelligence} />
+    <IntelligenceLoop intelligence={intelligence} initialQuery={q?.slice(0, 160) || ""} />
     <div className="evidence-note"><strong>Measurement boundary</strong><p>This brief uses persisted, human-reviewed records. It does not claim search volume, causal influence, buyer behavior, revenue impact, or guaranteed AI placement.</p></div>
   </main>;
 }

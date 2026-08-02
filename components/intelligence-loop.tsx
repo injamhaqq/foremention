@@ -8,8 +8,8 @@ import type { WeeklyIntelligence } from "@/lib/intelligence-loop";
 const signed = (value: number, suffix = "") => `${value > 0 ? "+" : ""}${Math.round(value * 10) / 10}${suffix}`;
 const cost = (value: number | null) => value === null ? "Not recorded" : `$${value < .01 ? value.toFixed(4) : value.toFixed(2)}`;
 
-export function IntelligenceLoop({ intelligence }: { intelligence: WeeklyIntelligence }) {
-  const [query, setQuery] = useState("");
+export function IntelligenceLoop({ intelligence, initialQuery = "" }: { intelligence: WeeklyIntelligence; initialQuery?: string }) {
+  const [query, setQuery] = useState(initialQuery);
   const normalized = query.trim().toLowerCase();
   const results = useMemo(() => {
     if (!normalized) return intelligence.searchRecords.slice(0, 8);
@@ -74,7 +74,7 @@ export function IntelligenceLoop({ intelligence }: { intelligence: WeeklyIntelli
       <div>{intelligence.changes.map((change) => <article className={`change-record change-record--${change.tone}`} key={change.id}><span>{change.kind}</span><div><strong>{change.title}</strong><p>{change.detail}</p></div><Link href={change.href}>Inspect <Arrow /></Link></article>)}</div>
     </section>
 
-    <section className="panel panel--flush evidence-search">
+    <section className="panel panel--flush evidence-search" id="workspace-search">
       <div className="evidence-search__header">
         <div><span className="eyebrow">Workspace evidence search</span><h2>Find the answer, source, proof, or approved claim.</h2></div>
         <label><span className="sr-only">Search workspace evidence</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search questions, answers, domains, evidence, or claims" /></label>

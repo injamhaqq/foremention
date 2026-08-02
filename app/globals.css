@@ -318,6 +318,9 @@ textarea { resize: vertical; }
 .app-user strong, .app-user small { display: block; }
 .app-user strong { font-size: 11px; }
 .app-user small { color: var(--muted); font-size: 9px; }
+.workspace-global-search { display: flex; width: min(360px, 34vw); border: 1px solid var(--ink); background: var(--paper); }
+.workspace-global-search input { min-width: 0; flex: 1; border: 0; padding: 10px 12px; background: transparent; font-size: 10px; }
+.workspace-global-search button { border: 0; border-left: 1px solid var(--ink); padding: 0 12px; background: var(--marker); font-size: 9px; font-weight: 700; }
 .workspace { padding: 44px 36px 80px; }
 .workspace-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 34px; }
 .workspace-heading .eyebrow { margin-bottom: 13px; }
@@ -529,6 +532,8 @@ textarea { resize: vertical; }
 }
 
 @media (max-width: 480px) {
+  .workspace-global-search { width: min(48vw, 220px); }
+  .workspace-global-search button { padding: 0 8px; font-size: 8px; }
   .hero h1 { font-size: 46px; }
   .section-heading h2, .split-section h2, .offer-split h2, .cta-band h2 { font-size: 40px; }
   .footer-links { grid-template-columns: 1fr; }
