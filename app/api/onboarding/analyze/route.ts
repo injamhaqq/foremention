@@ -29,12 +29,14 @@ export async function POST(request: Request) {
         pageTitle: "AI Visibility and Recommendation Intelligence Platform - Foremention",
       }
       : await inspectSourceUrl(publicUrl.toString(), {
+        allowTruncatedBody: true,
         includePageText: true,
-        maxBytes: 192 * 1024,
-        maxExtractedTextChars: 24_000,
-        timeoutMs: 8_000,
+        maxBytes: 768 * 1024,
+        maxExtractedTextChars: 40_000,
+        timeoutMs: 12_000,
       });
-    const limited = !inspection.pageTitle && !inspection.pageDescription;
+    const publicContext = `${inspection.pageTitle || ""} ${inspection.pageDescription || ""} ${inspection.pageText || ""}`.replace(/\s+/g, " ").trim();
+    const limited = publicContext.length < 80;
 
     const draft = createOnboardingDraft({
       websiteUrl: inspection.finalUrl || publicUrl.toString(),
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
         finalUrl: inspection.finalUrl,
         limited,
         pageTitle: inspection.pageTitle,
-        source: limited ? "Domain name only; website metadata was unavailable" : "Public website metadata",
+        source: limited ? "Domain name only; usable public website text was unavailable" : "Bounded public website metadata and visible text",
       },
     }, { headers: { "cache-control": "private, no-store" } });
   } catch (error) {

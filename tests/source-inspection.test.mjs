@@ -90,6 +90,22 @@ test("source inspection can return bounded visible text only when explicitly req
   assert.doesNotMatch(result.pageText, /secret/);
 });
 
+test("onboarding inspection can use safe leading metadata from a large public page", async () => {
+  const body = `<html><head><title>Acme - Revenue intelligence</title><meta name="description" content="AI sales intelligence for global B2B revenue teams"></head><body>${"Public product details ".repeat(200)}</body></html>`;
+  const result = await inspection.inspectSourceUrl("https://example.com", {
+    fetcher: async () => new Response(body, { headers: { "content-type": "text/html", "content-length": String(body.length) } }),
+    resolver: async () => ["93.184.216.34"],
+    allowTruncatedBody: true,
+    includePageText: true,
+    maxBytes: 300,
+    maxExtractedTextChars: 1000,
+  });
+  assert.equal(result.access, "partial");
+  assert.equal(result.pageTitle, "Acme - Revenue intelligence");
+  assert.equal(result.pageDescription, "AI sales intelligence for global B2B revenue teams");
+  assert.match(result.message, /bounded portion/);
+});
+
 test("source inspection records blocked, oversized, and network-failure outcomes truthfully", async () => {
   const resolver = async () => ["93.184.216.34"];
   const blocked = await inspection.inspectSourceUrl("https://example.com", {

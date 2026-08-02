@@ -93,9 +93,9 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
     window.localStorage.setItem(draftKey, JSON.stringify({ step, values }));
   }, [demo, draftKey, hydrated, status, step, values]);
 
-  async function analyzeWebsite(website = values.domain) {
+  async function analyzeWebsite(website = values.domain, force = false) {
     const normalized = website.trim();
-    if (!normalized || analysisStatus === "analyzing" || lastAnalyzedWebsite.current === normalized) return;
+    if (!normalized || analysisStatus === "analyzing" || (!force && lastAnalyzedWebsite.current === normalized)) return;
     setAnalysisStatus("analyzing");
     setAnalysisMessage("");
     try {
@@ -121,7 +121,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
       });
       setAnalysisStatus("complete");
       setAuditStage((current) => Math.max(current, 1));
-      lastAnalyzedWebsite.current = normalized;
+      lastAnalyzedWebsite.current = result.draft.domain;
       captureProductEvent("onboarding_website_draft_created", { limited: Boolean(result.evidence?.limited) });
       setAnalysisMessage(limited
         ? "We could not read enough public website content. Answer the three short questions below and Foremention will create your setup without blocking you."
@@ -320,8 +320,8 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
         <legend>Start with your website</legend>
         {!demo && <div className="website-draft">
           <div><span className="eyebrow">Fast setup</span><strong>Paste your website to create the first draft.</strong><p>Foremention reads bounded public metadata, then prepares editable category, competitor, goal, and buyer-question suggestions. Nothing is saved until you approve the review.</p></div>
-          <label>Company website<input type="url" value={values.domain} onChange={(event) => { setValues({ ...values, domain: event.target.value }); setAnalysisStatus("idle"); setAnalysisMessage(""); }} placeholder="https://yourcompany.com" required /></label>
-          <button type="button" className="button button--ink" onClick={() => void analyzeWebsite()} disabled={!values.domain.trim() || analysisStatus === "analyzing"}>{analysisStatus === "analyzing" ? "Reading website…" : analysisStatus === "complete" ? "Refresh website draft" : "Generate my setup"}</button>
+          <label>Company website<input type="url" value={values.domain} onChange={(event) => { setValues({ ...values, domain: event.target.value }); lastAnalyzedWebsite.current = ""; setAnalysisStatus("idle"); setAnalysisMessage(""); }} placeholder="https://yourcompany.com" required /></label>
+          <button type="button" className="button button--ink" onClick={() => void analyzeWebsite(values.domain, true)} disabled={!values.domain.trim() || analysisStatus === "analyzing"}>{analysisStatus === "analyzing" ? "Reading website…" : analysisStatus === "complete" ? "Refresh website draft" : "Generate my setup"}</button>
           {analysisMessage && <p className={`website-draft__status ${analysisStatus === "error" ? "is-error" : ""}`} role={analysisStatus === "error" ? "alert" : "status"}>{analysisMessage}</p>}
           {manualContextRequired && <div className="website-fallback" aria-label="Manual company context">
             <label>What do you sell?<textarea value={manualContext.whatYouSell} onChange={(event) => setManualContext({ ...manualContext, whatYouSell: event.target.value })} placeholder="Example: AI visibility monitoring software for B2B SaaS" rows={3} required /></label>

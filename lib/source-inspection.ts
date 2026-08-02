@@ -24,6 +24,7 @@ type Fetcher = typeof fetch;
 type Resolver = (hostname: string, signal: AbortSignal) => Promise<string[]>;
 
 type InspectionOptions = {
+  allowTruncatedBody?: boolean;
   fetcher?: Fetcher;
   maxBytes?: number;
   includePageText?: boolean;
@@ -262,24 +263,32 @@ export function hasSignificantSourceChange(previous: SourceContentSnapshot, curr
   return lengthDelta >= 0.2 || hammingDistance(previous.contentSignature, current.contentSignature) >= 6;
 }
 
-async function readLimitedText(response: Response, maxBytes: number) {
+async function readLimitedText(response: Response, maxBytes: number, allowTruncatedBody = false) {
   const declaredLength = Number(response.headers.get("content-length") || "0");
-  if (declaredLength > maxBytes) throw new Error("response_too_large");
-  if (!response.body) return "";
+  if (declaredLength > maxBytes && !allowTruncatedBody) throw new Error("response_too_large");
+  if (!response.body) return { text: "", truncated: false };
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let received = 0;
   let text = "";
+  let truncated = false;
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      if (received + value.byteLength > maxBytes) {
+        if (!allowTruncatedBody) throw new Error("response_too_large");
+        const remaining = Math.max(0, maxBytes - received);
+        if (remaining) text += decoder.decode(value.subarray(0, remaining), { stream: true });
+        received = maxBytes;
+        truncated = true;
+        break;
+      }
       received += value.byteLength;
-      if (received > maxBytes) throw new Error("response_too_large");
       text += decoder.decode(value, { stream: true });
     }
     text += decoder.decode();
-    return text;
+    return { text, truncated };
   } finally {
     await reader.cancel().catch(() => undefined);
   }
@@ -356,17 +365,17 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
       }
 
       try {
-        const body = await readLimitedText(response, maxBytes);
+        const { text: body, truncated } = await readLimitedText(response, maxBytes, options.allowTruncatedBody);
         const visibleText = extractVisibleText(body, 80_000);
         const pageText = options.includePageText
           ? visibleText.slice(0, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
           : undefined;
         return result({
-          access: response.status === 206 ? "partial" : "open",
+          access: response.status === 206 || truncated ? "partial" : "open",
           contentType,
           finalUrl: current.toString(),
           httpStatus: response.status,
-          message: response.status === 206 ? "The page returned partial content; metadata may be incomplete." : "The page was reachable and its bounded text metadata was inspected.",
+          message: response.status === 206 || truncated ? "A bounded portion of the public page was inspected; metadata may be incomplete." : "The page was reachable and its bounded text metadata was inspected.",
           contentLength: visibleText.length,
           contentSignature: contentSignature(visibleText) || undefined,
           pageDescription: contentType === "text/plain" ? null : extractMetaDescription(body),

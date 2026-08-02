@@ -144,7 +144,10 @@ test("onboarding writes the first organization and prompt baseline transactional
   assert.match(analysisRoute, /inspectSourceUrl/);
   assert.match(analysisRoute, /isForementionSite/);
   assert.match(analysisRoute, /AI Visibility and Recommendation Intelligence Platform - Foremention/);
-  assert.match(analysisRoute, /Domain name only; website metadata was unavailable/);
+  assert.match(analysisRoute, /Domain name only; usable public website text was unavailable/);
+  assert.match(analysisRoute, /allowTruncatedBody: true/);
+  assert.match(analysisRoute, /publicContext\.length < 80/);
+  assert.match(wizard, /analyzeWebsite\(values\.domain, true\)/);
   assert.doesNotMatch(analysisRoute, /We could not read enough public website information/);
   assert.match(analysisRoute, /cache-control.*private, no-store/);
   assert.match(profile, /Review this draft/);
