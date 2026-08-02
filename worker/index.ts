@@ -156,8 +156,12 @@ async function handleHealth(env: Env) {
   const d1 = env.DB
     ? env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>().then((row) => row?.ok === 1 ? "reachable" : "unavailable").catch(() => "unavailable")
     : Promise.resolve("not_configured");
+  // Supabase's PostgREST OpenAPI root requires an admin-level key and returns
+  // 403 for browser-safe publishable keys. Probe the documented Auth health
+  // endpoint instead so reachability can be verified without elevating this
+  // public diagnostic or exposing a server credential.
   const supabase = env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    ? fetch(`${env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "")}/rest/v1/`, { headers: { apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY }, signal: AbortSignal.timeout(3_000) }).then((response) => response.ok ? "reachable" : "unavailable").catch(() => "unavailable")
+    ? fetch(`${env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "")}/auth/v1/health`, { headers: { apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY }, signal: AbortSignal.timeout(3_000) }).then((response) => response.ok ? "reachable" : "unavailable").catch(() => "unavailable")
     : Promise.resolve("not_configured");
   const [d1Status, supabaseStatus] = await Promise.all([d1, supabase]);
   const inngestStatus = env.INNGEST_EVENT_KEY && env.INNGEST_SIGNING_KEY ? "configured_not_probed" : "not_configured";
