@@ -14,8 +14,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!context || !role) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can approve collected evidence." }, { status: 403 });
   const { id } = await params;
-  const runs = await supabaseRest<Array<{ id: string; status: string; category_id: string; organization_id: string; created_by: string | null }>>(
-    `runs?select=id,status,category_id,organization_id,created_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&limit=1`,
+  const runs = await supabaseRest<Array<{ id: string; status: string; category_id: string; project_id: string; organization_id: string; created_by: string | null }>>(
+    `runs?select=id,status,category_id,project_id,organization_id,created_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&limit=1`,
     { token: viewer.accessToken },
   );
   const run = runs[0];

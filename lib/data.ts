@@ -605,7 +605,7 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
 
   type DecisionRunRow = RunRow & { provider_ids: string[] };
   const [rows, sources] = await Promise.all([
-    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&status=in.(complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
+    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&status=in.(review,complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
     loadSourceMap(viewer),
   ]);
   const latest = rows[0];
@@ -613,7 +613,7 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
 
   const runIds = rows.map((row) => row.id);
   const answerRows = await supabaseRest<Array<{ prompt_key: string; provider: string; brand_present: boolean | null; collected_at: string }>>(
-    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.desc`,
+    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${organizationId}&run_id=in.(${runIds.join(",")})&order=collected_at.desc`,
     { token: viewer.accessToken },
   );
   const latestComparableAnswers = new Map<string, typeof answerRows[number]>();

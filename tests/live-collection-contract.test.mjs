@@ -26,7 +26,7 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
   assert.match(job, /ai_cost_events/);
   assert.match(job, /recordedRunCost/);
   assert.match(job, /cost_source: "estimated"/);
-  assert.doesNotMatch(job, /source_maps/);
+  assert.match(job, /generateObservedSourceMap/);
   assert.match(rest, /options\.serviceRole && !serviceRoleKey/);
   assert.doesNotMatch(rest, /serviceRoleKey \|\| anonKey/);
   assert.match(migration, /run_prompt_selections_select_member/);
@@ -102,7 +102,7 @@ test("the server-only Supabase role can execute trusted background collection", 
   assert.doesNotMatch(migration, /grant .* to anon/i);
 });
 
-test("only reviewed persisted observations create a truthful Source Map", async () => {
+test("observed citations auto-populate a truthful draft map while review remains explicit", async () => {
   const [review, generator, loader] = await Promise.all([
     text("app/api/runs/[id]/review/route.ts"),
     text("lib/source-map-generation.ts"),
@@ -112,6 +112,9 @@ test("only reviewed persisted observations create a truthful Source Map", async 
   assert.match(review, /review_status: "verified"/);
   assert.match(review, /run_answers[\s\S]*serviceRole: true/);
   assert.match(generator, /review_status=eq\.verified/);
+  assert.match(generator, /generateObservedSourceMap/);
+  assert.match(generator, /Provider-returned citation with bounded automated page inspection/);
+  assert.match(generator, /includePageText: true/);
   assert.match(generator, /status: "published"/);
   assert.match(generator, /influence: "unknown"/);
   assert.match(generator, /feasibility: "unknown"/);

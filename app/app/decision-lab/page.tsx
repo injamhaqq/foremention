@@ -14,7 +14,7 @@ export default async function DecisionLabPage() {
     {
       label: "Collection coverage",
       value: value(signal.answerCompletionPct),
-      detail: signal.answerCompletionPct === null ? "Requires a reviewed run with known prompt and provider capacity." : `${signal.answerCount} reviewed answers across ${signal.promptCount} buyer questions.`,
+      detail: signal.answerCompletionPct === null ? "Requires a completed provider run with known prompt and provider capacity." : `${signal.answerCount} persisted answers across ${signal.promptCount} buyer questions. Human review remains a separate gate.`,
       tone: signal.answerCompletionPct !== null && signal.answerCompletionPct >= 90 ? "good" : "attention",
     },
     {
@@ -42,7 +42,7 @@ export default async function DecisionLabPage() {
       <div>
         <span className="eyebrow">Answer reliability</span>
         <h1>Decision Lab</h1>
-        <p>Know whether a recommendation pattern is stable enough to act on. Foremention checks coverage, cross-provider agreement, run-to-run movement, source concentration, and review completeness before it labels a conclusion decision-ready.</p>
+        <p>Know whether a recommendation pattern is stable enough to act on. Foremention shows the first observed baseline immediately, then checks coverage, cross-provider agreement, run-to-run movement, source concentration, and review completeness before it labels a conclusion decision-ready.</p>
       </div>
       <span className={`readiness-badge readiness-badge--${signal.decisionReadiness}`}>{readinessLabel}</span>
     </div>

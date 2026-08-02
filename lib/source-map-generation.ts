@@ -1,10 +1,12 @@
 import { supabaseRest } from "@/lib/supabase-rest";
+import { inspectSourceUrl } from "@/lib/source-inspection";
 
 const METHODOLOGY_VERSION = "3.0";
 
 type RunRow = {
   id: string;
   organization_id: string;
+  project_id?: string;
   category_id: string;
   created_by: string | null;
 };
@@ -29,6 +31,7 @@ type SourceAggregate = {
   providers: Set<string>;
   firstObservedAt: string;
   lastObservedAt: string;
+  url: string;
 };
 
 const engineLabels: Record<string, string> = {
@@ -48,7 +51,38 @@ const engineLabels: Record<string, string> = {
  * Citation recurrence is observed fact. Influence, route and feasibility stay
  * unknown until a separate page-level review records those judgments.
  */
-export async function generateReviewedSourceMap(run: RunRow) {
+async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
+  if (!run.project_id || !ranked.length) return new Map<string, { access: string; checkedAt: string | null; clientPresent: boolean; competitors: string[]; title: string | null }>();
+  const [projects, competitorRows] = await Promise.all([
+    supabaseRest<Array<{ client_brand: string }>>(`projects?select=client_brand&id=eq.${run.project_id}&organization_id=eq.${run.organization_id}&limit=1`, { serviceRole: true }),
+    supabaseRest<Array<{ name: string }>>(`competitors?select=name&project_id=eq.${run.project_id}&organization_id=eq.${run.organization_id}&active=eq.true`, { serviceRole: true }),
+  ]);
+  const brand = projects[0]?.client_brand || "";
+  const competitors = competitorRows.map((row) => row.name).filter(Boolean);
+  const inspected = new Map<string, { access: string; checkedAt: string | null; clientPresent: boolean; competitors: string[]; title: string | null }>();
+  for (let offset = 0; offset < ranked.length; offset += 4) {
+    await Promise.all(ranked.slice(offset, offset + 4).map(async (source) => {
+      try {
+        const result = await inspectSourceUrl(source.url, { includePageText: true, maxBytes: 128 * 1024, maxExtractedTextChars: 24_000, timeoutMs: 6_000 });
+        const searchable = `${result.pageTitle || ""} ${result.pageDescription || ""} ${result.pageText || ""}`.toLocaleLowerCase();
+        const clientPresent = Boolean(brand) && searchable.includes(brand.toLocaleLowerCase());
+        const competitorsPresent = competitors.filter((name) => searchable.includes(name.toLocaleLowerCase()));
+        inspected.set(source.sourceId, { access: result.access, checkedAt: result.checkedAt, clientPresent, competitors: competitorsPresent, title: result.pageTitle });
+        await supabaseRest(`sources?id=eq.${source.sourceId}&organization_id=eq.${run.organization_id}`, {
+          method: "PATCH",
+          serviceRole: true,
+          prefer: "return=minimal",
+          body: { crawler_access: result.access, crawler_checked_at: result.checkedAt, ...(result.pageTitle ? { page_title: result.pageTitle } : {}) },
+        });
+      } catch {
+        inspected.set(source.sourceId, { access: "unknown", checkedAt: null, clientPresent: false, competitors: [], title: null });
+      }
+    }));
+  }
+  return inspected;
+}
+
+async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") {
   const answerRows = await supabaseRest<Array<{ id: string }>>(
     `run_answers?select=id&organization_id=eq.${run.organization_id}&run_id=eq.${run.id}`,
     { serviceRole: true },
@@ -56,14 +90,14 @@ export async function generateReviewedSourceMap(run: RunRow) {
   const answerIds = answerRows.map((row) => row.id);
   const observations = await supabaseRest<ObservationRow[]>(
     answerIds.length
-      ? `source_observations?select=source_id,provider,observed_at,review_status,source:sources(canonical_url,domain,page_title)&organization_id=eq.${run.organization_id}&run_answer_id=in.(${answerIds.join(",")})&review_status=eq.verified`
+      ? `source_observations?select=source_id,provider,observed_at,review_status,source:sources(canonical_url,domain,page_title)&organization_id=eq.${run.organization_id}&run_answer_id=in.(${answerIds.join(",")})${reviewStatus === "verified" ? "&review_status=eq.verified" : ""}`
       : `source_observations?select=source_id,provider,observed_at,review_status,source:sources(canonical_url,domain,page_title)&id=eq.00000000-0000-0000-0000-000000000000`,
     { serviceRole: true },
   );
 
   const aggregates = new Map<string, SourceAggregate>();
   for (const observation of observations) {
-    if (!observation.source || observation.review_status !== "verified") continue;
+    if (!observation.source || (reviewStatus === "verified" && observation.review_status !== "verified")) continue;
     const current = aggregates.get(observation.source_id);
     if (current) {
       current.count += 1;
@@ -80,6 +114,7 @@ export async function generateReviewedSourceMap(run: RunRow) {
       providers: new Set([engineLabels[observation.provider] || observation.provider]),
       firstObservedAt: observation.observed_at,
       lastObservedAt: observation.observed_at,
+      url: observation.source.canonical_url,
     });
   }
 
@@ -93,6 +128,7 @@ export async function generateReviewedSourceMap(run: RunRow) {
     (latest, item) => !latest || item.lastObservedAt > latest ? item.lastObservedAt : latest,
     null,
   );
+  const inspected = await inspectMappedSources(run, ranked);
 
   const mapRows = await supabaseRest<Array<{ id: string }>>("source_maps?on_conflict=run_id", {
     method: "POST",
@@ -102,7 +138,7 @@ export async function generateReviewedSourceMap(run: RunRow) {
       organization_id: run.organization_id,
       category_id: run.category_id,
       run_id: run.id,
-      name: `Reviewed collection ${run.id.slice(0, 8).toUpperCase()}`,
+      name: `${reviewStatus === "verified" ? "Reviewed" : "Observed"} collection ${run.id.slice(0, 8).toUpperCase()}`,
       evidence_from: evidenceFrom,
       evidence_to: evidenceTo,
       status: "draft",
@@ -125,12 +161,14 @@ export async function generateReviewedSourceMap(run: RunRow) {
         rank: index + 1,
         citation_observations: item.count,
         engines: Array.from(item.providers).sort(),
-        client_present: false,
-        competitors_present: [],
+        client_present: inspected.get(item.sourceId)?.clientPresent || false,
+        competitors_present: inspected.get(item.sourceId)?.competitors || [],
         entry_route: null,
         feasibility: "unknown",
         influence: "unknown",
-        analyst_note: "Verified citation observation only. Page contents, brand presence, influence and entry feasibility have not been reviewed.",
+        analyst_note: reviewStatus === "verified"
+          ? "Verified citation observation with bounded automated page inspection. Influence, route and feasibility still require a human decision."
+          : "Provider-returned citation with bounded automated page inspection. Answer evidence and page presence remain explicitly unreviewed until a person approves the run.",
       })),
     });
   }
@@ -142,4 +180,12 @@ export async function generateReviewedSourceMap(run: RunRow) {
   });
 
   return { sourceMapId, sourceCount: ranked.length };
+}
+
+export function generateObservedSourceMap(run: RunRow) {
+  return generateSourceMap(run, "all");
+}
+
+export function generateReviewedSourceMap(run: RunRow) {
+  return generateSourceMap(run, "verified");
 }

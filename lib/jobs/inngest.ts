@@ -15,6 +15,7 @@ import {
 import { getProvider } from "@/lib/providers";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { generateObservedSourceMap } from "@/lib/source-map-generation";
 
 export const inngest = new Inngest({ id: "foremention" });
 
@@ -671,6 +672,13 @@ export const runMultiEngineScan = inngest.createFunction(
           error_summary: failures.length ? `${failures.length} provider attempt(s) failed. Review the successful evidence before publishing.` : null,
         },
       }));
+    let mappedSourceCount = 0;
+    try {
+      const generated = await step.run("generate-observed-source-map", () => generateObservedSourceMap(run));
+      mappedSourceCount = generated.sourceCount;
+    } catch (error) {
+      console.warn("Observed Source Map generation will be retried after review.", safeOperationalError(error));
+    }
     await step.run("notify-run-owner", () =>
       notifyRunOwner(
         run,
@@ -687,7 +695,7 @@ export const runMultiEngineScan = inngest.createFunction(
           agentId: "human-review-gate",
           status: "complete",
           attemptCount: attempt + 1,
-          result: { nextState: "human_review_required", answerCount, citationCount },
+        result: { nextState: "human_review_required", answerCount, citationCount, sourceCount: mappedSourceCount },
         })),
       step.run("complete-run-supervisor", () =>
         recordAgentExecution({
