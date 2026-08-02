@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Arrow } from "@/components/brand";
 import type { SourceEvidenceContext } from "@/lib/data";
 import type { SourceMapEntry } from "@/lib/types";
+import { CommentThread } from "@/components/comment-thread";
 
 type RankedSource = SourceMapEntry & { score: number | null; evidence?: SourceEvidenceContext };
 
@@ -31,7 +32,7 @@ export function OpportunityList({ rows, demo }: { rows: RankedSource[]; demo: bo
     <div className="opportunity-list">{visible.map((source,index) => <article data-workspace-item tabIndex={-1} key={source.id}>
       <div className={`opportunity-score ${source.score === null ? "opportunity-score--review" : ""}`}><span>{source.score === null ? "Evidence" : "Reviewed priority"}</span>{source.score === null ? <strong>Review</strong> : <><strong>{source.score}</strong><small>/100</small></>}</div>
       <div><span className="opportunity-rank">#{index+1} · {source.type} · {source.score === null ? "verification required" : "confirmed gap"}</span><h2>{source.domain}</h2><p>{source.title}</p>{source.evidence && <div className="opportunity-evidence"><strong>Observed for: {source.evidence.prompt}</strong><span>{source.evidence.provider}{source.evidence.model ? ` · ${source.evidence.model}` : ""}{source.evidence.citationOrdinal ? ` · citation ${source.evidence.citationOrdinal}` : ""} · {source.evidence.observedAt}</span></div>}<div className="opportunity-meta"><span>{source.evidenceCount} citation observation{source.evidenceCount === 1 ? "" : "s"}</span><span>{source.engines.length} provider{source.engines.length === 1 ? "" : "s"}</span>{source.score !== null && <><span>{source.influence} influence</span><span>{source.feasibility} feasibility</span><span>{source.route}</span></>}</div></div>
-      <div className="opportunity-actions"><a data-workspace-review href={`/app/sources/${source.id}`}>Inspect evidence <Arrow /></a><button data-workspace-action type="button" disabled={busy === source.id || (!source.sourceId && !demo) || source.score === null} onClick={() => void track(source)}>{busy === source.id ? "Adding…" : source.score === null ? "Verify before tracking" : "Track action"}</button></div>
+      <div className="opportunity-actions"><a data-workspace-review href={`/app/sources/${source.id}`}>Inspect evidence <Arrow /></a><button data-workspace-action type="button" disabled={busy === source.id || (!source.sourceId && !demo) || source.score === null} onClick={() => void track(source)}>{busy === source.id ? "Adding…" : source.score === null ? "Verify before tracking" : "Track action"}</button><CommentThread entityType="priority_gap" entityId={source.id} demo={demo} /></div>
     </article>)}</div>
     {rows.length > visibleCount && <div className="workspace-load-more"><button className="button button--outline" type="button" onClick={() => setVisibleCount((current) => current + 10)}>Load 10 more gaps</button><span>{visible.length} of {rows.length} shown</span></div>}
   </>;

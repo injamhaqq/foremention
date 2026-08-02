@@ -6,6 +6,7 @@ import { SourceReviewForm } from "@/components/source-review-form";
 import { requireViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadSourceEvidenceContexts, loadSourceMap } from "@/lib/data";
 import { estimateSourceCredibility } from "@/lib/source-credibility";
+import { CommentThread } from "@/components/comment-thread";
 
 export default async function SourceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await requireViewer("/app/source-map");
@@ -27,5 +28,6 @@ export default async function SourceDetailPage({ params }: { params: Promise<{ i
     {evidence.length > 0 && <section className="panel source-evidence-chain"><div className="panel-heading"><div><span className="eyebrow">Observed evidence chain</span><h2>The answer that cited this page.</h2></div></div>{evidence.map((item) => <article key={`${item.answerId}-${item.citationOrdinal}`}><div><span>Buyer question</span><strong>{item.prompt}</strong></div><div><span>Provider record</span><strong>{item.provider}{item.model ? ` · ${item.model}` : ""} · {item.observedAt}</strong></div><div><span>Citation position</span><strong>{item.citationOrdinal ? `#${item.citationOrdinal}` : "Recorded without position"}</strong></div><p>{item.answerExcerpt}</p></article>)}</section>}
     <SourceLiveInspector entryId={source.id} demo={viewer.mode === "demo"} canInspect={canEdit} />
     <section className="panel source-review-panel"><SourceReviewForm source={source} demo={viewer.mode === "demo"} canEdit={canEdit} /></section>
+    <section className="panel"><CommentThread entityType="source_map_entry" entityId={source.id} demo={viewer.mode === "demo"} /></section>
   </main>;
 }

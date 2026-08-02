@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspaceEvidence } from "@/lib/data";
+import { CommentThread } from "@/components/comment-thread";
 
 export function EvidenceManager({ initialItems, demo, canReview }: { initialItems: WorkspaceEvidence[]; demo: boolean; canReview: boolean }) {
   const router = useRouter();
@@ -68,7 +69,7 @@ export function EvidenceManager({ initialItems, demo, canReview }: { initialItem
     {message && <p className="inline-notice" role="status">{message}</p>}
     {items.length ? <div className="evidence-table"><div className="evidence-row evidence-row--head"><span>Evidence</span><span>Source / rights</span><span>Status</span><span>Verified</span><span>Review</span></div>{items.map((item) => {
       const reviewReady = Boolean(item.sourceUrl && item.rights?.trim());
-      return <div className="evidence-row" key={item.id}><div><strong>{item.title}</strong><small>{item.type}</small></div><div>{item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noreferrer">Open source ↗</a> : <span>No URL supplied</span>}<small>{item.rights || "Rights not recorded"}</small></div><span className={`status-chip status-chip--${item.status === "verified" ? "active" : ""}`}>{item.status}</span><span>{item.verifiedAt || "Not verified"}</span><button className="evidence-review-button" type="button" disabled={!canReview || reviewing === item.id || (item.status !== "verified" && !reviewReady)} title={!reviewReady && item.status !== "verified" ? "Add a source URL and usage rights first." : undefined} onClick={() => void review(item, item.status === "verified" ? "unverified" : "verified")}>{reviewing === item.id ? "Updating…" : item.status === "verified" ? "Reopen review" : "Verify evidence"}</button></div>;
+      return <div className="evidence-row" key={item.id}><div><strong>{item.title}</strong><small>{item.type}</small><CommentThread entityType="evidence_item" entityId={item.id} demo={demo} /></div><div>{item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noreferrer">Open source ↗</a> : <span>No URL supplied</span>}<small>{item.rights || "Rights not recorded"}</small></div><span className={`status-chip status-chip--${item.status === "verified" ? "active" : ""}`}>{item.status}</span><span>{item.verifiedAt || "Not verified"}</span><button className="evidence-review-button" type="button" disabled={!canReview || reviewing === item.id || (item.status !== "verified" && !reviewReady)} title={!reviewReady && item.status !== "verified" ? "Add a source URL and usage rights first." : undefined} onClick={() => void review(item, item.status === "verified" ? "unverified" : "verified")}>{reviewing === item.id ? "Updating…" : item.status === "verified" ? "Reopen review" : "Verify evidence"}</button></div>;
     })}</div> : <div className="empty-state"><h2>No workspace evidence yet.</h2><p>Add the first dated proof above. Unverified items never become public claims automatically.</p></div>}
   </div>;
 }
