@@ -689,6 +689,20 @@ textarea { resize: vertical; }
 .setup-rail li.is-complete { box-shadow: inset 0 -4px 0 var(--marker); }
 .setup-rail li.is-complete small { color: var(--marker); }
 .setup-rail--complete > div:first-child { border-bottom: 0; }
+.getting-started { margin-bottom: 20px; border: 1px solid var(--ink); background: var(--mint-wash); }
+.getting-started__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 20px; border-bottom: 1px solid var(--ink); }
+.getting-started__heading .eyebrow { margin-bottom: 8px; }
+.getting-started__heading h2 { margin: 0; font-size: clamp(20px, 2.2vw, 30px); }
+.getting-started__heading > strong { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.getting-started ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+.getting-started li { border-bottom: 1px solid var(--ink); }
+.getting-started li:nth-child(odd) { border-right: 1px solid var(--ink); }
+.getting-started li:nth-last-child(-n+2) { border-bottom: 0; }
+.getting-started li a { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 14px; min-height: 92px; padding: 16px 20px; }
+.getting-started li a:hover { background: var(--marker); }
+.getting-started li small { display: block; margin-top: 5px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.getting-started__check { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--ink); font-size: 14px; }
+.getting-started li.is-complete .getting-started__check { background: var(--deep-jade); color: var(--paper); }
 .setup-complete { display: grid !important; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px !important; padding-top: 0 !important; border-bottom: 0 !important; }
 .setup-complete > strong { color: var(--marker); font-size: 13px !important; }
 .setup-complete > span { color: #b8cac6; font-size: 9px; line-height: 1.5; }
@@ -2087,6 +2101,10 @@ textarea { resize: vertical; }
 }
 
 @media (max-width: 640px) {
+  .getting-started__heading { align-items: flex-start; flex-direction: column; }
+  .getting-started ol { grid-template-columns: 1fr; }
+  .getting-started li, .getting-started li:nth-child(odd), .getting-started li:nth-last-child(-n+2) { border-right: 0; border-bottom: 1px solid var(--ink); }
+  .getting-started li:last-child { border-bottom: 0; }
   .audit-provenance,
   .site-audit__records,
   .market-evidence,

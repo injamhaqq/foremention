@@ -4,7 +4,7 @@ import { AgentControlPlane } from "@/components/agent-control-plane";
 import { Arrow, StatusDot } from "@/components/brand";
 import { demoCompany, engineCoverage } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
-import { loadAgentControlPlane, loadDecisionSignal, loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
+import { loadAgentControlPlane, loadDecisionSignal, loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadTeam, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   // of issuing five empty workspace queries and presenting a stalled sign-in.
   if (viewer.mode === "supabase" && !context) redirect("/app/onboarding");
 
-  const [prompts, runs, sources, placements, decision, providers, agents] = await Promise.all([
+  const [prompts, runs, sources, placements, decision, providers, agents, team] = await Promise.all([
     loadPrompts(viewer),
     loadRuns(viewer),
     loadSourceMap(viewer),
@@ -26,6 +26,7 @@ export default async function DashboardPage() {
     loadDecisionSignal(viewer),
     loadProviderStatuses(viewer),
     loadAgentControlPlane(viewer),
+    loadTeam(viewer),
   ]);
   const observedRuns = runs.filter((run) => ["review", "complete", "partial"].includes(run.status));
   const reviewedRuns = runs.filter((run) => ["complete", "partial"].includes(run.status));
@@ -49,6 +50,12 @@ export default async function DashboardPage() {
     { label: "Publish Source Map", done: sources.length > 0 && reviewedRuns.length > 0, href: "/app/source-map" },
   ];
   const next = setup.find((item) => !item.done) || { label: placements.length ? "Update tracked actions" : "Choose a priority gap", href: placements.length ? "/app/placements" : "/app/opportunities" };
+  const gettingStarted = [
+    { label: "Complete onboarding", detail: "Define the company, category, market, competitors, and evidence boundary.", done: Boolean(context), href: "/app/onboarding" },
+    { label: "Review the first Source Map", detail: "Inspect at least one cited page before using it in a decision.", done: sources.some((source) => Boolean(source.reviewedAt)), href: "/app/source-map" },
+    { label: "Record the first action", detail: "Turn a reviewed opportunity into an accountable next step.", done: placements.length > 0, href: "/app/placements" },
+    { label: "Invite a teammate", detail: "Invite a collaborator or add another workspace member.", done: team.members.length > 1 || team.invitations.length > 0, href: "/app/team" },
+  ];
   const readiness = decision.decisionReadiness === "ready" ? "Evidence is decision-ready." : decision.decisionReadiness === "directional" ? "Treat this signal as directional." : "More evidence is required.";
 
   return <main className="workspace">
@@ -66,6 +73,20 @@ export default async function DashboardPage() {
     <section className={`setup-rail ${setup.every((item) => item.done) ? "setup-rail--complete" : ""}`}>
       <div><span className="eyebrow">Workspace readiness</span><strong>{setup.filter((item) => item.done).length}/{setup.length} foundation steps complete</strong></div>
       {setup.every((item) => item.done) ? <div className="setup-complete"><strong>Foundation complete.</strong><span>Your workspace is collecting reviewed evidence. Continue with source review and a second comparable run.</span><Link href={next.href}>{next.label} <Arrow /></Link></div> : <ol>{setup.map((item, index) => <li className={item.done ? "is-complete" : ""} key={item.label}><Link href={item.href}><span>{String(index + 1).padStart(2, "0")}</span><strong>{item.label}</strong><small>{item.done ? "Complete" : item.label === next.label ? "Next action" : "Pending"}</small></Link></li>)}</ol>}
+    </section>
+
+    <section className="getting-started" aria-labelledby="getting-started-title">
+      <div className="getting-started__heading">
+        <div><span className="eyebrow">Getting started</span><h2 id="getting-started-title">Four steps to a useful workspace.</h2></div>
+        <strong>{gettingStarted.filter((item) => item.done).length}/{gettingStarted.length} complete</strong>
+      </div>
+      <ol>{gettingStarted.map((item) => <li className={item.done ? "is-complete" : ""} key={item.label}>
+        <Link href={item.href}>
+          <span className="getting-started__check" aria-hidden="true">{item.done ? "✓" : ""}</span>
+          <span><strong>{item.label}</strong><small>{item.detail}</small></span>
+          <Arrow />
+        </Link>
+      </li>)}</ol>
     </section>
 
     <div className="metric-grid">
