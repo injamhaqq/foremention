@@ -32,3 +32,14 @@ test("unknown categories fall back to an editable evidence-labelled draft", () =
   assert.match(draft.categoryDescription, /Review this draft/);
   assert.match(draft.prompts[0], /Workflow platform/);
 });
+
+test("website text extracts visible competitors and a target market", () => {
+  const draft = createOnboardingDraft({
+    websiteUrl: "https://acme.example/",
+    pageTitle: "Acme - CRM for modern revenue teams",
+    pageDescription: "CRM software for sales teams across the United States and Canada.",
+    pageText: "Compare Acme with HubSpot or alternatives to Pipedrive.",
+  });
+  assert.equal(draft.market, "North America");
+  assert.deepEqual(draft.competitors.slice(0, 2), ["HubSpot", "Pipedrive"]);
+});

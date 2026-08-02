@@ -2,6 +2,7 @@ type WebsiteProfileInput = {
   websiteUrl: string;
   pageTitle: string | null;
   pageDescription?: string | null;
+  pageText?: string | null;
 };
 
 export type OnboardingDraft = {
@@ -113,21 +114,40 @@ function genericPrompts(category: string, companyName: string, competitors: stri
   ];
 }
 
+function inferredMarket(text: string) {
+  if (/\b(usa|u\.s\.|united states|canada|north america)\b/i.test(text)) return "North America";
+  if (/\b(europe|european union|eu|uk|united kingdom)\b/i.test(text)) return "Europe";
+  if (/\b(asia pacific|apac|asia|australia|new zealand)\b/i.test(text)) return "Asia Pacific";
+  if (/\b(middle east|africa|mena)\b/i.test(text)) return "Middle East and Africa";
+  if (/\b(latin america|latam|south america)\b/i.test(text)) return "Latin America";
+  return "Global";
+}
+
+function visibleCompetitors(text: string, known: string[]) {
+  const found = known.filter((name) => text.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
+  for (const match of text.matchAll(/\b(?:compare(?:d)?\s+(?:with|to)|versus|vs\.?|alternative(?:s)?\s+to)\s+([A-Z][A-Za-z0-9.+-]*(?:\s+[A-Z][A-Za-z0-9.+-]*){0,2})/g)) {
+    const name = match[1]?.trim();
+    if (name && name.length <= 80 && !found.some((item) => item.toLowerCase() === name.toLowerCase())) found.push(name);
+  }
+  return found.slice(0, 10);
+}
+
 export function createOnboardingDraft(input: WebsiteProfileInput): OnboardingDraft {
   const url = new URL(input.websiteUrl);
   const companyName = companyFromTitle(input.pageTitle, url.hostname);
-  const evidenceText = `${input.pageTitle || ""} ${input.pageDescription || ""}`.trim();
+  const evidenceText = `${input.pageTitle || ""} ${input.pageDescription || ""} ${input.pageText || ""}`.trim();
   const template = templates.find((candidate) => candidate.match.test(evidenceText));
   const category = template?.category || fallbackCategory(input.pageTitle);
   const categoryDescription = template?.description
     || `${companyName} operates in ${category}. Review this draft so the category reflects the words real buyers use.`;
-  const competitors = template?.competitors || [];
+  const extractedCompetitors = visibleCompetitors(evidenceText, template?.competitors || []);
+  const competitors = extractedCompetitors.length ? extractedCompetitors : template?.competitors || [];
   const audience = template?.audience || "a growing business team";
 
   return {
     companyName,
     domain: `${url.protocol}//${url.host}`,
-    market: "Global",
+    market: inferredMarket(evidenceText),
     category,
     categoryDescription,
     competitors,

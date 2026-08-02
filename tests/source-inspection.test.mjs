@@ -62,6 +62,17 @@ test("source inspection blocks redirect pivots into private networks", async () 
   );
 });
 
+test("source inspection can return bounded visible text only when explicitly requested", async () => {
+  const result = await inspection.inspectSourceUrl("https://example.com", {
+    fetcher: async () => new Response("<html><body><h1>Acme</h1><script>secret()</script><p>Compare Acme with Contoso.</p></body></html>", { headers: { "content-type": "text/html" } }),
+    resolver: async () => ["93.184.216.34"],
+    includePageText: true,
+    maxExtractedTextChars: 1000,
+  });
+  assert.match(result.pageText, /Compare Acme with Contoso/);
+  assert.doesNotMatch(result.pageText, /secret/);
+});
+
 test("source inspection records blocked, oversized, and network-failure outcomes truthfully", async () => {
   const resolver = async () => ["93.184.216.34"];
   const blocked = await inspection.inspectSourceUrl("https://example.com", {

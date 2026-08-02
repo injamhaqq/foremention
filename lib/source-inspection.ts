@@ -8,6 +8,7 @@ export type SourceInspectionResult = {
   httpStatus: number | null;
   message: string;
   pageDescription?: string | null;
+  pageText?: string;
   pageTitle: string | null;
   redirectCount: number;
 };
@@ -18,6 +19,8 @@ type Resolver = (hostname: string, signal: AbortSignal) => Promise<string[]>;
 type InspectionOptions = {
   fetcher?: Fetcher;
   maxBytes?: number;
+  includePageText?: boolean;
+  maxExtractedTextChars?: number;
   now?: () => Date;
   resolver?: Resolver;
   timeoutMs?: number;
@@ -191,6 +194,24 @@ function extractMetaDescription(body: string) {
   return null;
 }
 
+function extractVisibleText(body: string, limit: number) {
+  return body
+    .replace(/<(script|style|noscript|svg|template)\b[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, limit);
+}
+
 async function readLimitedText(response: Response, maxBytes: number) {
   const declaredLength = Number(response.headers.get("content-length") || "0");
   if (declaredLength > maxBytes) throw new Error("response_too_large");
@@ -286,6 +307,9 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
 
       try {
         const body = await readLimitedText(response, maxBytes);
+        const pageText = options.includePageText
+          ? extractVisibleText(body, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
+          : undefined;
         return result({
           access: response.status === 206 ? "partial" : "open",
           contentType,
@@ -293,6 +317,7 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
           httpStatus: response.status,
           message: response.status === 206 ? "The page returned partial content; metadata may be incomplete." : "The page was reachable and its bounded text metadata was inspected.",
           pageDescription: contentType === "text/plain" ? null : extractMetaDescription(body),
+          ...(pageText ? { pageText } : {}),
           pageTitle: contentType === "text/plain" ? null : extractPageTitle(body),
           redirectCount: redirects,
         }, now);

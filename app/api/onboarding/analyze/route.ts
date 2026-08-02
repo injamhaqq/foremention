@@ -25,15 +25,22 @@ export async function POST(request: Request) {
         checkedAt: new Date().toISOString(),
         finalUrl: "https://foremention.com/",
         pageDescription: "Recommendation intelligence for buyer questions, AI answers, exact sources, competitors, and change.",
+        pageText: "Foremention compares how B2B SaaS brands appear in AI answers and cited sources against Profound, Scrunch AI, Peec AI, OtterlyAI, AthenaHQ, and Goodie AI.",
         pageTitle: "AI Visibility and Recommendation Intelligence Platform - Foremention",
       }
-      : await inspectSourceUrl(publicUrl.toString(), { maxBytes: 192 * 1024, timeoutMs: 8_000 });
+      : await inspectSourceUrl(publicUrl.toString(), {
+        includePageText: true,
+        maxBytes: 192 * 1024,
+        maxExtractedTextChars: 24_000,
+        timeoutMs: 8_000,
+      });
     const limited = !inspection.pageTitle && !inspection.pageDescription;
 
     const draft = createOnboardingDraft({
       websiteUrl: inspection.finalUrl || publicUrl.toString(),
       pageTitle: inspection.pageTitle,
       pageDescription: inspection.pageDescription,
+      pageText: inspection.pageText,
     });
     return NextResponse.json({
       ok: true,

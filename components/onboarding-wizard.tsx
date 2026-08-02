@@ -61,6 +61,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   const [analysisMessage, setAnalysisMessage] = useState("");
   const prompts = values.prompts.split("\n").map((value) => value.trim()).filter(Boolean);
   const submissionLock = useRef(false);
+  const lastAnalyzedWebsite = useRef("");
 
   useEffect(() => {
     if (demo) return;
@@ -85,14 +86,16 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
     window.localStorage.setItem(draftKey, JSON.stringify({ step, values }));
   }, [demo, draftKey, hydrated, status, step, values]);
 
-  async function analyzeWebsite() {
+  async function analyzeWebsite(website = values.domain) {
+    const normalized = website.trim();
+    if (!normalized || analysisStatus === "analyzing" || lastAnalyzedWebsite.current === normalized) return;
     setAnalysisStatus("analyzing");
     setAnalysisMessage("");
     try {
       const response = await fetch("/api/onboarding/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ website: values.domain }),
+        body: JSON.stringify({ website: normalized }),
       });
       const result = (await response.json()) as WebsiteDraftResponse;
       if (!response.ok || !result.draft) throw new Error(result.error || "Could not create a setup draft.");
@@ -108,6 +111,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
         prompts: result.draft.prompts.join("\n"),
       });
       setAnalysisStatus("complete");
+      lastAnalyzedWebsite.current = normalized;
       captureProductEvent("onboarding_website_draft_created", { limited: Boolean(result.evidence?.limited) });
       setAnalysisMessage(result.evidence?.limited
         ? "The site did not expose readable metadata, so Foremention created an editable starter from the domain name. Review the category and competitors before saving."
@@ -118,6 +122,16 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       setAnalysisMessage(error instanceof Error ? error.message : "Could not create a setup draft.");
     }
   }
+
+  useEffect(() => {
+    if (demo || step !== 0 || !hydrated || !values.domain.trim()) return;
+    const candidate = values.domain.trim();
+    if (!/^(?:https?:\/\/)?[a-z0-9][a-z0-9.-]+\.[a-z]{2,}(?:[/:?#]|$)/i.test(candidate)) return;
+    const timer = window.setTimeout(() => void analyzeWebsite(candidate), 900);
+    return () => window.clearTimeout(timer);
+  // Website analysis is intentionally keyed only to the URL and setup state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, hydrated, step, values.domain]);
 
   async function submit() {
     if (submissionLock.current) return;
@@ -170,7 +184,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
         {!demo && <div className="website-draft">
           <div><span className="eyebrow">Fast setup</span><strong>Paste your website to create the first draft.</strong><p>Foremention reads bounded public metadata, then prepares editable category, competitor, goal, and buyer-question suggestions. Nothing is saved until you approve the review.</p></div>
           <label>Company website<input type="url" value={values.domain} onChange={(event) => { setValues({ ...values, domain: event.target.value }); setAnalysisStatus("idle"); setAnalysisMessage(""); }} placeholder="https://yourcompany.com" required /></label>
-          <button type="button" className="button button--ink" onClick={() => void analyzeWebsite()} disabled={!values.domain.trim() || analysisStatus === "analyzing"}>{analysisStatus === "analyzing" ? "Reading website…" : "Generate my setup"}</button>
+          <button type="button" className="button button--ink" onClick={() => void analyzeWebsite()} disabled={!values.domain.trim() || analysisStatus === "analyzing"}>{analysisStatus === "analyzing" ? "Reading website…" : analysisStatus === "complete" ? "Refresh website draft" : "Generate my setup"}</button>
           {analysisMessage && <p className={`website-draft__status ${analysisStatus === "error" ? "is-error" : ""}`} role={analysisStatus === "error" ? "alert" : "status"}>{analysisMessage}</p>}
         </div>}
         {demo && <label>Company website<input type="url" value={values.domain} onChange={(event) => setValues({ ...values, domain: event.target.value })} required /></label>}
