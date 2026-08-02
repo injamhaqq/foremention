@@ -333,6 +333,10 @@ textarea { resize: vertical; }
 .bulk-review .toggle { display: flex; align-items: center; gap: 8px; }
 .bulk-review .button { justify-self: start; }
 .source-select { display: flex; align-items: center; gap: 7px; }
+.workspace-pagination, .workspace-load-more { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 18px 0; }
+.workspace-pagination a, .workspace-pagination span, .workspace-load-more span { font-size: 9px; font-weight: 700; }
+.workspace-pagination a { padding: 9px 12px; border: 1px solid var(--ink); background: var(--paper); }
+.workspace-pagination a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .workspace { padding: 44px 36px 80px; }
 .workspace-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 34px; }
 .workspace-heading .eyebrow { margin-bottom: 13px; }

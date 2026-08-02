@@ -26,7 +26,9 @@ export function SourceMapTable({ entries, canEdit, demo }: { entries: SourceMapE
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState<"review" | "action" | "">("");
   const [message, setMessage] = useState("");
-  const rows = useMemo(() => entries.filter((entry) => (!gapOnly || (entry.crawlerAccess !== "unknown" && !entry.clientPresent)) && `${entry.domain} ${entry.title} ${entry.route}`.toLowerCase().includes(query.toLowerCase())), [entries, query, gapOnly]);
+  const filteredRows = useMemo(() => entries.filter((entry) => (!gapOnly || (entry.crawlerAccess !== "unknown" && !entry.clientPresent)) && `${entry.domain} ${entry.title} ${entry.route}`.toLowerCase().includes(query.toLowerCase())), [entries, query, gapOnly]);
+  const [visibleCount, setVisibleCount] = useState(25);
+  const rows = filteredRows.slice(0, visibleCount);
   const selectedRows = entries.filter((entry) => selected.includes(entry.id));
 
   function toggle(id: string) {
@@ -96,7 +98,8 @@ export function SourceMapTable({ entries, canEdit, demo }: { entries: SourceMapE
       </div>}
       <div className="data-table"><div className="data-row data-row--head"><span># / source</span><span>Evidence</span><span>Brand review</span><span>Crawler</span><span>Entry route</span><span>Next step</span></div>{rows.map((entry) => <div className="data-row" data-workspace-item tabIndex={-1} key={entry.id}><div className="data-source"><label className="source-select"><input type="checkbox" checked={selected.includes(entry.id)} onChange={() => toggle(entry.id)} aria-label={`Select ${entry.domain}`} /><span>{String(entry.rank).padStart(2,"0")}</span></label><div><a href={entry.url} target="_blank" rel="noreferrer">{entry.domain} ↗</a><small>{entry.title}</small></div></div><div><strong>{entry.evidenceCount}</strong><small>{entry.engines.join(" · ")}</small></div><div className="presence-cell"><StatusDot tone={entry.crawlerAccess === "unknown" ? "gray" : entry.clientPresent ? "green" : "red"} />{entry.crawlerAccess === "unknown" ? "Not reviewed" : entry.clientPresent ? "Present" : "Absent"}</div><div><strong className={`pill pill--${entry.crawlerAccess}`}>{entry.crawlerAccess}</strong></div><div><strong>{entry.route}</strong><small>{entry.competitors.length ? `Competitors: ${entry.competitors.join(", ")}` : "Competitor presence not reviewed"}</small></div><div><Link className="source-review-link" data-workspace-review href={`/app/sources/${entry.id}`}>{entry.crawlerAccess === "unknown" ? "Review source" : "Open record"} &rarr;</Link><small>{entry.crawlerAccess === "unknown" ? "Required before scoring" : entry.feasibility === "unknown" ? "Complete route review" : `${entry.feasibility} feasibility`}</small></div></div>)}</div>
     </> : <div className="empty-state empty-state--compact"><h2>No sources match this view.</h2><p>{gapOnly ? "No reviewed source gaps match the current search. Turn off the confirmed-gap filter or review more cited pages." : "Try a broader domain, page title, or route search."}</p><button className="text-button" type="button" onClick={() => { setQuery(""); setGapOnly(false); }}>Clear filters</button></div>}
+    {filteredRows.length > visibleCount && <div className="workspace-load-more"><button className="button button--outline" type="button" onClick={() => setVisibleCount((current) => current + 25)}>Load 25 more sources</button><span>{rows.length} of {filteredRows.length} shown</span></div>}
     {message && <p className="inline-notice" role="status">{message}</p>}
-    <p className="table-caption">{rows.length} sources shown. Citation counts are observed evidence. Brand presence, influence, routes, and feasibility require review before action.</p>
+    <p className="table-caption">{rows.length} of {filteredRows.length} matching sources shown. Citation counts are observed evidence. Brand presence, influence, routes, and feasibility require review before action.</p>
   </>;
 }

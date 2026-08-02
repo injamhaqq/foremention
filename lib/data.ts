@@ -324,10 +324,12 @@ export async function loadSourceEvidenceContexts(
   }, {});
 }
 
-export async function loadRuns(viewer: Viewer): Promise<VisibilityRun[]> {
-  if (viewer.mode === "demo") return demoRuns;
+export async function loadRuns(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<VisibilityRun[]> {
+  const limit = Math.max(1, Math.min(100, Math.round(options.limit || 100)));
+  const offset = Math.max(0, Math.round(options.offset || 0));
+  if (viewer.mode === "demo") return demoRuns.slice(offset, offset + limit);
   const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&order=created_at.desc`, { token: viewer.accessToken });
+  const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=${limit}&offset=${offset}`, { token: viewer.accessToken });
   return rows.map((row) => ({ id: row.id, date: dateLabel(row.created_at), status: row.status, errorSummary: row.error_summary, prompts: row.prompt_count, answers: row.answer_count, citations: row.citation_count, presence: Number(row.brand_presence_pct), firstMention: Number(row.first_mention_pct), newSources: row.new_source_count }));
 }
 
@@ -448,12 +450,14 @@ export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceCon
   return { organizationId, projectId: projects[0].id, categoryId: categories[0].id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: organizations[0].website, category: categories[0].name };
 }
 
-export async function loadEvidence(viewer: Viewer): Promise<WorkspaceEvidence[]> {
+export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
   if (viewer.mode === "demo") return [];
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
+  const limit = Math.max(1, Math.min(100, Math.round(options.limit || 100)));
+  const offset = Math.max(0, Math.round(options.offset || 0));
   const rows = await supabaseRest<Array<{ id: string; evidence_type: string; title: string; source_url: string | null; verification_status: WorkspaceEvidence["status"]; verified_at: string | null; expires_at: string | null; usage_rights: string | null }>>(
-    `evidence_items?select=id,evidence_type,title,source_url,verification_status,verified_at,expires_at,usage_rights&project_id=eq.${context.projectId}&order=created_at.desc`,
+    `evidence_items?select=id,evidence_type,title,source_url,verification_status,verified_at,expires_at,usage_rights&project_id=eq.${context.projectId}&order=created_at.desc&limit=${limit}&offset=${offset}`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, type: row.evidence_type, title: row.title, sourceUrl: row.source_url, status: row.verification_status, verifiedAt: row.verified_at ? dateLabel(row.verified_at) : null, expiresAt: row.expires_at ? dateLabel(row.expires_at) : null, rights: row.usage_rights }));
