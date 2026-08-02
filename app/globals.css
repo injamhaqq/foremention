@@ -258,6 +258,21 @@ textarea { resize: vertical; }
 .pricing-market-row--head { min-height: 46px; background: var(--ink); color: var(--paper); }
 .pricing-market-row--head > * { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .pricing-source-note { margin: 18px 0 0; color: var(--muted); font-size: 10px; line-height: 1.65; }
+.roi-calculator { display: grid; grid-template-columns: minmax(280px,.8fr) minmax(0,1.5fr); border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); background: #fff; }
+.roi-calculator__inputs,.roi-calculator__result { min-height: 560px; padding: 34px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.roi-calculator__inputs { display: flex; flex-direction: column; gap: 22px; background: var(--mint-wash); }
+.roi-calculator h2 { margin: 8px 0 12px; font-size: clamp(28px,3vw,46px); letter-spacing: -.06em; }
+.roi-calculator p { color: var(--muted); line-height: 1.6; }
+.roi-calculator label { display: grid; gap: 8px; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.roi-calculator input { min-height: 52px; padding: 12px 14px; border: 1px solid var(--ink); background: #fff; color: var(--ink); font: inherit; }
+.roi-calculator__result { display: flex; flex-direction: column; }
+.roi-calculator__empty,.roi-calculator__summary { margin: auto 0; }
+.roi-calculator__metrics { display: grid; grid-template-columns: repeat(2,1fr); margin-top: 28px; border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); }
+.roi-calculator__metrics article { min-height: 145px; padding: 18px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.roi-calculator__metrics span,.roi-calculator__metrics small { display: block; font-size: 9px; }
+.roi-calculator__metrics strong { display: block; margin: 22px 0 10px; font-family: Georgia,serif; font-size: 38px; font-weight: 400; }
+.roi-calculator__spend { margin-top: 22px; padding: 18px; border: 1px solid var(--ink); background: #fff0a1; }
+.roi-calculator__spend p { margin: 8px 0 0; font-size: 11px; }
 .pricing-truth { display: grid; grid-template-columns: 180px 1fr; gap: 30px; margin-top: 36px; padding: 22px 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
 .pricing-truth strong { font-size: 12px; }
 .pricing-truth p { max-width: 780px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
@@ -624,6 +639,9 @@ textarea { resize: vertical; }
   .pricing-market-row { grid-template-columns: 1fr; }
   .pricing-market-row > * { min-height: 52px; border-bottom: 1px solid var(--line); }
   .pricing-market-row--head { display: none; }
+  .roi-calculator { grid-template-columns: 1fr; }
+  .roi-calculator__inputs,.roi-calculator__result { min-height: auto; padding: 24px; }
+  .roi-calculator__result { min-height: 460px; }
   .auth-page { grid-template-columns: 1fr; }
   .auth-brand { min-height: 230px; padding: 26px; border-right: 0; border-bottom: 1px solid var(--ink); }
   .auth-brand > div { display: none; }
