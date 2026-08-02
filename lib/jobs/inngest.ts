@@ -18,6 +18,7 @@ import { supabaseRest } from "@/lib/supabase-rest";
 import { generateObservedSourceMap } from "@/lib/source-map-generation";
 import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
 import { deliverWorkspaceWebhooks, type DeliveryEvent } from "@/lib/workspace-webhooks";
+import { deliverHubSpotCompletedAction } from "@/lib/hubspot-connector";
 
 export const inngest = new Inngest({ id: "foremention" });
 
@@ -932,4 +933,9 @@ export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
 export const deliverWorkspaceWebhookEvents = inngest.createFunction(
   { id: "deliver-workspace-webhook-events", retries: 3, triggers: { event: "foremention/workspace.event" } },
   async ({ event, step }) => step.run("deliver-signed-webhooks", () => deliverWorkspaceWebhooks(event.data as DeliveryEvent)),
+);
+
+export const deliverHubSpotActionEvents = inngest.createFunction(
+  { id: "deliver-hubspot-action-events", retries: 3, triggers: { event: "foremention/integration.hubspot-action" } },
+  async ({ event, step }) => step.run("write-hubspot-activity", () => deliverHubSpotCompletedAction(event.data as { organizationId: string; placementId: string; eventKey: string; stage: string; occurredAt: string })),
 );

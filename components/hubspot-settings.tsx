@@ -1,0 +1,13 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Status = { configured: boolean; connected: boolean; connectedAt?: string | null; lastSyncedAt?: string | null };
+
+export function HubSpotSettings({ demo }: { demo: boolean }) {
+  const [status, setStatus] = useState<Status>({ configured: false, connected: false }); const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
+  useEffect(() => { if (!demo) void fetch("/api/integrations/hubspot").then((response) => response.json()).then((result) => { if (result.data) setStatus(result.data); }).catch(() => setMessage("HubSpot status could not be loaded.")); }, [demo]);
+  async function connect() { setBusy(true); setMessage(""); try { const response = await fetch("/api/integrations/hubspot/connect", { method: "POST" }); const result = await response.json(); if (!response.ok || !result.data?.authorizationUrl) throw new Error(result.error || "HubSpot could not be connected."); window.location.assign(result.data.authorizationUrl); } catch (error) { setMessage(error instanceof Error ? error.message : "HubSpot could not be connected."); setBusy(false); } }
+  async function disconnect() { setBusy(true); setMessage(""); try { const response = await fetch("/api/integrations/hubspot", { method: "DELETE" }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "HubSpot could not be disconnected."); setStatus((current) => ({ ...current, connected: false })); setMessage("HubSpot disconnected. Stored workspace credentials were removed."); } catch (error) { setMessage(error instanceof Error ? error.message : "HubSpot could not be disconnected."); } finally { setBusy(false); } }
+  return <div className="integration-connector"><p>When connected, completed Action Tracker records are copied to HubSpot as dated CRM notes. Foremention never treats the CRM write as evidence of ranking or revenue.</p><div className="settings-actions">{status.connected ? <button className="button button--outline" type="button" disabled={busy || demo} onClick={() => void disconnect()}>{busy ? "Disconnecting…" : "Disconnect HubSpot"}</button> : <button className="button button--outline" type="button" disabled={busy || demo || !status.configured} onClick={() => void connect()}>{busy ? "Opening HubSpot…" : "Connect HubSpot"}</button>}</div><small>{demo ? "Connections are disabled in the fictional demo." : status.connected ? `Connected${status.connectedAt ? ` · ${new Date(status.connectedAt).toLocaleDateString()}` : ""}` : status.configured ? "Ready to authorize with HubSpot." : "Unavailable until the deployment owner configures the HubSpot OAuth application."}</small>{message && <p className="inline-notice" role="status">{message}</p>}</div>;
+}

@@ -4,6 +4,7 @@ import { loadPlacements, loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
+import { inngest } from "@/lib/jobs/inngest";
 
 const stages = ["identified", "qualified", "pitched", "accepted", "published", "indexed", "first_cited", "repeatedly_cited", "decayed", "closed"] as const;
 const routes = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
@@ -57,6 +58,7 @@ export async function PATCH(request: Request) {
   if (["published", "indexed", "first_cited", "repeatedly_cited", "closed"].includes(body.stage)) {
     const occurredAt = new Date().toISOString();
     await queueWorkspaceWebhook({ organizationId: context.organizationId, eventKey: `action.completed:${body.id}:${body.stage}`, eventType: "action.completed", occurredAt, href: "/app/placements" }).catch(() => undefined);
+    if (process.env.INNGEST_EVENT_KEY) await inngest.send({ id: `hubspot-action-${body.id}-${body.stage}`, name: "foremention/integration.hubspot-action", data: { organizationId: context.organizationId, placementId: body.id, eventKey: `action.completed:${body.id}:${body.stage}`, stage: body.stage, occurredAt } }).catch(() => undefined);
   }
   return NextResponse.json({ ok: true });
 }

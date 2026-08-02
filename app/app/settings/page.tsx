@@ -7,6 +7,7 @@ import { getApplicationEmailStatus } from "@/lib/application-email";
 import { loadNotificationPreference, loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 import { WebhookSettings } from "@/components/webhook-settings";
+import { HubSpotSettings } from "@/components/hubspot-settings";
 
 export default async function SettingsPage() {
   const viewer = await requireViewer("/app/settings");
@@ -52,6 +53,11 @@ export default async function SettingsPage() {
       <section className="panel panel--wide">
         <span className="eyebrow">Automation</span><h2>Signed workspace webhooks.</h2>
         <WebhookSettings available={webhooksReady} demo={viewer.mode === "demo"} />
+      </section>
+
+      <section className="panel panel--wide">
+        <span className="eyebrow">CRM connector</span><h2>HubSpot activity history.</h2>
+        <HubSpotSettings demo={viewer.mode === "demo"} />
       </section>
 
       <section className="panel" id="providers">
