@@ -4,6 +4,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
 import { setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
+import { scrubSentryEvent } from "../lib/sentry-privacy";
 
 interface D1Result<T = unknown> {
   results?: T[];
@@ -191,6 +192,18 @@ export default Sentry.withSentry(
     environment: env.SENTRY_ENVIRONMENT || "production",
     tracesSampleRate: 0.05,
     sendDefaultPii: false,
+    maxBreadcrumbs: 0,
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: { request: false, response: false },
+      queryParams: false,
+      httpBodies: [],
+      genAI: { inputs: false, outputs: false },
+      stackFrameVariables: false,
+      frameContextLines: 0,
+    },
+    beforeSend: scrubSentryEvent,
   } : undefined,
   worker,
 );

@@ -390,7 +390,7 @@ test("the public Source Map uses inspectable real-company evidence without inven
 });
 
 test("error monitoring is optional, privacy-conscious, and configured outside source", async () => {
-  const [worker, client, env] = await Promise.all([text("worker/index.ts"), text("components/sentry-client.tsx"), text(".env.example")]);
+  const [worker, client, privacy, env] = await Promise.all([text("worker/index.ts"), text("components/sentry-client.tsx"), text("lib/sentry-privacy.ts"), text(".env.example")]);
   assert.match(worker, /@sentry\/cloudflare/);
   assert.match(worker, /Sentry\.withSentry/);
   assert.match(worker, /env\?\.SENTRY_DSN/);
@@ -398,6 +398,15 @@ test("error monitoring is optional, privacy-conscious, and configured outside so
   assert.match(client, /@sentry\/react/);
   assert.match(client, /NEXT_PUBLIC_SENTRY_DSN/);
   assert.match(env, /SENTRY_DSN=/);
+  for (const source of [worker, client]) {
+    assert.match(source, /maxBreadcrumbs: 0/);
+    assert.match(source, /httpBodies: \[\]/);
+    assert.match(source, /genAI: \{ inputs: false, outputs: false \}/);
+    assert.match(source, /beforeSend: scrubSentryEvent/);
+  }
+  assert.match(privacy, /delete event\.request/);
+  assert.match(privacy, /delete event\.user/);
+  assert.match(privacy, /exception\.value = "Application error"/);
 });
 
 test("product analytics is optional, privacy-limited, and configured outside source", async () => {
