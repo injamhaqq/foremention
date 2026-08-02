@@ -189,6 +189,7 @@ const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "exp
 const sourceRoute = (value: string | null): SourceMapEntry["route"] => routes.includes(value as EntryRoute) ? value as EntryRoute : "unknown";
 const placementRoute = (value: string | null): EntryRoute => routes.includes(value as EntryRoute) ? value as EntryRoute : "editorial outreach";
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(value));
+const timestampLabel = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC", timeZoneName: "short" }).format(new Date(value));
 const relativeLabel = (value: string) => dateLabel(value);
 const hostname = (value: string) => { try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return value; } };
 const agentNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -885,7 +886,7 @@ export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotifi
       body,
       href: row.href,
       read: Boolean(row.read_at),
-      createdAt: dateLabel(row.created_at),
+      createdAt: timestampLabel(row.created_at),
       count: 1,
     });
   }

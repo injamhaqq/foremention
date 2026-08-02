@@ -318,6 +318,18 @@ textarea { resize: vertical; }
 .app-user strong, .app-user small { display: block; }
 .app-user strong { font-size: 11px; }
 .app-user small { color: var(--muted); font-size: 9px; }
+.app-topbar__account { display: flex; align-items: center; gap: 14px; }
+.notification-bell { position: relative; }
+.notification-bell > summary { position: relative; width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--ink); background: var(--paper); cursor: pointer; list-style: none; }
+.notification-bell > summary::-webkit-details-marker { display: none; }
+.notification-bell > summary strong { position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; display: grid; place-items: center; padding: 0 4px; border: 1px solid var(--ink); border-radius: 999px; background: var(--marker); font-size: 8px; }
+.notification-bell__panel { position: absolute; z-index: 50; top: calc(100% + 10px); right: 0; width: min(360px, calc(100vw - 32px)); border: 1px solid var(--ink); background: var(--paper); box-shadow: 8px 8px 0 var(--ink); }
+.notification-bell__panel > div { display: flex; justify-content: space-between; padding: 13px 15px; border-bottom: 1px solid var(--ink); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.notification-bell__panel > a { display: grid; gap: 5px; padding: 13px 15px; border-bottom: 1px solid var(--line); }
+.notification-bell__panel > a.is-unread { border-left: 5px solid var(--marker); background: var(--marker-soft); }
+.notification-bell__panel strong { font-size: 10px; }
+.notification-bell__panel small { color: var(--muted); font-size: 8px; }
+.notification-bell__panel > p { margin: 0; padding: 20px 15px; color: var(--muted); font-size: 10px; }
 .workspace-global-search { display: flex; width: min(360px, 34vw); border: 1px solid var(--ink); background: var(--paper); }
 .workspace-global-search input { min-width: 0; flex: 1; border: 0; padding: 10px 12px; background: transparent; font-size: 10px; }
 .workspace-global-search button { border: 0; border-left: 1px solid var(--ink); padding: 0 12px; background: var(--marker); font-size: 9px; font-weight: 700; }
