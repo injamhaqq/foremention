@@ -550,6 +550,22 @@ test("collaboration, in-app alerts, and reversible lifecycle controls are explic
   assert.match(settings, /Automated application-email delivery remains unavailable/);
 });
 
+test("Resend application alerts are server-only, bounded, and separate from authentication email", async () => {
+  const [email, env, signup, forgot] = await Promise.all([
+    text("lib/application-email.ts"),
+    text(".env.example"),
+    text("app/api/auth/signup/route.ts"),
+    text("app/api/auth/forgot-password/route.ts"),
+  ]);
+  assert.match(env, /RESEND_API_KEY=/);
+  assert.match(env, /RESEND_FROM_EMAIL=/);
+  assert.match(email, /https:\/\/api\.resend\.com\/emails/);
+  assert.match(email, /Supabase\/Zoho owns confirmation and password-recovery delivery/);
+  assert.match(email, /slice\(0, 160\)/);
+  assert.match(email, /slice\(0, 20_000\)/);
+  assert.doesNotMatch(`${signup}\n${forgot}`, /RESEND_API_KEY|sendProductAlertEmail/);
+});
+
 test("real collection events create tenant-scoped, idempotent in-app alerts", async () => {
   const [job, review] = await Promise.all([
     text("lib/jobs/inngest.ts"),
