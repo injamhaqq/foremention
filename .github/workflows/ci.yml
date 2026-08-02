@@ -39,3 +39,12 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Upload production build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: foremention-dist-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
