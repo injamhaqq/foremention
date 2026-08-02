@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { readJsonObject } from "@/lib/input-validation";
 
 export async function POST(request: Request) {
-  const { password } = await request.json().catch(() => ({})) as { password?: string };
+  const body = await readJsonObject(request);
+  if (!body) return NextResponse.json({ error: "Send a valid password reset form." }, { status: 400 });
+  const password = typeof body.password === "string" ? body.password : "";
   if (!password || password.length < 8) return NextResponse.json({ error: "Use a password with at least 8 characters." }, { status: 400 });
 
   const token = request.headers.get("cookie")?.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`))?.[1];

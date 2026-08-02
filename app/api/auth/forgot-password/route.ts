@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabaseConfigured } from "@/lib/supabase-rest";
+import { cleanText, readJsonObject } from "@/lib/input-validation";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({})) as { email?: string };
-  const email = String(body.email || "").trim().toLowerCase();
+  const body = await readJsonObject(request);
+  if (!body) return NextResponse.json({ error: "Send a valid recovery form." }, { status: 400 });
+  const email = cleanText(body.email, 254).toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
   if (supabaseConfigured()) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string;

@@ -4,8 +4,7 @@ import { getPrimaryWorkspaceRole, loadEvidence, loadWorkspaceContext } from "@/l
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
-
-const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
+import { cleanText, isUuid, publicHttpsUrl, readJsonObject } from "@/lib/input-validation";
 
 export async function GET() {
   const viewer = await getViewer();
@@ -17,16 +16,15 @@ export async function POST(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = (await request.json()) as { title?: string; type?: string; sourceUrl?: string; rights?: string };
-  const title = clean(body.title, 200);
-  const type = clean(body.type, 80) || "company fact";
-  const sourceUrl = clean(body.sourceUrl, 1000);
-  const rights = clean(body.rights, 500);
+  const body = await readJsonObject(request);
+  if (!body) return NextResponse.json({ error: "Send a valid evidence form." }, { status: 400 });
+  const title = cleanText(body.title, 200);
+  const type = cleanText(body.type, 80) || "company fact";
+  const sourceUrl = cleanText(body.sourceUrl, 1000);
+  const rights = cleanText(body.rights, 500);
   if (title.length < 3) return NextResponse.json({ error: "Evidence needs a clear title." }, { status: 400 });
   if (sourceUrl) {
-    try {
-      if (new URL(sourceUrl).protocol !== "https:") throw new Error("HTTPS required");
-    } catch {
+    if (!publicHttpsUrl(sourceUrl)) {
       return NextResponse.json({ error: "Use a complete evidence URL beginning with https://." }, { status: 400 });
     }
   }
@@ -44,9 +42,10 @@ export async function PATCH(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await request.json().catch(() => ({})) as { id?: string; status?: "verified" | "unverified" };
-  const id = clean(body.id, 36);
-  if (!/^[0-9a-f-]{36}$/i.test(id) || !body.status || !["verified", "unverified"].includes(body.status)) {
+  const body = await readJsonObject(request);
+  if (!body) return NextResponse.json({ error: "Send a valid evidence review." }, { status: 400 });
+  const id = cleanText(body.id, 36);
+  if (!isUuid(id) || (body.status !== "verified" && body.status !== "unverified")) {
     return NextResponse.json({ error: "Choose a valid evidence item and review state." }, { status: 400 });
   }
   if (viewer.mode === "demo") return NextResponse.json({ data: { id, status: body.status, verifiedAt: body.status === "verified" ? new Date().toISOString() : null }, mode: "demo" });

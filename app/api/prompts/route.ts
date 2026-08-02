@@ -4,8 +4,7 @@ import { getPrimaryWorkspaceRole, loadPrompts, loadWorkspaceContext } from "@/li
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
-
-const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
+import { cleanText, readJsonObject } from "@/lib/input-validation";
 
 export async function GET() {
   const viewer = await getViewer();
@@ -17,9 +16,10 @@ export async function POST(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = (await request.json()) as { text?: string; cluster?: string };
-  const text = clean(body.text, 1000);
-  const clusterName = clean(body.cluster, 80) || "Customer question";
+  const body = await readJsonObject(request);
+  if (!body) return NextResponse.json({ error: "Send a valid buyer-question form." }, { status: 400 });
+  const text = cleanText(body.text, 1000);
+  const clusterName = cleanText(body.cluster, 80) || "Customer question";
   if (text.length < 10) return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: crypto.randomUUID(), text, cluster: clusterName, approved: true }, mode: "demo" }, { status: 201 });
 
@@ -71,11 +71,13 @@ export async function PATCH(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = (await request.json()) as { id?: string; active?: boolean; text?: string };
+  const body = await readJsonObject(request);
+  if (!body) return NextResponse.json({ error: "Send a valid buyer-question update." }, { status: 400 });
   const hasActive = typeof body.active === "boolean";
   const hasText = typeof body.text === "string";
-  const text = hasText ? clean(body.text, 1000) : "";
-  if (!body.id || !/^[0-9a-f-]{36}$/i.test(body.id) || (!hasActive && !hasText)) {
+  const text = hasText ? cleanText(body.text, 1000) : "";
+  const id = cleanText(body.id, 36);
+  if (!/^[0-9a-f-]{36}$/i.test(id) || (!hasActive && !hasText)) {
     return NextResponse.json({ error: "Prompt ID and at least one change are required." }, { status: 400 });
   }
   if (hasText && text.length < 10) {
@@ -86,14 +88,14 @@ export async function PATCH(request: Request) {
   if (!context || !role) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can edit buyer questions." }, { status: 403 });
   const currentRows = await supabaseRest<Array<{ id: string; prompt_text: string; active: boolean; version: number }>>(
-    `prompts?select=id,prompt_text,active,version&id=eq.${body.id}&organization_id=eq.${context.organizationId}&limit=1`,
+    `prompts?select=id,prompt_text,active,version&id=eq.${id}&organization_id=eq.${context.organizationId}&limit=1`,
     { token: viewer.accessToken },
   );
   const current = currentRows[0];
   if (!current) return NextResponse.json({ error: "Buyer question not found." }, { status: 404 });
   const nextVersion = hasText && text !== current.prompt_text ? current.version + 1 : current.version;
   const rows = await supabaseRest<Array<{ id: string; prompt_text: string; active: boolean }>>(
-    `prompts?id=eq.${body.id}&organization_id=eq.${context.organizationId}`,
+      `prompts?id=eq.${id}&organization_id=eq.${context.organizationId}`,
     {
       method: "PATCH",
       token: viewer.accessToken,

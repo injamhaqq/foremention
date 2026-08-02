@@ -4,6 +4,7 @@ import { loadWorkspaceContext } from "@/lib/data";
 import { generateBuyerQuestions } from "@/lib/onboarding-profile";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { cleanStringArray, cleanText, readJsonObject } from "@/lib/input-validation";
 
 type OnboardingPayload = {
   companyName?: string;
@@ -18,33 +19,32 @@ type OnboardingPayload = {
   locale?: string;
 };
 
-const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
-
 export async function POST(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const raw = (await request.json()) as OnboardingPayload;
-  const submittedCompetitors = (raw.competitors || []).map((value) => clean(value, 120)).filter(Boolean).slice(0, 20);
+  const raw = await readJsonObject(request) as OnboardingPayload | null;
+  if (!raw) return NextResponse.json({ error: "Send a valid workspace setup form." }, { status: 400 });
+  const submittedCompetitors = cleanStringArray(raw.competitors, 120, 20);
   const generatedPrompts = generateBuyerQuestions(
-    clean(raw.category, 160),
-    clean(raw.companyName, 120),
+    cleanText(raw.category, 160),
+    cleanText(raw.companyName, 120),
     submittedCompetitors,
-    clean(raw.market, 120) === "Global" ? "a growing global business team" : `a growing team in ${clean(raw.market, 120)}`,
+    cleanText(raw.market, 120) === "Global" ? "a growing global business team" : `a growing team in ${cleanText(raw.market, 120)}`,
   );
-  const submittedPrompts = (raw.prompts || []).map((value) => clean(value, 1000)).filter(Boolean).slice(0, 5);
+  const submittedPrompts = cleanStringArray(raw.prompts, 1000, 5);
   const prompts = Array.from(new Set([...submittedPrompts, ...generatedPrompts])).slice(0, 5);
   const payload = {
-    companyName: clean(raw.companyName, 120),
-    domain: clean(raw.domain, 500),
-    market: clean(raw.market, 120),
-    category: clean(raw.category, 160),
-    categoryDescription: clean(raw.categoryDescription, 2000),
+    companyName: cleanText(raw.companyName, 120),
+    domain: cleanText(raw.domain, 500),
+    market: cleanText(raw.market, 120),
+    category: cleanText(raw.category, 160),
+    categoryDescription: cleanText(raw.categoryDescription, 2000),
     competitors: submittedCompetitors,
-    goal: clean(raw.goal, 500),
-    constraint: clean(raw.constraint, 1000),
+    goal: cleanText(raw.goal, 500),
+    constraint: cleanText(raw.constraint, 1000),
     prompts,
-    locale: clean(raw.locale, 20) || "en-US",
+    locale: cleanText(raw.locale, 20) || "en-US",
   };
   if (!payload.companyName || !payload.domain || !payload.category) return NextResponse.json({ error: "Company, domain, and category are required." }, { status: 400 });
   try {

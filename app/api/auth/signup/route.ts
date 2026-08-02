@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getApplicationEmailStatus, sendWelcomeEmail } from "@/lib/application-email";
 import { supabaseAuth } from "@/lib/supabase-rest";
+import { cleanText, readJsonObject } from "@/lib/input-validation";
 
 async function attemptWelcomeEmail(email: string, origin: string) {
   if (!getApplicationEmailStatus().available) return "not_configured" as const;
@@ -16,8 +17,14 @@ async function attemptWelcomeEmail(email: string, origin: string) {
 
 export async function POST(request: Request) {
   try {
-    const { email, password, confirmation, full_name } = (await request.json()) as { email?: string; password?: string; confirmation?: string; full_name?: string };
-    if (!email || !password || !confirmation || !full_name) return NextResponse.json({ error: "Name, email, password, and password confirmation are required." }, { status: 400 });
+    const body = await readJsonObject(request);
+    if (!body) return NextResponse.json({ error: "Send a valid signup form." }, { status: 400 });
+    const email = cleanText(body.email, 254).toLowerCase();
+    const password = typeof body.password === "string" ? body.password : "";
+    const confirmation = typeof body.confirmation === "string" ? body.confirmation : "";
+    const fullName = cleanText(body.full_name, 120);
+    if (!email || !password || !confirmation || !fullName) return NextResponse.json({ error: "Name, email, password, and password confirmation are required." }, { status: 400 });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
     if (password.length < 8) return NextResponse.json({ error: "Use a password with at least 8 characters." }, { status: 400 });
     if (password !== confirmation) return NextResponse.json({ error: "The two passwords do not match." }, { status: 400 });
     const incomingOrigin = new URL(request.url).origin;
@@ -29,11 +36,11 @@ export async function POST(request: Request) {
     // client-library `options.emailRedirectTo` shape silently falls back to
     // the project default URL, which strands a confirmed user outside the
     // callback that creates their Foremention session.
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = email;
     const data = await supabaseAuth("signup", {
       email: normalizedEmail,
       password,
-      data: { full_name: full_name.trim() },
+      data: { full_name: fullName },
       email_redirect_to: `${origin}/auth/callback`,
     });
     const user = data.user && typeof data.user === "object"

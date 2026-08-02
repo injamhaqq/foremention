@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { setSessionCookies } from "@/lib/session-cookies";
 import { supabaseAuth } from "@/lib/supabase-rest";
+import { cleanText, readJsonObject } from "@/lib/input-validation";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = (await request.json()) as { email?: string; password?: string };
+    const body = await readJsonObject(request);
+    if (!body) return NextResponse.json({ error: "Send a valid sign-in form." }, { status: 400 });
+    const email = cleanText(body.email, 254).toLowerCase();
+    const password = typeof body.password === "string" ? body.password : "";
     if (!email || !password) return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
-    const data = await supabaseAuth("token?grant_type=password", { email: email.trim().toLowerCase(), password });
+    const data = await supabaseAuth("token?grant_type=password", { email, password });
     const token = String(data.access_token || "");
     if (!token) throw new Error("No session was returned.");
     const response = NextResponse.json({ ok: true, session: true });
