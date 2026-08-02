@@ -56,8 +56,9 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(() => initialValues(demo));
   const [hydrated, setHydrated] = useState(demo);
-  const [status, setStatus] = useState<"idle" | "saving" | "complete" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "auditing" | "complete" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [firstRunId, setFirstRunId] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [analysisMessage, setAnalysisMessage] = useState("");
   const prompts = values.prompts.split("\n").map((value) => value.trim()).filter(Boolean);
@@ -134,6 +135,44 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo, hydrated, step, values.domain]);
 
+  useEffect(() => {
+    if (!firstRunId || status !== "auditing") return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch("/api/runs", { cache: "no-store" });
+        const result = await response.json() as { data?: Array<{ id: string; status: string }> };
+        const run = result.data?.find((item) => item.id === firstRunId);
+        if (!cancelled && run && ["review", "complete", "partial"].includes(run.status)) {
+          window.location.assign("/app");
+          return;
+        }
+      } catch {
+        // The durable background run continues even when a browser poll fails.
+      }
+      if (!cancelled) window.setTimeout(() => void poll(), 3_000);
+    };
+    void poll();
+    return () => { cancelled = true; };
+  }, [firstRunId, status]);
+
+  async function startFirstAudit() {
+    const promptResponse = await fetch("/api/prompts", { cache: "no-store" });
+    const promptResult = await promptResponse.json() as { data?: Array<{ id: string; approved: boolean }>; error?: string };
+    if (!promptResponse.ok) throw new Error(promptResult.error || "Your buyer questions could not be loaded.");
+    const promptIds = (promptResult.data || []).filter((prompt) => prompt.approved).slice(0, 5).map((prompt) => prompt.id);
+    if (promptIds.length !== 5) throw new Error("Your five-question baseline is still being prepared.");
+    const runResponse = await fetch("/api/runs", {
+      method: "POST",
+      headers: { "content-type": "application/json", "idempotency-key": `onboarding:${crypto.randomUUID()}` },
+      body: JSON.stringify({ promptIds, providers: ["groq"] }),
+    });
+    const runResult = await runResponse.json() as { id?: string; error?: string };
+    if (!runResponse.ok || !runResult.id) throw new Error(runResult.error || "Your first audit could not be queued.");
+    captureProductEvent("collection_started", { question_count: 5, provider_count: 1, provider: "groq", source: "onboarding" });
+    return runResult.id;
+  }
+
   async function submit() {
     if (submissionLock.current) return;
     submissionLock.current = true;
@@ -154,7 +193,12 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       if (!response.ok) throw new Error(result.error || "Could not save onboarding.");
       if (!demo) window.localStorage.removeItem(draftKey);
       if (!demo) captureProductEvent("onboarding_completed", { question_count: prompts.length, competitor_count: values.competitors.split("\n").filter((value) => value.trim()).length });
-      setStatus("complete");
+      if (demo) setStatus("complete");
+      else {
+        setStatus("auditing");
+        const runId = await startFirstAudit();
+        setFirstRunId(runId);
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save onboarding.");
       setStatus("error");
@@ -162,6 +206,14 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       submissionLock.current = false;
     }
   }
+
+  if (status === "auditing") return <div className="onboarding-complete onboarding-audit" role="status" aria-live="polite">
+    <span className="eyebrow">First audit in progress</span>
+    <div className="audit-loader" aria-hidden="true"><i /><i /><i /></div>
+    <h2>We&apos;re running your first AI visibility audit — this takes about 2 minutes.</h2>
+    <p>Foremention is collecting five real Groq answers, preserving returned citations, and building your first evidence baseline. You can leave this page; the background run will continue safely.</p>
+    {firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}`}>View live run status &rarr;</a>}
+  </div>;
 
   if (status === "complete") return <div className="onboarding-complete" role="status">
     <span className="eyebrow">Workspace ready</span>

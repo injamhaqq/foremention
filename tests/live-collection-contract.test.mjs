@@ -38,6 +38,15 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
   assert.doesNotMatch(migration, /delete from public\.source_observations/);
 });
 
+test("onboarding starts a five-question Groq audit and shows durable progress", async () => {
+  const wizard = await text("components/onboarding-wizard.tsx");
+  assert.match(wizard, /providers: \["groq"\]/);
+  assert.match(wizard, /promptIds\.length !== 5/);
+  assert.match(wizard, /We&apos;re running your first AI visibility audit/);
+  assert.match(wizard, /onboarding:\$\{crypto\.randomUUID\(\)\}/);
+  assert.match(wizard, /\["review", "complete", "partial"\]/);
+});
+
 test("Groq has fixed pre-call run and organization spend ceilings without prompt-bearing error logs", async () => {
   const [route, job, adapter, policy] = await Promise.all([
     text("app/api/runs/route.ts"),
