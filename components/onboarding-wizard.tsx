@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
+import { generateBuyerQuestions } from "@/lib/onboarding-profile";
 
 const steps = ["Organization", "Category", "Competitors", "Goals", "Buyer questions", "Review"];
 
@@ -173,7 +174,17 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
 
   return <div className="onboarding-wizard">
     <ol aria-label="Workspace setup progress">{steps.map((label, index) => <li className={step === index ? "is-active" : step > index ? "is-complete" : ""} key={label}><span>{String(index + 1).padStart(2, "0")}</span>{label}</li>)}</ol>
-    <form onSubmit={(event) => { event.preventDefault(); if (step < steps.length - 1) setStep(step + 1); else void submit(); }} aria-busy={status === "saving"}>
+    <form onSubmit={(event) => {
+      event.preventDefault();
+      if (step < steps.length - 1) {
+        if (step === 3 && !prompts.length) {
+          const competitors = values.competitors.split("\n").map((value) => value.trim()).filter(Boolean);
+          const audience = values.market === "Global" ? "a growing global business team" : `a growing team in ${values.market}`;
+          setValues({ ...values, prompts: generateBuyerQuestions(values.category || "B2B software", values.companyName || "the company", competitors, audience).join("\n") });
+        }
+        setStep(step + 1);
+      } else void submit();
+    }} aria-busy={status === "saving"}>
       <div className="wizard-progress" aria-live="polite">
         <span>Step {step + 1} of {steps.length}</span>
         <div aria-hidden="true"><i style={{ width: `${((step + 1) / steps.length) * 100}%` }} /></div>
@@ -194,7 +205,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       {step === 1 && <fieldset><legend>Choose the category buyers use</legend><label>Canonical category<input value={values.category} onChange={(event) => setValues({ ...values, category: event.target.value })} placeholder="Example: CRM software for small B2B teams" required /></label><label>Category definition<textarea value={values.categoryDescription} onChange={(event) => setValues({ ...values, categoryDescription: event.target.value })} placeholder="Describe what belongs in this category and who buys it." rows={4} required /></label></fieldset>}
       {step === 2 && <fieldset><legend>Map the comparison set</legend><label>Direct competitors<textarea value={values.competitors} onChange={(event) => setValues({ ...values, competitors: event.target.value })} placeholder={"Competitor one\nCompetitor two\nCompetitor three"} rows={5} required /></label><p className="field-hint">One company per line. Include only brands a real buyer would compare.</p></fieldset>}
       {step === 3 && <fieldset><legend>Define the measurement goal</legend><label>Primary goal<select value={values.goal} onChange={(event) => setValues({ ...values, goal: event.target.value })}><option>Establish a measurement baseline</option><option>Find credible source gaps</option><option>Defend existing recommendation visibility</option></select></label><label>Evidence constraint<textarea value={values.constraint} onChange={(event) => setValues({ ...values, constraint: event.target.value })} rows={4} required /></label></fieldset>}
-      {step === 4 && <fieldset><legend>Add the questions buyers ask</legend><label>Buyer questions<textarea value={values.prompts} onChange={(event) => setValues({ ...values, prompts: event.target.value })} placeholder={"What is the best [category] for [buyer]?\nWhich [category] handles [important use case]?\nWhat are credible alternatives to [competitor]?"} rows={8} required /></label><p className="field-hint">One complete question per line. Foremention keeps the wording stable so later runs remain comparable. {prompts.length}/10 questions prepared.</p></fieldset>}
+      {step === 4 && <fieldset><legend>Review the questions buyers ask</legend><label>Buyer questions<textarea value={values.prompts} onChange={(event) => setValues({ ...values, prompts: event.target.value })} placeholder={"Questions are generated automatically from your category and market."} rows={8} /></label><p className="field-hint">Foremention creates five questions automatically. Editing is optional; the saved five become the stable baseline for comparable runs. {prompts.length}/5 questions prepared.</p></fieldset>}
       {step === 5 && <fieldset>
         <legend>Review your evidence boundary</legend>
         <p className="field-hint">Review the draft before saving. Collection starts only when you later choose to run it.</p>
@@ -207,7 +218,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
         <p className="onboarding-security-note"><strong>Your workspace is private.</strong> Only you and teammates you invite can see it. You can edit this setup before any collection begins.</p>
       </fieldset>}
       {message && <p className="auth-message" role="alert">{message}</p>}
-      <div className="wizard-actions">{step > 0 && <button type="button" className="button button--outline" onClick={() => setStep(step - 1)} disabled={status === "saving"}>&larr; Back</button>}<button className="button button--ink" type="submit" disabled={status === "saving" || (step >= 4 && (prompts.length === 0 || prompts.length > 10))}>{status === "saving" ? "Creating secure workspace..." : step === steps.length - 1 ? "Create my workspace" : "Continue"} &rarr;</button></div>
+      <div className="wizard-actions">{step > 0 && <button type="button" className="button button--outline" onClick={() => setStep(step - 1)} disabled={status === "saving"}>&larr; Back</button>}<button className="button button--ink" type="submit" disabled={status === "saving" || (step >= 4 && prompts.length > 5)}>{status === "saving" ? "Creating secure workspace..." : step === steps.length - 1 ? "Create my workspace" : "Continue"} &rarr;</button></div>
     </form>
   </div>;
 }

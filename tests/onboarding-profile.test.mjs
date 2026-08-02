@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createOnboardingDraft } from "../lib/onboarding-profile.ts";
+import { createOnboardingDraft, generateBuyerQuestions } from "../lib/onboarding-profile.ts";
 
 test("website metadata creates a reviewable Foremention onboarding draft", () => {
   const draft = createOnboardingDraft({
@@ -42,4 +42,12 @@ test("website text extracts visible competitors and a target market", () => {
   });
   assert.equal(draft.market, "North America");
   assert.deepEqual(draft.competitors.slice(0, 2), ["HubSpot", "Pipedrive"]);
+});
+
+test("buyer questions always produce a five-question company baseline", () => {
+  const questions = generateBuyerQuestions("AI visibility software", "Foremention", ["Profound"], "a growing B2B SaaS team");
+  assert.equal(questions.length, 5);
+  assert.match(questions[0], /AI visibility software tool is best/);
+  assert.match(questions[2], /Foremention/);
+  assert.match(questions[2], /Profound/);
 });

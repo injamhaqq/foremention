@@ -103,14 +103,14 @@ function fallbackCategory(title: string | null) {
   return "B2B software";
 }
 
-function genericPrompts(category: string, companyName: string, competitors: string[], audience: string) {
+export function generateBuyerQuestions(category: string, companyName: string, competitors: string[], audience = "a growing business team") {
   const competitor = competitors[0] || "the leading alternatives";
   return [
-    `Which ${category} platforms are best for ${audience}?`,
-    `What should buyers evaluate when choosing ${category}?`,
+    `Which ${category} tool is best for ${audience}?`,
+    `What should ${audience} evaluate when choosing ${category}?`,
     `How does ${companyName} compare with ${competitor}?`,
     `What are credible alternatives to ${competitor}?`,
-    `Which ${category} products provide the strongest evidence for their claims?`,
+    `Which ${category} tool is best for teams that need trustworthy evidence for product claims?`,
   ];
 }
 
@@ -153,6 +153,6 @@ export function createOnboardingDraft(input: WebsiteProfileInput): OnboardingDra
     competitors,
     goal: "Find credible source gaps",
     constraint: "Use only dated AI answers, provider-returned citations, canonical public URLs, and human-reviewed page evidence. Separate observations from inferences. Never invent citations or promise rankings, traffic, leads, revenue, or guaranteed outcomes.",
-    prompts: genericPrompts(category, companyName, competitors, audience),
+    prompts: generateBuyerQuestions(category, companyName, competitors, audience),
   };
 }
