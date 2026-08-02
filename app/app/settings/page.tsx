@@ -128,8 +128,8 @@ export default async function SettingsPage() {
       <section className="panel">
         <span className="eyebrow">Data controls</span>
         <h2>Export or close</h2>
-        <p>Exports include only the current organization records your account is authorized to access.</p>
-        <div className="settings-actions"><a className="button button--outline" href="/api/export/source-map">Export Source Map &darr;</a></div>
+        <p>Exports include only the current organization records your account is authorized to access. Complete ZIP archives are restricted to the workspace owner and exclude credentials and authentication secrets.</p>
+        <div className="settings-actions"><a className="button button--outline" href="/api/export/source-map">Export Source Map &darr;</a>{team.role === "owner" && viewer.mode !== "demo" ? <a className="button button--ink" href="/api/export/workspace">Export full workspace ZIP &darr;</a> : <span className="button button--ink" aria-disabled="true">Full export &middot; owner only</span>}</div>
         <AccountLifecycle initialRequest={deletionRequest} owner={team.role === "owner"} demo={viewer.mode === "demo"} />
       </section>
 

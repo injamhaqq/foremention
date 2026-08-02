@@ -56,7 +56,7 @@ export function AccountLifecycle({ initialRequest, owner, demo }: { initialReque
 
   return <div className="deletion-request">
     <strong>Request account and workspace deletion</strong>
-    <p>Export your Source Map first. This records a reversible request with a seven-day safety period; it does not erase data until the deletion worker is separately verified.</p>
+    <p>Export your full workspace ZIP first. This records a reversible request with a seven-day safety period; it does not erase data until the deletion worker is separately verified.</p>
     <label>Type DELETE FOREMENTION<input value={confirmation} onChange={(event) => setConfirmation(event.target.value)} disabled={!owner || demo} /></label>
     <button className="danger-button" type="button" disabled={!owner || demo || busy || confirmation !== "DELETE FOREMENTION"} onClick={() => void requestDeletion()}>{busy ? "Recording…" : "Record deletion request"}</button>
     {!owner && !demo && <small>Only the workspace owner can request organization deletion.</small>}
