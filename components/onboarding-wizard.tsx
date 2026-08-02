@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
-import { generateBuyerQuestions } from "@/lib/onboarding-profile";
+import { createManualOnboardingDraft, generateBuyerQuestions } from "@/lib/onboarding-profile";
 
 const steps = ["Organization", "Category", "Competitors", "Goals", "Buyer questions", "Review"];
 
@@ -61,6 +61,8 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   const [firstRunId, setFirstRunId] = useState<string | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [analysisMessage, setAnalysisMessage] = useState("");
+  const [manualContextRequired, setManualContextRequired] = useState(false);
+  const [manualContext, setManualContext] = useState({ whatYouSell: "", whoBuys: "", competitors: "" });
   const prompts = values.prompts.split("\n").map((value) => value.trim()).filter(Boolean);
   const submissionLock = useRef(false);
   const lastAnalyzedWebsite = useRef("");
@@ -101,27 +103,60 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
       });
       const result = (await response.json()) as WebsiteDraftResponse;
       if (!response.ok || !result.draft) throw new Error(result.error || "Could not create a setup draft.");
+      const limited = Boolean(result.evidence?.limited);
+      setManualContextRequired(limited);
       setValues({
         companyName: result.draft.companyName,
         domain: result.draft.domain,
         market: result.draft.market,
-        category: result.draft.category,
-        categoryDescription: result.draft.categoryDescription,
-        competitors: result.draft.competitors.join("\n"),
+        category: limited ? "" : result.draft.category,
+        categoryDescription: limited ? "" : result.draft.categoryDescription,
+        competitors: limited ? "" : result.draft.competitors.join("\n"),
         goal: result.draft.goal,
         constraint: result.draft.constraint,
-        prompts: result.draft.prompts.join("\n"),
+        prompts: limited ? "" : result.draft.prompts.join("\n"),
       });
       setAnalysisStatus("complete");
       lastAnalyzedWebsite.current = normalized;
       captureProductEvent("onboarding_website_draft_created", { limited: Boolean(result.evidence?.limited) });
-      setAnalysisMessage(result.evidence?.limited
-        ? "The site did not expose readable metadata, so Foremention created an editable starter from the domain name. Review the category and competitors before saving."
+      setAnalysisMessage(limited
+        ? "We could not read enough public website content. Answer the three short questions below and Foremention will create your setup without blocking you."
         : `Draft created from ${result.evidence?.pageTitle || result.evidence?.finalUrl || "public website metadata"}. Review each step before saving.`);
     } catch (error) {
       captureProductEvent("onboarding_website_draft_failed");
       setAnalysisStatus("error");
-      setAnalysisMessage(error instanceof Error ? error.message : "Could not create a setup draft.");
+      setManualContextRequired(true);
+      setAnalysisMessage(`${error instanceof Error ? error.message : "Could not read the website."} Answer the three short questions below to continue.`);
+    }
+  }
+
+  function applyManualContext() {
+    try {
+      const website = /^(?:https?:\/\/)/i.test(values.domain.trim()) ? values.domain.trim() : `https://${values.domain.trim()}`;
+      const draft = createManualOnboardingDraft({
+        websiteUrl: website,
+        whatYouSell: manualContext.whatYouSell,
+        whoBuys: manualContext.whoBuys,
+        competitors: manualContext.competitors.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean),
+      });
+      setValues({
+        companyName: values.companyName || draft.companyName,
+        domain: draft.domain,
+        market: values.market || draft.market,
+        category: draft.category,
+        categoryDescription: draft.categoryDescription,
+        competitors: draft.competitors.join("\n"),
+        goal: draft.goal,
+        constraint: draft.constraint,
+        prompts: draft.prompts.join("\n"),
+      });
+      setManualContextRequired(false);
+      setAnalysisStatus("complete");
+      setAnalysisMessage("Setup created from your answers. Review the category, competitors, and five buyer questions before creating the workspace.");
+      captureProductEvent("onboarding_manual_context_created", { competitor_count: draft.competitors.length });
+    } catch (error) {
+      setAnalysisStatus("error");
+      setAnalysisMessage(error instanceof Error ? error.message : "Complete the three questions to continue.");
     }
   }
 
@@ -265,6 +300,12 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
           <label>Company website<input type="url" value={values.domain} onChange={(event) => { setValues({ ...values, domain: event.target.value }); setAnalysisStatus("idle"); setAnalysisMessage(""); }} placeholder="https://yourcompany.com" required /></label>
           <button type="button" className="button button--ink" onClick={() => void analyzeWebsite()} disabled={!values.domain.trim() || analysisStatus === "analyzing"}>{analysisStatus === "analyzing" ? "Reading website…" : analysisStatus === "complete" ? "Refresh website draft" : "Generate my setup"}</button>
           {analysisMessage && <p className={`website-draft__status ${analysisStatus === "error" ? "is-error" : ""}`} role={analysisStatus === "error" ? "alert" : "status"}>{analysisMessage}</p>}
+          {manualContextRequired && <div className="website-fallback" aria-label="Manual company context">
+            <label>What do you sell?<textarea value={manualContext.whatYouSell} onChange={(event) => setManualContext({ ...manualContext, whatYouSell: event.target.value })} placeholder="Example: AI visibility monitoring software for B2B SaaS" rows={3} required /></label>
+            <label>Who buys it?<textarea value={manualContext.whoBuys} onChange={(event) => setManualContext({ ...manualContext, whoBuys: event.target.value })} placeholder="Example: marketing leaders at growing B2B SaaS companies" rows={3} required /></label>
+            <label>Who are your main competitors?<textarea value={manualContext.competitors} onChange={(event) => setManualContext({ ...manualContext, competitors: event.target.value })} placeholder={"One competitor per line"} rows={4} required /></label>
+            <button type="button" className="button button--outline" onClick={applyManualContext} disabled={!manualContext.whatYouSell.trim() || !manualContext.whoBuys.trim() || !manualContext.competitors.trim()}>Use these answers</button>
+          </div>}
         </div>}
         {demo && <label>Company website<input type="url" value={values.domain} onChange={(event) => setValues({ ...values, domain: event.target.value })} required /></label>}
         <label>Company name<input value={values.companyName} onChange={(event) => setValues({ ...values, companyName: event.target.value })} required autoComplete="organization" /></label>

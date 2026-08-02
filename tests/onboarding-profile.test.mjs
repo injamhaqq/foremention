@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createOnboardingDraft, generateBuyerQuestions } from "../lib/onboarding-profile.ts";
+import { createManualOnboardingDraft, createOnboardingDraft, generateBuyerQuestions } from "../lib/onboarding-profile.ts";
 
 test("website metadata creates a reviewable Foremention onboarding draft", () => {
   const draft = createOnboardingDraft({
@@ -42,6 +42,21 @@ test("website text extracts visible competitors and a target market", () => {
   });
   assert.equal(draft.market, "North America");
   assert.deepEqual(draft.competitors.slice(0, 2), ["HubSpot", "Pipedrive"]);
+});
+
+test("manual onboarding fallback uses only the customer's three answers", () => {
+  const draft = createManualOnboardingDraft({
+    websiteUrl: "https://example-signal.com",
+    whatYouSell: "Compliance monitoring software",
+    whoBuys: "security teams at B2B SaaS companies",
+    competitors: ["Vanta", "Drata", "Vanta"],
+  });
+  assert.equal(draft.companyName, "Example Signal");
+  assert.equal(draft.category, "Compliance monitoring software");
+  assert.deepEqual(draft.competitors, ["Vanta", "Drata"]);
+  assert.equal(draft.prompts.length, 5);
+  assert.match(draft.prompts[0], /security teams at B2B SaaS companies/);
+  assert.doesNotMatch(JSON.stringify(draft), /Foremention|Profound|Scrunch/);
 });
 
 test("buyer questions always produce a five-question company baseline", () => {

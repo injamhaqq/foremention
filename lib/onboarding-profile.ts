@@ -5,6 +5,13 @@ type WebsiteProfileInput = {
   pageText?: string | null;
 };
 
+type ManualProfileInput = {
+  websiteUrl: string;
+  whatYouSell: string;
+  whoBuys: string;
+  competitors: string[];
+};
+
 export type OnboardingDraft = {
   companyName: string;
   domain: string;
@@ -150,6 +157,32 @@ export function createOnboardingDraft(input: WebsiteProfileInput): OnboardingDra
     market: inferredMarket(evidenceText),
     category,
     categoryDescription,
+    competitors,
+    goal: "Find credible source gaps",
+    constraint: "Use only dated AI answers, provider-returned citations, canonical public URLs, and human-reviewed page evidence. Separate observations from inferences. Never invent citations or promise rankings, traffic, leads, revenue, or guaranteed outcomes.",
+    prompts: generateBuyerQuestions(category, companyName, competitors, audience),
+  };
+}
+
+export function createManualOnboardingDraft(input: ManualProfileInput): OnboardingDraft {
+  const url = new URL(input.websiteUrl);
+  const companyName = titleCaseSlug(url.hostname);
+  const category = input.whatYouSell.trim().slice(0, 160);
+  const audience = input.whoBuys.trim().slice(0, 160);
+  const competitors = input.competitors
+    .map((value) => value.trim().slice(0, 120))
+    .filter(Boolean)
+    .filter((value, index, items) => items.findIndex((item) => item.toLowerCase() === value.toLowerCase()) === index)
+    .slice(0, 10);
+
+  if (!category || !audience) throw new Error("Describe what you sell and who buys it.");
+
+  return {
+    companyName,
+    domain: `${url.protocol}//${url.host}`,
+    market: "Global",
+    category,
+    categoryDescription: `${category} for ${audience}. Review this wording so it matches the language your buyers use.`,
     competitors,
     goal: "Find credible source gaps",
     constraint: "Use only dated AI answers, provider-returned citations, canonical public URLs, and human-reviewed page evidence. Separate observations from inferences. Never invent citations or promise rankings, traffic, leads, revenue, or guaranteed outcomes.",
