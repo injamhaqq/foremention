@@ -16,6 +16,7 @@ import { getProvider } from "@/lib/providers";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { generateObservedSourceMap } from "@/lib/source-map-generation";
+import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
 
 export const inngest = new Inngest({ id: "foremention" });
 
@@ -82,12 +83,66 @@ async function recordRunChanges(run: RunRow, identity: Identity) {
     ...(lostSourceCount ? [{ kind: "lost_sources", title: "Citation sources disappeared", body: `${lostSourceCount} previously observed source${lostSourceCount === 1 ? "" : "s"} did not recur in the latest scheduled run.` }] : []),
     ...(movedCompetitors.length ? [{ kind: "competitor_movement", title: "Competitor appearance changed", body: `${movedCompetitors.slice(0, 5).join(", ")} changed appearance state between comparable runs.` }] : []),
   ];
-  if (!changes.length) return;
-  await supabaseRest("notifications?on_conflict=organization_id,user_id,event_key", {
-    method: "POST",
-    serviceRole: true,
-    prefer: "resolution=ignore-duplicates,return=minimal",
-    body: changes.map((change) => ({ organization_id: run.organization_id, user_id: run.created_by, event_key: `${change.kind}:${run.id}`, kind: change.kind, title: change.title, body: change.body, href: "/app/intelligence" })),
+  if (changes.length) {
+    await supabaseRest("notifications?on_conflict=organization_id,user_id,event_key", {
+      method: "POST",
+      serviceRole: true,
+      prefer: "resolution=ignore-duplicates,return=minimal",
+      body: changes.map((change) => ({ organization_id: run.organization_id, user_id: run.created_by, event_key: `${change.kind}:${run.id}`, kind: change.kind, title: change.title, body: change.body, href: "/app/intelligence" })),
+    });
+  }
+
+  const mentionCount = (rows: Array<{ answer_text: string }>, name: string) =>
+    rows.reduce((count, row) => count + (includesName(row.answer_text, name) ? 1 : 0), 0);
+  const currentBrandMentions = mentionCount(currentRows, identity.brand);
+  const previousBrandMentions = mentionCount(previousRows, identity.brand);
+  const competitorMovement = identity.competitors
+    .map((name) => ({ name, current: mentionCount(currentRows, name), previous: mentionCount(previousRows, name) }))
+    .filter((row) => row.current > currentBrandMentions && row.previous <= previousBrandMentions)
+    .sort((left, right) => right.current - left.current)[0];
+  if (competitorMovement) {
+    await sendWorkspaceEmailAlert({
+      organizationId: run.organization_id,
+      userId: run.created_by,
+      eventKey: `competitor_overtook:${run.id}:${competitorMovement.name.toLocaleLowerCase()}`,
+      kind: "competitor_overtook",
+      subject: "A competitor moved ahead in observed AI answers",
+      text: `${competitorMovement.name} appeared in more answers than your brand in the latest comparable run. This is exact-name answer frequency, not proof of market share or causation. Review the evidence before acting.`,
+      href: "/app/intelligence",
+    });
+  }
+}
+
+async function notifyFirstCompletedRun(run: RunRow, answerCount: number, citationCount: number, sourceCount: number) {
+  if (!run.created_by) return;
+  const earlier = await supabaseRest<Array<{ id: string }>>(
+    `runs?select=id&organization_id=eq.${run.organization_id}&id=neq.${run.id}&status=in.(review,complete,partial)&limit=1`,
+    { serviceRole: true },
+  );
+  if (earlier.length) return;
+  await sendWorkspaceEmailAlert({
+    organizationId: run.organization_id,
+    userId: run.created_by,
+    eventKey: `first_run_completed:${run.id}`,
+    kind: "first_run_completed",
+    subject: "Your first Foremention collection is ready",
+    text: `${answerCount} provider answer${answerCount === 1 ? "" : "s"}, ${citationCount} returned citation${citationCount === 1 ? "" : "s"}, and ${sourceCount} mapped source${sourceCount === 1 ? "" : "s"} are ready for human review. These are observations, not guaranteed outcomes.`,
+    href: `/app/runs/${run.id}`,
+  });
+}
+
+async function sendWeeklyDigest(seed: ScheduledRunSeed, weekKey: string, queued: boolean) {
+  if (!seed.created_by) return;
+  await sendWorkspaceEmailAlert({
+    organizationId: seed.organization_id,
+    userId: seed.created_by,
+    eventKey: `weekly_digest:${seed.organization_id}:${weekKey}`,
+    kind: "weekly_digest",
+    subject: "Your weekly Foremention evidence digest",
+    text: queued
+      ? "Your latest reviewed evidence remains available and a new capped weekly collection was queued. Return after it completes to inspect changes before acting."
+      : "Your latest reviewed evidence remains available. No new weekly collection was queued because configuration, capacity, or cost limits did not permit a safe run.",
+    href: "/app/analytics",
   });
 }
 
@@ -768,6 +823,7 @@ export const runMultiEngineScan = inngest.createFunction(
         "Collection is ready for review",
         `${answerCount} real answer${answerCount === 1 ? "" : "s"} and ${citationCount} returned citation${citationCount === 1 ? "" : "s"} are ready for human review.`,
       ));
+    await step.run("email-first-run-owner", () => notifyFirstCompletedRun(run, answerCount, citationCount, mappedSourceCount));
     await Promise.all([
       step.run("record-human-review-gate", () =>
         recordAgentExecution({
@@ -854,6 +910,7 @@ export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
     for (const seed of seeds) {
       const prepared = await step.run(`prepare-weekly-${seed.organization_id}`, () => prepareWeeklyRun(seed, weekKey));
       if (prepared) queued.push(prepared);
+      await step.run(`email-weekly-digest-${seed.organization_id}`, () => sendWeeklyDigest(seed, weekKey, Boolean(prepared)));
     }
     if (queued.length) {
       await step.sendEvent("queue-weekly-runs", queued.map((data) => ({

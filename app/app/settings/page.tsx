@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { AccountLifecycle } from "@/components/account-lifecycle";
 import { StatusDot } from "@/components/brand";
+import { EmailAlertPreferences } from "@/components/email-alert-preferences";
 import { requireViewer } from "@/lib/auth";
 import { getApplicationEmailStatus } from "@/lib/application-email";
-import { loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
+import { loadNotificationPreference, loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 
 export default async function SettingsPage() {
   const viewer = await requireViewer("/app/settings");
-  const [workspace, team, deletionRequest, providers] = await Promise.all([
+  const [workspace, team, deletionRequest, providers, emailPreference] = await Promise.all([
     loadWorkspaceSummary(viewer),
     loadTeam(viewer),
     loadPendingDeletionRequest(viewer),
     loadProviderStatuses(viewer),
+    loadNotificationPreference(viewer),
   ]);
   const applicationEmail = getApplicationEmailStatus();
   const jobsReady = viewer.mode === "demo" || Boolean(process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY);
@@ -38,6 +40,11 @@ export default async function SettingsPage() {
           <div><dt>Buyer questions</dt><dd>{workspace?.promptCount || 0} active</dd></div>
           <div><dt>Data boundary</dt><dd>{viewer.mode === "demo" ? "Fictional preview only" : "Your organization only"}</dd></div>
         </dl>
+      </section>
+
+      <section className="panel">
+        <span className="eyebrow">Email notifications</span><h2>Choose operational alerts.</h2>
+        <EmailAlertPreferences initial={emailPreference} available={applicationEmail.available} demo={viewer.mode === "demo"} />
       </section>
 
       <section className="panel" id="providers">

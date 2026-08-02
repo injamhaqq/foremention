@@ -4,6 +4,7 @@ import { getPrimaryOrganizationId, getPrimaryWorkspaceRole } from "@/lib/data";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
 
 const crawlerValues: SourceMapEntry["crawlerAccess"][] = ["open", "partial", "blocked"];
 const feasibilityValues: SourceMapEntry["feasibility"][] = ["high", "medium", "low", "unknown"];
@@ -71,5 +72,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       after_state: { crawler_access: body.crawlerAccess, client_present: Boolean(body.clientPresent), competitors_present: competitors, entry_route: body.route, feasibility: body.feasibility, influence: body.influence, analyst_note: note || null, reviewed_at: reviewedAt },
     },
   });
+  if (entry.client_present !== Boolean(body.clientPresent)) {
+    const appeared = Boolean(body.clientPresent);
+    await sendWorkspaceEmailAlert({
+      organizationId,
+      userId: viewer.id,
+      eventKey: `${appeared ? "brand_new_source" : "brand_lost_source"}:${entry.id}:${reviewedAt.slice(0, 10)}`,
+      kind: appeared ? "brand_new_source" : "brand_lost_source",
+      subject: appeared ? "Your brand was verified on a reviewed source" : "Your brand is no longer verified on a reviewed source",
+      text: appeared
+        ? "A workspace reviewer verified that your brand appears on a cited source. Open the reviewed record to inspect the dated evidence and limitations."
+        : "A workspace reviewer changed a cited source to show that your brand is not present. Open the reviewed record before deciding what action to take.",
+      href: `/app/sources/${entry.id}`,
+    });
+  }
   return NextResponse.json({ ok: true, reviewedAt });
 }

@@ -19,6 +19,7 @@ export type ProductAlertEmail = {
   to: string;
   subject: string;
   text: string;
+  headers?: Record<string, string>;
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,7 +44,7 @@ export async function sendProductAlertEmail(input: ProductAlertEmail) {
       authorization: `Bearer ${apiKey}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({ from, to: [to], subject, text }),
+    body: JSON.stringify({ from, to: [to], subject, text, ...(input.headers ? { headers: input.headers } : {}) }),
   });
   if (!response.ok) {
     throw new Error(`Application email provider rejected the request (status ${response.status}).`);

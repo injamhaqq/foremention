@@ -154,6 +154,7 @@ export type WorkspaceNotification = {
   createdAt: string;
   count: number;
 };
+export type NotificationPreference = { emailEnabled: boolean; weeklyDigestEnabled: boolean; unsubscribed: boolean };
 export type DeletionRequest = {
   id: string;
   status: "pending" | "cancelled" | "completed";
@@ -889,6 +890,18 @@ export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotifi
     });
   }
   return Array.from(groups.values());
+}
+
+export async function loadNotificationPreference(viewer: Viewer): Promise<NotificationPreference> {
+  if (viewer.mode === "demo") return { emailEnabled: false, weeklyDigestEnabled: true, unsubscribed: false };
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return { emailEnabled: false, weeklyDigestEnabled: true, unsubscribed: false };
+  const rows = await supabaseRest<Array<{ email_enabled: boolean; weekly_digest_enabled: boolean; unsubscribed_at: string | null }>>(
+    `notification_preferences?select=email_enabled,weekly_digest_enabled,unsubscribed_at&organization_id=eq.${organizationId}&user_id=eq.${viewer.id}&limit=1`,
+    { token: viewer.accessToken },
+  );
+  const row = rows[0];
+  return { emailEnabled: Boolean(row?.email_enabled), weeklyDigestEnabled: row?.weekly_digest_enabled ?? true, unsubscribed: Boolean(row?.unsubscribed_at) };
 }
 
 export async function loadPendingDeletionRequest(viewer: Viewer): Promise<DeletionRequest | null> {

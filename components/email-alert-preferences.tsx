@@ -1,0 +1,10 @@
+"use client";
+
+import { useRef, useState } from "react";
+import type { NotificationPreference } from "@/lib/data";
+
+export function EmailAlertPreferences({ initial, available, demo }: { initial: NotificationPreference; available: boolean; demo: boolean }) {
+  const lock = useRef(false); const [emailEnabled, setEmailEnabled] = useState(initial.emailEnabled); const [weeklyDigestEnabled, setWeeklyDigestEnabled] = useState(initial.weeklyDigestEnabled); const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
+  async function save(event: React.FormEvent) { event.preventDefault(); if (lock.current) return; lock.current = true; setBusy(true); setMessage(""); try { const response = await fetch("/api/notification-preferences", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ emailEnabled, weeklyDigestEnabled }) }); const result = await response.json() as { error?: string }; if (!response.ok) throw new Error(result.error || "Could not save email preferences."); setMessage(emailEnabled ? "Product email alerts are enabled for this workspace." : "Product email alerts are disabled. Authentication email is unchanged."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save email preferences."); } finally { lock.current = false; setBusy(false); } }
+  return <form className="email-alert-preferences" onSubmit={save}><label><input type="checkbox" checked={emailEnabled} onChange={(event) => setEmailEnabled(event.target.checked)} disabled={!available || demo} /> Product event emails</label><label><input type="checkbox" checked={weeklyDigestEnabled} onChange={(event) => setWeeklyDigestEnabled(event.target.checked)} disabled={!emailEnabled || !available || demo} /> Weekly evidence digest</label><button className="button button--outline" type="submit" disabled={!available || demo || busy}>{busy ? "Saving…" : "Save email preferences"}</button>{message && <p className="inline-notice" role="status">{message}</p>}<small>Every product email includes an unsubscribe link. Confirmation, password recovery, and security messages remain separate.</small></form>;
+}
