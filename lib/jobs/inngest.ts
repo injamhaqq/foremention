@@ -44,8 +44,89 @@ type Identity = {
   competitors: string[];
 };
 
+type ScheduledRunSeed = RunRow & { completed_at: string | null };
+
 const includesName = (text: string, value: string) =>
   Boolean(value.trim()) && text.toLocaleLowerCase().includes(value.trim().toLocaleLowerCase());
+
+async function recordRunChanges(run: RunRow, identity: Identity) {
+  if (!run.created_by) return;
+  const previousRuns = await supabaseRest<Array<{ id: string; brand_presence_pct: number | string }>>(
+    `runs?select=id,brand_presence_pct&organization_id=eq.${run.organization_id}&id=neq.${run.id}&status=in.(review,complete,partial)&order=created_at.desc&limit=1`,
+    { serviceRole: true },
+  );
+  const previous = previousRuns[0];
+  if (!previous) return;
+  const [currentRows, previousRows, currentRunRows] = await Promise.all([
+    supabaseRest<Array<{ answer_text: string }>>(`run_answers?select=answer_text&organization_id=eq.${run.organization_id}&run_id=eq.${run.id}`, { serviceRole: true }),
+    supabaseRest<Array<{ answer_text: string }>>(`run_answers?select=answer_text&organization_id=eq.${run.organization_id}&run_id=eq.${previous.id}`, { serviceRole: true }),
+    supabaseRest<Array<{ brand_presence_pct: number | string }>>(`runs?select=brand_presence_pct&id=eq.${run.id}&organization_id=eq.${run.organization_id}&limit=1`, { serviceRole: true }),
+  ]);
+  const sourceIdsForRun = async (runId: string) => {
+    const answers = await supabaseRest<Array<{ id: string }>>(`run_answers?select=id&organization_id=eq.${run.organization_id}&run_id=eq.${runId}`, { serviceRole: true });
+    if (!answers.length) return new Set<string>();
+    const rows = await supabaseRest<Array<{ source_id: string }>>(`citations?select=source_id&organization_id=eq.${run.organization_id}&run_answer_id=in.(${answers.map((row) => row.id).join(",")})`, { serviceRole: true });
+    return new Set(rows.map((row) => row.source_id));
+  };
+  const [currentSources, previousSources] = await Promise.all([sourceIdsForRun(run.id), sourceIdsForRun(previous.id)]);
+  const currentText = currentRows.map((row) => row.answer_text).join(" ");
+  const previousText = previousRows.map((row) => row.answer_text).join(" ");
+  const movedCompetitors = identity.competitors.filter((name) => includesName(currentText, name) !== includesName(previousText, name));
+  const newSourceCount = Array.from(currentSources).filter((id) => !previousSources.has(id)).length;
+  const lostSourceCount = Array.from(previousSources).filter((id) => !currentSources.has(id)).length;
+  const currentPresence = Number(currentRunRows[0]?.brand_presence_pct || 0);
+  const previousPresence = Number(previous.brand_presence_pct || 0);
+  const changes = [
+    ...(currentPresence !== previousPresence ? [{ kind: "brand_presence_changed", title: "Brand appearance changed", body: `Observed brand presence moved from ${previousPresence}% to ${currentPresence}% across comparable scheduled runs.` }] : []),
+    ...(newSourceCount ? [{ kind: "new_sources", title: "New citation sources appeared", body: `${newSourceCount} source${newSourceCount === 1 ? "" : "s"} appeared in the latest scheduled run.` }] : []),
+    ...(lostSourceCount ? [{ kind: "lost_sources", title: "Citation sources disappeared", body: `${lostSourceCount} previously observed source${lostSourceCount === 1 ? "" : "s"} did not recur in the latest scheduled run.` }] : []),
+    ...(movedCompetitors.length ? [{ kind: "competitor_movement", title: "Competitor appearance changed", body: `${movedCompetitors.slice(0, 5).join(", ")} changed appearance state between comparable runs.` }] : []),
+  ];
+  if (!changes.length) return;
+  await supabaseRest("notifications?on_conflict=organization_id,user_id,event_key", {
+    method: "POST",
+    serviceRole: true,
+    prefer: "resolution=ignore-duplicates,return=minimal",
+    body: changes.map((change) => ({ organization_id: run.organization_id, user_id: run.created_by, event_key: `${change.kind}:${run.id}`, kind: change.kind, title: change.title, body: change.body, href: "/app/intelligence" })),
+  });
+}
+
+async function prepareWeeklyRun(seed: ScheduledRunSeed, weekKey: string) {
+  const providerId = seed.provider_ids[0];
+  if (!providerId) return null;
+  const rates = getProviderCostRates(providerId);
+  if (!rates || !getProvider(providerId).configured()) return null;
+  const [prompts, entitlements, activeRuns, monthlyUsage, monthlyRuns] = await Promise.all([
+    supabaseRest<PromptSelection[]>(`run_prompt_selections?select=prompt_id,prompt_key,prompt_text,locale&organization_id=eq.${seed.organization_id}&run_id=eq.${seed.id}&order=created_at.asc`, { serviceRole: true }),
+    supabaseRest<Array<{ monthly_run_units: number; monthly_ai_spend_cap_usd: number | string; status: string }>>(`organization_entitlements?select=monthly_run_units,monthly_ai_spend_cap_usd,status&organization_id=eq.${seed.organization_id}&limit=1`, { serviceRole: true }),
+    supabaseRest<Array<{ id: string }>>(`runs?select=id&organization_id=eq.${seed.organization_id}&status=in.(queued,running)&limit=1`, { serviceRole: true }),
+    supabaseRest<Array<{ units: number }>>(`usage_events?select=units&organization_id=eq.${seed.organization_id}&period_start=eq.${new Date().toISOString().slice(0, 7)}-01`, { serviceRole: true }),
+    supabaseRest<Array<{ actual_cost_usd: number | string; estimated_max_cost_usd: number | string; status: string; started_at: string | null }>>(`runs?select=actual_cost_usd,estimated_max_cost_usd,status,started_at&organization_id=eq.${seed.organization_id}&created_at=gte.${encodeURIComponent(`${new Date().toISOString().slice(0, 7)}-01T00:00:00.000Z`)}`, { serviceRole: true }),
+  ]);
+  const entitlement = entitlements[0];
+  if (!entitlement || entitlement.status !== "active" || activeRuns.length || !prompts.length) return null;
+  const requestedUnits = prompts.length;
+  const usedUnits = monthlyUsage.reduce((sum, row) => sum + Number(row.units || 0), 0);
+  const estimatedMaximumCost = estimateMaximumRunCost(prompts.length, rates);
+  const reservedSpend = monthlyRuns.reduce((sum, row) => sum + (["failed", "cancelled"].includes(row.status) && !row.started_at ? 0 : Number(row.actual_cost_usd || row.estimated_max_cost_usd || 0)), 0);
+  if (usedUnits + requestedUnits > entitlement.monthly_run_units || reservedSpend + estimatedMaximumCost > Number(entitlement.monthly_ai_spend_cap_usd)) return null;
+  const runId = crypto.randomUUID();
+  const idempotencyKey = `weekly:${seed.organization_id}:${weekKey}`;
+  const activeRequestKey = `${providerId}:${prompts.map((prompt) => prompt.prompt_id).sort().join(",")}`;
+  try {
+    await supabaseRest("runs", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { id: runId, organization_id: seed.organization_id, project_id: seed.project_id, category_id: seed.category_id, status: "queued", provider_ids: [providerId], prompt_count: prompts.length, requested_units: requestedUnits, estimated_max_cost_usd: estimatedMaximumCost, idempotency_key: idempotencyKey, active_request_key: activeRequestKey, methodology_version: "3.0", created_by: seed.created_by } });
+    await Promise.all([
+      supabaseRest("run_prompt_selections", { method: "POST", serviceRole: true, prefer: "return=minimal", body: prompts.map((prompt) => ({ organization_id: seed.organization_id, run_id: runId, prompt_id: prompt.prompt_id, prompt_key: prompt.prompt_key, prompt_text: prompt.prompt_text, locale: prompt.locale })) }),
+      supabaseRest("usage_events", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { organization_id: seed.organization_id, meter: "provider_prompt_observation", units: requestedUnits, period_start: `${new Date().toISOString().slice(0, 7)}-01`, run_id: runId } }),
+    ]);
+    return { runId, organizationId: seed.organization_id };
+  } catch (error) {
+    await supabaseRest(`usage_events?organization_id=eq.${seed.organization_id}&run_id=eq.${runId}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
+    await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${seed.organization_id}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
+    console.warn("Scheduled run preparation failed.", safeOperationalError(error));
+    return null;
+  }
+}
 
 async function recordedRunCost(data: RunRequestedData) {
   const events = await supabaseRest<Array<{ estimated_cost_usd: number | string | null }>>(
@@ -679,6 +760,7 @@ export const runMultiEngineScan = inngest.createFunction(
     } catch (error) {
       console.warn("Observed Source Map generation will be retried after review.", safeOperationalError(error));
     }
+    await step.run("detect-run-changes", () => recordRunChanges(run, identity));
     await step.run("notify-run-owner", () =>
       notifyRunOwner(
         run,
@@ -748,5 +830,38 @@ export const cleanupCancelledCollection = inngest.createFunction(
       });
     });
     return { runId: data.runId, cancelled: true };
+  },
+);
+
+export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
+  {
+    id: "schedule-weekly-workspace-runs",
+    retries: 2,
+    triggers: { cron: "0 8 * * 1" },
+  },
+  async ({ step }) => {
+    const seeds = await step.run("load-weekly-workspaces", async () => {
+      const rows = await supabaseRest<ScheduledRunSeed[]>(
+        "runs?select=id,organization_id,project_id,category_id,status,provider_ids,created_by,completed_at&status=in.(complete,partial)&order=created_at.desc&limit=1000",
+        { serviceRole: true },
+      );
+      const byOrganization = new Map<string, ScheduledRunSeed>();
+      for (const row of rows) if (!byOrganization.has(row.organization_id)) byOrganization.set(row.organization_id, row);
+      return Array.from(byOrganization.values());
+    });
+    const weekKey = new Date().toISOString().slice(0, 10);
+    const queued: RunRequestedData[] = [];
+    for (const seed of seeds) {
+      const prepared = await step.run(`prepare-weekly-${seed.organization_id}`, () => prepareWeeklyRun(seed, weekKey));
+      if (prepared) queued.push(prepared);
+    }
+    if (queued.length) {
+      await step.sendEvent("queue-weekly-runs", queued.map((data) => ({
+        id: `foremention-weekly-${data.runId}`,
+        name: "foremention/run.requested",
+        data,
+      })));
+    }
+    return { eligibleWorkspaces: seeds.length, queuedRuns: queued.length, weekKey };
   },
 );
