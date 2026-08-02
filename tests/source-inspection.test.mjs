@@ -48,8 +48,25 @@ test("source inspection follows only validated redirects and extracts bounded me
   assert.equal(result.pageTitle, "Evidence & trust");
   assert.equal(result.pageDescription, "Dated answers & exact sources");
   assert.equal(result.redirectCount, 1);
+  assert.match(result.contentSignature, /^[0-9a-f]{8}$/);
+  assert.ok(result.contentLength > 0);
   assert.equal(result.checkedAt, "2026-07-29T12:00:00.000Z");
   assert.equal("body" in result, false);
+});
+
+test("source monitoring flags material changes without storing page content", () => {
+  assert.equal(inspection.hasSignificantSourceChange(
+    { contentSignature: "00000000", contentLength: 1000 },
+    { contentSignature: "ffffffff", contentLength: 1000 },
+  ), true);
+  assert.equal(inspection.hasSignificantSourceChange(
+    { contentSignature: "00000000", contentLength: 1000 },
+    { contentSignature: "00000001", contentLength: 1010 },
+  ), false);
+  assert.equal(inspection.hasSignificantSourceChange(
+    { contentSignature: null, contentLength: null },
+    { contentSignature: "ffffffff", contentLength: 1000 },
+  ), false);
 });
 
 test("source inspection blocks redirect pivots into private networks", async () => {
@@ -114,7 +131,8 @@ test("live source inspection is tenant-scoped, role-checked, origin-guarded, and
   assert.match(route, /sources\?select=id,canonical_url[\s\S]*organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(route, /crawler_checked_at: inspection\.checkedAt/);
   assert.match(route, /action: "source\.inspected"/);
-  assert.doesNotMatch(route, /serviceRole: true/);
+  assert.match(route, /hasSignificantSourceChange/);
+  assert.match(route, /source_\$\{monitoringEvent\}/);
   assert.match(page, /SourceLiveInspector/);
   assert.match(component, /does not execute scripts, store the page body/);
 });

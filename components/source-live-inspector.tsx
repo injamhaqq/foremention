@@ -11,10 +11,12 @@ const accessLabel: Record<SourceCrawlerAccess, string> = {
   unknown: "Unavailable or unknown",
 };
 
+type MonitoredInspection = SourceInspectionResult & { monitoringEvent?: "unreachable" | "content_changed" | null };
+
 export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: string; demo: boolean; canInspect: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [inspection, setInspection] = useState<SourceInspectionResult | null>(null);
+  const [inspection, setInspection] = useState<MonitoredInspection | null>(null);
   const [message, setMessage] = useState("");
 
   async function inspect() {
@@ -22,7 +24,7 @@ export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: st
     setMessage("");
     try {
       const response = await fetch(`/api/sources/${entryId}/inspect`, { method: "POST" });
-      const result = await response.json() as { data?: SourceInspectionResult; error?: string };
+      const result = await response.json() as { data?: MonitoredInspection; error?: string };
       if (!response.ok || !result.data) throw new Error(result.error || "The source could not be inspected.");
       setInspection(result.data);
       router.refresh();
@@ -59,6 +61,7 @@ export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: st
       <div className="source-inspector__wide"><dt>Checked</dt><dd>{new Date(inspection.checkedAt).toLocaleString()}</dd></div>
       <div className="source-inspector__wide"><dt>Inspector note</dt><dd>{inspection.message}</dd></div>
       {inspection.pageTitle && <div className="source-inspector__wide"><dt>Observed title</dt><dd>{inspection.pageTitle}</dd></div>}
+      {inspection.monitoringEvent && <div className="source-inspector__wide"><dt>Change alert</dt><dd>{inspection.monitoringEvent === "unreachable" ? "This source became unreachable." : "The bounded page fingerprint changed materially."}</dd></div>}
     </dl>}
     {message && <p className="inline-notice" role="alert">{message}</p>}
   </section>;

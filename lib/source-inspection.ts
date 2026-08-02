@@ -7,10 +7,17 @@ export type SourceInspectionResult = {
   finalUrl: string;
   httpStatus: number | null;
   message: string;
+  contentLength?: number;
+  contentSignature?: string;
   pageDescription?: string | null;
   pageText?: string;
   pageTitle: string | null;
   redirectCount: number;
+};
+
+export type SourceContentSnapshot = {
+  contentLength: number | null;
+  contentSignature: string | null;
 };
 
 type Fetcher = typeof fetch;
@@ -212,6 +219,49 @@ function extractVisibleText(body: string, limit: number) {
     .slice(0, limit);
 }
 
+function fnv1a32(value: string) {
+  let hash = 0x811c9dc5;
+  for (const byte of new TextEncoder().encode(value)) {
+    hash ^= byte;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash >>> 0;
+}
+
+function contentSignature(text: string) {
+  const tokens = text.toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) || [];
+  if (!tokens.length) return null;
+  const weights = Array.from({ length: 32 }, () => 0);
+  for (const token of tokens.slice(0, 8_000)) {
+    const hash = fnv1a32(token);
+    for (let bit = 0; bit < 32; bit += 1) {
+      weights[bit] += ((hash >>> bit) & 1) === 1 ? 1 : -1;
+    }
+  }
+  let signature = 0;
+  for (let bit = 0; bit < 32; bit += 1) {
+    if (weights[bit] >= 0) signature = (signature | (1 << bit)) >>> 0;
+  }
+  return signature.toString(16).padStart(8, "0");
+}
+
+function hammingDistance(left: string, right: string) {
+  let value = (Number.parseInt(left, 16) ^ Number.parseInt(right, 16)) >>> 0;
+  let count = 0;
+  while (value) {
+    value &= value - 1;
+    count += 1;
+  }
+  return count;
+}
+
+export function hasSignificantSourceChange(previous: SourceContentSnapshot, current: SourceContentSnapshot) {
+  if (!previous.contentSignature || !current.contentSignature || previous.contentLength === null || current.contentLength === null) return false;
+  const largestLength = Math.max(previous.contentLength, current.contentLength, 1);
+  const lengthDelta = Math.abs(previous.contentLength - current.contentLength) / largestLength;
+  return lengthDelta >= 0.2 || hammingDistance(previous.contentSignature, current.contentSignature) >= 6;
+}
+
 async function readLimitedText(response: Response, maxBytes: number) {
   const declaredLength = Number(response.headers.get("content-length") || "0");
   if (declaredLength > maxBytes) throw new Error("response_too_large");
@@ -307,8 +357,9 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
 
       try {
         const body = await readLimitedText(response, maxBytes);
+        const visibleText = extractVisibleText(body, 80_000);
         const pageText = options.includePageText
-          ? extractVisibleText(body, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
+          ? visibleText.slice(0, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
           : undefined;
         return result({
           access: response.status === 206 ? "partial" : "open",
@@ -316,6 +367,8 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
           finalUrl: current.toString(),
           httpStatus: response.status,
           message: response.status === 206 ? "The page returned partial content; metadata may be incomplete." : "The page was reachable and its bounded text metadata was inspected.",
+          contentLength: visibleText.length,
+          contentSignature: contentSignature(visibleText) || undefined,
           pageDescription: contentType === "text/plain" ? null : extractMetaDescription(body),
           ...(pageText ? { pageText } : {}),
           pageTitle: contentType === "text/plain" ? null : extractPageTitle(body),
