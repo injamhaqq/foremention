@@ -249,6 +249,15 @@ textarea { resize: vertical; }
 .pricing-shared article > span { color: var(--source-blue); font-size: 9px; font-weight: 800; }
 .pricing-shared h3 { margin: auto 0 14px; font-family: Georgia, serif; font-size: 30px; font-weight: 400; letter-spacing: -.04em; }
 .pricing-shared p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.pricing-market-section { padding-top: 0; }
+.pricing-market-table { border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); background: #fff; }
+.pricing-market-row { display: grid; grid-template-columns: 1fr .75fr .85fr 2.2fr; min-height: 86px; border-bottom: 1px solid var(--ink); }
+.pricing-market-row > * { display: flex; align-items: center; padding: 18px 20px; border-right: 1px solid var(--ink); font-size: 12px; line-height: 1.5; }
+.pricing-market-row > span:last-child { display: block; color: var(--muted); }
+.pricing-market-row a { display: inline-flex; align-items: center; gap: 5px; margin-left: 5px; color: var(--source-blue); font-weight: 800; }
+.pricing-market-row--head { min-height: 46px; background: var(--ink); color: var(--paper); }
+.pricing-market-row--head > * { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.pricing-source-note { margin: 18px 0 0; color: var(--muted); font-size: 10px; line-height: 1.65; }
 .pricing-truth { display: grid; grid-template-columns: 180px 1fr; gap: 30px; margin-top: 36px; padding: 22px 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
 .pricing-truth strong { font-size: 12px; }
 .pricing-truth p { max-width: 780px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
@@ -612,6 +621,9 @@ textarea { resize: vertical; }
   .comparison-row--head { display: none; }
   .comparison-links { align-items: flex-start; flex-direction: column; }
   .comparison-links .button { margin-left: 0; }
+  .pricing-market-row { grid-template-columns: 1fr; }
+  .pricing-market-row > * { min-height: 52px; border-bottom: 1px solid var(--line); }
+  .pricing-market-row--head { display: none; }
   .auth-page { grid-template-columns: 1fr; }
   .auth-brand { min-height: 230px; padding: 26px; border-right: 0; border-bottom: 1px solid var(--ink); }
   .auth-brand > div { display: none; }
