@@ -1735,6 +1735,9 @@ textarea { resize: vertical; }
 .workspace-skeleton__tools { display: grid; grid-template-columns: 1fr .45fr .3fr; gap: 18px; padding: 22px; border-bottom: 1px solid var(--ink); background: var(--mint-wash); }
 .workspace-skeleton__row { min-height: 78px; display: grid; grid-template-columns: 1.4fr .65fr .4fr; gap: 24px; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--line); }
 .workspace-skeleton__row:last-child { border-bottom: 0; }
+.deferred-panel-skeleton { display: grid; gap: 18px; min-height: 210px; padding: 28px 22px; border: 1px solid var(--ink); background: var(--mint-wash); }
+.deferred-panel-skeleton .skeleton-line--copy:nth-of-type(3) { width: 72%; }
+.deferred-panel-skeleton .skeleton-line--copy:nth-of-type(4) { width: 54%; }
 .skeleton-line { height: 12px; display: block; border-radius: 2px; background: linear-gradient(90deg,#dce8e2 25%,#f6fffb 50%,#dce8e2 75%); background-size: 220% 100%; animation: skeleton-sweep 1.4s ease-in-out infinite; }
 .skeleton-line--eyebrow { width: 150px; height: 9px; }
 .skeleton-line--title { width: min(520px,72%); height: 48px; }

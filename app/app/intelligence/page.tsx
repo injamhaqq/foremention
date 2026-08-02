@@ -1,4 +1,4 @@
-import { IntelligenceLoop } from "@/components/intelligence-loop";
+import { LazyIntelligenceLoop } from "@/components/lazy-workspace-panels";
 import { requireViewer } from "@/lib/auth";
 import { loadWeeklyIntelligence } from "@/lib/intelligence-loop";
 
@@ -14,7 +14,7 @@ export default async function IntelligencePage({ searchParams }: { searchParams:
         <p>Search reviewed evidence, compare like-for-like runs, see exact changes, understand confidence and cost, and leave with one prioritized next action.</p>
       </div>
     </div>
-    <IntelligenceLoop intelligence={intelligence} initialQuery={q?.slice(0, 160) || ""} />
+    <LazyIntelligenceLoop intelligence={intelligence} initialQuery={q?.slice(0, 160) || ""} />
     <div className="evidence-note"><strong>Measurement boundary</strong><p>This brief uses persisted, human-reviewed records. It does not claim search volume, causal influence, buyer behavior, revenue impact, or guaranteed AI placement.</p></div>
   </main>;
 }

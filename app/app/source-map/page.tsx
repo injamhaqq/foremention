@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SourceMapTable } from "@/components/source-map-table";
+import { LazySourceMapTable } from "@/components/lazy-workspace-panels";
 import { SourceClusters } from "@/components/source-clusters";
 import { ProductEventOnView } from "@/components/product-event";
 import { demoCompany } from "@/lib/demo-data";
@@ -28,7 +28,7 @@ export default async function SourceMapPage() {
         {unreviewed > 0 && <div className="review-queue-callout"><div><span className="eyebrow">Human review queue</span><h2>{unreviewed} cited page{unreviewed === 1 ? "" : "s"} still need a decision.</h2><p>Collection proved that the provider returned these URLs. It did not prove page reachability, your brand&apos;s presence, competitors, editorial fit, or a legitimate route. Review those facts before Foremention calls anything a priority gap.</p></div><Link className="button button--ink" href={`/app/sources/${entries.find((entry) => entry.crawlerAccess === "unknown")?.id}`}>Review next source &rarr;</Link></div>}
         <div className="data-quality-grid"><div><span>Review completion</span><strong>{reviewCompletion}%</strong><small>{entries.length - unreviewed} of {entries.length} pages checked</small></div><div><span>Provider coverage</span><strong>{providerCoverage}</strong><small>providers represented in this map</small></div><div><span>Evidence concentration</span><strong>{observations ? Math.round((topThreeObservations / observations) * 100) : 0}%</strong><small>of observations come from the top three sources</small></div><div><span>Recurring evidence</span><strong>{entries.filter((entry) => entry.evidenceCount > 1).length}</strong><small>sources observed more than once</small></div></div>
         <SourceClusters clusters={clusters} />
-        <SourceMapTable entries={entries} canEdit={canEdit} demo={viewer.mode === "demo"} />
+        <LazySourceMapTable entries={entries} canEdit={canEdit} demo={viewer.mode === "demo"} />
       </> : <div className="empty-state"><h2>No Source Map yet.</h2><p>Complete onboarding, connect a provider, select buyer questions, and approve the first collection run.</p><Link className="button button--ink" href="/app/runs">Start collection &rarr;</Link></div>}
     </section>
   </main>;
