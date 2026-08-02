@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
 import { Arrow, Wordmark } from "@/components/brand";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
 import { resetProductAnalytics } from "@/lib/product-analytics";
 
@@ -38,7 +39,7 @@ function WorkspaceIdentity({ viewer, workspaceName }: { viewer: Viewer; workspac
 
 function SignOutButton({ demo }: { demo: boolean }) {
   return <form action={demo ? "/api/auth/demo/exit" : "/api/auth/logout"} method="post">
-    <button type="submit" onClick={() => resetProductAnalytics()}>{demo ? "Exit demo" : "Sign out"} <Arrow /></button>
+    <PendingSubmitButton idle={<>{demo ? "Exit demo" : "Sign out"} <Arrow /></>} pending="Signing out…" onClick={() => resetProductAnalytics()} />
   </form>;
 }
 

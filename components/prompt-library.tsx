@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspacePrompt } from "@/lib/data";
 import { captureProductEvent } from "@/lib/product-analytics";
@@ -17,6 +17,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category }: { ini
   const [editingId, setEditingId] = useState("");
   const [editingText, setEditingText] = useState("");
   const [message, setMessage] = useState("");
+  const submissionLock = useRef(false);
   const visible = useMemo(() => prompts.filter((prompt) => filter === "All" || prompt.cluster === filter), [prompts, filter]);
   const clusters = ["All", ...Array.from(new Set(prompts.map((prompt) => prompt.cluster)))];
   const suggestions = useMemo<SuggestedQuestion[]>(() => [
@@ -36,6 +37,8 @@ export function PromptLibrary({ initialPrompts, demo, company, category }: { ini
 
   async function addPrompt(event: React.FormEvent) {
     event.preventDefault();
+    if (submissionLock.current) return;
+    submissionLock.current = true;
     setBusy("new"); setMessage("");
     try {
       const response = await fetch("/api/prompts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, cluster }) });
@@ -47,7 +50,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category }: { ini
       if (!demo) captureProductEvent("question_created", { cluster });
       router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not add the question."); }
-    finally { setBusy(""); }
+    finally { submissionLock.current = false; setBusy(""); }
   }
 
   async function toggle(prompt: WorkspacePrompt) {
@@ -110,7 +113,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category }: { ini
         <button type="button" onClick={() => fillSuggestion(suggestion)}>Use this question &rarr;</button>
       </article>)}</div>
     </section>
-    <form className="prompt-create" onSubmit={addPrompt}>
+    <form className="prompt-create" onSubmit={addPrompt} aria-busy={busy === "new"}>
       <div><span className="eyebrow">Add buyer question</span><h2>Use the language a real buyer would type.</h2></div>
       <label>Intent<select value={cluster} onChange={(event) => setCluster(event.target.value)}><option>Discovery</option><option>Comparison</option><option>Alternative</option><option>Use case</option><option>Trust</option><option>Constraint</option></select></label>
       <label>Question<input id="buyer-question-input" value={text} onChange={(event) => setText(event.target.value)} minLength={10} maxLength={1000} placeholder="What is the best…?" required /></label>

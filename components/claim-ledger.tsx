@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { VerifiedClaim, WorkspaceEvidence } from "@/lib/data";
 
 export function ClaimLedger({
@@ -24,9 +24,12 @@ export function ClaimLedger({
   const [busy, setBusy] = useState(false);
   const [updating, setUpdating] = useState("");
   const [message, setMessage] = useState("");
+  const submissionLock = useRef(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (submissionLock.current) return;
+    submissionLock.current = true;
     setBusy(true);
     setMessage("");
     try {
@@ -58,6 +61,7 @@ export function ClaimLedger({
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not approve this claim.");
     } finally {
+      submissionLock.current = false;
       setBusy(false);
     }
   }
@@ -87,7 +91,7 @@ export function ClaimLedger({
       <div><span className="eyebrow">Claim Integrity Ledger</span><h2>Say only what the evidence supports.</h2></div>
       <p>Connect an observed or proposed claim to verified proof, approved wording, and explicit limitations. This does not decide whether an AI answer is accurate automatically.</p>
     </div>
-    {verifiedEvidence.length > 0 && canManage ? <form className="claim-create" onSubmit={submit}>
+    {verifiedEvidence.length > 0 && canManage ? <form className="claim-create" onSubmit={submit} aria-busy={busy}>
       <label>Verified evidence<select value={evidenceItemId} onChange={(event) => setEvidenceItemId(event.target.value)} required>{verifiedEvidence.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
       <label>Observed or proposed claim<textarea value={claimText} onChange={(event) => setClaimText(event.target.value)} required minLength={8} rows={3} /></label>
       <label>Approved wording<textarea value={approvedWording} onChange={(event) => setApprovedWording(event.target.value)} required minLength={8} rows={3} /></label>

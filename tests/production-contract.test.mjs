@@ -459,6 +459,30 @@ test("workspace zero-data and filtered views explain the page and provide a firs
   assert.match(team, /No member records are available/);
 });
 
+test("all customer write forms expose loading feedback and lock duplicate submissions", async () => {
+  const formFiles = [
+    "components/auth-form.tsx",
+    "components/evidence-manager.tsx",
+    "components/claim-ledger.tsx",
+    "components/password-reset-form.tsx",
+    "components/set-password-form.tsx",
+    "components/prompt-library.tsx",
+    "components/source-review-form.tsx",
+    "components/team-management.tsx",
+    "components/source-gap-form.tsx",
+    "components/onboarding-wizard.tsx",
+  ];
+  const sources = await Promise.all(formFiles.map(text));
+  for (const source of sources) {
+    assert.match(source, /useRef\(false\)/);
+    assert.match(source, /\.current\) return/);
+    assert.match(source, /aria-busy=/);
+  }
+  const pending = await text("components/pending-submit-button.tsx");
+  assert.match(pending, /useFormStatus/);
+  assert.match(pending, /disabled=\{isPending\}/);
+});
+
 test("production responses carry defense-in-depth browser protections", async () => {
   const worker = await text("worker/index.ts");
   assert.match(worker, /Content-Security-Policy/);

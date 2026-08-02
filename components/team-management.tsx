@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspaceInvitation, WorkspaceRole, WorkspaceTeamMember } from "@/lib/data";
 
@@ -33,9 +33,12 @@ export function TeamManagement({
   const [shareUrl, setShareUrl] = useState("");
   const canInvite = !demo && Boolean(currentRole && ["owner", "admin"].includes(currentRole));
   const canManageRoles = !demo && currentRole === "owner";
+  const inviteLock = useRef(false);
 
   async function invite(event: React.FormEvent) {
     event.preventDefault();
+    if (inviteLock.current) return;
+    inviteLock.current = true;
     setBusy("invite");
     setMessage("");
     setShareUrl("");
@@ -54,6 +57,7 @@ export function TeamManagement({
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The invitation could not be created.");
     } finally {
+      inviteLock.current = false;
       setBusy("");
     }
   }
@@ -123,7 +127,7 @@ export function TeamManagement({
     <section className="panel">
       <span className="eyebrow">Invite safely</span>
       <h2>Add a teammate with the minimum access they need.</h2>
-      <form className="team-invite-form" onSubmit={invite}>
+      <form className="team-invite-form" onSubmit={invite} aria-busy={busy === "invite"}>
         <label>Work email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="teammate@company.com" required disabled={!canInvite} /></label>
         <label>Role<select value={role} onChange={(event) => setRole(event.target.value as Exclude<WorkspaceRole, "owner">)} disabled={!canInvite}><option value="admin">Admin</option><option value="analyst">Analyst</option><option value="viewer">Viewer</option></select></label>
         <button className="button button--ink" type="submit" disabled={!canInvite || busy === "invite"}>{busy === "invite" ? "Creating…" : "Create secure invite"}</button>

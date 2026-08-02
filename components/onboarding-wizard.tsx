@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
 
 const steps = ["Organization", "Category", "Competitors", "Goals", "Buyer questions", "Review"];
@@ -60,6 +60,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [analysisMessage, setAnalysisMessage] = useState("");
   const prompts = values.prompts.split("\n").map((value) => value.trim()).filter(Boolean);
+  const submissionLock = useRef(false);
 
   useEffect(() => {
     if (demo) return;
@@ -119,6 +120,8 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
   }
 
   async function submit() {
+    if (submissionLock.current) return;
+    submissionLock.current = true;
     setStatus("saving");
     setMessage("");
     try {
@@ -140,6 +143,8 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save onboarding.");
       setStatus("error");
+    } finally {
+      submissionLock.current = false;
     }
   }
 
@@ -154,7 +159,7 @@ export function OnboardingWizard({ demo, draftKey }: { demo: boolean; draftKey: 
 
   return <div className="onboarding-wizard">
     <ol aria-label="Workspace setup progress">{steps.map((label, index) => <li className={step === index ? "is-active" : step > index ? "is-complete" : ""} key={label}><span>{String(index + 1).padStart(2, "0")}</span>{label}</li>)}</ol>
-    <form onSubmit={(event) => { event.preventDefault(); if (step < steps.length - 1) setStep(step + 1); else void submit(); }}>
+    <form onSubmit={(event) => { event.preventDefault(); if (step < steps.length - 1) setStep(step + 1); else void submit(); }} aria-busy={status === "saving"}>
       <div className="wizard-progress" aria-live="polite">
         <span>Step {step + 1} of {steps.length}</span>
         <div aria-hidden="true"><i style={{ width: `${((step + 1) / steps.length) * 100}%` }} /></div>

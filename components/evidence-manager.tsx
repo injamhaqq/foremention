@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspaceEvidence } from "@/lib/data";
 
@@ -14,9 +14,12 @@ export function EvidenceManager({ initialItems, demo, canReview }: { initialItem
   const [busy, setBusy] = useState(false);
   const [reviewing, setReviewing] = useState("");
   const [message, setMessage] = useState("");
+  const submissionLock = useRef(false);
 
   async function submit(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true); setMessage("");
+    event.preventDefault();
+    if (submissionLock.current) return;
+    submissionLock.current = true; setBusy(true); setMessage("");
     try {
       const response = await fetch("/api/evidence", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, sourceUrl, type, rights }) });
       const result = (await response.json()) as { data?: Record<string, unknown>; error?: string };
@@ -26,7 +29,7 @@ export function EvidenceManager({ initialItems, demo, canReview }: { initialItem
       setMessage(demo ? "Demo evidence added locally." : "Evidence saved as unverified. Verify it before public use.");
       router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save evidence."); }
-    finally { setBusy(false); }
+    finally { submissionLock.current = false; setBusy(false); }
   }
 
   async function review(item: WorkspaceEvidence, status: "verified" | "unverified") {
@@ -54,7 +57,7 @@ export function EvidenceManager({ initialItems, demo, canReview }: { initialItem
   }
 
   return <div>
-    <form className="evidence-create" onSubmit={submit}>
+    <form className="evidence-create" onSubmit={submit} aria-busy={busy}>
       <div><span className="eyebrow">Evidence intake</span><h2>Add the proof before using the claim.</h2></div>
       <label>Type<select value={type} onChange={(event) => setType(event.target.value)}><option>Company fact</option><option>Customer result</option><option>Security</option><option>Integration</option><option>Pricing</option><option>Research</option></select></label>
       <label>Evidence title<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>

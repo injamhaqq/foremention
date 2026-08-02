@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
 
 export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
@@ -14,9 +14,11 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
   const [accountHelp, setAccountHelp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const submissionLock = useRef(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submissionLock.current) return;
     const formData = new FormData(event.currentTarget);
     setError("");
     setNotice("");
@@ -30,6 +32,8 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
     }
 
     setBusy(true);
+    submissionLock.current = true;
+    let navigating = false;
     try {
       const response = await fetch(`/api/auth/${mode}`, {
         method: "POST",
@@ -54,11 +58,15 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
       // Use a full navigation after the server sets the HTTP-only session
       // cookie. This guarantees that the first protected request includes the
       // new cookie instead of racing a client-router refresh.
+      navigating = true;
       window.location.assign(next.startsWith("/") ? next : "/app");
     } catch {
       setError("The connection failed. Please try again.");
     } finally {
-      setBusy(false);
+      if (!navigating) {
+        submissionLock.current = false;
+        setBusy(false);
+      }
     }
   }
 
@@ -105,7 +113,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
             : "Start with your category, then connect buyer questions, answer evidence, sources, competitors, and change over time."}
         </p>
       </div>
-      <form onSubmit={submit}>
+      <form onSubmit={submit} aria-busy={busy}>
         {!isLogin && <label>Full name<input name="full_name" required autoComplete="name" placeholder="Your name" /></label>}
         <label>Email<input type="email" name="email" required autoComplete="email" placeholder="you@example.com" /></label>
         <label>

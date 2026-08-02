@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
 import { useRouter } from "next/navigation";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
@@ -18,9 +18,12 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const submissionLock = useRef(false);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (submissionLock.current) return;
+    submissionLock.current = true;
     setBusy(true);
     setMessage("");
     try {
@@ -37,11 +40,12 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save the source review.");
     } finally {
+      submissionLock.current = false;
       setBusy(false);
     }
   }
 
-  return <form className="source-review-form" onSubmit={save}>
+  return <form className="source-review-form" onSubmit={save} aria-busy={busy}>
     <div><span className="eyebrow">Analyst review</span><h2>Turn an observed citation into a decision-ready record.</h2><p>Review the page itself. A citation does not prove the page contains your brand or offers a legitimate contribution route.</p></div>
     <div className="source-review-grid">
       <label>Crawler access<select value={crawlerAccess} onChange={(event) => setCrawlerAccess(event.target.value as SourceMapEntry["crawlerAccess"])}><option value="unknown" disabled>Select after inspection</option><option value="open">Open</option><option value="partial">Partial</option><option value="blocked">Blocked</option></select></label>

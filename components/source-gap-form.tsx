@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type FormState = "idle" | "submitting" | "success" | "error";
 
 export function SourceGapForm() {
   const [state, setState] = useState<FormState>("idle");
   const [message, setMessage] = useState("");
+  const submissionLock = useRef(false);
 
   async function submit(formData: FormData) {
+    if (submissionLock.current) return;
+    submissionLock.current = true;
     setState("submitting");
     setMessage("");
     const payload = Object.fromEntries(formData.entries());
@@ -25,6 +28,8 @@ export function SourceGapForm() {
     } catch (error) {
       setState("error");
       setMessage(error instanceof Error ? error.message : "Could not submit the check.");
+    } finally {
+      submissionLock.current = false;
     }
   }
 
@@ -40,7 +45,7 @@ export function SourceGapForm() {
   }
 
   return (
-    <form className="intake-form" action={submit}>
+    <form className="intake-form" action={submit} aria-busy={state === "submitting"}>
       <div className="form-row">
         <label>Work email<input type="email" name="email" placeholder="you@company.com" required /></label>
         <label>Your name<input type="text" name="name" placeholder="Maya Chen" required /></label>
