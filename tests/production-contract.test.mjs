@@ -435,6 +435,30 @@ test("product analytics is optional, privacy-limited, and configured outside sou
   assert.match(`${review}\n${sourceReview}`, /evidence_reviewed/);
 });
 
+test("workspace zero-data and filtered views explain the page and provide a first action", async () => {
+  const [alerts, agents, intelligence, sourceTable, evidence, opportunities, runs, team] = await Promise.all([
+    text("components/notification-center.tsx"),
+    text("components/agent-control-plane.tsx"),
+    text("components/intelligence-loop.tsx"),
+    text("components/source-map-table.tsx"),
+    text("app/app/evidence/page.tsx"),
+    text("app/app/opportunities/page.tsx"),
+    text("app/app/runs/page.tsx"),
+    text("components/team-management.tsx"),
+  ]);
+  for (const source of [alerts, agents, intelligence, sourceTable, evidence, opportunities, runs, team]) {
+    assert.match(source, /href=|onClick=/);
+  }
+  assert.match(alerts, /Start with Answer Runs/);
+  assert.match(agents, /Start first run/);
+  assert.match(intelligence, /Create the first baseline/);
+  assert.match(sourceTable, /No sources match this view/);
+  assert.match(evidence, /No reviewed provider evidence yet/);
+  assert.match(opportunities, /Collect evidence/);
+  assert.match(runs, /Review buyer questions/);
+  assert.match(team, /No member records are available/);
+});
+
 test("production responses carry defense-in-depth browser protections", async () => {
   const worker = await text("worker/index.ts");
   assert.match(worker, /Content-Security-Policy/);

@@ -60,7 +60,7 @@ export function IntelligenceLoop({ intelligence }: { intelligence: WeeklyIntelli
             ["Returned citations", previous?.citations ?? "—", latest.citations, citationDelta === null ? "Baseline" : signed(citationDelta)],
             ["Recorded cost", previous ? cost(previous.costUsd) : "—", cost(latest.costUsd), costDelta === null ? "Baseline" : `${costDelta > 0 ? "+" : ""}${cost(costDelta)}`],
           ].map(([label, before, after, change]) => <div className="run-compare__row" key={label}><strong>{label}</strong><span>{before}</span><span>{after}</span><span>{change}</span></div>)}
-        </div> : <div className="empty-state"><h2>No reviewed run exists yet.</h2><p>The comparison remains empty until real provider evidence passes human review.</p></div>}
+        </div> : <div className="empty-state"><h2>No reviewed run exists yet.</h2><p>This page compares reviewed runs and turns exact changes into one next action. Start a collection, then approve its evidence.</p><Link className="button button--ink" href="/app/runs">Create the first baseline <Arrow /></Link></div>}
       </section>
 
       <section className="panel panel--flush confidence-panel">
@@ -80,7 +80,7 @@ export function IntelligenceLoop({ intelligence }: { intelligence: WeeklyIntelli
         <label><span className="sr-only">Search workspace evidence</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search questions, answers, domains, evidence, or claims" /></label>
       </div>
       <div className="evidence-search__results" aria-live="polite">
-        {results.length ? results.map((record) => <Link href={record.href} key={record.id}><span>{record.kind}</span><div><strong>{record.title}</strong><p>{record.detail}</p><small>{record.meta}</small></div><Arrow /></Link>) : <div className="empty-state empty-state--compact"><h2>No matching evidence.</h2><p>Try a buyer question, provider, domain, evidence title, or approved claim.</p></div>}
+        {results.length ? results.map((record) => <Link href={record.href} key={record.id}><span>{record.kind}</span><div><strong>{record.title}</strong><p>{record.detail}</p><small>{record.meta}</small></div><Arrow /></Link>) : <div className="empty-state empty-state--compact"><h2>{normalized ? "No matching evidence." : "No searchable evidence yet."}</h2><p>{normalized ? "Try a buyer question, provider, domain, evidence title, or approved claim." : "Reviewed answers, mapped sources, uploaded proof, and approved claims become searchable here."}</p>{!normalized && <Link className="text-link" href="/app/runs">Collect evidence first <Arrow /></Link>}</div>}
       </div>
       <p className="table-caption">{normalized ? `${results.length} matching record${results.length === 1 ? "" : "s"}` : `Showing ${results.length} of ${intelligence.searchRecords.length} searchable reviewed records`}. Unreviewed answers remain excluded.</p>
     </section>

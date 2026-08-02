@@ -24,7 +24,7 @@ export function AgentControlPlane({ plane, compact = false }: { plane: AgentCont
         <h2>{compact ? "See exactly what the system did." : "Six agents. One inspectable evidence chain."}</h2>
         <p>{compact ? "Every stage reports a persisted state instead of hiding work behind a magic score." : "Foremention coordinates provider collection and deterministic analysis as separate agents. Each one has a narrow job, a visible evidence boundary, and no permission to fabricate missing results."}</p>
       </div>
-      <div className="agent-plane__telemetry"><span>{telemetryLabel}</span><strong>{plane.latestRunId ? `Run ${plane.latestRunId.slice(0, 8).toUpperCase()}` : "No run yet"}</strong>{plane.latestRunId && <Link href={`/app/runs/${plane.latestRunId}`}>Inspect run <Arrow /></Link>}</div>
+      <div className="agent-plane__telemetry"><span>{telemetryLabel}</span><strong>{plane.latestRunId ? `Run ${plane.latestRunId.slice(0, 8).toUpperCase()}` : "No run yet"}</strong>{plane.latestRunId ? <Link href={`/app/runs/${plane.latestRunId}`}>Inspect run <Arrow /></Link> : <Link href="/app/runs">Start first run <Arrow /></Link>}</div>
     </header>
     <div className="agent-plane__summary">
       <div><span>Agents</span><strong>{plane.agents.length}</strong></div>

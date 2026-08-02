@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspaceInvitation, WorkspaceRole, WorkspaceTeamMember } from "@/lib/data";
@@ -134,7 +135,7 @@ export function TeamManagement({
 
     <section className="panel panel--flush">
       <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Members</span><h2>{initialMembers.length} workspace member{initialMembers.length === 1 ? "" : "s"}</h2></div></div>
-      <div className="team-list">{initialMembers.map((member) => <article key={member.userId}>
+      {initialMembers.length ? <div className="team-list">{initialMembers.map((member) => <article key={member.userId}>
         <div><span>{member.email.slice(0, 1).toUpperCase()}</span><div><strong>{member.email}{member.current ? " · You" : ""}</strong><small>Joined {member.joinedAt}</small></div></div>
         <div className="team-row-actions">
           <select aria-label={`Role for ${member.email}`} value={member.role} disabled={!canManageRoles || member.current || busy === member.userId} onChange={(event) => void updateMember(member.userId, event.target.value as WorkspaceRole)}>
@@ -142,7 +143,7 @@ export function TeamManagement({
           </select>
           <button type="button" disabled={!canManageRoles || member.current || busy === member.userId} title={member.current ? "Use the account lifecycle controls to leave or close your own workspace." : undefined} onClick={() => void removeMember(member.userId)}>{member.current ? "Current account" : "Remove"}</button>
         </div>
-      </article>)}</div>
+      </article>)}</div> : <div className="empty-state"><h2>No member records are available.</h2><p>Team access cannot be managed until the current workspace membership is restored.</p><Link className="text-link" href="/app/settings">Check workspace settings →</Link></div>}
     </section>
 
     <section className="panel panel--flush">
