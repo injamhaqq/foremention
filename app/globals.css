@@ -1652,6 +1652,83 @@ textarea { resize: vertical; }
   .platform-steps article { min-height: 210px; }
   .platform-ledger div { grid-template-columns: 1fr; gap: 10px; }
 }
+
+/* Mobile reliability pass: keep every route inside the viewport and preserve dense data via local scrolling. */
+@media (max-width: 767px) {
+  html, body { max-width: 100%; overflow-x: clip; }
+  img, svg, video, canvas { max-width: 100%; }
+  .shell { width: calc(100% - 28px); max-width: none; }
+  .public-header__inner { min-width: 0; }
+  .public-header .mobile-nav { display: block; flex: 0 0 auto; margin-left: auto; }
+  .public-header .wordmark { min-width: 0; font-size: 17px; }
+  .mobile-nav summary { min-width: 48px; min-height: 44px; display: grid; place-items: center; }
+  .mobile-nav__panel { top: 48px; right: 0; width: min(260px, calc(100vw - 28px)); max-height: calc(100vh - 92px); overflow-y: auto; }
+  .mobile-nav__panel a { min-height: 44px; display: flex; align-items: center; }
+
+  .page-hero { padding: 72px 0 58px; }
+  .narrow-heading, .platform-heading, .section-heading { min-width: 0; max-width: 100%; }
+  .narrow-heading h1, .workspace-heading h1, .platform-heading h2 { max-width: 100%; overflow-wrap: anywhere; }
+  .narrow-heading h1 { font-size: clamp(40px, 12vw, 54px); }
+  .narrow-heading p, .platform-heading p { font-size: 15px; }
+  .button { max-width: 100%; min-height: 44px; white-space: normal; }
+
+  .app-topbar { min-height: 68px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 9px; padding: 9px 14px; }
+  .app-topbar > div:nth-child(2) { display: none; }
+  .app-mobile-nav { grid-column: 1; }
+  .app-mobile-nav summary { min-width: 44px; min-height: 44px; display: grid; place-items: center; padding: 7px; font-size: 0; }
+  .app-mobile-nav summary::after { font-size: 10px; content: "Menu"; }
+  .app-mobile-nav__panel { position: fixed; top: 68px; left: 14px; width: min(320px, calc(100vw - 28px)); max-height: calc(100vh - 82px); overflow-y: auto; }
+  .app-mobile-nav nav a, .app-mobile-nav form button { min-height: 44px; align-items: center; }
+  .workspace-global-search { grid-column: 2; width: 100%; min-width: 0; }
+  .workspace-global-search input { width: 0; min-height: 44px; }
+  .workspace-global-search button { min-height: 44px; }
+  .app-topbar__account { grid-column: 3; gap: 8px; }
+  .notification-bell > summary { width: 44px; height: 44px; }
+  .notification-bell__panel { position: fixed; top: 68px; right: 14px; left: 14px; width: auto; max-height: calc(100vh - 82px); overflow-y: auto; }
+  .app-user { display: none; }
+
+  .workspace { min-width: 0; padding: 28px 14px 72px; }
+  .workspace-heading { min-width: 0; gap: 18px; margin-bottom: 24px; }
+  .workspace-heading > *, .panel, .panel-heading > *, .dashboard-grid > * { min-width: 0; }
+  .workspace-heading .button { width: 100%; }
+  .panel { padding: 18px; }
+  .panel-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .panel-heading > a { min-height: 44px; display: flex; align-items: center; }
+  .metric-grid { grid-template-columns: 1fr 1fr; }
+  .metric-grid article { min-height: 116px; padding: 14px; }
+  .metric-grid strong { font-size: 31px; }
+  .map-summary { grid-template-columns: 1fr 1fr; }
+  .latest-answer > div, .compact-sources a, .notification-list article, .collected-evidence > div:last-child article { align-items: flex-start; flex-direction: column; }
+  .engine-list > div { grid-template-columns: 72px minmax(0,1fr) 38px; gap: 9px; }
+  .engine-list > div small { grid-column: 2 / -1; }
+
+  .webhook-settings form, .team-invite-form, .invite-link, .claim-create, .evidence-create { grid-template-columns: 1fr; overflow: visible; }
+  .webhook-settings fieldset, .claim-create > *, .evidence-create > *, .evidence-create > div, .evidence-create > button { grid-column: auto; min-width: 0; }
+  .settings-list div, .placement-detail dl div { grid-template-columns: 1fr; gap: 6px; }
+  .placement-detail { padding: 24px 20px; box-shadow: 7px 7px 0 var(--ink); }
+  .record-url a, .invite-link code, .secret-once code { overflow-wrap: anywhere; word-break: break-word; }
+
+  .data-table, .run-table, .question-performance__table, .evidence-table, .run-compare__table, .trend-chart--dynamic, .public-explorer__filters, .onboarding-wizard > ol {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-tools--source-map, .run-comparison-selector, .competitor-add, .source-credibility, .source-clusters { grid-template-columns: 1fr; }
+  .source-clusters > div:last-child, .competitor-grid dl { grid-template-columns: 1fr 1fr; }
+  .run-cost-providers article, .change-record, .decision-note, .decision-action-list article { grid-template-columns: 1fr; }
+  .bulk-toolbar { align-items: stretch; flex-direction: column; }
+  .bulk-toolbar label { min-height: 44px; margin-right: 0; }
+  .bulk-toolbar button, .workspace-pagination a, .workspace-load-more button { min-height: 44px; }
+}
+
+@media (max-width: 420px) {
+  .metric-grid, .map-summary, .roi-calculator__metrics, .run-cost-metrics, .run-comparison-metrics, .source-clusters > div:last-child, .competitor-grid dl { grid-template-columns: 1fr; }
+  .metric-grid article, .map-summary > div, .roi-calculator__metrics article, .run-cost-metrics > div, .run-comparison-metrics article { border-right: 0; border-bottom: 1px solid var(--ink); }
+  .metric-grid article:last-child, .map-summary > div:last-child, .roi-calculator__metrics article:last-child, .run-cost-metrics > div:last-child, .run-comparison-metrics article:last-child { border-bottom: 0; }
+  .auth-card { width: calc(100% - 24px); margin: 24px auto; padding: 22px 18px; }
+  .auth-card h1 { font-size: 36px; }
+}
 @media (prefers-reduced-motion: reduce) { .platform-steps article,.home-pricing-grid article { transform: none !important; transition: none !important; } }
 
 /* Content remains readable if a browser delays or disables the motion script. */
