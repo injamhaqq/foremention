@@ -1,4 +1,5 @@
 import { ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
+import { estimateMaximumRunCost, getProviderCostRates, GROQ_SPEND_LIMITS, roundUsd } from "@/lib/collection-policy";
 
 type GroqSearchResult = {
   title?: string;
@@ -46,6 +47,19 @@ export const groqAdapter: AnswerProviderAdapter = {
   async run(prompt: ProviderPrompt, options) {
     const started = Date.now();
     const model = String(process.env.GROQ_MODEL);
+    const rates = getProviderCostRates("groq");
+    if (!rates) throw new ProviderRequestError("Groq", 503, "Groq cost rates are not configured.");
+    const estimatedPromptCost = estimateMaximumRunCost(1, rates);
+    if (options.budget) {
+      const nextRunSpend = roundUsd(options.budget.runSpendSoFarUsd + estimatedPromptCost);
+      const nextMonthlySpend = roundUsd(options.budget.monthlySpendSoFarUsd + estimatedPromptCost);
+      if (nextRunSpend > options.budget.runLimitUsd || nextRunSpend > GROQ_SPEND_LIMITS.maxRunCostUsd) {
+        throw new ProviderRequestError("Groq", 429, `Groq spending limit reached for this run. The maximum allowed spend is $${Math.min(options.budget.runLimitUsd, GROQ_SPEND_LIMITS.maxRunCostUsd).toFixed(2)} per run.`);
+      }
+      if (nextMonthlySpend > options.budget.monthlyLimitUsd || nextMonthlySpend > GROQ_SPEND_LIMITS.maxMonthlyOrgSpendUsd) {
+        throw new ProviderRequestError("Groq", 429, `Groq spending limit reached for this organization this month. The maximum allowed spend is $${Math.min(options.budget.monthlyLimitUsd, GROQ_SPEND_LIMITS.maxMonthlyOrgSpendUsd).toFixed(2)} per month.`);
+      }
+    }
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       signal: options.signal,
@@ -75,7 +89,10 @@ export const groqAdapter: AnswerProviderAdapter = {
       if (response.ok) throw new Error("Groq returned an unreadable success response.");
     }
     if (!response.ok) {
-      const detail = [raw.error?.type ? `[${raw.error.type}]` : "", raw.error?.message || ""].filter(Boolean).join(" ");
+      // Provider messages are intentionally excluded: a provider can echo
+      // customer prompt content in an error response. Status/type/code are
+      // sufficient for operations without persisting customer text in logs.
+      const detail = [raw.error?.type, raw.error?.code].filter(Boolean).join(": ");
       throw new ProviderRequestError("Groq", response.status, detail);
     }
     const choice = raw.choices?.[0];

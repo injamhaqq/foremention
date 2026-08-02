@@ -4,6 +4,7 @@ import {
   canonicalizeEvidenceUrl,
   estimateMaximumRunCost,
   estimateProviderCost,
+  GROQ_SPEND_LIMITS,
   getProviderCostRates,
   hasOpenProviderCircuit,
   hostnameFromUrl,
@@ -48,6 +49,15 @@ const includesName = (text: string, value: string) =>
 async function recordedRunCost(data: RunRequestedData) {
   const events = await supabaseRest<Array<{ estimated_cost_usd: number | string | null }>>(
     `ai_cost_events?select=estimated_cost_usd&organization_id=eq.${data.organizationId}&run_id=eq.${data.runId}`,
+    { serviceRole: true },
+  );
+  return roundUsd(events.reduce((total, event) => total + Number(event.estimated_cost_usd || 0), 0));
+}
+
+async function recordedOrganizationMonthlyCost(data: RunRequestedData) {
+  const cycleStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString();
+  const events = await supabaseRest<Array<{ estimated_cost_usd: number | string | null }>>(
+    `ai_cost_events?select=estimated_cost_usd&organization_id=eq.${data.organizationId}&created_at=gte.${encodeURIComponent(cycleStart)}`,
     { serviceRole: true },
   );
   return roundUsd(events.reduce((total, event) => total + Number(event.estimated_cost_usd || 0), 0));
@@ -523,9 +533,17 @@ export const runMultiEngineScan = inngest.createFunction(
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), LIVE_COLLECTION_LIMITS.providerTimeoutMs);
           try {
+            const budget = providerId === "groq"
+              ? await Promise.all([recordedRunCost(data), recordedOrganizationMonthlyCost(data)]).then(([runSpendSoFarUsd, monthlySpendSoFarUsd]) => ({
+                runSpendSoFarUsd,
+                monthlySpendSoFarUsd,
+                runLimitUsd: GROQ_SPEND_LIMITS.maxRunCostUsd,
+                monthlyLimitUsd: GROQ_SPEND_LIMITS.maxMonthlyOrgSpendUsd,
+              }))
+              : undefined;
             const answer = await adapter.run(
               { promptId: prompt.prompt_id, text: prompt.prompt_text, locale: prompt.locale },
-              { signal: controller.signal, maxOutputTokens: LIVE_COLLECTION_LIMITS.maxOutputTokensPerAnswer },
+              { signal: controller.signal, maxOutputTokens: LIVE_COLLECTION_LIMITS.maxOutputTokensPerAnswer, budget },
             );
             if (!answer.answer.trim()) throw new Error("The provider returned an empty answer.");
             return answer;

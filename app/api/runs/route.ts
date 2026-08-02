@@ -3,6 +3,7 @@ import { getViewer } from "@/lib/auth";
 import {
   configuredMaxRunCostUsd,
   estimateMaximumRunCost,
+  GROQ_SPEND_LIMITS,
   getProviderCostRates,
   LIVE_COLLECTION_LIMITS,
   safeOperationalError,
@@ -121,6 +122,11 @@ export async function POST(request: Request) {
   if (estimatedMaximumCost > configuredMaxRunCostUsd()) {
     return NextResponse.json({
       error: "This collection exceeds the configured per-run spending ceiling. Select fewer questions or raise the ceiling privately.",
+    }, { status: 422 });
+  }
+  if (providerId === "groq" && estimatedMaximumCost > GROQ_SPEND_LIMITS.maxRunCostUsd) {
+    return NextResponse.json({
+      error: `Groq collections are capped at $${GROQ_SPEND_LIMITS.maxRunCostUsd.toFixed(2)} per run. Select fewer questions or choose another provider.`,
     }, { status: 422 });
   }
 

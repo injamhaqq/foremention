@@ -13,6 +13,11 @@ export const LIVE_COLLECTION_LIMITS = {
   maxRunCostUsd: 0.25,
 } as const;
 
+export const GROQ_SPEND_LIMITS = {
+  maxRunCostUsd: 0.10,
+  maxMonthlyOrgSpendUsd: 5.00,
+} as const;
+
 type CostRates = {
   inputPerMillionUsd: number;
   outputPerMillionUsd: number;

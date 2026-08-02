@@ -21,6 +21,13 @@ export type ProviderUsage = {
   totalTokens?: number;
 };
 
+export type ProviderSpendBudget = {
+  runSpendSoFarUsd: number;
+  monthlySpendSoFarUsd: number;
+  runLimitUsd: number;
+  monthlyLimitUsd: number;
+};
+
 export type ProviderAnswer = {
   provider: ProviderId;
   model: string;
@@ -39,6 +46,7 @@ export type ProviderAnswer = {
 export type ProviderRunOptions = {
   signal?: AbortSignal;
   maxOutputTokens: number;
+  budget?: ProviderSpendBudget;
 };
 
 export interface AnswerProviderAdapter {

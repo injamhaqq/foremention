@@ -38,6 +38,24 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
   assert.doesNotMatch(migration, /delete from public\.source_observations/);
 });
 
+test("Groq has fixed pre-call run and organization spend ceilings without prompt-bearing error logs", async () => {
+  const [route, job, adapter, policy] = await Promise.all([
+    text("app/api/runs/route.ts"),
+    text("lib/jobs/inngest.ts"),
+    text("lib/providers/groq.ts"),
+    text("lib/collection-policy.ts"),
+  ]);
+  assert.match(policy, /maxRunCostUsd: 0\.10/);
+  assert.match(policy, /maxMonthlyOrgSpendUsd: 5\.00/);
+  assert.match(route, /providerId === "groq"[\s\S]*GROQ_SPEND_LIMITS\.maxRunCostUsd/);
+  assert.match(job, /recordedOrganizationMonthlyCost/);
+  assert.match(job, /created_at=gte/);
+  assert.match(job, /budget[\s\S]*adapter\.run/);
+  assert.match(adapter, /if \(options\.budget\)[\s\S]*await fetch/);
+  assert.doesNotMatch(adapter, /raw\.error\?\.message/);
+  assert.match(adapter, /Provider messages are intentionally excluded/);
+});
+
 test("successful empty Supabase write responses are not treated as failures", async () => {
   const source = await readFile(new URL("../lib/supabase-rest.ts", import.meta.url), "utf8");
   assert.match(source, /const responseText = await response\.text\(\)/);
