@@ -163,7 +163,9 @@ test("the paying workspace keeps customer data truthful and server-scoped", asyn
     text("app/api/runs/[id]/review/route.ts"),
   ]);
   assert.match(overview, /Workspace readiness/);
-  assert.match(overview, /No approved runs/);
+  assert.match(overview, /First audit has not completed/);
+  assert.match(overview, /Latest observed answer/);
+  assert.match(overview, /awaiting review/);
   assert.match(analytics, /never substitute demo values for customer data/i);
   assert.match(sourceMap, /page-level brand presence stays unreviewed/i);
   assert.match(runRoute, /loadWorkspaceContext/);
@@ -245,7 +247,8 @@ test("workspace navigation and customer controls are complete on desktop and mob
   assert.match(team, /member\.current \|\| busy/);
   assert.match(alerts, /Could not update alerts/);
   assert.match(overview, /Latest verified answer/);
-  assert.match(overview, /loadLatestReviewedAnswers/);
+  assert.match(overview, /loadRunAnswers/);
+  assert.match(overview, /observedRuns/);
 });
 
 test("customer insight pages use real evidence without pseudo-priority scores or duplicate alert noise", async () => {
