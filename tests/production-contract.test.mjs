@@ -453,6 +453,24 @@ test("product analytics is optional, privacy-limited, and configured outside sou
   assert.match(`${review}\n${sourceReview}`, /evidence_reviewed/);
 });
 
+test("Contentsquare is optional, consent-gated, and limited by CSP", async () => {
+  const [contentsquare, env, worker, privacy] = await Promise.all([
+    text("components/contentsquare-analytics.tsx"),
+    text(".env.example"),
+    text("worker/index.ts"),
+    text("app/privacy/page.tsx"),
+  ]);
+  assert.match(env, /NEXT_PUBLIC_CONTENTSQUARE_TAG_URL=/);
+  assert.match(contentsquare, /foremention:contentsquare-consent/);
+  assert.match(contentsquare, /consent !== "accepted"/);
+  assert.match(contentsquare, /https:\/\/t\.contentsquare\.net\/uxa\//);
+  assert.match(contentsquare, /Allow analytics/);
+  assert.match(worker, /https:\/\/\*\.contentsquare\.net/);
+  assert.match(worker, /https:\/\/\*\.contentsquare\.com/);
+  assert.match(worker, /https:\/\/csxd\.contentsquare\.net/);
+  assert.match(privacy, /only after a visitor explicitly accepts/i);
+});
+
 test("workspace zero-data and filtered views explain the page and provide a first action", async () => {
   const [alerts, agents, intelligence, sourceTable, evidence, opportunities, runs, team] = await Promise.all([
     text("components/notification-center.tsx"),
