@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-const CONSENT_KEY = "foremention:contentsquare-consent";
+const CONSENT_KEY = "foremention:experience-analytics-consent";
 const SCRIPT_ID = "foremention-contentsquare";
+const CLARITY_SCRIPT_ID = "foremention-clarity";
 
 type Consent = "accepted" | "declined" | null;
 
@@ -12,12 +13,19 @@ function configuredTagUrl() {
   return value?.startsWith("https://t.contentsquare.net/uxa/") && value.endsWith(".js") ? value : null;
 }
 
+function configuredClarityProjectId() {
+  const value = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
+  return value?.match(/^[a-z0-9]{6,32}$/i) ? value : null;
+}
+
 export function ContentsquareAnalytics() {
   const [consent, setConsent] = useState<Consent>(null);
   const tagUrl = configuredTagUrl();
+  const clarityProjectId = configuredClarityProjectId();
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(CONSENT_KEY);
+    const stored = window.localStorage.getItem(CONSENT_KEY)
+      ?? window.localStorage.getItem("foremention:contentsquare-consent");
     if (stored === "accepted" || stored === "declined") setConsent(stored);
   }, []);
 
@@ -32,15 +40,25 @@ export function ContentsquareAnalytics() {
     document.head.appendChild(script);
   }, [consent, tagUrl]);
 
+  useEffect(() => {
+    if (consent !== "accepted" || !clarityProjectId || document.getElementById(CLARITY_SCRIPT_ID)) return;
+    const script = document.createElement("script");
+    script.id = CLARITY_SCRIPT_ID;
+    script.src = `https://www.clarity.ms/tag/${clarityProjectId}`;
+    script.async = true;
+    script.referrerPolicy = "strict-origin-when-cross-origin";
+    document.head.appendChild(script);
+  }, [clarityProjectId, consent]);
+
   function choose(next: Exclude<Consent, null>) {
     window.localStorage.setItem(CONSENT_KEY, next);
     setConsent(next);
   }
 
-  if (consent || !tagUrl) return null;
+  if (consent || (!tagUrl && !clarityProjectId)) return null;
 
   return <aside className="analytics-consent" aria-label="Optional experience analytics">
-    <p><strong>Help improve Foremention</strong><span>Allow optional experience analytics to help us find usability problems. We do not use this for AI answers, evidence, passwords, or form content.</span></p>
+    <p><strong>Help improve Foremention</strong><span>Allow optional experience analytics from Microsoft Clarity and Contentsquare to help us find usability problems. We do not use this for AI answers, evidence, passwords, or form content.</span></p>
     <div>
       <button type="button" className="button button--outline button--small" onClick={() => choose("declined")}>Decline</button>
       <button type="button" className="button button--ink button--small" onClick={() => choose("accepted")}>Allow analytics</button>
