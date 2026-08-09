@@ -16,7 +16,8 @@ const plans = [
     price: "$149",
     label: "Establish the baseline",
     summary: "For one team building a defensible view of how its category appears in AI answers.",
-    items: ["One brand and category", "Up to 25 buyer questions", "Monthly reviewed collection", "Source Map and evidence history", "Decision Lab reliability checks", "CSV workspace exports"],
+    includes: null,
+    items: ["One brand and category", "Up to 25 buyer questions", "Monthly collection capacity", "Source Map and evidence history", "Decision Lab reliability checks", "CSV workspace exports"],
     cta: "Create Core workspace",
     href: "/signup",
   },
@@ -26,7 +27,8 @@ const plans = [
     label: "Make movement actionable",
     lead: true,
     summary: "For growth teams that need weekly competitive evidence and a controlled path from signal to action.",
-    items: ["Up to three brand workspaces", "Up to 100 buyer questions", "Weekly reviewed collection", "Cross-provider agreement analysis", "Source movement and priority gaps", "Team workflow and integrations"],
+    includes: "Everything in Core, plus:",
+    items: ["Up to three brand workspaces", "Up to 100 buyer questions", "Weekly collection capacity", "Cross-provider agreement analysis", "Source movement and priority gaps", "Team review workflow and exports"],
     cta: "Create Signal workspace",
     href: "/signup",
   },
@@ -35,7 +37,8 @@ const plans = [
     price: "Custom",
     label: "Operate across a portfolio",
     summary: "For multi-brand or high-volume teams that need a tailored evidence and data layer.",
-    items: ["Multi-brand portfolio", "Custom question and run capacity", "Longer evidence retention", "API, webhooks, and exports", "Access controls and onboarding", "Custom measurement design"],
+    includes: "Everything in Signal, plus:",
+    items: ["Multi-brand portfolio", "Custom question and run capacity", "Longer evidence retention", "Confirmed API, webhook, and export scope", "Role-based access and configuration controls", "Custom measurement design"],
     cta: "Discuss Intelligence",
     href: "/contact",
   },
@@ -61,14 +64,14 @@ const pricingComparison = [
     plan: "Starter",
     price: "$95 / month",
     note: "50 prompts, three models, one project; vendor says annual billing saves 15%.",
-    source: "https://peec.ai/ai-instructions",
-    sourceLabel: "Peec AI pricing source",
+    source: "https://peec.ai/pricing",
+    sourceLabel: "Peec AI pricing",
   },
   {
     product: "Scrunch",
-    plan: "Core",
+    plan: "Starter",
     price: "$250 / month",
-    note: "125 unique prompts, four LLMs, one brand workspace and five user licences.",
+    note: "Annual price; three users, 350 custom prompts, 1,000 industry prompts, three personas, and five page audits.",
     source: "https://scrunch.com/pricing/",
     sourceLabel: "Scrunch pricing",
   },
@@ -98,6 +101,7 @@ export default function PricingPage() {
           <h2>{plan.name}</h2>
           <div className="price"><strong>{plan.price}</strong>{plan.price !== "Custom" && <span>/ month</span>}</div>
           <p className="pricing-summary">{plan.summary}</p>
+          {plan.includes && <p className="pricing-includes">{plan.includes}</p>}
           <ul>{plan.items.map((item) => <li key={item}>{item}</li>)}</ul>
           <Link className={`button ${plan.lead ? "button--ink" : "button--outline"}`} href={plan.href}>{plan.cta} <Arrow /></Link>
         </article>)}
@@ -110,19 +114,20 @@ export default function PricingPage() {
     <section className="section section--paper pricing-market-section">
       <div className="shell">
         <div className="platform-heading">
-          <span className="eyebrow">Public pricing snapshot</span>
-          <h2>Compare the plan, not only the number.</h2>
-          <p>These are vendor-published list prices checked on August 2, 2026. Plans differ in prompts, providers, seats, frequency, and billing terms.</p>
+          <span className="eyebrow">Other vendors — market context</span>
+          <h2>These are competitor prices, not additional Foremention plans.</h2>
+          <p>Foremention Core, Signal, and Intelligence are listed above. The table below is a separate market comparison using vendor-published list prices checked on August 9, 2026. Plans differ in prompts, providers, seats, frequency, and billing terms.</p>
         </div>
+        <p className="pricing-market-disclaimer"><strong>Comparison boundary:</strong> choose a Foremention plan from the cards above. Use this table only to compare public category pricing and capacity.</p>
         <div className="pricing-market-table" role="table" aria-label="AI visibility platform public pricing comparison">
           <div className="pricing-market-row pricing-market-row--head" role="row">
             <span role="columnheader">Platform</span><span role="columnheader">Compared plan</span><span role="columnheader">Public price</span><span role="columnheader">What that price describes</span>
           </div>
-          {pricingComparison.map((item) => <div className="pricing-market-row" role="row" key={item.product}>
-            <strong role="cell">{item.product}</strong>
-            <span role="cell">{item.plan}</span>
-            <span role="cell">{item.price}</span>
-            <span role="cell">{item.note} <Link href={item.source} target={item.source.startsWith("http") ? "_blank" : undefined} rel={item.source.startsWith("http") ? "noreferrer" : undefined}>{item.sourceLabel} <Arrow /></Link></span>
+          {pricingComparison.map((item) => <div className={`pricing-market-row${item.product === "Foremention Core" ? " pricing-market-row--foremention" : ""}`} role="row" key={item.product}>
+            <strong role="cell" data-label="Platform">{item.product}</strong>
+            <span role="cell" data-label="Compared plan">{item.plan}</span>
+            <span role="cell" data-label="Public price">{item.price}</span>
+            <span role="cell" data-label="What that price describes">{item.note} <Link href={item.source} target={item.source.startsWith("http") ? "_blank" : undefined} rel={item.source.startsWith("http") ? "noreferrer" : undefined} aria-label={item.source.startsWith("http") ? `${item.sourceLabel} (opens in a new tab)` : item.sourceLabel}>{item.sourceLabel} <Arrow /></Link></span>
           </div>)}
         </div>
         <p className="pricing-source-note"><strong>Source note:</strong> Competitor facts come from each vendor&apos;s own published page, not a reseller or estimate. Prices can change and may exclude taxes, add-ons, overages, or regional terms. Check the linked source before purchasing. Foremention&apos;s listed price is not a working checkout until its payment integration is verified.</p>

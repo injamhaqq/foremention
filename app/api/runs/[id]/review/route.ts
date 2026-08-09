@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { safeOperationalError } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
+import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { generateReviewedSourceMap } from "@/lib/source-map-generation";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -66,6 +67,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       token: viewer.accessToken,
       prefer: "return=minimal",
       body: { status: finalStatus },
+    });
+    await finalizeResolutionFollowUpsForRun({
+      organizationId: context.organizationId,
+      runId: run.id,
+      runStatus: finalStatus,
+      recordedBy: viewer.id,
     });
   } catch (error) {
     console.warn("Run review could not finalize the run state.", safeOperationalError(error));

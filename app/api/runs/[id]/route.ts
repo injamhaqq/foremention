@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { inngest } from "@/lib/jobs/inngest";
+import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
@@ -46,6 +47,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       error_summary: "Collection was cancelled.",
       ...(!run.started_at ? { estimated_max_cost_usd: 0 } : {}),
     },
+  });
+  await finalizeResolutionFollowUpsForRun({
+    organizationId: context.organizationId,
+    runId: run.id,
+    runStatus: "cancelled",
+    recordedBy: viewer.id,
   });
   await inngest.send({
     id: `foremention-run-cancelled-${run.id}`,

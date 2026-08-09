@@ -14,6 +14,7 @@ import {
 } from "@/lib/collection-policy";
 import { getProvider } from "@/lib/providers";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
+import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { generateObservedSourceMap } from "@/lib/source-map-generation";
 import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
@@ -256,6 +257,11 @@ async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNe
       actual_cost_usd: actualCostUsd,
       error_summary: safeOperationalError(reason),
     },
+  });
+  await finalizeResolutionFollowUpsForRun({
+    organizationId: data.organizationId,
+    runId: data.runId,
+    runStatus: "failed",
   });
   await recordAgentExecution({
     runId: run.id,
@@ -895,6 +901,11 @@ export const cleanupCancelledCollection = inngest.createFunction(
           actual_cost_usd: actualCostUsd,
           error_summary: "Collection was cancelled.",
         },
+      });
+      await finalizeResolutionFollowUpsForRun({
+        organizationId: data.organizationId,
+        runId: data.runId,
+        runStatus: "cancelled",
       });
     });
     return { runId: data.runId, cancelled: true };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const CONSENT_KEY = "foremention:experience-analytics-consent";
 const SCRIPT_ID = "foremention-contentsquare";
@@ -18,16 +18,20 @@ function configuredClarityProjectId() {
   return value?.match(/^[a-z0-9]{6,32}$/i) ? value : null;
 }
 
+const subscribeToNothing = () => () => {};
+
+function readStoredConsent(): Consent {
+  const stored = window.localStorage.getItem(CONSENT_KEY)
+    ?? window.localStorage.getItem("foremention:contentsquare-consent");
+  return stored === "accepted" || stored === "declined" ? stored : null;
+}
+
 export function ContentsquareAnalytics() {
-  const [consent, setConsent] = useState<Consent>(null);
+  const storedConsent = useSyncExternalStore(subscribeToNothing, readStoredConsent, () => null);
+  const [chosenConsent, setChosenConsent] = useState<Consent>(null);
+  const consent = chosenConsent ?? storedConsent;
   const tagUrl = configuredTagUrl();
   const clarityProjectId = configuredClarityProjectId();
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(CONSENT_KEY)
-      ?? window.localStorage.getItem("foremention:contentsquare-consent");
-    if (stored === "accepted" || stored === "declined") setConsent(stored);
-  }, []);
 
   useEffect(() => {
     if (consent !== "accepted" || !tagUrl || document.getElementById(SCRIPT_ID)) return;
@@ -52,7 +56,7 @@ export function ContentsquareAnalytics() {
 
   function choose(next: Exclude<Consent, null>) {
     window.localStorage.setItem(CONSENT_KEY, next);
-    setConsent(next);
+    setChosenConsent(next);
   }
 
   if (consent || (!tagUrl && !clarityProjectId)) return null;

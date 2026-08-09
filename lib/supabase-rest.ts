@@ -52,6 +52,18 @@ function safeDatabaseMessage(status: number, detail: string) {
   return { message: safe, code: parsed.code };
 }
 
+/**
+ * True when the database rejected a request because the table does not exist
+ * yet. PostgREST reports an unknown relation as 404 with PGRST205 (missing from
+ * the schema cache); Postgres itself reports 42P01. A pending forward-only
+ * migration must degrade into an explainable state, never a crash.
+ */
+export function isMissingRelationError(error: unknown): boolean {
+  if (!(error instanceof SupabaseRequestError)) return false;
+  if (error.code === "42P01" || error.code === "PGRST205") return true;
+  return error.status === 404 && Boolean(error.code?.startsWith("PGRST2"));
+}
+
 function isOpaqueApiKey(value: string) {
   return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
 }

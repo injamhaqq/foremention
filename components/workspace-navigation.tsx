@@ -10,6 +10,9 @@ import { resetProductAnalytics } from "@/lib/product-analytics";
 
 const nav = [
   ["/app", "Overview"],
+  ["/app/resolutions", "Resolution Center"],
+  ["/app/outcomes", "Outcome Ledger"],
+  ["/app/passport", "Vendor Passport"],
   ["/app/intelligence", "Intelligence Loop"],
   ["/app/prompts", "Buyer questions"],
   ["/app/runs", "Answer runs"],

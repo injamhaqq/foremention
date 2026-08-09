@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     { label: "Review evidence", done: reviewedRuns.length > 0, href: runs.find((run) => run.status === "review") ? `/app/runs/${runs.find((run) => run.status === "review")!.id}` : "/app/runs" },
     { label: "Publish Source Map", done: sources.length > 0 && reviewedRuns.length > 0, href: "/app/source-map" },
   ];
-  const next = setup.find((item) => !item.done) || { label: placements.length ? "Update tracked actions" : "Choose a priority gap", href: placements.length ? "/app/placements" : "/app/opportunities" };
+  const next = setup.find((item) => !item.done) || { label: "Resolve the first verified gap", href: "/app/resolutions" };
   const gettingStarted = [
     { label: "Complete onboarding", detail: "Define the company, category, market, competitors, and evidence boundary.", done: Boolean(context), href: "/app/onboarding" },
     { label: "Review the first Source Map", detail: "Inspect at least one cited page before using it in a decision.", done: sources.some((source) => Boolean(source.reviewedAt)), href: "/app/source-map" },
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
     </div>
 
-    {pendingOrFailedRun && <section className="inline-notice" role={pendingOrFailedRun.status === "failed" ? "alert" : "status"}><strong>{pendingOrFailedRun.status === "failed" ? "Your audit is taking longer than expected — we'll notify you when it's ready." : "Your first AI visibility audit is running."}</strong><p>{pendingOrFailedRun.status === "failed" ? "No fake metrics were added. Open the run to inspect the operational error and retry safely." : "Real answers, citations, Source Map entries, and priority gaps will appear here automatically when collection finishes."}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open run status <Arrow /></Link></section>}
+    {pendingOrFailedRun && <section className="inline-notice" role={pendingOrFailedRun.status === "failed" ? "alert" : "status"}><strong>{pendingOrFailedRun.status === "failed" ? "Your audit is taking longer than expected — we'll notify you when it's ready." : "Your first AI visibility audit is running."}</strong><p>{pendingOrFailedRun.status === "failed" ? "No fake metrics were added. Open the run to inspect the operational error and retry safely." : "Real answers, returned citations when available, Source Map entries, and priority gaps will appear here automatically when collection finishes."}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open run status <Arrow /></Link></section>}
 
     <section className={`setup-rail ${setup.every((item) => item.done) ? "setup-rail--complete" : ""}`}>
       <div><span className="eyebrow">Workspace readiness</span><strong>{setup.filter((item) => item.done).length}/{setup.length} foundation steps complete</strong></div>
@@ -97,8 +97,8 @@ export default async function DashboardPage() {
     </div>
 
     <section className="weekly-loop-teaser">
-      <div><span className="eyebrow">Weekly Intelligence Loop</span><strong>Search evidence. Compare runs. See change. Take one action.</strong><p>Foremention turns reviewed workspace records into an inspectable weekly decision brief with confidence and cost kept visible.</p></div>
-      <Link className="button button--ink" href="/app/intelligence">Open Intelligence Loop <Arrow /></Link>
+      <div><span className="eyebrow">Resolution Loop</span><strong>Measure the problem. Create the fix. Approve it. Apply it. Measure again.</strong><p>The Weekly Intelligence Loop supplies reviewed evidence; Resolution Center turns it into a customer-owned solution asset and keeps the later comparison attached to the original problem.</p></div>
+      <Link className="button button--ink" href="/app/resolutions">Open Resolution Center <Arrow /></Link>
     </section>
 
     <AgentControlPlane plane={agents} compact />
