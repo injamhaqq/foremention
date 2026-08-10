@@ -93,7 +93,7 @@ async function recordRunChanges(run: RunRow, identity: Identity) {
       method: "POST",
       serviceRole: true,
       prefer: "resolution=ignore-duplicates,return=minimal",
-      body: changes.map((change) => ({ organization_id: run.organization_id, user_id: run.created_by, event_key: `${change.kind}:${run.id}`, kind: change.kind, title: change.title, body: change.body, href: "/app/intelligence" })),
+      body: changes.map((change) => ({ organization_id: run.organization_id, user_id: run.created_by, event_key: `${change.kind}:${run.id}`, kind: "workspace", title: change.title, body: change.body, href: "/app/intelligence" })),
     });
   }
 
