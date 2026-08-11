@@ -107,7 +107,7 @@ export default function HomePage() {
       <div className="shell">
         <div className="trust-band-grid">
           <div><span className="goat-kicker goat-kicker--light">Method before claims</span><h2>Foremention shows the limits with the result.</h2></div>
-          <div><p>A provider may return no citations. A source may still need review. One run is a baseline, not a trend. A later change is an observation, not proof of causation.</p><div className="goat-hero__actions"><Link className="button button--large" href="/methodology">Read the methodology <Arrow /></Link><Link className="goat-text-link" href="/honesty">Read our standards</Link></div></div>
+          <div><p>A provider may return no citations. A source may still need review. One run is a baseline, not a trend. A later change is an observation, not proof of causation. No fake reviews. No hidden promotion. No ranking guarantees.</p><div className="goat-hero__actions"><Link className="button button--large" href="/methodology">Read the methodology <Arrow /></Link><Link className="goat-text-link" href="/honesty">Read our standards</Link></div></div>
         </div>
         <div className={styles.truthRow} aria-label="Foremention evidence states"><div><strong>Observed</strong><span>What the provider returned</span></div><div><strong>Reviewed</strong><span>What a person checked</span></div><div><strong>Inferred</strong><span>What Foremention concluded</span></div><div><strong>Compared</strong><span>What changed later</span></div></div>
       </div>
