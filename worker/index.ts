@@ -176,7 +176,10 @@ async function handleHealth(env: Env) {
   const buildCommit = /^[0-9a-f]{40}$/i.test(env.FOREMENTION_BUILD_COMMIT || "")
     ? env.FOREMENTION_BUILD_COMMIT
     : "unavailable";
-  return Response.json({ status, worker: "reachable", buildCommit, d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. No credentials, customer data, prompts, or provider responses are included." }, { status: status === "ok" ? 200 : 503 });
+  return Response.json(
+    { status, worker: "reachable", buildCommit, d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. No credentials, customer data, prompts, or provider responses are included." },
+    { status: status === "ok" ? 200 : 503, headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 function scoreQuestions(category: string) {
