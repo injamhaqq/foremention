@@ -434,6 +434,7 @@ test("the health endpoint exposes only a validated non-secret build commit", asy
   assert.match(worker, /\^\[0-9a-f\]\{40\}\$/i);
   assert.match(worker, /buildCommit/);
   assert.match(worker, /"unavailable"/);
+  assert.match(worker, /"Cache-Control": "no-store"/);
   assert.match(env, /FOREMENTION_BUILD_COMMIT=/);
 });
 
