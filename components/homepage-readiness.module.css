@@ -1,16 +1,19 @@
 .heroGrid {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(34rem, 1.1fr);
-  gap: clamp(2rem, 5vw, 5.5rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(2rem, 4vw, 4rem);
   align-items: center;
 }
 
 .heroCopy {
-  max-width: 42rem;
+  min-width: 0;
+  max-width: 36rem;
 }
 
 .heroCopy h1 {
-  max-width: 13ch;
+  max-width: 9.5ch;
+  font-size: clamp(3.5rem, 5.35vw, 5.25rem);
+  line-height: 0.89;
   text-wrap: balance;
 }
 
@@ -28,6 +31,10 @@
 
 .preview {
   min-width: 0;
+  width: 100%;
+  margin-right: 0;
+  margin-left: 0;
+  align-self: center;
 }
 
 .previewFrame {
@@ -260,7 +267,7 @@
   }
 
   .heroCopy h1 {
-    max-width: 14ch;
+    max-width: 11ch;
   }
 
   .chainGrid {
@@ -307,6 +314,8 @@
   }
 
   .heroCopy h1 {
-    max-width: none;
+    max-width: 10ch;
+    font-size: clamp(3rem, 13vw, 3.75rem);
+    line-height: 0.92;
   }
 }

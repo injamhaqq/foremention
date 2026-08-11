@@ -13,13 +13,13 @@ export function MissingAnswerExperience() {
   return <div className={`${styles.heroGrid} shell`}>
     <div className={`${styles.heroCopy} goat-hero__copy`}>
       <span className="goat-kicker">Recommendation intelligence for B2B SaaS</span>
-      <h1>See where your brand appears in <em>AI recommendations</em> — and the evidence behind it.</h1>
-      <p className={styles.heroLead}>Track the buyer questions that matter. See which brands appear, preserve returned citation URLs, review the source evidence, and compare what changes over time.</p>
+      <h1>See how your brand appears in <em>AI answers.</em></h1>
+      <p className={styles.heroLead}>Run the buyer questions that matter, see which brands appear, preserve returned citation URLs, and review the evidence before deciding what to do next.</p>
       <div className="goat-hero__actions">
         <a className="button button--ink button--large" href="/signup">Create a workspace <span aria-hidden="true">→</span></a>
         <a className="goat-text-link" href="#source-xray">Inspect the evidence</a>
       </div>
-      <p className={styles.heroMeta}>Workspace creation does not charge a card. Collection capacity is activated separately, and paid access is not presented as live checkout until billing is verified.</p>
+      <p className={styles.heroMeta}>No card charge for workspace creation. Collection capacity is activated separately.</p>
       <ul className="goat-trust-line" aria-label="What Foremention helps B2B SaaS teams do"><li>Track buyer questions</li><li>Compare competitors</li><li>Inspect cited sources</li><li>Review change over time</li></ul>
     </div>
 

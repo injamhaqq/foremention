@@ -7,6 +7,11 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       { userAgent: "*", allow: "/", disallow: privatePaths },
       { userAgent: "OAI-SearchBot", allow: "/", disallow: privatePaths },
+      { userAgent: "ChatGPT-User", allow: "/", disallow: privatePaths },
+      { userAgent: "Claude-SearchBot", allow: "/", disallow: privatePaths },
+      { userAgent: "Claude-User", allow: "/", disallow: privatePaths },
+      { userAgent: "GPTBot", disallow: "/" },
+      { userAgent: "ClaudeBot", disallow: "/" },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,
