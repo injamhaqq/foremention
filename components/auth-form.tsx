@@ -26,6 +26,10 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
 
     const password = String(formData.get("password") || "");
     const confirmation = String(formData.get("confirmation") || "");
+    if (mode === "signup" && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/.test(password)) {
+      setError("Use at least 12 characters with uppercase, lowercase, a number, and a symbol.");
+      return;
+    }
     if (mode === "signup" && password !== confirmation) {
       setError("The two passwords do not match.");
       return;
@@ -119,12 +123,12 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
         <label>
           {isLogin ? "Password" : "Create password"}
           <span className="password-control">
-            <input type={showPassword ? "text" : "password"} name="password" required minLength={8} autoComplete={isLogin ? "current-password" : "new-password"} />
+            <input type={showPassword ? "text" : "password"} name="password" required minLength={isLogin ? 8 : 12} autoComplete={isLogin ? "current-password" : "new-password"} />
             <button className="password-toggle" type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "Hide passwords" : "Show passwords"}>{showPassword ? "Hide" : "Show"}</button>
           </span>
-          <small>Use at least 8 characters.</small>
+          <small>{isLogin ? "Use at least 8 characters." : "Use at least 12 characters with uppercase, lowercase, a number, and a symbol."}</small>
         </label>
-        {!isLogin && <label>Confirm password<input type={showPassword ? "text" : "password"} name="confirmation" required minLength={8} autoComplete="new-password" /></label>}
+        {!isLogin && <label>Confirm password<input type={showPassword ? "text" : "password"} name="confirmation" required minLength={12} autoComplete="new-password" /></label>}
         {statusMessage && !error && <p className="auth-session-notice" role="status">{statusMessage}</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {error && accountHelp && <p className="auth-inline-help">Go to <a href="/login">sign in</a>, or <a href="/forgot-password">reset your password</a>.</p>}
