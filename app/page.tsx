@@ -3,45 +3,122 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { MissingAnswerExperience, SourceXRayExperience } from "@/components/goat-home-experience";
 import { PublicShell } from "@/components/public-shell";
-import { pageMetadata } from "@/lib/seo";
 import { VerifiedSocialProof } from "@/components/verified-social-proof";
+import styles from "@/components/homepage-readiness.module.css";
+import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "AI Visibility and Recommendation Intelligence Platform",
+  title: "AI Recommendation Intelligence for B2B SaaS",
   description:
-    "Track buyer questions, AI answer visibility, returned citation URLs, competitor presence, evidence reliability, and change over time in one customer-operated platform.",
+    "See where your B2B SaaS brand and competitors appear in AI recommendations, preserve returned citation URLs, review the evidence, and compare what changes over time.",
   path: "/",
 });
 
 const faq = [
-  { q: "What does Foremention do?", a: "Foremention turns the buyer questions that matter in your category into a dated record of AI answers, named brands, source pages, and movement over time." },
-  { q: "What is a Source Map?", a: "A Source Map is your category’s evidence layer: citation URLs returned by providers, the brands found during review, and where your brand may be absent." },
-  { q: "What is the Recommendation Graph?", a: "It connects a buyer question to an observed answer, returned citations, competitor presence, a reviewed action, and later comparable evidence." },
-  { q: "Who is it for?", a: "Marketing, product, growth, and strategy teams that need a shared record of which brands appeared and which citations were returned for important category questions." },
-  { q: "Does Foremention guarantee an AI recommendation?", a: "No. AI answers and publisher decisions change. Foremention makes the evidence, uncertainty, and movement visible; it does not guarantee rankings, citations, traffic, or revenue." },
-  { q: "How does platform access work?", a: "Create a workspace, set your category and buyer questions, then use the platform to collect, inspect, and compare dated observations as capacity is activated." },
+  { q: "What does Foremention do?", a: "Foremention records the buyer questions that matter, collects dated AI answers from connected providers, shows which brands appear, preserves returned citation URLs when available, and keeps later review and analysis tied to the original evidence." },
+  { q: "Who is Foremention for?", a: "Foremention is built for B2B SaaS marketing, growth, product, and strategy teams that need a shared record of how important category questions are answered across AI systems." },
+  { q: "What is Source X-Ray?", a: "Source X-Ray is Foremention's inspection layer. It helps teams move from an observed AI answer to returned citation URLs, named brands, review status, and the evidence record behind a finding." },
+  { q: "What is the difference between an observation and a finding?", a: "An observation is what a provider returned at a specific time. A finding is a later conclusion made from reviewed evidence. Foremention keeps those states separate so an inference is not mistaken for a fact." },
+  { q: "Does Foremention guarantee better AI rankings or citations?", a: "No. AI answers, citations, and publisher decisions can change. Foremention records evidence and change; it does not guarantee rankings, recommendations, citations, traffic, leads, revenue, or causation." },
+  { q: "Can I start without paying?", a: "You can create a workspace without a card charge. Collection capacity and paid access are activated separately. Foremention does not present paid checkout as live until billing and entitlement handling are verified." },
 ];
 
-const capabilities = [
-  { n: "01", title: "Add your company", body: "Define the category, market, brand, and competitors you want to understand." },
-  { n: "02", title: "Choose buyer questions", body: "Use the real questions buyers ask when comparing products in your category." },
-  { n: "03", title: "Collect dated answers", body: "Run approved questions against connected AI providers and preserve every result." },
-  { n: "04", title: "Review sources and gaps", body: "See brand presence, competitors, cited pages, and the next evidence gap worth reviewing." },
+const evidenceChain = [
+  { n: "01", title: "Buyer question", body: "Approve the exact question before collection so later runs stay comparable." },
+  { n: "02", title: "Dated answer", body: "Keep the provider, model label, response, status, and collection time together." },
+  { n: "03", title: "Returned sources", body: "Preserve citation URLs when the provider supplies them instead of replacing them with a score." },
+  { n: "04", title: "Human review", body: "Check what the cited page actually says and keep observation separate from inference." },
+  { n: "05", title: "Comparable change", body: "Run the same approved question later and show what changed without pretending causation." },
+];
+
+const learn = [
+  { n: "Presence", title: "Who appears", body: "See whether your brand is present and which competitors appear in the same answer record." },
+  { n: "Sources", title: "What shaped the answer", body: "Inspect the returned citation URLs and review the pages behind those observations." },
+  { n: "Change", title: "What moved", body: "Compare later runs to find new, lost, or recurring evidence once enough comparable data exists." },
+];
+
+const differences = [
+  { n: "01", title: "Evidence before scores", body: "A metric should trace back to a question, answer, source record, date, and review state." },
+  { n: "02", title: "Uncertainty stays visible", body: "Partial runs, missing citations, unreviewed pages, and insufficient history stay clearly labelled." },
+  { n: "03", title: "Action stays accountable", body: "A proposed next step can be linked to the evidence that supported it and compared with later observations." },
+];
+
+const workflow = [
+  { n: "Monitor", title: "Collect", body: "Run approved buyer questions under defined provider and capacity controls." },
+  { n: "Review", title: "Inspect", body: "Open answer records, returned citations, competitor presence, and Source X-Ray." },
+  { n: "Act", title: "Decide", body: "Turn reviewed evidence into a legitimate next action instead of a generic AI recommendation." },
+  { n: "Repeat", title: "Compare", body: "Rerun the same question later and record what changed, what did not, and what remains uncertain." },
 ];
 
 export default function HomePage() {
   const structuredData = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((item) => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })) };
+
   return <PublicShell>
     <section className="goat-hero"><MissingAnswerExperience /></section>
-    <section className="goat-proof-strip" aria-label="Foremention product standard"><div className="shell"><div><strong>DATED</strong><span>Every observation has a time</span></div><div><strong>EXACT</strong><span>Source evidence stays visible</span></div><div><strong>SHARED</strong><span>Your team owns the workspace</span></div><div><strong>CLEAR</strong><span>Limits stay in the product</span></div></div></section>
-    <section className="platform-section" id="how-it-works"><div className="shell"><div className="platform-heading"><span className="goat-kicker">How it works</span><h2>From company setup to inspectable evidence in four steps.</h2><p>Foremention turns your category and buyer questions into dated answer records, competitor observations, returned citation URLs, and reviewable next actions.</p></div><div className="platform-steps">{capabilities.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div></div></section>
+
+    <section className="goat-proof-strip" aria-label="Foremention evidence standard"><div className="shell"><div><strong>DATED</strong><span>Every observation has a time</span></div><div><strong>TRACEABLE</strong><span>Findings link back to records</span></div><div><strong>REVIEWED</strong><span>Human judgment stays labelled</span></div><div><strong>LIMITED</strong><span>Unknowns stay visible</span></div></div></section>
+
+    <section className="platform-section" id="how-it-works">
+      <div className="shell">
+        <div className={styles.sectionIntro}><span className="goat-kicker">The evidence chain</span><h2>Know where every conclusion came from.</h2><p>Most AI-visibility dashboards start with a score. Foremention starts with the record underneath it, then keeps each later judgment attached to that evidence.</p></div>
+        <div className={styles.chainGrid}>{evidenceChain.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
+      </div>
+    </section>
+
     <section className="goat-xray-section"><div className="shell"><SourceXRayExperience /></div></section>
-    <section className="platform-value-section"><div className="shell platform-value-grid"><div><span className="goat-kicker">One workspace, not another report</span><h2>From question to source to change.</h2><p>The Recommendation Graph is a living record of buyer questions, observed answers, returned citation URLs, competitors, actions, and the evidence that changes afterward.</p><Link className="button button--ink button--large" href="/signup">Create your workspace <Arrow /></Link></div><div className="platform-ledger"><div><span>Monitor</span><strong>Buyer questions across connected AI engines</strong></div><div><span>Explain</span><strong>Returned URLs and competitor presence in answer records</strong></div><div><span>Prioritize</span><strong>Evidence gaps by context and next action</strong></div><div><span>Measure</span><strong>Movement over time without pretending causation</strong></div></div></div></section>
-    <section className="home-pricing-section" id="pricing"><div className="shell"><div className="platform-heading"><span className="goat-kicker">Foremention plans</span><h2>Infrastructure your team can grow into.</h2><p>Start with one category, then add questions, brands, collection capacity, history, and integration scope as the intelligence layer becomes part of your operating system.</p></div><div className="home-pricing-grid"><article><span>Core</span><strong>$149<small>/month</small></strong><p>One category, monthly collection capacity, a durable Source Map, and an evidence-review workflow.</p><Link href="/pricing">Explore Core <Arrow /></Link></article><article className="is-featured"><span>Signal</span><strong>$499<small>/month</small></strong><p><b>Everything in Core, plus</b> weekly collection capacity, cross-provider agreement, priority gaps, and team review workflow.</p><Link href="/pricing">Explore Signal <Arrow /></Link></article><article><span>Intelligence</span><strong>Scale<small> with your category</small></strong><p><b>Everything in Signal, plus</b> multi-brand monitoring, deeper history, tailored capacity, and a confirmed API and integration scope.</p><Link href="/pricing">View platform plans <Arrow /></Link></article></div></div></section>
-    <section className="trust-band"><div className="shell trust-band-grid"><div><span className="goat-kicker goat-kicker--light">Trust is a product feature</span><h2>Evidence, limits, and uncertainty stay visible.</h2></div><div><p>Foremention records what was observed. No fake reviews. No hidden promotion. No ranking guarantees.</p><Link className="button button--large" href="/honesty">Read our standards <Arrow /></Link></div></div></section>
+
+    <section className="platform-section">
+      <div className="shell">
+        <div className={styles.sectionIntro}><span className="goat-kicker">What your team learns</span><h2>Three questions your AI visibility data should answer.</h2><p>Foremention is designed to help a team understand presence, source evidence, and change without turning uncertainty into marketing theatre.</p></div>
+        <div className={styles.learnGrid}>{learn.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
+      </div>
+    </section>
+
+    <section className="platform-value-section">
+      <div className="shell">
+        <div className={styles.sectionIntro}><span className="goat-kicker">Why Foremention is different</span><h2>The evidence stays inspectable after the dashboard loads.</h2><p>Foremention separates what an AI provider returned, what a cited page contained, what the system inferred, what a human approved, and what happened later.</p></div>
+        <div className={styles.differenceGrid}>{differences.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
+      </div>
+    </section>
+
+    <section className="platform-section">
+      <div className="shell">
+        <div className={styles.sectionIntro}><span className="goat-kicker">Recurring workflow</span><h2>From one observation to a repeatable operating loop.</h2><p>The product becomes more useful as the same approved questions are collected, reviewed, acted on, and compared again over time.</p></div>
+        <div className={styles.workflowGrid}>{workflow.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
+      </div>
+    </section>
+
+    <section className="home-pricing-section" id="pricing">
+      <div className="shell">
+        <div className={styles.sectionIntro}><span className="goat-kicker">Start with a workspace</span><h2>Explore the product before paid collection is activated.</h2><p>Creating a workspace does not charge a card. Paid plans describe intended capacity, but checkout and entitlements are not represented as live until the billing flow is verified.</p></div>
+        <div className={styles.entryBand}>
+          <div><span className="goat-kicker">Workspace entry</span><h3>Create your Foremention workspace.</h3><p>Set your company, category, competitors, and buyer questions. Collection capacity is confirmed separately.</p></div>
+          <div className={styles.entryAction}><Link className="button button--ink button--large" href="/signup">Create a workspace <Arrow /></Link><small>No card charge for workspace creation. See the pricing page for current plan definitions and activation status.</small></div>
+        </div>
+        <div className="home-pricing-grid">
+          <article><span>Core</span><strong>$149<small>/month</small></strong><p>One brand and category, up to 25 buyer questions, monthly collection capacity, Source Map, evidence history, and review workflow.</p><Link href="/pricing">View Core details <Arrow /></Link></article>
+          <article className="is-featured"><span>Signal</span><strong>$499<small>/month</small></strong><p><b>Everything in Core, plus</b> weekly capacity, broader question coverage, cross-provider agreement, source movement, and team review workflow.</p><Link href="/pricing">View Signal details <Arrow /></Link></article>
+          <article><span>Intelligence</span><strong>Custom</strong><p><b>Everything in Signal, plus</b> multi-brand scope, tailored capacity, longer evidence history, and a confirmed integration scope.</p><Link href="/pricing">View platform plans <Arrow /></Link></article>
+        </div>
+      </div>
+    </section>
+
+    <section className="trust-band">
+      <div className="shell">
+        <div className="trust-band-grid">
+          <div><span className="goat-kicker goat-kicker--light">Method before claims</span><h2>Foremention shows the limits with the result.</h2></div>
+          <div><p>A provider may return no citations. A source may still need review. One run is a baseline, not a trend. A later change is an observation, not proof of causation.</p><div className="goat-hero__actions"><Link className="button button--large" href="/methodology">Read the methodology <Arrow /></Link><Link className="goat-text-link" href="/honesty">Read our standards</Link></div></div>
+        </div>
+        <div className={styles.truthRow} aria-label="Foremention evidence states"><div><strong>Observed</strong><span>What the provider returned</span></div><div><strong>Reviewed</strong><span>What a person checked</span></div><div><strong>Inferred</strong><span>What Foremention concluded</span></div><div><strong>Compared</strong><span>What changed later</span></div></div>
+      </div>
+    </section>
+
     <VerifiedSocialProof />
-    <section className="goat-faq-section"><div className="shell goat-faq-grid"><div><span className="goat-kicker">Clear answers</span><h2>Understand it in five minutes.</h2></div><div>{faq.map((item) => <details key={item.q}><summary>{item.q}<span aria-hidden="true">+</span></summary><p>{item.a}</p></details>)}</div></div></section>
-    <section className="goat-final-cta"><div className="shell"><span>Build the intelligence layer</span><h2>See what is shaping your category in AI.</h2><Link className="button button--ink button--large" href="/signup">Create your workspace <Arrow /></Link><p>Questions, answers, sources, competitors, and change—connected in one platform.</p></div></section>
+
+    <section className="goat-faq-section"><div className="shell goat-faq-grid"><div><span className="goat-kicker">Clear answers</span><h2>Before you create a workspace.</h2></div><div>{faq.map((item) => <details key={item.q}><summary>{item.q}<span aria-hidden="true">+</span></summary><p>{item.a}</p></details>)}</div></div></section>
+
+    <section className="goat-final-cta"><div className="shell"><span>Recommendation intelligence for B2B SaaS</span><h2>See the answer. Inspect the source. Decide what to do next.</h2><Link className="button button--ink button--large" href="/signup">Create a workspace <Arrow /></Link><p>Questions, answers, citations, competitors, review, and change — connected in one evidence trail.</p></div></section>
+
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
   </PublicShell>;
 }
