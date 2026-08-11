@@ -32,6 +32,7 @@ interface Env {
   AI?: CloudflareAiBinding;
   DB?: D1Database;
   SENTRY_DSN?: string;
+  FOREMENTION_BUILD_COMMIT?: string;
   SENTRY_ENVIRONMENT?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
@@ -172,7 +173,10 @@ async function handleHealth(env: Env) {
     openrouter: env.OPENROUTER_API_KEY ? "configured_not_probed" : "not_configured",
   };
   const status = d1Status === "reachable" && supabaseStatus === "reachable" ? "ok" : "degraded";
-  return Response.json({ status, worker: "reachable", d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. No credentials, customer data, prompts, or provider responses are included." }, { status: status === "ok" ? 200 : 503 });
+  const buildCommit = /^[0-9a-f]{40}$/i.test(env.FOREMENTION_BUILD_COMMIT || "")
+    ? env.FOREMENTION_BUILD_COMMIT
+    : "unavailable";
+  return Response.json({ status, worker: "reachable", buildCommit, d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. No credentials, customer data, prompts, or provider responses are included." }, { status: status === "ok" ? 200 : 503 });
 }
 
 function scoreQuestions(category: string) {

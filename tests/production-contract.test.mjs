@@ -428,6 +428,15 @@ test("error monitoring is optional, privacy-conscious, and configured outside so
   assert.match(privacy, /exception\.value = "Application error"/);
 });
 
+test("the health endpoint exposes only a validated non-secret build commit", async () => {
+  const [worker, env] = await Promise.all([text("worker/index.ts"), text(".env.example")]);
+  assert.match(worker, /FOREMENTION_BUILD_COMMIT\?: string/);
+  assert.match(worker, /\^\[0-9a-f\]\{40\}\$/i);
+  assert.match(worker, /buildCommit/);
+  assert.match(worker, /"unavailable"/);
+  assert.match(env, /FOREMENTION_BUILD_COMMIT=/);
+});
+
 test("product analytics is optional, privacy-limited, and configured outside source", async () => {
   const [client, events, milestone, sourceMapPage, env, worker, privacy, auth, onboarding, questions, launcher, review, sourceReview] = await Promise.all([
     text("components/posthog-analytics.tsx"),
