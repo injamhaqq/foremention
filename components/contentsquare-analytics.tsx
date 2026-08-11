@@ -9,8 +9,12 @@ const CLARITY_SCRIPT_ID = "foremention-clarity";
 type Consent = "accepted" | "declined" | null;
 
 function configuredTagUrl() {
-  const value = process.env.NEXT_PUBLIC_CONTENTSQUARE_TAG_URL;
-  return value?.startsWith("https://t.contentsquare.net/uxa/") && value.endsWith(".js") ? value : null;
+  const value = process.env.NEXT_PUBLIC_CONTENTSQUARE_TAG_URL?.trim();
+  if (!value) return null;
+  const candidate = value.startsWith("https://")
+    ? value
+    : value.match(/src=["'](https:\/\/t\.contentsquare\.net\/uxa\/[a-z0-9]+\.js)["']/i)?.[1];
+  return candidate?.match(/^https:\/\/t\.contentsquare\.net\/uxa\/[a-z0-9]+\.js$/i) ? candidate : null;
 }
 
 function configuredClarityProjectId() {

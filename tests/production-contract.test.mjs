@@ -366,6 +366,11 @@ test("SEO, social preview, and accessibility states are bundled", async () => {
   assert.doesNotMatch(sitemap, /localhost/);
   assert.match(sitemap, /\/insights\/ai-visibility-measurement/);
   assert.match(robots, /OAI-SearchBot/);
+  assert.match(robots, /ChatGPT-User/);
+  assert.match(robots, /Claude-SearchBot/);
+  assert.match(robots, /Claude-User/);
+  assert.match(robots, /GPTBot/);
+  assert.match(robots, /ClaudeBot/);
   assert.doesNotMatch(robots, /localhost/);
   assert.match(sourceMap, /not a fictional customer report/i);
   assert.match(sourceMap, /LiveSiteAudit/);
@@ -469,7 +474,8 @@ test("Experience analytics are optional, consent-gated, and limited by CSP", asy
   assert.match(env, /NEXT_PUBLIC_CLARITY_PROJECT_ID=/);
   assert.match(contentsquare, /foremention:experience-analytics-consent/);
   assert.match(contentsquare, /consent !== "accepted"/);
-  assert.match(contentsquare, /https:\/\/t\.contentsquare\.net\/uxa\//);
+  assert.match(contentsquare, /t\\\.contentsquare\\\.net\\\/uxa/);
+  assert.match(contentsquare, /value\.match\(\/src=/);
   assert.match(contentsquare, /https:\/\/www\.clarity\.ms\/tag/);
   assert.match(contentsquare, /Allow analytics/);
   assert.match(worker, /https:\/\/\*\.contentsquare\.net/);
