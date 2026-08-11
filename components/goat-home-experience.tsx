@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import styles from "./homepage-readiness.module.css";
 
 const sourceCards = [
   ["Editorial source", "Independent category guide", "Names a competitor in a decision-making comparison."],
@@ -9,18 +10,41 @@ const sourceCards = [
 ] as const;
 
 export function MissingAnswerExperience() {
-  return <div className="goat-hero__grid shell">
-    <div className="goat-hero__copy">
-      <span className="goat-kicker">AI recommendation visibility for B2B SaaS</span>
-      <h1>See how your company appears in <em>AI recommendations.</em></h1>
-      <p>Foremention tracks the buyer questions that matter to show <strong>whether your brand appears, which competitors appear instead, and which citation URLs an AI provider returns.</strong></p>
-      <div className="goat-hero__actions"><a className="button button--ink button--large" href="/signup">Create your workspace <span aria-hidden="true">→</span></a><a className="goat-text-link" href="/product">Explore the platform</a></div>
-      <ul className="goat-trust-line" aria-label="What Foremention helps you find"><li>Find brand mentions</li><li>Compare competitors</li><li>Inspect cited sources</li><li>Track what changed</li></ul>
+  return <div className={`${styles.heroGrid} shell`}>
+    <div className={`${styles.heroCopy} goat-hero__copy`}>
+      <span className="goat-kicker">Recommendation intelligence for B2B SaaS</span>
+      <h1>See where your brand appears in <em>AI recommendations</em> — and the evidence behind it.</h1>
+      <p className={styles.heroLead}>Track the buyer questions that matter. See which brands appear, preserve returned citation URLs, review the source evidence, and compare what changes over time.</p>
+      <div className="goat-hero__actions">
+        <a className="button button--ink button--large" href="/signup">Create a workspace <span aria-hidden="true">→</span></a>
+        <a className="goat-text-link" href="#source-xray">Inspect the evidence</a>
+      </div>
+      <p className={styles.heroMeta}>Workspace creation does not charge a card. Collection capacity is activated separately, and paid access is not presented as live checkout until billing is verified.</p>
+      <ul className="goat-trust-line" aria-label="What Foremention helps B2B SaaS teams do"><li>Track buyer questions</li><li>Compare competitors</li><li>Inspect cited sources</li><li>Review change over time</li></ul>
     </div>
-    <section className="missing-demo" aria-labelledby="monitor-title">
-      <div className="missing-demo__bar"><strong id="monitor-title">Recommendation Monitor</strong><span>Illustrative product interface</span></div>
-      <div className="missing-demo__answer"><span>Category intelligence</span><p className="missing-demo__question">Buyer questions → observed answers → source evidence</p><div className="monitor-metrics monitor-metrics--workflow"><div><strong>01</strong><span>Approve real questions</span></div><div><strong>02</strong><span>Collect dated answers</span></div><div><strong>03</strong><span>Review returned citations</span></div></div><strong>Every answer links back to its question, provider, and date. Returned citations remain attached when available.</strong></div>
-      <div className="monitor-records"><div><span>Source Map</span><b>New returned citation detected</b><small>Illustrative evidence event</small></div><div><span>Movement</span><b>Competitor presence changed</b><small>Illustrative comparison event</small></div><div><span>Collection</span><b>Run history is complete</b><small>Illustrative run state</small></div></div>
+
+    <section className={`${styles.preview} missing-demo`} aria-labelledby="monitor-title">
+      <div className={styles.previewFrame}>
+        <div className={styles.previewTopline}><strong id="monitor-title">Recommendation Monitor</strong><span>Illustrative product interface</span></div>
+        <div className={styles.previewBody}>
+          <div className={styles.previewAnswer}>
+            <span className={styles.previewStatus}>Observed answer record</span>
+            <p className={styles.previewQuestion}>Which reporting platform fits a growing B2B SaaS team?</p>
+            <div className={styles.previewRows}>
+              <div className={styles.previewRow}><span>Buyer question</span><strong>Approved and dated before collection</strong></div>
+              <div className={styles.previewRow}><span>Provider result</span><strong>Named brands stay attached to the exact answer</strong></div>
+              <div className={styles.previewRow}><span>Citations</span><strong>Returned URLs are preserved when the provider supplies them</strong></div>
+              <div className={styles.previewRow}><span>Review state</span><strong>Observation, inference, and human review remain separate</strong></div>
+            </div>
+          </div>
+          <aside className={styles.previewEvidence} aria-label="Illustrative evidence records">
+            <div><small>Evidence layer</small><strong>Trace the conclusion back to its record.</strong></div>
+            <div className={styles.previewEvidenceCard}><small>Returned citation</small><strong>Category comparison page</strong><span>Awaiting page review</span></div>
+            <div className={styles.previewEvidenceCard}><small>Competitor presence</small><strong>Brand B appears in answer</strong><span>Observed, not inferred</span></div>
+            <div className={styles.previewEvidenceCard}><small>Comparable rerun</small><strong>Not enough data yet</strong><span>No trend claimed from one run</span></div>
+          </aside>
+        </div>
+      </div>
     </section>
   </div>;
 }
