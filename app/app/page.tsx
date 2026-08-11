@@ -63,7 +63,7 @@ export default async function DashboardPage() {
       <div>
         <span className="eyebrow">{viewer.mode === "demo" ? demoCompany.category : context?.category || "New customer workspace"}</span>
         <h1>{context ? "Your recommendation workspace." : "Start with the evidence boundary."}</h1>
-        <p>{context ? "Every metric below comes from persisted provider observations. Unreviewed results remain clearly labelled until a person approves them." : "Set up your company, category, competitors, and controlled buyer questions before collecting an answer."}</p>
+        <p>{viewer.mode === "demo" ? "Every metric below comes from fictional sample observations created only for this isolated demo." : context ? "Every metric below comes from persisted provider observations. Unreviewed results remain clearly labelled until a person approves them." : "Set up your company, category, competitors, and controlled buyer questions before collecting an answer."}</p>
       </div>
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
     </div>
@@ -90,7 +90,7 @@ export default async function DashboardPage() {
     </section>
 
     <div className="metric-grid">
-      <article><span>Observed brand presence</span><strong>{latest ? `${latest.presence}%` : "—"}</strong><small>{latest ? `Across ${latest.answers} real answers${latest.status === "review" ? " · awaiting review" : ""}` : "First audit has not completed"}</small></article>
+      <article><span>Observed brand presence</span><strong>{latest ? `${latest.presence}%` : "—"}</strong><small>{latest ? viewer.mode === "demo" ? `Across ${latest.answers} fictional sample answers` : `Across ${latest.answers} recorded provider answers${latest.status === "review" ? " · awaiting review" : ""}` : "First audit has not completed"}</small></article>
       <article><span>Competitors appearing</span><strong>{latest ? appearedCompetitors.length : "—"}</strong><small>{appearedCompetitors.length ? appearedCompetitors.slice(0, 3).join(" · ") : latest ? "No configured competitor appeared" : "Waiting for collected answers"}</small></article>
       <article><span>Citation sources</span><strong>{latest ? sources.length : "—"}</strong><small>{latest ? `${latest.citations} returned citation observations` : "Waiting for returned citations"}</small></article>
       <article><span>Priority gaps</span><strong>{latest ? priorityGaps.length : "—"}</strong><small>{priorityGaps.length ? "Competitor-present pages where your brand was not found" : latest ? "No automatically observed page gaps yet" : "Created after the first audit"}</small></article>
