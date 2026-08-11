@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
@@ -89,4 +89,40 @@ test("production drift reconciliation covers foreign keys without overlapping re
   assert.match(migration, /create policy "workspace_webhook_endpoints_insert_admin"[\s\S]*for insert to authenticated/i);
   assert.match(migration, /create policy "workspace_webhook_endpoints_update_admin"[\s\S]*for update to authenticated/i);
   assert.match(migration, /create policy "workspace_webhook_endpoints_delete_admin"[\s\S]*for delete to authenticated/i);
+});
+
+test("tenant-owned evidence and integration relationships cannot cross organizations", async () => {
+  const migrationNames = await readdir(new URL("../supabase/migrations/", import.meta.url));
+  const migrationName = migrationNames.find((name) => name.endsWith("_tenant_relation_integrity.sql"));
+
+  assert.ok(migrationName, "tenant relation integrity migration is required");
+  const migration = await read(`supabase/migrations/${migrationName}`);
+
+  for (const constraint of [
+    "verified_claims_org_project_fkey",
+    "verified_claims_org_evidence_fkey",
+    "evidence_items_org_project_fkey",
+    "verified_claim_evidence_org_claim_fkey",
+    "verified_claim_evidence_org_evidence_fkey",
+    "workspace_webhook_deliveries_org_endpoint_fkey",
+    "integration_activity_deliveries_org_integration_fkey",
+  ]) {
+    assert.match(migration, new RegExp(`add constraint ${constraint}`, "i"));
+  }
+
+  assert.match(migration, /foreign key \(organization_id, claim_id\)[\s\S]*references public\.verified_claims \(organization_id, id\)/i);
+  assert.match(migration, /foreign key \(organization_id, evidence_item_id\)[\s\S]*references public\.evidence_items \(organization_id, id\)/i);
+  assert.match(migration, /foreign key \(organization_id, endpoint_id\)[\s\S]*references public\.workspace_webhook_endpoints \(organization_id, id\)/i);
+  assert.match(migration, /foreign key \(organization_id, integration_id\)[\s\S]*references public\.integrations \(organization_id, id\)/i);
+});
+
+test("deleting evidence clears only the optional evidence reference", async () => {
+  const migrationNames = await readdir(new URL("../supabase/migrations/", import.meta.url));
+  const migrationName = migrationNames.find((name) => name.endsWith("_verified_claim_evidence_delete_semantics.sql"));
+
+  assert.ok(migrationName, "verified claim evidence delete-semantics migration is required");
+  const migration = await read(`supabase/migrations/${migrationName}`);
+
+  assert.match(migration, /foreign key \(organization_id, evidence_item_id\)[\s\S]*on delete set null \(evidence_item_id\)/i);
+  assert.doesNotMatch(migration, /on delete set null\s*;/i);
 });
