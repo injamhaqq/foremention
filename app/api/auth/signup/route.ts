@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const fullName = cleanText(body.full_name, 120);
     if (!email || !password || !confirmation || !fullName) return NextResponse.json({ error: "Name, email, password, and password confirmation are required." }, { status: 400 });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
-    if (password.length < 8) return NextResponse.json({ error: "Use a password with at least 8 characters." }, { status: 400 });
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/.test(password)) return NextResponse.json({ error: "Use at least 12 characters with uppercase, lowercase, a number, and a symbol." }, { status: 400 });
     if (password !== confirmation) return NextResponse.json({ error: "The two passwords do not match." }, { status: 400 });
     const incomingOrigin = new URL(request.url).origin;
     const origin = /localhost|127\.0\.0\.1|\[::1\]/.test(incomingOrigin)

@@ -36,6 +36,8 @@ test("account recovery requires and confirms a new password", async () => {
   assert.match(callback, /reset-password/);
   assert.match(form, /Confirm new password/);
   assert.match(form, /password !== confirmation/);
+  assert.match(form, /\{12,\}/);
+  assert.match(form, /minLength=\{12\}/);
   assert.match(route, /auth\/v1\/user/);
   assert.match(verify, /auth\/v1\/verify/);
   assert.match(verify, /token_hash/);
@@ -43,6 +45,9 @@ test("account recovery requires and confirms a new password", async () => {
   assert.match(authForm, /Confirm password/);
   assert.match(authForm, /password !== confirmation/);
   assert.match(signup, /password !== confirmation/);
+  assert.match(signup, /\{12,\}/);
+  assert.match(authForm, /minLength=\{isLogin \? 8 : 12\}/);
+  assert.match(authForm, /minLength=\{12\}/);
   assert.match(signup, /email_redirect_to: `\$\{origin\}\/auth\/callback`/);
   assert.match(signup, /user\.identities\.length === 0/);
   assert.match(signup, /account_help: true/);
