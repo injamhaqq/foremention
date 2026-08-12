@@ -22,7 +22,6 @@ export default async function DashboardPage() {
     loadProviderStatuses(viewer),
   ]);
   const observedRuns = runs.filter((run) => ["review", "complete", "partial"].includes(run.status));
-  const reviewedRuns = runs.filter((run) => ["complete", "partial"].includes(run.status));
   const latest = observedRuns[0] || null;
   const previous = observedRuns[1] || null;
   const [observedAnswers, sourceContexts, competitors] = await Promise.all([
@@ -51,16 +50,16 @@ export default async function DashboardPage() {
       <div>
         <span className="eyebrow">{viewer.mode === "demo" ? demoCompany.category : context?.category || "Customer workspace"}</span>
         <h1>{latest ? "What changed in your AI evidence?" : "Build your first trustworthy baseline."}</h1>
-        <p>{viewer.mode === "demo" ? "Every metric below comes from fictional sample observations created only for this isolated demo." : latest ? "Start with the latest observed answer, the cited pages behind it, and the next reviewed opportunity. Unreviewed evidence stays clearly labelled." : "Five clear steps take you from your website to a reviewed cited source. No fake metrics appear while Foremention is waiting for real observations."}</p>
+        <p>{viewer.mode === "demo" ? "Every metric below comes from fictional sample observations and fictional sample answers created only for this isolated demo." : latest ? "Start with the latest observed answer, the cited pages behind it, and the next reviewed opportunity. Unreviewed evidence stays clearly labelled." : "Five clear steps take you from your website to a reviewed cited source. No fake metrics appear while Foremention is waiting for real observations."}</p>
         <p className="table-caption"><strong>{productStateLabel(state)}</strong>{latest ? ` · Last collected ${latest.date} · ${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}` : ""}</p>
       </div>
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
     </div>
 
-    {pendingOrFailedRun && <section className="inline-notice" role={pendingOrFailedRun.status === "failed" ? "alert" : "status"}><strong>{pendingOrFailedRun.status === "failed" ? "The latest collection needs another try." : "Collecting AI answers now."}</strong><p>{pendingOrFailedRun.status === "failed" ? "No fake metrics were added. Saved workspace data remains intact; open the collection to inspect the failure and retry safely." : "Foremention is collecting AI answers, preserving returned citations, and preparing evidence. You can leave this page and return later."}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open collection status <Arrow /></Link></section>}
+    {pendingOrFailedRun && <section className="inline-notice" role={pendingOrFailedRun.status === "failed" ? "alert" : "status"}><strong>{pendingOrFailedRun.status === "failed" ? "The latest collection needs another try." : "Collecting AI answers now."}</strong><p>{pendingOrFailedRun.status === "failed" ? "Your audit is taking longer than expected or ended before usable evidence was ready. No fake metrics were added. Saved workspace data remains intact; open the collection to inspect the failure and retry safely." : "Foremention is collecting AI answers, preserving returned citations, and preparing evidence. You can leave this page and return later."}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open collection status <Arrow /></Link></section>}
 
     {!activation.every((item) => item.done) ? <section className="getting-started" aria-labelledby="getting-started-title">
-      <div className="getting-started__heading"><div><span className="eyebrow">First-use activation</span><h2 id="getting-started-title">Five steps to useful evidence.</h2></div><strong>{activation.filter((item) => item.done).length}/{activation.length} complete</strong></div>
+      <div className="getting-started__heading"><div><span className="eyebrow">Workspace readiness</span><h2 id="getting-started-title">Five steps to useful evidence.</h2></div><strong>{activation.filter((item) => item.done).length}/{activation.length} complete</strong></div>
       <ol>{activation.map((item) => <li className={item.done ? "is-complete" : item.label === next.label ? "is-next" : ""} key={item.label}><Link href={item.href}><span className="getting-started__check" aria-hidden="true">{item.done ? "✓" : ""}</span><span><strong>{item.label}</strong><small>{item.detail}</small></span><Arrow /></Link></li>)}</ol>
     </section> : <section className="setup-complete"><strong>First-use setup complete.</strong><span>Your workspace now has a reviewed evidence baseline. Continue with comparable collections, opportunities, and actions.</span><Link href={next.href}>{next.label} <Arrow /></Link></section>}
 
@@ -72,7 +71,7 @@ export default async function DashboardPage() {
     </div>
 
     <section className="weekly-loop-teaser">
-      <div><span className="eyebrow">What changed?</span><strong>{latest && previous ? `Brand presence ${latest.presence === previous.presence ? "held steady" : latest.presence > previous.presence ? "increased" : "decreased"} by ${Math.abs(latest.presence - previous.presence)} points.` : latest ? "This is your current observed baseline." : "A comparable change needs at least one completed collection."}</strong><p>{latest && previous ? `Latest: ${latest.presence}% across ${latest.answers} answers and ${latest.citations} citation observations. Previous: ${previous.presence}% across ${previous.answers} answers and ${previous.citations} citation observations. Foremention records the change; it does not claim what caused it.` : "Repeat the same approved questions with the same methodology before interpreting movement."}</p></div>
+      <div><span className="eyebrow">What changed?</span><strong>{latest && previous ? `Brand presence ${latest.presence === previous.presence ? "held steady" : latest.presence > previous.presence ? "increased" : "decreased"} by ${Math.abs(latest.presence - previous.presence)} points.` : latest ? "This is your current observed baseline." : "A comparable change needs at least one completed collection."}</strong><p>{latest && previous ? `Latest: ${latest.presence}% across ${latest.answers} answers and ${latest.citations} citation observations. Previous: ${previous.presence}% across ${previous.answers} answers and ${previous.citations} citation observations. Foremention records the change; it does not claim what caused it.` : "Repeat the same approved questions with the same methodology before interpreting movement."}</p><Link className="text-link" href="/app/intelligence">Advanced: Weekly Intelligence Loop <Arrow /></Link></div>
       <Link className="button button--ink" href="/app/analytics">Open Analytics <Arrow /></Link>
     </section>
 
