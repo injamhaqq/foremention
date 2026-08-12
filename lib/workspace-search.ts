@@ -56,7 +56,7 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
       { token },
     )),
     attempt("AI Result", supabaseRest<AnswerRow[]>(
-      `run_answers?select=id,run_id,prompt_text,prompt_key,answer_text,provider,model,collected_at&organization_id=eq.${context.organizationId}&review_status=eq.verified&or=(prompt_text.ilike.${pattern},prompt_key.ilike.${pattern},answer_text.ilike.${pattern})&order=collected_at.desc&limit=12`,
+      `run_answers?select=id,run_id,prompt_text,prompt_key,answer_text,provider,model,collected_at,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&or=(prompt_text.ilike.${pattern},prompt_key.ilike.${pattern},answer_text.ilike.${pattern})&order=collected_at.desc&limit=12`,
       { token },
     )),
     attempt("Source", supabaseRest<SourceRow[]>(
