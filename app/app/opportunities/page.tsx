@@ -1,29 +1,32 @@
 import Link from "next/link";
 import { OpportunityList } from "@/components/opportunity-list";
 import { requireViewer } from "@/lib/auth";
-import { loadSourceEvidenceContexts, loadSourceMap } from "@/lib/data";
-
-const influence = { high: 90, medium: 68, low: 44, emerging: 44, unknown: 20 };
-const feasibility = { high: 90, medium: 62, low: 28, unknown: 20 };
+import { loadRuns, loadSourceEvidenceContexts, loadSourceMap } from "@/lib/data";
+import { productStateLabel, stateForSources } from "@/lib/product-state";
 
 export default async function OpportunitiesPage() {
   const viewer = await requireViewer("/app/opportunities");
-  const entries = await loadSourceMap(viewer);
+  const [entries, latestRuns] = await Promise.all([loadSourceMap(viewer), loadRuns(viewer, { limit: 1 })]);
   const contexts = await loadSourceEvidenceContexts(viewer, entries.flatMap((source) => source.sourceId ? [source.sourceId] : []));
   const rows = entries.filter((source) => !source.clientPresent).map((source) => {
     const reviewed = source.crawlerAccess !== "unknown" && source.influence !== "unknown" && source.feasibility !== "unknown" && source.route !== "unknown";
     return {
       ...source,
-      score: reviewed ? Math.round(influence[source.influence] * .6 + feasibility[source.feasibility] * .4) : null,
+      // Keep a nullable observed-evidence count so unreviewed candidates remain
+      // mechanically distinct without inventing a composite priority score.
+      score: reviewed ? source.evidenceCount : null,
       evidence: source.sourceId ? contexts[source.sourceId]?.[0] : undefined,
     };
-  }).sort((a,b) => (b.score ?? -1) - (a.score ?? -1) || b.evidenceCount - a.evidenceCount || a.domain.localeCompare(b.domain));
+  }).sort((a,b) => Number(b.score !== null) - Number(a.score !== null) || b.evidenceCount - a.evidenceCount || b.engines.length - a.engines.length || a.domain.localeCompare(b.domain));
   const reviewed = rows.filter((row) => row.score !== null).length;
   const providers = new Set(rows.flatMap((row) => row.engines)).size;
   const observations = rows.reduce((sum, row) => sum + row.evidenceCount, 0);
-  return <main className="workspace">
-    <div className="workspace-heading"><div><span className="eyebrow">Evidence review queue</span><h1>Priority gaps</h1><p>Observed citations appear here first. A priority score appears only after someone verifies the page, brand presence, evidence relevance, and a legitimate route.</p></div><Link className="button button--outline" href="/app/resolutions">Resolve reviewed gaps</Link></div>
-    <div className="metric-grid metric-grid--compact"><article><span>Confirmed gaps</span><strong>{reviewed}</strong><small>reviewed and actionable</small></article><article><span>Awaiting review</span><strong>{rows.length - reviewed}</strong><small>not yet called a gap</small></article><article><span>Observed citations</span><strong>{observations}</strong><small>from approved evidence</small></article><article><span>Provider coverage</span><strong>{providers}</strong><small>represented in this map</small></article></div>
-    <section className="panel panel--flush">{rows.length ? <OpportunityList rows={rows} demo={viewer.mode === "demo"} /> : <div className="empty-state"><h2>No candidate gaps yet.</h2><p>This page ranks legitimate opportunities only after cited pages are reviewed. Complete onboarding, collect a run, and approve its evidence first.</p><Link className="button button--ink" href="/app/runs">Collect evidence →</Link></div>}</section>
+  const latest = latestRuns[0] || null;
+  const sourceState = stateForSources(latest ? { status: latest.status, answerCount: latest.answers, citationCount: latest.citations } : null, entries.length, entries.filter((entry) => entry.crawlerAccess === "unknown").length);
+
+  return <main className="workspace" data-product-state={rows.length ? (reviewed ? "COMPLETE" : "NEEDS_REVIEW") : sourceState}>
+    <div className="workspace-heading"><div><span className="eyebrow">What should I do?</span><h1>Opportunities</h1><p>Foremention turns a cited page into an opportunity only after a person verifies the page, confirms your brand is missing, and records a legitimate route. No composite score hides weak evidence.</p><p className="table-caption"><strong>{rows.length ? reviewed ? `${reviewed} reviewed opportunit${reviewed === 1 ? "y" : "ies"}` : "Needs source review" : productStateLabel(sourceState)}</strong>{latest ? ` · Last collected ${latest.date}` : " · No collection recorded"}</p></div><Link className="button button--outline" href="/app/resolutions">Review decisions</Link></div>
+    <div className="metric-grid metric-grid--compact"><article><span>Reviewed opportunities</span><strong>{reviewed}</strong><small>human-checked cited pages with a legitimate route</small></article><article><span>Need review</span><strong>{rows.length - reviewed}</strong><small>observed candidates, not yet called opportunities</small></article><article><span>Citation observations</span><strong>{observations}</strong><small>across these candidate pages</small></article><article><span>AI systems represented</span><strong>{providers}</strong><small>providers that returned these citations</small></article></div>
+    <section className="panel panel--flush">{rows.length ? <OpportunityList rows={rows} demo={viewer.mode === "demo"} /> : <div className="empty-state"><h2>{sourceState === "COLLECTING" ? "Collecting evidence now." : sourceState === "FAILED_RECOVERABLE" ? "The latest collection needs another try." : entries.length ? "No missing-brand candidates were found in reviewed sources." : "No opportunity evidence yet."}</h2><p>{sourceState === "COLLECTING" ? "Opportunities will appear only after cited pages arrive and a person reviews them." : "Review real cited sources first. Foremention will not manufacture an opportunity to fill an empty screen."}</p><Link className="button button--ink" href={entries.length ? "/app/source-map" : "/app/runs"}>{entries.length ? "Review sources" : "Collect evidence"} →</Link></div>}</section>
   </main>;
 }
