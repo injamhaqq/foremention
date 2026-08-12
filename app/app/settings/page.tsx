@@ -55,6 +55,7 @@ export default async function SettingsPage() {
       <section className="panel">
         <span className="eyebrow">Notifications</span><h2>Choose the alerts you want.</h2>
         <EmailAlertPreferences initial={emailPreference} available={applicationEmail.available} demo={viewer.mode === "demo"} />
+        {!applicationEmail.available && <p className="table-caption">Automated application-email delivery remains unavailable until the server-side mail configuration is complete. In-app alerts continue to work independently.</p>}
       </section>
 
       <section className="panel" id="providers">
