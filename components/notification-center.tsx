@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import type { WorkspaceNotification } from "@/lib/data";
 
+// Historical customer copy said "Start with Answer Runs". The product route is
+// unchanged, but the customer-facing name is now AI Results; keep that rename
+// explicit here so alert contracts do not silently drift back to internal jargon.
 function alertMeaning(kind: string) {
   const normalized = kind.toLowerCase();
   if (normalized.includes("fail") || normalized.includes("error")) return { severity: "Needs attention", why: "Part of the monitoring or evidence workflow did not finish. Saved results remain separate from the failed step.", action: "Inspect and recover" };
