@@ -6,7 +6,7 @@ This document prevents scope creep after the current product-repair series. It i
 
 Do not begin a broad new product slice until the current canonical main release is coherently live and production provenance is verified.
 
-Required target commit: `787111087bc1219d444dd4cd1f0508094435b96d`.
+The runtime feature baseline containing the P0/P1 product repair is `787111087bc1219d444dd4cd1f0508094435b96d`. The actual production target must be the **exact verified `main` HEAD captured immediately before publish**, because later documentation-only merges may advance `main` without changing runtime behavior. Production `/api/health` must report the exact SHA that was actually built and published.
 
 See `docs/PRODUCTION-CANONICALIZATION-CHECKLIST-2026-08-12.md`.
 
