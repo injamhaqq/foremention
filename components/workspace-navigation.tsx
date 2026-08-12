@@ -26,6 +26,16 @@ const workspaceNav = [
   ["/app/settings", "Settings"],
 ] as const;
 
+const advancedNav = [
+  ["/app/resolutions", "Resolution Center"],
+  ["/app/outcomes", "Outcome Ledger"],
+  ["/app/passport", "Vendor Passport"],
+  ["/app/intelligence", "Intelligence Loop"],
+  ["/app/agents", "Agent Control Plane"],
+  ["/app/decision-lab", "Decision Lab"],
+  ["/app/evidence", "Evidence Vault"],
+] as const;
+
 function isCurrent(pathname: string, href: string) {
   if (href.includes("#")) return false;
   return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -59,6 +69,15 @@ function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigat
         return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
       })}
     </nav>
+    <details className="sidebar-advanced">
+      <summary>Advanced</summary>
+      <nav aria-label="Advanced workspace tools">
+        {advancedNav.map(([href, label]) => {
+          const current = isCurrent(pathname, href);
+          return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
+        })}
+      </nav>
+    </details>
   </>;
 }
 
