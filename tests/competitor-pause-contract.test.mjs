@@ -13,10 +13,12 @@ test("pause and resume persist tenant-scoped state and govern future competitor 
     text("lib/data.ts"),
   ]);
 
-  assert.match(component, /active: !item\.active/);
+  assert.match(component, /active: nextActive/);
   assert.match(component, /Pause tracking/);
   assert.match(component, /Resume tracking/);
-  assert.match(component, /item\.active \? "tracking" : "paused"/);
+  assert.match(component, /item\.active \? "Active" : "Paused"/);
+  assert.match(component, /Future collections will exclude this competitor/);
+  assert.match(component, /historical observations are preserved/);
   assert.match(component, /router\.refresh\(\)/);
 
   assert.match(route, /typeof body\.active !== "boolean"/);
