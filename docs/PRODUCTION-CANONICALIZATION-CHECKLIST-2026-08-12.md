@@ -1,14 +1,17 @@
 # Foremention Production Canonicalization Checklist — 2026-08-12
 
-This checklist is the release boundary after PRs #15, #16, #17, and #18. It prevents further product work from being mistaken for a completed release while production may still be serving a stale or mixed build.
+This checklist is the release boundary after PRs #15, #16, #17, #18, and later documentation-only architecture decisions. It prevents further product work from being mistaken for a completed release while production may still be serving a stale or mixed build.
 
-## Target release
+## Target release policy
 
 - Repository: `injamhaqq/foremention`
 - Canonical branch: `main`
-- Required commit: `787111087bc1219d444dd4cd1f0508094435b96d`
+- Runtime feature baseline that contains the P0/P1 product repair: `787111087bc1219d444dd4cd1f0508094435b96d`
+- Required production commit: **the exact verified `main` HEAD selected for publish at release time**. Do not hard-code a documentation commit in advance; capture the SHA immediately before publishing and require `/api/health` to report that same SHA after publishing.
 - Existing production domain: `https://foremention.com`
 - Existing Worker/site infrastructure must be preserved.
+
+A later documentation-only merge may advance `main` without changing runtime behavior. Production provenance must still be coherent: the build commit reported by health must match the exact commit that was actually built and published.
 
 ## Release acceptance
 
@@ -16,7 +19,8 @@ Production is accepted only when all applicable checks below are recorded from t
 
 ### Provenance
 
-- [ ] `/api/health` returns the exact canonical commit `787111087bc1219d444dd4cd1f0508094435b96d`.
+- [ ] Record `RELEASE_TARGET_SHA=$(git rev-parse origin/main)` (or the equivalent exact GitHub `main` SHA) immediately before publish.
+- [ ] `/api/health` returns exactly `RELEASE_TARGET_SHA` as `buildCommit`.
 - [ ] Health response is fresh and `Cache-Control: no-store` remains effective.
 - [ ] Current Cloudflare Worker/site version is recorded if the deployment platform exposes it.
 - [ ] No stale/mixed static-vs-dynamic release behavior is observed.
@@ -105,7 +109,7 @@ Any of the following blocks acceptance and should trigger rollback or a forward 
 
 ## Next milestone after acceptance
 
-Only after the target release is live and verified should the next P2 slice start. Preferred order:
+Only after the exact selected main release is live and verified should the next P2 slice start. Preferred order:
 
 1. native Source Snapshot Engine / Change Graph improvements;
 2. Postgres + pgvector semantic retrieval when keyword search shows a real gap;
