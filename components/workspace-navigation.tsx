@@ -8,28 +8,36 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
 import { resetProductAnalytics } from "@/lib/product-analytics";
 
-const nav = [
+const primaryNav = [
   ["/app", "Overview"],
+  ["/app/prompts", "Questions"],
+  ["/app/runs", "AI Results"],
+  ["/app/source-map", "Sources"],
+  ["/app/competitors", "Competitors"],
+  ["/app/opportunities", "Opportunities"],
+  ["/app/placements", "Actions"],
+  ["/app/analytics", "Analytics"],
+] as const;
+
+const workspaceNav = [
+  ["/app/alerts", "Alerts"],
+  ["/app/team", "Team"],
+  ["/app/settings#integrations", "Integrations"],
+  ["/app/settings", "Settings"],
+] as const;
+
+const advancedNav = [
   ["/app/resolutions", "Resolution Center"],
   ["/app/outcomes", "Outcome Ledger"],
   ["/app/passport", "Vendor Passport"],
   ["/app/intelligence", "Intelligence Loop"],
-  ["/app/prompts", "Buyer questions"],
-  ["/app/runs", "Answer runs"],
   ["/app/agents", "Agent Control Plane"],
-  ["/app/source-map", "Source Map"],
-  ["/app/competitors", "Competitors"],
   ["/app/decision-lab", "Decision Lab"],
-  ["/app/opportunities", "Priority gaps"],
-  ["/app/placements", "Action tracker"],
   ["/app/evidence", "Evidence Vault"],
-  ["/app/analytics", "Analytics"],
-  ["/app/alerts", "Alerts"],
-  ["/app/team", "Team"],
-  ["/app/settings", "Settings"],
 ] as const;
 
 function isCurrent(pathname: string, href: string) {
+  if (href.includes("#")) return false;
   return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -47,13 +55,37 @@ function SignOutButton({ demo }: { demo: boolean }) {
   </form>;
 }
 
+function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  return <>
+    <nav aria-label="Main workspace">
+      {primaryNav.map(([href, label]) => {
+        const current = isCurrent(pathname, href);
+        return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
+      })}
+    </nav>
+    <nav aria-label="Workspace tools">
+      {workspaceNav.map(([href, label]) => {
+        const current = isCurrent(pathname, href);
+        return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
+      })}
+    </nav>
+    <details className="sidebar-advanced">
+      <summary>Advanced</summary>
+      <nav aria-label="Advanced workspace tools">
+        {advancedNav.map(([href, label]) => {
+          const current = isCurrent(pathname, href);
+          return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
+        })}
+      </nav>
+    </details>
+  </>;
+}
+
 export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
   const pathname = usePathname();
   return <aside className="app-sidebar">
     <Wordmark inverse />
-    <nav aria-label="Workspace">
-      {nav.map(([href, label]) => <Link className={isCurrent(pathname, href) ? "is-current" : ""} aria-current={isCurrent(pathname, href) ? "page" : undefined} key={href} href={href}>{label}<span aria-hidden="true">&rarr;</span></Link>)}
-    </nav>
+    <NavigationLinks pathname={pathname} />
     <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
     <SignOutButton demo={viewer.mode === "demo"} />
   </aside>;
@@ -62,12 +94,11 @@ export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; wo
 export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
   const pathname = usePathname();
   const mobileMenu = useRef<HTMLDetailsElement>(null);
+  const closeMenu = () => { if (mobileMenu.current) mobileMenu.current.open = false; };
   return <details className="app-mobile-nav" ref={mobileMenu}>
       <summary>Workspace menu</summary>
       <div className="app-mobile-nav__panel">
-        <nav aria-label="Mobile workspace">
-          {nav.map(([href, label]) => <Link className={isCurrent(pathname, href) ? "is-current" : ""} aria-current={isCurrent(pathname, href) ? "page" : undefined} key={href} href={href} onClick={() => { if (mobileMenu.current) mobileMenu.current.open = false; }}>{label}<span aria-hidden="true">&rarr;</span></Link>)}
-        </nav>
+        <NavigationLinks pathname={pathname} onNavigate={closeMenu} />
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>
