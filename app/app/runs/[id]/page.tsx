@@ -24,7 +24,7 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
   }, new Map<string, { provider: string; model: string; cost: number; tokens: number; events: number; sources: Set<string> }>()).values());
   const capacityFailure = run.status === "failed" && /capacity|ceiling|budget|quota|concurrent/i.test(run.errorSummary || "");
   const emptyState = run.status === "failed"
-    ? { title: capacityFailure ? "This collection did not reach the AI system." : "The AI system did not return usable evidence.", body: run.errorSummary || "This collection failed without creating answers or citations. Check the connected AI system and try again when it is available." }
+    ? { title: capacityFailure ? "This collection did not reach the AI system." : "The provider did not return evidence.", body: run.errorSummary || "This collection failed without creating answers or citations. Check the connected AI system and try again when it is available." }
     : run.status === "cancelled" ? { title: "This collection was cancelled.", body: "No answers or citations were added to the evidence trail." }
       : ["complete", "partial", "review"].includes(run.status) ? { title: "No usable answers were returned.", body: "The collection finished without evidence that can be reviewed or published." }
         : { title: "Answers have not arrived yet.", body: "The collection is queued, running, or waiting for a provider retry." };
