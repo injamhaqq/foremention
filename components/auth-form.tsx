@@ -3,10 +3,11 @@
 import { useRef, useState, type FormEvent } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
 
-export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
+export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnabled = false }: {
   mode: "login" | "signup";
   next?: string;
   statusMessage?: string;
+  googleEnabled?: boolean;
 }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -59,9 +60,6 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
         return;
       }
       if (!isLogin) captureProductEvent("signup_completed", { confirmation_required: false });
-      // Use a full navigation after the server sets the HTTP-only session
-      // cookie. This guarantees that the first protected request includes the
-      // new cookie instead of racing a client-router refresh.
       navigating = true;
       window.location.assign(next.startsWith("/") ? next : "/app");
     } catch {
@@ -106,6 +104,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
   }
 
   const isLogin = mode === "login";
+  const googleHref = `/api/auth/google?next=${encodeURIComponent(next.startsWith("/") ? next : "/app")}`;
   return (
     <div className="auth-card">
       <div>
@@ -113,10 +112,14 @@ export function AuthForm({ mode, next = "/app", statusMessage = "" }: {
         <h1>{isLogin ? "Sign in to Foremention." : "Create your workspace."}</h1>
         <p>
           {isLogin
-            ? "Your buyer questions, answer runs, Source Map, evidence, and analytics stay in one secure workspace."
-            : "Start with your category, then connect buyer questions, answer evidence, sources, competitors, and change over time."}
+            ? "Your buyer questions, AI results, sources, competitors, actions, and analytics stay in one secure workspace."
+            : "Start with your company and buyer questions, then collect real AI answers and review the sources behind them."}
         </p>
       </div>
+      {googleEnabled && <>
+        <a className="button button--outline button--wide" href={googleHref}>{isLogin ? "Continue with Google" : "Sign up with Google"}</a>
+        <p className="auth-switch">or continue with email</p>
+      </>}
       <form onSubmit={submit} aria-busy={busy}>
         {!isLogin && <label>Full name<input name="full_name" required autoComplete="name" placeholder="Your name" /></label>}
         <label>Email<input type="email" name="email" required autoComplete="email" placeholder="you@example.com" /></label>
