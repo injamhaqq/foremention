@@ -72,6 +72,7 @@ export type WeeklyIntelligence = {
 type RunRow = {
   id: string;
   provider_ids: string[];
+  methodology_version: string;
   prompt_count: number;
   answer_count: number;
   citation_count: number;
@@ -185,8 +186,9 @@ function answerView(row: AnswerRow): ComparableAnswer {
     const canonical = canonicalizeEvidenceUrl(citation.url);
     return canonical ? [canonical] : [];
   })));
+  const model = row.model || "model-not-recorded";
   return {
-    key: `${row.prompt_key}\u0000${row.provider}`,
+    key: `${row.prompt_key}\u0000${row.provider}\u0000${model}`,
     prompt: row.prompt_text || row.prompt_key,
     provider: row.provider,
     model: row.model,
@@ -242,8 +244,9 @@ function sourceSet(rows: AnswerRow[]) {
   return new Set(rows.flatMap((row) => answerView(row).citationUrls));
 }
 
-function comparisonSignature(rows: AnswerRow[]) {
-  return rows.map((row) => answerView(row).key).sort().join("\u0001");
+function comparisonSignature(run: RunRow, rows: AnswerRow[]) {
+  const answerSignature = rows.map((row) => answerView(row).key).sort().join("\u0001");
+  return `${run.methodology_version}\u0002${answerSignature}`;
 }
 
 function buildChanges(
@@ -265,7 +268,7 @@ function buildChanges(
     kind: "baseline" as const,
     tone: "neutral" as const,
     title: "First reviewed baseline recorded",
-    detail: `${latest.answers} verified answers and ${latest.citations} returned citations are available. Repeat the same question set before interpreting change.`,
+    detail: `${latest.answers} verified answers and ${latest.citations} returned citations are available. Repeat the same question set, provider, exact model, and methodology before interpreting change.`,
     href: `/app/runs/${latest.id}`,
   }];
 
@@ -308,7 +311,7 @@ function buildChanges(
     kind: "answer",
     tone: changedAnswerText ? "neutral" : "positive",
     title: `${changedAnswerText} comparable answer${changedAnswerText === 1 ? "" : "s"} changed text`,
-    detail: "This is an exact text comparison, not a claim that meaning, accuracy, or buyer behavior changed.",
+    detail: "This is an exact text comparison across the same question, provider, exact model, and methodology—not a claim that meaning, accuracy, or buyer behavior changed.",
     href: `/app/runs/${latest.id}`,
   });
   if (latest.costUsd !== null && previous.costUsd !== null) changes.push({
@@ -338,7 +341,7 @@ function confidenceChecks(
       label: "Repeatability",
       state: previous ? "pass" : latest ? "attention" : "missing",
       value: previous ? "2 comparable runs" : latest ? "1 reviewed run" : "No run",
-      detail: previous ? "The latest reviewed run has a previous baseline for exact comparison." : "A second run with the same question and provider set is required.",
+      detail: previous ? "The latest reviewed run has a previous baseline with the same question, provider, exact model, and methodology." : "A second run with the same question, provider, exact model, and methodology is required.",
     },
     {
       label: "Collection coverage",
@@ -370,14 +373,14 @@ function nextAction(
   sources: SourceEntryRow[],
 ) : IntelligenceAction {
   if (!latest) return { priority: "now", title: "Create the first reviewed baseline", reason: "A weekly loop begins with one controlled provider run and human review.", href: "/app/runs", cta: "Start collection" };
-  if (!previous) return { priority: "now", title: "Repeat the same evidence set", reason: "One run shows an observation; the second begins a comparable trend.", href: "/app/runs", cta: "Run the baseline again" };
+  if (!previous) return { priority: "now", title: "Repeat the same evidence set", reason: "One run shows an observation; the second begins a comparable trend only when question, provider, exact model, and methodology stay aligned.", href: "/app/runs", cta: "Run the baseline again" };
   const expected = latestRun ? Math.max(1, latestRun.prompt_count) * Math.max(1, latestRun.provider_ids.length) : latest.answers;
   if (latest.answers / Math.max(1, expected) < .9) return { priority: "now", title: "Repair incomplete collection", reason: "Fewer than 90% of expected prompt-provider answers passed review.", href: `/app/runs/${latest.id}`, cta: "Inspect failed coverage" };
   if ((sourceReviewPct ?? 0) < 80) return { priority: "now", title: "Review the next cited page", reason: `${sourceReviewPct ?? 0}% of mapped pages have a dated review. Confidence improves only when source facts are checked.`, href: "/app/source-map", cta: "Review source evidence" };
   if (changes.some((change) => change.id === "brand-movement" && change.tone === "attention")) return { priority: "now", title: "Inspect the brand disappearance", reason: "A comparable reviewed answer stopped naming the brand. Inspect the exact answer and citation chain before responding.", href: `/app/runs/${latest.id}`, cta: "Inspect changed answer" };
   if (changes.some((change) => change.id === "source-movement" && change.tone === "attention")) return { priority: "next", title: "Review the lost citation sources", reason: "One or more URLs disappeared between comparable reviewed runs. Confirm whether this is variation or a recurring loss.", href: "/app/source-map", cta: "Open Source Map" };
   if (sources.some((source) => source.source?.crawler_checked_at && !source.client_present)) return { priority: "next", title: "Advance the strongest verified gap", reason: "A reviewed source repeatedly appears without the customer brand. Choose only a legitimate evidence route.", href: "/app/opportunities", cta: "Open Priority Gaps" };
-  return { priority: "watch", title: "Run the next scheduled comparison", reason: "The current evidence gates are healthy. Preserve the same question and provider set for the next comparable run.", href: "/app/runs", cta: "Prepare next run" };
+  return { priority: "watch", title: "Run the next scheduled comparison", reason: "The current evidence gates are healthy. Preserve the same question, provider, exact model, and methodology for the next comparable run.", href: "/app/runs", cta: "Prepare next run" };
 }
 
 export function buildWeeklyIntelligence(input: BuildInput): WeeklyIntelligence {
@@ -389,9 +392,9 @@ export function buildWeeklyIntelligence(input: BuildInput): WeeklyIntelligence {
   }
   const reviewedRuns = input.runs.filter((run) => (answerGroups.get(run.id) || []).length > 0);
   const latestRun = reviewedRuns[0] || null;
-  const latestSignature = latestRun ? comparisonSignature(answerGroups.get(latestRun.id) || []) : "";
+  const latestSignature = latestRun ? comparisonSignature(latestRun, answerGroups.get(latestRun.id) || []) : "";
   const previousRun = reviewedRuns.slice(1).find((candidate) => {
-    const candidateSignature = comparisonSignature(answerGroups.get(candidate.id) || []);
+    const candidateSignature = comparisonSignature(candidate, answerGroups.get(candidate.id) || []);
     return Boolean(latestSignature) && candidateSignature === latestSignature;
   }) || null;
   const latestAnswers = latestRun ? answerGroups.get(latestRun.id) || [] : [];
@@ -463,7 +466,7 @@ export function buildWeeklyIntelligence(input: BuildInput): WeeklyIntelligence {
     cadence: {
       mode: "reviewed runs",
       description: latest
-        ? `Updated from the latest human-reviewed collection on ${latest.date}. Run the same approved evidence set weekly for comparable movement.`
+        ? `Updated from the latest human-reviewed collection on ${latest.date}. Run the same approved evidence set with the same provider, exact model, and methodology for comparable movement.`
         : "Updates only after a customer runs and reviews a real collection. Automatic scheduling is not implied.",
     },
   };
@@ -474,6 +477,7 @@ function demoInput(): BuildInput {
   const demoRunRows: RunRow[] = [latest, previous].map((run, index) => ({
     id: run.id,
     provider_ids: ["chatgpt", "perplexity", "claude", "google-ai"],
+    methodology_version: "fictional-demo-v1",
     prompt_count: 4,
     answer_count: run.answers,
     citation_count: run.citations,
@@ -568,7 +572,7 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
   if (!context) return buildWeeklyIntelligence({ telemetry: "empty", runs: [], answers: [], costs: [], sources: [], evidence: [], claims: [], actions: [] });
   const [runs, maps, evidence, claims, actions] = await Promise.all([
     supabaseRest<RunRow[]>(
-      `runs?select=id,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,actual_cost_usd,estimated_max_cost_usd,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=6`,
+      `runs?select=id,provider_ids,methodology_version,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,actual_cost_usd,estimated_max_cost_usd,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=6`,
       { token: viewer.accessToken },
     ),
     supabaseRest<Array<{ id: string }>>(
