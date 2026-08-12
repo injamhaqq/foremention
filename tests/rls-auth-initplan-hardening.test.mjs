@@ -9,15 +9,16 @@ const migrationUrl = new URL(
 
 test("RLS self checks use statement-level auth.uid initplans", async () => {
   const sql = await readFile(migrationUrl, "utf8");
+  const executableSql = sql.replace(/^\s*--.*$/gm, "");
 
-  const authCalls = sql.match(/auth\.uid\(\)/g) ?? [];
-  const optimizedCalls = sql.match(/\(select auth\.uid\(\)\)/g) ?? [];
+  const authCalls = executableSql.match(/auth\.uid\(\)/g) ?? [];
+  const optimizedCalls = executableSql.match(/\(select auth\.uid\(\)\)/g) ?? [];
 
   assert.ok(authCalls.length >= 10, "expected the hardening migration to cover all targeted self checks");
   assert.equal(
     optimizedCalls.length,
     authCalls.length,
-    "every auth.uid() call in the hardening migration must be wrapped in a scalar select",
+    "every executable auth.uid() call in the hardening migration must be wrapped in a scalar select",
   );
 
   for (const policy of [
