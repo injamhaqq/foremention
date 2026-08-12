@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./product-polish.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";

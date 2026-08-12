@@ -9,11 +9,11 @@ export function WorkspaceGlobalSearch() {
   function submit(event: React.FormEvent) {
     event.preventDefault();
     const normalized = query.trim().slice(0, 160);
-    router.push(normalized ? `/app/intelligence?q=${encodeURIComponent(normalized)}#workspace-search` : "/app/intelligence#workspace-search");
+    router.push(normalized ? `/app/search?q=${encodeURIComponent(normalized)}` : "/app/search");
   }
   return <form className="workspace-global-search" role="search" onSubmit={submit}>
-    <label className="sr-only" htmlFor="workspace-global-search">Search workspace</label>
-    <input id="workspace-global-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search workspace" maxLength={160} />
-    <button type="submit" aria-label="Search answers, sources, actions, and evidence">Search</button>
+    <label className="sr-only" htmlFor="workspace-global-search">Search Foremention</label>
+    <input id="workspace-global-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Foremention…" maxLength={160} />
+    <button type="submit" aria-label="Search questions, AI results, sources, competitors, opportunities, and actions">Search</button>
   </form>;
 }
