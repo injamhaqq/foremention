@@ -21,6 +21,16 @@ export type RunStateInput = {
   citationCount?: number;
 };
 
+export type CompetitorStateInput = {
+  active?: boolean;
+  totalAnswers?: number;
+};
+
+export type AlertStateInput = {
+  kind?: string | null;
+  read?: boolean;
+};
+
 export function stateForRun(input: RunStateInput | null | undefined): ProductState {
   if (!input?.status) return "READY_TO_COLLECT";
   if (input.status === "queued" || input.status === "running") return "COLLECTING";
@@ -36,6 +46,24 @@ export function stateForSources(input: RunStateInput | null | undefined, sourceC
   if (sourceCount > 0 && needsReview > 0) return "NEEDS_REVIEW";
   if (sourceCount > 0) return "COMPLETE";
   return stateForRun(input);
+}
+
+export function stateForCompetitors(items: CompetitorStateInput[]): ProductState {
+  if (!items.length) return "NOT_CONFIGURED";
+  const active = items.filter((item) => item.active !== false);
+  if (!active.length) return "PAUSED";
+  if (active.every((item) => (item.totalAnswers ?? 0) === 0)) return "READY_TO_COLLECT";
+  return "COMPLETE";
+}
+
+export function stateForAlerts(items: AlertStateInput[]): ProductState {
+  const unread = items.filter((item) => !item.read);
+  if (!unread.length) return "COMPLETE";
+  if (unread.some((item) => {
+    const kind = (item.kind || "").toLowerCase();
+    return kind.includes("fail") || kind.includes("error");
+  })) return "FAILED_RECOVERABLE";
+  return "NEEDS_REVIEW";
 }
 
 const STATE_LABELS: Record<ProductState, string> = {
