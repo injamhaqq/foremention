@@ -7,6 +7,11 @@ export type WorkspaceEmailAlertKind = "first_run_completed" | "brand_new_source"
 type WorkspaceEmailAlert = { organizationId: string; userId: string; eventKey: string; kind: WorkspaceEmailAlertKind; subject: string; text: string; href: string };
 
 export async function sendWorkspaceEmailAlert(input: WorkspaceEmailAlert) {
+  // `competitor_overtook` is produced only by the legacy pre-review run-change
+  // detector. Keep it disabled until a post-review sender consumes the same
+  // exact-question/provider/model/methodology gate as Safe Intelligence.
+  if (input.kind === "competitor_overtook") return { status: "disabled" as const };
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; const secret = process.env.EMAIL_UNSUBSCRIBE_SECRET;
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL || !siteUrl || !secret) return { status: "not_configured" as const };
   const [preferences, memberships] = await Promise.all([
