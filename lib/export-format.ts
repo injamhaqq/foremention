@@ -1,10 +1,10 @@
+import { csvCell } from "./csv.ts";
+
 type ExportRow = Record<string, unknown>;
 
 function csvValue(value: unknown) {
-  if (value === null || value === undefined) return "\"\"";
-  const raw = typeof value === "object" ? JSON.stringify(value) : String(value);
-  const safe = typeof value === "string" && /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
-  return `"${safe.replaceAll('"', '""')}"`;
+  const serializable = value !== null && typeof value === "object" ? JSON.stringify(value) : value;
+  return csvCell(serializable);
 }
 
 export function rowsToCsv(rows: ExportRow[]) {
