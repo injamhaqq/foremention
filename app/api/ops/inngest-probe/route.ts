@@ -8,20 +8,15 @@ type ProbeRow = {
   executed_at: string | null;
 };
 
-type HealthPayload = { buildCommit?: unknown };
+type ProbeStage = "build_resolution" | "load_probe" | "create_probe" | "dispatch";
 
 const BUILD_COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
 
-async function resolveCurrentBuild(request: Request) {
-  const response = await fetch(new URL("/api/health", request.url), {
-    headers: { accept: "application/json" },
-    cache: "no-store",
-    signal: AbortSignal.timeout(5_000),
-  });
-  if (!response.ok) throw new Error("Production health is not ready for a runtime probe.");
-  const payload = await response.json() as HealthPayload;
-  const buildCommit = String(payload.buildCommit || "").trim().toLowerCase();
+function resolveCurrentBuild() {
+  // Cloudflare Workers Builds injects this exact commit into the deployed
+  // Worker configuration. The caller cannot supply or override release identity.
+  const buildCommit = String(process.env.FOREMENTION_BUILD_COMMIT || "").trim().toLowerCase();
   if (!BUILD_COMMIT_PATTERN.test(buildCommit)) throw new Error("The deployed build commit could not be verified.");
   return buildCommit;
 }
@@ -45,43 +40,52 @@ function probeResponse(buildCommit: string, probe: ProbeRow | null) {
   };
 }
 
-function unavailable(error: unknown) {
+function unavailable(error: unknown, stage: ProbeStage) {
   const migrationPending = isMissingRelationError(error);
   return Response.json(
     {
       error: migrationPending
         ? "The runtime probe ledger is not available on this release yet."
         : "The runtime probe could not be completed.",
+      stage,
     },
     { status: 503, headers: NO_STORE },
   );
 }
 
-export async function GET(request: Request) {
+export async function GET() {
+  let stage: ProbeStage = "build_resolution";
   try {
-    const buildCommit = await resolveCurrentBuild(request);
+    const buildCommit = resolveCurrentBuild();
+    stage = "load_probe";
     const probe = await loadProbe(buildCommit);
     return Response.json(probeResponse(buildCommit, probe), { headers: NO_STORE });
   } catch (error) {
-    return unavailable(error);
+    return unavailable(error, stage);
   }
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   if (!process.env.INNGEST_EVENT_KEY) {
-    return Response.json({ error: "Inngest event dispatch is not configured." }, { status: 503, headers: NO_STORE });
+    return Response.json(
+      { error: "Inngest event dispatch is not configured.", stage: "dispatch" },
+      { status: 503, headers: NO_STORE },
+    );
   }
 
+  let stage: ProbeStage = "build_resolution";
   try {
-    // The caller never supplies a SHA. The exact deployed release is resolved
-    // from the same public health contract used by the production release gate.
-    const buildCommit = await resolveCurrentBuild(request);
+    // The caller never supplies a SHA. The exact deployed release comes from
+    // the immutable build binding used by the production health contract.
+    const buildCommit = resolveCurrentBuild();
+    stage = "load_probe";
     const existing = await loadProbe(buildCommit);
     if (existing) {
       const body = probeResponse(buildCommit, existing);
       return Response.json(body, { status: body.status === "executed" ? 200 : 202, headers: NO_STORE });
     }
 
+    stage = "create_probe";
     const inserted = await supabaseRest<ProbeRow[]>(
       "runtime_service_probes?on_conflict=service,build_commit",
       {
@@ -97,6 +101,7 @@ export async function POST(request: Request) {
       return Response.json(body, { status: body.status === "executed" ? 200 : 202, headers: NO_STORE });
     }
 
+    stage = "dispatch";
     try {
       await inngest.send({
         id: `runtime-probe-${buildCommit}`,
@@ -110,11 +115,14 @@ export async function POST(request: Request) {
         `runtime_service_probes?service=eq.inngest&build_commit=eq.${buildCommit}&executed_at=is.null`,
         { method: "DELETE", serviceRole: true },
       ).catch(() => undefined);
-      return Response.json({ error: "Inngest did not accept the runtime probe." }, { status: 502, headers: NO_STORE });
+      return Response.json(
+        { error: "Inngest did not accept the runtime probe.", stage },
+        { status: 502, headers: NO_STORE },
+      );
     }
 
     return Response.json(probeResponse(buildCommit, probe), { status: 202, headers: NO_STORE });
   } catch (error) {
-    return unavailable(error);
+    return unavailable(error, stage);
   }
 }
