@@ -2,8 +2,8 @@ import Link from "next/link";
 import { requireViewer } from "@/lib/auth";
 import { loadSourceChangeGraph } from "@/lib/change-graph";
 import { loadQuestionPerformance, loadRunAnswers, loadRuns, loadSourceMap } from "@/lib/data";
-import { loadWeeklyIntelligence } from "@/lib/intelligence-loop";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
+import { loadTruthfulWeeklyIntelligence } from "@/lib/truthful-intelligence";
 
 const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
 const snapshotDate = (value: string) => new Intl.DateTimeFormat("en-US", {
@@ -26,7 +26,7 @@ export default async function AnalyticsPage() {
     loadRuns(viewer),
     loadSourceMap(viewer),
     loadQuestionPerformance(viewer),
-    loadWeeklyIntelligence(viewer),
+    loadTruthfulWeeklyIntelligence(viewer),
   ]);
   const observedRuns = allRuns.filter((run) => ["review", "complete", "partial"].includes(run.status));
   const latest = intelligence.latest;
