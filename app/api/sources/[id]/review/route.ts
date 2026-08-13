@@ -124,19 +124,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const note = clean(body.note, 2000);
 
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo", reviewedAt: new Date().toISOString() });
+  if (!viewer.accessToken) return NextResponse.json({ error: "Your authenticated session is incomplete. Sign in again." }, { status: 401 });
+  const accessToken = viewer.accessToken;
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context) return NextResponse.json({ error: "Complete onboarding before reviewing a source." }, { status: 409 });
   if (!role || role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
   const organizationId = context.organizationId;
   const rows = await supabaseRest<Array<{ id: string; source_id: string; client_present: boolean; competitors_present: string[]; entry_route: string | null; feasibility: string; influence: string; analyst_note: string | null }>>(
     `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note&id=eq.${encodeURIComponent(id)}&organization_id=eq.${organizationId}&limit=1`,
-    { token: viewer.accessToken },
+    { token: accessToken },
   );
   const entry = rows[0];
   if (!entry) return NextResponse.json({ error: "Source record not found in this workspace." }, { status: 404 });
   const sourceRows = await supabaseRest<Array<{ id: string; canonical_url: string; page_title: string | null }>>(
     `sources?select=id,canonical_url,page_title&id=eq.${entry.source_id}&organization_id=eq.${organizationId}&limit=1`,
-    { token: viewer.accessToken },
+    { token: accessToken },
   );
   const source = sourceRows[0];
   if (!source) return NextResponse.json({ error: "The reviewed Source Map record no longer has a source in this workspace." }, { status: 409 });
@@ -145,20 +147,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   await Promise.all([
     supabaseRest(`sources?id=eq.${entry.source_id}&organization_id=eq.${organizationId}`, {
       method: "PATCH",
-      token: viewer.accessToken,
+      token: accessToken,
       prefer: "return=minimal",
       body: { crawler_access: body.crawlerAccess, crawler_checked_at: reviewedAt },
     }),
     supabaseRest(`source_map_entries?id=eq.${entry.id}&organization_id=eq.${organizationId}`, {
       method: "PATCH",
-      token: viewer.accessToken,
+      token: accessToken,
       prefer: "return=minimal",
       body: { client_present: Boolean(body.clientPresent), competitors_present: competitors, entry_route: body.route, feasibility: body.feasibility, influence: body.influence, analyst_note: note || null },
     }),
   ]);
 
   const opportunity = await syncReviewedOpportunity({
-    token: viewer.accessToken,
+    token: accessToken,
     organizationId,
     projectId: context.projectId,
     sourceId: source.id,
@@ -173,7 +175,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   await supabaseRest("audit_logs", {
     method: "POST",
-    token: viewer.accessToken,
+    token: accessToken,
     prefer: "return=minimal",
     body: {
       organization_id: organizationId,
