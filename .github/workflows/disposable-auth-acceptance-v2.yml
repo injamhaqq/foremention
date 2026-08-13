@@ -1,0 +1,128 @@
+name: Disposable Auth Acceptance V2
+
+on:
+  push:
+    branches:
+      - ops/auth-journey-20260813
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run disposable production auth acceptance
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base = 'https://foremention.com';
+          const supabase = 'https://vuujwdxivjsdikdstwib.supabase.co';
+          const publishable = 'sb_publishable_thWvI_bBclyKb1gd2aqI5w_EX5HLs9B';
+          const email = 'foremention2026+acceptance-31727494895@gmail.com';
+          const password = 'Z7!mQ2#vR9@xL4$kT8^pN6&cW3';
+          const breached = 'Password123!';
+
+          function collectCookies(response) {
+            const map = new Map();
+            const raw = typeof response.headers.getSetCookie === 'function'
+              ? response.headers.getSetCookie()
+              : [response.headers.get('set-cookie')].filter(Boolean);
+            for (const line of raw) {
+              for (const part of String(line).split(/,(?=[^;,]+=)/)) {
+                const first = part.split(';', 1)[0];
+                const idx = first.indexOf('=');
+                if (idx > 0) map.set(first.slice(0, idx).trim(), first.slice(idx + 1).trim());
+              }
+            }
+            return map;
+          }
+
+          function cookieHeader(map, extra={}) {
+            return [...map.entries(), ...Object.entries(extra)]
+              .map(([k,v]) => `${k}=${v}`)
+              .join('; ');
+          }
+
+          async function login(label) {
+            const r = await fetch(`${base}/api/auth/login`, {
+              method: 'POST',
+              headers: {'content-type':'application/json','accept':'application/json'},
+              body: JSON.stringify({email, password}),
+              redirect: 'manual'
+            });
+            const text = await r.text();
+            let body; try { body = JSON.parse(text); } catch { body = text; }
+            if (r.status !== 200 || !body || body.ok !== true || body.session !== true) {
+              throw new Error(`${label} login failed: ${r.status} ${text}`);
+            }
+            const cookies = collectCookies(r);
+            if (!cookies.get('foremention-session') || !cookies.get('foremention-refresh')) {
+              throw new Error(`${label} missing session/refresh cookies`);
+            }
+            console.log(`${label}_LOGIN`, JSON.stringify({status:r.status, ok:true, session:true}));
+            return cookies;
+          }
+
+          const A = await login('A');
+          const B = await login('B');
+
+          const app = await fetch(`${base}/app`, {
+            headers: {cookie: cookieHeader(A)},
+            redirect: 'manual'
+          });
+          console.log('APP', JSON.stringify({status:app.status, location:app.headers.get('location') || null}));
+          if ([401,403].includes(app.status) || String(app.headers.get('location') || '').includes('/login')) {
+            throw new Error('Authenticated /app access failed');
+          }
+
+          const breach = await fetch(`${base}/api/auth/password`, {
+            method:'POST',
+            headers:{
+              'content-type':'application/json',
+              'accept':'application/json',
+              cookie: cookieHeader(A, {'foremention-recovery':'1'})
+            },
+            body: JSON.stringify({password: breached}),
+            redirect:'manual'
+          });
+          const breachText = await breach.text();
+          console.log('BREACHED_PASSWORD', JSON.stringify({status:breach.status, body:breachText}));
+          if (breach.status !== 400 || !/breach/i.test(breachText)) {
+            throw new Error(`Breached password was not rejected as expected: ${breach.status} ${breachText}`);
+          }
+
+          await login('C_AFTER_BREACH');
+
+          const refreshB = B.get('foremention-refresh');
+          const logout = await fetch(`${base}/api/auth/logout-all`, {
+            method:'POST',
+            headers:{
+              cookie: cookieHeader(A),
+              origin: base,
+              referer: `${base}/app/settings`
+            },
+            redirect:'manual'
+          });
+          console.log('LOGOUT_ALL', JSON.stringify({status:logout.status, location:logout.headers.get('location') || null}));
+          if (logout.status !== 303 || !/all_sessions_revoked/.test(String(logout.headers.get('location') || ''))) {
+            throw new Error('Global logout did not confirm all_sessions_revoked');
+          }
+
+          const refresh = await fetch(`${supabase}/auth/v1/token?grant_type=refresh_token`, {
+            method:'POST',
+            headers:{apikey:publishable,'content-type':'application/json','accept':'application/json'},
+            body:JSON.stringify({refresh_token: decodeURIComponent(refreshB)})
+          });
+          const refreshText = await refresh.text();
+          console.log('SECOND_REFRESH_AFTER_GLOBAL_LOGOUT', JSON.stringify({status:refresh.status, ok:refresh.ok, body:refreshText}));
+          if (refresh.ok) throw new Error('Second session refresh unexpectedly succeeded after global logout');
+
+          console.log('ACCEPTANCE_RESULT', JSON.stringify({
+            ok:true,
+            confirmed_login:true,
+            authenticated_app:true,
+            breached_password_rejected:true,
+            original_password_unchanged:true,
+            global_revocation:true,
+            second_refresh_rejected:true
+          }));
+          NODE
