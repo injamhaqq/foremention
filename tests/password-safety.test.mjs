@@ -75,3 +75,21 @@ test("signup and recovery enforce the server-side safety boundary", async () => 
   assert.match(recovery, /recovery !== "1"/);
   assert.match(recovery, /Your password was not changed/);
 });
+
+test("signup attestation storage is private, hashed, one-time, and narrowly executable", async () => {
+  const migration = await text("supabase/migrations/20260813180000_signup_security_attestation.sql");
+
+  assert.match(migration, /create schema if not exists private/i);
+  assert.match(migration, /private\.signup_security_attestations/);
+  assert.match(migration, /token_hash text primary key/);
+  assert.match(migration, /email_hash text not null/);
+  assert.doesNotMatch(migration, /password\s+text|password_hash/);
+  assert.match(migration, /revoke all on schema private from public, anon, authenticated/i);
+  assert.match(migration, /grant execute on function public\.issue_signup_security_attestation[\s\S]*to service_role/i);
+  assert.match(migration, /grant execute on function public\.hook_require_signup_security_attestation\(jsonb\)[\s\S]*to supabase_auth_admin/i);
+  assert.match(migration, /revoke execute on function public\.hook_require_signup_security_attestation\(jsonb\)[\s\S]*from authenticated, anon, public/i);
+  assert.match(migration, /delete from private\.signup_security_attestations[\s\S]*returning token_hash into matched_token/i);
+  assert.match(migration, /extensions\.digest\(attestation, 'sha256'\)/);
+  assert.match(migration, /extensions\.digest\(email, 'sha256'\)/);
+  assert.match(migration, /provider <> 'email'/);
+});
