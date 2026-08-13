@@ -12,11 +12,23 @@ const datasets = [
   "workspace_comments", "notifications", "usage_events", "ai_cost_events", "audit_logs",
 ] as const;
 
-async function loadAll(table: string, organizationId: string, token: string) {
+type WorkspaceExportDataset = (typeof datasets)[number];
+
+// Most tenant-owned export tables use a UUID `id`. Two relationship/snapshot
+// tables intentionally use composite keys instead, so ordering every table by
+// `id` makes the complete workspace export fail at runtime. Keep pagination
+// deterministic using the real persisted key for each exceptional dataset.
+const datasetOrder: Partial<Record<WorkspaceExportDataset, string>> = {
+  run_prompt_selections: "run_id.asc,prompt_id.asc",
+  verified_claim_evidence: "claim_id.asc,evidence_item_id.asc",
+};
+
+async function loadAll(table: WorkspaceExportDataset, organizationId: string, token: string) {
   const all: ExportRow[] = [];
   const pageSize = 500;
+  const order = datasetOrder[table] || "id.asc";
   for (let offset = 0; ; offset += pageSize) {
-    const rows = await supabaseRest<ExportRow[]>(`${table}?select=*&organization_id=eq.${organizationId}&order=id.asc&limit=${pageSize}&offset=${offset}`, { token });
+    const rows = await supabaseRest<ExportRow[]>(`${table}?select=*&organization_id=eq.${organizationId}&order=${order}&limit=${pageSize}&offset=${offset}`, { token });
     all.push(...rows);
     if (rows.length < pageSize) return all;
   }
