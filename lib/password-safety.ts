@@ -1,5 +1,5 @@
-import { HashRangeUnavailable, loadHashRange } from "@/lib/hash-range-client";
-import { supabaseRest } from "@/lib/supabase-rest";
+import { HashRangeUnavailable, loadHashRange } from "./hash-range-client.ts";
+import { supabaseRest } from "./supabase-rest.ts";
 
 export { HashRangeUnavailable };
 
