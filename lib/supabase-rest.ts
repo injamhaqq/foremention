@@ -25,6 +25,22 @@ export class SupabaseRequestError extends Error {
   }
 }
 
+export class SupabaseAuthError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(status: number, message: string, code?: string) {
+    super(message);
+    this.name = "SupabaseAuthError";
+    this.status = status;
+    this.code = code;
+  }
+
+  get retryable() {
+    return this.status === 429 || this.status >= 500;
+  }
+}
+
 function safeDatabaseMessage(status: number, detail: string) {
   let parsed: { message?: string; code?: string } = {};
   try { parsed = JSON.parse(detail) as { message?: string; code?: string }; } catch { /* Non-JSON response. */ }
@@ -117,7 +133,18 @@ export async function supabaseAuth(path: string, body: unknown) {
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  const data = (await response.json()) as Record<string, unknown>;
-  if (!response.ok) throw new Error(String(data.msg || data.error_description || data.message || "Authentication failed."));
+  const responseText = await response.text();
+  let data: Record<string, unknown> = {};
+  try { data = responseText ? JSON.parse(responseText) as Record<string, unknown> : {}; } catch { /* Keep an opaque upstream response private. */ }
+  if (!response.ok) {
+    const code = String(data.error_code || data.code || "").trim() || undefined;
+    const providerMessage = String(data.msg || data.error_description || data.message || "Authentication failed.").trim();
+    const safeMessage = response.status >= 500
+      ? "The authentication service is temporarily unavailable."
+      : response.status === 429
+        ? "Authentication is temporarily rate limited. Please wait a moment and try again."
+        : providerMessage.slice(0, 300) || "Authentication failed.";
+    throw new SupabaseAuthError(response.status, safeMessage, code);
+  }
   return data;
 }
