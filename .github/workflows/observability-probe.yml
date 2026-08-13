@@ -1,0 +1,43 @@
+name: Observability Probe
+
+on:
+  push:
+    branches:
+      - ops/security-acceptance-20260813
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect live Foremention observability wiring
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re, urllib.request
+          base='https://foremention.com'
+          req=urllib.request.Request(base, headers={'User-Agent':'Foremention-Observability-Probe/1.0'})
+          with urllib.request.urlopen(req, timeout=20) as r:
+              html=r.read().decode('utf-8','replace')
+              print('HOME_STATUS', r.status)
+          scripts=[]
+          for src in re.findall(r'<script[^>]+src=["\']([^"\']+)', html, re.I):
+              if src.startswith('/'):
+                  src=base+src
+              if src.startswith(base):
+                  scripts.append(src)
+          print('SCRIPT_COUNT', len(scripts))
+          sentry_hits=[]
+          for src in scripts[:80]:
+              try:
+                  req=urllib.request.Request(src, headers={'User-Agent':'Foremention-Observability-Probe/1.0'})
+                  with urllib.request.urlopen(req, timeout=15) as r:
+                      text=r.read().decode('utf-8','replace')
+                  low=text.lower()
+                  if 'sentry' in low or 'ingest.sentry.io' in low:
+                      sentry_hits.append(src)
+              except Exception:
+                  pass
+          print('SENTRY_BUNDLE_HITS', len(sentry_hits))
+          print('SENTRY_CLIENT_WIRING_PRESENT', bool(sentry_hits))
+          PY
