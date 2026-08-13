@@ -54,54 +54,80 @@ export async function loadAiObservationChangeGraph(
 ): Promise<AiObservationChangeGraph> {
   if (viewer.mode === "demo") return fictionalAiObservationChangeGraph(latestRunId, previousRunId);
   if (!viewer.accessToken) return withheld(latestRunId, previousRunId, "A signed-in workspace session is required before AI observations can be compared.");
-  if (!previousRunId) {
-    return buildAiObservationChangeGraph({ latest: { id: latestRunId, methodologyVersion: null }, previous: null, answers: [] });
-  }
 
   const context = await loadWorkspaceContext(viewer);
   if (!context) return withheld(latestRunId, previousRunId, "A configured workspace project is required before AI observations can be compared.");
-  const requested = [latestRunId, previousRunId];
-  const runs = await supabaseRest<RunRow[]>(
-    `runs?select=id,project_id,methodology_version&organization_id=eq.${context.organizationId}&id=in.(${requested.join(",")})`,
-    { token: viewer.accessToken },
-  );
-  const runById = new Map(runs.map((run) => [run.id, run]));
-  const latest = runById.get(latestRunId);
-  const previous = runById.get(previousRunId);
-  if (!latest || !previous || latest.project_id !== context.projectId || previous.project_id !== context.projectId) {
-    return withheld(latestRunId, previousRunId, "The selected reviewed collections are not both inside the active workspace project, so movement is withheld.");
+
+  let effectivePreviousRunId = previousRunId;
+  let diagnosticOnly = false;
+  let runs: RunRow[];
+
+  if (!effectivePreviousRunId) {
+    runs = await supabaseRest<RunRow[]>(
+      `runs?select=id,project_id,methodology_version&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=20`,
+      { token: viewer.accessToken },
+    );
+    const latest = runs.find((run) => run.id === latestRunId);
+    const nearestReviewedPrior = runs.find((run) => run.id !== latestRunId) || null;
+    if (!latest) return withheld(latestRunId, null, "The latest reviewed baseline could not be verified inside the active workspace project.");
+    if (!nearestReviewedPrior) {
+      return buildAiObservationChangeGraph({
+        latest: { id: latest.id, methodologyVersion: latest.methodology_version },
+        previous: null,
+        answers: [],
+      });
+    }
+    effectivePreviousRunId = nearestReviewedPrior.id;
+    diagnosticOnly = true;
+    runs = [latest, nearestReviewedPrior];
+  } else {
+    const requested = [latestRunId, effectivePreviousRunId];
+    runs = await supabaseRest<RunRow[]>(
+      `runs?select=id,project_id,methodology_version&organization_id=eq.${context.organizationId}&id=in.(${requested.join(",")})`,
+      { token: viewer.accessToken },
+    );
   }
 
-  const [answers, maps] = await Promise.all([
-    supabaseRest<AnswerRow[]>(
-      `run_answers?select=run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
-      { token: viewer.accessToken },
-    ),
-    supabaseRest<SourceMapRow[]>(
+  const runById = new Map(runs.map((run) => [run.id, run]));
+  const latest = runById.get(latestRunId);
+  const previous = effectivePreviousRunId ? runById.get(effectivePreviousRunId) : null;
+  if (!latest || !previous || latest.project_id !== context.projectId || previous.project_id !== context.projectId) {
+    return withheld(latestRunId, effectivePreviousRunId, "The selected reviewed collections are not both inside the active workspace project, so movement is withheld.");
+  }
+  const requested = [latestRunId, previous.id];
+
+  const answers = await supabaseRest<AnswerRow[]>(
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+    { token: viewer.accessToken },
+  );
+
+  let competitors: Array<{ runId: string; names: string[] }> = [];
+  let competitorContextComparable = false;
+  if (!diagnosticOnly) {
+    const maps = await supabaseRest<SourceMapRow[]>(
       `source_maps?select=id,run_id,name&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&status=eq.published`,
       { token: viewer.accessToken },
-    ),
-  ]);
+    );
+    const reviewedMaps = maps.filter((map) => map.run_id && map.name.startsWith("Reviewed collection"));
+    const mapByRun = new Map(reviewedMaps.map((map) => [map.run_id!, map.id]));
+    const latestMapId = mapByRun.get(latestRunId) || null;
+    const previousMapId = mapByRun.get(previous.id) || null;
+    competitorContextComparable = Boolean(latestMapId && previousMapId);
+    const mapIds = [latestMapId, previousMapId].filter((value): value is string => Boolean(value));
+    const entries = mapIds.length
+      ? await supabaseRest<SourceMapEntryRow[]>(
+        `source_map_entries?select=source_map_id,competitors_present&organization_id=eq.${context.organizationId}&source_map_id=in.(${mapIds.join(",")})`,
+        { token: viewer.accessToken },
+      )
+      : [];
+    const runByMap = new Map(reviewedMaps.map((map) => [map.id, map.run_id!]));
+    competitors = entries.flatMap((entry) => {
+      const runId = runByMap.get(entry.source_map_id);
+      return runId ? [{ runId, names: entry.competitors_present || [] }] : [];
+    });
+  }
 
-  const reviewedMaps = maps.filter((map) => map.run_id && map.name.startsWith("Reviewed collection"));
-  const mapByRun = new Map(reviewedMaps.map((map) => [map.run_id!, map.id]));
-  const latestMapId = mapByRun.get(latestRunId) || null;
-  const previousMapId = mapByRun.get(previousRunId) || null;
-  const competitorContextComparable = Boolean(latestMapId && previousMapId);
-  const mapIds = [latestMapId, previousMapId].filter((value): value is string => Boolean(value));
-  const entries = mapIds.length
-    ? await supabaseRest<SourceMapEntryRow[]>(
-      `source_map_entries?select=source_map_id,competitors_present&organization_id=eq.${context.organizationId}&source_map_id=in.(${mapIds.join(",")})`,
-      { token: viewer.accessToken },
-    )
-    : [];
-  const runByMap = new Map(reviewedMaps.map((map) => [map.id, map.run_id!]));
-  const competitors = entries.flatMap((entry) => {
-    const runId = runByMap.get(entry.source_map_id);
-    return runId ? [{ runId, names: entry.competitors_present || [] }] : [];
-  });
-
-  return buildAiObservationChangeGraph({
+  const graph = buildAiObservationChangeGraph({
     latest: { id: latest.id, methodologyVersion: latest.methodology_version },
     previous: { id: previous.id, methodologyVersion: previous.methodology_version },
     answers: answers.map((answer) => ({
@@ -121,4 +147,18 @@ export async function loadAiObservationChangeGraph(
     competitors,
     competitorContextComparable,
   });
+
+  if (!diagnosticOnly) return graph;
+  if (graph.status === "withheld") {
+    return {
+      ...graph,
+      previousRunId: previous.id,
+      note: `Nearest prior reviewed-run diagnostic: ${graph.note} No delta is inferred from this non-comparable pair.`,
+    };
+  }
+  return withheld(
+    latestRunId,
+    previous.id,
+    "A prior reviewed run exists, but Safe Intelligence did not select it as the exact comparison pair. The fallback run is shown only as a comparability diagnostic; it is never used to create customer movement.",
+  );
 }
