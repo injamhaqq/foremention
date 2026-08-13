@@ -1,4 +1,4 @@
-import type { EntryRoute } from "@/lib/types";
+import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
 export type ReviewedOpportunityBridge = {
   actionable: boolean;
@@ -31,6 +31,8 @@ export function reviewedOpportunityBridge(input: {
   canonicalUrl: string;
   route: EntryRoute;
   clientPresent: boolean;
+  influence: SourceMapEntry["influence"];
+  feasibility: SourceMapEntry["feasibility"];
 }): ReviewedOpportunityBridge {
   const label = sourceLabel(input.pageTitle, input.canonicalUrl);
   if (input.clientPresent) {
@@ -38,6 +40,16 @@ export function reviewedOpportunityBridge(input: {
       actionable: false,
       title: `Reviewed source gap: ${label}`,
       nextAction: "Archived because a workspace reviewer verified that the client brand is present on this cited source.",
+      influenceScore: 0,
+      feasibilityScore: 0,
+    };
+  }
+
+  if (input.influence === "unknown" || input.feasibility === "unknown") {
+    return {
+      actionable: false,
+      title: `Reviewed source gap: ${label}`,
+      nextAction: "Not promoted to an opportunity yet because influence and feasibility have not both been human-reviewed.",
       influenceScore: 0,
       feasibilityScore: 0,
     };
