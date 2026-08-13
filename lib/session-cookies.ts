@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 export const SESSION_COOKIE = "foremention-session";
 export const REFRESH_COOKIE = "foremention-refresh";
 export const DEMO_COOKIE = "foremention-demo";
+export const RECOVERY_COOKIE = "foremention-recovery";
 
 type SessionTokens = {
   accessToken: string;
@@ -30,10 +31,22 @@ export function setSessionCookies(response: NextResponse, tokens: SessionTokens)
   }
 }
 
+export function markRecoverySession(response: NextResponse) {
+  response.cookies.set(RECOVERY_COOKIE, "1", {
+    ...cookieBase,
+    maxAge: 60 * 15,
+  });
+}
+
+export function clearRecoverySession(response: NextResponse) {
+  response.cookies.delete(RECOVERY_COOKIE);
+}
+
 export function clearSessionCookies(response: NextResponse) {
   response.cookies.delete(SESSION_COOKIE);
   response.cookies.delete(REFRESH_COOKIE);
   response.cookies.delete(DEMO_COOKIE);
+  response.cookies.delete(RECOVERY_COOKIE);
 }
 
 export function clearDemoCookie(response: NextResponse) {

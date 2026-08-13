@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { setSessionCookies } from "@/lib/session-cookies";
+import { clearRecoverySession, markRecoverySession, setSessionCookies } from "@/lib/session-cookies";
 
 const allowedTypes = new Set(["signup", "recovery", "invite", "magiclink", "email_change"]);
 
@@ -43,5 +43,7 @@ export async function POST(request: Request) {
     expiresIn: Math.max(60, Number(data.expires_in || 3600)),
     refreshToken: data.refresh_token,
   });
+  if (type === "recovery") markRecoverySession(response);
+  else clearRecoverySession(response);
   return response;
 }
