@@ -4,7 +4,7 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
-const migrationPath = "supabase/migrations/20260813034000_suppress_legacy_ungated_movement_alerts.sql";
+const migrationPath = "supabase/migrations/20260813033833_suppress_legacy_ungated_movement_alerts.sql";
 
 test("legacy chronological run differences cannot enter the customer notification feed", async () => {
   const migration = await text(migrationPath);
