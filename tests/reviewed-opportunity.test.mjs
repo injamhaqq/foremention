@@ -8,6 +8,8 @@ test("a reviewed missing-brand source becomes an actionable persisted opportunit
     canonicalUrl: "https://example.com/accounting",
     route: "expert contribution",
     clientPresent: false,
+    influence: "high",
+    feasibility: "medium",
   });
 
   assert.equal(result.actionable, true);
@@ -19,12 +21,30 @@ test("a reviewed missing-brand source becomes an actionable persisted opportunit
   assert.equal(result.feasibilityScore, 0);
 });
 
+test("an incomplete review does not become a Resolution Center opportunity", () => {
+  const result = reviewedOpportunityBridge({
+    pageTitle: "Comparison page",
+    canonicalUrl: "https://example.com/compare",
+    route: "comparison inclusion",
+    clientPresent: false,
+    influence: "unknown",
+    feasibility: "high",
+  });
+
+  assert.equal(result.actionable, false);
+  assert.match(result.nextAction, /not both been human-reviewed/);
+  assert.equal(result.influenceScore, 0);
+  assert.equal(result.feasibilityScore, 0);
+});
+
 test("brand-present review archives the bridge instead of manufacturing an opportunity", () => {
   const result = reviewedOpportunityBridge({
     pageTitle: null,
     canonicalUrl: "https://www.example.org/review",
     route: "legitimate review",
     clientPresent: true,
+    influence: "high",
+    feasibility: "high",
   });
 
   assert.equal(result.actionable, false);
