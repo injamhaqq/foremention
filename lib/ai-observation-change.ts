@@ -77,6 +77,8 @@ export async function loadAiObservationChangeGraph(
         answers: [],
       });
     }
+    // Diagnostic-only invariant: this fallback may explain why comparison was withheld,
+    // but it can never promote the nearest chronological run into customer movement.
     effectivePreviousRunId = nearestReviewedPrior.id;
     diagnosticOnly = true;
     runs = [latest, nearestReviewedPrior];
