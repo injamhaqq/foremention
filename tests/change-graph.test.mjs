@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { buildSourceChangeGraph, EMPTY_SOURCE_CHANGE_GRAPH } from "../lib/change-graph.ts";
+import { buildSourceChangeGraph, EMPTY_SOURCE_CHANGE_GRAPH } from "../lib/change-graph-core.ts";
 
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
