@@ -1,9 +1,23 @@
 import Link from "next/link";
 import { requireViewer } from "@/lib/auth";
+import { loadSourceChangeGraph } from "@/lib/change-graph";
 import { loadQuestionPerformance, loadRunAnswers, loadRuns, loadSourceMap } from "@/lib/data";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
 
 const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
+const snapshotDate = (value: string) => new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "UTC",
+  timeZoneName: "short",
+}).format(new Date(value));
+const sourceHost = (value: string) => {
+  try { return new URL(value).hostname.replace(/^www\./, ""); }
+  catch { return value; }
+};
 
 export default async function AnalyticsPage() {
   const viewer = await requireViewer("/app/analytics");
@@ -17,7 +31,12 @@ export default async function AnalyticsPage() {
 
   const latest = runs.at(-1)!;
   const previous = runs.length > 1 ? runs.at(-2)! : null;
-  const answers = await loadRunAnswers(viewer, latest.id);
+  const sourceIds = sources.flatMap((source) => source.sourceId ? [source.sourceId] : []);
+  const [answers, changeGraph] = await Promise.all([
+    loadRunAnswers(viewer, latest.id),
+    loadSourceChangeGraph(viewer, sourceIds),
+  ]);
+  const sourceEntryById = new Map(sources.flatMap((source) => source.sourceId ? [[source.sourceId, source.id] as const] : []));
   const isReviewed = latest.status === "complete" || latest.status === "partial";
   const recurringSources = sources.filter((source) => source.evidenceCount > 1).length;
   const reviewedSourceCount = sources.filter((source) => source.crawlerAccess !== "unknown").length;
@@ -25,11 +44,17 @@ export default async function AnalyticsPage() {
   const state = latest.status === "review" ? "NEEDS_REVIEW" : runs.length > 1 ? "COMPLETE" : "PARTIALLY_COMPLETE";
 
   return <main className="workspace" data-product-state={state}>
-    <div className="workspace-heading"><div><span className="eyebrow">Did anything change?</span><h1>Analytics</h1><p>Compare dated collections, question evidence yield, and source-review progress. Every number comes from persisted provider observations; movement is observed change, not proof that an action caused it.</p><p className="table-caption"><strong>{runs.length > 1 ? `${runs.length} observed collections` : "Current reviewed baseline"}</strong> · Latest {latest.date} · {latest.answers} answer{latest.answers === 1 ? "" : "s"}</p></div><Link className="button button--outline" href="/app/runs">Inspect AI Results</Link></div>
+    <div className="workspace-heading"><div><span className="eyebrow">Did anything change?</span><h1>Analytics</h1><p>Compare dated collections, question evidence yield, source-review progress, and saved cited-page changes. Every number comes from persisted observations; movement is observed change, not proof that an action caused it.</p><p className="table-caption"><strong>{runs.length > 1 ? `${runs.length} observed collections` : "Current reviewed baseline"}</strong> · Latest {latest.date} · {latest.answers} answer{latest.answers === 1 ? "" : "s"}</p></div><Link className="button button--outline" href="/app/runs">Inspect AI Results</Link></div>
 
     <div className="metric-grid"><article><span>Brand presence</span><strong>{latest.presence}%</strong><small>{latest.answers} answer{latest.answers === 1 ? "" : "s"} in latest collection{previous ? ` · ${signed(latest.presence - previous.presence)} pts vs previous` : isReviewed ? " · Current reviewed baseline" : " · Current unreviewed baseline"}</small></article><article><span>First mention</span><strong>{latest.firstMention}%</strong><small>{latest.answers} answer{latest.answers === 1 ? "" : "s"}{previous ? ` · ${signed(latest.firstMention - previous.firstMention)} pts vs previous` : " · baseline only"}</small></article><article><span>Citation observations</span><strong>{latest.citations}</strong><small>{previous ? `${signed(latest.citations - previous.citations)} vs previous` : `${recurringSources} recurring mapped sources`}</small></article><article><span>Reviewed sources</span><strong>{reviewedSourceCount} of {sources.length}</strong><small>{sources.length - reviewedSourceCount} cited page{sources.length - reviewedSourceCount === 1 ? "" : "s"} still need review</small></article></div>
 
     <div className="analytics-grid"><section className="panel panel--wide"><span className="eyebrow">Brand presence over time</span><h2>{runs.length > 1 ? "Comparable reviewed collection history" : "One collection establishes a baseline"}</h2>{runs.length > 1 ? <div className="trend-chart trend-chart--dynamic" style={{ gridTemplateColumns: `repeat(${Math.min(runs.length, 12)}, minmax(46px, 1fr))` }} role="img" aria-label={`Brand presence across ${runs.length} observed collections`}>{runs.slice(-12).map((run, index) => <div key={run.id}><i style={{ height: `${Math.max(2, run.presence)}%` }} /><span>R{Math.max(1, runs.length - 11) + index}</span><small>{run.presence}%</small></div>)}</div> : <div className="baseline-record"><strong>{answers[0]?.provider}{answers[0]?.model ? ` · ${answers[0].model}` : ""}</strong><p>{answers[0] ? `${answers[0].citations.length} cited source${answers[0].citations.length === 1 ? "" : "s"} were preserved from this answer. Repeat the same methodology before interpreting movement.` : "The reviewed run establishes a baseline. A second comparable collection is required before Foremention draws a trend."}</p></div>}<p className="table-caption">Percentages always refer to the persisted answers in that collection. Exact provider, model, date, answer, and citations remain inspectable in AI Results.</p></section><section className="panel"><span className="eyebrow">Source review progress</span><h2>{reviewedSourceCount} of {sources.length} pages checked.</h2><div className="empty-state empty-state--compact"><p>{sources.length ? `${sources.length - reviewedSourceCount} cited pages still need page-level verification before they become reviewed opportunities.` : "No cited sources are available yet."}</p><Link className="text-link" href="/app/source-map">Review Sources →</Link></div></section></div>
+
+    <section className="panel panel--flush source-change-graph">
+      <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Source Change Graph</span><h2>Which cited pages actually changed?</h2><p>Foremention compares immutable bounded page observations from collections and manual source checks. It records fingerprint and reachability differences without storing page bodies or claiming why a page changed.</p><p className="table-caption"><strong>{changeGraph.checkedCount ? `${changeGraph.checkedCount} saved page check${changeGraph.checkedCount === 1 ? "" : "s"}` : "No saved page checks yet"}</strong>{changeGraph.checkedCount ? ` · ${changeGraph.differenceCount} observed difference${changeGraph.differenceCount === 1 ? "" : "s"} · ${changeGraph.unreachableCount} became unreachable · ${changeGraph.nonComparableCount} not comparable` : " · Run a new collection or inspect a cited source to establish the first immutable page baseline."}</p></div></div>
+      {changeGraph.events.length ? <div className="table-wrap"><table><thead><tr><th>Checked</th><th>Source</th><th>Observed difference</th><th>Evidence context</th><th>Inspect</th></tr></thead><tbody>{changeGraph.events.map((event) => { const sourceEntryId = sourceEntryById.get(event.sourceId); return <tr key={event.id}><td>{snapshotDate(event.checkedAt)}</td><td><strong>{event.pageTitle || sourceHost(event.canonicalUrl)}</strong><div className="table-caption">{sourceHost(event.finalUrl)}</div></td><td><strong>{event.changeState === "unreachable" ? "Became unreachable" : "Observed difference"}</strong><div className="table-caption">{event.changeReason || "The saved page observation differed from its preceding baseline."}</div></td><td>{event.collectionLinked ? `${event.linkedObservationCount} linked citation observation${event.linkedObservationCount === 1 ? "" : "s"}` : "Manual page check"}</td><td>{sourceEntryId ? <Link className="text-link" href={`/app/sources/${sourceEntryId}`}>Open source →</Link> : <span>Source record</span>}</td></tr>; })}</tbody></table></div> : <div className="empty-state empty-state--border"><h2>{changeGraph.checkedCount ? "No page differences have been observed yet." : "The Change Graph needs its first saved page observation."}</h2><p>{changeGraph.checkedCount ? `Foremention preserved ${changeGraph.baselineCount} first baseline check${changeGraph.baselineCount === 1 ? "" : "s"} and ${changeGraph.unchangedCount} matching follow-up check${changeGraph.unchangedCount === 1 ? "" : "s"}. Nothing is being promoted into a change event without persisted evidence.` : "Future collections and manual source inspections will append bounded page fingerprints here. Historical records remain immutable."}</p><Link className="text-link" href="/app/source-map">Open Sources →</Link></div>}
+      <p className="table-caption panel-heading--padded">A fingerprint or reachability difference shows that the bounded public-page observation changed between two saved checks. It does not establish causation, editorial acceptance, AI ranking movement, traffic, leads, or revenue.</p>
+    </section>
 
     <section className="panel panel--flush"><div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Recent collections</span><h2>See the denominator behind every trend.</h2><p>Latest first. A status of Needs review is kept separate from reviewed history.</p></div></div><div className="run-table"><div className="run-row run-row--head"><span>Date</span><span>Status</span><span>Answers</span><span>Citations</span><span>Brand presence</span><span>First mention</span><span>New sources</span><span>Inspect</span></div>{recentRuns.map((run) => <Link className="run-row" href={`/app/runs/${run.id}`} key={run.id}><strong>{run.date}</strong><span>{productStateLabel(stateForRun({ status: run.status, answerCount: run.answers, citationCount: run.citations }))}</span><strong>{run.answers}</strong><strong>{run.citations}</strong><span>{run.presence}% of {run.answers}</span><span>{run.firstMention}% of {run.answers}</span><strong>{run.newSources}</strong><span>Open →</span></Link>)}</div></section>
 
