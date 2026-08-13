@@ -2,19 +2,23 @@ import Link from "next/link";
 import { AccountLifecycle } from "@/components/account-lifecycle";
 import { StatusDot } from "@/components/brand";
 import { EmailAlertPreferences } from "@/components/email-alert-preferences";
+import { GoogleSheetsSettings } from "@/components/google-sheets-settings";
+import { HubSpotSettings } from "@/components/hubspot-settings";
+import { NotionSettings } from "@/components/notion-settings";
+import { PublicReportSettings } from "@/components/public-report-settings";
+import { SessionSecurity } from "@/components/session-security";
+import { WebhookSettings } from "@/components/webhook-settings";
 import { requireViewer } from "@/lib/auth";
 import { getApplicationEmailStatus } from "@/lib/application-email";
 import { loadNotificationPreference, loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
-import { WebhookSettings } from "@/components/webhook-settings";
-import { HubSpotSettings } from "@/components/hubspot-settings";
-import { NotionSettings } from "@/components/notion-settings";
-import { GoogleSheetsSettings } from "@/components/google-sheets-settings";
-import { PublicReportSettings } from "@/components/public-report-settings";
 import { getSecretRotationStatuses, MAX_SECRET_AGE_DAYS } from "@/lib/secret-rotation";
 
-export default async function SettingsPage() {
-  const viewer = await requireViewer("/app/settings");
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ session_action?: string }> }) {
+  const [viewer, query] = await Promise.all([
+    requireViewer("/app/settings"),
+    searchParams,
+  ]);
   const [workspace, team, deletionRequest, providers, emailPreference] = await Promise.all([
     loadWorkspaceSummary(viewer),
     loadTeam(viewer),
@@ -107,6 +111,12 @@ export default async function SettingsPage() {
           <b>{team.role === "owner" ? "Full access" : "Role-based access"}</b>
         </div>
         <div className="settings-actions"><Link className="button button--outline" href="/app/team">Manage team</Link></div>
+      </section>
+
+      <section className="panel">
+        <span className="eyebrow">Account security</span>
+        <h2>Signed-in devices</h2>
+        <SessionSecurity demo={viewer.mode === "demo"} globalError={query.session_action === "global_failed"} />
       </section>
 
       <section className="panel">
