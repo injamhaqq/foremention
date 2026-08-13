@@ -13,23 +13,62 @@ type RunRow = {
   created_at: string;
 };
 
-type SlotRow = {
+type VerifiedAnswerRow = {
   run_id: string;
   prompt_key: string;
   prompt_text: string | null;
   provider: string;
   model: string | null;
+  answer_text: string;
+  citations_json: Array<{ url?: string; title?: string }> | null;
+  brand_present: boolean | null;
+  brand_position: number | null;
+  collected_at: string;
+};
+
+export type VerifiedRunComparisonAnswer = {
+  runId: string;
+  promptKey: string;
+  promptText: string;
+  provider: string;
+  model: string;
+  answer: string;
+  citations: Array<{ url: string; title?: string }>;
+  brandPresent: boolean | null;
+  brandPosition: number | null;
+  collectedAt: string;
 };
 
 export type RunPairComparability = {
   comparable: boolean;
   reason: string | null;
+  answers: VerifiedRunComparisonAnswer[];
 };
 
 const terminalReviewedStates = new Set(["complete", "partial"]);
 
 function withheld(reason: string): RunPairComparability {
-  return { comparable: false, reason };
+  return { comparable: false, reason, answers: [] };
+}
+
+function answerView(row: VerifiedAnswerRow): VerifiedRunComparisonAnswer | null {
+  const promptText = (row.prompt_text || "").replace(/\s+/g, " ").trim();
+  const model = (row.model || "").trim();
+  if (!promptText || !model) return null;
+  return {
+    runId: row.run_id,
+    promptKey: row.prompt_key,
+    promptText,
+    provider: row.provider,
+    model,
+    answer: row.answer_text,
+    citations: (row.citations_json || []).flatMap((citation) => citation.url
+      ? [{ url: citation.url, ...(citation.title ? { title: citation.title } : {}) }]
+      : []),
+    brandPresent: row.brand_present,
+    brandPosition: row.brand_position,
+    collectedAt: row.collected_at,
+  };
 }
 
 /**
@@ -77,16 +116,23 @@ export async function assessWorkspaceRunPairComparability(
     return withheld("The methodology version changed between these reviewed collections.");
   }
 
-  const slots = await supabaseRest<SlotRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+  const rows = await supabaseRest<VerifiedAnswerRow[]>(
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present,brand_position,collected_at&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
     { token: viewer.accessToken },
   );
-  const comparableSlots: ComparableQuestionSlot[] = slots.map((slot) => ({
-    runId: slot.run_id,
-    promptKey: slot.prompt_key,
-    promptText: slot.prompt_text,
-    provider: slot.provider,
-    model: slot.model,
+  const slots: ComparableQuestionSlot[] = rows.map((row) => ({
+    runId: row.run_id,
+    promptKey: row.prompt_key,
+    promptText: row.prompt_text,
+    provider: row.provider,
+    model: row.model,
   }));
-  return assessExactQuestionComparability(laterRunId, earlierRunId, comparableSlots);
+  const assessment = assessExactQuestionComparability(laterRunId, earlierRunId, slots);
+  if (!assessment.comparable) return withheld(assessment.reason || "The reviewed collections are not exactly comparable.");
+
+  const answers = rows.map(answerView).filter((answer): answer is VerifiedRunComparisonAnswer => Boolean(answer));
+  if (answers.length !== rows.length) {
+    return withheld("Exact persisted question or model provenance is missing from at least one verified answer.");
+  }
+  return { comparable: true, reason: null, answers };
 }
