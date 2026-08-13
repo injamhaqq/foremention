@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { setSessionCookies } from "@/lib/session-cookies";
-import { supabaseAuth } from "@/lib/supabase-rest";
+import { SupabaseAuthError, supabaseAuth } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
 
 export async function POST(request: Request) {
@@ -22,6 +22,9 @@ export async function POST(request: Request) {
     response.cookies.delete("foremention-demo");
     return response;
   } catch (error) {
+    if (error instanceof SupabaseAuthError && error.retryable) {
+      return NextResponse.json({ error: "Sign-in is temporarily unavailable. Your account was not changed. Please try again in a moment." }, { status: error.status === 429 ? 429 : 503 });
+    }
     const message = error instanceof Error ? error.message : "Authentication failed.";
     const friendly = /invalid login credentials/i.test(message)
       ? "The email or password is incorrect. If this is a new account, confirm the newest email first."
