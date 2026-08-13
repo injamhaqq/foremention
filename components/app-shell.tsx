@@ -8,9 +8,10 @@ import { NotificationBell } from "@/components/notification-bell";
 
 export function AppShell({ viewer, workspaceName, notifications, children }: { viewer: Viewer; workspaceName?: string; notifications: WorkspaceNotification[]; children: React.ReactNode }) {
   return <div className="app-frame">
+    <a className="skip-link" href="#app-content">Skip to workspace content</a>
     <WorkspaceKeyboardShortcuts />
     <WorkspaceSidebar viewer={viewer} workspaceName={workspaceName} />
-    <div className="app-main">
+    <div className="app-main" id="app-content" tabIndex={-1}>
       <header className="app-topbar">
         <WorkspaceMobileNavigation viewer={viewer} workspaceName={workspaceName} />
         <div>
