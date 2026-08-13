@@ -33,3 +33,11 @@ test("full export is owner-only, tenant-filtered, and excludes secret-bearing ta
   for (const forbidden of ["integration_credentials", "workspace_webhook_endpoints", "invitations"]) assert.doesNotMatch(exporter, new RegExp(`"${forbidden}"`));
   assert.match(exporter, /Provider observations remain distinct from human-reviewed conclusions/);
 });
+
+test("full export uses real composite keys instead of ordering every dataset by id", () => {
+  const exporter = readFileSync("lib/workspace-export.ts", "utf8");
+  assert.match(exporter, /run_prompt_selections:\s*"run_id\.asc,prompt_id\.asc"/);
+  assert.match(exporter, /verified_claim_evidence:\s*"claim_id\.asc,evidence_item_id\.asc"/);
+  assert.match(exporter, /datasetOrder\[table\]\s*\|\|\s*"id\.asc"/);
+  assert.match(exporter, /order=\$\{order\}/);
+});
