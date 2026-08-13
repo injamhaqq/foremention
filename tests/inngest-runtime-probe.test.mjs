@@ -26,10 +26,11 @@ test("Inngest heartbeat executes only a previously requested exact build", async
   assert.doesNotMatch(job, /getProvider|provider_ids|organization_id|prompt_text/);
 });
 
-test("production probe endpoint derives the SHA from health and is idempotent", async () => {
+test("production probe derives the SHA from the deployed binding and never caller input", async () => {
   const route = await text("app/api/ops/inngest-probe/route.ts");
-  assert.match(route, /new URL\("\/api\/health", request\.url\)/);
+  assert.match(route, /process\.env\.FOREMENTION_BUILD_COMMIT/);
   assert.doesNotMatch(route, /request\.json\(/);
+  assert.doesNotMatch(route, /new URL\("\/api\/health"/);
   assert.match(route, /runtime_service_probes\?on_conflict=service,build_commit/);
   assert.match(route, /resolution=ignore-duplicates,return=representation/);
   assert.match(route, /id: `runtime-probe-\$\{buildCommit\}`/);
@@ -38,13 +39,20 @@ test("production probe endpoint derives the SHA from health and is idempotent", 
   assert.match(route, /method: "DELETE"/);
 });
 
+test("probe failures expose only bounded operational stages", async () => {
+  const route = await text("app/api/ops/inngest-probe/route.ts");
+  assert.match(route, /type ProbeStage = "build_resolution" \| "load_probe" \| "create_probe" \| "dispatch"/);
+  assert.match(route, /stage,/);
+  assert.doesNotMatch(route, /error\.message|String\(error\)|stack/);
+});
+
 test("Inngest serve route registers the heartbeat function", async () => {
   const route = await text("app/api/inngest/route.ts");
   assert.match(route, /runtimeServiceProbe/);
   assert.match(route, /functions: \[[^\]]*runtimeServiceProbe[^\]]*\]/s);
 });
 
-test("main CI observes the live Inngest probe without blocking the first rollout", async () => {
+test("main CI observes the live Inngest probe without blocking the diagnostic rollout", async () => {
   const workflow = await text(".github/workflows/ci.yml");
   assert.match(workflow, /name: Probe live Inngest execution/);
   assert.match(workflow, /continue-on-error: true/);
