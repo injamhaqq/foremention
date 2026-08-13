@@ -18,7 +18,7 @@ const answer = (overrides) => ({
   ...overrides,
 });
 
-test("Run Change Graph compares only the same methodology and exact answer matrix", () => {
+test("Run Change Graph compares only the same methodology and exact persisted answer matrix", () => {
   const graph = buildRunChangeGraph({
     latest: { id: "latest", methodologyVersion: "3.0" },
     previous: { id: "previous", methodologyVersion: "3.0" },
@@ -34,7 +34,7 @@ test("Run Change Graph compares only the same methodology and exact answer matri
 
   assert.equal(graph.status, "comparable");
   assert.equal(graph.comparable, true);
-  assert.deepEqual(graph.answerMatrix, { latest: 1, previous: 1, missingExactModels: 0 });
+  assert.deepEqual(graph.answerMatrix, { latest: 1, previous: 1, missingExactModels: 0, missingQuestionTexts: 0 });
   assert.deepEqual(graph.summary, {
     brandGains: 1,
     brandLosses: 0,
@@ -47,7 +47,7 @@ test("Run Change Graph compares only the same methodology and exact answer matri
     contextChanges: 1,
   });
   assert.deepEqual(graph.events.map((event) => event.kind), ["brand_mention", "citation", "source", "competitor", "context"]);
-  assert.match(graph.note, /same reviewed buyer-question, provider, exact-model, and methodology matrix/i);
+  assert.match(graph.note, /same reviewed buyer-question text, provider, exact-model, and methodology matrix/i);
 });
 
 test("Run Change Graph withholds movement when methodology changes", () => {
@@ -75,7 +75,33 @@ test("Run Change Graph withholds movement when exact model provenance is missing
   assert.match(graph.events[0]?.detail || "", /missing exact model provenance/i);
 });
 
-test("Run Change Graph withholds movement when the reviewed answer matrix changes", () => {
+test("Run Change Graph withholds movement when persisted buyer-question text is missing", () => {
+  const graph = buildRunChangeGraph({
+    latest: { id: "latest", methodologyVersion: "3.0" },
+    previous: { id: "previous", methodologyVersion: "3.0" },
+    answers: [answer({ runId: "previous", prompt: "" }), answer({ runId: "latest", prompt: "" })],
+  });
+
+  assert.equal(graph.status, "not_comparable");
+  assert.equal(graph.answerMatrix.missingQuestionTexts, 2);
+  assert.match(graph.events[0]?.detail || "", /missing the persisted buyer-question text/i);
+});
+
+test("Run Change Graph withholds movement when the question wording changes under the same prompt key", () => {
+  const graph = buildRunChangeGraph({
+    latest: { id: "latest", methodologyVersion: "3.0" },
+    previous: { id: "previous", methodologyVersion: "3.0" },
+    answers: [
+      answer({ runId: "previous", promptKey: "q1", prompt: "Best evidence platform?" }),
+      answer({ runId: "latest", promptKey: "q1", prompt: "Best AI evidence platform for B2B teams?" }),
+    ],
+  });
+
+  assert.equal(graph.status, "not_comparable");
+  assert.match(graph.events[0]?.detail || "", /buyer-question text.*matrix changed/i);
+});
+
+test("Run Change Graph withholds movement when the reviewed answer slots change", () => {
   const graph = buildRunChangeGraph({
     latest: { id: "latest", methodologyVersion: "3.0" },
     previous: { id: "previous", methodologyVersion: "3.0" },
@@ -105,15 +131,21 @@ test("one reviewed collection stays a baseline and the fictional demo never comp
   assert.match(demo.note, /fictional demo/i);
 });
 
-test("Run Change Graph loader is tenant, project, human-review, and customer-token scoped", async () => {
+test("Run Change Graph loader is tenant, project, finalized-review, and customer-token scoped", async () => {
   const loader = await text("lib/run-change-graph.ts");
 
   assert.match(loader, /loadWorkspaceContext\(viewer\)/);
   assert.match(loader, /organization_id=eq\.\$\{context\.organizationId\}/g);
   assert.match(loader, /latest\.project_id !== context\.projectId/);
   assert.match(loader, /previous\.project_id !== context\.projectId/);
+  assert.match(loader, /select=id,methodology_version,project_id,status/);
+  assert.match(loader, /reviewFinished\(latest\.status\)/);
+  assert.match(loader, /previous && !reviewFinished\(previous\.status\)/);
+  assert.match(loader, /Both collections must finish human review/);
   assert.match(loader, /review_status=eq\.verified/);
+  assert.match(loader, /prompt: answer\.prompt_text \|\| ""/);
   assert.match(loader, /name\.startsWith\("Reviewed collection"\)/);
+  assert.match(loader, /comparableCompetitorContext/);
   assert.match(loader, /canonicalizeEvidenceUrl/);
   assert.match(loader, /token: viewer\.accessToken/g);
   assert.doesNotMatch(loader, /serviceRole:\s*true/);
