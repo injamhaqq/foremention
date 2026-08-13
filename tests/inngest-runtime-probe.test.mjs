@@ -52,10 +52,23 @@ test("Inngest serve route registers the heartbeat function", async () => {
   assert.match(route, /functions: \[[^\]]*runtimeServiceProbe[^\]]*\]/s);
 });
 
-test("main CI observes the live Inngest probe without blocking the diagnostic rollout", async () => {
+test("production sync asks only the deployed serve endpoint to register its current functions", async () => {
+  const sync = await text("scripts/production-inngest-sync.mjs");
+  assert.match(sync, /const endpoint = `\$\{baseUrl\}\/api\/inngest`/);
+  assert.match(sync, /method: "PUT"/);
+  assert.match(sync, /AbortSignal\.timeout\(15_000\)/);
+  assert.match(sync, /await response\.text\(\)/);
+  assert.doesNotMatch(sync, /INNGEST_(SIGNING|EVENT|API)_KEY/);
+  assert.doesNotMatch(sync, /console\.log\([^\n]*response|console\.log\([^\n]*body/);
+});
+
+test("main CI proves the release before sync and sync before the diagnostic heartbeat", async () => {
   const workflow = await text(".github/workflows/ci.yml");
-  assert.match(workflow, /name: Probe live Inngest execution/);
-  assert.match(workflow, /continue-on-error: true/);
-  assert.match(workflow, /node scripts\/production-inngest-smoke\.mjs/);
+  const releaseIndex = workflow.indexOf("name: Verify exact Cloudflare production release");
+  const syncIndex = workflow.indexOf("name: Sync live Inngest functions");
+  const probeIndex = workflow.indexOf("name: Probe live Inngest execution");
+  assert.ok(releaseIndex >= 0 && syncIndex > releaseIndex && probeIndex > syncIndex);
+  assert.match(workflow, /name: Sync live Inngest functions[\s\S]*?continue-on-error: true[\s\S]*?node scripts\/production-inngest-sync\.mjs/);
+  assert.match(workflow, /name: Probe live Inngest execution[\s\S]*?continue-on-error: true[\s\S]*?node scripts\/production-inngest-smoke\.mjs/);
   assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ github\.sha \}\}/);
 });
