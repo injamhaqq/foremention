@@ -131,7 +131,7 @@ test("source inspection records blocked, oversized, and network-failure outcomes
   assert.equal(unavailable.httpStatus, null);
 });
 
-test("live source inspection is tenant-scoped, role-checked, origin-guarded, and audited", async () => {
+test("live source inspection is tenant-scoped, role-checked, origin-guarded, snapshotted, and audited", async () => {
   const root = new URL("../", import.meta.url);
   const [route, page, component] = await Promise.all([
     readFile(new URL("app/api/sources/[id]/inspect/route.ts", root), "utf8"),
@@ -145,10 +145,17 @@ test("live source inspection is tenant-scoped, role-checked, origin-guarded, and
   assert.match(route, /retry-after/);
   assert.match(route, /source_map_entries\?select=id,source_id[\s\S]*organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(route, /sources\?select=id,canonical_url[\s\S]*organization_id=eq\.\$\{context\.organizationId\}/);
+  assert.match(route, /includePageText: true/);
+  assert.match(route, /persistSourceSnapshot/);
   assert.match(route, /crawler_checked_at: inspection\.checkedAt/);
+  assert.match(route, /snapshot_id: snapshot\.id/);
+  assert.match(route, /change_state: snapshot\.changeState/);
   assert.match(route, /action: "source\.inspected"/);
-  assert.match(route, /hasSignificantSourceChange/);
+  assert.match(route, /snapshot\.materiallyChanged/);
   assert.match(route, /source_\$\{monitoringEvent\}/);
+  assert.match(page, /loadSourceSnapshotHistory/);
+  assert.match(page, /Fingerprint only|text fingerprint/);
   assert.match(page, /SourceLiveInspector/);
   assert.match(component, /does not execute scripts, store the page body/);
+  assert.match(component, /Saved page observation/);
 });

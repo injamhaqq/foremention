@@ -1,5 +1,6 @@
 import { supabaseRest } from "@/lib/supabase-rest";
 import { inspectSourceUrl } from "@/lib/source-inspection";
+import { persistSourceSnapshot } from "@/lib/source-snapshots";
 
 const METHODOLOGY_VERSION = "3.0";
 
@@ -12,6 +13,7 @@ type RunRow = {
 };
 
 type ObservationRow = {
+  id: string;
   source_id: string;
   provider: string;
   observed_at: string;
@@ -29,6 +31,7 @@ type SourceAggregate = {
   title: string;
   count: number;
   providers: Set<string>;
+  observationIds: string[];
   firstObservedAt: string;
   lastObservedAt: string;
   url: string;
@@ -75,12 +78,33 @@ async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
         const searchable = `${result.pageTitle || ""} ${result.pageDescription || ""} ${result.pageText || ""}`.toLocaleLowerCase();
         const clientPresent = Boolean(brand) && searchable.includes(brand.toLocaleLowerCase());
         const competitorsPresent = competitors.filter((name) => searchable.includes(name.toLocaleLowerCase()));
+        const isReachable = result.access === "open" || result.access === "partial";
+
+        await persistSourceSnapshot({
+          organizationId: run.organization_id,
+          sourceId: source.sourceId,
+          canonicalUrl: source.url,
+          inspection: result,
+          runId: run.id,
+          snapshotKey: `${run.id}:${source.sourceId}:source-map-v1`,
+          observationIds: source.observationIds,
+          createdBy: run.created_by,
+          serviceRole: true,
+        });
+
         inspected.set(source.sourceId, { access: result.access, checkedAt: result.checkedAt, clientPresent, competitors: competitorsPresent, title: result.pageTitle });
         await supabaseRest(`sources?id=eq.${source.sourceId}&organization_id=eq.${run.organization_id}`, {
           method: "PATCH",
           serviceRole: true,
           prefer: "return=minimal",
-          body: { crawler_access: result.access, crawler_checked_at: result.checkedAt, ...(result.pageTitle ? { page_title: result.pageTitle } : {}) },
+          body: {
+            crawler_access: result.access,
+            crawler_checked_at: result.checkedAt,
+            content_signature: result.contentSignature || null,
+            content_length: result.contentLength ?? null,
+            ...(isReachable ? { last_reachable_at: result.checkedAt } : {}),
+            ...(result.pageTitle ? { page_title: result.pageTitle } : {}),
+          },
         });
       } catch {
         inspected.set(source.sourceId, { access: "unknown", checkedAt: null, clientPresent: false, competitors: [], title: null });
@@ -117,8 +141,8 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
   const answerIds = answerRows.map((row) => row.id);
   const observations = await supabaseRest<ObservationRow[]>(
     answerIds.length
-      ? `source_observations?select=source_id,provider,observed_at,review_status,source:sources(canonical_url,domain,page_title)&organization_id=eq.${run.organization_id}&run_answer_id=in.(${answerIds.join(",")})${reviewStatus === "verified" ? "&review_status=eq.verified" : ""}`
-      : `source_observations?select=source_id,provider,observed_at,review_status,source:sources(canonical_url,domain,page_title)&id=eq.00000000-0000-0000-0000-000000000000`,
+      ? `source_observations?select=id,source_id,provider,observed_at,review_status,source:sources(canonical_url,domain,page_title)&organization_id=eq.${run.organization_id}&run_answer_id=in.(${answerIds.join(",")})${reviewStatus === "verified" ? "&review_status=eq.verified" : ""}`
+      : `source_observations?select=id,source_id,provider,observed_at,review_status,source:sources(canonical_url,domain,page_title)&id=eq.00000000-0000-0000-0000-000000000000`,
     { serviceRole: true },
   );
 
@@ -129,6 +153,7 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
     if (current) {
       current.count += 1;
       current.providers.add(engineLabels[observation.provider] || observation.provider);
+      current.observationIds.push(observation.id);
       if (observation.observed_at < current.firstObservedAt) current.firstObservedAt = observation.observed_at;
       if (observation.observed_at > current.lastObservedAt) current.lastObservedAt = observation.observed_at;
       continue;
@@ -139,6 +164,7 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
       title: observation.source.page_title || observation.source.domain,
       count: 1,
       providers: new Set([engineLabels[observation.provider] || observation.provider]),
+      observationIds: [observation.id],
       firstObservedAt: observation.observed_at,
       lastObservedAt: observation.observed_at,
       url: observation.source.canonical_url,
@@ -174,7 +200,8 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
   const sourceMapId = mapRows[0]?.id;
   if (!sourceMapId) throw new Error("The reviewed Source Map could not be created.");
 
-  // The background observed-map job performs bounded page inspection once.
+  // The background observed-map job performs bounded page inspection once and
+  // stores only immutable retrieval metadata plus bounded text fingerprints.
   // Human approval reuses that persisted result so the review click never waits
   // on or repeats an external crawl for every cited page.
   const inspected = reviewStatus === "all"

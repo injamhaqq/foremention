@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
-import { hasSignificantSourceChange, inspectSourceUrl, SourceInspectionError } from "@/lib/source-inspection";
+import { inspectSourceUrl, SourceInspectionError } from "@/lib/source-inspection";
+import { persistSourceSnapshot } from "@/lib/source-snapshots";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -43,22 +44,31 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!source) return NextResponse.json({ error: "This source does not belong to your workspace." }, { status: 403 });
 
   try {
-    const inspection = await inspectSourceUrl(source.canonical_url);
-    const wasReachable = source.crawler_access === "open" || source.crawler_access === "partial";
+    const inspection = await inspectSourceUrl(source.canonical_url, {
+      includePageText: true,
+      maxExtractedTextChars: 24_000,
+    });
     const isReachable = inspection.access === "open" || inspection.access === "partial";
-    const becameUnreachable = Boolean(source.crawler_checked_at) && wasReachable && !isReachable;
-    const changedSignificantly = isReachable && hasSignificantSourceChange(
-      { contentSignature: source.content_signature, contentLength: source.content_length },
-      { contentSignature: inspection.contentSignature || null, contentLength: inspection.contentLength ?? null },
-    );
-    const monitoringEvent = becameUnreachable ? "unreachable" : changedSignificantly ? "content_changed" : null;
+    const snapshot = await persistSourceSnapshot({
+      organizationId: context.organizationId,
+      sourceId: source.id,
+      canonicalUrl: source.canonical_url,
+      inspection,
+      createdBy: viewer.id,
+      token: viewer.accessToken,
+    });
+    const monitoringEvent = snapshot.becameUnreachable
+      ? "unreachable"
+      : snapshot.materiallyChanged
+        ? "content_changed"
+        : null;
     const sourceUpdate = {
       crawler_access: inspection.access,
       crawler_checked_at: inspection.checkedAt,
       content_signature: inspection.contentSignature || source.content_signature,
       content_length: inspection.contentLength ?? source.content_length,
       ...(isReachable ? { last_reachable_at: inspection.checkedAt } : {}),
-      ...(changedSignificantly ? { last_content_change_at: inspection.checkedAt } : {}),
+      ...(snapshot.materiallyChanged ? { last_content_change_at: inspection.checkedAt } : {}),
       ...(inspection.pageTitle ? { page_title: inspection.pageTitle } : {}),
     };
     await Promise.all([
@@ -87,6 +97,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             content_type: inspection.contentType,
             final_url: inspection.finalUrl,
             redirect_count: inspection.redirectCount,
+            snapshot_id: snapshot.id,
+            change_state: snapshot.changeState,
             monitoring_event: monitoringEvent,
           },
         },
@@ -103,12 +115,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           title: monitoringEvent === "unreachable" ? "A monitored source became unreachable" : "A monitored source changed materially",
           body: monitoringEvent === "unreachable"
             ? "A previously reachable cited page no longer allowed a safe bounded inspection. Review the source before acting."
-            : "The cited page's bounded text fingerprint changed materially since its previous inspection. Review the page before relying on it.",
+            : "The cited page's bounded text fingerprint changed materially since its previous saved page observation. Review the page before relying on it.",
           href: `/app/sources/${entry.id}`,
         },
       })] : []),
     ]);
-    return NextResponse.json({ data: { ...inspection, monitoringEvent } });
+    return NextResponse.json({
+      data: {
+        access: inspection.access,
+        checkedAt: inspection.checkedAt,
+        contentType: inspection.contentType,
+        finalUrl: inspection.finalUrl,
+        httpStatus: inspection.httpStatus,
+        message: inspection.message,
+        pageTitle: inspection.pageTitle,
+        redirectCount: inspection.redirectCount,
+        monitoringEvent,
+        changeState: snapshot.changeState,
+      },
+    });
   } catch (error) {
     if (error instanceof SourceInspectionError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

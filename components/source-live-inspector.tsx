@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SourceCrawlerAccess, SourceInspectionResult } from "@/lib/source-inspection";
+import type { SourceSnapshotChangeState } from "@/lib/source-snapshots";
 
 const accessLabel: Record<SourceCrawlerAccess, string> = {
   open: "Reachable",
@@ -11,7 +12,18 @@ const accessLabel: Record<SourceCrawlerAccess, string> = {
   unknown: "Unavailable or unknown",
 };
 
-type MonitoredInspection = SourceInspectionResult & { monitoringEvent?: "unreachable" | "content_changed" | null };
+const changeLabel: Record<SourceSnapshotChangeState, string> = {
+  initial: "First saved check",
+  unchanged: "No fingerprint change",
+  changed: "Fingerprint changed",
+  unreachable: "Became unreachable",
+  unknown: "Not comparable yet",
+};
+
+type MonitoredInspection = SourceInspectionResult & {
+  monitoringEvent?: "unreachable" | "content_changed" | null;
+  changeState?: SourceSnapshotChangeState;
+};
 
 export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: string; demo: boolean; canInspect: boolean }) {
   const router = useRouter();
@@ -45,7 +57,7 @@ export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: st
     <div>
       <span className="eyebrow">Live page check</span>
       <h2 id="source-inspector-title">Inspect the cited page safely.</h2>
-      <p>This bounded check records reachability, response status, content type, redirects, and the page title. It does not execute scripts, store the page body, or claim that a person reviewed its claims.</p>
+      <p>This bounded check records reachability, response status, content type, redirects, title, and a text fingerprint. It does not execute scripts, store the page body, or claim that a person reviewed its claims.</p>
     </div>
     <div className="source-inspector__action">
       <button className="button button--ink" type="button" onClick={() => void inspect()} disabled={busy || demo || !canInspect}>
@@ -59,6 +71,7 @@ export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: st
       <div><dt>Content</dt><dd>{inspection.contentType || "Unknown"}</dd></div>
       <div><dt>Redirects</dt><dd>{inspection.redirectCount}</dd></div>
       <div className="source-inspector__wide"><dt>Checked</dt><dd>{new Date(inspection.checkedAt).toLocaleString()}</dd></div>
+      {inspection.changeState && <div className="source-inspector__wide"><dt>Saved page observation</dt><dd>{changeLabel[inspection.changeState]}. Fingerprint only; page body not stored.</dd></div>}
       <div className="source-inspector__wide"><dt>Inspector note</dt><dd>{inspection.message}</dd></div>
       {inspection.pageTitle && <div className="source-inspector__wide"><dt>Observed title</dt><dd>{inspection.pageTitle}</dd></div>}
       {inspection.monitoringEvent && <div className="source-inspector__wide"><dt>Change alert</dt><dd>{inspection.monitoringEvent === "unreachable" ? "This source became unreachable." : "The bounded page fingerprint changed materially."}</dd></div>}
