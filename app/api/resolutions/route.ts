@@ -33,7 +33,7 @@ type AssetRow = {
   applied_by: string | null; applied_at: string | null; application_reference: string | null; application_note: string | null;
   created_at: string; updated_at: string;
 };
-type OpportunityRow = { id: string; title: string; next_action: string | null; source_id: string };
+type OpportunityRow = { id: string; title: string; next_action: string | null; source_id: string; created_at?: string };
 type SourceRow = { id: string; canonical_url: string; page_title: string | null };
 type EvidenceLinkRow = { resolution_asset_id: string; evidence_snapshot: VerifiedResolutionEvidence };
 type FollowUpRow = {
@@ -75,7 +75,7 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
       `resolution_assets?select=id,organization_id,project_id,opportunity_id,source_id,baseline_run_id,asset_type,title,problem_statement,proposal,limitations,generation_version,customer_edited_at,status,review_decision,created_by,submitted_by,submitted_at,approved_by,approved_at,decision_by,decision_at,approval_note,applied_by,applied_at,application_reference,application_note,created_at,updated_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=100`,
       { token: viewer.accessToken },
     ),
-    supabaseRest<OpportunityRow[]>(`opportunities?select=id,title,next_action,source_id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(open,qualified,approved,in_progress)&order=priority_score.desc&limit=100`, { token: viewer.accessToken }),
+    supabaseRest<OpportunityRow[]>(`opportunities?select=id,title,next_action,source_id,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(open,qualified,approved,in_progress)&order=created_at.desc&limit=100`, { token: viewer.accessToken }),
   ]);
   const assetIds = assets.map((row) => row.id);
   const sourceIds = Array.from(new Set([...assets.map((row) => row.source_id), ...opportunities.map((row) => row.source_id)]));
@@ -182,8 +182,8 @@ async function loadVerifiedEvidence(input: {
     { token: viewer.accessToken },
   );
   const answerIds = observations.map((row) => row.run_answer_id).filter((id): id is string => Boolean(id));
-  const candidateAnswers = answerIds.length ? await supabaseRest<Array<{ id: string; run_id: string; prompt_id: string | null; provider: string; model: string | null; answer_text: string; collected_at: string; review_status: string }>>(
-    `run_answers?select=id,run_id,prompt_id,provider,model,answer_text,collected_at,review_status&id=in.(${inFilter(answerIds)})&organization_id=eq.${context.organizationId}&review_status=eq.verified`,
+  const candidateAnswers = answerIds.length ? await supabaseRest<Array<{ id: string; run_id: string; prompt_id: string | null; prompt_text: string; provider: string; model: string | null; answer_text: string; collected_at: string; review_status: string }>>(
+    `run_answers?select=id,run_id,prompt_id,prompt_text,provider,model,answer_text,collected_at,review_status&id=in.(${inFilter(answerIds)})&organization_id=eq.${context.organizationId}&review_status=eq.verified`,
     { token: viewer.accessToken },
   ) : [];
   const baselineRunIds = Array.from(new Set(candidateAnswers.map((row) => row.run_id)));
@@ -191,19 +191,13 @@ async function loadVerifiedEvidence(input: {
     `runs?select=id,status,provider_ids,brand_presence_pct,first_mention_pct,citation_count,new_source_count,completed_at,created_at&id=in.(${inFilter(baselineRunIds)})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(review,complete,partial)&order=completed_at.desc.nullslast`,
     { token: viewer.accessToken },
   ) : [];
-  const eligibleRunIds = new Set(baselineRuns.map((row) => row.id));
-  const answers = candidateAnswers.filter((row) => eligibleRunIds.has(row.run_id));
-  const promptIds = Array.from(new Set(answers.map((row) => row.prompt_id).filter((id): id is string => Boolean(id))));
-  const prompts = promptIds.length ? await supabaseRest<Array<{ id: string; prompt_text: string }>>(
-    `prompts?select=id,prompt_text&id=in.(${inFilter(promptIds)})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`,
-    { token: viewer.accessToken },
-  ) : [];
+  const baselineRunId = baselineRuns[0]?.id || null;
+  const answers = baselineRunId ? candidateAnswers.filter((row) => row.run_id === baselineRunId) : [];
   const answerById = new Map(answers.map((row) => [row.id, row]));
-  const promptById = new Map(prompts.map((row) => [row.id, row.prompt_text]));
   const evidence: VerifiedResolutionEvidence[] = observations.flatMap((observation) => {
     const answer = observation.run_answer_id ? answerById.get(observation.run_answer_id) : null;
     if (!answer) return [];
-    return [{ id: observation.id, kind: "source_observation", title: problem.sourceTitle || problem.sourceUrl, url: problem.sourceUrl, observedAt: observation.observed_at, provider: answer.provider || observation.provider, model: answer.model, question: answer.prompt_id ? promptById.get(answer.prompt_id) || null : null, excerpt: clean(answer.answer_text, 500) || null, runId: answer.run_id, verification: "verified" } as VerifiedResolutionEvidence];
+    return [{ id: observation.id, kind: "source_observation", title: problem.sourceTitle || problem.sourceUrl, url: problem.sourceUrl, observedAt: observation.observed_at, provider: answer.provider || observation.provider, model: answer.model, question: answer.prompt_text || null, excerpt: clean(answer.answer_text, 500) || null, runId: answer.run_id, verification: "verified" } as VerifiedResolutionEvidence];
   });
 
   if (input.evidenceItemIds.length) {
@@ -217,7 +211,7 @@ async function loadVerifiedEvidence(input: {
       evidence.push({ id: item.id, kind: "evidence_item", title: item.title, url: item.source_url, observedAt: item.verified_at, provider: null, model: null, question: null, excerpt: null, runId: null, verification: "verified" });
     }
   }
-  return { evidence, baselineRunId: baselineRuns[0]?.id || null };
+  return { evidence, baselineRunId };
 }
 
 async function loadAsset(viewer: Viewer, context: WorkspaceContext, id: string) {
