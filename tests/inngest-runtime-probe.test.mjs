@@ -26,9 +26,13 @@ test("Inngest heartbeat executes only a previously requested exact build", async
   assert.doesNotMatch(job, /getProvider|provider_ids|organization_id|prompt_text/);
 });
 
-test("production probe derives the SHA from the deployed binding and never caller input", async () => {
+test("production probe derives release identity from live Cloudflare bindings and never caller input", async () => {
   const route = await text("app/api/ops/inngest-probe/route.ts");
-  assert.match(route, /process\.env\.FOREMENTION_BUILD_COMMIT/);
+  assert.match(route, /import \{ env \} from "cloudflare:workers"/);
+  assert.match(route, /runtimeBindings\(\)\.FOREMENTION_BUILD_COMMIT/);
+  assert.match(route, /runtimeBindings\(\)\.INNGEST_EVENT_KEY/);
+  assert.doesNotMatch(route, /process\.env\.FOREMENTION_BUILD_COMMIT/);
+  assert.doesNotMatch(route, /process\.env\.INNGEST_EVENT_KEY/);
   assert.doesNotMatch(route, /request\.json\(/);
   assert.doesNotMatch(route, /new URL\("\/api\/health"/);
   assert.match(route, /runtime_service_probes\?on_conflict=service,build_commit/);
