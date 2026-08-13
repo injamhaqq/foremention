@@ -32,7 +32,7 @@ export type RunChangeGraph = {
   latestRunId: string;
   previousRunId: string | null;
   methodology: { latest: string | null; previous: string | null };
-  answerMatrix: { latest: number; previous: number; missingExactModels: number };
+  answerMatrix: { latest: number; previous: number; missingExactModels: number; missingQuestionTexts: number };
   summary: {
     brandGains: number;
     brandLosses: number;
@@ -61,7 +61,7 @@ export const EMPTY_RUN_CHANGE_SUMMARY: RunChangeGraph["summary"] = {
 };
 
 const normalizedText = (value: string) => value.replace(/\s+/g, " ").trim();
-const keyFor = (answer: RunChangeAnswer) => `${answer.promptKey}\u0000${answer.provider}\u0000${answer.model || "model-not-recorded"}`;
+const keyFor = (answer: RunChangeAnswer) => `${answer.promptKey}\u0000${normalizedText(answer.prompt)}\u0000${answer.provider}\u0000${answer.model || "model-not-recorded"}`;
 const difference = (left: Set<string>, right: Set<string>) => [...left].filter((value) => !right.has(value));
 
 function competitorSet(rows: RunChangeInput["competitors"], runId: string) {
@@ -89,6 +89,7 @@ function baseGraph(input: RunChangeInput) {
         latest: latestAnswers.length,
         previous: previousAnswers.length,
         missingExactModels: [...latestAnswers, ...previousAnswers].filter((answer) => !answer.model).length,
+        missingQuestionTexts: [...latestAnswers, ...previousAnswers].filter((answer) => !normalizedText(answer.prompt)).length,
       },
       summary: { ...EMPTY_RUN_CHANGE_SUMMARY },
     },
@@ -102,7 +103,7 @@ export function fictionalRunChangeGraph(latestRunId: string, previousRunId: stri
     latestRunId,
     previousRunId,
     methodology: { latest: null, previous: null },
-    answerMatrix: { latest: 0, previous: 0, missingExactModels: 0 },
+    answerMatrix: { latest: 0, previous: 0, missingExactModels: 0, missingQuestionTexts: 0 },
     summary: { ...EMPTY_RUN_CHANGE_SUMMARY },
     events: [],
     note: "Run Change Graph is disabled in the fictional demo so demo values cannot be mistaken for customer evidence.",
@@ -134,8 +135,10 @@ export function buildRunChangeGraph(input: RunChangeInput): RunChangeGraph {
     withheldReason = `Methodology changed from ${input.previous.methodologyVersion || "not recorded"} to ${input.latest.methodologyVersion || "not recorded"}.`;
   } else if (base.answerMatrix.missingExactModels > 0) {
     withheldReason = `${base.answerMatrix.missingExactModels} reviewed answer${base.answerMatrix.missingExactModels === 1 ? " is" : "s are"} missing exact model provenance.`;
+  } else if (base.answerMatrix.missingQuestionTexts > 0) {
+    withheldReason = `${base.answerMatrix.missingQuestionTexts} reviewed answer${base.answerMatrix.missingQuestionTexts === 1 ? " is" : "s are"} missing the persisted buyer-question text.`;
   } else if (!sameMatrix) {
-    withheldReason = "The reviewed buyer-question/provider/exact-model matrix changed between collections.";
+    withheldReason = "The reviewed buyer-question text/provider/exact-model matrix changed between collections.";
   }
 
   if (withheldReason) {
@@ -239,6 +242,6 @@ export function buildRunChangeGraph(input: RunChangeInput): RunChangeGraph {
     status: "comparable",
     comparable: true,
     events,
-    note: "Run movement is reported only across the same reviewed buyer-question, provider, exact-model, and methodology matrix. Observed differences do not establish causation.",
+    note: "Run movement is reported only across the same reviewed buyer-question text, provider, exact-model, and methodology matrix. Observed differences do not establish causation.",
   };
 }
