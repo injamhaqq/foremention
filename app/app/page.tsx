@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Arrow, StatusDot } from "@/components/brand";
+import { ProductTruthPanel } from "@/components/product-truth-panel";
 import { demoCompany } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
 import { loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
+import { productTruthForRunMetric } from "@/lib/product-truth";
 import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
 
 export default async function DashboardPage() {
@@ -54,6 +56,52 @@ export default async function DashboardPage() {
       previous: comparablePrevious,
     }
     : null;
+  const metricTruth = latest ? [
+    productTruthForRunMetric({
+      id: "overview-brand-presence",
+      label: "Observed brand presence",
+      source: "Persisted AI answer observations from the current collection",
+      sample: `${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}`,
+      denominator: "Current collection answer set; inspect AI Results for answer-level brand-presence states",
+      collectedAt: latest.date,
+      verification: latest.status === "review" ? "Awaiting human review" : "Human-reviewed collection",
+      demo: viewer.mode === "demo",
+      methodology: "Uses the collection's persisted methodology. Cross-collection movement is shown only when exact buyer-question text, provider, exact model, and methodology all match.",
+    }),
+    productTruthForRunMetric({
+      id: "overview-competitor-appearances",
+      label: "Configured competitors appearing",
+      source: "Exact-name checks against persisted AI answer text from the current collection",
+      sample: `${observedAnswers.length} persisted answer${observedAnswers.length === 1 ? "" : "s"}`,
+      denominator: `${competitors.length} configured competitor name${competitors.length === 1 ? "" : "s"} checked against those answers`,
+      collectedAt: latest.date,
+      verification: latest.status === "review" ? "Current answer observations; run review is still pending" : "Current human-reviewed collection",
+      demo: viewer.mode === "demo",
+      methodology: "This is an exact-name observation, not market share. Trend interpretation follows the same exact-question/provider/model/methodology boundary.",
+    }),
+    productTruthForRunMetric({
+      id: "overview-cited-sources",
+      label: "Cited sources",
+      source: "Provider-returned citation observations normalized into the current Source Map",
+      sample: `${latest.citations} returned citation observation${latest.citations === 1 ? "" : "s"}`,
+      denominator: `${sources.length} unique mapped source record${sources.length === 1 ? "" : "s"}`,
+      collectedAt: latest.date,
+      verification: `${sources.filter((source) => source.crawlerAccess !== "unknown").length} of ${sources.length} mapped pages have a dated page-level check`,
+      demo: viewer.mode === "demo",
+      methodology: "Only returned citation evidence is mapped; missing citations are not inferred or fabricated.",
+    }),
+    productTruthForRunMetric({
+      id: "overview-reviewed-opportunities",
+      label: "Reviewed opportunities",
+      source: "Mapped cited pages that passed the explicit human-review opportunity gates",
+      sample: `${reviewedOpportunities.length} qualifying reviewed page${reviewedOpportunities.length === 1 ? "" : "s"}`,
+      denominator: `${sources.length} mapped cited page${sources.length === 1 ? "" : "s"}`,
+      collectedAt: latest.date,
+      verification: "Requires recorded page review plus known route, influence, and feasibility; unreviewed pages are excluded",
+      demo: viewer.mode === "demo",
+      methodology: "Opportunity status is evidence-gated human review, not a ranking score, publisher promise, or predicted outcome.",
+    }),
+  ] : [];
 
   return <main className="workspace" data-product-state={state}>
     <div className="workspace-heading">
@@ -79,6 +127,7 @@ export default async function DashboardPage() {
       <article><span>Cited sources</span><strong>{latest ? sources.length : "—"}</strong><small>{latest ? `${latest.citations} returned citation observation${latest.citations === 1 ? "" : "s"}` : "Waiting for returned citations"}</small></article>
       <article><span>Reviewed opportunities</span><strong>{latest ? reviewedOpportunities.length : "—"}</strong><small>{reviewedOpportunities.length ? "Human-checked cited pages with a recorded route" : latest ? "No reviewed opportunity exists yet" : "Created only after source review"}</small></article>
     </div>
+    <ProductTruthPanel metrics={metricTruth} title="Why you can trust these four metrics" />
 
     <section className="weekly-loop-teaser">
       <div><span className="eyebrow">What changed?</span><strong>{exactMovement ? `Brand presence ${exactMovement.delta === 0 ? "held steady" : exactMovement.delta > 0 ? "increased" : "decreased"} by ${Math.abs(exactMovement.delta)} points.` : comparableLatest ? "This is the current exact reviewed baseline. Cross-collection movement is withheld until an identical comparison exists." : latest ? "This collection is observed evidence, but it is not yet an exact reviewed comparison baseline." : "A comparable change needs at least one completed collection."}</strong><p>{exactMovement ? `Current: ${exactMovement.latest.presence}% across ${exactMovement.latest.answers} verified answers and ${exactMovement.latest.citations} citation observations. Comparable prior: ${exactMovement.previous.presence}% across ${exactMovement.previous.answers} verified answers and ${exactMovement.previous.citations} citation observations. The persisted buyer-question text, provider, exact model, and methodology matched. Foremention records the change; it does not claim what caused it.` : comparableLatest ? "Other reviewed collections can remain valid evidence on their own. Foremention reports movement here only when the persisted buyer-question text, provider, exact model, and methodology all match the current reviewed baseline." : "Repeat the exact approved questions with the same provider, exact model, and methodology after review before interpreting movement."}</p><Link className="text-link" href="/app/intelligence">Advanced: Weekly Intelligence Loop <Arrow /></Link></div>
