@@ -1,4 +1,5 @@
 import type { Viewer } from "@/lib/auth";
+import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
 import { loadWorkspaceContext } from "@/lib/data";
 import {
   assessExactQuestionComparability,
@@ -19,11 +20,8 @@ type VerifiedAnswerRow = {
   prompt_text: string | null;
   provider: string;
   model: string | null;
-  answer_text: string;
   citations_json: Array<{ url?: string; title?: string }> | null;
   brand_present: boolean | null;
-  brand_position: number | null;
-  collected_at: string;
 };
 
 export type VerifiedRunComparisonAnswer = {
@@ -32,11 +30,8 @@ export type VerifiedRunComparisonAnswer = {
   promptText: string;
   provider: string;
   model: string;
-  answer: string;
   citations: Array<{ url: string; title?: string }>;
   brandPresent: boolean | null;
-  brandPosition: number | null;
-  collectedAt: string;
 };
 
 export type RunPairComparability = {
@@ -55,19 +50,19 @@ function answerView(row: VerifiedAnswerRow): VerifiedRunComparisonAnswer | null 
   const promptText = (row.prompt_text || "").replace(/\s+/g, " ").trim();
   const model = (row.model || "").trim();
   if (!promptText || !model) return null;
+  const citations = (row.citations_json || []).flatMap((citation) => {
+    if (!citation.url) return [];
+    const canonical = canonicalizeEvidenceUrl(citation.url);
+    return canonical ? [{ url: canonical, ...(citation.title ? { title: citation.title } : {}) }] : [];
+  });
   return {
     runId: row.run_id,
     promptKey: row.prompt_key,
     promptText,
     provider: row.provider,
     model,
-    answer: row.answer_text,
-    citations: (row.citations_json || []).flatMap((citation) => citation.url
-      ? [{ url: citation.url, ...(citation.title ? { title: citation.title } : {}) }]
-      : []),
+    citations,
     brandPresent: row.brand_present,
-    brandPosition: row.brand_position,
-    collectedAt: row.collected_at,
   };
 }
 
@@ -117,7 +112,7 @@ export async function assessWorkspaceRunPairComparability(
   }
 
   const rows = await supabaseRest<VerifiedAnswerRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present,brand_position,collected_at&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
     { token: viewer.accessToken },
   );
   const slots: ComparableQuestionSlot[] = rows.map((row) => ({
