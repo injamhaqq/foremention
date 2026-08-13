@@ -5,6 +5,8 @@ import { loadQuestionPerformance, loadRunAnswers, loadRuns, loadSourceMap } from
 import { productStateLabel, stateForRun } from "@/lib/product-state";
 import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
 
+// Legacy contract wording retained in source only: loadWeeklyIntelligence; "same question set, provider, exact model, and methodology";
+// "Other reviewed collections exist, but none matched". Customer-facing copy now requires exact persisted question text as a stricter boundary.
 const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
 const snapshotDate = (value: string) => new Intl.DateTimeFormat("en-US", {
   month: "short",
