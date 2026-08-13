@@ -1,13 +1,14 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 
-const updated = new Date("2026-08-11T00:00:00Z");
+const updated = new Date("2026-08-14T00:00:00Z");
 
 const routes = [
   { path: "", frequency: "weekly", priority: 1 },
   { path: "/product", frequency: "monthly", priority: 0.9 },
   { path: "/source-map", frequency: "weekly", priority: 0.9 },
   { path: "/pricing", frequency: "monthly", priority: 0.8 },
+  { path: "/roi", frequency: "monthly", priority: 0.7 },
   { path: "/methodology", frequency: "monthly", priority: 0.8 },
   { path: "/honesty", frequency: "monthly", priority: 0.7 },
   { path: "/teardowns", frequency: "monthly", priority: 0.7 },
