@@ -1,6 +1,6 @@
-import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
-import type { WorkspaceRunAnswer } from "@/lib/data";
-import type { IntelligenceRun } from "@/lib/intelligence-loop";
+import { canonicalizeEvidenceUrl } from "./collection-policy.ts";
+import type { WorkspaceRunAnswer } from "./data.ts";
+import type { IntelligenceRun } from "./intelligence-loop.ts";
 
 export type ComparableObservationEvent = {
   id: "brand-presence" | "citations" | "sources" | "answer-text";
