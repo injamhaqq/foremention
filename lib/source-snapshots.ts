@@ -41,6 +41,11 @@ export type SourceSnapshotView = {
   finalUrl: string;
   changeState: SourceSnapshotChangeState;
   changeReason: string | null;
+  runId: string | null;
+  previousSnapshotId: string | null;
+  representationVersion: string;
+  contentLength: number | null;
+  fingerprint: string | null;
   collectionLinked: boolean;
   linkedObservationCount: number;
 };
@@ -313,6 +318,11 @@ export async function loadSourceSnapshotHistory(viewer: Viewer, sourceId: string
     finalUrl: row.final_url,
     changeState: row.change_state,
     changeReason: row.change_reason,
+    runId: row.run_id,
+    previousSnapshotId: row.previous_snapshot_id,
+    representationVersion: row.representation_version,
+    contentLength: row.content_length,
+    fingerprint: row.content_hash?.slice(0, 12) || row.content_signature || null,
     collectionLinked: Boolean(row.run_id),
     linkedObservationCount: counts.get(row.id) || 0,
   }));
