@@ -80,3 +80,20 @@ test("source detail explains saved observations without making causal claims", a
   assert.match(page, /Open Opportunities/);
   assert.doesNotMatch(page, /changed because/i);
 });
+
+test("Source Snapshot history exposes immutable provenance without exposing retained page content", async () => {
+  const runtime = await read("lib/source-snapshots.ts");
+  const page = await read("app/app/sources/[id]/page.tsx");
+
+  assert.match(runtime, /runId: row\.run_id/);
+  assert.match(runtime, /previousSnapshotId: row\.previous_snapshot_id/);
+  assert.match(runtime, /representationVersion: row\.representation_version/);
+  assert.match(runtime, /contentLength: row\.content_length/);
+  assert.match(runtime, /fingerprint: row\.content_hash\?\.slice\(0, 12\) \|\| row\.content_signature \|\| null/);
+  assert.match(page, /Collection \{shortRecord\(snapshot\.runId\)\}/);
+  assert.match(page, /Previous \$\{shortRecord\(snapshot\.previousSnapshotId\)\}/);
+  assert.match(page, /Representation: \{snapshot\.representationVersion\}/);
+  assert.match(page, /Fingerprint: \{snapshot\.fingerprint \|\| "Unavailable"\}/);
+  assert.match(page, /not stored page content/);
+  assert.doesNotMatch(page, /page body:\s*\{/i);
+});
