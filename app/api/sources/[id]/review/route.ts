@@ -34,6 +34,8 @@ async function syncReviewedOpportunity(input: {
   canonicalUrl: string;
   route: EntryRoute;
   clientPresent: boolean;
+  influence: SourceMapEntry["influence"];
+  feasibility: SourceMapEntry["feasibility"];
   actorId: string;
 }): Promise<OpportunitySyncResult> {
   const bridge = reviewedOpportunityBridge({
@@ -41,6 +43,8 @@ async function syncReviewedOpportunity(input: {
     canonicalUrl: input.canonicalUrl,
     route: input.route,
     clientPresent: input.clientPresent,
+    influence: input.influence,
+    feasibility: input.feasibility,
   });
   // `source_route_id is null` is the marker for the deterministic opportunity
   // synchronized from Source Map review. Route-specific/manual graph rows keep
@@ -162,6 +166,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     canonicalUrl: source.canonical_url,
     route: body.route as EntryRoute,
     clientPresent: Boolean(body.clientPresent),
+    influence: body.influence as SourceMapEntry["influence"],
+    feasibility: body.feasibility as SourceMapEntry["feasibility"],
     actorId: viewer.id,
   });
 
