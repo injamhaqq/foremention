@@ -132,6 +132,19 @@ test("AI observation loader is tenant, active-project, human-review, and custome
   assert.doesNotMatch(loader, /serviceRole:\s*true/);
 });
 
+test("when Safe Intelligence withholds movement, the nearest reviewed run is diagnostic-only", async () => {
+  const loader = await text("lib/ai-observation-change.ts");
+  assert.match(loader, /let diagnosticOnly = false/);
+  assert.match(loader, /status=in\.\(complete,partial\)&order=created_at\.desc&limit=20/);
+  assert.match(loader, /const nearestReviewedPrior = runs\.find\(\(run\) => run\.id !== latestRunId\) \|\| null/);
+  assert.match(loader, /diagnosticOnly = true/);
+  assert.match(loader, /if \(!diagnosticOnly\) return graph/);
+  assert.match(loader, /Nearest prior reviewed-run diagnostic:/);
+  assert.match(loader, /fallback run is shown only as a comparability diagnostic; it is never used to create customer movement/);
+  assert.match(loader, /if \(!diagnosticOnly\) \{/);
+  assert.match(loader, /source_maps\?select=id,run_id,name/);
+});
+
 test("Analytics preserves Safe Intelligence exact-question gating and separates AI changes from Source Change Graph", async () => {
   const [page, panel, core] = await Promise.all([
     text("app/app/analytics/page.tsx"),
