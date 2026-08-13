@@ -1,4 +1,4 @@
-import { csvCell } from "@/lib/csv";
+import { csvCell } from "./csv.ts";
 
 type ExportRow = Record<string, unknown>;
 
