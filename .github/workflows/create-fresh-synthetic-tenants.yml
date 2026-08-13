@@ -1,0 +1,36 @@
+name: Create Fresh Synthetic Tenants
+
+on:
+  push:
+    branches:
+      - ops/fresh-final-acceptance-20260814
+
+permissions:
+  contents: read
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create two synthetic Foremention signups
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const base='https://foremention.com';
+          const password='V7!qN4#tR9@kM2$zP6^wL8&cX5';
+          const accounts=[
+            'foremention2026+final-a-20260814-0115@gmail.com',
+            'foremention2026+final-b-20260814-0115@gmail.com',
+          ];
+          for (const email of accounts) {
+            const response=await fetch(`${base}/api/auth/signup`,{
+              method:'POST',headers:{'content-type':'application/json','accept':'application/json'},
+              body:JSON.stringify({email,password,fullName:'Foremention Synthetic Acceptance'})
+            });
+            const body=await response.text();
+            let parsed=null; try { parsed=JSON.parse(body); } catch {}
+            console.log('SYNTHETIC_SIGNUP',JSON.stringify({email,status:response.status,ok:parsed?.ok===true,confirmationRequired:parsed?.confirmationRequired===true}));
+            if (response.status!==200 || parsed?.ok!==true) throw new Error(`Synthetic signup failed for ${email}: HTTP ${response.status}`);
+          }
+          NODE
