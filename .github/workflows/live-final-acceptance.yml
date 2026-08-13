@@ -1,0 +1,158 @@
+name: Live Final Acceptance
+
+on:
+  push:
+    branches:
+      - ops/live-final-acceptance-20260814
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Reciprocal tenant search and workspace export isolation
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const base='https://foremention.com';
+          const password='V7!qN4#tR9@kM2$zP6^wL8&cX5';
+          const accounts=[
+            {label:'A',email:'foremention2026+final-a-20260814-0115@gmail.com',marker:'FINAL-TENANT-A-20260814-0115'},
+            {label:'B',email:'foremention2026+final-b-20260814-0115@gmail.com',marker:'FINAL-TENANT-B-20260814-0115'},
+          ];
+          function cookies(response){
+            const out=new Map();
+            const raw=typeof response.headers.getSetCookie==='function'?response.headers.getSetCookie():[response.headers.get('set-cookie')].filter(Boolean);
+            for(const line of raw){for(const part of String(line).split(/,(?=[^;,]+=)/)){const first=part.split(';',1)[0];const i=first.indexOf('=');if(i>0)out.set(first.slice(0,i).trim(),first.slice(i+1).trim());}}
+            return [...out.entries()].map(([k,v])=>`${k}=${v}`).join('; ');
+          }
+          async function req(path,options={}){const r=await fetch(`${base}${path}`,options);const buf=Buffer.from(await r.arrayBuffer());return {r,buf,text:buf.toString('utf8')};}
+          for(const a of accounts){
+            const login=await req('/api/auth/login',{method:'POST',redirect:'manual',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({email:a.email,password})});
+            let loginBody=null;try{loginBody=JSON.parse(login.text)}catch{}
+            if(login.r.status!==200||!loginBody?.session)throw new Error(`${a.label} login failed HTTP ${login.r.status}`);
+            a.cookie=cookies(login.r);
+            console.log(`${a.label}_LOGIN`,JSON.stringify({status:login.r.status,session:true}));
+            const onboard=await req('/api/onboarding',{method:'POST',redirect:'manual',headers:{'content-type':'application/json','accept':'application/json',cookie:a.cookie,origin:base,referer:`${base}/app/onboarding`},body:JSON.stringify({companyName:`Final Synthetic Tenant ${a.label}`,domain:`https://example.com/final-tenant-${a.label.toLowerCase()}-20260814`,market:'Global',category:'Synthetic acceptance',categoryDescription:'Synthetic final tenant isolation acceptance only.',competitors:[`Synthetic competitor ${a.label}`],goal:'Verify tenant isolation and mobile acceptance',constraint:'Synthetic acceptance only',prompts:[`Which record belongs to ${a.marker}?`],locale:'en-US'})});
+            let onboardBody=null;try{onboardBody=JSON.parse(onboard.text)}catch{}
+            if(![200,201].includes(onboard.r.status)||!onboardBody?.ok)throw new Error(`${a.label} onboarding failed HTTP ${onboard.r.status}`);
+            console.log(`${a.label}_ONBOARDING`,JSON.stringify({status:onboard.r.status,existing:!!onboardBody.existing}));
+            const list=await req('/api/prompts',{headers:{cookie:a.cookie,accept:'application/json'},redirect:'manual'});
+            let listBody=null;try{listBody=JSON.parse(list.text)}catch{}
+            if(list.r.status!==200||!Array.isArray(listBody?.data))throw new Error(`${a.label} prompt list failed HTTP ${list.r.status}`);
+            if(!listBody.data.some(p=>String(p.text||'').includes(a.marker))){
+              const create=await req('/api/prompts',{method:'POST',redirect:'manual',headers:{'content-type':'application/json','accept':'application/json',cookie:a.cookie,origin:base,referer:`${base}/app/prompts`},body:JSON.stringify({text:`Which record belongs to ${a.marker}?`,cluster:'Final isolation marker'})});
+              if(create.r.status!==201)throw new Error(`${a.label} marker prompt create failed HTTP ${create.r.status}`);
+            }
+          }
+          for(const a of accounts){
+            const other=accounts.find(x=>x!==a);
+            const own=await req(`/app/search?q=${encodeURIComponent(a.marker)}`,{headers:{cookie:a.cookie,accept:'text/html'},redirect:'manual'});
+            const cross=await req(`/app/search?q=${encodeURIComponent(other.marker)}`,{headers:{cookie:a.cookie,accept:'text/html'},redirect:'manual'});
+            const ownResult=own.r.status===200&&!own.text.includes('No matching workspace records')&&own.text.includes('href="/app/prompts"')&&own.text.includes(a.marker);
+            const crossIsolated=cross.r.status===200&&cross.text.includes('No matching workspace records');
+            console.log(`${a.label}_SEARCH`,JSON.stringify({ownStatus:own.r.status,ownResult,crossStatus:cross.r.status,crossIsolated}));
+            if(!ownResult)throw new Error(`${a.label} own search marker missing`);
+            if(!crossIsolated)throw new Error(`${a.label} search exposed or failed to isolate ${other.label}`);
+            const exp=await req('/api/export/workspace',{headers:{cookie:a.cookie,accept:'application/zip'},redirect:'manual'});
+            console.log(`${a.label}_EXPORT`,JSON.stringify({status:exp.r.status,contentType:exp.r.headers.get('content-type'),bytes:exp.buf.length}));
+            if(exp.r.status!==200||!String(exp.r.headers.get('content-type')||'').includes('application/zip'))throw new Error(`${a.label} workspace export failed HTTP ${exp.r.status}`);
+            fs.writeFileSync(`/tmp/final-${a.label}.zip`,exp.buf);
+          }
+          NODE
+          python3 <<'PY'
+          import pathlib,zipfile
+          markers={'A':'FINAL-TENANT-A-20260814-0115','B':'FINAL-TENANT-B-20260814-0115'}
+          for label in ('A','B'):
+              path=pathlib.Path(f'/tmp/final-{label}.zip')
+              other='B' if label=='A' else 'A'
+              with zipfile.ZipFile(path) as z:
+                  names=z.namelist()
+                  data=b'\n'.join(z.read(n) for n in names if not n.endswith('/'))
+              own=markers[label].encode() in data
+              cross=markers[other].encode() in data
+              print(f'{label}_ZIP own_marker={own} cross_marker={cross} files={len(names)}')
+              if not own: raise SystemExit(f'{label} export missing own marker')
+              if cross: raise SystemExit(f'{label} export leaked other tenant marker')
+          print('RECIPROCAL_TENANT_ISOLATION PASS')
+          PY
+
+      - name: Install Playwright browsers
+        shell: bash
+        run: |
+          mkdir -p /tmp/foremention-pw && cd /tmp/foremention-pw
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.54.2
+          npx playwright install --with-deps chromium firefox
+
+      - name: Authenticated mobile Chromium and Firefox acceptance
+        shell: bash
+        run: |
+          cd /tmp/foremention-pw
+          node --input-type=module <<'NODE'
+          import { chromium, firefox } from 'playwright';
+          const base='https://foremention.com';
+          const email='foremention2026+final-a-20260814-0115@gmail.com';
+          const password='V7!qN4#tR9@kM2$zP6^wL8&cX5';
+          const marker='FINAL-TENANT-A-20260814-0115';
+          const paths=['/app','/app/prompts','/app/runs','/app/source-map','/app/settings',`/app/search?q=${encodeURIComponent(marker)}`];
+          for(const [name,type] of [['chromium',chromium],['firefox',firefox]]){
+            const browser=await type.launch({headless:true});
+            try{
+              const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,locale:'en-US'});
+              const login=await context.request.post(`${base}/api/auth/login`,{data:{email,password},headers:{accept:'application/json'}});
+              const body=await login.json().catch(()=>null);
+              if(login.status()!==200||!body?.session)throw new Error(`${name} login failed HTTP ${login.status()}`);
+              const page=await context.newPage();
+              const pageErrors=[];page.on('pageerror',e=>pageErrors.push(String(e.message||e)));
+              for(const path of paths){
+                const response=await page.goto(`${base}${path}`,{waitUntil:'domcontentloaded',timeout:30000});
+                await page.waitForTimeout(500);
+                const m=await page.evaluate(()=>({inner:window.innerWidth,scroll:document.documentElement.scrollWidth,main:document.querySelectorAll('main').length,text:(document.body?.innerText||'').trim().length}));
+                const status=response?.status()??0,authenticated=!page.url().includes('/login'),noOverflow=m.scroll<=m.inner+2,rendered=m.main>0&&m.text>20;
+                console.log('MOBILE_PAGE',JSON.stringify({browser:name,path,status,authenticated,noOverflow,rendered,innerWidth:m.inner,scrollWidth:m.scroll}));
+                if(status>=500||!authenticated||!noOverflow||!rendered)throw new Error(`${name} mobile acceptance failed at ${path}`);
+              }
+              await page.goto(`${base}/app/source-map`,{waitUntil:'domcontentloaded',timeout:30000});
+              const xray=await page.locator('a[href^="/app/sources/"]').first().getAttribute('href').catch(()=>null);
+              if(xray){
+                const response=await page.goto(`${base}${xray}`,{waitUntil:'domcontentloaded',timeout:30000});await page.waitForTimeout(500);
+                const m=await page.evaluate(()=>({inner:window.innerWidth,scroll:document.documentElement.scrollWidth,main:document.querySelectorAll('main').length,text:(document.body?.innerText||'').trim().length}));
+                const ok=(response?.status()??0)<500&&!page.url().includes('/login')&&m.scroll<=m.inner+2&&m.main>0&&m.text>20;
+                console.log('SOURCE_XRAY_MOBILE',JSON.stringify({browser:name,href:xray,status:response?.status()??0,ok}));
+                if(!ok)throw new Error(`${name} Source X-Ray mobile acceptance failed`);
+              }else console.log('SOURCE_XRAY_MOBILE',JSON.stringify({browser:name,available:false,note:'Synthetic workspace has no reviewed source link'}));
+              if(pageErrors.length)throw new Error(`${name} page errors: ${pageErrors.join(' | ')}`);
+              await context.close();
+            }finally{await browser.close();}
+          }
+          console.log('AUTHENTICATED_MOBILE_CROSS_BROWSER PASS');
+          NODE
+
+      - name: Rotate disposable passwords and globally revoke sessions
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          const supabase='https://vuujwdxivjsdikdstwib.supabase.co';
+          const apikey='sb_publishable_thWvI_bBclyKb1gd2aqI5w_EX5HLs9B';
+          const oldPassword='V7!qN4#tR9@kM2$zP6^wL8&cX5';
+          const emails=['foremention2026+final-a-20260814-0115@gmail.com','foremention2026+final-b-20260814-0115@gmail.com'];
+          for(const email of emails){
+            const login=await fetch(`${supabase}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey,'content-type':'application/json'},body:JSON.stringify({email,password:oldPassword})});
+            if(!login.ok){console.log('ROTATE',JSON.stringify({email,status:'old-password-unusable',http:login.status}));continue;}
+            const token=await login.json();
+            const next=`Tmp-${crypto.randomBytes(28).toString('base64url')}!9Aa`;
+            const update=await fetch(`${supabase}/auth/v1/user`,{method:'PUT',headers:{apikey,authorization:`Bearer ${token.access_token}`,'content-type':'application/json'},body:JSON.stringify({password:next})});
+            if(!update.ok)throw new Error(`Password rotation failed for ${email} HTTP ${update.status}`);
+            const logout=await fetch(`${supabase}/auth/v1/logout?scope=global`,{method:'POST',headers:{apikey,authorization:`Bearer ${token.access_token}`}});
+            const retry=await fetch(`${supabase}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey,'content-type':'application/json'},body:JSON.stringify({email,password:oldPassword})});
+            if(retry.ok)throw new Error(`Old disposable password still authenticates for ${email}`);
+            console.log('ROTATE',JSON.stringify({email,status:'rotated',logoutHttp:logout.status,oldPasswordRejected:true}));
+          }
+          NODE
