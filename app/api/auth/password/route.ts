@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/input-validation";
+import { checkPasswordSafety, HashRangeUnavailable } from "@/lib/password-safety";
 import { clearRecoverySession, RECOVERY_COOKIE, SESSION_COOKIE } from "@/lib/session-cookies";
 
 export async function POST(request: Request) {
@@ -14,6 +15,18 @@ export async function POST(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!token || recovery !== "1" || !url || !anon) return NextResponse.json({ error: "Your recovery session has expired. Request a new reset link." }, { status: 401 });
+
+  try {
+    const safety = await checkPasswordSafety(password);
+    if (safety.compromised) {
+      return NextResponse.json({ error: "This password appears in known breach data. Choose a unique password you have not used elsewhere." }, { status: 400 });
+    }
+  } catch (error) {
+    if (error instanceof HashRangeUnavailable) {
+      return NextResponse.json({ error: "Password safety verification is temporarily unavailable. Your password was not changed. Please try again." }, { status: 503 });
+    }
+    throw error;
+  }
 
   const response = await fetch(`${url}/auth/v1/user`, {
     method: "PUT",
