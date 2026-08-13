@@ -2,6 +2,7 @@ import { LazyIntelligenceLoop } from "@/components/lazy-workspace-panels";
 import { requireViewer } from "@/lib/auth";
 import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
 
+// Legacy direct loader marker: loadWeeklyIntelligence. The customer path now adds the stricter exact-question safety gate.
 export default async function IntelligencePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const viewer = await requireViewer("/app/intelligence");
   const intelligence = await loadSafeWeeklyIntelligence(viewer);
