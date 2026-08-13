@@ -60,29 +60,31 @@ drop policy if exists "source_snapshots_select_member" on public.source_snapshot
 drop policy if exists "source_snapshots_insert_analyst" on public.source_snapshots;
 create policy "source_snapshots_select_member"
   on public.source_snapshots for select
-  using (public.is_org_member(organization_id));
+  using (public.is_org_member(source_snapshots.organization_id));
 create policy "source_snapshots_insert_analyst"
   on public.source_snapshots for insert
   with check (
-    public.has_org_role(organization_id, array['owner','analyst']::public.organization_role[])
+    public.has_org_role(source_snapshots.organization_id, array['owner','analyst']::public.organization_role[])
     and exists (
       select 1 from public.sources s
-      where s.id = source_id and s.organization_id = organization_id
+      where s.id = source_snapshots.source_id
+        and s.organization_id = source_snapshots.organization_id
     )
     and (
-      run_id is null
+      source_snapshots.run_id is null
       or exists (
         select 1 from public.runs r
-        where r.id = run_id and r.organization_id = organization_id
+        where r.id = source_snapshots.run_id
+          and r.organization_id = source_snapshots.organization_id
       )
     )
     and (
-      previous_snapshot_id is null
+      source_snapshots.previous_snapshot_id is null
       or exists (
         select 1 from public.source_snapshots previous
-        where previous.id = previous_snapshot_id
-          and previous.organization_id = organization_id
-          and previous.source_id = source_id
+        where previous.id = source_snapshots.previous_snapshot_id
+          and previous.organization_id = source_snapshots.organization_id
+          and previous.source_id = source_snapshots.source_id
       )
     )
   );
@@ -94,7 +96,7 @@ create policy "source_snapshot_observations_select_member"
   using (
     exists (
       select 1 from public.source_snapshots snapshot
-      where snapshot.id = source_snapshot_id
+      where snapshot.id = source_snapshot_observations.source_snapshot_id
         and public.is_org_member(snapshot.organization_id)
     )
   );
@@ -105,10 +107,10 @@ create policy "source_snapshot_observations_insert_analyst"
       select 1
       from public.source_snapshots snapshot
       join public.source_observations observation
-        on observation.id = source_observation_id
+        on observation.id = source_snapshot_observations.source_observation_id
        and observation.organization_id = snapshot.organization_id
        and observation.source_id = snapshot.source_id
-      where snapshot.id = source_snapshot_id
+      where snapshot.id = source_snapshot_observations.source_snapshot_id
         and public.has_org_role(snapshot.organization_id, array['owner','analyst']::public.organization_role[])
     )
   );
