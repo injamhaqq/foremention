@@ -38,6 +38,7 @@ export function AuthCallback() {
           access_token: accessToken,
           refresh_token: refreshToken,
           expires_in: Number(hash.get("expires_in") || 3600),
+          recovery: isRecovery,
         };
 
     void fetch(endpoint, {
