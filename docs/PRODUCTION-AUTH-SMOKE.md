@@ -1,6 +1,6 @@
 # Production auth smoke
 
-This runner converts the core authenticated production acceptance boundary into a repeatable, credential-safe check without storing customer or disposable-account secrets in the repository.
+This runner converts the core production HTTP/auth boundary into a repeatable, credential-safe check without storing customer or disposable-account secrets in the repository.
 
 ## Default public-only smoke
 
@@ -12,8 +12,29 @@ The default invocation checks:
 
 - `/api/health` returns success and preserves the full health body in the JSON evidence output;
 - direct `/reset-password` access is rejected back to `/forgot-password`;
-- unauthenticated `/app` behavior is recorded;
+- unauthenticated `/app` is not accessible;
 - no signup, email, provider, billing, integration, or destructive action is triggered.
+
+## Exact release verification
+
+Cloudflare Workers Builds is the production deploy system for Foremention. GitHub Actions verifies the repository and archives the built artifact, but the artifact upload is not itself a deployment.
+
+For an exact-release check, provide the full Git commit expected from the live health contract:
+
+```powershell
+$env:FOREMENTION_EXPECTED_BUILD_COMMIT="<40-character-git-sha>"
+node scripts/production-auth-smoke.mjs
+Remove-Item Env:FOREMENTION_EXPECTED_BUILD_COMMIT
+```
+
+When an expected commit is supplied, the runner performs bounded polling of the custom-domain `/api/health` endpoint until both conditions are true:
+
+- the health endpoint is successful; and
+- `buildCommit` exactly equals the expected 40-character Git SHA.
+
+The polling window is capped at 300 seconds. `FOREMENTION_RELEASE_WAIT_SECONDS` may reduce that window when a shorter operator check is appropriate.
+
+Main-branch GitHub CI supplies `${{ github.sha }}` automatically after its tests/build/dry-run steps. This turns the custom-domain release provenance and the public auth boundary into a release check rather than a chat-only/manual claim.
 
 ## Authenticated disposable-account smoke
 
@@ -58,7 +79,9 @@ $env:FOREMENTION_BASE_URL="https://staging.example.com"
 
 ## Evidence interpretation
 
-A green run proves the HTTP/session boundary exercised by that invocation. It does not, by itself, prove:
+A green public main-branch run proves that the custom domain reported the exact merged Git commit and that the public auth boundaries exercised by the script behaved correctly at that release. A green authenticated run proves the additional HTTP/session boundary exercised by that disposable account.
+
+Neither run, by itself, proves:
 
 - signup and confirmation-email delivery;
 - mailbox receipt or recovery-link round trip;
