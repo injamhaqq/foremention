@@ -1,0 +1,1 @@
+-- Migration content is synchronized with the applied production migration in the next commit.
