@@ -43,6 +43,7 @@ test("saved cited-page changes preserve snapshot lineage and citation linkage wi
   assert.match(graph, /Compared with saved observation/);
   assert.match(graph, /Checked \$\{snapshot\.checkedAt\}/);
   assert.match(graph, /Linked to \$\{snapshot\.linkedObservationCount\} citation observation/);
+  assert.match(graph, /No citation-observation link was recorded for this saved page check/);
   assert.match(graph, /does not prove what caused the difference or that AI behavior changed because of it/);
   assert.match(graph, /Page changes remain separate observations and never imply causation/);
 });
