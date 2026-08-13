@@ -74,7 +74,7 @@ begin
         select 1 from public.run_answers
         where run_id in (baseline_run.id, follow_up_run.id)
           and (
-            review_status::text <> 'verified'
+            review_status::text is distinct from 'verified'
             or nullif(trim(prompt_key), '') is null
             or nullif(trim(prompt_text), '') is null
             or nullif(trim(provider), '') is null
