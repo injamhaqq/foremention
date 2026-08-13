@@ -19,6 +19,12 @@ function assertBuild(payload) {
   }
 }
 
+function failureDetail(payload) {
+  const reason = payload.error || "unknown error";
+  const stage = typeof payload.stage === "string" ? ` [stage: ${payload.stage}]` : "";
+  return `${reason}${stage}`;
+}
+
 const dispatched = await fetch(endpoint, {
   method: "POST",
   headers: { accept: "application/json" },
@@ -26,7 +32,7 @@ const dispatched = await fetch(endpoint, {
   signal: AbortSignal.timeout(10_000),
 });
 const dispatchedPayload = await readJson(dispatched);
-if (!dispatched.ok) throw new Error(`Runtime probe dispatch failed with HTTP ${dispatched.status}: ${dispatchedPayload.error || "unknown error"}`);
+if (!dispatched.ok) throw new Error(`Runtime probe dispatch failed with HTTP ${dispatched.status}: ${failureDetail(dispatchedPayload)}`);
 assertBuild(dispatchedPayload);
 
 if (dispatchedPayload.status === "executed") {
@@ -45,7 +51,7 @@ while (Date.now() < deadline) {
   });
   const payload = await readJson(response);
   if (!response.ok) {
-    lastStatus = `http_${response.status}`;
+    lastStatus = `http_${response.status}${typeof payload.stage === "string" ? `_${payload.stage}` : ""}`;
     continue;
   }
   assertBuild(payload);
