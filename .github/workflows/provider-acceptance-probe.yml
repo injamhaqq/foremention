@@ -1,0 +1,132 @@
+name: Provider Acceptance Probe
+
+on:
+  push:
+    branches:
+      - ops/security-acceptance-20260813
+
+jobs:
+  provider-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run synthetic onboarding and one cost-capped collection
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base = 'https://foremention.com';
+          const email = 'foremention2026+acceptance-31727494895@gmail.com';
+          const password = 'Z7!mQ2#vR9@xL4$kT8^pN6&cW3';
+
+          function collectCookies(response) {
+            const map = new Map();
+            const raw = typeof response.headers.getSetCookie === 'function'
+              ? response.headers.getSetCookie()
+              : [response.headers.get('set-cookie')].filter(Boolean);
+            for (const line of raw) {
+              for (const part of String(line).split(/,(?=[^;,]+=)/)) {
+                const first = part.split(';', 1)[0];
+                const idx = first.indexOf('=');
+                if (idx > 0) map.set(first.slice(0, idx).trim(), first.slice(idx + 1).trim());
+              }
+            }
+            return map;
+          }
+          const cookieHeader = m => [...m.entries()].map(([k,v]) => `${k}=${v}`).join('; ');
+          async function jsonFetch(path, options={}) {
+            const r = await fetch(`${base}${path}`, options);
+            const text = await r.text();
+            let body; try { body = JSON.parse(text); } catch { body = text; }
+            return {r, body, text};
+          }
+
+          const login = await jsonFetch('/api/auth/login', {
+            method:'POST',
+            headers:{'content-type':'application/json','accept':'application/json'},
+            body:JSON.stringify({email,password}),
+            redirect:'manual'
+          });
+          if (login.r.status !== 200 || login.body?.session !== true) throw new Error(`login failed ${login.r.status} ${login.text}`);
+          const cookies = collectCookies(login.r);
+          const cookie = cookieHeader(cookies);
+          if (!cookies.get('foremention-session')) throw new Error('missing session cookie');
+          console.log('LOGIN', JSON.stringify({status:login.r.status, session:true}));
+
+          const onboarding = await jsonFetch('/api/onboarding', {
+            method:'POST',
+            headers:{'content-type':'application/json','accept':'application/json',cookie,origin:base,referer:`${base}/app/onboarding`},
+            body:JSON.stringify({
+              companyName:'Foremention Acceptance Test Co',
+              domain:'https://example.com',
+              market:'Global',
+              category:'AI visibility software',
+              categoryDescription:'Synthetic production acceptance workspace used only to prove Foremention collection and evidence handling.',
+              competitors:['Synthetic Competitor A','Synthetic Competitor B'],
+              goal:'Verify one real cost-capped provider collection end to end.',
+              constraint:'Synthetic acceptance only; do not infer customer outcomes.',
+              prompts:['Which AI visibility software platforms should a growing B2B team compare?'],
+              locale:'en-US'
+            })
+          });
+          console.log('ONBOARDING', JSON.stringify({status:onboarding.r.status, ok:onboarding.body?.ok === true, existing:onboarding.body?.existing === true}));
+          if (![200,201].includes(onboarding.r.status) || onboarding.body?.ok !== true) throw new Error(`onboarding failed ${onboarding.r.status} ${onboarding.text}`);
+
+          const promptsResp = await jsonFetch('/api/prompts', {headers:{cookie,accept:'application/json'}});
+          if (promptsResp.r.status !== 200 || !Array.isArray(promptsResp.body?.data)) throw new Error(`prompts failed ${promptsResp.r.status}`);
+          const approved = promptsResp.body.data.filter(p => p.approved);
+          if (!approved.length) throw new Error('no approved prompts after onboarding');
+          const prompt = approved[0];
+          console.log('PROMPT_READY', JSON.stringify({count:approved.length, selectedId:prompt.id, selectedText:prompt.text}));
+
+          const idempotency = `acceptance:${Date.now()}:${Math.random().toString(36).slice(2,10)}`;
+          const runResp = await jsonFetch('/api/runs', {
+            method:'POST',
+            headers:{'content-type':'application/json','accept':'application/json',cookie,origin:base,referer:`${base}/app/runs`,'idempotency-key':idempotency},
+            body:JSON.stringify({promptIds:[prompt.id],providers:['groq']})
+          });
+          console.log('RUN_START', JSON.stringify({status:runResp.r.status, body:runResp.body}));
+          if (runResp.r.status !== 202 || !runResp.body?.id) throw new Error(`run start failed ${runResp.r.status} ${runResp.text}`);
+          const runId = runResp.body.id;
+          if (Number(runResp.body.estimatedMaximumCostUsd || 0) > 0.10) throw new Error(`estimated cost exceeds hard Groq acceptance ceiling: ${runResp.body.estimatedMaximumCostUsd}`);
+
+          let run = null;
+          const deadline = Date.now() + 8 * 60 * 1000;
+          while (Date.now() < deadline) {
+            await new Promise(r => setTimeout(r, 5000));
+            const runsResp = await jsonFetch('/api/runs', {headers:{cookie,accept:'application/json'}});
+            if (runsResp.r.status !== 200 || !Array.isArray(runsResp.body?.data)) continue;
+            run = runsResp.body.data.find(x => x.id === runId) || null;
+            if (run) console.log('RUN_POLL', JSON.stringify({id:run.id,status:run.status,provider:run.provider || run.providerId || null,model:run.model || null,cost:run.actualCostUsd ?? run.cost ?? null,failures:run.failureCount ?? null}));
+            if (run && ['review','complete','partial','failed','cancelled'].includes(run.status)) break;
+          }
+          if (!run) throw new Error('run not visible before timeout');
+          if (['failed','cancelled'].includes(run.status)) throw new Error(`real collection failed with terminal status ${run.status}`);
+
+          let reviewResult = null;
+          if (run.status === 'review') {
+            const review = await jsonFetch(`/api/runs/${encodeURIComponent(runId)}/review`, {
+              method:'POST',
+              headers:{'content-type':'application/json','accept':'application/json',cookie,origin:base,referer:`${base}/app/runs/${runId}`},
+              body:'{}'
+            });
+            console.log('REVIEW', JSON.stringify({status:review.r.status, body:review.body}));
+            if (review.r.status !== 200 || review.body?.ok !== true) throw new Error(`review failed ${review.r.status} ${review.text}`);
+            reviewResult = review.body;
+          }
+
+          const finalRuns = await jsonFetch('/api/runs', {headers:{cookie,accept:'application/json'}});
+          const finalRun = Array.isArray(finalRuns.body?.data) ? finalRuns.body.data.find(x => x.id === runId) : null;
+          if (!finalRun) throw new Error('final run missing');
+          console.log('FINAL_RUN', JSON.stringify(finalRun));
+          console.log('PROVIDER_ACCEPTANCE_RESULT', JSON.stringify({
+            ok:true,
+            runId,
+            provider:'groq',
+            estimatedMaximumCostUsd:runResp.body.estimatedMaximumCostUsd ?? null,
+            terminalStatus:finalRun.status,
+            reviewStatus:reviewResult?.status ?? null,
+            sourceMapId:reviewResult?.sourceMapId ?? null,
+            sourceCount:reviewResult?.sourceCount ?? null,
+            observedAt:new Date().toISOString()
+          }));
+          NODE
