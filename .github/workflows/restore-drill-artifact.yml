@@ -1,0 +1,22 @@
+name: Restore Drill Artifact
+
+on:
+  push:
+    branches:
+      - ops/restore-drill-20260814
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Package migration source
+        uses: actions/upload-artifact@v4
+        with:
+          name: foremention-restore-drill-source
+          path: supabase/migrations
+          if-no-files-found: error
+          retention-days: 1
