@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { inngest } from "@/lib/jobs/inngest";
 import { isMissingRelationError, supabaseRest } from "@/lib/supabase-rest";
 
@@ -9,14 +10,24 @@ type ProbeRow = {
 };
 
 type ProbeStage = "build_resolution" | "load_probe" | "create_probe" | "dispatch";
+type RuntimeBindings = {
+  FOREMENTION_BUILD_COMMIT?: string;
+  INNGEST_EVENT_KEY?: string;
+};
 
 const BUILD_COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
 
+function runtimeBindings() {
+  return env as unknown as RuntimeBindings;
+}
+
 function resolveCurrentBuild() {
-  // Cloudflare Workers Builds injects this exact commit into the deployed
-  // Worker configuration. The caller cannot supply or override release identity.
-  const buildCommit = String(process.env.FOREMENTION_BUILD_COMMIT || "").trim().toLowerCase();
+  // vinext's Cloudflare integration exposes Wrangler bindings through the
+  // native cloudflare:workers module at request runtime. Do not use
+  // process.env for release identity: a server bundle may retain a build-time
+  // value while the Worker wrapper is already serving a newer deployment.
+  const buildCommit = String(runtimeBindings().FOREMENTION_BUILD_COMMIT || "").trim().toLowerCase();
   if (!BUILD_COMMIT_PATTERN.test(buildCommit)) throw new Error("The deployed build commit could not be verified.");
   return buildCommit;
 }
@@ -66,7 +77,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  if (!process.env.INNGEST_EVENT_KEY) {
+  if (!runtimeBindings().INNGEST_EVENT_KEY) {
     return Response.json(
       { error: "Inngest event dispatch is not configured.", stage: "dispatch" },
       { status: 503, headers: NO_STORE },
@@ -76,7 +87,7 @@ export async function POST() {
   let stage: ProbeStage = "build_resolution";
   try {
     // The caller never supplies a SHA. The exact deployed release comes from
-    // the immutable build binding used by the production health contract.
+    // the live Cloudflare binding also used by the Worker health contract.
     const buildCommit = resolveCurrentBuild();
     stage = "load_probe";
     const existing = await loadProbe(buildCommit);
