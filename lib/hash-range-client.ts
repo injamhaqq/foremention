@@ -1,4 +1,4 @@
-import { PASSWORD_SAFETY_RANGE_ENDPOINT } from "@/lib/security-endpoints";
+import { PASSWORD_SAFETY_RANGE_ENDPOINT } from "./security-endpoints.ts";
 
 export class HashRangeUnavailable extends Error {
   constructor() {
