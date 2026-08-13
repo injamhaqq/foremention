@@ -2,14 +2,13 @@ import { supabaseRest } from "@/lib/supabase-rest";
 import { inspectSourceUrl } from "@/lib/source-inspection";
 import { persistSourceSnapshot } from "@/lib/source-snapshots";
 
-const METHODOLOGY_VERSION = "3.0";
-
 type RunRow = {
   id: string;
   organization_id: string;
   project_id?: string;
   category_id: string;
   created_by: string | null;
+  methodology_version?: string | null;
 };
 
 type ObservationRow = {
@@ -133,6 +132,18 @@ async function loadPersistedInspections(run: RunRow, sourceMapId: string) {
   }]));
 }
 
+async function methodologyVersionForRun(run: RunRow) {
+  const embedded = run.methodology_version?.trim();
+  if (embedded) return embedded;
+  const rows = await supabaseRest<Array<{ methodology_version: string | null }>>(
+    `runs?select=methodology_version&id=eq.${run.id}&organization_id=eq.${run.organization_id}&limit=1`,
+    { serviceRole: true },
+  );
+  const persisted = rows[0]?.methodology_version?.trim();
+  if (!persisted) throw new Error("The collection is missing its persisted methodology version.");
+  return persisted;
+}
+
 async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") {
   const answerRows = await supabaseRest<Array<{ id: string }>>(
     `run_answers?select=id&organization_id=eq.${run.organization_id}&run_id=eq.${run.id}`,
@@ -181,6 +192,7 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
     (latest, item) => !latest || item.lastObservedAt > latest ? item.lastObservedAt : latest,
     null,
   );
+  const methodologyVersion = await methodologyVersionForRun(run);
   const mapRows = await supabaseRest<Array<{ id: string }>>("source_maps?on_conflict=run_id", {
     method: "POST",
     serviceRole: true,
@@ -193,7 +205,7 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
       evidence_from: evidenceFrom,
       evidence_to: evidenceTo,
       status: "draft",
-      methodology_version: METHODOLOGY_VERSION,
+      methodology_version: methodologyVersion,
       created_by: run.created_by,
     },
   });

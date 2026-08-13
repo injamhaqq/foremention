@@ -10,6 +10,7 @@ import {
 } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, getProviderStatuses, loadPrompts, loadRuns, loadWorkspaceContext } from "@/lib/data";
 import { inngest } from "@/lib/jobs/inngest";
+import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { runUnits } from "@/lib/product-limits";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { getProvider } from "@/lib/providers";
@@ -161,7 +162,7 @@ export async function POST(request: Request) {
         estimated_max_cost_usd: estimatedMaximumCost,
         idempotency_key: idempotencyKey,
         active_request_key: activeRequestKey,
-        methodology_version: "3.0",
+        methodology_version: currentObservationMethodologyVersion(),
         created_by: viewer.id,
       },
     });
