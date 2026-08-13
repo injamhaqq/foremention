@@ -62,13 +62,18 @@ test("production sync asks only the deployed serve endpoint to register its curr
   assert.doesNotMatch(sync, /console\.log\([^\n]*response|console\.log\([^\n]*body/);
 });
 
-test("main CI proves the release before sync and sync before the diagnostic heartbeat", async () => {
+test("main CI requires exact release, Inngest sync, and durable execution in order", async () => {
   const workflow = await text(".github/workflows/ci.yml");
   const releaseIndex = workflow.indexOf("name: Verify exact Cloudflare production release");
   const syncIndex = workflow.indexOf("name: Sync live Inngest functions");
   const probeIndex = workflow.indexOf("name: Probe live Inngest execution");
   assert.ok(releaseIndex >= 0 && syncIndex > releaseIndex && probeIndex > syncIndex);
-  assert.match(workflow, /name: Sync live Inngest functions[\s\S]*?continue-on-error: true[\s\S]*?node scripts\/production-inngest-sync\.mjs/);
-  assert.match(workflow, /name: Probe live Inngest execution[\s\S]*?continue-on-error: true[\s\S]*?node scripts\/production-inngest-smoke\.mjs/);
+
+  const syncBlock = workflow.slice(syncIndex, probeIndex);
+  const probeBlock = workflow.slice(probeIndex);
+  assert.doesNotMatch(syncBlock, /continue-on-error/);
+  assert.doesNotMatch(probeBlock, /continue-on-error/);
+  assert.match(syncBlock, /node scripts\/production-inngest-sync\.mjs/);
+  assert.match(probeBlock, /node scripts\/production-inngest-smoke\.mjs/);
   assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ github\.sha \}\}/);
 });
