@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { checkPasswordSafety, HashRangeUnavailable } from "../lib/password-safety.ts";
+
+const root = new URL("../", import.meta.url);
+const text = (path) => readFile(new URL(path, root), "utf8");
 
 const sha1Hex = async (value) => {
   const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(value));
@@ -44,4 +48,30 @@ test("password safety fails closed when the range service is unavailable", async
     () => checkPasswordSafety("Unique-Password-For-Test!7", { fetchImpl: async () => new Response("down", { status: 503 }) }),
     HashRangeUnavailable,
   );
+});
+
+test("signup and recovery enforce the server-side safety boundary", async () => {
+  const [safety, signup, recovery] = await Promise.all([
+    text("lib/password-safety.ts"),
+    text("app/api/auth/signup/route.ts"),
+    text("app/api/auth/password/route.ts"),
+  ]);
+
+  assert.match(safety, /crypto\.randomUUID\(\)/);
+  assert.match(safety, /digestHex\("SHA-256", token\)/);
+  assert.match(safety, /digestHex\("SHA-256", normalizedEmail\)/);
+  assert.match(safety, /rpc\/issue_signup_security_attestation/);
+  assert.match(safety, /serviceRole: true/);
+  assert.match(safety, /p_token_hash: tokenHash/);
+  assert.match(safety, /p_email_hash: emailHash/);
+  assert.doesNotMatch(safety, /p_password|password_hash/);
+
+  assert.match(signup, /checkPasswordSafety\(password\)/);
+  assert.match(signup, /issueSignupSecurityAttestation\(email\)/);
+  assert.match(signup, /signup_security_attestation: signupSecurityAttestation/);
+  assert.match(signup, /No account was created/);
+
+  assert.match(recovery, /checkPasswordSafety\(password\)/);
+  assert.match(recovery, /recovery !== "1"/);
+  assert.match(recovery, /Your password was not changed/);
 });
