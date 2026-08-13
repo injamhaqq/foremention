@@ -13,6 +13,8 @@ type RestOptions = {
   serviceRole?: boolean;
 };
 
+export type SupabaseSignOutScope = "global" | "local" | "others";
+
 export class SupabaseRequestError extends Error {
   readonly status: number;
   readonly code?: string;
@@ -125,6 +127,19 @@ export async function supabaseRest<T>(path: string, options: RestOptions = {}): 
   return JSON.parse(responseText) as T;
 }
 
+function safeAuthError(status: number, responseText: string) {
+  let data: Record<string, unknown> = {};
+  try { data = responseText ? JSON.parse(responseText) as Record<string, unknown> : {}; } catch { /* Keep an opaque upstream response private. */ }
+  const code = String(data.error_code || data.code || "").trim() || undefined;
+  const providerMessage = String(data.msg || data.error_description || data.message || "Authentication failed.").trim();
+  const safeMessage = status >= 500
+    ? "The authentication service is temporarily unavailable."
+    : status === 429
+      ? "Authentication is temporarily rate limited. Please wait a moment and try again."
+      : providerMessage.slice(0, 300) || "Authentication failed.";
+  return new SupabaseAuthError(status, safeMessage, code);
+}
+
 export async function supabaseAuth(path: string, body: unknown) {
   if (!supabaseUrl || !anonKey) throw new Error("Supabase is not configured.");
   const response = await fetch(`${supabaseUrl}/auth/v1/${path}`, {
@@ -134,17 +149,34 @@ export async function supabaseAuth(path: string, body: unknown) {
     cache: "no-store",
   });
   const responseText = await response.text();
-  let data: Record<string, unknown> = {};
-  try { data = responseText ? JSON.parse(responseText) as Record<string, unknown> : {}; } catch { /* Keep an opaque upstream response private. */ }
-  if (!response.ok) {
-    const code = String(data.error_code || data.code || "").trim() || undefined;
-    const providerMessage = String(data.msg || data.error_description || data.message || "Authentication failed.").trim();
-    const safeMessage = response.status >= 500
-      ? "The authentication service is temporarily unavailable."
-      : response.status === 429
-        ? "Authentication is temporarily rate limited. Please wait a moment and try again."
-        : providerMessage.slice(0, 300) || "Authentication failed.";
-    throw new SupabaseAuthError(response.status, safeMessage, code);
-  }
-  return data;
+  if (!response.ok) throw safeAuthError(response.status, responseText);
+  if (!responseText.trim()) return {} as Record<string, unknown>;
+  try { return JSON.parse(responseText) as Record<string, unknown>; }
+  catch { return {} as Record<string, unknown>; }
+}
+
+/**
+ * Revoke Supabase Auth refresh session(s) with an explicit scope. Never rely on
+ * the SDK/default global scope: ordinary Foremention sign-out is local, while
+ * "Sign out all devices" is an explicit global security action.
+ *
+ * Supabase access-token JWTs remain stateless until their encoded expiry even
+ * after the affected refresh sessions are revoked, so callers must not promise
+ * instant invalidation of already-issued access tokens on other devices.
+ */
+export async function supabaseSignOut(accessToken: string, scope: SupabaseSignOutScope) {
+  if (!supabaseUrl || !anonKey) throw new Error("Supabase is not configured.");
+  if (!accessToken) throw new SupabaseAuthError(401, "A valid session is required to sign out.", "session_missing");
+  const response = await fetch(`${supabaseUrl}/auth/v1/logout?scope=${encodeURIComponent(scope)}`, {
+    method: "POST",
+    headers: {
+      apikey: anonKey,
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    },
+    cache: "no-store",
+  });
+  if (response.ok) return;
+  const responseText = await response.text();
+  throw safeAuthError(response.status, responseText);
 }
