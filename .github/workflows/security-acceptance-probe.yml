@@ -1,0 +1,67 @@
+name: Security Acceptance Probe
+
+on:
+  push:
+    branches:
+      - ops/security-acceptance-20260813
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run synthetic production signup probes
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base = 'https://foremention.com';
+          const supabase = 'https://vuujwdxivjsdikdstwib.supabase.co';
+          const publishable = 'sb_publishable_thWvI_bBclyKb1gd2aqI5w_EX5HLs9B';
+          const suffix = process.env.GITHUB_RUN_ID;
+          const breachedEmail = `fm-security-breached-${suffix}@example.com`;
+          const cleanEmail = `fm-security-clean-${suffix}@example.com`;
+          const directEmail = `fm-security-direct-${suffix}@example.com`;
+          const breachedPassword = 'Password123!';
+          const cleanPassword = 'Z7!mQ2#vR9@xL4$kT8^pN6&cW3';
+
+          async function post(url, body, headers={}) {
+            const r = await fetch(url, {
+              method:'POST',
+              headers:{'content-type':'application/json','accept':'application/json',...headers},
+              body:JSON.stringify(body),
+              redirect:'manual'
+            });
+            const text = await r.text();
+            let parsed; try { parsed = JSON.parse(text); } catch { parsed = text; }
+            return {status:r.status, ok:r.ok, body:parsed};
+          }
+
+          const A = await post(`${base}/api/auth/signup`, {
+            full_name:'Foremention Security Probe', email:breachedEmail,
+            password:breachedPassword, confirmation:breachedPassword
+          });
+          console.log('TEST_A', JSON.stringify(A));
+          if (A.status !== 400 || !JSON.stringify(A.body).toLowerCase().includes('breach')) {
+            throw new Error(`TEST_A failed: ${JSON.stringify(A)}`);
+          }
+
+          const B = await post(`${base}/api/auth/signup`, {
+            full_name:'Foremention Security Probe', email:cleanEmail,
+            password:cleanPassword, confirmation:cleanPassword
+          });
+          console.log('TEST_B', JSON.stringify(B));
+          if (!B.ok || !B.body || B.body.ok !== true) {
+            throw new Error(`TEST_B failed: ${JSON.stringify(B)}`);
+          }
+
+          const C = await post(`${supabase}/auth/v1/signup`, {
+            email:directEmail, password:cleanPassword
+          }, {apikey: publishable});
+          console.log('TEST_C', JSON.stringify(C));
+          const cText = JSON.stringify(C.body).toLowerCase();
+          if (C.ok || !(cText.includes('foremention') || cText.includes('signup verification') || cText.includes('hook'))) {
+            throw new Error(`TEST_C failed: ${JSON.stringify(C)}`);
+          }
+
+          console.log('ACCEPTANCE', JSON.stringify({ok:true, breachedEmail, cleanEmail, directEmail}));
+          NODE
