@@ -3,6 +3,11 @@
 const baseUrl = new URL((process.env.FOREMENTION_BASE_URL || "https://foremention.com").replace(/\/$/, ""));
 const email = (process.env.FOREMENTION_ACCEPTANCE_EMAIL || "").trim();
 const password = process.env.FOREMENTION_ACCEPTANCE_PASSWORD || "";
+const expectedBuildCommit = (process.env.FOREMENTION_EXPECTED_BUILD_COMMIT || "").trim().toLowerCase();
+const configuredWaitSeconds = Number(process.env.FOREMENTION_RELEASE_WAIT_SECONDS || "120");
+const releaseWaitSeconds = Number.isFinite(configuredWaitSeconds)
+  ? Math.max(0, Math.min(300, Math.floor(configuredWaitSeconds)))
+  : 120;
 const requestRecovery = process.argv.includes("--request-recovery");
 
 class CookieJar {
@@ -38,10 +43,14 @@ function fail(message, details = {}) {
   process.exitCode = 1;
 }
 
+const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 async function request(path, { method = "GET", body, jar, redirect = "manual" } = {}) {
   const url = new URL(path, baseUrl);
   const headers = {
     accept: "application/json, text/html;q=0.9",
+    "cache-control": "no-cache",
+    pragma: "no-cache",
     "user-agent": "ForementionProductionAcceptance/1.0",
   };
   if (body !== undefined) headers["content-type"] = "application/json";
@@ -69,21 +78,57 @@ async function jsonOrText(response) {
   return response.text().catch(() => "");
 }
 
+function observedBuildCommit(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return "";
+  const commit = typeof body.buildCommit === "string" ? body.buildCommit.trim().toLowerCase() : "";
+  return /^[0-9a-f]{40}$/.test(commit) ? commit : "";
+}
+
+async function verifyHealth(evidence) {
+  if (expectedBuildCommit && !/^[0-9a-f]{40}$/.test(expectedBuildCommit)) {
+    return fail("FOREMENTION_EXPECTED_BUILD_COMMIT must be a full 40-character Git SHA.", evidence);
+  }
+
+  const deadline = Date.now() + releaseWaitSeconds * 1000;
+  let attempts = 0;
+
+  while (true) {
+    attempts += 1;
+    const separator = `/api/health?release_probe=${Date.now()}`;
+    const health = await request(separator);
+    const body = await jsonOrText(health);
+    const buildCommit = observedBuildCommit(body);
+    evidence.public.health = {
+      status: health.status,
+      body,
+      buildCommit: buildCommit || null,
+      expectedBuildCommit: expectedBuildCommit || null,
+      attempts,
+    };
+
+    const exactRelease = !expectedBuildCommit || buildCommit === expectedBuildCommit;
+    if (health.ok && exactRelease) return true;
+
+    if (!expectedBuildCommit) return fail("Production health endpoint failed.", evidence);
+    if (Date.now() >= deadline) {
+      return fail("Production release did not converge to the expected Git commit within the bounded verification window.", evidence);
+    }
+    await sleep(2_000);
+  }
+}
+
 async function main() {
   const evidence = {
     baseUrl: baseUrl.origin,
     checkedAt: new Date().toISOString(),
+    expectedBuildCommit: expectedBuildCommit || null,
     public: {},
     authenticated: null,
     recoveryRequest: null,
   };
 
-  const health = await request("/api/health");
-  evidence.public.health = {
-    status: health.status,
-    body: await jsonOrText(health),
-  };
-  if (!health.ok) return fail("Production health endpoint failed.", evidence);
+  const healthVerified = await verifyHealth(evidence);
+  if (!healthVerified) return;
 
   const directReset = await request("/reset-password");
   evidence.public.directReset = {
@@ -100,6 +145,9 @@ async function main() {
     status: unauthenticatedApp.status,
     location: unauthenticatedApp.headers.get("location"),
   };
+  if (unauthenticatedApp.status === 200) {
+    return fail("Protected app was accessible without authentication.", evidence);
+  }
 
   if (!email || !password) {
     evidence.authenticated = {
