@@ -1,5 +1,6 @@
 import type { Viewer } from "@/lib/auth";
-import { loadWorkspaceContext } from "@/lib/data";
+import { loadPrompts, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
+import { buildDemoWorkspaceSearch } from "@/lib/demo-workspace-search";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export type WorkspaceSearchKind = "Question" | "AI Result" | "Source" | "Competitor" | "Opportunity" | "Action";
@@ -45,6 +46,22 @@ async function attempt<T>(kind: WorkspaceSearchKind, task: Promise<T>) {
 export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise<WorkspaceSearchResponse> {
   const query = clean(rawQuery);
   if (!query) return { query: "", results: [], failedKinds: [] };
+
+  // Demo mode is a fictional product tour, not an anonymous tenant. Resolve
+  // its existing in-memory fixtures and return before any workspace-context or
+  // Supabase search path can execute.
+  if (viewer.mode === "demo") {
+    const [prompts, competitors] = await Promise.all([
+      loadPrompts(viewer),
+      loadWorkspaceCompetitors(viewer),
+    ]);
+    return {
+      query,
+      results: buildDemoWorkspaceSearch(query, prompts, competitors),
+      failedKinds: [],
+    };
+  }
+
   const context = await loadWorkspaceContext(viewer);
   if (!context) return { query, results: [], failedKinds: [] };
   const pattern = contains(query);

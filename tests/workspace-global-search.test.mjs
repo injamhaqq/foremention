@@ -32,3 +32,24 @@ test("global workspace search is tenant-scoped and covers all customer product a
   assert.match(search, /failedKinds/);
   assert.doesNotMatch(search, /serviceRole: true/);
 });
+
+test("fictional demo search resolves locally before any production search path", async () => {
+  const [search, demoSearch] = await Promise.all([
+    text("lib/workspace-search.ts"),
+    text("lib/demo-workspace-search.ts"),
+  ]);
+
+  const demoBoundary = search.indexOf('if (viewer.mode === "demo")');
+  const contextLookup = search.indexOf("loadWorkspaceContext(viewer)");
+  assert.ok(demoBoundary >= 0);
+  assert.ok(contextLookup > demoBoundary, "demo must return before workspace context can query Supabase");
+  assert.match(search, /buildDemoWorkspaceSearch\(query, prompts, competitors\)/);
+  assert.match(search, /failedKinds: \[\]/);
+
+  assert.match(demoSearch, /fictional in-memory demo records/i);
+  assert.match(demoSearch, /Fictional demo/);
+  assert.doesNotMatch(demoSearch, /supabaseRest|serviceRole|accessToken|NEXT_PUBLIC_SUPABASE/);
+  for (const source of ["demoRuns", "sourceMapEntries", "demoPlacements"]) {
+    assert.match(demoSearch, new RegExp(source));
+  }
+});
