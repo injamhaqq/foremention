@@ -1,4 +1,4 @@
-import { assessExactQuestionComparability } from "@/lib/intelligence-comparability";
+import { assessExactQuestionComparability } from "./intelligence-comparability.ts";
 
 export type AiObservationChangeKind = "brand_mention" | "citation" | "source" | "competitor" | "answer_context";
 
