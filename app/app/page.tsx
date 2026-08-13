@@ -5,6 +5,7 @@ import { demoCompany } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
 import { loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
+import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
@@ -14,16 +15,18 @@ export default async function DashboardPage() {
   });
   if (viewer.mode === "supabase" && !context) redirect("/app/onboarding");
 
-  const [prompts, runs, sources, placements, providers] = await Promise.all([
+  const [prompts, runs, sources, placements, providers, intelligence] = await Promise.all([
     loadPrompts(viewer),
     loadRuns(viewer),
     loadSourceMap(viewer),
     loadPlacements(viewer),
     loadProviderStatuses(viewer),
+    loadSafeWeeklyIntelligence(viewer),
   ]);
   const observedRuns = runs.filter((run) => ["review", "complete", "partial"].includes(run.status));
   const latest = observedRuns[0] || null;
-  const previous = observedRuns[1] || null;
+  const comparableLatest = intelligence.latest;
+  const comparablePrevious = intelligence.previous;
   const [observedAnswers, sourceContexts, competitors] = await Promise.all([
     latest ? loadRunAnswers(viewer, latest.id) : Promise.resolve([]),
     loadSourceEvidenceContexts(viewer, sources.flatMap((source) => source.sourceId ? [source.sourceId] : [])),
@@ -44,6 +47,13 @@ export default async function DashboardPage() {
   ];
   const next = activation.find((item) => !item.done) || { label: reviewedOpportunities.length ? "Choose an opportunity" : "Review your Sources", href: reviewedOpportunities.length ? "/app/opportunities" : "/app/source-map" };
   const state = latest ? stateForRun({ status: latest.status, answerCount: latest.answers, citationCount: latest.citations }) : pendingOrFailedRun ? stateForRun({ status: pendingOrFailedRun.status, answerCount: pendingOrFailedRun.answers, citationCount: pendingOrFailedRun.citations }) : "READY_TO_COLLECT";
+  const exactMovement = comparableLatest && comparablePrevious
+    ? {
+      delta: comparableLatest.presence - comparablePrevious.presence,
+      latest: comparableLatest,
+      previous: comparablePrevious,
+    }
+    : null;
 
   return <main className="workspace" data-product-state={state}>
     <div className="workspace-heading">
@@ -71,7 +81,7 @@ export default async function DashboardPage() {
     </div>
 
     <section className="weekly-loop-teaser">
-      <div><span className="eyebrow">What changed?</span><strong>{latest && previous ? `Brand presence ${latest.presence === previous.presence ? "held steady" : latest.presence > previous.presence ? "increased" : "decreased"} by ${Math.abs(latest.presence - previous.presence)} points.` : latest ? "This is your current observed baseline." : "A comparable change needs at least one completed collection."}</strong><p>{latest && previous ? `Latest: ${latest.presence}% across ${latest.answers} answers and ${latest.citations} citation observations. Previous: ${previous.presence}% across ${previous.answers} answers and ${previous.citations} citation observations. Foremention records the change; it does not claim what caused it.` : "Repeat the same approved questions with the same methodology before interpreting movement."}</p><Link className="text-link" href="/app/intelligence">Advanced: Weekly Intelligence Loop <Arrow /></Link></div>
+      <div><span className="eyebrow">What changed?</span><strong>{exactMovement ? `Brand presence ${exactMovement.delta === 0 ? "held steady" : exactMovement.delta > 0 ? "increased" : "decreased"} by ${Math.abs(exactMovement.delta)} points.` : comparableLatest ? "This is the current exact reviewed baseline. Cross-collection movement is withheld until an identical comparison exists." : latest ? "This collection is observed evidence, but it is not yet an exact reviewed comparison baseline." : "A comparable change needs at least one completed collection."}</strong><p>{exactMovement ? `Current: ${exactMovement.latest.presence}% across ${exactMovement.latest.answers} verified answers and ${exactMovement.latest.citations} citation observations. Comparable prior: ${exactMovement.previous.presence}% across ${exactMovement.previous.answers} verified answers and ${exactMovement.previous.citations} citation observations. The persisted buyer-question text, provider, exact model, and methodology matched. Foremention records the change; it does not claim what caused it.` : comparableLatest ? "Other reviewed collections can remain valid evidence on their own. Foremention reports movement here only when the persisted buyer-question text, provider, exact model, and methodology all match the current reviewed baseline." : "Repeat the exact approved questions with the same provider, exact model, and methodology after review before interpreting movement."}</p><Link className="text-link" href="/app/intelligence">Advanced: Weekly Intelligence Loop <Arrow /></Link></div>
       <Link className="button button--ink" href="/app/analytics">Open Analytics <Arrow /></Link>
     </section>
 
