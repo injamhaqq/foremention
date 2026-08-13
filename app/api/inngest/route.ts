@@ -1,3 +1,8 @@
 import { serve } from "inngest/next";
 import { cleanupCancelledCollection, deliverHubSpotActionEvents, deliverWorkspaceWebhookEvents, inngest, runMultiEngineScan, scheduleWeeklyWorkspaceRuns } from "@/lib/jobs/inngest";
-export const { GET, POST, PUT } = serve({ client: inngest, functions: [runMultiEngineScan, cleanupCancelledCollection, scheduleWeeklyWorkspaceRuns, deliverWorkspaceWebhookEvents, deliverHubSpotActionEvents] });
+import { runtimeServiceProbe } from "@/lib/jobs/runtime-probe";
+
+export const { GET, POST, PUT } = serve({
+  client: inngest,
+  functions: [runMultiEngineScan, cleanupCancelledCollection, scheduleWeeklyWorkspaceRuns, runtimeServiceProbe, deliverWorkspaceWebhookEvents, deliverHubSpotActionEvents],
+});

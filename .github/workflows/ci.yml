@@ -62,3 +62,12 @@ jobs:
           FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
           FOREMENTION_RELEASE_WAIT_SECONDS: '300'
         run: node scripts/production-auth-smoke.mjs
+
+      - name: Probe live Inngest execution
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          FOREMENTION_BASE_URL: https://foremention.com
+          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
+          FOREMENTION_INNGEST_WAIT_SECONDS: '90'
+        run: node scripts/production-inngest-smoke.mjs
