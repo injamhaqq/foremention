@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getApplicationEmailStatus, sendWelcomeEmail } from "@/lib/application-email";
 import { SupabaseAuthError, supabaseAuth } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
-import { checkPasswordSafety, HashRangeUnavailable } from "@/lib/password-safety";
+import { checkPasswordSafety, HashRangeUnavailable, issueSignupSecurityAttestation } from "@/lib/password-safety";
 
 async function attemptWelcomeEmail(email: string, origin: string) {
   if (!getApplicationEmailStatus().available) return "not_configured" as const;
@@ -39,6 +39,14 @@ export async function POST(request: Request) {
       }
       throw error;
     }
+
+    let signupSecurityAttestation = "";
+    try {
+      signupSecurityAttestation = await issueSignupSecurityAttestation(email);
+    } catch {
+      return NextResponse.json({ error: "Signup security verification is temporarily unavailable. No account was created. Please try again." }, { status: 503 });
+    }
+
     const incomingOrigin = new URL(request.url).origin;
     const origin = /localhost|127\.0\.0\.1|\[::1\]/.test(incomingOrigin)
       ? incomingOrigin
@@ -52,7 +60,10 @@ export async function POST(request: Request) {
     const data = await supabaseAuth("signup", {
       email: normalizedEmail,
       password,
-      data: { full_name: fullName },
+      data: {
+        full_name: fullName,
+        signup_security_attestation: signupSecurityAttestation,
+      },
       email_redirect_to: `${origin}/auth/callback`,
     });
     const user = data.user && typeof data.user === "object"
