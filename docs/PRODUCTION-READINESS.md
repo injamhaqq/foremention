@@ -26,19 +26,43 @@ This document is the handoff checklist for the Meridian OS / Source Eclipse buil
 - The app never promises rankings, editorial acceptance, citations, traffic, revenue, or causation.
 - The demo is fictional and labelled. It must never be relabelled as a case study.
 
+## Live production evidence — 2026-08-13
+
+The items below are evidence records, not assumptions. A gate stays open unless a production observation or an equivalent acceptance artifact exists.
+
+### Confirmed
+
+- **Exact production release:** production health reported build commit `53a94639d6c0a64bdbd27d185dc63f52bc55573b`, matching `main` after PR #51.
+- **Release CI:** main CI run `31670678621` completed successfully for that commit, covering dependency audit, tests, lint, typecheck, production build, Cloudflare Worker dry-run, and production-build artifact upload.
+- **Core dependency reachability:** the production health contract independently reported the Worker, D1, and Supabase as reachable. Inngest and configured AI providers remained `configured_not_probed`, so this record does not claim their live runtime paths were exercised.
+- **Production schema hardening:** the foreign-key performance migration from PR #51 was applied to the production Supabase project. Re-running the production performance advisor cleared all 15 `unindexed_foreign_keys` findings that motivated the migration. Remaining `unused_index` notices are intentionally not treated as removal instructions without representative traffic evidence.
+- **Database function privilege boundary:** production privilege checks confirmed `anon` cannot execute `complete_onboarding`, `release_queued_run`, `reserve_run_budget`, `reserve_run_quota`, `has_org_role`, or `is_org_member`; the intended authenticated/service roles retain access.
+- **Session-revocation implementation:** PR #50 added explicit current-session and all-device Supabase revocation paths, same-origin mutation protection, truthful upstream-failure handling, and the documented JWT-expiry boundary.
+- **Truthful comparison/alert boundary:** customer-facing trend movement is gated on exact persisted buyer-question text, provider, exact model, methodology, and human-review state; legacy ungated movement notifications and the legacy competitor-comparison email path are suppressed.
+
+### Still requires live or operator-owned proof
+
+- **Live all-device revocation drill:** implementation is shipped, but an actual production account has not been destructively revoked solely for acceptance testing. Do not mark this complete until a disposable/test account proves access loss and refresh-session revocation end to end.
+- **Backup restore drill:** no completed restore artifact is recorded here. A backup existing is not equivalent to proving restoration.
+- **Production alert delivery to the operator:** monitoring code/configuration is not enough. Record one controlled production error and the resulting operator alert before closing this gate.
+- **Inngest runtime probe:** health currently says configured, not independently reachable. Record a bounded production job execution before closing this gate.
+- **Real AI-provider collection:** health currently says configured, not probed. Complete one deliberately cost-capped collection and preserve provider, exact model, date, spend, failures, answers, citations, Source X-Ray inspection, and human review.
+- **Full manual customer journey:** record deployed-domain acceptance evidence for signup, login, password reset, onboarding, demo isolation, mobile layout, representative empty/error states, and the customer workflow from question to reviewed evidence.
+- **Legal and commercial approvals:** privacy policy, terms, MSA, DPA, retention, subprocessors, incident response, checkout entitlement activation, customer permissions, and any required counsel review remain founder/operator-owned gates unless separately documented.
+
 ## Required before accepting live customer data
 
-1. Create and configure the production Supabase project.
-2. Apply every migration in timestamp order and run the RLS verification queries.
-3. Configure a production domain, HTTPS, allowed auth redirects, and secret manager.
-4. Add refresh-token rotation and session-revocation testing for long-lived accounts.
+1. Create and configure the production Supabase project. **Production project exists; keep environment ownership and recovery details documented outside source control.**
+2. Apply every migration in timestamp order and run the RLS verification queries. **Migration history has been actively reconciled and production hardening has been applied; keep this gate open until the full migration/RLS acceptance record is attached.**
+3. Configure a production domain, HTTPS, allowed auth redirects, and secret manager. **Production domain and HTTPS are live; retain explicit operator evidence for auth redirect and secret-manager configuration.**
+4. Add refresh-token rotation and session-revocation testing for long-lived accounts. **Implementation shipped in PR #50; live destructive revocation drill remains open.**
 5. Approve the privacy policy, terms, MSA, DPA, data retention, subprocessor list, and incident-response plan with qualified counsel.
-6. Complete a threat model, dependency audit, backup restore test, and access-revocation drill.
-7. Add production monitoring, error alerting, audit-log retention, and on-call ownership.
+6. Complete a threat model, dependency audit, backup restore test, and access-revocation drill. **Automated dependency audit is green; backup restore and live access-revocation drills remain open.**
+7. Add production monitoring, error alerting, audit-log retention, and on-call ownership. **Do not close until a controlled production alert is observed by the responsible operator.**
 8. Connect analytics and CRM with read-only/minimum scopes and written customer authorization.
 9. Connect checkout and verify that only a signed billing webhook can activate paid entitlements.
-10. Configure explicit provider models, spend limits, retry budgets, and evaluation fixtures.
-11. Run accessibility, performance, cross-browser, mobile-device, and form-delivery acceptance tests on the deployed domain.
+10. Configure explicit provider models, spend limits, retry budgets, and evaluation fixtures. **Code-level controls exist; live provider execution remains intentionally unproven in this record.**
+11. Run accessibility, performance, cross-browser, mobile-device, and form-delivery acceptance tests on the deployed domain. **Automated/mobile contracts do not replace deployed-device acceptance evidence.**
 
 ## Evidence gates before public proof claims
 
