@@ -6,7 +6,6 @@ import { Arrow } from "@/components/brand";
 import type { WeeklyIntelligence } from "@/lib/intelligence-loop";
 
 const signed = (value: number, suffix = "") => `${value > 0 ? "+" : ""}${Math.round(value * 10) / 10}${suffix}`;
-const cost = (value: number | null) => value === null ? "Not recorded" : `$${value < .01 ? value.toFixed(4) : value.toFixed(2)}`;
 
 export function IntelligenceLoop({ intelligence, initialQuery = "" }: { intelligence: WeeklyIntelligence; initialQuery?: string }) {
   const [query, setQuery] = useState(initialQuery);
@@ -20,9 +19,9 @@ export function IntelligenceLoop({ intelligence, initialQuery = "" }: { intellig
   const presenceDelta = latest && previous ? latest.presence - previous.presence : null;
   const citationDelta = latest && previous ? latest.citations - previous.citations : null;
   const answerDelta = latest && previous ? latest.answers - previous.answers : null;
-  const costDelta = latest?.costUsd !== null && latest?.costUsd !== undefined && previous?.costUsd !== null && previous?.costUsd !== undefined
-    ? latest.costUsd - previous.costUsd
-    : null;
+  const expectedLatestAnswers = latest ? Math.max(1, latest.prompts) * Math.max(1, latest.providers.length) : null;
+  const customerConfidenceChecks = intelligence.confidenceChecks.filter((check) => check.label !== "Cost trace");
+  const customerChanges = intelligence.changes.filter((change) => change.kind !== "cost");
 
   return <>
     {intelligence.telemetry === "fictional" && <div className="demo-disclosure"><strong>Fictional product demonstration</strong><span>All records on this page demonstrate the weekly workflow. They are not customer metrics or live provider results.</span></div>}
@@ -32,7 +31,7 @@ export function IntelligenceLoop({ intelligence, initialQuery = "" }: { intellig
         <p>{intelligence.cadence.description}</p>
       </div>
       <ol className="intelligence-loop__steps">
-        {["Search evidence", "Compare runs", "See changes", "Check confidence + cost", "Take one action"].map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>)}
+        {["Search evidence", "Compare runs", "See changes", "Check confidence + coverage", "Take one action"].map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>)}
       </ol>
     </section>
 
@@ -45,7 +44,7 @@ export function IntelligenceLoop({ intelligence, initialQuery = "" }: { intellig
       <article><span>Reviewed brand presence</span><strong>{latest ? `${latest.presence}%` : "—"}</strong><small>{presenceDelta === null ? "Needs a comparable run" : `${signed(presenceDelta, " pts")} vs previous`}</small></article>
       <article><span>Returned citations</span><strong>{latest?.citations ?? "—"}</strong><small>{citationDelta === null ? "Needs a comparable run" : `${signed(citationDelta)} vs previous`}</small></article>
       <article><span>Verified answers</span><strong>{latest?.answers ?? "—"}</strong><small>{answerDelta === null ? "Latest reviewed baseline" : `${signed(answerDelta)} vs previous`}</small></article>
-      <article><span>Recorded run cost</span><strong>{cost(latest?.costUsd ?? null)}</strong><small>{costDelta === null ? latest?.costSource || "No cost trace" : `${costDelta > 0 ? "+" : ""}${cost(costDelta)} vs previous`}</small></article>
+      <article><span>Collection coverage</span><strong>{latest && expectedLatestAnswers ? `${latest.answers}/${expectedLatestAnswers}` : "—"}</strong><small>{latest ? `${latest.prompts} question${latest.prompts === 1 ? "" : "s"} × ${latest.providers.length} AI system${latest.providers.length === 1 ? "" : "s"}` : "Needs a reviewed collection"}</small></article>
     </div>
 
     <div className="intelligence-grid">
@@ -58,20 +57,20 @@ export function IntelligenceLoop({ intelligence, initialQuery = "" }: { intellig
             ["First mention", previous ? `${previous.firstMention}%` : "—", `${latest.firstMention}%`, previous ? signed(latest.firstMention - previous.firstMention, " pts") : "Baseline"],
             ["Verified answers", previous?.answers ?? "—", latest.answers, answerDelta === null ? "Baseline" : signed(answerDelta)],
             ["Returned citations", previous?.citations ?? "—", latest.citations, citationDelta === null ? "Baseline" : signed(citationDelta)],
-            ["Recorded cost", previous ? cost(previous.costUsd) : "—", cost(latest.costUsd), costDelta === null ? "Baseline" : `${costDelta > 0 ? "+" : ""}${cost(costDelta)}`],
+            ["New returned sources", previous?.newSources ?? "—", latest.newSources, previous ? signed(latest.newSources - previous.newSources) : "Baseline"],
           ].map(([label, before, after, change]) => <div className="run-compare__row" key={label}><strong>{label}</strong><span>{before}</span><span>{after}</span><span>{change}</span></div>)}
         </div> : <div className="empty-state"><h2>No reviewed run exists yet.</h2><p>This page compares reviewed runs and turns exact changes into one next action. Start a collection, then approve its evidence.</p><Link className="button button--ink" href="/app/runs">Create the first baseline <Arrow /></Link></div>}
       </section>
 
       <section className="panel panel--flush confidence-panel">
         <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Confidence without a magic score</span><h2>{intelligence.confidence}</h2></div></div>
-        <div className="confidence-checks">{intelligence.confidenceChecks.map((check) => <article className={`confidence-check confidence-check--${check.state}`} key={check.label}><div><span>{check.label}</span><strong>{check.value}</strong></div><p>{check.detail}</p></article>)}</div>
+        <div className="confidence-checks">{customerConfidenceChecks.map((check) => <article className={`confidence-check confidence-check--${check.state}`} key={check.label}><div><span>{check.label}</span><strong>{check.value}</strong></div><p>{check.detail}</p></article>)}</div>
       </section>
     </div>
 
     <section className="panel panel--flush change-feed">
       <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">What changed</span><h2>Exact differences. No invented interpretation.</h2></div></div>
-      <div>{intelligence.changes.map((change) => <article className={`change-record change-record--${change.tone}`} key={change.id}><span>{change.kind}</span><div><strong>{change.title}</strong><p>{change.detail}</p></div><Link href={change.href}>Inspect <Arrow /></Link></article>)}</div>
+      <div>{customerChanges.map((change) => <article className={`change-record change-record--${change.tone}`} key={change.id}><span>{change.kind}</span><div><strong>{change.title}</strong><p>{change.detail}</p></div><Link href={change.href}>Inspect <Arrow /></Link></article>)}</div>
     </section>
 
     <section className="panel panel--flush evidence-search" id="workspace-search">
