@@ -15,7 +15,7 @@ test("resolution follow-up requires the same methodology version", async () => {
 test("resolution follow-up compares the exact reviewed buyer-question provider model matrix", async () => {
   const sql = await readFile(migration, "utf8");
 
-  assert.match(sql, /review_status::text <> 'verified'/i);
+  assert.match(sql, /review_status::text is distinct from 'verified'/i);
   assert.match(sql, /nullif\(trim\(prompt_key\), ''\) is null/i);
   assert.match(sql, /nullif\(trim\(prompt_text\), ''\) is null/i);
   assert.match(sql, /nullif\(trim\(model\), ''\) is null/i);
