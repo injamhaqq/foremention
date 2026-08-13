@@ -62,7 +62,7 @@ export function buildResolutionProposal(input: {
   const problemTitle = clean(input.problem.title, 180);
   const sourceTitle = clean(input.problem.sourceTitle || input.problem.sourceUrl, 180);
   const evidenceIds = input.evidence.map((entry) => entry.id);
-  const questions = Array.from(new Set(input.evidence.map((entry) => clean(entry.question, 300)).filter(Boolean))).slice(0, 5);
+  const observationEvidence = input.evidence.filter((entry) => entry.kind === "source_observation").slice(0, 5);
   const limitations = [
     "This is a deterministic working brief built only from evidence already verified in this workspace.",
     "Every publishable statement still requires a person to check the linked source, date, scope, and usage rights.",
@@ -72,7 +72,7 @@ export function buildResolutionProposal(input: {
   const common = {
     schemaVersion: "1.0" as const,
     assetType: input.type,
-    evidenceBoundary: "Use only the linked evidence records. Do not add rankings, traffic, revenue, customer, or product claims that those records do not directly support.",
+    evidenceBoundary: "Use only the linked evidence records. Copy buyer-question wording only from the persisted historical observation, never from the current editable question library. Do not add rankings, traffic, revenue, customer, or product claims that those records do not directly support.",
   };
   if (input.type === "comparison_brief") {
     return {
@@ -84,7 +84,7 @@ export function buildResolutionProposal(input: {
         headline: `Build an inspectable comparison around ${sourceTitle}`,
         objective: `Address the observed opportunity without claiming that Foremention controls how an AI provider ranks or recommends brands.`,
         draftSections: [
-          { heading: "Buyer decision", guidance: questions[0] || "State the exact buyer question represented by the reviewed observation.", evidenceIds },
+          { heading: "Buyer decision", guidance: "Open the linked reviewed observation and copy the exact persisted buyer question before drafting. Do not substitute the current question-library wording.", evidenceIds },
           { heading: "Verified comparison criteria", guidance: "Extract only criteria explicitly supported by the linked records; mark every unsupported field as unknown.", evidenceIds },
           { heading: "Evidence and limitations", guidance: "Cite each source, its observation date, provider context, and the limits of the comparison.", evidenceIds },
         ],
@@ -93,6 +93,17 @@ export function buildResolutionProposal(input: {
     };
   }
   if (input.type === "faq_evidence_brief") {
+    const sections = observationEvidence.length
+      ? observationEvidence.map((entry, index) => ({
+          heading: `Reviewed buyer question ${index + 1}`,
+          guidance: "Open this linked observation, copy its exact persisted buyer-question wording, then draft the answer only from its linked records. If the evidence does not answer that historical question, say the answer is not yet supported.",
+          evidenceIds: [entry.id],
+        }))
+      : [{
+          heading: "Reviewed buyer question",
+          guidance: "Open the linked verified evidence and identify the exact persisted buyer question before drafting. If the evidence does not support an answer, say the answer is not yet supported.",
+          evidenceIds,
+        }];
     return {
       title: `FAQ evidence brief: ${problemTitle}`,
       problemStatement: problemTitle,
@@ -101,12 +112,8 @@ export function buildResolutionProposal(input: {
         ...common,
         headline: `Answer recurring buyer questions with dated evidence`,
         objective: "Prepare an FAQ draft that separates verified facts from unknowns and from Foremention inference.",
-        draftSections: (questions.length ? questions : ["What evidence supports this answer?"]).map((question) => ({
-          heading: question,
-          guidance: "Draft the answer only from the linked records. If the evidence does not answer the question, say that the answer is not yet supported.",
-          evidenceIds,
-        })),
-        nextStep: "A reviewer should write the evidence-backed answers, preserve the citations, and submit the FAQ brief for approval.",
+        draftSections: sections,
+        nextStep: "A reviewer should copy each exact historical buyer question from its linked observation, write the evidence-backed answer, preserve the citations, and submit the FAQ brief for approval.",
       },
     };
   }
