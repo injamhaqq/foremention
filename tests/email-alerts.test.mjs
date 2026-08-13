@@ -36,3 +36,13 @@ test("workspace email alerts are opt-in, idempotent, and keep auth SMTP separate
   assert.match(review, /brand_new_source/);
   assert.match(review, /brand_lost_source/);
 });
+
+test("legacy pre-review competitor comparison email is withheld until a safe reviewed comparison path exists", async () => {
+  const helper = await text("lib/workspace-email-alerts.ts");
+  assert.match(helper, /input\.kind === "competitor_overtook"/);
+  assert.match(helper, /withheld_comparability/);
+  assert.match(helper, /Safe Intelligence exact-question\/provider\/model\/methodology gate/);
+  const guard = helper.indexOf('input.kind === "competitor_overtook"');
+  const resend = helper.indexOf("RESEND_API_KEY");
+  assert.ok(guard >= 0 && resend >= 0 && guard < resend, "comparison-derived email must be withheld before delivery configuration or side effects are evaluated");
+});
