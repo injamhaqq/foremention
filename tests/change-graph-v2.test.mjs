@@ -29,14 +29,20 @@ test("Change Graph keeps distinct observation types instead of collapsing them i
   assert.match(graph, /gainedCompetitors/);
   assert.match(graph, /lostCompetitors/);
   assert.match(graph, /contextChanges/);
+  assert.match(graph, /if \(gainedSources\.length \|\| lostSources\.length\)/);
   assert.doesNotMatch(graph, /priority_score|visibility_score|change_score/i);
 });
 
-test("saved cited-page changes remain independent observations and never become causal claims", async () => {
+test("saved cited-page changes preserve snapshot lineage and citation linkage without causal claims", async () => {
   const graph = await text("lib/change-graph.ts");
 
   assert.match(graph, /snapshot\.changeState === "unreachable"/);
-  assert.match(graph, /source_content/);
+  assert.match(graph, /previous_snapshot_id,retrieved_at,change_state/);
+  assert.match(graph, /source_snapshot_observations\?select=source_snapshot_id/);
+  assert.match(graph, /linkedObservationCount: linkCounts\.get\(snapshot\.id\) \|\| 0/);
+  assert.match(graph, /Compared with saved observation/);
+  assert.match(graph, /Checked \$\{snapshot\.checkedAt\}/);
+  assert.match(graph, /Linked to \$\{snapshot\.linkedObservationCount\} citation observation/);
   assert.match(graph, /does not prove what caused the difference or that AI behavior changed because of it/);
   assert.match(graph, /Page changes remain separate observations and never imply causation/);
 });
