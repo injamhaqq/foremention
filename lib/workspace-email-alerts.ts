@@ -7,6 +7,14 @@ export type WorkspaceEmailAlertKind = "first_run_completed" | "brand_new_source"
 type WorkspaceEmailAlert = { organizationId: string; userId: string; eventKey: string; kind: WorkspaceEmailAlertKind; subject: string; text: string; href: string };
 
 export async function sendWorkspaceEmailAlert(input: WorkspaceEmailAlert) {
+  // The legacy collection worker can still request this comparison-derived email
+  // while a run is waiting for human review. Customer movement must now pass the
+  // Safe Intelligence exact-question/provider/model/methodology gate first, so
+  // no competitor comparison email is allowed to escape through this generic
+  // delivery helper. A future reviewed-comparison notifier can introduce a
+  // separately named event only after that evidence boundary is satisfied.
+  if (input.kind === "competitor_overtook") return { status: "withheld_comparability" as const };
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; const secret = process.env.EMAIL_UNSUBSCRIBE_SECRET;
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL || !siteUrl || !secret) return { status: "not_configured" as const };
   const [preferences, memberships] = await Promise.all([
