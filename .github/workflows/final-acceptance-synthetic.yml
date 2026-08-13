@@ -1,0 +1,241 @@
+name: Final Synthetic Acceptance
+
+on:
+  push:
+    branches:
+      - ops/final-acceptance-20260814
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Reciprocal tenant search and export isolation
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const base = 'https://foremention.com';
+          const currentPassword = 'Z7!mQ2#vR9@xL4$kT8^pN6&cW3';
+          const accounts = [
+            {label:'A', email:'foremention2026+acceptance-31727494895@gmail.com', marker:'TENANT-A-ALPHA-31727494895'},
+            {label:'B', email:'foremention2026+acceptance-31730320887@gmail.com', marker:'TENANT-B-BRAVO-31730320887'},
+          ];
+
+          function collectCookies(response) {
+            const map = new Map();
+            const raw = typeof response.headers.getSetCookie === 'function'
+              ? response.headers.getSetCookie()
+              : [response.headers.get('set-cookie')].filter(Boolean);
+            for (const line of raw) {
+              for (const part of String(line).split(/,(?=[^;,]+=)/)) {
+                const first = part.split(';', 1)[0];
+                const i = first.indexOf('=');
+                if (i > 0) map.set(first.slice(0, i).trim(), first.slice(i + 1).trim());
+              }
+            }
+            return map;
+          }
+          const cookieHeader = map => [...map.entries()].map(([k,v]) => `${k}=${v}`).join('; ');
+          async function request(path, options={}) {
+            const r = await fetch(`${base}${path}`, options);
+            const buf = Buffer.from(await r.arrayBuffer());
+            return {r, buf, text: buf.toString('utf8')};
+          }
+          async function login(account) {
+            const res = await request('/api/auth/login', {
+              method:'POST', redirect:'manual',
+              headers:{'content-type':'application/json','accept':'application/json'},
+              body:JSON.stringify({email:account.email,password:currentPassword}),
+            });
+            let body=null; try { body=JSON.parse(res.text); } catch {}
+            if (res.r.status !== 200 || !body?.session) throw new Error(`${account.label} login failed: HTTP ${res.r.status}`);
+            account.cookies = collectCookies(res.r);
+            if (!account.cookies.get('foremention-session')) throw new Error(`${account.label} missing session cookie`);
+            account.cookie = cookieHeader(account.cookies);
+            console.log(`${account.label}_LOGIN`, JSON.stringify({status:res.r.status,session:true}));
+          }
+          async function ensureOnboarding(account) {
+            const res = await request('/api/onboarding', {
+              method:'POST', redirect:'manual',
+              headers:{'content-type':'application/json','accept':'application/json',cookie:account.cookie,origin:base,referer:`${base}/app/onboarding`},
+              body:JSON.stringify({
+                companyName:`Tenant ${account.label} Synthetic Acceptance`,
+                domain:`https://example.com/foremention-tenant-${account.label.toLowerCase()}`,
+                market:'Global', category:'Synthetic isolation test',
+                categoryDescription:'Synthetic tenant-isolation acceptance workspace only.',
+                competitors:[`Synthetic competitor ${account.label}`],
+                goal:'Prove application tenant isolation',
+                constraint:'Synthetic acceptance only',
+                prompts:[`Which record belongs to synthetic tenant ${account.label}?`],
+                locale:'en-US',
+              }),
+            });
+            let body=null; try { body=JSON.parse(res.text); } catch {}
+            if (![200,201].includes(res.r.status) || !body?.ok) throw new Error(`${account.label} onboarding failed: HTTP ${res.r.status}`);
+            console.log(`${account.label}_ONBOARDING`, JSON.stringify({status:res.r.status,existing:!!body.existing}));
+          }
+          async function ensureMarkerPrompt(account) {
+            const list = await request('/api/prompts',{headers:{cookie:account.cookie,accept:'application/json'},redirect:'manual'});
+            let body=null; try { body=JSON.parse(list.text); } catch {}
+            if (list.r.status !== 200 || !Array.isArray(body?.data)) throw new Error(`${account.label} prompt list failed: HTTP ${list.r.status}`);
+            if (!body.data.some(p => String(p.text || '').includes(account.marker))) {
+              const create = await request('/api/prompts', {
+                method:'POST', redirect:'manual',
+                headers:{'content-type':'application/json','accept':'application/json',cookie:account.cookie,origin:base,referer:`${base}/app/prompts`},
+                body:JSON.stringify({text:`Which record belongs to ${account.marker}?`,cluster:'Tenant isolation marker'}),
+              });
+              if (create.r.status !== 201) throw new Error(`${account.label} marker prompt create failed: HTTP ${create.r.status}`);
+            }
+          }
+
+          for (const account of accounts) {
+            await login(account);
+            await ensureOnboarding(account);
+            await ensureMarkerPrompt(account);
+          }
+
+          for (const account of accounts) {
+            const other = accounts.find(x => x !== account);
+            const own = await request(`/app/search?q=${encodeURIComponent(account.marker)}`, {headers:{cookie:account.cookie,accept:'text/html'},redirect:'manual'});
+            const cross = await request(`/app/search?q=${encodeURIComponent(other.marker)}`, {headers:{cookie:account.cookie,accept:'text/html'},redirect:'manual'});
+            const ownResult = own.r.status === 200 && !own.text.includes('No matching workspace records') && own.text.includes('href="/app/prompts"') && own.text.includes(account.marker);
+            const crossIsolated = cross.r.status === 200 && cross.text.includes('No matching workspace records');
+            console.log(`${account.label}_SEARCH`, JSON.stringify({ownStatus:own.r.status,ownResult,crossStatus:cross.r.status,crossIsolated}));
+            if (!ownResult) throw new Error(`${account.label} could not retrieve its own marker through /app/search`);
+            if (!crossIsolated) throw new Error(`${account.label} search did not prove isolation from ${other.label}`);
+
+            const exp = await request('/api/export/workspace',{headers:{cookie:account.cookie,accept:'application/zip'},redirect:'manual'});
+            if (exp.r.status !== 200 || !String(exp.r.headers.get('content-type') || '').includes('application/zip')) throw new Error(`${account.label} workspace export failed: HTTP ${exp.r.status}`);
+            fs.writeFileSync(`/tmp/tenant-${account.label}.zip`, exp.buf);
+            console.log(`${account.label}_EXPORT`, JSON.stringify({status:exp.r.status,bytes:exp.buf.length}));
+          }
+          NODE
+
+          python3 <<'PY'
+          import pathlib, zipfile
+          markers={'A':'TENANT-A-ALPHA-31727494895','B':'TENANT-B-BRAVO-31730320887'}
+          for label in ('A','B'):
+              path=pathlib.Path(f'/tmp/tenant-{label}.zip')
+              other='B' if label=='A' else 'A'
+              with zipfile.ZipFile(path) as z:
+                  names=z.namelist()
+                  data=b'\n'.join(z.read(name) for name in names if not name.endswith('/'))
+              own=markers[label].encode() in data
+              cross=markers[other].encode() in data
+              print(f'{label}_ZIP_CONTENT own_marker={own} cross_marker={cross} files={len(names)}')
+              if not own:
+                  raise SystemExit(f'{label} export missing own tenant marker')
+              if cross:
+                  raise SystemExit(f'{label} export leaked the other tenant marker')
+          print('TENANT_ISOLATION_RESULT ok=true reciprocal_search=true reciprocal_export=true')
+          PY
+
+      - name: Install Playwright browsers
+        shell: bash
+        run: |
+          mkdir -p /tmp/foremention-playwright
+          cd /tmp/foremention-playwright
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.54.2
+          npx playwright install --with-deps chromium firefox
+
+      - name: Authenticated mobile and cross-browser acceptance
+        shell: bash
+        run: |
+          cd /tmp/foremention-playwright
+          node --input-type=module <<'NODE'
+          import { chromium, firefox } from 'playwright';
+          const base='https://foremention.com';
+          const email='foremention2026+acceptance-31727494895@gmail.com';
+          const password='Z7!mQ2#vR9@xL4$kT8^pN6&cW3';
+          const marker='TENANT-A-ALPHA-31727494895';
+          const paths=['/app','/app/prompts','/app/runs','/app/source-map','/app/settings',`/app/search?q=${encodeURIComponent(marker)}`];
+          const browserTypes=[['chromium',chromium],['firefox',firefox]];
+
+          for (const [name,type] of browserTypes) {
+            const browser=await type.launch({headless:true});
+            try {
+              const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,locale:'en-US'});
+              const login=await context.request.post(`${base}/api/auth/login`,{data:{email,password},headers:{accept:'application/json'}});
+              const loginBody=await login.json().catch(()=>null);
+              if (login.status()!==200 || !loginBody?.session) throw new Error(`${name} API login failed: HTTP ${login.status()}`);
+              const page=await context.newPage();
+              const pageErrors=[];
+              page.on('pageerror',err=>pageErrors.push(String(err.message || err)));
+              for (const path of paths) {
+                const response=await page.goto(`${base}${path}`,{waitUntil:'domcontentloaded',timeout:30000});
+                await page.waitForTimeout(500);
+                const status=response?.status() ?? 0;
+                const finalUrl=page.url();
+                const metrics=await page.evaluate(()=>({
+                  innerWidth:window.innerWidth,
+                  scrollWidth:document.documentElement.scrollWidth,
+                  mainCount:document.querySelectorAll('main').length,
+                  bodyText:(document.body?.innerText || '').trim().length,
+                }));
+                const noOverflow=metrics.scrollWidth <= metrics.innerWidth + 2;
+                const authenticated=!finalUrl.includes('/login');
+                const rendered=metrics.mainCount>0 && metrics.bodyText>20;
+                console.log('MOBILE_PAGE',JSON.stringify({browser:name,path,status,authenticated,noOverflow,rendered,innerWidth:metrics.innerWidth,scrollWidth:metrics.scrollWidth}));
+                if (status>=500 || !authenticated || !noOverflow || !rendered) throw new Error(`${name} mobile acceptance failed at ${path}`);
+              }
+
+              await page.goto(`${base}/app/source-map`,{waitUntil:'domcontentloaded',timeout:30000});
+              const xrayHref=await page.locator('a[href^="/app/sources/"]').first().getAttribute('href').catch(()=>null);
+              if (xrayHref) {
+                const response=await page.goto(`${base}${xrayHref}`,{waitUntil:'domcontentloaded',timeout:30000});
+                await page.waitForTimeout(500);
+                const metrics=await page.evaluate(()=>({innerWidth:window.innerWidth,scrollWidth:document.documentElement.scrollWidth,mainCount:document.querySelectorAll('main').length,bodyText:(document.body?.innerText || '').trim().length}));
+                const ok=(response?.status() ?? 0)<500 && !page.url().includes('/login') && metrics.scrollWidth<=metrics.innerWidth+2 && metrics.mainCount>0 && metrics.bodyText>20;
+                console.log('SOURCE_XRAY_MOBILE',JSON.stringify({browser:name,href:xrayHref,status:response?.status() ?? 0,ok}));
+                if (!ok) throw new Error(`${name} Source X-Ray mobile acceptance failed`);
+              } else {
+                console.log('SOURCE_XRAY_MOBILE',JSON.stringify({browser:name,available:false,note:'No source X-Ray link was present for this synthetic workspace'}));
+              }
+              if (pageErrors.length) throw new Error(`${name} emitted page errors: ${pageErrors.join(' | ')}`);
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          }
+          console.log('MOBILE_CROSS_BROWSER_RESULT ok=true chromium=true firefox=true');
+          NODE
+
+      - name: Rotate disposable test passwords and revoke sessions
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          const supabase='https://vuujwdxivjsdikdstwib.supabase.co';
+          const apikey='sb_publishable_thWvI_bBclyKb1gd2aqI5w_EX5HLs9B';
+          const oldPassword='Z7!mQ2#vR9@xL4$kT8^pN6&cW3';
+          const emails=['foremention2026+acceptance-31727494895@gmail.com','foremention2026+acceptance-31730320887@gmail.com'];
+          for (const email of emails) {
+            const tokenRes=await fetch(`${supabase}/auth/v1/token?grant_type=password`,{
+              method:'POST',headers:{apikey,'content-type':'application/json'},body:JSON.stringify({email,password:oldPassword})
+            });
+            if (!tokenRes.ok) {
+              console.log('ROTATE_PASSWORD',JSON.stringify({email,status:'old-password-already-unusable',http:tokenRes.status}));
+              continue;
+            }
+            const token=await tokenRes.json();
+            const newPassword=`Tmp-${crypto.randomBytes(24).toString('base64url')}!9Aa`;
+            const update=await fetch(`${supabase}/auth/v1/user`,{
+              method:'PUT',headers:{apikey,authorization:`Bearer ${token.access_token}`,'content-type':'application/json'},body:JSON.stringify({password:newPassword})
+            });
+            if (!update.ok) throw new Error(`Password rotation failed for ${email}: HTTP ${update.status}`);
+            const logout=await fetch(`${supabase}/auth/v1/logout?scope=global`,{
+              method:'POST',headers:{apikey,authorization:`Bearer ${token.access_token}`}
+            });
+            const oldRetry=await fetch(`${supabase}/auth/v1/token?grant_type=password`,{
+              method:'POST',headers:{apikey,'content-type':'application/json'},body:JSON.stringify({email,password:oldPassword})
+            });
+            if (oldRetry.ok) throw new Error(`Old disposable password still authenticates for ${email}`);
+            console.log('ROTATE_PASSWORD',JSON.stringify({email,status:'rotated',logoutHttp:logout.status,oldPasswordRejected:true}));
+          }
+          NODE
