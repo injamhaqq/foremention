@@ -30,7 +30,8 @@ jobs:
             });
             const body=await response.text();
             let parsed=null; try { parsed=JSON.parse(body); } catch {}
-            console.log('SYNTHETIC_SIGNUP',JSON.stringify({email,status:response.status,ok:parsed?.ok===true,confirmationRequired:parsed?.confirmationRequired===true}));
-            if (response.status!==200 || parsed?.ok!==true) throw new Error(`Synthetic signup failed for ${email}: HTTP ${response.status}`);
+            const safeError=String(parsed?.error || parsed?.message || '').slice(0,240);
+            console.log('SYNTHETIC_SIGNUP',JSON.stringify({email,status:response.status,ok:parsed?.ok===true,confirmationRequired:parsed?.confirmationRequired===true,error:safeError}));
+            if (response.status!==200 || parsed?.ok!==true) throw new Error(`Synthetic signup failed for ${email}: HTTP ${response.status}; ${safeError}`);
           }
           NODE
