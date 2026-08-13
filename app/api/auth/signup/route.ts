@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getApplicationEmailStatus, sendWelcomeEmail } from "@/lib/application-email";
 import { SupabaseAuthError, supabaseAuth } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
+import { checkPasswordSafety, HashRangeUnavailable } from "@/lib/password-safety";
 
 async function attemptWelcomeEmail(email: string, origin: string) {
   if (!getApplicationEmailStatus().available) return "not_configured" as const;
@@ -27,6 +28,17 @@ export async function POST(request: Request) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/.test(password)) return NextResponse.json({ error: "Use at least 12 characters with uppercase, lowercase, a number, and a symbol." }, { status: 400 });
     if (password !== confirmation) return NextResponse.json({ error: "The two passwords do not match." }, { status: 400 });
+    try {
+      const safety = await checkPasswordSafety(password);
+      if (safety.compromised) {
+        return NextResponse.json({ error: "This password appears in known breach data. Choose a unique password you have not used elsewhere." }, { status: 400 });
+      }
+    } catch (error) {
+      if (error instanceof HashRangeUnavailable) {
+        return NextResponse.json({ error: "Password safety verification is temporarily unavailable. No account was created. Please try again." }, { status: 503 });
+      }
+      throw error;
+    }
     const incomingOrigin = new URL(request.url).origin;
     const origin = /localhost|127\.0\.0\.1|\[::1\]/.test(incomingOrigin)
       ? incomingOrigin
