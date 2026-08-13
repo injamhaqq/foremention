@@ -199,7 +199,8 @@ test("source review converts citation candidates into audited customer decisions
   assert.match(form, /crawlerAccess === "unknown"/);
   assert.match(form, /Our brand is present on this page/);
   assert.match(form, /Review note/);
-  assert.match(route, /getPrimaryOrganizationId/);
+  assert.match(route, /loadWorkspaceContext/);
+  assert.match(route, /projectId: context\.projectId/);
   assert.doesNotMatch(route, /body\.organizationId/);
   assert.match(route, /source\.reviewed/);
   assert.match(route, /influenceValues/);

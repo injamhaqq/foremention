@@ -1,11 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
 import { useRouter } from "next/navigation";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
 const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
+
+type ReviewResult = {
+  error?: string;
+  opportunity?: {
+    action?: "created" | "refreshed" | "archived" | "none";
+    status?: string;
+  };
+};
 
 export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapEntry; demo: boolean; canEdit: boolean }) {
   const router = useRouter();
@@ -18,6 +27,7 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [resolutionReady, setResolutionReady] = useState(false);
   const submissionLock = useRef(false);
 
   async function save(event: React.FormEvent) {
@@ -26,15 +36,25 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
     submissionLock.current = true;
     setBusy(true);
     setMessage("");
+    setResolutionReady(false);
     try {
       const response = await fetch(`/api/sources/${source.id}/review`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ crawlerAccess, clientPresent, competitors: competitors.split("\n"), route, feasibility, influence, note }),
       });
-      const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as ReviewResult;
       if (!response.ok) throw new Error(result.error || "Could not save the source review.");
-      setMessage(demo ? "Demo review saved locally. Customer data was not changed." : "Review saved with a dated audit record.");
+      if (demo) {
+        setMessage("Demo review saved locally. Customer data was not changed.");
+      } else if (result.opportunity?.action === "created" || result.opportunity?.action === "refreshed") {
+        setMessage("Review saved with a dated audit record. This reviewed gap is now ready in Resolution Center.");
+        setResolutionReady(true);
+      } else if (result.opportunity?.action === "archived") {
+        setMessage("Review saved with a dated audit record. The prior gap was archived because this review no longer supports an actionable opportunity.");
+      } else {
+        setMessage("Review saved with a dated audit record. Complete both influence and feasibility review before this gap becomes a Resolution Center opportunity.");
+      }
       if (!demo) captureProductEvent("evidence_reviewed", { review_type: "source", brand_present: clientPresent, crawler_access: crawlerAccess, entry_route: route });
       router.refresh();
     } catch (error) {
@@ -57,6 +77,6 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
       <label className="source-review-wide">Review note<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="What was verified, what remains uncertain, and what evidence would make this actionable?" /></label>
     </div>
     <div className="source-review-actions"><small>{canEdit ? "Saving this review changes gap status and records the reviewer, time, before-state, and after-state." : "Viewer access is read-only. An owner, admin, or analyst can save this review."}</small><button className="button button--ink" data-workspace-review type="submit" disabled={busy || !canEdit || crawlerAccess === "unknown" || route === "unknown"}>{busy ? "Saving..." : crawlerAccess === "unknown" || route === "unknown" ? "Complete required review" : "Save reviewed source"}</button></div>
-    {message && <p className="inline-notice" role="status">{message}</p>}
+    {message && <p className="inline-notice" role="status">{message}{resolutionReady ? <> <Link className="text-link" href="/app/resolutions">Open Resolution Center →</Link></> : null}</p>}
   </form>;
 }
