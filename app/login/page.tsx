@@ -11,8 +11,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const query = await searchParams;
   const statusMessage = query.reason === "session_expired"
     ? "Your secure session expired. Sign in again to continue where you left off."
-    : query.reason === "google_unavailable"
-      ? "Google sign-in is not active for this environment. Use email and password instead."
-      : "";
+    : query.reason === "auth_temporarily_unavailable"
+      ? "The sign-in service was temporarily unavailable. Your saved session was preserved; try opening your workspace again in a moment."
+      : query.reason === "google_unavailable"
+        ? "Google sign-in is not active for this environment. Use email and password instead."
+        : "";
   return <main className="auth-page"><div className="auth-brand"><Wordmark /><div><span>One buyer question.</span><span>One answer.</span><span>One outside page.</span><span>One accountable trail.</span></div><Link href="/">← Back to site</Link></div><div className="auth-stack"><AuthForm mode="login" next={query.next} statusMessage={statusMessage} googleEnabled={googleAuthEnabled()} /><form className="demo-access" action="/api/auth/demo" method="post"><span>Want to inspect the product first?</span><PendingSubmitButton idle="Explore the fictional workspace →" pending="Opening demo…" /><small>No account, provider call, or customer data required.</small></form></div></main>;
 }
