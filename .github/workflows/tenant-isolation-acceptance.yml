@@ -1,0 +1,122 @@
+name: Tenant Isolation Acceptance
+
+on:
+  push:
+    branches:
+      - ops/security-acceptance-20260813
+
+jobs:
+  tenant-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run reciprocal search and export isolation
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const base = 'https://foremention.com';
+          const password = 'Z7!mQ2#vR9@xL4$kT8^pN6&cW3';
+          const accounts = [
+            {label:'A', email:'foremention2026+acceptance-31727494895@gmail.com', marker:'TENANT-A-ALPHA-31727494895'},
+            {label:'B', email:'foremention2026+acceptance-31730320887@gmail.com', marker:'TENANT-B-BRAVO-31730320887'},
+          ];
+
+          function collectCookies(response) {
+            const map = new Map();
+            const raw = typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : [response.headers.get('set-cookie')].filter(Boolean);
+            for (const line of raw) {
+              for (const part of String(line).split(/,(?=[^;,]+=)/)) {
+                const first = part.split(';',1)[0];
+                const i = first.indexOf('=');
+                if (i > 0) map.set(first.slice(0,i).trim(), first.slice(i+1).trim());
+              }
+            }
+            return map;
+          }
+          const cookieHeader = map => [...map.entries()].map(([k,v]) => `${k}=${v}`).join('; ');
+          async function request(path, options={}) {
+            const r = await fetch(`${base}${path}`, options);
+            const buf = Buffer.from(await r.arrayBuffer());
+            return {r, buf, text: buf.toString('utf8')};
+          }
+          async function login(account) {
+            const res = await request('/api/auth/login', {
+              method:'POST', redirect:'manual', headers:{'content-type':'application/json','accept':'application/json'},
+              body:JSON.stringify({email:account.email,password})
+            });
+            let body; try { body=JSON.parse(res.text); } catch { body=null; }
+            if (res.r.status !== 200 || !body?.session) throw new Error(`${account.label} login failed ${res.r.status} ${res.text}`);
+            const cookies = collectCookies(res.r);
+            if (!cookies.get('foremention-session')) throw new Error(`${account.label} no session cookie`);
+            account.cookies = cookies;
+            account.cookie = cookieHeader(cookies);
+            console.log(`${account.label}_LOGIN`, JSON.stringify({status:res.r.status,session:true}));
+          }
+          async function ensureOnboarding(account) {
+            const res = await request('/api/onboarding', {
+              method:'POST', headers:{'content-type':'application/json','accept':'application/json',cookie:account.cookie,origin:base,referer:`${base}/app/onboarding`},
+              body:JSON.stringify({
+                companyName:`Tenant ${account.label} Acceptance ${account.marker}`,
+                domain: account.label === 'A' ? 'https://tenant-a.invalid' : 'https://tenant-b.invalid',
+                market:'Global', category:'Synthetic isolation test',
+                categoryDescription:`Synthetic tenant isolation workspace ${account.marker}`,
+                competitors:[`Competitor ${account.marker}`],
+                goal:`Prove tenant isolation ${account.marker}`,
+                constraint:'Synthetic acceptance only',
+                prompts:[`Which record belongs to ${account.marker}?`], locale:'en-US'
+              })
+            });
+            let body; try { body=JSON.parse(res.text); } catch { body=null; }
+            if (![200,201].includes(res.r.status) || !body?.ok) throw new Error(`${account.label} onboarding failed ${res.r.status} ${res.text}`);
+            console.log(`${account.label}_ONBOARDING`, JSON.stringify({status:res.r.status,existing:!!body.existing}));
+          }
+          async function ensureMarkerPrompt(account) {
+            const list = await request('/api/prompts',{headers:{cookie:account.cookie,accept:'application/json'}});
+            let body; try { body=JSON.parse(list.text); } catch { body=null; }
+            if (list.r.status!==200 || !Array.isArray(body?.data)) throw new Error(`${account.label} prompt list failed`);
+            if (!body.data.some(p => String(p.text||'').includes(account.marker))) {
+              const create = await request('/api/prompts', {
+                method:'POST', headers:{'content-type':'application/json','accept':'application/json',cookie:account.cookie,origin:base,referer:`${base}/app/prompts`},
+                body:JSON.stringify({text:`Which record belongs to ${account.marker}?`,cluster:'Tenant isolation marker'})
+              });
+              if (create.r.status!==201) throw new Error(`${account.label} marker prompt create failed ${create.r.status} ${create.text}`);
+            }
+          }
+
+          for (const a of accounts) { await login(a); await ensureOnboarding(a); await ensureMarkerPrompt(a); }
+
+          for (const a of accounts) {
+            const other = accounts.find(x=>x!==a);
+            const own = await request(`/app/search?q=${encodeURIComponent(a.marker)}`, {headers:{cookie:a.cookie,accept:'text/html'},redirect:'manual'});
+            const cross = await request(`/app/search?q=${encodeURIComponent(other.marker)}`, {headers:{cookie:a.cookie,accept:'text/html'},redirect:'manual'});
+            const ownHit = own.text.includes(a.marker);
+            const crossHit = cross.text.includes(other.marker) && !cross.text.includes('No matching workspace records');
+            console.log(`${a.label}_SEARCH`, JSON.stringify({ownStatus:own.r.status,ownHit,crossStatus:cross.r.status,crossHit}));
+            if (!ownHit) throw new Error(`${a.label} could not find own marker`);
+            if (crossHit) throw new Error(`${a.label} search exposed other tenant marker`);
+
+            const exp = await request('/api/export/workspace',{headers:{cookie:a.cookie,accept:'application/zip'},redirect:'manual'});
+            if (exp.r.status!==200 || !String(exp.r.headers.get('content-type')||'').includes('application/zip')) throw new Error(`${a.label} export failed ${exp.r.status} ${exp.text.slice(0,300)}`);
+            fs.writeFileSync(`/tmp/tenant-${a.label}.zip`, exp.buf);
+            console.log(`${a.label}_EXPORT`, JSON.stringify({status:exp.r.status,bytes:exp.buf.length}));
+          }
+          NODE
+
+          python3 <<'PY'
+          import zipfile, pathlib
+          markers={'A':'TENANT-A-ALPHA-31727494895','B':'TENANT-B-BRAVO-31730320887'}
+          for label in ('A','B'):
+              path=pathlib.Path(f'/tmp/tenant-{label}.zip')
+              other='B' if label=='A' else 'A'
+              with zipfile.ZipFile(path) as z:
+                  data=b'\n'.join(z.read(n) for n in z.namelist() if not n.endswith('/'))
+              own=markers[label].encode() in data
+              cross=markers[other].encode() in data
+              print(f'{label}_ZIP_CONTENT own_marker={own} cross_marker={cross} files={len(zipfile.ZipFile(path).namelist())}')
+              if not own:
+                  raise SystemExit(f'{label} export missing own marker')
+              if cross:
+                  raise SystemExit(f'{label} export leaked other tenant marker')
+          print('TENANT_ISOLATION_RESULT', {'ok':True,'reciprocal_search':True,'reciprocal_export':True})
+          PY
