@@ -11,7 +11,7 @@ import { supabaseRest } from "@/lib/supabase-rest";
 
 export { buildRunChangeGraph, fictionalRunChangeGraph, type RunChangeGraph } from "@/lib/run-change-graph-core";
 
-type RunRow = { id: string; methodology_version: string | null; project_id: string | null };
+type RunRow = { id: string; methodology_version: string | null; project_id: string | null; status: string };
 type AnswerRow = {
   run_id: string;
   prompt_key: string;
@@ -37,11 +37,15 @@ function withheldGraph(latestRunId: string, previousRunId: string | null, detail
     latestRunId,
     previousRunId,
     methodology: { latest: null, previous: null },
-    answerMatrix: { latest: 0, previous: 0, missingExactModels: 0 },
+    answerMatrix: { latest: 0, previous: 0, missingExactModels: 0, missingQuestionTexts: 0 },
     summary: { ...EMPTY_RUN_CHANGE_SUMMARY },
     events: [{ id: "scope-withheld", kind: "methodology", direction: "withheld", title: "Cross-collection movement withheld", detail }],
-    note: "Run Change Graph never compares observations across workspace projects or outside the signed-in tenant.",
+    note: "Run Change Graph never compares observations across workspace projects, unfinished human review, or outside the signed-in tenant.",
   };
+}
+
+function reviewFinished(status: string) {
+  return status === "complete" || status === "partial";
 }
 
 export async function loadRunChangeGraph(
@@ -57,7 +61,7 @@ export async function loadRunChangeGraph(
 
   const requestedRunIds = [latestRunId, previousRunId].filter((value): value is string => Boolean(value));
   const runs = await supabaseRest<RunRow[]>(
-    `runs?select=id,methodology_version,project_id&organization_id=eq.${context.organizationId}&id=in.(${requestedRunIds.join(",")})`,
+    `runs?select=id,methodology_version,project_id,status&organization_id=eq.${context.organizationId}&id=in.(${requestedRunIds.join(",")})`,
     { token: viewer.accessToken },
   );
   const runById = new Map(runs.map((run) => [run.id, run]));
@@ -65,6 +69,9 @@ export async function loadRunChangeGraph(
   const previous = previousRunId ? runById.get(previousRunId) || null : null;
   if (!latest || latest.project_id !== context.projectId || (previous && previous.project_id !== context.projectId)) {
     return withheldGraph(latestRunId, previousRunId, "The requested collections are not both inside the active workspace project.");
+  }
+  if (!reviewFinished(latest.status) || (previous && !reviewFinished(previous.status))) {
+    return withheldGraph(latestRunId, previousRunId, "Both collections must finish human review before Foremention can label cross-collection movement.");
   }
 
   const answers = await supabaseRest<AnswerRow[]>(
@@ -77,7 +84,9 @@ export async function loadRunChangeGraph(
     { token: viewer.accessToken },
   );
   const reviewedMaps = maps.filter((map) => map.run_id && map.name.startsWith("Reviewed collection"));
-  const mapIds = reviewedMaps.map((map) => map.id);
+  const hasReviewedMap = (runId: string) => reviewedMaps.some((map) => map.run_id === runId);
+  const comparableCompetitorContext = Boolean(previous) && hasReviewedMap(latest.id) && hasReviewedMap(previous.id);
+  const mapIds = comparableCompetitorContext ? reviewedMaps.map((map) => map.id) : [];
   const entries = mapIds.length
     ? await supabaseRest<SourceMapEntryRow[]>(
       `source_map_entries?select=source_map_id,competitors_present&organization_id=eq.${context.organizationId}&source_map_id=in.(${mapIds.join(",")})`,
@@ -96,7 +105,7 @@ export async function loadRunChangeGraph(
     answers: answers.map((answer) => ({
       runId: answer.run_id,
       promptKey: answer.prompt_key,
-      prompt: answer.prompt_text || answer.prompt_key,
+      prompt: answer.prompt_text || "",
       provider: answer.provider,
       model: answer.model,
       answerText: answer.answer_text,
