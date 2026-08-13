@@ -1,0 +1,34 @@
+name: Disposable Auth Journey
+
+on:
+  push:
+    branches:
+      - ops/auth-journey-20260813
+
+jobs:
+  signup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create disposable confirmation-pending account
+        shell: bash
+        run: |
+          node <<'NODE'
+          const email = `foremention2026+acceptance-${process.env.GITHUB_RUN_ID}@gmail.com`;
+          const password = 'Z7!mQ2#vR9@xL4$kT8^pN6&cW3';
+          const response = await fetch('https://foremention.com/api/auth/signup', {
+            method: 'POST',
+            headers: {'content-type':'application/json','accept':'application/json'},
+            body: JSON.stringify({
+              full_name: 'Foremention Acceptance Probe',
+              email,
+              password,
+              confirmation: password
+            })
+          });
+          const text = await response.text();
+          let body; try { body = JSON.parse(text); } catch { body = text; }
+          console.log('DISPOSABLE_EMAIL', email);
+          console.log('SIGNUP_RESULT', JSON.stringify({status: response.status, ok: response.ok, body}));
+          if (!response.ok || !body || body.ok !== true) throw new Error('Disposable signup did not reach normal confirmation flow.');
+          NODE
