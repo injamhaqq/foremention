@@ -5,6 +5,7 @@ import { demoCompany } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
 import { loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
+import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
 
 export default async function DashboardPage() {
   const viewer = await requireViewer("/app");
@@ -14,16 +15,18 @@ export default async function DashboardPage() {
   });
   if (viewer.mode === "supabase" && !context) redirect("/app/onboarding");
 
-  const [prompts, runs, sources, placements, providers] = await Promise.all([
+  const [prompts, runs, sources, placements, providers, intelligence] = await Promise.all([
     loadPrompts(viewer),
     loadRuns(viewer),
     loadSourceMap(viewer),
     loadPlacements(viewer),
     loadProviderStatuses(viewer),
+    loadSafeWeeklyIntelligence(viewer),
   ]);
   const observedRuns = runs.filter((run) => ["review", "complete", "partial"].includes(run.status));
   const latest = observedRuns[0] || null;
-  const previous = observedRuns[1] || null;
+  const comparisonLatest = intelligence.latest;
+  const comparisonPrevious = intelligence.previous;
   const [observedAnswers, sourceContexts, competitors] = await Promise.all([
     latest ? loadRunAnswers(viewer, latest.id) : Promise.resolve([]),
     loadSourceEvidenceContexts(viewer, sources.flatMap((source) => source.sourceId ? [source.sourceId] : [])),
@@ -71,7 +74,7 @@ export default async function DashboardPage() {
     </div>
 
     <section className="weekly-loop-teaser">
-      <div><span className="eyebrow">What changed?</span><strong>{latest && previous ? `Brand presence ${latest.presence === previous.presence ? "held steady" : latest.presence > previous.presence ? "increased" : "decreased"} by ${Math.abs(latest.presence - previous.presence)} points.` : latest ? "This is your current observed baseline." : "A comparable change needs at least one completed collection."}</strong><p>{latest && previous ? `Latest: ${latest.presence}% across ${latest.answers} answers and ${latest.citations} citation observations. Previous: ${previous.presence}% across ${previous.answers} answers and ${previous.citations} citation observations. Foremention records the change; it does not claim what caused it.` : "Repeat the same approved questions with the same methodology before interpreting movement."}</p><Link className="text-link" href="/app/intelligence">Advanced: Weekly Intelligence Loop <Arrow /></Link></div>
+      <div><span className="eyebrow">What changed?</span><strong>{comparisonLatest && comparisonPrevious ? `Brand presence ${comparisonLatest.presence === comparisonPrevious.presence ? "held steady" : comparisonLatest.presence > comparisonPrevious.presence ? "increased" : "decreased"} by ${Math.abs(comparisonLatest.presence - comparisonPrevious.presence)} points.` : comparisonLatest ? "This is your current reviewed baseline; cross-collection movement is withheld." : "A comparable change needs a reviewed baseline."}</strong><p>{comparisonLatest && comparisonPrevious ? `Latest: ${comparisonLatest.presence}% across ${comparisonLatest.answers} verified answers and ${comparisonLatest.citations} citation observations. Comparable prior: ${comparisonPrevious.presence}% across ${comparisonPrevious.answers} verified answers and ${comparisonPrevious.citations} citation observations. The pair passed the same exact persisted buyer-question text, provider, exact model, and methodology gate. Foremention records the change; it does not claim what caused it.` : comparisonLatest ? `Latest reviewed baseline: ${comparisonLatest.presence}% across ${comparisonLatest.answers} verified answers and ${comparisonLatest.citations} citation observations. No prior collection is being shown as a trend unless it matches the exact persisted buyer-question text, provider, exact model, and methodology.` : "Complete and review the first collection before Foremention reports a baseline. Repeat the same approved questions with the same provider, exact model, and methodology before interpreting movement."}</p><Link className="text-link" href="/app/intelligence">Advanced: Weekly Intelligence Loop <Arrow /></Link></div>
       <Link className="button button--ink" href="/app/analytics">Open Analytics <Arrow /></Link>
     </section>
 
