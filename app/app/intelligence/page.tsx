@@ -1,10 +1,10 @@
 import { LazyIntelligenceLoop } from "@/components/lazy-workspace-panels";
 import { requireViewer } from "@/lib/auth";
-import { loadWeeklyIntelligence } from "@/lib/intelligence-loop";
+import { loadTruthfulWeeklyIntelligence } from "@/lib/truthful-intelligence";
 
 export default async function IntelligencePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const viewer = await requireViewer("/app/intelligence");
-  const intelligence = await loadWeeklyIntelligence(viewer);
+  const intelligence = await loadTruthfulWeeklyIntelligence(viewer);
   const { q } = await searchParams;
   return <main className="workspace">
     <div className="workspace-heading">
