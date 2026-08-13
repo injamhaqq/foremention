@@ -32,13 +32,19 @@ The items below are evidence records, not assumptions. A gate stays open unless 
 
 ### Confirmed
 
-- **Exact production release:** production health reported build commit `53a94639d6c0a64bdbd27d185dc63f52bc55573b`, matching `main` after PR #51.
-- **Release CI:** main CI run `31670678621` completed successfully for that commit, covering dependency audit, tests, lint, typecheck, production build, Cloudflare Worker dry-run, and production-build artifact upload.
-- **Core dependency reachability:** the production health contract independently reported the Worker, D1, and Supabase as reachable. Inngest and configured AI providers remained `configured_not_probed`, so this record does not claim their live runtime paths were exercised.
+- **Exact production release:** production health reported build commit `2c21ac1624f4067dbd04621b3905a2a6be5d750d`, matching `main` after PR #53.
+- **Release CI:** exact-main CI run `31677581726` completed successfully for that commit. Dependency audit, tests, lint, typecheck, production build, Cloudflare Worker dry-run, and production-build artifact upload all passed.
+- **Core dependency reachability:** the production health contract independently reported the Worker, D1, and Supabase as reachable. Inngest and configured Gemini, Groq, and OpenRouter providers remained `configured_not_probed`, so this record does not claim those live runtime paths were exercised.
+- **Password-recovery purpose boundary:** PR #53 added a short-lived HTTP-only recovery-purpose cookie and requires it through recovery verification, the reset page, and the password-update API. After deployment, direct unauthenticated access to `/reset-password` redirected to `/forgot-password` instead of claiming that a recovery link had already verified the browser. This proves the direct-route truth boundary; it does not replace an end-to-end emailed recovery-link drill.
+- **Public auth/workspace boundary:** deployed `/login`, `/signup`, and `/forgot-password` entry routes rendered successfully. Unauthenticated `/app` and `/app/onboarding` were rejected as login-required. The fictional demo is entered by the login-page POST to `/api/auth/demo`; `/demo` is not a public GET route.
+- **Reciprocal production tenant read isolation:** two existing production organizations with distinct owners and real rows were tested under the Postgres `authenticated` role with RLS enabled and each owner's JWT subject simulated. In both directions, each owner could read the organization's own prompts, runs, run answers, citations, sources, notifications, and membership row while the same queries against the other organization returned zero rows.
+- **Production tenant mutation isolation:** inside a transaction that was rolled back, one organization owner could no-op update 5 own prompt rows and 1 own membership row while identical updates scoped to the other organization affected zero rows. The rollback preserved production data. This is live RLS mutation evidence for those tables, not a substitute for application-level export/search acceptance or fixtures for currently empty opportunity/action tables.
 - **Production schema hardening:** the foreign-key performance migration from PR #51 was applied to the production Supabase project. Re-running the production performance advisor cleared all 15 `unindexed_foreign_keys` findings that motivated the migration. Remaining `unused_index` notices are intentionally not treated as removal instructions without representative traffic evidence.
 - **Database function privilege boundary:** production privilege checks confirmed `anon` cannot execute `complete_onboarding`, `release_queued_run`, `reserve_run_budget`, `reserve_run_quota`, `has_org_role`, or `is_org_member`; the intended authenticated/service roles retain access.
 - **Session-revocation implementation:** PR #50 added explicit current-session and all-device Supabase revocation paths, same-origin mutation protection, truthful upstream-failure handling, and the documented JWT-expiry boundary.
 - **Truthful comparison/alert boundary:** customer-facing trend movement is gated on exact persisted buyer-question text, provider, exact model, methodology, and human-review state; legacy ungated movement notifications and the legacy competitor-comparison email path are suppressed.
+
+A detailed acceptance snapshot for the release is recorded in `docs/PRODUCTION-ACCEPTANCE-EVIDENCE-2026-08-13.md`.
 
 ### Still requires live or operator-owned proof
 
@@ -47,13 +53,14 @@ The items below are evidence records, not assumptions. A gate stays open unless 
 - **Production alert delivery to the operator:** monitoring code/configuration is not enough. Record one controlled production error and the resulting operator alert before closing this gate.
 - **Inngest runtime probe:** health currently says configured, not independently reachable. Record a bounded production job execution before closing this gate.
 - **Real AI-provider collection:** health currently says configured, not probed. Complete one deliberately cost-capped collection and preserve provider, exact model, date, spend, failures, answers, citations, Source X-Ray inspection, and human review.
-- **Full manual customer journey:** record deployed-domain acceptance evidence for signup, login, password reset, onboarding, demo isolation, mobile layout, representative empty/error states, and the customer workflow from question to reviewed evidence.
+- **Full manual customer journey:** public auth entry points and workspace protection have production evidence, but the gate remains open until a disposable/approved account proves email confirmation, login, emailed password recovery, onboarding, demo entry/exit isolation, mobile layout, representative empty/error states, logout/session persistence, and the customer workflow from buyer question to reviewed evidence.
+- **Application-level cross-organization export/search proof:** underlying production RLS read/mutation isolation is now evidenced for populated core tables. Keep this narrower gate open until authenticated application endpoints for any search/export paths are exercised cross-organization, and until opportunity/action isolation has representative fixtures or real rows.
 - **Legal and commercial approvals:** privacy policy, terms, MSA, DPA, retention, subprocessors, incident response, checkout entitlement activation, customer permissions, and any required counsel review remain founder/operator-owned gates unless separately documented.
 
 ## Required before accepting live customer data
 
 1. Create and configure the production Supabase project. **Production project exists; keep environment ownership and recovery details documented outside source control.**
-2. Apply every migration in timestamp order and run the RLS verification queries. **Migration history has been actively reconciled and production hardening has been applied; keep this gate open until the full migration/RLS acceptance record is attached.**
+2. Apply every migration in timestamp order and run the RLS verification queries. **Production cross-organization RLS read and rollback-only mutation isolation is now evidenced for populated core tables; keep the broader migration/application acceptance gate open until the complete migration history and endpoint-level export/search checks are attached.**
 3. Configure a production domain, HTTPS, allowed auth redirects, and secret manager. **Production domain and HTTPS are live; retain explicit operator evidence for auth redirect and secret-manager configuration.**
 4. Add refresh-token rotation and session-revocation testing for long-lived accounts. **Implementation shipped in PR #50; live destructive revocation drill remains open.**
 5. Approve the privacy policy, terms, MSA, DPA, data retention, subprocessor list, and incident-response plan with qualified counsel.
