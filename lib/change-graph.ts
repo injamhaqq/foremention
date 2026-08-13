@@ -66,6 +66,9 @@ type SnapshotFact = {
   sourceId: string;
   canonicalUrl: string;
   pageTitle: string | null;
+  previousSnapshotId: string | null;
+  checkedAt: string;
+  linkedObservationCount: number;
   changeState: "initial" | "unchanged" | "changed" | "unreachable" | "unknown";
   changeReason: string | null;
 };
@@ -106,10 +109,13 @@ type SnapshotRow = {
   source_id: string;
   canonical_url: string;
   page_title: string | null;
+  previous_snapshot_id: string | null;
+  retrieved_at: string;
   change_state: SnapshotFact["changeState"];
   change_reason: string | null;
 };
 
+type SnapshotLinkRow = { source_snapshot_id: string };
 type SourceMapRow = { id: string; run_id: string | null };
 type SourceMapEntryRow = { source_map_id: string; competitors_present: string[] | null };
 
@@ -150,23 +156,29 @@ function uniqueCompetitors(rows: CompetitorFact[], runId: string) {
 
 function snapshotEvents(snapshots: SnapshotFact[], latestRunId: string) {
   const changed = snapshots.filter((snapshot) => snapshot.runId === latestRunId && ["changed", "unreachable"].includes(snapshot.changeState));
-  const events: ChangeGraphEvent[] = changed.slice(0, 6).map((snapshot) => ({
-    id: `source-content:${snapshot.id}`,
-    kind: "source_content",
-    direction: snapshot.changeState === "unreachable" ? "unreachable" : "changed",
-    title: snapshot.changeState === "unreachable"
-      ? `${snapshot.pageTitle || host(snapshot.canonicalUrl)} became unreachable to the bounded inspector`
-      : `${snapshot.pageTitle || host(snapshot.canonicalUrl)} changed since its previous saved page observation`,
-    detail: `${snapshot.changeReason || "The saved page fingerprint changed."} This page observation does not prove what caused the difference or that AI behavior changed because of it.`,
-    href: "/app/source-map",
-  }));
+  const events: ChangeGraphEvent[] = changed.slice(0, 6).map((snapshot) => {
+    const previous = snapshot.previousSnapshotId ? ` Compared with saved observation ${snapshot.previousSnapshotId.slice(0, 8).toUpperCase()}.` : "";
+    const citations = snapshot.linkedObservationCount
+      ? ` Linked to ${snapshot.linkedObservationCount} citation observation${snapshot.linkedObservationCount === 1 ? "" : "s"} from this collection.`
+      : " No citation-observation link was recorded for this saved page check.";
+    return {
+      id: `source-content:${snapshot.id}`,
+      kind: "source_content",
+      direction: snapshot.changeState === "unreachable" ? "unreachable" : "changed",
+      title: snapshot.changeState === "unreachable"
+        ? `${snapshot.pageTitle || host(snapshot.canonicalUrl)} became unreachable to the bounded inspector`
+        : `${snapshot.pageTitle || host(snapshot.canonicalUrl)} changed since its previous saved page observation`,
+      detail: `${snapshot.changeReason || "The saved page fingerprint changed."} Checked ${snapshot.checkedAt}.${previous}${citations} This page observation does not prove what caused the difference or that AI behavior changed because of it.`,
+      href: "/app/source-map",
+    };
+  });
   if (changed.length > events.length) {
     events.push({
       id: "source-content:more",
       kind: "source_content",
       direction: "changed",
       title: `${changed.length - events.length} more cited page change${changed.length - events.length === 1 ? "" : "s"} were saved`,
-      detail: "Open Sources to inspect the dated page observations and their citation links.",
+      detail: "Open Sources to inspect the dated page observations, preceding snapshots, and citation links.",
       href: "/app/source-map",
     });
   }
@@ -301,14 +313,16 @@ export function buildChangeGraph(input: ChangeGraphInput): ChangeGraph {
       href: `/app/runs/${input.latest.id}`,
     });
   }
-  events.push({
-    id: "sources",
-    kind: "source",
-    direction: lostSources.length ? "changed" : gainedSources.length ? "new" : "changed",
-    title: `${gainedSources.length} new source${gainedSources.length === 1 ? "" : "s"} · ${lostSources.length} lost`,
-    detail: [...gainedSources.slice(0, 2).map((url) => `New: ${host(url)}`), ...lostSources.slice(0, 2).map((url) => `Lost: ${host(url)}`)].join(" · ") || "The unique reviewed citation-source set did not change.",
-    href: "/app/source-map",
-  });
+  if (gainedSources.length || lostSources.length) {
+    events.push({
+      id: "sources",
+      kind: "source",
+      direction: lostSources.length ? "changed" : "new",
+      title: `${gainedSources.length} new source${gainedSources.length === 1 ? "" : "s"} · ${lostSources.length} lost`,
+      detail: [...gainedSources.slice(0, 2).map((url) => `New: ${host(url)}`), ...lostSources.slice(0, 2).map((url) => `Lost: ${host(url)}`)].join(" · "),
+      href: "/app/source-map",
+    });
+  }
   if (gainedCompetitors.length || lostCompetitors.length) {
     events.push({
       id: "competitors",
@@ -404,9 +418,19 @@ export async function loadChangeGraph(viewer: Viewer, latestRunId: string, previ
     { token: viewer.accessToken },
   );
   const snapshots = await supabaseRest<SnapshotRow[]>(
-    `source_snapshots?select=id,run_id,source_id,canonical_url,page_title,change_state,change_reason&organization_id=eq.${context.organizationId}&run_id=eq.${latestRunId}&order=retrieved_at.desc&limit=100`,
+    `source_snapshots?select=id,run_id,source_id,canonical_url,page_title,previous_snapshot_id,retrieved_at,change_state,change_reason&organization_id=eq.${context.organizationId}&run_id=eq.${latestRunId}&order=retrieved_at.desc&limit=100`,
     { token: viewer.accessToken },
   );
+  const snapshotIds = snapshots.map((snapshot) => snapshot.id);
+  const snapshotLinks = snapshotIds.length
+    ? await supabaseRest<SnapshotLinkRow[]>(
+      `source_snapshot_observations?select=source_snapshot_id&source_snapshot_id=in.(${snapshotIds.join(",")})`,
+      { token: viewer.accessToken },
+    )
+    : [];
+  const linkCounts = new Map<string, number>();
+  for (const link of snapshotLinks) linkCounts.set(link.source_snapshot_id, (linkCounts.get(link.source_snapshot_id) || 0) + 1);
+
   const maps = await supabaseRest<SourceMapRow[]>(
     `source_maps?select=id,run_id&organization_id=eq.${context.organizationId}&run_id=in.(${requestedRunIds.join(",")})&status=eq.published`,
     { token: viewer.accessToken },
@@ -443,6 +467,9 @@ export async function loadChangeGraph(viewer: Viewer, latestRunId: string, previ
       sourceId: snapshot.source_id,
       canonicalUrl: snapshot.canonical_url,
       pageTitle: snapshot.page_title,
+      previousSnapshotId: snapshot.previous_snapshot_id,
+      checkedAt: snapshot.retrieved_at,
+      linkedObservationCount: linkCounts.get(snapshot.id) || 0,
       changeState: snapshot.change_state,
       changeReason: snapshot.change_reason,
     })),
