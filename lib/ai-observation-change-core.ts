@@ -75,14 +75,15 @@ function competitorSet(rows: Input["competitors"], runId: string) {
 }
 
 function baseGraph(input: Input) {
+  const previousRunId = input.previous?.id || null;
   const latestAnswers = input.answers.filter((answer) => answer.runId === input.latest.id);
-  const previousAnswers = input.previous ? input.answers.filter((answer) => answer.runId === input.previous.id) : [];
+  const previousAnswers = previousRunId ? input.answers.filter((answer) => answer.runId === previousRunId) : [];
   return {
     latestAnswers,
     previousAnswers,
     base: {
       latestRunId: input.latest.id,
-      previousRunId: input.previous?.id || null,
+      previousRunId,
       summary: { ...EMPTY_AI_CHANGE_SUMMARY },
       coverage: {
         competitorContext: input.competitorContextComparable ? "comparable" as const : "unavailable" as const,
