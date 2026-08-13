@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { AiObservationChangeGraphPanel } from "@/components/ai-observation-change-graph";
 import { requireViewer } from "@/lib/auth";
+import { loadAiObservationChangeGraph } from "@/lib/ai-observation-change";
 import { loadSourceChangeGraph } from "@/lib/change-graph";
 import { loadQuestionPerformance, loadRunAnswers, loadRuns, loadSourceMap } from "@/lib/data";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
@@ -42,9 +44,10 @@ export default async function AnalyticsPage() {
   }
 
   const sourceIds = sources.flatMap((source) => source.sourceId ? [source.sourceId] : []);
-  const [answers, changeGraph] = await Promise.all([
+  const [answers, changeGraph, aiObservationChangeGraph] = await Promise.all([
     loadRunAnswers(viewer, latest.id),
     loadSourceChangeGraph(viewer, sourceIds),
+    loadAiObservationChangeGraph(viewer, latest.id, previous?.id || null),
   ]);
   const sourceEntryById = new Map(sources.flatMap((source) => source.sourceId ? [[source.sourceId, source.id] as const] : []));
   const recurringSources = sources.filter((source) => source.evidenceCount > 1).length;
@@ -69,6 +72,8 @@ export default async function AnalyticsPage() {
     <div className="workspace-heading"><div><span className="eyebrow">Did anything change?</span><h1>Analytics</h1><p>Compare reviewed collections, question evidence yield, source-review progress, and saved cited-page changes. Trend deltas appear only when Foremention finds the same exact persisted buyer-question text, provider, exact model, and methodology. Movement is observed change, not proof that an action caused it.</p><p className="table-caption"><strong>{productStateLabel(state)}</strong> · Current reviewed baseline {latest.date} · {latest.answers} answer{latest.answers === 1 ? "" : "s"} · {comparisonWindowNote}</p></div><Link className="button button--outline" href="/app/runs">Inspect AI Results</Link></div>
 
     <div className="metric-grid"><article><span>Brand presence</span><strong>{latest.presence}%</strong><small>{latest.answers} verified answer{latest.answers === 1 ? "" : "s"}{previous ? ` · ${signed(latest.presence - previous.presence)} pts vs comparable prior` : " · reviewed baseline only"}</small></article><article><span>First mention</span><strong>{latest.firstMention}%</strong><small>{latest.answers} verified answer{latest.answers === 1 ? "" : "s"}{previous ? ` · ${signed(latest.firstMention - previous.firstMention)} pts vs comparable prior` : " · reviewed baseline only"}</small></article><article><span>Citation observations</span><strong>{latest.citations}</strong><small>{previous ? `${signed(latest.citations - previous.citations)} vs comparable prior` : `${recurringSources} recurring mapped sources · no trend delta yet`}</small></article><article><span>Reviewed sources</span><strong>{reviewedSourceCount} of {sources.length}</strong><small>{sources.length - reviewedSourceCount} cited page{sources.length - reviewedSourceCount === 1 ? "" : "s"} still need review</small></article></div>
+
+    <AiObservationChangeGraphPanel graph={aiObservationChangeGraph} />
 
     <div className="analytics-grid"><section className="panel panel--wide"><span className="eyebrow">Comparable brand presence</span><h2>{previous ? "Exact comparison pair" : "One comparable baseline so far"}</h2>{previous ? <div className="trend-chart trend-chart--dynamic" style={{ gridTemplateColumns: "repeat(2, minmax(80px, 1fr))" }} role="img" aria-label="Brand presence across the comparable prior and current reviewed collections"><div><i style={{ height: `${Math.max(2, previous.presence)}%` }} /><span>Prior</span><small>{previous.presence}%</small></div><div><i style={{ height: `${Math.max(2, latest.presence)}%` }} /><span>Current</span><small>{latest.presence}%</small></div></div> : <div className="baseline-record"><strong>{answers[0]?.provider}{answers[0]?.model ? ` · ${answers[0].model}` : ""}</strong><p>{answers[0] ? `${answers[0].citations.length} cited source${answers[0].citations.length === 1 ? "" : "s"} were preserved from this verified answer. Foremention will not compare this baseline with a run that changed the exact buyer-question text, provider, exact model, or methodology.` : "The reviewed run establishes a baseline. A second exactly comparable collection is required before Foremention draws a trend."}</p></div>}<p className="table-caption">Only the exact comparable pair above is used for movement. Other reviewed collections remain inspectable below but are not silently mixed into the trend.</p></section><section className="panel"><span className="eyebrow">Source review progress</span><h2>{reviewedSourceCount} of {sources.length} pages checked.</h2><div className="empty-state empty-state--compact"><p>{sources.length ? `${sources.length - reviewedSourceCount} cited pages still need page-level verification before they become reviewed opportunities.` : "No cited sources are available yet."}</p><Link className="text-link" href="/app/source-map">Review Sources →</Link></div></section></div>
 
