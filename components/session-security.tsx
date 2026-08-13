@@ -12,7 +12,7 @@ export function SessionSecurity({ demo, globalError }: { demo: boolean; globalEr
     <p>Use <strong>Sign out this device</strong> for the browser in front of you. Use <strong>Sign out all devices</strong> if you lost a device or want to revoke every Supabase refresh session for your account.</p>
     <div className="settings-actions">
       <form action="/api/auth/logout" method="post">
-        <PendingSubmitButton idle="Sign out this device" pending="Signing out…" />
+        <PendingSubmitButton className="button button--ink" idle="Sign out this device" pending="Signing out…" />
       </form>
       <form action="/api/auth/logout-all" method="post">
         <PendingSubmitButton className="button button--outline" idle="Sign out all devices" pending="Revoking sessions…" />
