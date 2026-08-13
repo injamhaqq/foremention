@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApplicationEmailStatus, sendWelcomeEmail } from "@/lib/application-email";
-import { supabaseAuth } from "@/lib/supabase-rest";
+import { SupabaseAuthError, supabaseAuth } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
 
 async function attemptWelcomeEmail(email: string, origin: string) {
@@ -78,6 +78,9 @@ export async function POST(request: Request) {
       message: "Your account is ready. Sign in to continue to your workspace.",
     });
   } catch (error) {
+    if (error instanceof SupabaseAuthError && error.retryable) {
+      return NextResponse.json({ error: "Account creation is temporarily unavailable. No account changes were confirmed. Please try again in a moment." }, { status: error.status === 429 ? 429 : 503 });
+    }
     const message = error instanceof Error ? error.message : "Could not create the account.";
     if (/email rate limit|rate limit/i.test(message)) return NextResponse.json({ error: "Email delivery is temporarily limited by the email provider. Please wait a few minutes before trying again." }, { status: 429 });
     if (/already registered|already exists|user already/i.test(message)) {
