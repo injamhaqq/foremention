@@ -2,49 +2,46 @@
 
 ## Scope
 
-This record evaluates extraction quality without changing Foremention's production source-inspection authority.
-
-The production boundary remains:
+Foremention keeps this production authority boundary:
 
 safe URL validation → DNS/public-address checks → bounded fetch → redirect validation → content-type and size limits → deterministic extraction → Source X-Ray observation → separate human review.
 
 No benchmark extractor may bypass those controls or become verified evidence by itself.
 
-## Current upstream facts
+## Upstream candidates
 
-### Mozilla Readability — SELECTIVE PRODUCTION CANDIDATE, NOT YET ADOPTED
+### Mozilla Readability — BENCHMARKED, DO NOT ADOPT NOW
 
 - Official repository: `mozilla/readability`.
-- Package version benchmarked: `@mozilla/readability` `0.6.0`.
-- License declared by the package source: Apache-2.0.
-- Readability expects a DOM `document`; Mozilla's Node example uses JSDOM.
-- Mozilla explicitly warns that Readability is not a sanitizer. Foremention does not render Readability HTML in this benchmark; only normalized text is evaluated.
-- JSDOM scripts and remote resource loading were disabled in the benchmark environment.
-- Benchmark dependencies remained isolated from Foremention's production dependency graph.
+- Version benchmarked: `@mozilla/readability` `0.6.0`.
+- Package license inspected: Apache-2.0.
+- Readability expects a DOM document; the benchmark used JSDOM only in an isolated CI runtime.
+- Mozilla warns that Readability is not a sanitizer. Foremention evaluated normalized text only and never rendered Readability HTML.
+- Readability/JSDOM was never added to Foremention production dependencies or the production lockfile.
 
 ### Crawl4AI — DEFER UNTIL A REAL FAILURE CLASS
 
-Crawl4AI is a Python/browser crawler that installs Playwright/Chromium and can also run as a Docker service. It is materially heavier than the current Worker-native inspection path. It should only be benchmarked after native extraction plus a lightweight deterministic parser leaves an important customer-relevant page class unsolved.
+Crawl4AI is a Python/browser crawler with Playwright/Chromium and Docker deployment options. It remains materially heavier than Foremention's Worker-native source inspection. Benchmark it only if the final native path fails a meaningful customer-relevant source class.
 
 ### Stagehand — DEFER FOR EXTRACTION
 
-Stagehand is a browser automation framework combining code and model-driven browser actions. That is useful for interactive workflows, not as the default deterministic page-text extractor. It would add browser/model operational complexity to a problem Foremention can often solve without agentic interaction.
+Stagehand is useful for interactive browser automation. It is not justified as Foremention's default deterministic text extractor.
 
 ### Firecrawl — BENCHMARK ONLY IF NEEDED
 
-Self-hosted Firecrawl introduces Docker/service operation and broader crawling infrastructure. Its overlap with Foremention's existing bounded source inspector means it must beat the native path on a demonstrated source class before adoption.
+Firecrawl would add a separate crawling service/control plane overlapping the existing bounded inspector. It must solve a demonstrated source class before adoption.
 
-### changedetection.io — REJECT AS A DUPLICATE CONTROL PLANE
+### changedetection.io — REJECT DUPLICATE CONTROL PLANE
 
-Foremention already owns source snapshots, fingerprints, significant-change detection, notifications, and the Change Graph direction. changedetection.io would duplicate product-owned state and monitoring semantics.
+Foremention already owns source snapshots, fingerprints, significant-change detection, notifications, and Change Graph semantics.
 
 ### ArchiveBox — DEFER / REJECT FOR CURRENT MVP
 
-ArchiveBox is a full preservation system that stores multiple long-lived formats such as HTML, screenshots, PDFs, WARC, and media. Foremention intentionally avoids unnecessary raw page retention and does not currently need a separate web-archive control plane.
+ArchiveBox is a full web-preservation stack. Foremention intentionally avoids unnecessary raw page retention and does not currently need a second archive system.
 
-## Benchmark contract
+## Deterministic benchmark contract
 
-The deterministic corpus contains twelve checked-in fixture definitions/templates:
+The benchmark contains twelve checked-in fixture definitions/templates:
 
 1. article
 2. documentation
@@ -57,94 +54,115 @@ The deterministic corpus contains twelve checked-in fixture definitions/template
 9. rendered dynamic snapshot
 10. blocked/inaccessible response
 11. very small page
-12. deterministic large page expanded above the 256 KiB bounded inspection limit
+12. deterministic large page expanded above the 256 KiB inspection boundary
 
-The benchmark compares Foremention's actual `inspectSourceUrl` implementation against Mozilla Readability running with JSDOM in an isolated CI-only runtime.
+The benchmark calls Foremention's actual `inspectSourceUrl` implementation. Readability receives the same bounded HTML prefix on truncation cases.
 
-Quality is deterministic rather than subjective. For each fixture:
+Per-case quality is deterministic:
 
 - `relevantPhraseRecall = required phrases present / required phrases defined`
 - `boilerplateRejection = 1 - forbidden boilerplate phrases present / forbidden phrases defined`
 - `qualityScore = 0.75 * relevantPhraseRecall + 0.25 * boilerplateRejection`
 
-Latency is the median of three extraction runs. Heap delta is informational only because JavaScript garbage collection and CI runtime behavior make it noisy. For the truncated fixture, Readability receives the same 262,144-byte HTML prefix permitted to the native inspector.
+Latency is the median of three extraction runs. Heap delta is informational only.
 
-## Observed benchmark — workflow run 31813100482
+## Benchmark 1 — baseline native vs Readability
 
-Generated at `2026-08-14T15:10:11.174Z` from PR #97.
-
-### Aggregate quality
+Workflow run: `31813100482`
+Generated: `2026-08-14T15:10:11.174Z`
 
 - Native average quality: **0.811**
 - Readability average quality: **0.962**
 - Native article-like quality: **0.750**
 - Readability article-like quality: **1.000**
-- Readability article-like required-phrase recall: **1.000**
+- Readability article-like recall: **1.000**
 - Benchmark contract failures: **0**
 - Readability null extractions: **0**
 
-### Material Readability wins
+Readability materially won the article, documentation, product, comparison, navigation-heavy, sidebar/footer-noise, and structured-article fixtures because the baseline native text preserved useful content but also retained semantic navigation/sidebar/footer boilerplate.
 
-Readability improved the deterministic quality score by at least `0.15` on:
-
-- article
-- documentation
-- product
-- comparison
-- navigation-heavy
-- sidebar/footer-noise
-- structured-article
-
-On each of those cases the native extractor scored `0.75` because it preserved the required content but also retained benchmarked navigation/sidebar/footer noise; Readability scored `1.0` by preserving the required phrases while rejecting that boilerplate.
-
-### Neutral / small differences
-
-- malformed HTML: native `0.833`, Readability `0.917`
-- rendered dynamic snapshot: both `0.917`
-- very small page: both `1.000`
-- blocked HTTP 403 remains outside Readability; Foremention correctly preserved the native `blocked` state.
-
-### Material regression
-
-The bounded large-page case is the reason Readability must not replace the native extractor:
+The first benchmark also showed an important Readability regression on the bounded large page:
 
 - generated input: `270,040` bytes
 - bounded input: `262,144` bytes
 - native quality: `0.917`
 - Readability quality: `0.750`
-- native median extraction latency: `6.101 ms`
-- Readability median extraction latency in Node/JSDOM: `556.335 ms`
+- native median: `6.101 ms`
+- Readability/JSDOM median: `556.335 ms`
 
-The native inspector therefore remains the reliable bounded fallback and the authority for network/access state.
+That evidence justified improving extraction quality, but did not justify replacing the native inspector.
 
-### Latency evidence
+## Native improvement under test
 
-On the small deterministic fixtures, native extraction was generally below `1 ms` median while Readability/JSDOM was roughly `8–32 ms`. This benchmark demonstrates a real quality/runtime tradeoff; it does not justify applying Readability to every source by default.
+PR #98 changes only optional HTML `pageText` normalization:
 
-## Adoption decision
+- semantic `<nav>`, `<aside>`, and `<footer>` blocks are removed before optional page text is returned;
+- the existing full visible-text path remains unchanged for `contentLength` and `contentSignature`;
+- therefore existing source fingerprints do not receive an artificial one-time methodology change;
+- plain-text sources remain unchanged;
+- URL/DNS/SSRF/redirect/timeout/size/content-type controls remain unchanged.
 
-**Decision: `selective-readability-candidate-with-native-fallback`.**
+A dedicated regression test locks the pre-change fingerprint for the normalization fixture at content length `96` and signature `904c16f0` while verifying page text removes the semantic boilerplate.
 
-The quality evidence is strong enough to justify a separate production-integration proof, but not strong enough to authorize a blanket parser replacement.
+## Benchmark 2 — improved native vs Readability
 
-A production implementation may proceed only if it proves a Cloudflare Worker-compatible DOM strategy and preserves this order of authority:
+Workflow run: `31814617389`
+Generated: `2026-08-14T15:28:23.819Z`
 
-safe network policy → bounded HTML → native metadata/access result → optional selective Readability normalization → native fallback → Source X-Ray observation → separate human review.
+### Aggregate result
 
-Readability must never fetch independently, validate or follow redirects, determine crawler access, convert text into a verified claim, or become provider citation evidence.
+- Native average quality: **0.977**
+- Readability average quality: **0.962**
+- Native article-like quality: **1.000**
+- Readability article-like quality: **1.000**
+- Readability article-like recall: **1.000**
+- Material Readability wins: **none**
+- Material Readability regressions: **large-near-limit**
+- Benchmark contract failures: **0**
+- Readability null extractions: **0**
 
-## Remaining adoption gate
+### Per-case decision evidence
 
-Production adoption still requires:
+The improved native extractor scored `1.000` on article, documentation, product, comparison, navigation-heavy, sidebar/footer-noise, structured-article, rendered dynamic snapshot, and very-small-page cases.
 
-1. Cloudflare Worker-compatible DOM implementation without JSDOM-as-runtime assumption;
-2. bundle-size and cold-start review;
-3. no script/resource execution;
-4. bounded parser input and output;
-5. deterministic timeout/failure fallback to native text;
-6. extraction provenance (`native`, `readability`, or `native_fallback`) and extractor version;
-7. Worker dry-run/workerd verification;
-8. regression tests proving existing SSRF, DNS/IP, redirect, size, tenant, and human-review boundaries stay unchanged;
-9. live production release and Browser Acceptance after merge.
+The remaining differences were:
 
-Until those gates pass, Mozilla Readability remains **benchmark-proven but not a Foremention production dependency**.
+- malformed HTML: native `0.833`, Readability `0.917`
+- bounded large page: native `0.917`, Readability `0.750`
+
+Native medians on ordinary fixtures remained roughly sub-millisecond to about `1 ms`, while Readability/JSDOM was roughly `15–46 ms`. On the bounded large page native was `11.277 ms` versus Readability/JSDOM `668.324 ms`.
+
+## Final adoption decision
+
+**Decision: `do-not-adopt-readability-now`.**
+
+The second benchmark removes the production justification for another parser dependency. Foremention's native normalization now exceeds Readability's aggregate benchmark score, exactly matches its article-like score and recall, has no material case where Readability wins, retains better bounded-large-page behavior, and avoids a DOM runtime dependency.
+
+This is not a permanent rejection of Mozilla Readability. Re-open the decision only if real customer source failures show a page class the native path cannot handle safely and materially.
+
+## Production implementation boundary
+
+The production change remains deliberately native:
+
+safe network policy → bounded HTML → stable full-text fingerprint → semantic boilerplate-reduced optional page text → Source X-Ray observation → separate human review.
+
+The change does **not**:
+
+- execute page scripts;
+- fetch resources independently;
+- alter redirect/DNS/SSRF policy;
+- change existing content signatures;
+- turn extracted text into verified claims;
+- relabel search results as provider citations;
+- introduce Crawl4AI, Firecrawl, Stagehand, Readability, JSDOM, or another crawler into the production runtime.
+
+## Future reopening criteria
+
+Reconsider a richer parser/crawler only when production evidence identifies a meaningful source class with one or more of:
+
+- required content missing from bounded HTML;
+- content only available after controlled client rendering;
+- malformed markup that causes repeated loss of important evidence;
+- legitimate page structure that native semantic boilerplate normalization cannot preserve.
+
+Any future candidate must still pass Worker/runtime compatibility, security, bounded-resource, provenance, cost, and rollback gates before adoption.
