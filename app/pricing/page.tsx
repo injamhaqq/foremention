@@ -6,7 +6,7 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
   title: "AI Visibility Platform Pricing",
-  description: "Compare Foremention Core, Signal, and Intelligence plans for AI answer monitoring, Source Maps, evidence review, reliability checks, and team workflows.",
+  description: "See Foremention private-beta access and the planned Core, Signal, and Intelligence commercial packaging for AI visibility evidence workflows.",
   path: "/pricing",
 });
 
@@ -14,27 +14,30 @@ const plans = [
   {
     name: "Core",
     price: "$149",
+    availability: "Planned paid packaging",
     label: "Establish the baseline",
     summary: "For one team building a defensible view of how its category appears in AI answers.",
     includes: null,
     items: ["One brand and category", "Up to 25 buyer questions", "Monthly collection capacity", "Source Map and evidence history", "Decision Lab reliability checks", "CSV workspace exports"],
-    cta: "Create Core workspace",
+    cta: "Join private beta",
     href: "/signup",
   },
   {
     name: "Signal",
     price: "$499",
+    availability: "Planned paid packaging",
     label: "Make movement actionable",
     lead: true,
     summary: "For growth teams that need weekly competitive evidence and a controlled path from signal to action.",
     includes: "Everything in Core, plus:",
     items: ["Up to three brand workspaces", "Up to 100 buyer questions", "Weekly collection capacity", "Cross-provider agreement analysis", "Source movement and priority gaps", "Team review workflow and exports"],
-    cta: "Create Signal workspace",
+    cta: "Join private beta",
     href: "/signup",
   },
   {
     name: "Intelligence",
     price: "Custom",
+    availability: "Future commercial activation",
     label: "Operate across a portfolio",
     summary: "For multi-brand or high-volume teams that need a tailored evidence and data layer.",
     includes: "Everything in Signal, plus:",
@@ -54,8 +57,8 @@ const pricingComparison = [
   {
     product: "Foremention Core",
     plan: "Core",
-    price: "$149 / month",
-    note: "25 buyer questions; paid activation follows verified billing setup.",
+    price: "Planned $149 / month",
+    note: "Future commercial packaging; current self-serve workspaces enter the private free beta and no checkout is active.",
     source: "/pricing",
     sourceLabel: "Foremention pricing",
   },
@@ -89,9 +92,9 @@ export default function PricingPage() {
   return <PublicShell>
     <section className="page-hero">
       <div className="shell narrow-heading">
-        <span className="eyebrow">Platform pricing</span>
-        <h1>Pay for a repeatable intelligence system—not a one-off audit.</h1>
-        <p>Plans scale with brands, buyer questions, collection frequency, evidence history, and team workflow. Outcomes such as ranking, citation, traffic, or revenue are never sold as guarantees.</p>
+        <span className="eyebrow">Private beta + planned pricing</span>
+        <h1>Private beta now. Paid plans only after explicit activation.</h1>
+        <p>Self-serve signup currently creates a controlled free-beta workspace. The commercial packages below show the intended paid structure, but they do not represent a working checkout or an entitlement granted by signup.</p>
       </div>
     </section>
     <section className="section section--paper">
@@ -100,6 +103,7 @@ export default function PricingPage() {
           <span className="pricing-label">{plan.label}</span>
           <h2>{plan.name}</h2>
           <div className="price"><strong>{plan.price}</strong>{plan.price !== "Custom" && <span>/ month</span>}</div>
+          <p className="pricing-includes">{plan.availability}</p>
           <p className="pricing-summary">{plan.summary}</p>
           {plan.includes && <p className="pricing-includes">{plan.includes}</p>}
           <ul>{plan.items.map((item) => <li key={item}>{item}</li>)}</ul>
@@ -107,8 +111,8 @@ export default function PricingPage() {
         </article>)}
       </div>
       <div className="shell pricing-activation">
-        <strong>Commercial activation is explicit.</strong>
-        <p>Creating a workspace does not charge a card. Provider capacity, collection frequency, and billing are confirmed before paid activation; features that need a live integration remain labelled until connected.</p>
+        <strong>Private beta is the live entitlement.</strong>
+        <p>Creating a workspace does not charge a card or activate Core, Signal, or Intelligence. Paid capacity, billing, tax/entity details, cancellation terms, and payment-state handling must be verified before a commercial plan is activated.</p>
       </div>
     </section>
     <section className="section section--paper pricing-market-section">
@@ -116,9 +120,9 @@ export default function PricingPage() {
         <div className="platform-heading">
           <span className="eyebrow">Other vendors — market context</span>
           <h2>These are competitor prices, not additional Foremention plans.</h2>
-          <p>Foremention Core, Signal, and Intelligence are listed above. The table below is a separate market comparison using vendor-published list prices checked on August 9, 2026. Plans differ in prompts, providers, seats, frequency, and billing terms.</p>
+          <p>The table is a separate market comparison using vendor-published list prices checked on August 9, 2026. Plans differ in prompts, providers, seats, frequency, and billing terms. Foremention&apos;s figure is explicitly planned packaging while the product remains in private beta.</p>
         </div>
-        <p className="pricing-market-disclaimer"><strong>Comparison boundary:</strong> choose a Foremention plan from the cards above. Use this table only to compare public category pricing and capacity.</p>
+        <p className="pricing-market-disclaimer"><strong>Comparison boundary:</strong> use this table only to compare public category pricing and capacity. Signup currently starts Foremention&apos;s private beta rather than a paid plan.</p>
         <div className="pricing-market-table" role="table" aria-label="AI visibility platform public pricing comparison">
           <div className="pricing-market-row pricing-market-row--head" role="row">
             <span role="columnheader">Platform</span><span role="columnheader">Compared plan</span><span role="columnheader">Public price</span><span role="columnheader">What that price describes</span>
@@ -130,7 +134,7 @@ export default function PricingPage() {
             <span role="cell" data-label="What that price describes">{item.note} <Link href={item.source} target={item.source.startsWith("http") ? "_blank" : undefined} rel={item.source.startsWith("http") ? "noreferrer" : undefined} aria-label={item.source.startsWith("http") ? `${item.sourceLabel} (opens in a new tab)` : item.sourceLabel}>{item.sourceLabel} <Arrow /></Link></span>
           </div>)}
         </div>
-        <p className="pricing-source-note"><strong>Source note:</strong> Competitor facts come from each vendor&apos;s own published page, not a reseller or estimate. Prices can change and may exclude taxes, add-ons, overages, or regional terms. Check the linked source before purchasing. Foremention&apos;s listed price is not a working checkout until its payment integration is verified.</p>
+        <p className="pricing-source-note"><strong>Source note:</strong> Competitor facts come from each vendor&apos;s own published page, not a reseller or estimate. Prices can change and may exclude taxes, add-ons, overages, or regional terms. Check the linked source before purchasing. Foremention&apos;s listed paid price is planned commercial packaging and is not a working checkout.</p>
       </div>
     </section>
     <section className="section section--yellow">
