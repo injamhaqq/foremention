@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 const CONSENT_KEY = "foremention:experience-analytics-consent";
+const LEGACY_CONSENT_KEY = "foremention:contentsquare-consent";
+const CONSENT_EVENT = "foremention:experience-analytics-consent-changed";
 const SCRIPT_ID = "foremention-contentsquare";
 const CLARITY_SCRIPT_ID = "foremention-clarity";
 
@@ -22,18 +24,39 @@ function configuredClarityProjectId() {
   return value?.match(/^[a-z0-9]{6,32}$/i) ? value : null;
 }
 
-const subscribeToNothing = () => () => {};
-
 function readStoredConsent(): Consent {
+  if (typeof window === "undefined") return null;
   const stored = window.localStorage.getItem(CONSENT_KEY)
-    ?? window.localStorage.getItem("foremention:contentsquare-consent");
+    ?? window.localStorage.getItem(LEGACY_CONSENT_KEY);
   return stored === "accepted" || stored === "declined" ? stored : null;
 }
 
+function subscribeToConsent(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const handleStorage = (event: StorageEvent) => {
+    if (!event.key || event.key === CONSENT_KEY || event.key === LEGACY_CONSENT_KEY) callback();
+  };
+  const handleCustom = () => callback();
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(CONSENT_EVENT, handleCustom);
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(CONSENT_EVENT, handleCustom);
+  };
+}
+
+function writeStoredConsent(next: Exclude<Consent, null>) {
+  window.localStorage.setItem(CONSENT_KEY, next);
+  window.localStorage.removeItem(LEGACY_CONSENT_KEY);
+  window.dispatchEvent(new Event(CONSENT_EVENT));
+}
+
+function useExperienceAnalyticsConsent() {
+  return useSyncExternalStore(subscribeToConsent, readStoredConsent, () => null);
+}
+
 export function ContentsquareAnalytics() {
-  const storedConsent = useSyncExternalStore(subscribeToNothing, readStoredConsent, () => null);
-  const [chosenConsent, setChosenConsent] = useState<Consent>(null);
-  const consent = chosenConsent ?? storedConsent;
+  const consent = useExperienceAnalyticsConsent();
   const tagUrl = configuredTagUrl();
   const clarityProjectId = configuredClarityProjectId();
 
@@ -58,18 +81,33 @@ export function ContentsquareAnalytics() {
     document.head.appendChild(script);
   }, [clarityProjectId, consent]);
 
+  // Optional experience analytics is privacy-off by default. This loader never
+  // renders a blocking or floating consent surface; users can opt in from the
+  // normal footer preference control instead.
+  return null;
+}
+
+export function ExperienceAnalyticsPreferences() {
+  const consent = useExperienceAnalyticsConsent();
+  const enabled = consent === "accepted";
+
   function choose(next: Exclude<Consent, null>) {
-    window.localStorage.setItem(CONSENT_KEY, next);
-    setChosenConsent(next);
+    const previous = readStoredConsent();
+    writeStoredConsent(next);
+    // Once a third-party script has executed, removing its script tag cannot
+    // guarantee the already-loaded runtime has stopped. Reload after revoking
+    // an existing opt-in so the new privacy-off state is applied cleanly.
+    if (previous === "accepted" && next === "declined") window.location.reload();
   }
 
-  if (consent || (!tagUrl && !clarityProjectId)) return null;
-
-  return <aside className="analytics-consent" aria-label="Optional experience analytics">
-    <p><strong>Help improve Foremention</strong><span>Allow optional experience analytics from Microsoft Clarity and Contentsquare to help us find usability problems. We do not use this for AI answers, evidence, passwords, or form content.</span></p>
-    <div>
-      <button type="button" className="button button--outline button--small" onClick={() => choose("declined")}>Decline</button>
-      <button type="button" className="button button--ink button--small" onClick={() => choose("accepted")}>Allow analytics</button>
+  return <details className="footer-analytics-preferences">
+    <summary>Analytics preferences <small>{enabled ? "On" : "Off"}</small></summary>
+    <div className="footer-analytics-preferences__panel">
+      <p>Optional Microsoft Clarity and Contentsquare analytics stay off unless you allow them. They are not used for AI answers, evidence, passwords, or form content.</p>
+      <div className="footer-analytics-preferences__actions">
+        <button type="button" className="button button--outline button--small" aria-pressed={!enabled} onClick={() => choose("declined")}>Keep off</button>
+        <button type="button" className="button button--small" aria-pressed={enabled} onClick={() => choose("accepted")}>Allow analytics</button>
+      </div>
     </div>
-  </aside>;
+  </details>;
 }
