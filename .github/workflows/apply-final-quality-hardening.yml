@@ -1,0 +1,105 @@
+name: Apply Final Quality Hardening
+
+on:
+  push:
+    branches:
+      - fix/final-quality-hardening-20260814
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: contains(github.event.head_commit.message, 'stage final quality hardening')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/final-quality-hardening-20260814
+          fetch-depth: 0
+
+      - name: Apply measured production quality fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          worker = Path('worker/index.ts')
+          text = worker.read_text()
+          old = "script-src 'self' 'unsafe-inline' https://*.posthog.com https://*.contentsquare.net https://*.clarity.ms https://c.bing.com"
+          new = "script-src 'self' 'unsafe-inline' https://*.posthog.com https://*.contentsquare.net https://*.clarity.ms https://c.bing.com https://static.cloudflareinsights.com"
+          if old not in text:
+              raise SystemExit('expected script-src CSP not found')
+          text = text.replace(old, new, 1)
+          old = "connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.posthog.com https://*.contentsquare.net https://*.contentsquare.com https://*.clarity.ms https://c.bing.com"
+          new = "connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.posthog.com https://*.contentsquare.net https://*.contentsquare.com https://*.clarity.ms https://c.bing.com https://cloudflareinsights.com"
+          if old not in text:
+              raise SystemExit('expected connect-src CSP not found')
+          worker.write_text(text.replace(old, new, 1))
+
+          hero = Path('components/homepage-readiness.module.css')
+          text = hero.read_text()
+          old = "  opacity: 0.78;\n"
+          new = "  color: var(--muted, #60716d);\n  opacity: 1;\n"
+          if old not in text:
+              raise SystemExit('expected heroMeta opacity not found')
+          hero.write_text(text.replace(old, new, 1))
+
+          layout = Path('app/layout.tsx')
+          text = layout.read_text()
+          old = 'import "./product-polish.css";\n'
+          new = 'import "./product-polish.css";\nimport "./accessibility-hardening.css";\n'
+          if old not in text:
+              raise SystemExit('layout polish import not found')
+          text = text.replace(old, new, 1)
+          old = 'return <html lang="en" data-scroll-behavior="smooth"><body>'
+          new = 'return <html lang="en" data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /></head><body>'
+          if old not in text:
+              raise SystemExit('layout return boundary not found')
+          layout.write_text(text.replace(old, new, 1))
+
+          Path('app/accessibility-hardening.css').write_text(r'''/* Final production legibility and measured Lighthouse fixes.
+   These rules preserve the established editorial system while keeping
+   high-information microcopy readable on laptop and mobile screens. */
+
+.analytics-consent p,
+.analytics-consent p span,
+.form-fineprint,
+.footer-bottom,
+.footer-links span,
+.intake-form label,
+.auth-card label,
+.table-tools label,
+.pricing-source-note,
+.pricing-activation p,
+.pricing-shared p,
+.pricing-market-row > *,
+.pricing-label,
+.pricing-includes,
+.price span {
+  font-size: 12px;
+}
+
+.pricing-card--lead .pricing-label,
+.pricing-card--lead .pricing-includes {
+  color: #a6ffe2;
+}
+
+@media (max-width: 760px) {
+  .analytics-consent {
+    right: 14px;
+    bottom: 14px;
+    width: calc(100vw - 28px);
+    gap: 14px;
+    padding: 14px;
+  }
+}
+''')
+          PY
+
+          git config user.name "Foremention Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add worker/index.ts components/homepage-readiness.module.css app/layout.tsx app/accessibility-hardening.css
+          git commit -m "fix: harden final production quality"
+          git push origin HEAD:fix/final-quality-hardening-20260814
