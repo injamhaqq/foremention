@@ -188,23 +188,24 @@ async function verifyAnalyticsOverlayRegression(page, profileName) {
 async function verifySourceXRay(page, profileName) {
   await page.goto(new URL("/", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
   const xray = page.locator("#source-xray");
-  if (!await visible(xray)) {
+  const stage = page.locator("#source-xray-stage");
+  if (!await visible(xray) || !await visible(stage)) {
     recordFailure("Source X-Ray is not visibly rendered on the homepage.", { profile: profileName });
     return;
   }
-  await xray.scrollIntoViewIfNeeded();
-  await xray.focus();
-  const before = await xray.evaluate((element) => getComputedStyle(element).getPropertyValue("--xray-x").trim());
+  await stage.scrollIntoViewIfNeeded();
+  await stage.focus();
+  const before = await stage.evaluate((element) => getComputedStyle(element).getPropertyValue("--xray-x").trim());
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(100);
-  const after = await xray.evaluate((element) => getComputedStyle(element).getPropertyValue("--xray-x").trim());
+  const after = await stage.evaluate((element) => getComputedStyle(element).getPropertyValue("--xray-x").trim());
   if (!before || !after || before === after) {
     recordFailure("Source X-Ray keyboard slider did not respond to ArrowRight.", { profile: profileName, before, after });
   }
-  const beforeToggle = await xray.evaluate((element) => element.classList.contains("is-all"));
+  const beforeToggle = await stage.evaluate((element) => element.classList.contains("is-all"));
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
-  const afterToggle = await xray.evaluate((element) => element.classList.contains("is-all"));
+  const afterToggle = await stage.evaluate((element) => element.classList.contains("is-all"));
   if (beforeToggle === afterToggle) recordFailure("Source X-Ray keyboard reveal did not respond to Enter.", { profile: profileName });
   await page.keyboard.press("Enter").catch(() => {});
 }
