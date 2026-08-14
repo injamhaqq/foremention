@@ -28,7 +28,7 @@ jobs:
           const routes = ['/', '/pricing', '/about', '/honesty', '/methodology', '/privacy', '/terms', '/contact', '/login', '/signup', '/forgot-password'];
           const profiles = [
             { name: 'desktop', viewport: { width: 1440, height: 1000 } },
-            { name: 'mobile', viewport: { width: 390, height: 844 }, isMobile: true },
+            { name: 'mobile', viewport: { width: 390, height: 844 } },
           ];
           const browsers = { chromium, firefox };
           const out = [];
@@ -37,7 +37,7 @@ jobs:
           for (const [browserName, launcher] of Object.entries(browsers)) {
             const browser = await launcher.launch();
             for (const profile of profiles) {
-              const context = await browser.newContext({ viewport: profile.viewport, isMobile: profile.isMobile ?? false });
+              const context = await browser.newContext({ viewport: profile.viewport });
               for (const route of routes) {
                 const page = await context.newPage();
                 const consoleErrors = [];
