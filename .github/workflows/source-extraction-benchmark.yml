@@ -1,0 +1,66 @@
+name: Source Extraction Benchmark
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/source-extraction/**'
+      - 'scripts/source-extraction-benchmark.mjs'
+      - 'lib/source-inspection.ts'
+      - '.github/workflows/source-extraction-benchmark.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-extraction-benchmark-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+
+      - name: Install isolated benchmark dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .source-benchmark-runtime source-extraction-benchmark-results
+          cat > .source-benchmark-runtime/package.json <<'JSON'
+          {
+            "private": true,
+            "dependencies": {
+              "@mozilla/readability": "0.6.0",
+              "jsdom": "20.0.2"
+            }
+          }
+          JSON
+          npm install --prefix .source-benchmark-runtime --package-lock=false --ignore-scripts --no-audit --no-fund
+
+      - name: Benchmark Foremention native extraction against Mozilla Readability
+        run: node --experimental-strip-types --expose-gc scripts/source-extraction-benchmark.mjs
+
+      - name: Archive benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: foremention-source-extraction-benchmark-${{ github.sha }}
+          path: source-extraction-benchmark-results
+          if-no-files-found: warn
+          retention-days: 5

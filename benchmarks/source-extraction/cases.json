@@ -1,0 +1,252 @@
+[
+  {
+    "id": "article",
+    "file": "fixtures/article.html",
+    "category": "article",
+    "url": "https://example.com/article",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Why evidence chains matter",
+    "expectedDescription": "A practical guide to trustworthy AI recommendation evidence.",
+    "requiredPhrases": [
+      "Exact provider and model labels make later comparisons trustworthy.",
+      "Returned citation URLs remain attached to the answer record.",
+      "Human review stays separate from automated page observations."
+    ],
+    "forbiddenPhrases": [
+      "Global navigation noise marker",
+      "Trending: ten AI hacks",
+      "Subscribe for weekly growth tips",
+      "Global footer noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "documentation",
+    "file": "fixtures/documentation.html",
+    "category": "documentation",
+    "url": "https://example.com/documentation",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Source X-Ray methodology",
+    "expectedDescription": "How Foremention separates source observation from review.",
+    "requiredPhrases": [
+      "Source X-Ray separates crawler observations from human review.",
+      "Methodology version is part of comparability.",
+      "Inspection never turns page text into a verified customer claim."
+    ],
+    "forbiddenPhrases": [
+      "Sidebar navigation noise marker",
+      "Sidebar marketing noise marker",
+      "Docs footer noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "product",
+    "file": "fixtures/product.html",
+    "category": "product",
+    "url": "https://example.com/product",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Evidence Cloud for B2B teams",
+    "expectedDescription": "A product page for an evidence workflow.",
+    "requiredPhrases": [
+      "Preserve exact answers and returned citation URLs.",
+      "Review sources before creating an opportunity.",
+      "Only exact-comparable observations can support longitudinal movement."
+    ],
+    "forbiddenPhrases": [
+      "Global navigation noise marker",
+      "Footer CTA noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "comparison",
+    "file": "fixtures/comparison.html",
+    "category": "comparison",
+    "url": "https://example.com/comparison",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Evidence workflow comparison",
+    "expectedDescription": "A structured comparison of evidence approaches.",
+    "requiredPhrases": [
+      "Exact provider and model are preserved.",
+      "Human review is explicitly recorded.",
+      "Exact methodology must match before movement is claimed."
+    ],
+    "forbiddenPhrases": [
+      "Comparison nav noise marker",
+      "Comparison footer noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "navigation-heavy",
+    "file": "fixtures/navigation-heavy.html",
+    "category": "navigation-heavy",
+    "url": "https://example.com/navigation-heavy",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Recommendation evidence handbook",
+    "expectedDescription": "A handbook chapter buried inside heavy navigation.",
+    "requiredPhrases": [
+      "The evidence chain starts with the exact buyer question and ends with a later comparable observation.",
+      "A returned citation is not the same thing as a search result.",
+      "Legitimate actions should come from reviewed evidence"
+    ],
+    "forbiddenPhrases": [
+      "Primary nav noise marker",
+      "Secondary nav noise marker",
+      "Related links noise marker",
+      "Massive footer noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "sidebar-footer-noise",
+    "file": "fixtures/sidebar-footer-noise.html",
+    "category": "sidebar-footer-noise",
+    "url": "https://example.com/sidebar-footer-noise",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Interpreting source movement",
+    "expectedDescription": "How to interpret source changes without causal overclaiming.",
+    "requiredPhrases": [
+      "A source appearing in a later collection is an observed change, not proof that a prior action caused the change.",
+      "Foremention should preserve the previous and current observations and disclose the comparability boundary.",
+      "Any causal interpretation requires evidence beyond temporal sequence."
+    ],
+    "forbiddenPhrases": [
+      "Sidebar promotion noise marker",
+      "Newsletter signup noise marker",
+      "Deep footer noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "structured-article",
+    "file": "fixtures/structured-article.html",
+    "category": "structured-article",
+    "url": "https://example.com/structured-article",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Reviewing a cited page",
+    "expectedDescription": "A structured article about human source review.",
+    "requiredPhrases": [
+      "First confirm that the page was actually returned by the provider for the recorded answer.",
+      "Then inspect objective facts such as current reachability",
+      "Finally record human judgments separately"
+    ],
+    "forbiddenPhrases": [
+      "Structured nav noise marker",
+      "Structured footer noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "malformed",
+    "file": "fixtures/malformed.html",
+    "category": "malformed",
+    "url": "https://example.com/malformed",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Malformed evidence page",
+    "expectedDescription": "Malformed HTML benchmark.",
+    "requiredPhrases": [
+      "Even malformed pages should fail safely or preserve bounded useful text.",
+      "The extractor must never execute inline scripts.",
+      "Evidence integrity survives parser imperfections."
+    ],
+    "forbiddenPhrases": [
+      "Malformed nav noise marker",
+      "script noise marker",
+      "Malformed footer noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "dynamic-snapshot",
+    "file": "fixtures/dynamic-snapshot.html",
+    "category": "dynamic-snapshot",
+    "url": "https://example.com/dynamic-snapshot",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Rendered application snapshot",
+    "expectedDescription": "Static snapshot of a JavaScript-heavy application.",
+    "requiredPhrases": [
+      "The static HTML snapshot already contains the customer-visible recommendation evidence.",
+      "Extraction should use rendered text when it is present without executing application JavaScript.",
+      "Client boot code is not evidence and must stay out of extracted text."
+    ],
+    "forbiddenPhrases": [
+      "Dynamic nav noise marker",
+      "Dynamic script noise marker",
+      "Noscript noise marker"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "blocked",
+    "file": "fixtures/blocked.html",
+    "category": "blocked",
+    "url": "https://example.com/blocked",
+    "status": 403,
+    "contentType": "text/html",
+    "expectedTitle": null,
+    "expectedDescription": null,
+    "requiredPhrases": [],
+    "forbiddenPhrases": [],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "small",
+    "file": "fixtures/small.html",
+    "category": "very-small",
+    "url": "https://example.com/small",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Tiny evidence note",
+    "expectedDescription": "A deliberately tiny page.",
+    "requiredPhrases": [
+      "Exact source retained."
+    ],
+    "forbiddenPhrases": [],
+    "maxBytes": 262144,
+    "allowTruncatedBody": false
+  },
+  {
+    "id": "large-near-limit",
+    "file": "fixtures/large-near-limit.html",
+    "category": "large-near-limit",
+    "url": "https://example.com/large-near-limit",
+    "status": 200,
+    "contentType": "text/html",
+    "expectedTitle": "Large bounded evidence page",
+    "expectedDescription": "A large page near the Foremention inspection boundary.",
+    "requiredPhrases": [
+      "The useful evidence appears before the safe byte boundary so bounded inspection can preserve it.",
+      "Large pages must remain bounded even when the server sends extensive unrelated markup.",
+      "Truncation is reported as partial inspection rather than complete evidence."
+    ],
+    "forbiddenPhrases": [
+      "Large boilerplate noise marker 0001",
+      "Large boilerplate noise marker 1000",
+      "Large boilerplate noise marker 2000"
+    ],
+    "maxBytes": 262144,
+    "allowTruncatedBody": true,
+    "generatedTargetBytes": 270000
+  }
+]
