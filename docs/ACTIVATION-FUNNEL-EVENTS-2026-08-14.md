@@ -8,9 +8,9 @@ Foremention uses the existing privacy-minimized PostHog integration to measure t
 2. `score_started` — a visitor submitted a new public live score request.
 3. `score_completed` — that submitted public score rendered successfully. Property: fixed `question_count` only.
 4. `score_monitor_clicked` — the visitor chose **Monitor your category**.
-5. `signup_started` — the signup form was submitted.
-6. `signup_completed` — the existing auth flow accepted account creation; `confirmation_required` distinguishes email-confirmation flow from immediate session creation.
-7. `auth_session_established` — a non-demo authenticated session reached the protected workspace. Property: bounded `entry_surface` only.
+5. `signup_started` — signup began through the email form or Google entry point. Property: bounded `method` (`email` or `google`) only.
+6. `signup_completed` — the existing email auth flow accepted account creation; `confirmation_required` distinguishes email-confirmation flow from immediate session creation.
+7. `auth_session_established` — a non-demo authenticated session reached the protected workspace. Property: bounded `entry_surface` only. This provides an auth-method-independent downstream success milestone, including OAuth.
 8. `onboarding_started` — the authenticated onboarding route was reached.
 9. `onboarding_completed` — workspace setup was saved.
 10. `collection_started` — a real collection was queued under existing provider, quota, cost, and idempotency controls.
