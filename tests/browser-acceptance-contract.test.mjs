@@ -21,13 +21,16 @@ test("browser acceptance is permanent on pull requests and exact main releases",
   assert.match(workflow, /Waiting for local Worker \(\$\{attempt\}\/60\)/);
 });
 
-test("browser tooling is pinned and pull request code never receives production secrets", () => {
+test("browser tooling is pinned and production secrets are confined to trusted acceptance", () => {
   assert.match(workflow, /"playwright": "1\.60\.0"/);
   assert.match(workflow, /"@axe-core\/playwright": "4\.12\.1"/);
   assert.match(workflow, /"@lhci\/cli": "0\.15\.1"/);
   const prStep = workflow.match(/- name: Run public browser and accessibility acceptance[\s\S]*?run: node scripts\/browser-acceptance\.mjs/)?.[0] || "";
+  const trustedStep = workflow.match(/- name: Run trusted production browser and accessibility acceptance[\s\S]*?run: node scripts\/browser-acceptance\.mjs/)?.[0] || "";
   assert.doesNotMatch(prStep, /secrets\./);
-  assert.doesNotMatch(workflow, /secrets\.FOREMENTION_ACCEPTANCE_/);
+  assert.match(trustedStep, /if: github\.event_name != 'pull_request'/);
+  assert.match(trustedStep, /FOREMENTION_ACCEPTANCE_EMAIL: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_EMAIL \}\}/);
+  assert.match(trustedStep, /FOREMENTION_ACCEPTANCE_PASSWORD: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_PASSWORD \}\}/);
 });
 
 test("public acceptance covers the core conversion surfaces and product regressions", () => {
