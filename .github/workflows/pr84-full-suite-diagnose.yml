@@ -1,0 +1,38 @@
+name: PR84 Full Suite Diagnose
+
+on:
+  push:
+    branches:
+      - ops/pr84-test-diagnose-20260814
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.25.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Capture full test output
+        shell: bash
+        run: |
+          set +e
+          pnpm test > pr84-full-output.txt 2>&1
+          rc=$?
+          cat pr84-full-output.txt
+          echo "$rc" > pr84-full-exit-code.txt
+          exit 0
+      - name: Upload diagnostic output
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr84-full-diagnostic
+          path: |
+            pr84-full-output.txt
+            pr84-full-exit-code.txt
+          if-no-files-found: error
+          retention-days: 1
