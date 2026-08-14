@@ -50,10 +50,15 @@ export function PublicActivationAnalytics() {
 
     if (pathname === "/signup") {
       const form = document.querySelector<HTMLFormElement>(".auth-card form");
-      if (!form) return;
-      const onSubmit = () => captureProductEvent("signup_started");
-      form.addEventListener("submit", onSubmit);
-      return () => form.removeEventListener("submit", onSubmit);
+      const google = document.querySelector<HTMLAnchorElement>('.auth-card a[href^="/api/auth/google"]');
+      const onSubmit = () => captureProductEvent("signup_started", { method: "email" });
+      const onGoogle = () => captureProductEvent("signup_started", { method: "google" });
+      form?.addEventListener("submit", onSubmit);
+      google?.addEventListener("click", onGoogle);
+      return () => {
+        form?.removeEventListener("submit", onSubmit);
+        google?.removeEventListener("click", onGoogle);
+      };
     }
   }, [pathname]);
 
