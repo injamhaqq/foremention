@@ -4,7 +4,7 @@ prompts:
   - "{{scenario}}"
 
 providers:
-  - id: file://evals/foremention-safety-provider.ts
+  - id: file://foremention-safety-provider.ts
     label: Foremention native safety boundary
 
 tests:
