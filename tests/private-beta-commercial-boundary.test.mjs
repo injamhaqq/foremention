@@ -9,7 +9,8 @@ const privacy = await readFile(new URL("../app/privacy/page.tsx", import.meta.ur
 const policy = await readFile(new URL("../docs/PRIVATE-BETA-OPERATING-POLICY.md", import.meta.url), "utf8");
 
 test("self-serve production remains explicitly free beta", () => {
-  assert.match(entitlement, /plan text not null default 'free_beta' check \(plan in \('free_beta'\)\)/);
+  assert.match(entitlement, /plan text not null default 'free_beta'/);
+  assert.match(entitlement, /check\s*\(\s*plan\s+in\s*\(\s*'free_beta'\s*\)\s*\)/);
   assert.match(pricing, /Self-serve signup currently creates a controlled free-beta workspace/);
   assert.match(pricing, /Planned paid packaging/);
   assert.match(pricing, /Creating a workspace does not charge a card or activate Core, Signal, or Intelligence/);
@@ -29,6 +30,6 @@ test("provider transparency does not overclaim activation or contracts", () => {
 test("operating policy refuses invented commercial and legal facts", () => {
   assert.match(policy, /no automatic paid checkout/);
   assert.match(policy, /no invented legal-entity or jurisdiction statement/);
-  assert.match(policy, /does not authorize the product to fabricate facts/);
+  assert.match(policy, /does \*\*not\*\* authorize the product to fabricate facts/);
   assert.match(policy, /Primary incident owner: \*\*Founder \/ Operator\*\*/);
 });
