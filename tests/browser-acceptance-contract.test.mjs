@@ -37,6 +37,7 @@ test("public acceptance covers the core conversion surfaces and product regressi
   assert.match(runner, /\.analytics-consent/);
   assert.match(runner, /Help improve Foremention/);
   assert.match(runner, /#source-xray/);
+  assert.match(runner, /#source-xray-stage/);
   assert.match(runner, /ArrowRight/);
   assert.match(runner, /keyboard reveal did not respond to Enter/);
   assert.match(runner, /Horizontal viewport overflow detected/);
