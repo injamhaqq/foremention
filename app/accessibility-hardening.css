@@ -18,6 +18,11 @@
 .pricing-card--lead .pricing-label,
 .pricing-card--lead .pricing-includes { color: #a6ffe2; }
 
+/* The final pricing header cell is otherwise caught by the more-specific
+   data-row `span:last-child` rule in globals.css. Keep header text readable
+   on the ink background without muting normal comparison-row descriptions. */
+.pricing-market-row.pricing-market-row--head > span:last-child { color: var(--paper); }
+
 @media (max-width: 760px) {
   .analytics-consent {
     right: 14px;
