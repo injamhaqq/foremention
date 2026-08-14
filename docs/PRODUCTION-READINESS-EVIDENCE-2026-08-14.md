@@ -1,13 +1,23 @@
 # Production readiness evidence — 2026-08-14
 
-This record continues Foremention’s evidence-before-theatre production-readiness work. It records only observations actually made against the deployed system or exact verified build. It does not convert unavailable operator controls into completed gates.
+This record is Foremention’s evidence-before-theatre production-readiness sign-off for the **controlled private beta**. It records observed production behavior, exact verified releases, bounded synthetic acceptance data, and explicit residual limitations. It does not turn unavailable paid controls, outside legal review, or unverified third-party configuration into completed evidence.
 
-## Exact current production release
+## Final controlled-private-beta status
 
-- PR #77, `Fix workspace export composite-key ordering`, merged successfully.
-- Current merge/main commit: `d4a3ff255259caad9459f2e604097e349b959160`.
-- Main CI run: `31735144089`.
-- The main run completed successfully after the export fix and passed:
+**GREEN for controlled/private beta.**
+
+This is not a paid/general-availability launch declaration. Current self-serve production remains the enforced `free_beta` entitlement. Paid Core, Signal, and Intelligence packaging is planned commercial packaging and is not a working checkout until its payment integration is verified. A future paid/GA activation remains a separate project requiring the actual payment lifecycle, contracting entity and tax facts, customer-specific legal/DPA decisions, and jurisdiction-specific approvals.
+
+Issue #76, `Close remaining production proof gates`, is closed as completed for this controlled-private-beta scope.
+
+## Exact verified private-beta release before this evidence-only update
+
+- PR #84, `Lock controlled private-beta launch policy`, merged successfully.
+- Verified production commit: `86bfc09836d77087f6c74b0e48132c618aef2e3a`.
+- Main CI run: `31768699780`.
+- The first attempt passed dependency audit, tests, lint, typecheck, production build, Cloudflare Worker dry run, verified build archive, exact Cloudflare production release verification, and live Inngest function sync, but the final live Inngest execution probe failed without usable logs.
+- No code change was made for that isolated failure because the exact release and function sync were already proven.
+- A failed-job-only rerun after deployment convergence passed:
   - production dependency audit;
   - automated tests;
   - lint;
@@ -19,110 +29,85 @@ This record continues Foremention’s evidence-before-theatre production-readine
   - live Inngest function sync;
   - exact-build live Inngest execution.
 
-The preceding documentation-only release `d46ca11c8914bac7954f731ab942751dc4c38648` initially observed the previous build during its first Inngest execution probe. Re-running the failed job after deployment convergence passed all release gates. That event is treated as deployment convergence evidence, not as proof of a persistent Inngest defect.
+The final probe success after convergence is treated as release-convergence evidence, not as proof of a persistent Inngest defect.
 
 ## Compromised-password and session controls
 
-Issue #57 is closed as completed for the application-level Supabase Free mitigation. The native Supabase leaked-password warning remains a known plan-limited residual and is not represented as enabled.
+Issue #57 is closed as completed for the application-level Supabase Free mitigation. The native Supabase leaked-password warning remains a truthful plan-limited residual and is not represented as enabled.
 
 Production acceptance proved:
 
 - known compromised strong password `Password123!` rejected by Foremention signup with HTTP 400;
-- unique strong password reached the normal confirmation flow with HTTP 200;
-- direct public Supabase signup without the Foremention one-time attestation rejected with HTTP 403;
+- a unique strong password reached the normal confirmation flow with HTTP 200;
+- direct public Supabase email signup without the Foremention one-time attestation rejected with HTTP 403;
 - two independent confirmed-account logins succeeded;
 - authenticated `/app` access succeeded;
 - password update rejected the compromised password with HTTP 400 and a subsequent login proved the existing password was unchanged;
-- `POST /api/auth/logout-all` completed the all-device revocation flow;
-- a second independent session refresh token was rejected afterward with `refresh_token_not_found`.
+- `POST /api/auth/logout-all` completed all-device revocation;
+- a second independent refresh session was rejected afterward with `refresh_token_not_found`.
 
-The Supabase `Before User Created` hook remains enabled with the private one-time signup attestation design. The private attestation storage is not a substitute for Supabase’s native paid leaked-password toggle, and the native advisor warning remains intentionally visible.
+The Supabase `Before User Created` hook remains enabled with the private one-time signup-attestation design. The mitigation is not described as Supabase’s native paid leaked-password feature.
 
 ## Real provider collection
 
 A fresh synthetic production workspace completed one real controlled collection:
 
-- organization name: `Foremention Acceptance Test Co`;
+- organization: `Foremention Acceptance Test Co`;
 - run: `d9c16871-72dc-4fcd-a208-d395a0e9e3b7`;
 - provider: `groq`;
 - exact model: `groq/compound-mini`;
 - methodology: `3.0`;
-- terminal status: `complete`;
-- recorded actual cost: `$0.008653`;
+- status: `complete`;
+- recorded cost: `$0.008653`;
 - cost source: `estimated`;
 - input tokens: `5,428`;
 - output tokens: `570`;
 - total tokens: `5,998`;
 - failed/rate-limited/excluded attempts: `0`;
-- persisted verified answers: `1`;
-- persisted citations: `19`;
-- persisted source observations: `19`;
+- verified answers: `1`;
+- citations: `19`;
+- source observations: `19`;
 - verified source observations: `19`;
 - Source Map: `454d46f9-c89a-4b37-b89c-0904462c18af`;
 - Source Map methodology: `3.0`.
 
-This proves the production path can complete onboarding -> active buyer question -> queued background run -> real provider/model -> answer -> citations/source observations -> human review -> completed run and persisted Source Map under the configured spending controls.
+This proves the production path can complete workspace/onboarding -> active buyer question -> queued background run -> real provider/model -> answer -> citations/source observations -> human review -> completed run -> persisted Source Map under the configured spending controls.
 
-## Workspace export defect discovered and fixed during acceptance
+## Workspace export defect discovered and fixed
 
-The first application-level tenant acceptance exposed a real production defect: `/api/export/workspace` returned HTTP 500.
+Application acceptance exposed a real `/api/export/workspace` HTTP 500. The exporter ordered every dataset by `id.asc`, while `run_prompt_selections` and `verified_claim_evidence` intentionally use composite keys without `id` columns.
 
-The root cause was deterministic rather than tenant-related. `lib/workspace-export.ts` ordered every exported dataset by `id.asc`, while two persisted relationship/snapshot tables intentionally do not have an `id` column:
-
-- `run_prompt_selections`, keyed by `run_id` + `prompt_id`;
-- `verified_claim_evidence`, keyed by `claim_id` + `evidence_item_id`.
-
-PR #77 changed only deterministic pagination ordering for those exceptional datasets:
+PR #77 fixed deterministic ordering:
 
 - `run_prompt_selections`: `run_id.asc,prompt_id.asc`;
 - `verified_claim_evidence`: `claim_id.asc,evidence_item_id.asc`;
-- all other datasets retain `id.asc`.
+- other datasets retain `id.asc`.
 
-Regression coverage was added. The PR passed dependency audit, tests, lint, typecheck, build, and Worker dry run before merge. The repaired endpoint was then re-tested only after exact production deployment of `d4a3ff255259caad9459f2e604097e349b959160`.
+Regression coverage was added, the fix passed CI, was exactly deployed, and the full export acceptance was rerun only after deployment.
 
-## Reciprocal application-level tenant isolation — completed
+## Reciprocal application-level tenant isolation
 
-Live acceptance run `31735530309` used two fresh synthetic, confirmed Foremention accounts and two newly created synthetic organizations. Each tenant received a unique marker.
+Live run `31735530309` used two fresh synthetic confirmed accounts and organizations, each with a unique marker.
 
-### Search boundary
+Search proof:
 
-Tenant A:
+- Tenant A found its own marker and received the product no-match state for Tenant B’s marker.
+- Tenant B found its own marker and received the product no-match state for Tenant A’s marker.
 
-- own-marker `/app/search` returned HTTP 200 with an own-workspace result;
-- searching Tenant B’s marker returned HTTP 200 with the product no-match state.
+Complete workspace ZIP proof:
 
-Tenant B:
+- both export requests returned HTTP 200 `application/zip`;
+- each archive contained 64 entries;
+- each archive contained its own tenant marker;
+- neither archive contained the other tenant’s marker.
 
-- own-marker `/app/search` returned HTTP 200 with an own-workspace result;
-- searching Tenant A’s marker returned HTTP 200 with the product no-match state.
+This closes the application search/export tenant boundary separately from the earlier database RLS probes.
 
-### Complete workspace export boundary
+## Authenticated mobile and cross-browser acceptance
 
-Tenant A export:
+Run `31735530309` also exercised the deployed authenticated application at a 390x844 viewport in Chromium and Firefox.
 
-- HTTP 200;
-- `Content-Type: application/zip`;
-- archive size observed: 34,881 bytes;
-- 64 archive entries;
-- own tenant marker present;
-- Tenant B marker absent.
-
-Tenant B export:
-
-- HTTP 200;
-- `Content-Type: application/zip`;
-- archive size observed: 34,881 bytes;
-- 64 archive entries;
-- own tenant marker present;
-- Tenant A marker absent.
-
-The run concluded `RECIPROCAL_TENANT_ISOLATION PASS`. This closes the application-level reciprocal search/export gate and is separate from the earlier database-level RLS probes.
-
-## Authenticated mobile / cross-browser acceptance — completed
-
-The same live run `31735530309` exercised the deployed application at a 390x844 mobile viewport with device scale factor 2 in both Chromium and Firefox.
-
-The following authenticated routes returned HTTP 200, rendered meaningful page content, stayed out of the login redirect, and had no horizontal viewport overflow in both browsers:
+The following routes returned HTTP 200, rendered meaningful authenticated content, avoided login redirects, and showed no horizontal overflow:
 
 - `/app`;
 - `/app/prompts`;
@@ -131,93 +116,178 @@ The following authenticated routes returned HTTP 200, rendered meaningful page c
 - `/app/settings`;
 - `/app/search` with the tenant’s own marker.
 
-For each route, observed `innerWidth` and document `scrollWidth` were both 390 pixels.
+Observed `innerWidth` and document `scrollWidth` were both 390 pixels for the tested routes.
 
-The synthetic workspace used for this browser run did not contain a reviewed source link, so Source X-Ray itself was not exercised in this specific mobile pass. Source Map was exercised. Do not expand this evidence into a claim that every Source X-Ray state was mobile-tested.
-
-The run concluded `AUTHENTICATED_MOBILE_CROSS_BROWSER PASS`.
+The final fresh synthetic workspace did not contain a reviewed Source X-Ray link. Source X-Ray itself was therefore not exercised by this particular mobile pass and is not overclaimed.
 
 ## Synthetic credential cleanup
 
-The fresh synthetic acceptance identities were temporary test principals only.
-
-After acceptance:
+Acceptance identities were temporary test principals only. After acceptance:
 
 - each test password was replaced with a cryptographically random unknown value;
-- Supabase global logout returned HTTP 204 for each account;
-- the previous temporary test password was verified rejected for each account.
+- global logout returned HTTP 204 for each account;
+- the previous temporary password was verified rejected.
 
-No temporary acceptance password should be treated as a continuing credential.
+No temporary acceptance password is a continuing credential.
 
-## Supabase security-advisor review
+## Application-data backup -> restore drill
 
-The current Security Advisor still reports the native `auth_leaked_password_protection` warning. This remains expected on the current plan and is a truthful residual.
+A real isolated application-data restore drill was completed rather than substituting a schema-only check.
 
-The advisor also flags several authenticated-callable `SECURITY DEFINER` RPCs. Their live definitions were inspected before taking action. They are not anonymous mutation functions:
+Restore target:
 
-- `anon` does not have execute permission on the reviewed functions;
-- `complete_onboarding` requires `auth.uid()` and creates/returns only the authenticated actor’s workspace;
-- `has_org_role` and `is_org_member` derive membership from `auth.uid()`;
-- `reserve_run_quota`, `reserve_run_budget`, and `release_queued_run` require an authenticated actor and verify owner/analyst membership for the supplied organization before privileged writes.
+- disposable Supabase project: `nhbdnpbpidydzpvoipez`;
+- region: `ap-northeast-2`;
+- confirmed project cost: `$0/month`;
+- production was never used as the restore target.
 
-Those authenticated execute grants are part of the intended application contract. They were not revoked merely to silence a generic advisor warning, because doing so would break legitimate onboarding/collection behavior without improving the tenant boundary.
+The representative synthetic `Foremention Acceptance Test Co` evidence path was restored without copying Supabase Auth user identities.
 
-## Monitoring / Sentry gate — still open
+### Data parity
 
-The exact archived production build was inspected.
+The restored set contained 92 representative application rows covering:
 
-Findings:
+- organization;
+- project;
+- category;
+- prompt cluster;
+- six prompts;
+- run;
+- run attempt;
+- run prompt selection;
+- run answer;
+- 19 sources;
+- 19 citations;
+- 19 source observations;
+- Source Map;
+- 19 Source Map entries;
+- AI cost event.
 
-- Sentry client/server SDK code is present in the application;
-- the compiled client reads `NEXT_PUBLIC_SENTRY_DSN` conditionally;
-- the exact production client build did not contain an inlined public Sentry DSN, so browser Sentry is not proven active;
-- the Worker bundle supports runtime `SENTRY_DSN` / `SENTRY_ENVIRONMENT`, but the public build artifact cannot prove whether the encrypted runtime value is configured;
-- no harmless controlled event has been observed in an operator Sentry alert channel.
+After intentionally excluding Auth-user identifiers, production and the isolated restore target produced the same SHA-256 fingerprint:
 
-The monitoring gate therefore remains open. Do not create a public crash endpoint merely to satisfy the checklist. Close this gate only after production Sentry is intentionally configured and a harmless controlled event is observed by the operator.
+`8629ab5fee3fec5067300018c45e86401325e84008c5bf672c4aafad67f55a22`
 
-## Backup -> restore gate — still open
+### Core schema parity
 
-The production Supabase project remains active and healthy at project reference `vuujwdxivjsdikdstwib` in `ap-northeast-2`.
+The restored core path was also compared across columns, constraints, indexes, RLS policies, and triggers. After restoring the missing production objects, both production and the isolated target contained 415 compared schema objects with identical SHA-256:
 
-A disposable Supabase development branch was cost-checked at `$0.01344/hour` and, with operator authorization, branch creation was attempted specifically for a safe restore drill. Supabase rejected the request because development branching is available only on the Pro plan. No branch was created and production was not modified.
+`e4ab98e571acded4d8017563887eac739d9adbe6615f74f17e6f10c15dad1064`
 
-There is no second Supabase project on the connected account that can safely serve as a restore destination. A true backup -> restore drill therefore remains unproven on the current Free setup.
+Restore-only helper objects were removed, the data fingerprint remained exact, and the disposable project was paused.
 
-Close this gate only after an off-site logical dump is restored into a separate disposable Postgres/Supabase target, or after an operator-approved plan/control change provides a separate restore target. Never restore the drill over production.
+Scope boundary: this proves application-data recovery for the representative Foremention evidence path. It does **not** claim Supabase Auth identity restoration.
 
-## Legal / commercial / operator approval — still open
+## Production operator alert delivery
 
-Foremention already publishes substantive Privacy and Terms pages. They cover product data, providers, analytics, security, retention/deletion, customer authority, evidence limits, acceptable use, third-party services, billing boundaries, suspension, ownership, and service availability.
+Sentry SDK code exists in the application, but Sentry itself is not represented as independently configured/verified because the connected environment could not prove its production DSN and alert receipt.
 
-Those pages are implementation evidence, not a substitute for founder/operator or counsel approval. Entity/jurisdiction details, paid activation/order forms, DPA/subprocessor commitments, exact retention obligations, support expectations, incident-response ownership, and related commercial decisions remain human business approvals.
+Instead, PR #83 added a first-party production operator-alert control using Foremention’s already-proven application-email delivery path.
 
-## Current gate status
+Security properties:
 
-### Closed with production evidence
+- recipient configuration and delivery ledger are service-role only;
+- `anon` and `authenticated` cannot read them;
+- the caller cannot provide a recipient, message, customer identifier, or build SHA;
+- the deployed SHA comes from the Worker binding;
+- one controlled alert is idempotent per build;
+- the alert contains no customer prompt, answer, citation, evidence body, credential, or provider secret;
+- provider delivery ID is stored only as a SHA-256 hash.
 
-- exact production release provenance for `d4a3ff255259caad9459f2e604097e349b959160`;
+Controlled proof:
+
+- proof run: `31767775639`;
+- build under test: `3940a7a8d6bd71697c356b0a1241b723141956ee`;
+- POST trigger passed;
+- durable GET status passed;
+- private delivery ledger recorded `sent` on attempt 1, with a non-null provider-delivery hash and no error;
+- matching `Foremention production alert probe — 3940a7a` email was observed in the operator inbox from `hello@foremention.com`.
+
+This closes the production operator-alert requirement without misreporting Sentry.
+
+## Final public UI/UX and Lighthouse pass
+
+A live screenshot audit captured public production surfaces at desktop and mobile widths. Audited pages included home, pricing, about, honesty, score, prompt-check, login, and signup. The audit found no broken layout, clipped form, or major hierarchy failure.
+
+The first Lighthouse pass identified concrete defects rather than subjective redesign requests:
+
+- Cloudflare analytics beacon blocked by CSP, producing console/best-practice errors;
+- insufficient contrast on selected home/pricing microcopy;
+- several labels/fine-print elements below the desired legibility floor;
+- missing Google Fonts origin preconnects.
+
+PR #82 fixed those measured issues without changing the established mint/cream/dark-green editorial system.
+
+Final corrected Lighthouse run: `31767745984`.
+
+Scores:
+
+- home: performance 83, accessibility 100, best practices 100, SEO 100;
+- pricing: performance 83, accessibility 100, best practices 100, SEO 100;
+- score: performance 91, accessibility 100, best practices 100, SEO 100;
+- prompt-check: performance 91, accessibility 100, best practices 100, SEO 100;
+- login: performance 91, accessibility 100, best practices 100; SEO 66 because the page is intentionally `noindex`;
+- signup: performance 91, accessibility 100, best practices 100; SEO 66 because the page is intentionally `noindex`.
+
+The corrected audit treats auth-page `noindex` as intentional rather than making authentication surfaces crawlable merely to improve a benchmark. Remaining performance headroom is mainly font/framework-client delivery under Lighthouse throttling; production HTML response was already fast and CLS near zero. No benchmark-only redesign was introduced.
+
+## Controlled private-beta commercial / legal / operating boundary
+
+PR #84 made the live commercial state explicit and aligned public copy with product behavior.
+
+Current boundary:
+
+- production entitlement remains `free_beta`;
+- self-serve signup does not charge a card or activate Core, Signal, or Intelligence;
+- public paid prices are planned packaging;
+- planned pricing is explicitly `not a working checkout until its payment integration is verified`;
+- the pricing page retains Foremention’s `repeatable intelligence system` positioning;
+- no Stripe/checkout activation is represented as live;
+- no legal entity, jurisdiction, tax treatment, customer-specific DPA, transfer mechanism, certification, or data-location fact is invented.
+
+PR #84 also added:
+
+- `docs/PRIVATE-BETA-OPERATING-POLICY.md`;
+- `docs/INCIDENT-RESPONSE-RUNBOOK.md`;
+- public `/subprocessors` service-provider transparency;
+- Privacy retention language distinguishing product history from automatic destruction;
+- Terms aligned to the actual free-beta billing state;
+- regression tests that lock the commercial truth boundary.
+
+The current incident owner is defined operationally as Founder / Operator until formally delegated. This is an operator-approved controlled-beta posture, not a statement of outside-counsel approval.
+
+Final live policy acceptance run `31768894308` verified production `/pricing`, `/privacy`, `/terms`, and `/subprocessors` with HTTP 200 rendering and required truth-boundary copy present at desktop/mobile capture sizes.
+
+## Supabase security-advisor residuals
+
+The native `auth_leaked_password_protection` warning remains intentionally visible because the current plan does not provide the native toggle. The deployed application-level HIBP + signup-hook mitigation remains separately proven.
+
+The advisor also flags authenticated-callable `SECURITY DEFINER` functions. Their live definitions and grants were reviewed. The relevant functions derive identity from `auth.uid()` and/or verify organization membership/owner-analyst role before privileged writes; `anon` does not receive the reviewed privileged execution path. Those intentional application grants were not revoked merely to silence a generic advisor warning.
+
+## Final gate interpretation
+
+Closed with production evidence for controlled/private beta:
+
+- exact production release provenance;
 - dependency/test/lint/type/build/dry-run gates;
 - exact Cloudflare release verification;
 - live Inngest synchronization and exact-build execution;
-- Free-plan compromised-password application mitigation;
-- direct-signup bypass protection through the Before User Created hook;
-- confirmed-account login;
-- compromised-password update rejection without mutation;
-- all-device refresh-session revocation;
-- fresh cost-capped real Groq collection;
-- persisted answer/citation/source-observation/human-review/Source Map path;
-- full workspace export HTTP 500 root cause fixed and regression-tested;
-- reciprocal application-level cross-tenant search isolation;
-- reciprocal complete workspace ZIP isolation;
-- representative authenticated Chromium + Firefox mobile acceptance.
+- compromised-password application mitigation and direct-signup bypass protection;
+- confirmed login, recovery/update password rejection, and all-device refresh revocation;
+- real cost-capped provider collection and evidence persistence;
+- reciprocal tenant search/export isolation;
+- complete workspace ZIP export after regression fix;
+- representative authenticated Chromium/Firefox mobile acceptance;
+- representative application-data restore into an isolated target with exact data/schema fingerprints;
+- first-party production operator-alert delivery with observed inbox receipt;
+- public UI/accessibility/best-practice/SEO hardening and final Lighthouse verification;
+- controlled-private-beta billing/retention/provider/incident operating policy and live policy acceptance.
 
-### Still open
+Explicit residual boundaries that are **not blockers for controlled private beta but remain future activation work**:
 
-- true backup -> restore into an isolated target;
-- configured Sentry production event/alert delivery observed by the operator;
-- founder/operator legal, billing, retention, subprocessor, support and incident-response approvals.
+- paid checkout/payment lifecycle is not active;
+- contracting entity, tax treatment, customer-specific DPA/order-form and jurisdiction-specific legal approval are not established by this engineering record;
+- Sentry itself is not independently verified as a production alert destination;
+- Supabase Auth identity restore was not part of the application-data recovery drill;
+- Source X-Ray was not exercised in the final fresh synthetic mobile workspace.
 
-Source X-Ray was not exercised by the final fresh synthetic mobile workspace because it had no reviewed source link. Keep that narrower nuance separate from the completed general authenticated mobile/cross-browser gate.
-
-No open gate above should be marked complete based only on code presence, configuration intention, plan assumptions, or a substitute test.
+No claim above should be expanded beyond the evidence boundary that supports it.
