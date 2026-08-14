@@ -17,6 +17,28 @@ function safeApiRoute(value: string) {
   return value.replace(/\/[0-9a-f-]{20,}(?=\/|$)/gi, "/:id").replace(/\?.*$/, "");
 }
 
+function productSurface(pathname: string) {
+  if (pathname === "/") return "home";
+  if (pathname === "/product") return "product";
+  if (pathname === "/pricing") return "pricing";
+  if (pathname === "/score") return "score";
+  if (pathname === "/prompt-check") return "prompt_check";
+  if (pathname === "/login") return "login";
+  if (pathname === "/signup") return "signup";
+  if (pathname === "/forgot-password" || pathname === "/reset-password") return "account_recovery";
+  if (pathname === "/app") return "overview";
+  if (pathname.startsWith("/app/onboarding")) return "onboarding";
+  if (pathname.startsWith("/app/prompts")) return "questions";
+  if (pathname.startsWith("/app/runs")) return "ai_results";
+  if (pathname === "/app/source-map" || pathname.startsWith("/app/sources")) return "sources";
+  if (pathname.startsWith("/app/competitors")) return "competitors";
+  if (pathname.startsWith("/app/opportunities")) return "opportunities";
+  if (pathname.startsWith("/app/resolution-center") || pathname.startsWith("/app/actions")) return "actions";
+  if (pathname.startsWith("/app/analytics")) return "analytics";
+  if (pathname.startsWith("/app/settings")) return "settings";
+  return pathname.startsWith("/app") ? "workspace_other" : "public_other";
+}
+
 export function PostHogAnalytics() {
   const pathname = usePathname();
   const initialized = useRef(false);
@@ -27,10 +49,7 @@ export function PostHogAnalytics() {
 
   useEffect(() => {
     if (!initialized.current) return;
-    posthog.capture("$pageview", {
-      $current_url: `${window.location.origin}${pathname}`,
-      route: pathname,
-    });
+    captureProductEvent("$pageview", { surface: productSurface(pathname) });
   }, [pathname]);
 
   useEffect(() => {
