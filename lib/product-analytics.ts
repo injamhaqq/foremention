@@ -4,8 +4,14 @@ import posthog from "posthog-js";
 
 type AnalyticsValue = string | number | boolean | null;
 
-const blockedPropertyPattern = /(email|name|password|token|secret|answer|prompt|citation|content|message|url)/i;
+const blockedPropertyPattern = /(email|name|password|token|secret|answer|prompt|citation|content|message|url|pathname|referrer|referring_domain)/i;
 let initialized = false;
+
+function sanitizeAnalyticsProperties(properties: Record<string, unknown> = {}) {
+  return Object.fromEntries(
+    Object.entries(properties).filter(([key]) => !blockedPropertyPattern.test(key)),
+  );
+}
 
 export function initializeProductAnalytics() {
   if (initialized || typeof window === "undefined") return initialized;
@@ -23,6 +29,13 @@ export function initializeProductAnalytics() {
     person_profiles: "identified_only",
     persistence: "localStorage+cookie",
     secure_cookie: window.location.protocol === "https:",
+    before_send: (event) => {
+      if (!event) return null;
+      return {
+        ...event,
+        properties: sanitizeAnalyticsProperties(event.properties),
+      };
+    },
   });
   initialized = true;
   return true;
@@ -30,10 +43,7 @@ export function initializeProductAnalytics() {
 
 export function captureProductEvent(event: string, properties: Record<string, AnalyticsValue> = {}) {
   if (!initializeProductAnalytics()) return;
-  const safeProperties = Object.fromEntries(
-    Object.entries(properties).filter(([key]) => !blockedPropertyPattern.test(key)),
-  );
-  posthog.capture(event, safeProperties);
+  posthog.capture(event, sanitizeAnalyticsProperties(properties));
 }
 
 export function resetProductAnalytics() {
