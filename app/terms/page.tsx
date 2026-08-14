@@ -4,7 +4,7 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
   title: "Terms",
-  description: "The Foremention platform terms covering accounts, customer responsibilities, AI evidence limits, integrations, subscriptions, acceptable use, and external systems.",
+  description: "The Foremention platform terms covering accounts, customer responsibilities, AI evidence limits, integrations, plans, acceptable use, and external systems.",
   path: "/terms",
 });
 
@@ -16,7 +16,7 @@ export default function TermsPage() {
       <h2>Agreement and account authority</h2>
       <p>By creating or using an account, you confirm that you can accept these terms for yourself or the organization you represent. You are responsible for accurate registration information, authorized users, and account security.</p>
       <h2>Platform access</h2>
-      <p>Foremention provides subscription software for defining buyer questions, collecting connected AI-provider observations, reviewing answers, mapping public sources, evaluating reliability, organizing evidence, and tracking actions. Available features, providers, capacity, retention, and support may vary by plan or order form.</p>
+      <p>Foremention provides software access for defining buyer questions, collecting connected AI-provider observations, reviewing answers, mapping public sources, evaluating reliability, organizing evidence, and tracking actions. Self-serve access may begin as a controlled free beta. Available features, providers, capacity, retention, support, and any future paid subscription terms may vary by plan or order form.</p>
       <h2>Evidence and outcome limits</h2>
       <p>AI answers are variable, probabilistic observations. Foremention does not guarantee publisher acceptance, placement, indexing, recommendation, citation, rank, traffic, leads, pipeline, or revenue. Metrics describe reviewed records within their stated collection boundary.</p>
       <h2>Acceptable use</h2>
@@ -26,9 +26,9 @@ export default function TermsPage() {
       <h2>Third-party services</h2>
       <p>AI providers, publishers, databases, email services, analytics systems, and payment processors are independent services. Their availability, terms, models, access rules, and outputs may change. Foremention is not responsible for a third party&apos;s independent decision or outage.</p>
       <h2>Plans, billing, and changes</h2>
-      <p>Price, currency, billing cadence, included capacity, renewal, cancellation, and any refund terms are shown during paid activation or in an order form. Creating a workspace alone does not charge a card. Material plan changes will be communicated before they take effect.</p>
+      <p>Current self-serve signup does not activate a paid plan or charge a card. Price, currency, billing cadence, included capacity, renewal, cancellation, and any refund terms apply only when paid activation is explicitly available and confirmed during that activation or in an order form. Material plan changes will be communicated before they take effect.</p>
       <h2>Suspension and termination</h2>
-      <p>Access may be limited or suspended to protect the service, investigate misuse, comply with law, address nonpayment, or prevent harm. You may stop using the service and request account closure. Export and deletion windows may depend on plan, security, backup, and legal obligations.</p>
+      <p>Access may be limited or suspended to protect the service, investigate misuse, comply with law, address nonpayment when a paid agreement applies, or prevent harm. You may stop using the service and request account closure. Export and deletion windows may depend on plan, security, backup, and legal obligations.</p>
       <h2>Ownership</h2>
       <p>Foremention and its licensors retain rights in the platform, software, product design, documentation, and aggregated or de-identified learnings. These terms do not transfer ownership of customer data or third-party materials.</p>
       <h2>Service changes and availability</h2>
