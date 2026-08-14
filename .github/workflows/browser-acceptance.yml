@@ -1,0 +1,144 @@
+name: Browser Acceptance
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-acceptance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  browser-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        if: github.event_name == 'pull_request'
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.25.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.13.0
+          cache: ${{ github.event_name == 'pull_request' && 'pnpm' || '' }}
+
+      - name: Install application dependencies
+        if: github.event_name == 'pull_request'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build pull request candidate
+        if: github.event_name == 'pull_request'
+        run: pnpm build
+
+      - name: Start pull request production server
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec vinext start --port 4173 --hostname 127.0.0.1 > .browser-server.log 2>&1 &
+          server_pid=$!
+          echo "$server_pid" > .browser-server.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error --max-time 2 http://127.0.0.1:4173/ >/dev/null; then
+              echo "FOREMENTION_BROWSER_BASE_URL=http://127.0.0.1:4173" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat .browser-server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          cat .browser-server.log
+          echo "Local production server did not become ready within 60 seconds." >&2
+          exit 1
+
+      - name: Verify exact production release before trusted live acceptance
+        if: github.event_name != 'pull_request'
+        env:
+          FOREMENTION_BASE_URL: https://foremention.com
+          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
+          FOREMENTION_RELEASE_WAIT_SECONDS: '300'
+        run: node scripts/production-auth-smoke.mjs
+
+      - name: Target exact production release
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          echo "FOREMENTION_BROWSER_BASE_URL=https://foremention.com" >> "$GITHUB_ENV"
+          echo "FOREMENTION_EXPECTED_BUILD_COMMIT=${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Install pinned browser quality tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-tools
+          cat > .ci-tools/package.json <<'JSON'
+          {
+            "private": true,
+            "dependencies": {
+              "playwright": "1.60.0",
+              "@axe-core/playwright": "4.12.1",
+              "@lhci/cli": "0.15.1"
+            }
+          }
+          JSON
+          npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
+          .ci-tools/node_modules/.bin/playwright install --with-deps chromium firefox
+
+      - name: Run public browser and accessibility acceptance
+        if: github.event_name == 'pull_request'
+        run: node scripts/browser-acceptance.mjs
+
+      - name: Run trusted production browser and accessibility acceptance
+        if: github.event_name != 'pull_request'
+        env:
+          FOREMENTION_ACCEPTANCE_EMAIL: ${{ secrets.FOREMENTION_ACCEPTANCE_EMAIL }}
+          FOREMENTION_ACCEPTANCE_PASSWORD: ${{ secrets.FOREMENTION_ACCEPTANCE_PASSWORD }}
+        run: node scripts/browser-acceptance.mjs
+
+      - name: Collect Lighthouse audit baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v google-chrome-stable || true)"
+          if [ -z "$chrome" ]; then
+            echo "Google Chrome is not available on this runner." >&2
+            exit 1
+          fi
+          export CHROME_PATH="$chrome"
+          rm -rf .lighthouseci
+          .ci-tools/node_modules/.bin/lhci collect --config=./lighthouserc.cjs
+          .ci-tools/node_modules/.bin/lhci assert --config=./lighthouserc.cjs
+
+      - name: Archive browser acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: foremention-browser-acceptance-${{ github.sha }}
+          path: |
+            browser-acceptance
+            .lighthouseci
+            .browser-server.log
+          if-no-files-found: warn
+          retention-days: 5
