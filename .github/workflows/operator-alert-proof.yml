@@ -1,0 +1,26 @@
+name: Production Operator Alert Proof
+
+on:
+  push:
+    branches:
+      - ops/operator-alert-proof-20260814
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger controlled production alert
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(curl -sS --fail-with-body -X POST --max-time 30 https://foremention.com/api/ops/operator-alert-probe)"
+          printf '%s\n' "$body"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.buildCommit!=="3940a7a8d6bd71697c356b0a1241b723141956ee"||x.status!=="sent"||!x.sentAt) process.exit(1)' "$body"
+
+      - name: Verify durable public status
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(curl -sS --fail-with-body --max-time 30 https://foremention.com/api/ops/operator-alert-probe)"
+          printf '%s\n' "$body"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.buildCommit!=="3940a7a8d6bd71697c356b0a1241b723141956ee"||x.status!=="sent"||!x.sentAt) process.exit(1)' "$body"
