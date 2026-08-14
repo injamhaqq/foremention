@@ -191,7 +191,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
         const run = result.data?.find((item) => item.id === firstRunId);
         if (!cancelled && run && ["review", "complete", "partial"].includes(run.status)) {
           setAuditStage(5);
-          window.setTimeout(() => window.location.assign("/app"), 900);
+          window.setTimeout(() => window.location.assign(`/app/runs/${firstRunId}?first_evidence=1`), 600);
           return;
         }
         if (!cancelled && run && ["failed", "cancelled"].includes(run.status)) {
@@ -208,15 +208,15 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
   }, [firstRunId, status]);
 
   async function startFirstAudit() {
-    if (!firstAuditProvider) throw new Error("Connect one AI provider in Settings before starting the first audit.");
+    if (!firstAuditProvider) throw new Error("Connect one AI provider in Settings before starting the first evidence check.");
     const promptResponse = await fetch("/api/prompts", { cache: "no-store" });
     const promptText = await promptResponse.text();
     let promptResult: { data?: Array<{ id: string; approved: boolean }>; error?: string } = {};
     try { promptResult = promptText ? JSON.parse(promptText) as typeof promptResult : {}; }
     catch { throw new Error(`Your buyer questions could not be loaded (status ${promptResponse.status}).`); }
     if (!promptResponse.ok) throw new Error(promptResult.error || "Your buyer questions could not be loaded.");
-    const promptIds = (promptResult.data || []).filter((prompt) => prompt.approved).slice(0, 5).map((prompt) => prompt.id);
-    if (promptIds.length !== 5) throw new Error("Your five-question baseline is still being prepared.");
+    const promptIds = (promptResult.data || []).filter((prompt) => prompt.approved).slice(0, 1).map((prompt) => prompt.id);
+    if (promptIds.length !== 1) throw new Error("Your first approved buyer question is still being prepared.");
     const runResponse = await fetch("/api/runs", {
       method: "POST",
       headers: { "content-type": "application/json", "idempotency-key": `onboarding:${crypto.randomUUID()}` },
@@ -225,9 +225,9 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
     const runText = await runResponse.text();
     let runResult: { id?: string; error?: string } = {};
     try { runResult = runText ? JSON.parse(runText) as typeof runResult : {}; }
-    catch { throw new Error(`Your first audit could not be queued (status ${runResponse.status}).`); }
-    if (!runResponse.ok || !runResult.id) throw new Error(runResult.error || "Your first audit could not be queued.");
-    captureProductEvent("collection_started", { question_count: 5, provider_count: 1, provider: firstAuditProvider.id, source: "onboarding" });
+    catch { throw new Error(`Your first evidence check could not be queued (status ${runResponse.status}).`); }
+    if (!runResponse.ok || !runResult.id) throw new Error(runResult.error || "Your first evidence check could not be queued.");
+    captureProductEvent("collection_started", { question_count: 1, provider_count: 1, provider: firstAuditProvider.id, source: "onboarding" });
     return runResult.id;
   }
 
@@ -260,7 +260,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
           setFirstRunId(runId);
           setAuditStage(3);
         } catch (error) {
-          setMessage(error instanceof Error ? error.message : "The audit could not be queued yet.");
+          setMessage(error instanceof Error ? error.message : "The first evidence check could not be queued yet.");
           setStatus("delayed");
         }
       }
@@ -273,26 +273,26 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
   }
 
   if (status === "auditing") return <div className="onboarding-complete onboarding-audit" role="status" aria-live="polite">
-    <span className="eyebrow">First audit in progress</span>
+    <span className="eyebrow">First evidence check in progress</span>
     <div className="audit-loader" aria-hidden="true"><i /><i /><i /></div>
-    <h2>We&apos;re running your first AI visibility audit — this takes about 2 minutes.</h2>
-    <p>Foremention is collecting five real answers with {firstAuditProvider?.label || "your configured provider"}, preserving any returned citations, and building your first evidence baseline. You can leave this page; the background run will continue safely.</p>
-    <ol className="audit-progress-steps" aria-label="First audit progress">
-      {["Scraping your website", "Generating questions", "Running AI audit", "Building your Source Map"].map((label, index) => {
+    <h2>Foremention is checking your first buyer question now.</h2>
+    <p>One real answer is being collected with {firstAuditProvider?.label || "your configured provider"}. Any provider-returned citations stay attached to that exact answer, and your other approved buyer questions remain saved for later baseline collections. You can leave this page; the background run will continue safely.</p>
+    <ol className="audit-progress-steps" aria-label="First evidence progress">
+      {["Workspace saved", "Buyer question frozen", "Running AI observation", "Mapping returned evidence"].map((label, index) => {
         const stage = index + 1;
         const complete = auditStage > stage;
         const active = auditStage === stage;
         return <li className={complete ? "is-complete" : active ? "is-active" : ""} key={label}><span aria-hidden="true">{complete ? "✓" : String(stage).padStart(2, "0")}</span><strong>Step {stage}</strong><small>{label}</small></li>;
       })}
     </ol>
-    {firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}`}>View live run status &rarr;</a>}
+    {firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}?first_evidence=1`}>View live evidence status &rarr;</a>}
   </div>;
 
   if (status === "delayed") return <div className="onboarding-complete onboarding-audit" role="alert">
     <span className="eyebrow">Workspace created safely</span>
-    <h2>Your audit is taking longer than expected — we&apos;ll notify you when it&apos;s ready.</h2>
-    <p>No evidence was invented and your setup is saved. {message || "The provider or background queue needs more time."} You can enter the workspace now and retry from Answer Runs without repeating onboarding.</p>
-    <div className="settings-actions"><a className="button button--ink" href="/app">Open workspace &rarr;</a>{firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}`}>Inspect run</a>}</div>
+    <h2>Your first evidence check could not finish yet.</h2>
+    <p>No evidence was invented and your setup is saved. {message || "The provider or background queue needs more time."} {firstAuditProvider ? "You can enter the workspace now and retry without repeating onboarding." : "Connect one provider in Settings when you are ready; creating the workspace did not manufacture a result."}</p>
+    <div className="settings-actions"><a className="button button--ink" href={firstAuditProvider ? "/app" : "/app/settings#providers"}>{firstAuditProvider ? "Open workspace" : "Connect a provider"} &rarr;</a>{firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}?first_evidence=1`}>Inspect run</a>}</div>
   </div>;
 
   if (status === "complete") return <div className="onboarding-complete" role="status">
@@ -346,7 +346,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
       {step === 4 && <fieldset><legend>Review the questions buyers ask</legend><label>Buyer questions<textarea value={values.prompts} onChange={(event) => setValues({ ...values, prompts: event.target.value })} placeholder={"Questions are generated automatically from your category and market."} rows={8} /></label><p className="field-hint">Foremention creates five questions automatically. Editing is optional; the saved five become the stable baseline for comparable runs. {prompts.length}/5 questions prepared.</p></fieldset>}
       {step === 5 && <fieldset>
         <legend>Review your evidence boundary</legend>
-        <p className="field-hint">Review the draft before saving. Collection starts only when you later choose to run it.</p>
+        <p className="field-hint">Review the draft before saving. {firstAuditProvider ? "After the workspace is created, Foremention checks one approved buyer question first so you can reach real evidence quickly; the full five-question baseline remains saved for later collections." : "The five approved buyer questions are saved as your baseline. Connect one provider after setup when you are ready to run the first real evidence check."}</p>
         <div className="onboarding-review">
           <div><span>Organization</span><strong>{values.companyName}</strong><small>{values.domain} · {values.market}</small><button type="button" onClick={() => setStep(0)}>Edit</button></div>
           <div><span>Category</span><strong>{values.category}</strong><small>{values.categoryDescription}</small><button type="button" onClick={() => setStep(1)}>Edit</button></div>
@@ -356,7 +356,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
         <p className="onboarding-security-note"><strong>Your workspace is private.</strong> Only you and teammates you invite can see it. You can edit this setup before any collection begins.</p>
       </fieldset>}
       {message && <p className="auth-message" role="alert">{message}</p>}
-      <div className="wizard-actions">{step > 0 && <button type="button" className="button button--outline" onClick={() => setStep(step - 1)} disabled={status === "saving"}>&larr; Back</button>}<button className="button button--ink" type="submit" disabled={status === "saving" || (step >= 4 && prompts.length > 5)}>{status === "saving" ? "Creating secure workspace..." : step === steps.length - 1 ? "Create my workspace" : "Continue"} &rarr;</button></div>
+      <div className="wizard-actions">{step > 0 && <button type="button" className="button button--outline" onClick={() => setStep(step - 1)} disabled={status === "saving"}>&larr; Back</button>}<button className="button button--ink" type="submit" disabled={status === "saving" || (step >= 4 && prompts.length > 5)}>{status === "saving" ? "Creating secure workspace..." : step === steps.length - 1 ? firstAuditProvider ? "Create workspace & check first question" : "Create my workspace" : "Continue"} &rarr;</button></div>
     </form>
   </div>;
 }
