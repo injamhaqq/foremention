@@ -57,7 +57,10 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
       }
       if (!demo) {
         captureProductEvent("evidence_reviewed", { review_type: "source", brand_present: clientPresent, crawler_access: crawlerAccess, entry_route: route });
-        if (result.opportunity?.action === "created") captureProductEvent("reviewed_opportunity_created");
+        if (result.opportunity?.action === "created") {
+          captureProductEvent("reviewed_opportunity_created");
+          captureProductEvent("activation_completed");
+        }
       }
       router.refresh();
     } catch (error) {
