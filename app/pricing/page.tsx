@@ -94,7 +94,7 @@ export default function PricingPage() {
       <div className="shell narrow-heading">
         <span className="eyebrow">Private beta + planned pricing</span>
         <h1>Private beta now. Paid plans only after explicit activation.</h1>
-        <p>Self-serve signup currently creates a controlled free-beta workspace. The commercial packages below show the intended paid structure, but they do not represent a working checkout or an entitlement granted by signup.</p>
+        <p>Self-serve signup currently creates a controlled free-beta workspace. Foremention remains a repeatable intelligence system for evidence-backed AI visibility work. The commercial packages below show the intended paid structure, but they do not represent a working checkout or an entitlement granted by signup.</p>
       </div>
     </section>
     <section className="section section--paper">
@@ -112,7 +112,7 @@ export default function PricingPage() {
       </div>
       <div className="shell pricing-activation">
         <strong>Private beta is the live entitlement.</strong>
-        <p>Creating a workspace does not charge a card or activate Core, Signal, or Intelligence. Paid capacity, billing, tax/entity details, cancellation terms, and payment-state handling must be verified before a commercial plan is activated.</p>
+        <p>Creating a workspace does not charge a card or activate Core, Signal, or Intelligence. The planned pricing is not a working checkout until its payment integration is verified. Paid capacity, billing, tax/entity details, cancellation terms, and payment-state handling must be verified before a commercial plan is activated.</p>
       </div>
     </section>
     <section className="section section--paper pricing-market-section">
