@@ -18,10 +18,10 @@
 .pricing-card--lead .pricing-label,
 .pricing-card--lead .pricing-includes { color: #a6ffe2; }
 
-/* The market-table header sits on the dark ink surface. Set the actual
-   column-header elements rather than relying on inherited row color so
-   later generic span styles cannot regress WCAG contrast. */
-.pricing-market-row--head > span { color: var(--line); }
+/* The final pricing header cell is otherwise caught by the more-specific
+   data-row `span:last-child` rule in globals.css. Keep header text readable
+   on the ink background without muting normal comparison-row descriptions. */
+.pricing-market-row.pricing-market-row--head > span:last-child { color: var(--paper); }
 
 @media (max-width: 760px) {
   .analytics-consent {
