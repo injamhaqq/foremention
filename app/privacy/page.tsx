@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 
@@ -20,7 +21,7 @@ export default function PrivacyPage() {
       <h2>How information is used</h2>
       <p>Data is used to authenticate users, operate customer-requested collection, maintain evidence history, generate workspace recommendations, secure and troubleshoot the service, provide support, enforce plan capacity, and improve product reliability.</p>
       <h2>Service providers and integrations</h2>
-      <p>Foremention may rely on infrastructure, database, email, analytics, error-monitoring, payment, and AI providers. A feature that requires a provider or customer integration remains labelled until that connection is active. Providers process data under their own terms as applicable.</p>
+      <p>Foremention may rely on infrastructure, database, email, analytics, error-monitoring, payment, and AI providers. A feature that requires a provider or customer integration remains labelled until that connection is active. Providers process data under their own terms as applicable. The current operational list and activation boundaries are published on the <Link href="/subprocessors">Service providers &amp; subprocessors</Link> page.</p>
       <h2>Website measurement</h2>
       <p>Foremention may use PostHog EU for limited product and web analytics. The integration is configured without session replay, automatic click or form capture, form values, AI-provider answers, citations, or customer evidence. It records page routes and selected product milestones so Foremention can find broken journeys and improve the product. Identified product events use internal account and organization IDs rather than names or email addresses. Google Analytics and Google Tag Manager are not loaded.</p>
       <p>Foremention may also use Microsoft Clarity and Contentsquare for optional experience analytics, only after a visitor explicitly accepts it in the browser. This helps identify usability issues; it is not used to analyze AI-provider answers, customer evidence, passwords, or form content. A visitor can decline this optional collection without losing access to the website.</p>
@@ -29,7 +30,7 @@ export default function PrivacyPage() {
       <h2>Security and access</h2>
       <p>Foremention is designed around role-based workspace access, encrypted transport, server-side secret handling, and row-level data controls. No service can guarantee absolute security; account owners should use strong credentials and grant integrations only the minimum required access.</p>
       <h2>Retention and deletion</h2>
-      <p>Data is kept while an account is active and as needed for security, legal, billing, backup, and operational obligations. Retention may vary by plan and data type. Account owners may request export or deletion, subject to applicable obligations and documented backup cycles.</p>
+      <p>Data is kept while an account is active and as needed for security, legal, billing, backup, and operational obligations. Retention may vary by plan and data type. A product history window describes the amount of history made available by a plan; it should not be read as a promise that every underlying record or backup copy is automatically destroyed on that exact day. Account owners may request export or deletion, subject to applicable obligations and documented backup cycles.</p>
       <h2>Your choices</h2>
       <p>Subject to applicable law and contractual requirements, account owners may request access, correction, export, restriction, or deletion. They may also disconnect integrations and opt out of non-essential communications.</p>
       <h2>Contact</h2>
