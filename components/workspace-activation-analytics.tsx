@@ -34,16 +34,19 @@ export function WorkspaceActivationAnalytics({ demo }: { demo: boolean }) {
 
     const runDetail = /^\/app\/runs\/(?!compare(?:\/|$))[^/]+$/.test(pathname);
     if (runDetail) {
-      const frame = window.requestAnimationFrame(() => {
-        const secondFrame = window.requestAnimationFrame(() => {
+      let secondFrame = 0;
+      const firstFrame = window.requestAnimationFrame(() => {
+        secondFrame = window.requestAnimationFrame(() => {
           const hasAnswer = Boolean(document.querySelector(".answer-stack > article.panel"));
           const hasCitation = Boolean(document.querySelector(".answer-citations a"));
           if (hasAnswer) captureOncePerSession(`ai-result:${pathname}`, "ai_result_viewed");
           if (hasCitation) captureOncePerSession(`citation-result:${pathname}`, "citation_result_viewed");
         });
-        return () => window.cancelAnimationFrame(secondFrame);
       });
-      return () => window.cancelAnimationFrame(frame);
+      return () => {
+        window.cancelAnimationFrame(firstFrame);
+        if (secondFrame) window.cancelAnimationFrame(secondFrame);
+      };
     }
 
     if (/^\/app\/sources\/[^/]+$/.test(pathname)) {
