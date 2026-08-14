@@ -124,7 +124,7 @@ export default function PricingPage() {
         </div>
         <p className="pricing-market-disclaimer"><strong>Comparison boundary:</strong> use this table only to compare public category pricing and capacity. Signup currently starts Foremention&apos;s private beta rather than a paid plan.</p>
         <div className="pricing-market-table" role="table" aria-label="AI visibility platform public pricing comparison">
-          <div className="pricing-market-row pricing-market-row--head" role="row">
+          <div className="pricing-market-row pricing-market-row--head" role="row" style={{ color: "var(--line)" }}>
             <span role="columnheader">Platform</span><span role="columnheader">Compared plan</span><span role="columnheader">Public price</span><span role="columnheader">What that price describes</span>
           </div>
           {pricingComparison.map((item) => <div className={`pricing-market-row${item.product === "Foremention Core" ? " pricing-market-row--foremention" : ""}`} role="row" key={item.product}>
