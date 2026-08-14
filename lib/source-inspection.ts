@@ -220,6 +220,11 @@ function extractVisibleText(body: string, limit: number) {
     .slice(0, limit);
 }
 
+function extractUsefulPageText(body: string, limit: number) {
+  const withoutBoilerplate = body.replace(/<(nav|aside|footer)\b[\s\S]*?<\/\1>/gi, " ");
+  return extractVisibleText(withoutBoilerplate, limit);
+}
+
 function fnv1a32(value: string) {
   let hash = 0x811c9dc5;
   for (const byte of new TextEncoder().encode(value)) {
@@ -367,8 +372,11 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
       try {
         const { text: body, truncated } = await readLimitedText(response, maxBytes, options.allowTruncatedBody);
         const visibleText = extractVisibleText(body, 80_000);
+        const normalizedPageText = contentType === "text/plain"
+          ? visibleText
+          : extractUsefulPageText(body, 80_000);
         const pageText = options.includePageText
-          ? visibleText.slice(0, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
+          ? normalizedPageText.slice(0, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
           : undefined;
         return result({
           access: response.status === 206 || truncated ? "partial" : "open",
