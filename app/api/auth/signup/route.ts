@@ -61,15 +61,22 @@ export async function POST(request: Request) {
     const normalizedEmail = email;
     const emailRedirect = new URL("/auth/callback", origin);
     emailRedirect.searchParams.set("next", next);
-    const data = await supabaseAuth("signup", {
+    const signupPayload = {
       email: normalizedEmail,
       password,
       data: {
         full_name: fullName,
         signup_security_attestation: signupSecurityAttestation,
       },
-      email_redirect_to: emailRedirect.toString(),
-    });
+      // Keep the historical callback URL unchanged for ordinary signup. A
+      // validated continuation is attached only when the caller needs to
+      // preserve a specific in-product destination.
+      email_redirect_to: `${origin}/auth/callback`,
+    };
+    if (next !== "/app") {
+      Object.assign(signupPayload, { email_redirect_to: emailRedirect.toString() });
+    }
+    const data = await supabaseAuth("signup", signupPayload);
     const user = data.user && typeof data.user === "object"
       ? data.user as { identities?: unknown[] }
       : null;
