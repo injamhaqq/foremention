@@ -55,7 +55,10 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
       } else {
         setMessage("Review saved with a dated audit record. Complete both influence and feasibility review before this gap becomes a Resolution Center opportunity.");
       }
-      if (!demo) captureProductEvent("evidence_reviewed", { review_type: "source", brand_present: clientPresent, crawler_access: crawlerAccess, entry_route: route });
+      if (!demo) {
+        captureProductEvent("evidence_reviewed", { review_type: "source", brand_present: clientPresent, crawler_access: crawlerAccess, entry_route: route });
+        if (result.opportunity?.action === "created") captureProductEvent("reviewed_opportunity_created");
+      }
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save the source review.");
