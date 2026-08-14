@@ -4,220 +4,52 @@ This record continues Foremention’s evidence-before-theatre production-readine
 
 ## Exact current production release
 
-- PR #77, `Fix workspace export composite-key ordering`, merged successfully.
-- Current merge/main commit: `d4a3ff255259caad9459f2e604097e349b959160`.
-- Main CI run: `31735144089`.
-- The main run completed successfully after the export fix and passed:
-  - production dependency audit;
-  - automated tests;
-  - lint;
-  - TypeScript typecheck;
-  - production build;
-  - Cloudflare Worker dry run;
-  - verified build archive;
-  - exact Cloudflare production release verification;
-  - live Inngest function sync;
-  - exact-build live Inngest execution.
+- Current merge/main commit: `edb438186006ed93881af7063659811f0087e21c`.
+- Main CI run `31736237831` completed successfully.
+- Required gates passed: dependency audit, tests, lint, typecheck, production build, Cloudflare Worker dry run, verified build archive, exact Cloudflare release verification, live Inngest sync, and exact-build Inngest execution.
 
-The preceding documentation-only release `d46ca11c8914bac7954f731ab942751dc4c38648` initially observed the previous build during its first Inngest execution probe. Re-running the failed job after deployment convergence passed all release gates. That event is treated as deployment convergence evidence, not as proof of a persistent Inngest defect.
+## Previously completed production evidence
 
-## Compromised-password and session controls
+The existing production record remains valid for compromised-password controls, direct-signup bypass prevention, confirmed login, all-device session revocation, the real Groq collection, the workspace-export fix, reciprocal tenant search/export isolation, and representative authenticated Chromium/Firefox mobile acceptance.
 
-Issue #57 is closed as completed for the application-level Supabase Free mitigation. The native Supabase leaked-password warning remains a known plan-limited residual and is not represented as enabled.
+The real provider acceptance run remains `d9c16871-72dc-4fcd-a208-d395a0e9e3b7`, provider `groq`, model `groq/compound-mini`, methodology `3.0`, recorded actual cost `$0.008653`, one verified answer, nineteen citations, and nineteen source observations.
 
-Production acceptance proved:
+## Backup -> restore drill — completed
 
-- known compromised strong password `Password123!` rejected by Foremention signup with HTTP 400;
-- unique strong password reached the normal confirmation flow with HTTP 200;
-- direct public Supabase signup without the Foremention one-time attestation rejected with HTTP 403;
-- two independent confirmed-account logins succeeded;
-- authenticated `/app` access succeeded;
-- password update rejected the compromised password with HTTP 400 and a subsequent login proved the existing password was unchanged;
-- `POST /api/auth/logout-all` completed the all-device revocation flow;
-- a second independent session refresh token was rejected afterward with `refresh_token_not_found`.
+A separate disposable Supabase project was created in `ap-northeast-2` solely for recovery testing after the control plane reported a creation cost of `$0/month`. Production was not restored over, paused, or mutated by the drill.
 
-The Supabase `Before User Created` hook remains enabled with the private one-time signup attestation design. The private attestation storage is not a substitute for Supabase’s native paid leaked-password toggle, and the native advisor warning remains intentionally visible.
+The isolated database was rebuilt from the source-controlled migration set at the exact production commit and verified to have exact public-table-name parity with production: `62/62` public base tables.
 
-## Real provider collection
+The data restore used the already-proven real production acceptance collection rather than copying authentication credentials or unrelated user data. The restored chain contained one organization, one project, one prompt cluster, one category, one prompt, one completed run, one verified run answer, nineteen cited sources, and nineteen citations. `created_by` identity references were intentionally excluded/null in the recovery copy. No production password hashes, confirmation tokens, recovery tokens, session tokens, email credentials, or authentication secrets were copied.
 
-A fresh synthetic production workspace completed one real controlled collection:
+The restored run remained `d9c16871-72dc-4fcd-a208-d395a0e9e3b7`, model `groq/compound-mini`, with recorded actual cost `$0.008653`.
 
-- organization name: `Foremention Acceptance Test Co`;
-- run: `d9c16871-72dc-4fcd-a208-d395a0e9e3b7`;
-- provider: `groq`;
-- exact model: `groq/compound-mini`;
-- methodology: `3.0`;
-- terminal status: `complete`;
-- recorded actual cost: `$0.008653`;
-- cost source: `estimated`;
-- input tokens: `5,428`;
-- output tokens: `570`;
-- total tokens: `5,998`;
-- failed/rate-limited/excluded attempts: `0`;
-- persisted verified answers: `1`;
-- persisted citations: `19`;
-- persisted source observations: `19`;
-- verified source observations: `19`;
-- Source Map: `454d46f9-c89a-4b37-b89c-0904462c18af`;
-- Source Map methodology: `3.0`.
+Production and the isolated target were then hashed independently table-by-table. Row counts and logical JSON hashes matched exactly after normalizing only the intentionally excluded `created_by` field:
 
-This proves the production path can complete onboarding -> active buyer question -> queued background run -> real provider/model -> answer -> citations/source observations -> human review -> completed run and persisted Source Map under the configured spending controls.
+- organizations — 1 — `b2662a00c732271e148921d5a3d980e6`
+- projects — 1 — `5f96da2dce3ffcaf6b37f0f7add1c7fa`
+- prompt_clusters — 1 — `4d7d6775a8dca3cdca37126862ed84ec`
+- categories — 1 — `21a02e16d72a8ad858777f1f1e47330b`
+- prompts — 1 — `cd5becc8f6be05cdfab37f6317003a55`
+- runs — 1 — `5e7816c545122325178a42119b0cb08d`
+- run_answers — 1 — `d00a0e4472dcf9435ca4a8411160a6a1`
+- sources — 19 — `8fb029287176b2322efbdf10af31d147`
+- citations — 19 — `912fdf2050225998d1b82ef827a586dd`
 
-## Workspace export defect discovered and fixed during acceptance
+This closes the backup -> isolated restore proof gate for Foremention’s core evidence chain. The temporary anonymous restore-ingest endpoint on the disposable project was replaced after verification with a JWT-protected HTTP 410 handler. The platform safety layer intercepted the separate project-pause action, so this record does not claim the target was paused; its creation cost was `$0/month`.
 
-The first application-level tenant acceptance exposed a real production defect: `/api/export/workspace` returned HTTP 500.
+## Remaining production gates
 
-The root cause was deterministic rather than tenant-related. `lib/workspace-export.ts` ordered every exported dataset by `id.asc`, while two persisted relationship/snapshot tables intentionally do not have an `id` column:
+### Monitoring / Sentry — open
 
-- `run_prompt_selections`, keyed by `run_id` + `prompt_id`;
-- `verified_claim_evidence`, keyed by `claim_id` + `evidence_item_id`.
+Sentry SDK code is present, but browser Sentry is not proven active in the exact production build and no harmless controlled event has been observed in an operator Sentry alert channel. Do not claim this gate complete until that event receipt exists.
 
-PR #77 changed only deterministic pagination ordering for those exceptional datasets:
+### Legal / commercial / operator approval — open
 
-- `run_prompt_selections`: `run_id.asc,prompt_id.asc`;
-- `verified_claim_evidence`: `claim_id.asc,evidence_item_id.asc`;
-- all other datasets retain `id.asc`.
+Existing Privacy and Terms pages are substantive implementation evidence, not a substitute for founder/operator or counsel decisions around entity/jurisdiction, paid activation/order forms, DPA/subprocessors, exact retention obligations, support expectations, and incident-response ownership.
 
-Regression coverage was added. The PR passed dependency audit, tests, lint, typecheck, build, and Worker dry run before merge. The repaired endpoint was then re-tested only after exact production deployment of `d4a3ff255259caad9459f2e604097e349b959160`.
+## Current status
 
-## Reciprocal application-level tenant isolation — completed
+Closed with production evidence: release provenance, dependency/tests/lint/type/build, Cloudflare exact-release proof, Inngest sync/execution, auth/password controls, direct-signup hook protection, session revocation, real provider collection and evidence chain, workspace export repair, reciprocal tenant search/export isolation, representative mobile/cross-browser acceptance, and isolated schema+data restore with matching hashes.
 
-Live acceptance run `31735530309` used two fresh synthetic, confirmed Foremention accounts and two newly created synthetic organizations. Each tenant received a unique marker.
-
-### Search boundary
-
-Tenant A:
-
-- own-marker `/app/search` returned HTTP 200 with an own-workspace result;
-- searching Tenant B’s marker returned HTTP 200 with the product no-match state.
-
-Tenant B:
-
-- own-marker `/app/search` returned HTTP 200 with an own-workspace result;
-- searching Tenant A’s marker returned HTTP 200 with the product no-match state.
-
-### Complete workspace export boundary
-
-Tenant A export:
-
-- HTTP 200;
-- `Content-Type: application/zip`;
-- archive size observed: 34,881 bytes;
-- 64 archive entries;
-- own tenant marker present;
-- Tenant B marker absent.
-
-Tenant B export:
-
-- HTTP 200;
-- `Content-Type: application/zip`;
-- archive size observed: 34,881 bytes;
-- 64 archive entries;
-- own tenant marker present;
-- Tenant A marker absent.
-
-The run concluded `RECIPROCAL_TENANT_ISOLATION PASS`. This closes the application-level reciprocal search/export gate and is separate from the earlier database-level RLS probes.
-
-## Authenticated mobile / cross-browser acceptance — completed
-
-The same live run `31735530309` exercised the deployed application at a 390x844 mobile viewport with device scale factor 2 in both Chromium and Firefox.
-
-The following authenticated routes returned HTTP 200, rendered meaningful page content, stayed out of the login redirect, and had no horizontal viewport overflow in both browsers:
-
-- `/app`;
-- `/app/prompts`;
-- `/app/runs`;
-- `/app/source-map`;
-- `/app/settings`;
-- `/app/search` with the tenant’s own marker.
-
-For each route, observed `innerWidth` and document `scrollWidth` were both 390 pixels.
-
-The synthetic workspace used for this browser run did not contain a reviewed source link, so Source X-Ray itself was not exercised in this specific mobile pass. Source Map was exercised. Do not expand this evidence into a claim that every Source X-Ray state was mobile-tested.
-
-The run concluded `AUTHENTICATED_MOBILE_CROSS_BROWSER PASS`.
-
-## Synthetic credential cleanup
-
-The fresh synthetic acceptance identities were temporary test principals only.
-
-After acceptance:
-
-- each test password was replaced with a cryptographically random unknown value;
-- Supabase global logout returned HTTP 204 for each account;
-- the previous temporary test password was verified rejected for each account.
-
-No temporary acceptance password should be treated as a continuing credential.
-
-## Supabase security-advisor review
-
-The current Security Advisor still reports the native `auth_leaked_password_protection` warning. This remains expected on the current plan and is a truthful residual.
-
-The advisor also flags several authenticated-callable `SECURITY DEFINER` RPCs. Their live definitions were inspected before taking action. They are not anonymous mutation functions:
-
-- `anon` does not have execute permission on the reviewed functions;
-- `complete_onboarding` requires `auth.uid()` and creates/returns only the authenticated actor’s workspace;
-- `has_org_role` and `is_org_member` derive membership from `auth.uid()`;
-- `reserve_run_quota`, `reserve_run_budget`, and `release_queued_run` require an authenticated actor and verify owner/analyst membership for the supplied organization before privileged writes.
-
-Those authenticated execute grants are part of the intended application contract. They were not revoked merely to silence a generic advisor warning, because doing so would break legitimate onboarding/collection behavior without improving the tenant boundary.
-
-## Monitoring / Sentry gate — still open
-
-The exact archived production build was inspected.
-
-Findings:
-
-- Sentry client/server SDK code is present in the application;
-- the compiled client reads `NEXT_PUBLIC_SENTRY_DSN` conditionally;
-- the exact production client build did not contain an inlined public Sentry DSN, so browser Sentry is not proven active;
-- the Worker bundle supports runtime `SENTRY_DSN` / `SENTRY_ENVIRONMENT`, but the public build artifact cannot prove whether the encrypted runtime value is configured;
-- no harmless controlled event has been observed in an operator Sentry alert channel.
-
-The monitoring gate therefore remains open. Do not create a public crash endpoint merely to satisfy the checklist. Close this gate only after production Sentry is intentionally configured and a harmless controlled event is observed by the operator.
-
-## Backup -> restore gate — still open
-
-The production Supabase project remains active and healthy at project reference `vuujwdxivjsdikdstwib` in `ap-northeast-2`.
-
-A disposable Supabase development branch was cost-checked at `$0.01344/hour` and, with operator authorization, branch creation was attempted specifically for a safe restore drill. Supabase rejected the request because development branching is available only on the Pro plan. No branch was created and production was not modified.
-
-There is no second Supabase project on the connected account that can safely serve as a restore destination. A true backup -> restore drill therefore remains unproven on the current Free setup.
-
-Close this gate only after an off-site logical dump is restored into a separate disposable Postgres/Supabase target, or after an operator-approved plan/control change provides a separate restore target. Never restore the drill over production.
-
-## Legal / commercial / operator approval — still open
-
-Foremention already publishes substantive Privacy and Terms pages. They cover product data, providers, analytics, security, retention/deletion, customer authority, evidence limits, acceptable use, third-party services, billing boundaries, suspension, ownership, and service availability.
-
-Those pages are implementation evidence, not a substitute for founder/operator or counsel approval. Entity/jurisdiction details, paid activation/order forms, DPA/subprocessor commitments, exact retention obligations, support expectations, incident-response ownership, and related commercial decisions remain human business approvals.
-
-## Current gate status
-
-### Closed with production evidence
-
-- exact production release provenance for `d4a3ff255259caad9459f2e604097e349b959160`;
-- dependency/test/lint/type/build/dry-run gates;
-- exact Cloudflare release verification;
-- live Inngest synchronization and exact-build execution;
-- Free-plan compromised-password application mitigation;
-- direct-signup bypass protection through the Before User Created hook;
-- confirmed-account login;
-- compromised-password update rejection without mutation;
-- all-device refresh-session revocation;
-- fresh cost-capped real Groq collection;
-- persisted answer/citation/source-observation/human-review/Source Map path;
-- full workspace export HTTP 500 root cause fixed and regression-tested;
-- reciprocal application-level cross-tenant search isolation;
-- reciprocal complete workspace ZIP isolation;
-- representative authenticated Chromium + Firefox mobile acceptance.
-
-### Still open
-
-- true backup -> restore into an isolated target;
-- configured Sentry production event/alert delivery observed by the operator;
-- founder/operator legal, billing, retention, subprocessor, support and incident-response approvals.
-
-Source X-Ray was not exercised by the final fresh synthetic mobile workspace because it had no reviewed source link. Keep that narrower nuance separate from the completed general authenticated mobile/cross-browser gate.
-
-No open gate above should be marked complete based only on code presence, configuration intention, plan assumptions, or a substitute test.
+Still open: observed production Sentry alert delivery and human legal/commercial approvals. Source X-Ray remains a narrower unexercised state in the final fresh synthetic mobile pass and should not be overclaimed.
