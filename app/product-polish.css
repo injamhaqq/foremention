@@ -1,15 +1,21 @@
-.analytics-consent {
-  right: 12px;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  width: min(430px, calc(100vw - 24px));
-  gap: 12px;
-  padding: 10px 11px;
-  box-shadow: 3px 3px 0 var(--ink);
+.footer-analytics-preferences { margin-top: 2px; }
+.footer-analytics-preferences > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  color: inherit;
 }
-.analytics-consent p { min-width: 0; font-size: 10px; line-height: 1.35; }
-.analytics-consent strong { margin-bottom: 2px; }
-.analytics-consent > div { gap: 6px; }
-.analytics-consent .button { min-height: 34px; padding: 8px 10px; font-size: 10px; white-space: nowrap; }
+.footer-analytics-preferences > summary::-webkit-details-marker { display: none; }
+.footer-analytics-preferences > summary::after { content: "+"; font-size: 12px; line-height: 1; }
+.footer-analytics-preferences[open] > summary::after { content: "−"; }
+.footer-analytics-preferences > summary small { font-size: 8px; opacity: .65; text-transform: uppercase; letter-spacing: .06em; }
+.footer-analytics-preferences__panel { display: grid; gap: 8px; max-width: 260px; padding: 8px 0 4px; }
+.footer-analytics-preferences__panel p { margin: 0; font-size: 10px; line-height: 1.5; color: #aaa49b; }
+.footer-analytics-preferences__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.footer-analytics-preferences__actions .button { min-height: 32px; padding: 7px 9px; font-size: 9px; }
 
 .app-sidebar { overflow: hidden; }
 .app-sidebar__navigation {
@@ -65,14 +71,6 @@
 .competitor-grid .panel > button { min-height: 42px; margin-top: 16px; }
 
 @media (max-width: 780px) {
-  .analytics-consent {
-    right: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom));
-    width: calc(100vw - 24px);
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .analytics-consent > div { align-self: end; }
   .app-mobile-nav .sidebar-advanced > summary {
     display: flex;
     align-items: center;
@@ -89,19 +87,10 @@
 }
 
 @media (max-width: 520px) {
-  .analytics-consent {
-    grid-template-columns: 1fr;
-    padding: 10px 11px;
-  }
-  .analytics-consent p span { font-size: 10px; }
-  .analytics-consent > div { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
-  .analytics-consent .button { width: 100%; }
+  .footer-analytics-preferences__actions { display: grid; grid-template-columns: 1fr; }
+  .footer-analytics-preferences__actions .button { width: 100%; }
   .workspace-search-page .settings-actions { grid-template-columns: 1fr; }
   .workspace-search-page .button { width: 100%; }
   .competitor-grid .panel { min-height: 0; }
   .competitor-grid .panel dl { grid-template-columns: 1fr 1fr; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .analytics-consent .button { transition: none; }
 }
