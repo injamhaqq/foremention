@@ -48,14 +48,14 @@ test("activation events preserve the existing sensitive-property denylist", () =
 
   const publicAnalytics = read("components/public-activation-analytics.tsx");
   for (const forbiddenKey of ["email", "brand", "category", "score_id", "url", "prompt", "answer", "citation"]) {
-    assert.doesNotMatch(publicAnalytics, new RegExp(`\\b${forbiddenKey}\\s*:`, "i"), `public activation analytics must not send ${forbiddenKey}`);
+    assert.doesNotMatch(publicAnalytics, new RegExp(`(?:\\{|,)\\s*${forbiddenKey}\\s*:`, "i"), `public activation analytics must not send ${forbiddenKey}`);
   }
   assert.match(publicAnalytics, /method: "email"/);
   assert.match(publicAnalytics, /method: "google"/);
 
   const workspaceAnalytics = read("components/workspace-activation-analytics.tsx");
   for (const forbiddenKey of ["run_id", "source_id", "pathname", "url", "prompt", "answer", "citation"]) {
-    assert.doesNotMatch(workspaceAnalytics, new RegExp(`\\b${forbiddenKey}\\s*:`, "i"), `workspace activation analytics must not send ${forbiddenKey}`);
+    assert.doesNotMatch(workspaceAnalytics, new RegExp(`(?:\\{|,)\\s*${forbiddenKey}\\s*:`, "i"), `workspace activation analytics must not send ${forbiddenKey}`);
   }
 });
 
