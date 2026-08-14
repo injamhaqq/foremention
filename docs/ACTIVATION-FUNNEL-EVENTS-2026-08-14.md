@@ -12,14 +12,15 @@ Foremention uses the existing privacy-minimized PostHog integration to measure t
 6. `signup_completed` — the existing email auth flow accepted account creation; `confirmation_required` distinguishes email-confirmation flow from immediate session creation.
 7. `auth_session_established` — a non-demo authenticated session reached the protected workspace. Property: bounded `entry_surface` only. This provides an auth-method-independent downstream success milestone, including OAuth.
 8. `onboarding_started` — the authenticated onboarding route was reached.
-9. `onboarding_completed` — workspace setup was saved.
-10. `collection_started` — a real collection was queued under existing provider, quota, cost, and idempotency controls.
+9. `onboarding_completed` — workspace setup was saved. The five approved buyer questions remain the stable baseline.
+10. `collection_started` — a real collection was queued under existing provider, quota, cost, and idempotency controls. The onboarding fast path intentionally queues only one approved buyer question with one provider; later baseline collections can use the saved question set.
 11. `collection_completed` — a collection reached `review`, `complete`, or `partial`; status is preserved as a bounded property.
 12. `ai_result_viewed` — a real run detail containing at least one persisted answer was viewed.
 13. `citation_result_viewed` — that run detail contained at least one provider-returned citation link.
 14. `source_xray_viewed` — an authenticated non-demo source detail was viewed.
 15. `evidence_reviewed` — existing run/source human-review milestone.
 16. `reviewed_opportunity_created` — the source-review API created a new opportunity; refreshes do not count as first opportunity creation.
+17. `activation_completed` — emitted at the same evidence-backed boundary when a human-reviewed source creates a new opportunity. For funnel reporting, the first occurrence is the canonical activation-completion milestone; it is not a claim that the opportunity caused a later business outcome.
 
 Repeat `collection_started` / `collection_completed` events for the same identified user or organization provide the basis for measuring return behavior without inventing a separate retention score.
 
