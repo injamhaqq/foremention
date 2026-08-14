@@ -1,0 +1,48 @@
+name: Build Final A11y Patch Artifact
+
+on:
+  push:
+    branches:
+      - ops/restore-drill-20260814
+
+permissions:
+  contents: read
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - name: Apply measured fixes in temporary checkout
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          function replaceExactly(path, from, to, expected=1){
+            let text=fs.readFileSync(path,'utf8');
+            const count=text.split(from).length-1;
+            if(count!==expected) throw new Error(`${path}: expected ${expected}, found ${count}`);
+            fs.writeFileSync(path,text.replace(from,to));
+          }
+          replaceExactly('worker/index.ts', `"script-src 'self' 'unsafe-inline' https://*.posthog.com https://*.contentsquare.net https://*.clarity.ms https://c.bing.com",`, `"script-src 'self' 'unsafe-inline' https://*.posthog.com https://*.contentsquare.net https://*.clarity.ms https://c.bing.com https://static.cloudflareinsights.com",`);
+          replaceExactly('worker/index.ts', `"connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.posthog.com https://*.contentsquare.net https://*.contentsquare.com https://*.clarity.ms https://c.bing.com",`, `"connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.posthog.com https://*.contentsquare.net https://*.contentsquare.com https://*.clarity.ms https://c.bing.com https://fonts.googleapis.com",`);
+          replaceExactly('components/homepage-readiness.module.css', '  opacity: 0.78;', '  opacity: 0.88;');
+          replaceExactly('app/globals.css', '.pricing-card--lead .pricing-label { color: var(--marker); }', '.pricing-card--lead .pricing-label { color: #c7ffec; }');
+          replaceExactly('app/globals.css', '.pricing-card--lead .pricing-includes { color: var(--marker); }', '.pricing-card--lead .pricing-includes { color: #c7ffec; }');
+          replaceExactly('app/globals.css', '.pricing-market-row--head > * { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }', '.pricing-market-row--head > * { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }\n.pricing-market-row--head > span:last-child { color: var(--paper); }');
+          replaceExactly('app/globals.css', '.page-hero--ink .narrow-heading p { color: #bdb6ad; }', '.page-hero--ink .narrow-heading p { color: #bdb6ad; }\n.page-hero--yellow .narrow-heading p { color: var(--ink); }');
+          fs.writeFileSync('tests/public-accessibility-contract.test.mjs', `import test from "node:test";\nimport assert from "node:assert/strict";\nimport fs from "node:fs";\nconst worker=fs.readFileSync(new URL("../worker/index.ts",import.meta.url),"utf8");\nconst globals=fs.readFileSync(new URL("../app/globals.css",import.meta.url),"utf8");\nconst home=fs.readFileSync(new URL("../components/homepage-readiness.module.css",import.meta.url),"utf8");\ntest("intentional public resources are permitted by CSP",()=>{assert.match(worker,/script-src[^\\n]*static\\.cloudflareinsights\\.com/);assert.match(worker,/connect-src[^\\n]*fonts\\.googleapis\\.com/);});\ntest("measured public contrast remediations remain present",()=>{assert.match(home,/\\.heroMeta \\{[\\s\\S]*?opacity: 0\\.88;/);assert.match(globals,/\\.pricing-card--lead \\.pricing-label \\{ color: #c7ffec; \\}/);assert.match(globals,/\\.pricing-card--lead \\.pricing-includes \\{ color: #c7ffec; \\}/);assert.match(globals,/\\.pricing-market-row--head > span:last-child \\{ color: var\\(--paper\\); \\}/);assert.match(globals,/\\.page-hero--yellow \\.narrow-heading p \\{ color: var\\(--ink\\); \\}/);});\n`);
+          NODE
+      - name: Package patched files
+        run: |
+          mkdir -p /tmp/patch/app /tmp/patch/components /tmp/patch/worker /tmp/patch/tests
+          cp app/globals.css /tmp/patch/app/globals.css
+          cp components/homepage-readiness.module.css /tmp/patch/components/homepage-readiness.module.css
+          cp worker/index.ts /tmp/patch/worker/index.ts
+          cp tests/public-accessibility-contract.test.mjs /tmp/patch/tests/public-accessibility-contract.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-public-a11y-patch
+          path: /tmp/patch
+          retention-days: 1
