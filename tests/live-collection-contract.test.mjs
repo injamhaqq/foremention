@@ -38,14 +38,16 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
   assert.doesNotMatch(migration, /delete from public\.source_observations/);
 });
 
-test("onboarding starts a five-question audit with a configured provider and shows durable progress", async () => {
+test("onboarding starts a one-question first-evidence check with a configured provider while preserving the five-question baseline", async () => {
   const [page, wizard] = await Promise.all([text("app/app/onboarding/page.tsx"), text("components/onboarding-wizard.tsx")]);
   assert.match(page, /getProviderStatuses/);
   assert.match(page, /provider\.configured/);
   assert.match(wizard, /providers: \[firstAuditProvider\.id\]/);
   assert.doesNotMatch(wizard, /providers: \["groq"\]/);
-  assert.match(wizard, /promptIds\.length !== 5/);
-  assert.match(wizard, /We&apos;re running your first AI visibility audit/);
+  assert.match(wizard, /filter\(\(prompt\) => prompt\.approved\)\.slice\(0, 1\)/);
+  assert.match(wizard, /promptIds\.length !== 1/);
+  assert.match(wizard, /saved five become the stable baseline for comparable runs/);
+  assert.match(wizard, /checking your first buyer question now/i);
   assert.match(wizard, /onboarding:\$\{crypto\.randomUUID\(\)\}/);
   assert.match(wizard, /\["review", "complete", "partial"\]/);
 });
@@ -383,13 +385,14 @@ test("weekly Inngest runs enforce capacity and record evidence changes", async (
   assert.match(route, /scheduleWeeklyWorkspaceRuns/);
 });
 
-test("failed first audits remain explicit instead of showing unexplained zeroes", async () => {
+test("failed first evidence checks remain explicit instead of showing unexplained zeroes", async () => {
   const [wizard, overview, analytics] = await Promise.all([
     text("components/onboarding-wizard.tsx"),
     text("app/app/page.tsx"),
     text("app/app/analytics/page.tsx"),
   ]);
-  for (const source of [wizard, overview, analytics]) assert.match(source, /Your audit is taking longer than expected/);
+  assert.match(wizard, /Your first evidence check could not finish yet/);
+  for (const source of [overview, analytics]) assert.match(source, /Your audit is taking longer than expected/);
   assert.match(overview, /No fake metrics were added/);
   assert.match(analytics, /No zero-value placeholder is being presented as a result/);
 });
