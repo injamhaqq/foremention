@@ -1,0 +1,99 @@
+name: Final Public UX Audit
+
+on:
+  push:
+    branches:
+      - ops/restore-drill-20260814
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install browser audit tools
+        run: |
+          mkdir -p /tmp/foremention-ux
+          cd /tmp/foremention-ux
+          npm init -y >/dev/null
+          npm install playwright@1.55.0 @axe-core/playwright@4.10.2 >/dev/null
+          npx playwright install --with-deps chromium firefox >/dev/null
+      - name: Run production UX audit
+        run: |
+          cat > /tmp/foremention-ux/audit.mjs <<'EOF'
+          import { chromium, firefox } from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
+          import fs from 'node:fs/promises';
+
+          const base = 'https://foremention.com';
+          const routes = ['/', '/pricing', '/about', '/honesty', '/methodology', '/privacy', '/terms', '/contact', '/login', '/signup', '/forgot-password'];
+          const profiles = [
+            { name: 'desktop', viewport: { width: 1440, height: 1000 } },
+            { name: 'mobile', viewport: { width: 390, height: 844 }, isMobile: true },
+          ];
+          const browsers = { chromium, firefox };
+          const out = [];
+          await fs.mkdir('ux-audit-artifact/screenshots', { recursive: true });
+
+          for (const [browserName, launcher] of Object.entries(browsers)) {
+            const browser = await launcher.launch();
+            for (const profile of profiles) {
+              const context = await browser.newContext({ viewport: profile.viewport, isMobile: profile.isMobile ?? false });
+              for (const route of routes) {
+                const page = await context.newPage();
+                const consoleErrors = [];
+                const pageErrors = [];
+                const failedRequests = [];
+                page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+                page.on('pageerror', err => pageErrors.push(String(err)));
+                page.on('requestfailed', req => failedRequests.push(`${req.method()} ${req.url()} :: ${req.failure()?.errorText ?? 'failed'}`));
+                let status = null;
+                let navError = null;
+                try {
+                  const response = await page.goto(base + route, { waitUntil: 'networkidle', timeout: 45000 });
+                  status = response?.status() ?? null;
+                } catch (error) {
+                  navError = String(error);
+                }
+                await page.waitForTimeout(500);
+                const metrics = await page.evaluate(() => ({
+                  title: document.title,
+                  h1Count: document.querySelectorAll('h1').length,
+                  mainCount: document.querySelectorAll('main').length,
+                  innerWidth: window.innerWidth,
+                  scrollWidth: document.documentElement.scrollWidth,
+                  bodyTextLength: document.body?.innerText?.trim().length ?? 0,
+                  unlabeledInputs: [...document.querySelectorAll('input,textarea,select')].filter((el) => {
+                    const id = el.getAttribute('id');
+                    const aria = el.getAttribute('aria-label') || el.getAttribute('aria-labelledby');
+                    const label = id ? document.querySelector(`label[for="${CSS.escape(id)}"]`) : null;
+                    return !aria && !label;
+                  }).length,
+                  emptyLinks: [...document.querySelectorAll('a[href]')].filter(a => !a.textContent?.trim() && !a.getAttribute('aria-label')).length,
+                }));
+                let axe = { violations: [] };
+                try { axe = await new AxeBuilder({ page }).analyze(); } catch (error) { axe = { violations: [{ id: 'axe-error', impact: 'serious', description: String(error), nodes: [] }] }; }
+                const serious = axe.violations.filter(v => ['critical','serious'].includes(v.impact ?? ''));
+                const safeRoute = route === '/' ? 'home' : route.slice(1).replaceAll('/', '-');
+                const shot = `ux-audit-artifact/screenshots/${browserName}-${profile.name}-${safeRoute}.png`;
+                await page.screenshot({ path: shot, fullPage: true });
+                out.push({ browserName, profile: profile.name, route, status, navError, metrics, consoleErrors, pageErrors, failedRequests, seriousAxe: serious.map(v => ({ id:v.id, impact:v.impact, description:v.description, nodes:v.nodes.length })) });
+                await page.close();
+              }
+              await context.close();
+            }
+            await browser.close();
+          }
+          await fs.writeFile('ux-audit-artifact/results.json', JSON.stringify(out, null, 2));
+          const failures = out.filter(r => r.navError || (r.status && r.status >= 400) || r.metrics.scrollWidth > r.metrics.innerWidth || r.metrics.bodyTextLength < 40 || r.metrics.unlabeledInputs > 0 || r.metrics.emptyLinks > 0 || r.pageErrors.length || r.consoleErrors.length || r.seriousAxe.length);
+          console.log(JSON.stringify({ audited: out.length, failures }, null, 2));
+          if (failures.length) process.exitCode = 2;
+          EOF
+          cd /tmp/foremention-ux
+          node audit.mjs
+      - name: Upload UX evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foremention-final-public-ux-audit
+          path: /tmp/foremention-ux/ux-audit-artifact
+          retention-days: 1
