@@ -12,15 +12,15 @@ No benchmark extractor may bypass those controls or become verified evidence by 
 
 ## Current upstream facts
 
-### Mozilla Readability — BENCHMARK NOW
+### Mozilla Readability — SELECTIVE PRODUCTION CANDIDATE, NOT YET ADOPTED
 
 - Official repository: `mozilla/readability`.
-- Current repository package version inspected for this benchmark: `@mozilla/readability` `0.6.0`.
+- Package version benchmarked: `@mozilla/readability` `0.6.0`.
 - License declared by the package source: Apache-2.0.
 - Readability expects a DOM `document`; Mozilla's Node example uses JSDOM.
 - Mozilla explicitly warns that Readability is not a sanitizer. Foremention does not render Readability HTML in this benchmark; only normalized text is evaluated.
-- JSDOM scripts and remote resource loading remain disabled by default in this benchmark.
-- Benchmark dependencies are isolated from Foremention's production dependency graph.
+- JSDOM scripts and remote resource loading were disabled in the benchmark environment.
+- Benchmark dependencies remained isolated from Foremention's production dependency graph.
 
 ### Crawl4AI — DEFER UNTIL A REAL FAILURE CLASS
 
@@ -44,7 +44,7 @@ ArchiveBox is a full preservation system that stores multiple long-lived formats
 
 ## Benchmark contract
 
-The deterministic corpus contains twelve checked-in HTML fixtures:
+The deterministic corpus contains twelve checked-in fixture definitions/templates:
 
 1. article
 2. documentation
@@ -57,35 +57,94 @@ The deterministic corpus contains twelve checked-in HTML fixtures:
 9. rendered dynamic snapshot
 10. blocked/inaccessible response
 11. very small page
-12. large page near the bounded inspection limit
+12. deterministic large page expanded above the 256 KiB bounded inspection limit
 
 The benchmark compares Foremention's actual `inspectSourceUrl` implementation against Mozilla Readability running with JSDOM in an isolated CI-only runtime.
 
-Quality is not a subjective score. For each fixture:
+Quality is deterministic rather than subjective. For each fixture:
 
 - `relevantPhraseRecall = required phrases present / required phrases defined`
 - `boilerplateRejection = 1 - forbidden boilerplate phrases present / forbidden phrases defined`
 - `qualityScore = 0.75 * relevantPhraseRecall + 0.25 * boilerplateRejection`
 
-Latency is the median of three extraction runs.
+Latency is the median of three extraction runs. Heap delta is informational only because JavaScript garbage collection and CI runtime behavior make it noisy. For the truncated fixture, Readability receives the same 262,144-byte HTML prefix permitted to the native inspector.
 
-Heap delta is informational only because JavaScript garbage collection and CI runtime behavior make it noisy.
+## Observed benchmark — workflow run 31813100482
 
-For truncated fixtures, Readability receives the same bounded HTML prefix permitted to the native inspector.
+Generated at `2026-08-14T15:10:11.174Z` from PR #97.
 
-## Adoption gate
+### Aggregate quality
 
-A quality win alone does not authorize production integration.
+- Native average quality: **0.811**
+- Readability average quality: **0.962**
+- Native article-like quality: **0.750**
+- Readability article-like quality: **1.000**
+- Readability article-like required-phrase recall: **1.000**
+- Benchmark contract failures: **0**
+- Readability null extractions: **0**
+
+### Material Readability wins
+
+Readability improved the deterministic quality score by at least `0.15` on:
+
+- article
+- documentation
+- product
+- comparison
+- navigation-heavy
+- sidebar/footer-noise
+- structured-article
+
+On each of those cases the native extractor scored `0.75` because it preserved the required content but also retained benchmarked navigation/sidebar/footer noise; Readability scored `1.0` by preserving the required phrases while rejecting that boilerplate.
+
+### Neutral / small differences
+
+- malformed HTML: native `0.833`, Readability `0.917`
+- rendered dynamic snapshot: both `0.917`
+- very small page: both `1.000`
+- blocked HTTP 403 remains outside Readability; Foremention correctly preserved the native `blocked` state.
+
+### Material regression
+
+The bounded large-page case is the reason Readability must not replace the native extractor:
+
+- generated input: `270,040` bytes
+- bounded input: `262,144` bytes
+- native quality: `0.917`
+- Readability quality: `0.750`
+- native median extraction latency: `6.101 ms`
+- Readability median extraction latency in Node/JSDOM: `556.335 ms`
+
+The native inspector therefore remains the reliable bounded fallback and the authority for network/access state.
+
+### Latency evidence
+
+On the small deterministic fixtures, native extraction was generally below `1 ms` median while Readability/JSDOM was roughly `8–32 ms`. This benchmark demonstrates a real quality/runtime tradeoff; it does not justify applying Readability to every source by default.
+
+## Adoption decision
+
+**Decision: `selective-readability-candidate-with-native-fallback`.**
+
+The quality evidence is strong enough to justify a separate production-integration proof, but not strong enough to authorize a blanket parser replacement.
+
+A production implementation may proceed only if it proves a Cloudflare Worker-compatible DOM strategy and preserves this order of authority:
+
+safe network policy → bounded HTML → native metadata/access result → optional selective Readability normalization → native fallback → Source X-Ray observation → separate human review.
+
+Readability must never fetch independently, validate or follow redirects, determine crawler access, convert text into a verified claim, or become provider citation evidence.
+
+## Remaining adoption gate
 
 Production adoption still requires:
 
-1. material benchmark improvement on customer-relevant page classes;
-2. no unacceptable regression on product/comparison/small pages;
-3. a Cloudflare Worker-compatible DOM strategy;
-4. bundle and cold-start review;
-5. security review;
-6. Worker dry-run and workerd/browser acceptance;
-7. provenance that records which extractor produced the normalized text;
-8. native fallback and existing SSRF/network controls remaining authoritative.
+1. Cloudflare Worker-compatible DOM implementation without JSDOM-as-runtime assumption;
+2. bundle-size and cold-start review;
+3. no script/resource execution;
+4. bounded parser input and output;
+5. deterministic timeout/failure fallback to native text;
+6. extraction provenance (`native`, `readability`, or `native_fallback`) and extractor version;
+7. Worker dry-run/workerd verification;
+8. regression tests proving existing SSRF, DNS/IP, redirect, size, tenant, and human-review boundaries stay unchanged;
+9. live production release and Browser Acceptance after merge.
 
-Benchmark results are written to the workflow artifact rather than fabricated in this document before the run.
+Until those gates pass, Mozilla Readability remains **benchmark-proven but not a Foremention production dependency**.
