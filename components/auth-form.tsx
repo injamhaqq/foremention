@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import { safeAuthNext } from "@/lib/google-auth";
 import { captureProductEvent } from "@/lib/product-analytics";
 
 export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnabled = false }: {
@@ -16,6 +17,9 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const submissionLock = useRef(false);
+  const safeNext = safeAuthNext(next);
+  const loginHref = safeNext === "/app" ? "/login" : `/login?next=${encodeURIComponent(safeNext)}`;
+  const signupHref = safeNext === "/app" ? "/signup" : `/signup?next=${encodeURIComponent(safeNext)}`;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +47,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
       const response = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(formData.entries())),
+        body: JSON.stringify({ ...Object.fromEntries(formData.entries()), next: safeNext }),
       });
       const data = (await response.json()) as { error?: string; message?: string; session?: boolean; email?: string; account_help?: boolean };
       if (!response.ok) {
@@ -61,7 +65,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
       }
       if (!isLogin) captureProductEvent("signup_completed", { confirmation_required: false });
       navigating = true;
-      window.location.assign(next.startsWith("/") ? next : "/app");
+      window.location.assign(safeNext);
     } catch {
       setError("The connection failed. Please try again.");
     } finally {
@@ -80,7 +84,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
           <h1>Continue to your account.</h1>
           <p role="status" aria-live="polite">{notice}</p>
           {noticeEmail && <p className="auth-email-receipt">Account email <strong>{noticeEmail}</strong></p>}
-          <a className="button button--ink button--wide" href="/login">Go to sign in</a>
+          <a className="button button--ink button--wide" href={loginHref}>Go to sign in</a>
           <a className="auth-recovery" href="/forgot-password">Reset password</a>
           <button className="text-button" type="button" onClick={() => { setNotice(""); setNoticeEmail(""); setAccountHelp(false); }}>Use a different email</button>
         </div>
@@ -97,14 +101,14 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
           <li>Select <strong>Confirm my email</strong>.</li>
           <li>The verified link opens guided workspace setup automatically.</li>
         </ol>
-        <a className="button button--ink button--wide" href="/login">Already confirmed? Sign in</a>
+        <a className="button button--ink button--wide" href={loginHref}>Already confirmed? Sign in</a>
         <button className="text-button" type="button" onClick={() => { setNotice(""); setNoticeEmail(""); setAccountHelp(false); }}>Use a different email</button>
       </div>
     );
   }
 
   const isLogin = mode === "login";
-  const googleHref = `/api/auth/google?next=${encodeURIComponent(next.startsWith("/") ? next : "/app")}`;
+  const googleHref = `/api/auth/google?next=${encodeURIComponent(safeNext)}`;
   return (
     <div className="auth-card">
       <div>
@@ -134,11 +138,11 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
         {!isLogin && <label>Confirm password<input type={showPassword ? "text" : "password"} name="confirmation" required minLength={12} autoComplete="new-password" /></label>}
         {statusMessage && !error && <p className="auth-session-notice" role="status">{statusMessage}</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
-        {error && accountHelp && <p className="auth-inline-help">Go to <a href="/login">sign in</a>, or <a href="/forgot-password">reset your password</a>.</p>}
+        {error && accountHelp && <p className="auth-inline-help">Go to <a href={loginHref}>sign in</a>, or <a href="/forgot-password">reset your password</a>.</p>}
         <button className="button button--ink button--wide" type="submit" disabled={busy}>{busy ? "Working..." : isLogin ? "Sign in" : "Create workspace"}</button>
       </form>
       {isLogin && <a className="auth-recovery" href="/forgot-password">Forgot password?</a>}
-      <p className="auth-switch">{isLogin ? <>No account? <a href="/signup">Create a workspace</a></> : <>Already have an account? <a href="/login">Sign in</a></>}</p>
+      <p className="auth-switch">{isLogin ? <>No account? <a href={signupHref}>Create a workspace</a></> : <>Already have an account? <a href={loginHref}>Sign in</a></>}</p>
     </div>
   );
 }
