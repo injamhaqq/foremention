@@ -1,0 +1,34 @@
+name: Source X-Ray Signup
+
+on:
+  push:
+    branches:
+      - ops/source-xray-mobile-proof-20260814
+
+permissions:
+  contents: read
+
+jobs:
+  signup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create disposable acceptance account
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const response = await fetch('https://foremention.com/api/auth/signup', {
+            method: 'POST',
+            headers: {'content-type':'application/json','accept':'application/json'},
+            body: JSON.stringify({
+              name: 'Foremention Source X-Ray Acceptance',
+              email: 'foremention2026+sourcexray-final-20260814@gmail.com',
+              password: 'FmxR!2026_Xray#A9vQ7kP2zL5',
+              passwordConfirmation: 'FmxR!2026_Xray#A9vQ7kP2zL5'
+            })
+          });
+          const text = await response.text();
+          let body = null; try { body = JSON.parse(text); } catch {}
+          console.log('SOURCE_XRAY_SIGNUP', JSON.stringify({status: response.status, ok: response.ok, message: body?.message || body?.error || null}));
+          if (response.status !== 200) process.exit(1);
+          NODE
