@@ -1,0 +1,29 @@
+/* Measured production legibility fixes; preserves the existing editorial system. */
+.analytics-consent p,
+.analytics-consent p span,
+.form-fineprint,
+.footer-bottom,
+.footer-links span,
+.intake-form label,
+.auth-card label,
+.table-tools label,
+.pricing-source-note,
+.pricing-activation p,
+.pricing-shared p,
+.pricing-market-row > *,
+.pricing-label,
+.pricing-includes,
+.price span { font-size: 12px; }
+
+.pricing-card--lead .pricing-label,
+.pricing-card--lead .pricing-includes { color: #a6ffe2; }
+
+@media (max-width: 760px) {
+  .analytics-consent {
+    right: 14px;
+    bottom: 14px;
+    width: calc(100vw - 28px);
+    gap: 14px;
+    padding: 14px;
+  }
+}

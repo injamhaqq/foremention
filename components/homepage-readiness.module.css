@@ -26,7 +26,8 @@
   max-width: 38rem;
   font-size: 0.92rem;
   line-height: 1.5;
-  opacity: 0.78;
+  color: var(--muted, #60716d);
+  opacity: 1;
 }
 
 .preview {
