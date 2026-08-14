@@ -1,0 +1,109 @@
+name: Final Private Beta Policy Acceptance
+
+on:
+  push:
+    branches:
+      - ops/final-policy-acceptance-20260814
+
+jobs:
+  accept:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify live policy surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p acceptance
+          chrome="$(command -v google-chrome || command -v google-chrome-stable || true)"
+          if [ -z "$chrome" ]; then
+            echo "Chrome not available" >&2
+            exit 1
+          fi
+
+          pages=(
+            "pricing|https://foremention.com/pricing"
+            "privacy|https://foremention.com/privacy"
+            "terms|https://foremention.com/terms"
+            "subprocessors|https://foremention.com/subprocessors"
+          )
+
+          for entry in "${pages[@]}"; do
+            name="${entry%%|*}"
+            url="${entry#*|}"
+            status="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 "$url")"
+            echo "$name HTTP $status"
+            test "$status" = "200"
+
+            "$chrome" --headless=new --no-sandbox --disable-gpu --virtual-time-budget=5000 \
+              --dump-dom "$url" > "acceptance/${name}.html" 2>/dev/null
+
+            "$chrome" --headless=new --no-sandbox --disable-gpu --hide-scrollbars \
+              --window-size=1440,1400 --virtual-time-budget=5000 \
+              --screenshot="acceptance/${name}-desktop.png" "$url" >/dev/null 2>&1
+
+            "$chrome" --headless=new --no-sandbox --disable-gpu --hide-scrollbars \
+              --window-size=390,1200 --virtual-time-budget=5000 \
+              --screenshot="acceptance/${name}-mobile.png" "$url" >/dev/null 2>&1
+          done
+
+          python <<'PY'
+          from pathlib import Path
+          import html, re
+
+          def text(name):
+              raw=Path(f'acceptance/{name}.html').read_text(errors='replace')
+              raw=re.sub(r'<script\b[^>]*>.*?</script>', ' ', raw, flags=re.I|re.S)
+              raw=re.sub(r'<style\b[^>]*>.*?</style>', ' ', raw, flags=re.I|re.S)
+              return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', ' ', raw))).strip()
+
+          required={
+              'pricing': [
+                  'Private beta',
+                  'repeatable intelligence system',
+                  'not a working checkout until its payment integration is verified',
+                  'Join private beta',
+              ],
+              'privacy': [
+                  'Service providers & subprocessors',
+                  'product history window',
+                  'should not be read as a promise that every underlying record or backup copy is automatically destroyed',
+              ],
+              'terms': [
+                  'Current self-serve signup does not activate a paid plan or charge a card',
+                  'controlled free beta',
+              ],
+              'subprocessors': [
+                  'Service providers & subprocessors',
+                  'Cloudflare', 'Supabase', 'Inngest', 'Resend', 'Groq',
+                  'does not represent Sentry as an active production processor',
+              ],
+          }
+          for page, phrases in required.items():
+              body=text(page)
+              for phrase in phrases:
+                  if phrase not in body:
+                      raise SystemExit(f'{page}: missing required phrase: {phrase}')
+              h1=len(re.findall(r'<h1\b', Path(f'acceptance/{page}.html').read_text(errors='replace'), re.I))
+              if h1 != 1:
+                  raise SystemExit(f'{page}: expected exactly one h1, got {h1}')
+          print('POLICY_COPY_ACCEPTANCE PASS')
+          PY
+
+          cat > /tmp/overflow.html <<'EOF'
+          EOF
+          for entry in "${pages[@]}"; do
+            name="${entry%%|*}"
+            url="${entry#*|}"
+            result="$($chrome --headless=new --no-sandbox --disable-gpu --window-size=390,900 --virtual-time-budget=5000 \
+              --dump-dom "data:text/html,<script>location='${url}'</script>" 2>/dev/null || true)"
+            : "$result"
+          done
+
+      - name: Upload acceptance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: foremention-final-policy-acceptance
+          path: acceptance
+          if-no-files-found: error
+          retention-days: 1
