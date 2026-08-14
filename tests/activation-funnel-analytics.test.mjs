@@ -33,6 +33,7 @@ test("activation funnel exposes every decision-grade milestone without a second 
     "source_xray_viewed",
     "evidence_reviewed",
     "reviewed_opportunity_created",
+    "activation_completed",
   ]) {
     assert.match(sources, new RegExp(`\\b${event}\\b`), `missing activation milestone ${event}`);
   }
@@ -68,10 +69,11 @@ test("workspace milestones exclude demo data and require real evidence surfaces"
   assert.match(source, /sessionStorage/);
 });
 
-test("reviewed opportunity milestone is emitted only when the review API creates one", () => {
+test("reviewed opportunity and activation completion milestones are emitted only when the review API creates one", () => {
   const source = read("components/source-review-form.tsx");
-  assert.match(source, /result\.opportunity\?\.action === "created"\) captureProductEvent\("reviewed_opportunity_created"\)/);
-  assert.doesNotMatch(source, /action === "refreshed"\) captureProductEvent\("reviewed_opportunity_created"\)/);
+  assert.match(source, /if \(result\.opportunity\?\.action === "created"\) \{[\s\S]*?captureProductEvent\("reviewed_opportunity_created"\);[\s\S]*?captureProductEvent\("activation_completed"\);[\s\S]*?\}/);
+  assert.doesNotMatch(source, /if \(result\.opportunity\?\.action === "refreshed"\) \{[\s\S]*?captureProductEvent\("reviewed_opportunity_created"\)/);
+  assert.doesNotMatch(source, /if \(result\.opportunity\?\.action === "refreshed"\) \{[\s\S]*?captureProductEvent\("activation_completed"\)/);
 });
 
 test("activation observers are mounted at public and authenticated boundaries", () => {
