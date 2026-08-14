@@ -37,7 +37,7 @@ test("run detail keeps provider citations intact and links only mapped pages int
 
   assert.match(matcher, /new URL\(value\)/);
   assert.match(matcher, /url\.hash = ""/);
-  assert.match(matcher, /url\.pathname = url\.pathname\.replace\(\/\\\/+\$\//);
+  assert.ok(matcher.includes('url.pathname = url.pathname.replace(/\\/+$/, "");'));
   assert.match(matcher, /comparablePageUrl\(source\.url\) === citationKey/);
   assert.doesNotMatch(matcher, /hostname/);
 });
