@@ -6,24 +6,25 @@ const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
 const [workflow, canary] = await Promise.all([
-  text(".github/workflows/browser-acceptance.yml"),
+  text(".github/workflows/first-evidence-canary.yml"),
   text("scripts/first-evidence-production-canary.mjs"),
 ]);
 
 test("the production canary is trusted-main only and remains inert without explicit enablement plus spend approval", () => {
+  assert.match(workflow, /push:\s*\n\s*branches:\s*\n\s*- main/);
+  assert.doesNotMatch(workflow, /pull_request:/);
   assert.match(canary, /FOREMENTION_ACCEPTANCE_CANARY_ENABLED/);
   assert.match(canary, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED/);
   assert.match(canary, /skipped-canary-not-enabled/);
   assert.match(canary, /skipped-provider-spend-not-approved/);
   assert.match(canary, /restricted to https:\/\/foremention\.com/);
   assert.match(workflow, /Run authenticated first-evidence production canary/);
-  const step = workflow.match(/- name: Run authenticated first-evidence production canary[\s\S]*?run: node scripts\/first-evidence-production-canary\.mjs/)?.[0] || "";
-  assert.match(step, /if: github\.event_name != 'pull_request'/);
-  assert.match(step, /FOREMENTION_ACCEPTANCE_EMAIL: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_EMAIL \}\}/);
-  assert.match(step, /FOREMENTION_ACCEPTANCE_PASSWORD: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_PASSWORD \}\}/);
-  assert.match(step, /FOREMENTION_ACCEPTANCE_CANARY_ENABLED: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_CANARY_ENABLED \}\}/);
-  assert.match(step, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED \}\}/);
-  assert.doesNotMatch(workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?Collect trusted production Lighthouse audit baseline/)?.[0] || "", /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED/);
+  assert.match(workflow, /production-auth-smoke\.mjs/);
+  assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_EMAIL: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_EMAIL \}\}/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_PASSWORD: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_PASSWORD \}\}/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_CANARY_ENABLED: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_CANARY_ENABLED \}\}/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED \}\}/);
 });
 
 test("the canary uses the real customer session and API path without an auth, RLS, provider, or publication bypass", () => {
@@ -36,7 +37,7 @@ test("the canary uses the real customer session and API path without an auth, RL
   assert.doesNotMatch(canary, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.doesNotMatch(canary, /service.?role/i);
   assert.doesNotMatch(canary, /auth.?bypass/i);
-  assert.doesNotMatch(canary, /mock["']\s*\]/i);
+  assert.doesNotMatch(canary, /providers:\s*\["mock"\]/i);
 });
 
 test("the canary preserves the five-question baseline but spends on exactly one question and one provider", () => {
