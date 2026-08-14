@@ -1,0 +1,31 @@
+name: Contrast Diagnostic
+on:
+  push:
+    branches: [ops/restore-drill-20260814]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          mkdir -p /tmp/a11y && cd /tmp/a11y
+          npm init -y >/dev/null
+          npm install playwright@1.55.0 @axe-core/playwright@4.10.2 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+      - run: |
+          cd /tmp/a11y
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
+          const browser=await chromium.launch();
+          for(const route of ['/','/pricing','/honesty']){
+            const page=await browser.newPage({viewport:{width:1440,height:1000}});
+            await page.goto('https://foremention.com'+route,{waitUntil:'networkidle'});
+            const axe=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();
+            console.log('ROUTE',route);
+            for(const v of axe.violations){for(const n of v.nodes){console.log(JSON.stringify({target:n.target,html:n.html,failureSummary:n.failureSummary}));}}
+            await page.close();
+          }
+          await browser.close();
+          NODE
