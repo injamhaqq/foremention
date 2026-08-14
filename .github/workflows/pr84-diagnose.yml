@@ -1,0 +1,30 @@
+name: PR84 Guard Diagnose
+
+on:
+  push:
+    branches:
+      - ops/pr84-test-diagnose-20260814
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Capture exact static guard output
+        shell: bash
+        run: |
+          set +e
+          node --test tests/private-beta-commercial-boundary.test.mjs > pr84-guard-output.txt 2>&1
+          rc=$?
+          cat pr84-guard-output.txt
+          echo "$rc" > pr84-guard-exit-code.txt
+          exit 0
+      - name: Upload diagnostic output
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr84-guard-diagnostic
+          path: |
+            pr84-guard-output.txt
+            pr84-guard-exit-code.txt
+          if-no-files-found: error
+          retention-days: 1
