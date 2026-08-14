@@ -6,21 +6,36 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@078e9d416474b29c0c387560859308974f7e9c53 # v6.0.1
         with:
           version: 10.25.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
           node-version: 22.13.0
           cache: pnpm
@@ -30,6 +45,14 @@ jobs:
 
       - name: Check production dependency advisories
         run: pnpm audit --prod --audit-level=moderate
+
+      - name: Check patch hygiene
+        run: git diff --check HEAD^
+        if: github.event_name == 'push'
+
+      - name: Check pull request patch hygiene
+        run: git diff --check ${{ github.event.pull_request.base.sha }}...HEAD
+        if: github.event_name == 'pull_request'
 
       - name: Run tests
         run: pnpm test
@@ -46,12 +69,23 @@ jobs:
       - name: Cloudflare Worker dry run
         run: pnpm exec wrangler deploy --dry-run --config dist/server/wrangler.json --outdir .wrangler-dry-run
 
+      - name: Generate release SBOM
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: foremention-sbom.spdx.json
+          upload-artifact: false
+
       - name: Archive verified build
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: foremention-dist-${{ github.sha }}
-          path: dist
+          path: |
+            dist
+            foremention-sbom.spdx.json
           if-no-files-found: error
           retention-days: 1
 
