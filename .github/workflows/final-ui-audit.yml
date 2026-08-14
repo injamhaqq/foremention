@@ -1,0 +1,85 @@
+name: Final Production UI Audit
+
+on:
+  push:
+    branches:
+      - ops/final-ui-audit-20260814
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Capture live production surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ui-audit/desktop ui-audit/mobile ui-audit/dom
+          chrome="$(command -v google-chrome || command -v google-chrome-stable || true)"
+          if [ -z "$chrome" ]; then
+            echo "Chrome not available on runner" >&2
+            exit 1
+          fi
+
+          pages=(
+            "home|https://foremention.com/"
+            "pricing|https://foremention.com/pricing"
+            "about|https://foremention.com/about"
+            "honesty|https://foremention.com/honesty"
+            "score|https://foremention.com/score"
+            "prompt-check|https://foremention.com/prompt-check"
+            "login|https://foremention.com/login"
+            "signup|https://foremention.com/signup"
+          )
+
+          : > ui-audit/http.txt
+          for entry in "${pages[@]}"; do
+            name="${entry%%|*}"
+            url="${entry#*|}"
+            status="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 20 "$url")"
+            printf '%s %s %s\n' "$name" "$status" "$url" | tee -a ui-audit/http.txt
+            if [ "$status" != "200" ]; then
+              echo "Unexpected HTTP status for $url: $status" >&2
+              exit 1
+            fi
+
+            "$chrome" --headless=new --no-sandbox --disable-gpu --hide-scrollbars \
+              --force-device-scale-factor=1 --window-size=1440,1600 --virtual-time-budget=5000 \
+              --screenshot="ui-audit/desktop/${name}.png" "$url" >/dev/null 2>&1
+
+            "$chrome" --headless=new --no-sandbox --disable-gpu --hide-scrollbars \
+              --force-device-scale-factor=1 --window-size=390,1200 --virtual-time-budget=5000 \
+              --screenshot="ui-audit/mobile/${name}.png" "$url" >/dev/null 2>&1
+
+            "$chrome" --headless=new --no-sandbox --disable-gpu --virtual-time-budget=5000 \
+              --dump-dom "$url" > "ui-audit/dom/${name}.html" 2>/dev/null
+          done
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          problems=[]
+          for path in sorted(Path('ui-audit/dom').glob('*.html')):
+              text=path.read_text(errors='replace')
+              title=re.search(r'<title[^>]*>(.*?)</title>', text, re.I|re.S)
+              h1=len(re.findall(r'<h1\b', text, re.I))
+              html_tag=re.search(r'<html\b[^>]*>', text, re.I)
+              lang=bool(html_tag and re.search(r'\blang=["\'][^"\']+["\']', html_tag.group(0), re.I))
+              summary=f"{path.stem}: title={'yes' if title and title.group(1).strip() else 'no'} h1={h1} lang={'yes' if lang else 'no'}"
+              print(summary)
+              if not title or not title.group(1).strip(): problems.append(f'{path.stem}: missing title')
+              if h1 != 1: problems.append(f'{path.stem}: expected exactly one h1, found {h1}')
+              if not lang: problems.append(f'{path.stem}: missing html lang')
+          Path('ui-audit/semantic-summary.txt').write_text('\n'.join(problems) if problems else 'PASS: titles, single H1, and html lang present on all audited pages.\n')
+          if problems:
+              raise SystemExit('\n'.join(problems))
+          PY
+
+      - name: Upload production UI audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: foremention-final-ui-audit
+          path: ui-audit
+          if-no-files-found: error
+          retention-days: 1
