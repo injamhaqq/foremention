@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Wordmark } from "@/components/brand";
+import { safeAuthNext } from "@/lib/google-auth";
 
 export function AuthCallback() {
   const searchParams = useSearchParams();
@@ -18,7 +19,7 @@ export function AuthCallback() {
     const verificationType = searchParams.get("type") || hash.get("type") || "";
     const isRecovery = verificationType === "recovery";
     const requestedNext = searchParams.get("next");
-    const next = isRecovery ? "/reset-password" : (requestedNext?.startsWith("/") ? requestedNext : "/app");
+    const next = isRecovery ? "/reset-password" : safeAuthNext(requestedNext);
     const authError = hash.get("error_description") || hash.get("error") || searchParams.get("error_description");
 
     if (!accessToken && !tokenHash) {
