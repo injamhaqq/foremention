@@ -1,0 +1,88 @@
+name: AI Safety and Code Health
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.25.0
+
+      - name: Setup isolated quality Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: pnpm
+
+      - name: Install application dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install pinned quality tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .quality-tools quality-results
+          cat > .quality-tools/package.json <<'JSON'
+          {
+            "private": true,
+            "dependencies": {
+              "knip": "6.32.2",
+              "promptfoo": "0.122.0"
+            }
+          }
+          JSON
+          npm install --prefix .quality-tools --package-lock=false --ignore-scripts --no-audit --no-fund
+
+      - name: Run zero-cost Foremention safety evals
+        env:
+          PROMPTFOO_DISABLE_TELEMETRY: '1'
+          PROMPTFOO_DISABLE_UPDATE: '1'
+          PROMPTFOO_DISABLE_REMOTE_GENERATION: 'true'
+          PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION: 'true'
+        run: .quality-tools/node_modules/.bin/promptfoo eval -c evals/promptfooconfig.yaml --no-cache -o quality-results/promptfoo.json
+
+      - name: Audit unused code and dependencies with Knip
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          .quality-tools/node_modules/.bin/knip --reporter json > quality-results/knip.json 2> quality-results/knip.stderr.txt
+          knip_status=$?
+          set -e
+          node scripts/validate-knip-audit.mjs quality-results/knip.json "$knip_status" quality-results/knip-summary.json
+
+      - name: Archive quality evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: foremention-quality-${{ github.sha }}
+          path: quality-results
+          if-no-files-found: warn
+          retention-days: 5
