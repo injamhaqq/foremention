@@ -58,7 +58,7 @@ test("workspace milestones exclude demo data and require real evidence surfaces"
   assert.match(source, /if \(demo\) return/);
   assert.match(source, /\.answer-stack > article\.panel/);
   assert.match(source, /\.answer-citations a/);
-  assert.match(source, /\/app\\\/sources\\\/\[\^\/\]\+\$/);
+  assert.match(source, /source_xray_viewed/);
   assert.match(source, /sessionStorage/);
 });
 
