@@ -19,12 +19,12 @@ test("quality tools are isolated, pinned, and use a compatible evaluator Node ru
   assert.doesNotMatch(workflow, /secrets\./);
 });
 
-test("Promptfoo stays local and zero-cost for the permanent safety suite", () => {
+test("Promptfoo uses a zero-cost synthetic Foremention provider rather than model APIs", () => {
   assert.match(workflow, /PROMPTFOO_DISABLE_TELEMETRY: '1'/);
   assert.match(workflow, /PROMPTFOO_DISABLE_UPDATE: '1'/);
   assert.match(workflow, /PROMPTFOO_DISABLE_REMOTE_GENERATION: 'true'/);
   assert.match(workflow, /PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION: 'true'/);
-  assert.match(config, /file:\/\/evals\/foremention-safety-provider\.ts/);
+  assert.match(config, /file:\/\/foremention-safety-provider\.ts/);
   assert.doesNotMatch(config, /openai:|anthropic:|gemini:|groq:|perplexity:/i);
   assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|GROQ_API_KEY|PERPLEXITY_API_KEY/);
 });
