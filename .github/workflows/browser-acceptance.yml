@@ -50,12 +50,12 @@ jobs:
         if: github.event_name == 'pull_request'
         run: pnpm build
 
-      - name: Start pull request production server
+      - name: Start pull request Worker locally
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
-          pnpm exec vinext start --port 4173 --hostname 127.0.0.1 > .browser-server.log 2>&1 &
+          pnpm exec wrangler dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4173 > .browser-server.log 2>&1 &
           server_pid=$!
           echo "$server_pid" > .browser-server.pid
           for attempt in $(seq 1 60); do
@@ -63,6 +63,7 @@ jobs:
               echo "FOREMENTION_BROWSER_BASE_URL=http://127.0.0.1:4173" >> "$GITHUB_ENV"
               exit 0
             fi
+            echo "Waiting for local Worker (${attempt}/60)..."
             if ! kill -0 "$server_pid" 2>/dev/null; then
               cat .browser-server.log
               exit 1
@@ -70,7 +71,7 @@ jobs:
             sleep 1
           done
           cat .browser-server.log
-          echo "Local production server did not become ready within 60 seconds." >&2
+          echo "Local Worker did not become ready within 60 seconds." >&2
           exit 1
 
       - name: Verify exact production release before trusted live acceptance
@@ -112,9 +113,6 @@ jobs:
 
       - name: Run trusted production browser and accessibility acceptance
         if: github.event_name != 'pull_request'
-        env:
-          FOREMENTION_ACCEPTANCE_EMAIL: ${{ secrets.FOREMENTION_ACCEPTANCE_EMAIL }}
-          FOREMENTION_ACCEPTANCE_PASSWORD: ${{ secrets.FOREMENTION_ACCEPTANCE_PASSWORD }}
         run: node scripts/browser-acceptance.mjs
 
       - name: Collect Lighthouse audit baseline
