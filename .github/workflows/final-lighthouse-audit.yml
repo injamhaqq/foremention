@@ -1,0 +1,72 @@
+name: Final Production Lighthouse Audit
+
+on:
+  push:
+    branches:
+      - ops/final-ui-audit-20260814
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+
+      - name: Run Lighthouse against live production
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p lighthouse
+          pages=(
+            "home|https://foremention.com/"
+            "pricing|https://foremention.com/pricing"
+            "score|https://foremention.com/score"
+            "prompt-check|https://foremention.com/prompt-check"
+            "login|https://foremention.com/login"
+            "signup|https://foremention.com/signup"
+          )
+          for entry in "${pages[@]}"; do
+            name="${entry%%|*}"
+            url="${entry#*|}"
+            npx --yes lighthouse "$url" \
+              --quiet \
+              --chrome-flags="--headless=new --no-sandbox --disable-gpu" \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --output=json \
+              --output-path="lighthouse/${name}.json"
+          done
+
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const files = fs.readdirSync('lighthouse').filter(x => x.endsWith('.json')).sort();
+          const rows = [];
+          let hardFailure = false;
+          for (const file of files) {
+            const r = JSON.parse(fs.readFileSync(path.join('lighthouse', file), 'utf8'));
+            const c = r.categories;
+            const scores = {
+              page: file.replace('.json',''),
+              performance: Math.round((c.performance?.score ?? 0)*100),
+              accessibility: Math.round((c.accessibility?.score ?? 0)*100),
+              bestPractices: Math.round((c['best-practices']?.score ?? 0)*100),
+              seo: Math.round((c.seo?.score ?? 0)*100),
+            };
+            rows.push(scores);
+            if (scores.accessibility < 90 || scores.bestPractices < 90 || scores.seo < 90) hardFailure = true;
+          }
+          fs.writeFileSync('lighthouse/summary.json', JSON.stringify(rows, null, 2));
+          console.table(rows);
+          if (hardFailure) process.exitCode = 2;
+          NODE
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foremention-final-lighthouse-audit
+          path: lighthouse
+          if-no-files-found: error
+          retention-days: 1
