@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApplicationEmailStatus, sendWelcomeEmail } from "@/lib/application-email";
+import { safeAuthNext } from "@/lib/google-auth";
 import { SupabaseAuthError, supabaseAuth } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
 import { checkPasswordSafety, HashRangeUnavailable, issueSignupSecurityAttestation } from "@/lib/password-safety";
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
     const password = typeof body.password === "string" ? body.password : "";
     const confirmation = typeof body.confirmation === "string" ? body.confirmation : "";
     const fullName = cleanText(body.full_name, 120);
+    const next = safeAuthNext(cleanText(body.next, 300));
     if (!email || !password || !confirmation || !fullName) return NextResponse.json({ error: "Name, email, password, and password confirmation are required." }, { status: 400 });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/.test(password)) return NextResponse.json({ error: "Use at least 12 characters with uppercase, lowercase, a number, and a symbol." }, { status: 400 });
@@ -57,6 +59,8 @@ export async function POST(request: Request) {
     // the project default URL, which strands a confirmed user outside the
     // callback that creates their Foremention session.
     const normalizedEmail = email;
+    const emailRedirect = new URL("/auth/callback", origin);
+    emailRedirect.searchParams.set("next", next);
     const data = await supabaseAuth("signup", {
       email: normalizedEmail,
       password,
@@ -64,7 +68,7 @@ export async function POST(request: Request) {
         full_name: fullName,
         signup_security_attestation: signupSecurityAttestation,
       },
-      email_redirect_to: `${origin}/auth/callback`,
+      email_redirect_to: emailRedirect.toString(),
     });
     const user = data.user && typeof data.user === "object"
       ? data.user as { identities?: unknown[] }
