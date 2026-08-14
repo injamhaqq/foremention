@@ -16,6 +16,7 @@ const routes = [
   { path: "/contact", frequency: "yearly", priority: 0.5 },
   { path: "/source-gap", frequency: "monthly", priority: 0.7 },
   { path: "/privacy", frequency: "yearly", priority: 0.3 },
+  { path: "/subprocessors", frequency: "monthly", priority: 0.3 },
   { path: "/terms", frequency: "yearly", priority: 0.3 },
   { path: "/monitoring-vs-execution", frequency: "monthly", priority: 0.8 },
   { path: "/compare/monitoring-tools", frequency: "monthly", priority: 0.7 },
