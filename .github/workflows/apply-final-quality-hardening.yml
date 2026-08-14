@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - fix/final-quality-hardening-20260814
+    paths:
+      - .github/workflows/apply-final-quality-hardening.yml
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: contains(github.event.head_commit.message, 'stage final quality hardening')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -59,10 +60,7 @@ jobs:
               raise SystemExit('layout return boundary not found')
           layout.write_text(text.replace(old, new, 1))
 
-          Path('app/accessibility-hardening.css').write_text(r'''/* Final production legibility and measured Lighthouse fixes.
-   These rules preserve the established editorial system while keeping
-   high-information microcopy readable on laptop and mobile screens. */
-
+          Path('app/accessibility-hardening.css').write_text('''/* Measured production legibility fixes; preserves the existing editorial system. */
 .analytics-consent p,
 .analytics-consent p span,
 .form-fineprint,
@@ -77,14 +75,10 @@ jobs:
 .pricing-market-row > *,
 .pricing-label,
 .pricing-includes,
-.price span {
-  font-size: 12px;
-}
+.price span { font-size: 12px; }
 
 .pricing-card--lead .pricing-label,
-.pricing-card--lead .pricing-includes {
-  color: #a6ffe2;
-}
+.pricing-card--lead .pricing-includes { color: #a6ffe2; }
 
 @media (max-width: 760px) {
   .analytics-consent {
