@@ -19,13 +19,15 @@ jobs:
           import { chromium } from 'playwright';
           import AxeBuilder from '@axe-core/playwright';
           const browser=await chromium.launch();
+          const context=await browser.newContext({viewport:{width:1440,height:1000}});
           for(const route of ['/','/pricing','/honesty']){
-            const page=await browser.newPage({viewport:{width:1440,height:1000}});
+            const page=await context.newPage();
             await page.goto('https://foremention.com'+route,{waitUntil:'networkidle'});
             const axe=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();
             console.log('ROUTE',route);
             for(const v of axe.violations){for(const n of v.nodes){console.log(JSON.stringify({target:n.target,html:n.html,failureSummary:n.failureSummary}));}}
             await page.close();
           }
+          await context.close();
           await browser.close();
           NODE
