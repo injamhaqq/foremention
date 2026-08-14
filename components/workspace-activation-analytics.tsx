@@ -6,9 +6,14 @@ import { captureProductEvent } from "@/lib/product-analytics";
 
 function captureOncePerSession(key: string, event: string, properties: Record<string, string | number | boolean | null> = {}) {
   const storageKey = `foremention:analytics:${key}`;
-  if (window.sessionStorage.getItem(storageKey)) return;
-  captureProductEvent(event, properties);
-  window.sessionStorage.setItem(storageKey, "1");
+  try {
+    if (window.sessionStorage.getItem(storageKey)) return;
+    captureProductEvent(event, properties);
+    window.sessionStorage.setItem(storageKey, "1");
+  } catch {
+    // Product analytics must never break the workspace when browser storage is unavailable.
+    captureProductEvent(event, properties);
+  }
 }
 
 function entrySurface(pathname: string) {
