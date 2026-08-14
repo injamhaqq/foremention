@@ -44,18 +44,22 @@ jobs:
           const files = fs.readdirSync('lighthouse').filter(x => x.endsWith('.json')).sort();
           const rows = [];
           let hardFailure = false;
+          const intentionallyNoIndex = new Set(['login', 'signup']);
           for (const file of files) {
             const r = JSON.parse(fs.readFileSync(path.join('lighthouse', file), 'utf8'));
             const c = r.categories;
+            const page = file.replace('.json','');
             const scores = {
-              page: file.replace('.json',''),
+              page,
               performance: Math.round((c.performance?.score ?? 0)*100),
               accessibility: Math.round((c.accessibility?.score ?? 0)*100),
               bestPractices: Math.round((c['best-practices']?.score ?? 0)*100),
               seo: Math.round((c.seo?.score ?? 0)*100),
             };
             rows.push(scores);
-            if (scores.accessibility < 90 || scores.bestPractices < 90 || scores.seo < 90) hardFailure = true;
+            if (scores.accessibility < 90 || scores.bestPractices < 90) hardFailure = true;
+            if (!intentionallyNoIndex.has(page) && scores.seo < 90) hardFailure = true;
+            if (intentionallyNoIndex.has(page) && r.audits?.['is-crawlable']?.score !== 0) hardFailure = true;
           }
           fs.writeFileSync('lighthouse/summary.json', JSON.stringify(rows, null, 2));
           console.table(rows);
