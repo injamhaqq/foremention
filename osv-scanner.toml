@@ -1,0 +1,12 @@
+# OSV exceptions must be narrow, documented, and time-bounded.
+# Production dependencies remain separately blocked by `pnpm audit --prod` in CI.
+
+[[IgnoredVulns]]
+id = "GHSA-5p2g-fcmc-qvqq"
+ignoreUntil = 2026-09-14
+reason = "Transitive image-size 2.0.2 advisory is confined to the current vinext build/dev dependency chain; OSV reports no fixed version in that chain. Production dependency audit remains blocking. Re-evaluate before this exception expires."
+
+[[IgnoredVulns]]
+id = "GHSA-w3rx-r6r6-pgpr"
+ignoreUntil = 2026-09-14
+reason = "Second current advisory on the same transitive image-size 2.0.2 vinext build/dev dependency; OSV reports no fixed version in that chain. Production dependency audit remains blocking. Re-evaluate before this exception expires."
