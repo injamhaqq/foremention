@@ -25,6 +25,19 @@ type CompetitorRow = { id: string; name: string; website: string | null; competi
 type OpportunityRow = { id: string; citation_observations: number; entry_route: string | null; feasibility: string; influence: string; source: { domain: string; page_title: string | null; canonical_url: string; crawler_checked_at: string | null } | null };
 type ActionRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string };
 
+const PLACEMENT_STAGES = new Set([
+  "identified",
+  "qualified",
+  "pitched",
+  "accepted",
+  "published",
+  "indexed",
+  "first_cited",
+  "repeatedly_cited",
+  "decayed",
+  "closed",
+]);
+
 const clean = (value: string) => value
   .normalize("NFKC")
   .replace(/[^\p{L}\p{N}\s.'-]/gu, " ")
@@ -66,6 +79,16 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
   if (!context) return { query, results: [], failedKinds: [] };
   const pattern = contains(query);
   const token = viewer.accessToken;
+  const normalizedStage = query.toLowerCase().replace(/\s+/g, "_");
+  const actionFilters = [
+    `source_url.ilike.${pattern}`,
+    `page_title.ilike.${pattern}`,
+    `entry_route.ilike.${pattern}`,
+  ];
+  if (PLACEMENT_STAGES.has(normalizedStage)) {
+    actionFilters.push(`stage.eq.${encodeURIComponent(normalizedStage)}`);
+  }
+  const actionOr = actionFilters.join(",");
 
   const searches = await Promise.all([
     attempt("Question", supabaseRest<PromptRow[]>(
@@ -89,7 +112,7 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
       { token },
     )),
     attempt("Action", supabaseRest<ActionRow[]>(
-      `placements?select=id,source_url,page_title,entry_route,stage,updated_at&organization_id=eq.${context.organizationId}&or=(source_url.ilike.${pattern},page_title.ilike.${pattern},entry_route.ilike.${pattern},stage.ilike.${pattern})&order=updated_at.desc&limit=12`,
+      `placements?select=id,source_url,page_title,entry_route,stage,updated_at&organization_id=eq.${context.organizationId}&or=(${actionOr})&order=updated_at.desc&limit=12`,
       { token },
     )),
   ]);
