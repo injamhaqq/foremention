@@ -57,21 +57,21 @@ function SignOutButton({ demo }: { demo: boolean }) {
 
 function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   return <>
-    <nav aria-label="Main workspace">
+    <nav className="sidebar-nav sidebar-nav--primary" aria-label="Main workspace">
       {primaryNav.map(([href, label]) => {
         const current = isCurrent(pathname, href);
         return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
       })}
     </nav>
-    <nav aria-label="Workspace tools">
+    <nav className="sidebar-nav sidebar-nav--workspace" aria-label="Workspace tools">
       {workspaceNav.map(([href, label]) => {
         const current = isCurrent(pathname, href);
         return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
       })}
     </nav>
     <details className="sidebar-advanced">
-      <summary>Advanced</summary>
-      <nav aria-label="Advanced workspace tools">
+      <summary><span>Advanced</span><small>{advancedNav.length} tools</small></summary>
+      <nav className="sidebar-nav sidebar-nav--advanced" aria-label="Advanced workspace tools">
         {advancedNav.map(([href, label]) => {
           const current = isCurrent(pathname, href);
           return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
@@ -85,9 +85,13 @@ export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; wo
   const pathname = usePathname();
   return <aside className="app-sidebar">
     <Wordmark inverse />
-    <NavigationLinks pathname={pathname} />
-    <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
-    <SignOutButton demo={viewer.mode === "demo"} />
+    <div className="app-sidebar__navigation">
+      <NavigationLinks pathname={pathname} />
+    </div>
+    <div className="app-sidebar__footer">
+      <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
+      <SignOutButton demo={viewer.mode === "demo"} />
+    </div>
   </aside>;
 }
 
