@@ -73,6 +73,19 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
   .analytics-consent > div { align-self: end; }
+  .app-mobile-nav .sidebar-advanced > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--line);
+    font-size: 10px;
+    font-weight: 700;
+    list-style: none;
+  }
+  .app-mobile-nav .sidebar-advanced > summary::-webkit-details-marker { display: none; }
+  .app-mobile-nav .sidebar-advanced > summary small { color: var(--muted); font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }
 }
 
 @media (max-width: 520px) {
