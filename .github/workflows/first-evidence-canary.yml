@@ -1,0 +1,80 @@
+name: Authenticated First-Evidence Canary
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: first-evidence-canary-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  production-canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.13.0
+
+      - name: Verify exact production release before canary
+        env:
+          FOREMENTION_BASE_URL: https://foremention.com
+          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
+          FOREMENTION_RELEASE_WAIT_SECONDS: '300'
+        run: node scripts/production-auth-smoke.mjs
+
+      - name: Install pinned Chromium canary tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-tools
+          cat > .ci-tools/package.json <<'JSON'
+          {
+            "private": true,
+            "dependencies": {
+              "playwright": "1.60.0"
+            }
+          }
+          JSON
+          npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
+          .ci-tools/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Run authenticated first-evidence production canary
+        env:
+          FOREMENTION_BROWSER_BASE_URL: https://foremention.com
+          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
+          FOREMENTION_ACCEPTANCE_EMAIL: ${{ secrets.FOREMENTION_ACCEPTANCE_EMAIL }}
+          FOREMENTION_ACCEPTANCE_PASSWORD: ${{ secrets.FOREMENTION_ACCEPTANCE_PASSWORD }}
+          FOREMENTION_ACCEPTANCE_CANARY_ENABLED: ${{ secrets.FOREMENTION_ACCEPTANCE_CANARY_ENABLED }}
+          FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: ${{ secrets.FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED }}
+          FOREMENTION_ACCEPTANCE_PROVIDER: ${{ secrets.FOREMENTION_ACCEPTANCE_PROVIDER }}
+          FOREMENTION_ACCEPTANCE_MAX_COST_USD: ${{ secrets.FOREMENTION_ACCEPTANCE_MAX_COST_USD }}
+          FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS: '600000'
+        run: node scripts/first-evidence-production-canary.mjs
+
+      - name: Archive first-evidence canary evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: foremention-first-evidence-canary-${{ github.sha }}
+          path: browser-acceptance/first-evidence-production-canary.json
+          if-no-files-found: error
+          retention-days: 5
