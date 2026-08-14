@@ -37,7 +37,8 @@ test("a nontechnical customer can follow website to question to collection to so
 test("core customer navigation contains product outcomes while internal systems remain advanced", async () => {
   const navigation = await text("components/workspace-navigation.tsx");
   for (const label of ["Overview", "Questions", "AI Results", "Sources", "Competitors", "Opportunities", "Actions", "Analytics"]) assert.match(navigation, new RegExp(label));
-  assert.match(navigation, /<summary>Advanced<\/summary>/);
+  assert.match(navigation, /<details className="sidebar-advanced">/);
+  assert.match(navigation, /<summary><span>Advanced<\/span><small>\{advancedNav\.length\} tools<\/small><\/summary>/);
   assert.match(navigation, /Agent Control Plane/);
   assert.match(navigation, /aria-label="Advanced workspace tools"/);
 });
