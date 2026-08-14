@@ -16,17 +16,18 @@ test("browser acceptance is permanent on pull requests and exact main releases",
   assert.match(workflow, /branches:\s*\n\s*- main/);
   assert.match(workflow, /production-auth-smoke\.mjs/);
   assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ github\.sha \}\}/);
-  assert.match(workflow, /vinext start --port 4173 --hostname 127\.0\.0\.1/);
+  assert.match(workflow, /wrangler dev --local --config dist\/server\/wrangler\.json --ip 127\.0\.0\.1 --port 4173/);
   assert.match(workflow, /FOREMENTION_BROWSER_BASE_URL=http:\/\/127\.0\.0\.1:4173/);
+  assert.match(workflow, /Waiting for local Worker \(\$\{attempt\}\/60\)/);
 });
 
-test("browser tooling is pinned and acceptance secrets never enter pull request code", () => {
+test("browser tooling is pinned and pull request code never receives production secrets", () => {
   assert.match(workflow, /"playwright": "1\.60\.0"/);
   assert.match(workflow, /"@axe-core\/playwright": "4\.12\.1"/);
   assert.match(workflow, /"@lhci\/cli": "0\.15\.1"/);
-  assert.match(workflow, /if: github\.event_name != 'pull_request'[\s\S]*FOREMENTION_ACCEPTANCE_EMAIL: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_EMAIL \}\}/);
   const prStep = workflow.match(/- name: Run public browser and accessibility acceptance[\s\S]*?run: node scripts\/browser-acceptance\.mjs/)?.[0] || "";
   assert.doesNotMatch(prStep, /secrets\./);
+  assert.doesNotMatch(workflow, /secrets\.FOREMENTION_ACCEPTANCE_/);
 });
 
 test("public acceptance covers the core conversion surfaces and product regressions", () => {
@@ -52,7 +53,7 @@ test("accessibility is blocking for serious regressions while Lighthouse starts 
   assert.match(lighthouse, /"categories:best-practices": \["warn", \{ minScore: 0\.9 \}\]/);
 });
 
-test("authenticated browser acceptance is real but explicitly skippable without dedicated secrets", () => {
+test("authenticated browser acceptance is real but explicitly skippable without dedicated credentials", () => {
   for (const path of ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"]) {
     assert.match(runner, new RegExp(`"${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
   }
