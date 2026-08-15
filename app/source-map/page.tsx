@@ -43,7 +43,7 @@ export default function SourceMapProductPage() {
           <h1>See the real website problems—and the evidence behind each fix.</h1>
           <p>
             This is a dated website audit of the production Foremention site, collected
-            from public pages on July 27, 2026—not a continuously refreshed dashboard.
+            from public pages on July 27, 2026—not a continuously refreshed dashboard and not a fictional customer report.
           </p>
         </div>
       </section>
@@ -90,14 +90,12 @@ export default function SourceMapProductPage() {
       <section className="section section--yellow">
         <div className="shell split-section">
           <div>
-            <span className="eyebrow">Market evidence</span>
+            <span className="eyebrow">Real-company market evidence</span>
             <h2>Competitor research has its own evidence set.</h2>
           </div>
           <div>
             <p>
-              The Source Map stays focused on Foremention&apos;s own website. Dated
-              first-party observations about other AI-visibility products live separately
-              so market context does not blur this self-audit.
+              The Source Map stays focused on Foremention&apos;s own website. Dated first-party observations about other AI-visibility products live separately; they show what vendors published when checked, not that an AI engine cited the page. This keeps market context from blurring the self-audit.
             </p>
             <Link className="button button--outline" href="/compare">
               Explore market evidence <Arrow />
