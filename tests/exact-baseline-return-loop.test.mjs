@@ -10,16 +10,18 @@ test("customer intelligence routes repeat work through the exact reviewed baseli
   assert.match(safe, /function exactBaselineHref\(latestRunId: string\)/);
   assert.match(safe, /return `\/app\/runs\/\$\{latestRunId\}`/);
   assert.match(safe, /title: "Repeat the same questions and provider"/);
-  assert.match(safe, /title: "Repeat the reviewed baseline when ready"/);
+  assert.match(safe, /title: "Open the reviewed baseline"/);
   assert.match(safe, /cta: "Open reviewed baseline"/);
   assert.match(safe, /href: exactBaselineHref\(latest\.id\)/);
 });
 
-test("return-loop copy does not imply automatic paid scheduling or guaranteed comparability", async () => {
+test("return-loop copy reflects the conditional capped weekly scheduler without guaranteeing recurrence or comparability", async () => {
   const safe = await text("lib/safe-intelligence.ts");
-  assert.match(safe, /Foremention does not automatically schedule a paid rerun/);
-  assert.match(safe, /only if the exact question text, provider, model, and methodology remain compatible/);
-  assert.match(safe, /comparison is reported only when exact question text, provider, model, and methodology remain compatible/);
+  assert.match(safe, /Eligible workspaces are checked weekly for a capped re-observation/);
+  assert.match(safe, /provider configuration, capacity, quota, and spend controls allow it/);
+  assert.match(safe, /only when exact question text, provider, model, and methodology remain compatible/);
+  assert.doesNotMatch(safe, /does not automatically schedule a paid rerun/i);
+  assert.doesNotMatch(safe, /guaranteed weekly/i);
   assert.doesNotMatch(safe, /title:\s*"Run the next scheduled comparison"/);
 });
 
