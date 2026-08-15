@@ -23,7 +23,7 @@ export default function ComparePage() {
       <div className="shell narrow-heading">
         <span className="eyebrow">Market evidence &amp; comparisons</span>
         <h1>Compare the category without pretending vendor claims are proof.</h1>
-        <p>Foremention keeps a dated record of what selected companies publicly describe on their own first-party pages. Those observations can help buyers understand the market, but they do not prove that an AI engine cited a page, that a vendor claim is independently true, or that one product is superior.</p>
+        <p>Foremention keeps a dated record of what selected companies publicly describe on their own first-party pages. Those observations prove what the selected page publicly described at collection time, not that an AI engine cited the page, not that a vendor claim is independently true, and not that one product is superior.</p>
       </div>
     </section>
 
