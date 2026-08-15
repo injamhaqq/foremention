@@ -257,7 +257,7 @@ async function run() {
     const page = await context.newPage();
     await page.goto(new URL("/login", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.getByLabel("Email").fill(acceptanceEmail);
-    await page.getByLabel("Password", { exact: true }).fill(acceptancePassword);
+    await page.locator('input[name="password"]').fill(acceptancePassword);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await page.waitForURL((url) => url.pathname.startsWith("/app") || url.pathname.startsWith("/onboarding"), { timeout: 20_000 });
     stage("authenticated-session-established");
