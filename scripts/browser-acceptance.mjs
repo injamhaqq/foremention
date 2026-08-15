@@ -10,6 +10,7 @@ const axeModule = toolRequire("@axe-core/playwright");
 const AxeBuilder = axeModule.default || axeModule.AxeBuilder || axeModule;
 
 const baseUrl = new URL((process.env.FOREMENTION_BROWSER_BASE_URL || process.env.FOREMENTION_BASE_URL || "https://foremention.com").replace(/\/$/, ""));
+const baseOrigin = baseUrl.origin;
 const expectedBuildCommit = (process.env.FOREMENTION_EXPECTED_BUILD_COMMIT || "").trim().toLowerCase();
 const acceptanceEmail = (process.env.FOREMENTION_ACCEPTANCE_EMAIL || "").trim();
 const acceptancePassword = process.env.FOREMENTION_ACCEPTANCE_PASSWORD || "";
@@ -42,6 +43,16 @@ function slug(path) {
 function recordFailure(message, details = {}) {
   summary.failures.push({ message, ...details });
   console.error(`[browser-acceptance] FAIL: ${message}`, details);
+}
+
+function sanitizeDiagnosticUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl, baseUrl);
+    if (parsed.origin !== baseOrigin) return null;
+    return parsed.pathname;
+  } catch {
+    return null;
+  }
 }
 
 function sanitizeAxeCheck(check) {
@@ -106,17 +117,26 @@ async function verifyExactHealth() {
 function attachRuntimeObservers(page) {
   const consoleErrors = [];
   const pageErrors = [];
+  const failedResponses = [];
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("response", (response) => {
+    const status = response.status();
+    if (status < 400) return;
+    const pathname = sanitizeDiagnosticUrl(response.url());
+    if (!pathname) return;
+    failedResponses.push({ status, pathname: sanitizeDiagnosticUrl(response.url()) });
+  });
   return {
     reset() {
       consoleErrors.length = 0;
       pageErrors.length = 0;
+      failedResponses.length = 0;
     },
     snapshot() {
-      return { consoleErrors: [...consoleErrors], pageErrors: [...pageErrors] };
+      return { consoleErrors: [...consoleErrors], pageErrors: [...pageErrors], failedResponses: [...failedResponses] };
     },
   };
 }
@@ -162,7 +182,14 @@ async function auditPage({ page, observers, path, profileName, axe = true, requi
     recordFailure("Horizontal viewport overflow detected.", { profile: profileName, path, viewport });
   }
   if (runtime.pageErrors.length) recordFailure("Uncaught browser page error detected.", { profile: profileName, path, errors: runtime.pageErrors });
-  if (runtime.consoleErrors.length) recordFailure("Browser console error detected.", { profile: profileName, path, errors: runtime.consoleErrors });
+  if (runtime.consoleErrors.length) {
+    recordFailure("Browser console error detected.", {
+      profile: profileName,
+      path,
+      errors: runtime.consoleErrors,
+      failedResponses: runtime.failedResponses,
+    });
+  }
 
   if (path === "/login" || path === "/signup") {
     if (!await visible(page.locator("form"))) recordFailure("Authentication form is not visibly rendered.", { profile: profileName, path });
