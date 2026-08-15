@@ -19,6 +19,7 @@ const routes = [
   { path: "/subprocessors", frequency: "monthly", priority: 0.3 },
   { path: "/terms", frequency: "yearly", priority: 0.3 },
   { path: "/monitoring-vs-execution", frequency: "monthly", priority: 0.8 },
+  { path: "/compare", frequency: "monthly", priority: 0.8 },
   { path: "/compare/monitoring-tools", frequency: "monthly", priority: 0.7 },
   { path: "/compare/geo-agencies", frequency: "monthly", priority: 0.7 },
   { path: "/compare/pr-agencies", frequency: "monthly", priority: 0.6 },
