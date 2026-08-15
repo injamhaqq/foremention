@@ -38,7 +38,7 @@ export default function CompareHubPage() {
     <PublicShell>
       <section className="page-hero">
         <div className="shell narrow-heading">
-          <span className="eyebrow">Market evidence</span>
+          <span className="eyebrow">Dated market evidence</span>
           <h1>Compare category claims without blurring them into the sales pitch.</h1>
           <p>
             This is a dated research set built from first-party vendor pages. The buyer
@@ -52,13 +52,12 @@ export default function CompareHubPage() {
         <div className="shell">
           <div className="section-heading">
             <span className="eyebrow">Evidence boundary</span>
-            <h2>What the record proves—and what it does not.</h2>
+            <h2>Not product telemetry.</h2>
             <p>
-              Each record proves what the vendor published when the source was collected,
-              not that an AI engine cited the page, and not that a vendor claim is
-              independently true. Product performance, customer outcomes, provider
-              coverage, and causation remain outside this evidence set unless separately
-              verified.
+              A recorded source means only that the claim or pricing was present on the vendor
+              page when we checked it—not that a vendor claim is independently true and not that
+              an AI engine cited the page. Product performance, customer outcomes, provider
+              coverage, and causation remain outside this evidence set unless separately verified.
             </p>
           </div>
 
@@ -111,11 +110,11 @@ export default function CompareHubPage() {
         <div className="shell">
           <div className="section-heading">
             <span className="eyebrow">Choose the right comparison</span>
-            <h2>Compare workflows, not marketing adjectives.</h2>
+            <h2>Why Foremention approaches the category differently.</h2>
             <p>
-              These pages compare category-level operating models. They do not claim that
-              every vendor or agency behaves identically, and they do not promise an
-              outcome Foremention cannot verify.
+              These pages compare category-level operating models rather than marketing
+              adjectives. They do not claim that every vendor or agency behaves identically,
+              and they do not promise an outcome Foremention cannot verify.
             </p>
           </div>
           <div className="pricing-shared">
