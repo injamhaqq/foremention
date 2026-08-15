@@ -137,6 +137,10 @@
   margin-top: 0.28rem;
 }
 
+.previewEvidence > div:first-child > strong {
+  display: block;
+}
+
 .chainGrid,
 .learnGrid,
 .differenceGrid,
@@ -318,5 +322,30 @@
     max-width: 10ch;
     font-size: clamp(3rem, 13vw, 3.75rem);
     line-height: 0.92;
+  }
+}
+
+@media (max-width: 520px) {
+  .previewAnswer,
+  .previewEvidence {
+    padding: 0.9rem;
+  }
+
+  .previewEvidence {
+    gap: 0.75rem;
+  }
+
+  .previewEvidenceCard {
+    padding: 0.75rem;
+  }
+
+  .previewTopline {
+    gap: 0.35rem;
+    padding: 0.7rem 0.9rem;
+  }
+
+  .previewQuestion,
+  .previewStatus {
+    margin-bottom: 0.75rem;
   }
 }
