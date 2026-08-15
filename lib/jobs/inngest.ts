@@ -55,69 +55,6 @@ type ScheduledRunSeed = RunRow & { completed_at: string | null };
 const includesName = (text: string, value: string) =>
   Boolean(value.trim()) && text.toLocaleLowerCase().includes(value.trim().toLocaleLowerCase());
 
-async function recordRunChanges(run: RunRow, identity: Identity) {
-  if (!run.created_by) return;
-  const previousRuns = await supabaseRest<Array<{ id: string; brand_presence_pct: number | string }>>(
-    `runs?select=id,brand_presence_pct&organization_id=eq.${run.organization_id}&id=neq.${run.id}&status=in.(review,complete,partial)&order=created_at.desc&limit=1`,
-    { serviceRole: true },
-  );
-  const previous = previousRuns[0];
-  if (!previous) return;
-  const [currentRows, previousRows, currentRunRows] = await Promise.all([
-    supabaseRest<Array<{ answer_text: string }>>(`run_answers?select=answer_text&organization_id=eq.${run.organization_id}&run_id=eq.${run.id}`, { serviceRole: true }),
-    supabaseRest<Array<{ answer_text: string }>>(`run_answers?select=answer_text&organization_id=eq.${run.organization_id}&run_id=eq.${previous.id}`, { serviceRole: true }),
-    supabaseRest<Array<{ brand_presence_pct: number | string }>>(`runs?select=brand_presence_pct&id=eq.${run.id}&organization_id=eq.${run.organization_id}&limit=1`, { serviceRole: true }),
-  ]);
-  const sourceIdsForRun = async (runId: string) => {
-    const answers = await supabaseRest<Array<{ id: string }>>(`run_answers?select=id&organization_id=eq.${run.organization_id}&run_id=eq.${runId}`, { serviceRole: true });
-    if (!answers.length) return new Set<string>();
-    const rows = await supabaseRest<Array<{ source_id: string }>>(`citations?select=source_id&organization_id=eq.${run.organization_id}&run_answer_id=in.(${answers.map((row) => row.id).join(",")})`, { serviceRole: true });
-    return new Set(rows.map((row) => row.source_id));
-  };
-  const [currentSources, previousSources] = await Promise.all([sourceIdsForRun(run.id), sourceIdsForRun(previous.id)]);
-  const currentText = currentRows.map((row) => row.answer_text).join(" ");
-  const previousText = previousRows.map((row) => row.answer_text).join(" ");
-  const movedCompetitors = identity.competitors.filter((name) => includesName(currentText, name) !== includesName(previousText, name));
-  const newSourceCount = Array.from(currentSources).filter((id) => !previousSources.has(id)).length;
-  const lostSourceCount = Array.from(previousSources).filter((id) => !currentSources.has(id)).length;
-  const currentPresence = Number(currentRunRows[0]?.brand_presence_pct || 0);
-  const previousPresence = Number(previous.brand_presence_pct || 0);
-  const changes = [
-    ...(currentPresence !== previousPresence ? [{ kind: "brand_presence_changed", title: "Brand appearance changed", body: `Observed brand presence moved from ${previousPresence}% to ${currentPresence}% across comparable scheduled runs.` }] : []),
-    ...(newSourceCount ? [{ kind: "new_sources", title: "New citation sources appeared", body: `${newSourceCount} source${newSourceCount === 1 ? "" : "s"} appeared in the latest scheduled run.` }] : []),
-    ...(lostSourceCount ? [{ kind: "lost_sources", title: "Citation sources disappeared", body: `${lostSourceCount} previously observed source${lostSourceCount === 1 ? "" : "s"} did not recur in the latest scheduled run.` }] : []),
-    ...(movedCompetitors.length ? [{ kind: "competitor_movement", title: "Competitor appearance changed", body: `${movedCompetitors.slice(0, 5).join(", ")} changed appearance state between comparable runs.` }] : []),
-  ];
-  if (changes.length) {
-    await supabaseRest("notifications?on_conflict=organization_id,user_id,event_key", {
-      method: "POST",
-      serviceRole: true,
-      prefer: "resolution=ignore-duplicates,return=minimal",
-      body: changes.map((change) => ({ organization_id: run.organization_id, user_id: run.created_by, event_key: `${change.kind}:${run.id}`, kind: "workspace", title: change.title, body: change.body, href: "/app/intelligence" })),
-    });
-  }
-
-  const mentionCount = (rows: Array<{ answer_text: string }>, name: string) =>
-    rows.reduce((count, row) => count + (includesName(row.answer_text, name) ? 1 : 0), 0);
-  const currentBrandMentions = mentionCount(currentRows, identity.brand);
-  const previousBrandMentions = mentionCount(previousRows, identity.brand);
-  const competitorMovement = identity.competitors
-    .map((name) => ({ name, current: mentionCount(currentRows, name), previous: mentionCount(previousRows, name) }))
-    .filter((row) => row.current > currentBrandMentions && row.previous <= previousBrandMentions)
-    .sort((left, right) => right.current - left.current)[0];
-  if (competitorMovement) {
-    await sendWorkspaceEmailAlert({
-      organizationId: run.organization_id,
-      userId: run.created_by,
-      eventKey: `competitor_overtook:${run.id}:${competitorMovement.name.toLocaleLowerCase()}`,
-      kind: "competitor_overtook",
-      subject: "A competitor moved ahead in observed AI answers",
-      text: `${competitorMovement.name} appeared in more answers than your brand in the latest comparable run. This is exact-name answer frequency, not proof of market share or causation. Review the evidence before acting.`,
-      href: "/app/intelligence",
-    });
-  }
-}
-
 async function notifyFirstCompletedRun(run: RunRow, answerCount: number, citationCount: number, sourceCount: number) {
   if (!run.created_by) return;
   const earlier = await supabaseRest<Array<{ id: string }>>(
@@ -828,7 +765,6 @@ export const runMultiEngineScan = inngest.createFunction(
     } catch (error) {
       console.warn("Observed Source Map generation will be retried after review.", safeOperationalError(error));
     }
-    await step.run("detect-run-changes", () => recordRunChanges(run, identity));
     await step.run("notify-run-owner", () =>
       notifyRunOwner(
         run,
