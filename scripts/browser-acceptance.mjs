@@ -44,10 +44,35 @@ function recordFailure(message, details = {}) {
   console.error(`[browser-acceptance] FAIL: ${message}`, details);
 }
 
+function sanitizeAxeCheck(check) {
+  return {
+    id: check.id,
+    impact: check.impact ?? null,
+    data: check.data ?? null,
+  };
+}
+
+function sanitizeAxeViolation(violation) {
+  return {
+    id: violation.id,
+    impact: violation.impact,
+    help: violation.help,
+    helpUrl: violation.helpUrl,
+    nodes: violation.nodes.map((node) => ({
+      target: node.target,
+      failureSummary: node.failureSummary,
+      any: node.any.map(sanitizeAxeCheck),
+      all: node.all.map(sanitizeAxeCheck),
+      none: node.none.map(sanitizeAxeCheck),
+    })),
+  };
+}
+
 async function ensureOutput() {
   await mkdir(outputRoot, { recursive: true });
   for (const profile of profiles) await mkdir(resolve(outputRoot, profile.name), { recursive: true });
   await mkdir(resolve(outputRoot, "axe"), { recursive: true });
+  await mkdir(resolve(outputRoot, "authenticated-axe"), { recursive: true });
 }
 
 async function verifyExactHealth() {
@@ -283,7 +308,21 @@ async function verifyAuthenticatedRoutes() {
         try {
           const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
           const blocking = result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical");
-          if (blocking.length) recordFailure("Authenticated critical path has serious/critical axe violations.", { ...row, violations: blocking.map((violation) => violation.id) });
+          const sanitizedBlocking = blocking.map(sanitizeAxeViolation);
+          await writeFile(
+            resolve(outputRoot, "authenticated-axe", `${profile.name}-${slug(path)}.json`),
+            JSON.stringify({ profile: profile.name, path, violations: sanitizedBlocking }, null, 2),
+          );
+          if (blocking.length) {
+            recordFailure("Authenticated critical path has serious/critical axe violations.", {
+              ...row,
+              violations: sanitizedBlocking.map((violation) => ({
+                id: violation.id,
+                impact: violation.impact,
+                targets: violation.nodes.map((node) => node.target),
+              })),
+            });
+          }
         } catch (error) {
           recordFailure("Authenticated axe analysis failed to execute.", { profile: profile.name, path, error: error instanceof Error ? error.message : String(error) });
         }
