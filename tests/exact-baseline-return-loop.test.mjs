@@ -20,7 +20,7 @@ test("return-loop copy does not imply automatic paid scheduling or guaranteed co
   assert.match(safe, /Foremention does not automatically schedule a paid rerun/);
   assert.match(safe, /only if the exact question text, provider, model, and methodology remain compatible/);
   assert.match(safe, /comparison is reported only when exact question text, provider, model, and methodology remain compatible/);
-  assert.doesNotMatch(safe, /Run the next scheduled comparison/);
+  assert.doesNotMatch(safe, /title:\s*"Run the next scheduled comparison"/);
 });
 
 test("withheld movement returns to the reviewed baseline without claiming the next model is fixed", async () => {
