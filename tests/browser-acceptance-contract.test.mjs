@@ -63,6 +63,8 @@ test("trusted production authenticated browser acceptance fails closed while pul
   }
   assert.match(runner, /FOREMENTION_ACCEPTANCE_EMAIL/);
   assert.match(runner, /FOREMENTION_ACCEPTANCE_PASSWORD/);
+  assert.match(runner, /locator\('input\[name="password"\]'\)/);
+  assert.doesNotMatch(runner, /getByLabel\("Password", \{ exact: true \}\)/);
   assert.match(runner, /FOREMENTION_REQUIRE_AUTHENTICATED_ACCEPTANCE/);
   assert.match(workflow, /FOREMENTION_REQUIRE_AUTHENTICATED_ACCEPTANCE: 'true'/);
   assert.match(runner, /Trusted production authenticated browser acceptance is required but dedicated credentials are not configured/);
