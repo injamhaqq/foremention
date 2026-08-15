@@ -19,6 +19,7 @@
 
 .app-sidebar { overflow: hidden; }
 .app-sidebar > .wordmark { background: var(--ink); }
+.app-sidebar > .wordmark > .wordmark__name { background: var(--ink); }
 .app-sidebar__navigation {
   min-height: 0;
   flex: 1 1 auto;
