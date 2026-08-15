@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 const CONSENT_KEY = "foremention:experience-analytics-consent";
 const LEGACY_CONSENT_KEY = "foremention:contentsquare-consent";
@@ -83,13 +83,61 @@ export function ContentsquareAnalytics() {
 
   // Optional experience analytics is privacy-off by default. This loader never
   // renders a blocking or floating consent surface; users can opt in from the
-  // normal footer preference control instead.
+  // normal footer settings control instead.
   return null;
 }
 
 export function ExperienceAnalyticsPreferences() {
   const consent = useExperienceAnalyticsConsent();
   const enabled = consent === "accepted";
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusables = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ) ?? []);
+
+    focusables()[0]?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [open]);
+
+  function closeDialog() {
+    setOpen(false);
+  }
 
   function choose(next: Exclude<Consent, null>) {
     const previous = readStoredConsent();
@@ -97,17 +145,48 @@ export function ExperienceAnalyticsPreferences() {
     // Once a third-party script has executed, removing its script tag cannot
     // guarantee the already-loaded runtime has stopped. Reload after revoking
     // an existing opt-in so the new privacy-off state is applied cleanly.
-    if (previous === "accepted" && next === "declined") window.location.reload();
+    if (previous === "accepted" && next === "declined") {
+      window.location.reload();
+      return;
+    }
+    closeDialog();
   }
 
-  return <details className="footer-analytics-preferences">
-    <summary>Analytics preferences <small>{enabled ? "On" : "Off"}</small></summary>
-    <div className="footer-analytics-preferences__panel">
-      <p>Optional Microsoft Clarity and Contentsquare analytics stay off unless you allow them. They are not used for AI answers, evidence, passwords, or form content.</p>
-      <div className="footer-analytics-preferences__actions">
-        <button type="button" className="button button--outline button--small" aria-pressed={!enabled} onClick={() => choose("declined")}>Keep off</button>
-        <button type="button" className="button button--small" aria-pressed={enabled} onClick={() => choose("accepted")}>Allow analytics</button>
+  return <>
+    <button
+      ref={triggerRef}
+      type="button"
+      className="footer-analytics-trigger"
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      onClick={() => setOpen(true)}
+    >
+      Analytics settings <small>{enabled ? "On" : "Off"}</small>
+    </button>
+    {open ? <div
+      className="analytics-settings-backdrop"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) closeDialog(); }}
+    >
+      <div
+        ref={dialogRef}
+        className="analytics-settings-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="analytics-settings-title"
+        aria-describedby="analytics-settings-description"
+      >
+        <div className="analytics-settings-dialog__head">
+          <span className="eyebrow">Optional experience analytics</span>
+          <button type="button" className="analytics-settings-dialog__close" aria-label="Close analytics settings" onClick={closeDialog}>Close</button>
+        </div>
+        <h2 id="analytics-settings-title">Analytics settings</h2>
+        <p id="analytics-settings-description">Microsoft Clarity and Contentsquare stay off unless you allow them. They are not used for AI answers, evidence, passwords, or form content.</p>
+        <p className="analytics-settings-dialog__note">This preference controls optional experience analytics only. Foremention&apos;s privacy-limited product telemetry is described separately in the Privacy notice.</p>
+        <div className="analytics-settings-actions">
+          <button type="button" className="button button--outline" aria-pressed={!enabled} onClick={() => choose("declined")}>Keep off</button>
+          <button type="button" className="button" aria-pressed={enabled} onClick={() => choose("accepted")}>Allow analytics</button>
+        </div>
       </div>
-    </div>
-  </details>;
+    </div> : null}
+  </>;
 }

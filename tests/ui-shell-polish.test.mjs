@@ -26,5 +26,7 @@ test("optional experience analytics stays off by default without an automatic ov
   assert.doesNotMatch(polish, /\.analytics-consent/);
   assert.match(analytics, /export function ExperienceAnalyticsPreferences/);
   assert.match(publicShell, /<ExperienceAnalyticsPreferences \/>/);
-  assert.match(analytics, /Optional Microsoft Clarity and Contentsquare analytics stay off unless you allow them/);
+  assert.match(analytics, /Microsoft Clarity/);
+  assert.match(analytics, /Contentsquare/);
+  assert.match(analytics, /This preference controls optional experience analytics only/);
 });

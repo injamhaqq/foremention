@@ -10,7 +10,7 @@ const routes = [
   { path: "/pricing", frequency: "monthly", priority: 0.8 },
   { path: "/roi", frequency: "monthly", priority: 0.7 },
   { path: "/methodology", frequency: "monthly", priority: 0.8 },
-  { path: "/honesty", frequency: "monthly", priority: 0.7 },
+  { path: "/standards", frequency: "monthly", priority: 0.7 },
   { path: "/teardowns", frequency: "monthly", priority: 0.7 },
   { path: "/about", frequency: "monthly", priority: 0.6 },
   { path: "/contact", frequency: "yearly", priority: 0.5 },

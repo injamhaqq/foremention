@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./product-polish.css";
 import "./accessibility-hardening.css";
+import "./public-trust-funnel.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
@@ -48,10 +49,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description: "Self-serve recommendation intelligence for AI answer monitoring, exact-source mapping, competitive analytics, and change tracking.",
-        offers: [
-          { "@type": "Offer", name: "Foremention Core", price: "149", priceCurrency: "USD", url: "https://foremention.com/pricing" },
-          { "@type": "Offer", name: "Foremention Signal", price: "499", priceCurrency: "USD", url: "https://foremention.com/pricing" },
-        ],
       },
     ],
   };
