@@ -18,6 +18,7 @@
 .footer-analytics-preferences__actions .button { min-height: 32px; padding: 7px 9px; font-size: 9px; }
 
 .app-sidebar { overflow: hidden; }
+.app-sidebar > .wordmark { background: var(--ink); }
 .app-sidebar__navigation {
   min-height: 0;
   flex: 1 1 auto;
@@ -58,6 +59,8 @@
 .app-sidebar__navigation .sidebar-advanced .sidebar-nav a { min-height: 36px; padding: 8px 22px 8px 30px; color: #aaa49b; font-size: 10px; }
 .app-sidebar__footer { flex: 0 0 auto; background: var(--ink); }
 .app-sidebar__footer .sidebar-company { margin-top: 0; padding-top: 14px; }
+
+.getting-started li a:hover small { color: var(--ink); }
 
 .workspace-search-page { display: grid; gap: 10px; }
 .workspace-search-page > label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
