@@ -13,6 +13,7 @@ const baseUrl = new URL((process.env.FOREMENTION_BROWSER_BASE_URL || process.env
 const expectedBuildCommit = (process.env.FOREMENTION_EXPECTED_BUILD_COMMIT || "").trim().toLowerCase();
 const acceptanceEmail = (process.env.FOREMENTION_ACCEPTANCE_EMAIL || "").trim();
 const acceptancePassword = process.env.FOREMENTION_ACCEPTANCE_PASSWORD || "";
+const requireAuthenticatedAcceptance = (process.env.FOREMENTION_REQUIRE_AUTHENTICATED_ACCEPTANCE || "").trim().toLowerCase() === "true";
 const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-acceptance");
 
 const publicPaths = ["/", "/product", "/pricing", "/score", "/prompt-check", "/login", "/signup"];
@@ -234,6 +235,11 @@ async function verifyAuthenticatedRoutes() {
     return;
   }
   if (!acceptanceEmail || !acceptancePassword) {
+    if (requireAuthenticatedAcceptance) {
+      summary.authenticated = { skipped: false, configurationError: true };
+      recordFailure("Trusted production authenticated browser acceptance is required but dedicated credentials are not configured.");
+      return;
+    }
     summary.authenticated = {
       skipped: true,
       reason: "FOREMENTION_ACCEPTANCE_EMAIL and FOREMENTION_ACCEPTANCE_PASSWORD are not configured for this trusted run.",
