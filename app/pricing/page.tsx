@@ -97,8 +97,9 @@ export default function PricingPage() {
           <p>
             Foremention turns AI answers into dated, inspectable evidence your team can
             review: what was said, which sources appeared, where the evidence is weak,
-            and what to investigate next. Private beta is free today; the prices below
-            are planned packaging, not active checkout.
+            and what to investigate next. Self-serve signup currently creates a controlled
+            free-beta workspace; the prices below are planned packaging, not active checkout.
+            The workflow is a repeatable intelligence system, not a hidden composite score.
           </p>
         </div>
       </section>
@@ -137,9 +138,9 @@ export default function PricingPage() {
         <div className="shell pricing-activation">
           <strong>Private beta is free today.</strong>
           <p>
-            Creating a workspace does not charge a card. The $149 Core and $499 Signal
-            prices are planned commercial packaging only; checkout, billing terms, and
-            paid entitlements remain inactive until separately verified and authorized.
+            Creating a workspace does not charge a card or activate Core, Signal, or Intelligence.
+            The $149 Core and $499 Signal prices are planned commercial packaging only; checkout,
+            billing terms, and paid entitlements remain inactive until separately verified and authorized.
           </p>
         </div>
       </section>
