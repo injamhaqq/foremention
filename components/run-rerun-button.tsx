@@ -15,10 +15,10 @@ export function RunRerunButton({ promptIds, provider, demo }: { promptIds: strin
       const response = await fetch("/api/runs", { method: "POST", headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() }, body: JSON.stringify({ promptIds, providers: [provider] }) });
       const result = await response.json() as { id?: string; error?: string; note?: string };
       if (!response.ok) throw new Error(result.error || "Could not queue the repeated run.");
-      setMessage(result.note || "Comparable run queued with the same questions and provider.");
+      setMessage(result.note || "Repeat collection queued with the same questions and provider. Foremention will compare it only if the exact question text, provider, model, and methodology are compatible.");
       if (result.id && !demo) router.push(`/app/runs/${result.id}`); else router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not queue the repeated run."); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <div className="run-rerun"><button className="button button--ink" type="button" disabled={busy || !promptIds.length || !provider} onClick={() => void rerun()}>{busy ? "Queuing…" : "Run again with same evidence set"}</button>{message && <p className="inline-notice" role="status">{message}</p>}</div>;
+  return <div className="run-rerun"><button className="button button--ink" type="button" disabled={busy || !promptIds.length || !provider} onClick={() => void rerun()}>{busy ? "Queuing…" : "Run again with same questions and provider"}</button>{message && <p className="inline-notice" role="status">{message}</p>}</div>;
 }
