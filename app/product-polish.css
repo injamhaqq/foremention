@@ -34,7 +34,7 @@
 .app-sidebar__navigation > .sidebar-nav { margin: 0; }
 .app-sidebar__navigation > .sidebar-nav--workspace { margin-top: 10px; }
 .app-sidebar__navigation .sidebar-nav a { min-height: 40px; padding: 10px 22px; font-size: 11px; }
-.app-sidebar__navigation .sidebar-nav a span { opacity: .55; }
+.app-sidebar__navigation .sidebar-nav a span { opacity: .65; }
 .app-sidebar__navigation .sidebar-advanced { margin-top: 10px; border-top: 1px solid #3f3b36; border-bottom: 1px solid #3f3b36; }
 .app-sidebar__navigation .sidebar-advanced > summary {
   min-height: 42px;
