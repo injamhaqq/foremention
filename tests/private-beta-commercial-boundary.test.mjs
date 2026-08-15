@@ -24,7 +24,8 @@ test("provider transparency does not overclaim activation or contracts", () => {
   assert.match(providers, /not automatically active for every workspace/);
   assert.match(providers, /does not represent Sentry as an active production processor/);
   assert.match(providers, /does not expose enough information to name that underlying relay reliably/);
-  assert.match(privacy, /Service providers &amp; subprocessors/);
+  assert.match(privacy, /feature that requires a provider or customer integration remains labelled until that connection is active/);
+  assert.match(privacy, /<Link href="\/subprocessors">Subprocessors<\/Link>/);
 });
 
 test("operating policy refuses invented commercial and legal facts", () => {
