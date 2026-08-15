@@ -9,10 +9,11 @@ test("customer intelligence routes repeat work through the exact reviewed baseli
   const safe = await text("lib/safe-intelligence.ts");
   assert.match(safe, /function exactBaselineHref\(latestRunId: string\)/);
   assert.match(safe, /return `\/app\/runs\/\$\{latestRunId\}`/);
+  assert.match(safe, /nextAction\.title === "Repeat the same evidence set"/);
+  assert.doesNotMatch(safe, /title:\s*"Repeat the same evidence set/);
   assert.match(safe, /title: "Repeat the same questions and provider when ready"/);
   assert.match(safe, /cta: "Open exact baseline"/);
   assert.match(safe, /href: exactBaselineHref\(latest\.id\)/);
-  assert.doesNotMatch(safe, /same evidence set/i);
 });
 
 test("customer intelligence never implies that a paid comparable rerun is automatically scheduled", async () => {
