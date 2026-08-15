@@ -101,9 +101,9 @@ export function ExperienceAnalyticsPreferences() {
   }
 
   return <details className="footer-analytics-preferences">
-    <summary>Analytics preferences <small>{enabled ? "On" : "Off"}</small></summary>
+    <summary>Optional analytics settings <small>{enabled ? "On" : "Off"}</small></summary>
     <div className="footer-analytics-preferences__panel">
-      <p>Optional Microsoft Clarity and Contentsquare analytics stay off unless you allow them. They are not used for AI answers, evidence, passwords, or form content.</p>
+      <p>Optional Microsoft Clarity and Contentsquare experience analytics stay off unless you allow them; they do not receive AI answers, evidence, passwords, or form content.</p>
       <div className="footer-analytics-preferences__actions">
         <button type="button" className="button button--outline button--small" aria-pressed={!enabled} onClick={() => choose("declined")}>Keep off</button>
         <button type="button" className="button button--small" aria-pressed={enabled} onClick={() => choose("accepted")}>Allow analytics</button>
