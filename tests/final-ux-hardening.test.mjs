@@ -40,6 +40,18 @@ test("desktop workspace navigation arrows retain WCAG AA text contrast", () => {
   assert.ok(ratio >= 4.5, `workspace navigation arrow contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
 });
 
+test("inverse workspace wordmark has an explicit dark contrast backdrop", () => {
+  assert.match(productPolish, /\.app-sidebar > \.wordmark \{ background: var\(--ink\); \}/);
+  const ratio = contrastRatio("#f3fff9", "#041514");
+  assert.ok(ratio >= 4.5, `inverse workspace wordmark contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
+});
+
+test("getting-started helper text stays readable on the mint hover state", () => {
+  assert.match(productPolish, /\.getting-started li a:hover small \{ color: var\(--ink\); \}/);
+  const ratio = contrastRatio("#041514", "#70f0c6");
+  assert.ok(ratio >= 4.5, `getting-started hover helper contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
+});
+
 test("public ROI scenario tool is discoverable in the sitemap", () => {
   assert.match(sitemap, /path: "\/roi"/);
   assert.match(sitemap, /2026-08-14T00:00:00Z/);
