@@ -54,10 +54,7 @@ export default function CompareHubPage() {
             <span className="eyebrow">Evidence boundary</span>
             <h2>Not product telemetry.</h2>
             <p>
-              A recorded source means only that the claim or pricing was present on the vendor
-              page when we checked it—not that a vendor claim is independently true and not that
-              an AI engine cited the page. Product performance, customer outcomes, provider
-              coverage, and causation remain outside this evidence set unless separately verified.
+              A recorded source means only that the claim or pricing was present on the vendor page when we checked it—not that a vendor claim is independently true and not that an AI engine cited the page. Product performance, customer outcomes, provider coverage, and causation remain outside this evidence set unless separately verified.
             </p>
           </div>
 
