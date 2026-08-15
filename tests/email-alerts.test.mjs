@@ -32,7 +32,9 @@ test("workspace email alerts are opt-in, idempotent, and keep auth SMTP separate
   assert.match(email, /Authentication email stays separate/);
   assert.match(migration, /application_email_deliveries/);
   assert.match(migration, /enable row level security/);
-  for (const event of ["first_run_completed", "competitor_overtook", "weekly_digest"]) assert.match(jobs, new RegExp(event));
+  for (const event of ["first_run_completed", "weekly_digest"]) assert.match(jobs, new RegExp(event));
+  assert.doesNotMatch(jobs, /competitor_overtook/);
+  assert.match(helper, /input\.kind === "competitor_overtook"/);
   assert.match(review, /brand_new_source/);
   assert.match(review, /brand_lost_source/);
 });
