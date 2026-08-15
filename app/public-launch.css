@@ -1,0 +1,152 @@
+.footer-links--launch {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(18px, 3vw, 34px);
+}
+
+.footer-analytics-preferences {
+  margin-top: 2px;
+}
+
+.footer-analytics-preferences > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #d7d1c8;
+  font-size: 13px;
+  list-style: none;
+}
+
+.footer-analytics-preferences > summary::-webkit-details-marker {
+  display: none;
+}
+
+.footer-analytics-preferences > summary small {
+  margin: 0;
+  color: #8f8980;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.footer-analytics-preferences__panel {
+  width: min(360px, calc(100vw - 48px));
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #46423d;
+}
+
+.footer-analytics-preferences__panel p {
+  margin-bottom: 12px;
+  color: #aaa399;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.footer-analytics-preferences__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.market-research-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 36px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+}
+
+.market-research-links a {
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.market-research-links a small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 960px) {
+  .footer-links--launch {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .market-research-links {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .footer-grid {
+    gap: 38px;
+    padding-bottom: 44px;
+  }
+
+  .footer-links--launch {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .footer-links--launch > div {
+    gap: 10px;
+  }
+
+  .footer-analytics-preferences__panel {
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  .footer-analytics-preferences__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footer-analytics-preferences__actions .button {
+    min-width: 0;
+    width: 100%;
+    padding-inline: 10px;
+  }
+
+  .pricing-card {
+    min-height: auto;
+    padding: 34px 28px;
+  }
+
+  .pricing-card .price {
+    margin: 22px 0 18px;
+  }
+
+  .pricing-card ul {
+    margin-bottom: 28px;
+  }
+
+  .pricing-activation {
+    margin-top: 28px;
+  }
+
+  .market-evidence__index a {
+    min-height: 64px;
+    padding-block: 16px;
+  }
+
+  .market-evidence article {
+    padding: 28px 24px;
+  }
+
+  .market-evidence article h3 {
+    font-size: clamp(34px, 11vw, 48px);
+  }
+}
