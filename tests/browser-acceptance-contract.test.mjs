@@ -81,3 +81,15 @@ test("authenticated axe failures persist privacy-minimized actionable diagnostic
   assert.doesNotMatch(runner, /html:\s*node\.html/);
   assert.doesNotMatch(runner, /JSON\.stringify\(result, null, 2\)[\s\S]{0,180}authenticated-axe/);
 });
+
+test("failed browser responses persist privacy-safe status and pathname diagnostics", () => {
+  assert.match(runner, /function sanitizeDiagnosticUrl/);
+  assert.match(runner, /page\.on\("response"/);
+  assert.match(runner, /response\.status\(\)/);
+  assert.match(runner, /failedResponses/);
+  assert.match(runner, /pathname: sanitizeDiagnosticUrl\(response\.url\(\)\)/);
+  assert.match(runner, /new URL\(rawUrl, baseUrl\)/);
+  assert.match(runner, /parsed\.origin !== baseOrigin/);
+  assert.match(runner, /return parsed\.pathname/);
+  assert.doesNotMatch(runner, /failedResponses[\s\S]{0,220}(search|searchParams|hash):/);
+});
