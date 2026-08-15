@@ -25,7 +25,7 @@ test("browser tooling is pinned and production secrets are confined to trusted a
   assert.match(workflow, /"playwright": "1\.60\.0"/);
   assert.match(workflow, /"@axe-core\/playwright": "4\.12\.1"/);
   assert.match(workflow, /"@lhci\/cli": "0\.15\.1"/);
-  const prStep = workflow.match(/- name: Run public browser and accessibility acceptance[\s\S]*?run: node scripts\/browser-acceptance\.mjs/)?.[0] || "";
+  const prStep = workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?\.ci-tools\/node_modules\/\.bin\/lhci assert/)?.[0] || "";
   const trustedStep = workflow.match(/- name: Run trusted production browser and accessibility acceptance[\s\S]*?run: node scripts\/browser-acceptance\.mjs/)?.[0] || "";
   assert.doesNotMatch(prStep, /secrets\./);
   assert.match(trustedStep, /if: github\.event_name != 'pull_request'/);
@@ -57,12 +57,15 @@ test("accessibility is blocking for serious regressions while Lighthouse starts 
   assert.match(lighthouse, /"categories:best-practices": \["warn", \{ minScore: 0\.9 \}\]/);
 });
 
-test("authenticated browser acceptance is real but explicitly skippable without dedicated credentials", () => {
+test("trusted production authenticated browser acceptance fails closed while pull requests remain secret-free", () => {
   for (const path of ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"]) {
     assert.match(runner, new RegExp(`"${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
   }
   assert.match(runner, /FOREMENTION_ACCEPTANCE_EMAIL/);
   assert.match(runner, /FOREMENTION_ACCEPTANCE_PASSWORD/);
+  assert.match(runner, /FOREMENTION_REQUIRE_AUTHENTICATED_ACCEPTANCE/);
+  assert.match(workflow, /FOREMENTION_REQUIRE_AUTHENTICATED_ACCEPTANCE: 'true'/);
+  assert.match(runner, /Trusted production authenticated browser acceptance is required but dedicated credentials are not configured/);
   assert.match(runner, /Authenticated routes SKIPPED/);
   assert.match(runner, /Authenticated critical path did not render/);
 });
