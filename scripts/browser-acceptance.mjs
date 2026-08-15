@@ -258,7 +258,7 @@ async function verifyAuthenticatedRoutes() {
       const observers = attachRuntimeObservers(page);
       await page.goto(new URL("/login", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
       await page.getByLabel("Email").fill(acceptanceEmail);
-      await page.getByLabel("Password", { exact: true }).fill(acceptancePassword);
+      await page.locator('input[name="password"]').fill(acceptancePassword);
       await page.getByRole("button", { name: "Sign in", exact: true }).click();
       await page.waitForURL((url) => url.pathname.startsWith("/app"), { timeout: 20_000 }).catch(() => {});
       if (!new URL(page.url()).pathname.startsWith("/app")) {
