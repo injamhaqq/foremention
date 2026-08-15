@@ -6,7 +6,7 @@ This is the current readiness index for Foremention. Dated evidence files preser
 
 **GREEN for the controlled/private beta.**
 
-Latest exact verified production release:
+Exact application release under the current evidence record:
 
 - Git commit: `c615028ee2149504b7bceb9c510555650c960c72`;
 - merge: PR #116, `Fix direct authenticated wordmark contrast`;
@@ -19,6 +19,8 @@ Latest exact verified production release:
 - AI Safety and Code Health: `31895102053` — success.
 
 The controlled/private-beta operational sign-off predates this release and remains recorded in `docs/PRODUCTION-READINESS-EVIDENCE-2026-08-14.md` and closed issue #76. The newer exact-release delta is recorded in `docs/PRODUCTION-RELEASE-EVIDENCE-2026-08-15.md`.
+
+A later documentation-only commit necessarily has a different Git SHA and may run the normal release automation. That does not rewrite the historical application-behavior evidence above or require this record to chase its own documentation commit indefinitely.
 
 This status is **not** a paid/general-availability launch declaration. Production remains the controlled `free_beta` posture described in `docs/PRIVATE-BETA-OPERATING-POLICY.md`.
 
@@ -57,7 +59,7 @@ The following have production evidence and are **closed for the controlled/priva
 - a real deliberately cost-bounded provider collection with exact provider/model/methodology accounting;
 - exact-release one-question/one-provider first-evidence canary with release-scoped idempotency;
 - human-review publication boundary;
-- truthful zero-citation handling on the latest exact-release canary;
+- truthful zero-citation handling on the `c615028e…` exact-release canary;
 - representative authenticated Chromium/Firefox mobile acceptance;
 - trusted production browser/accessibility acceptance on Chromium desktop/mobile and Firefox desktop;
 - production Lighthouse assertion suite on the required public/auth entry routes;
@@ -65,9 +67,9 @@ The following have production evidence and are **closed for the controlled/priva
 - first-party production operator-alert delivery with durable ledger evidence and observed operator inbox receipt;
 - controlled-private-beta billing, retention, provider-transparency, and incident operating-policy sign-off.
 
-## Latest exact provider evidence
+## Exact provider evidence for `c615028e…`
 
-For release `c615028ee2149504b7bceb9c510555650c960c72`, production run `05dcaeec-4da4-4740-b533-c03f11352bec` completed with:
+Production run `05dcaeec-4da4-4740-b533-c03f11352bec` completed with:
 
 - provider `groq`;
 - exact model `groq/compound-mini`;
@@ -99,7 +101,7 @@ These are intentionally **not** represented as completed engineering proof:
 - Sentry as an independently verified production alert destination (Foremention's first-party operator-alert path is proven separately);
 - Supabase Auth identity restoration as part of disaster recovery;
 - native Supabase paid leaked-password protection;
-- Source X-Ray exercise on the latest exact-release canary, because that provider response truthfully returned zero citations.
+- Source X-Ray exercise on the `c615028e…` exact-release canary, because that provider response truthfully returned zero citations.
 
 If the operating scope changes from controlled private beta to paid/general availability or to a customer context requiring additional legal/data commitments, those boundaries become a separate activation project and must receive named owners and evidence before activation.
 
@@ -136,4 +138,4 @@ Any external proof claim still requires evidence appropriate to that claim, incl
 - issue #57 — application-level leaked-password mitigation and revocation acceptance
 - issue #76 — controlled/private-beta remaining proof gates closed
 
-Every later `main` release must independently satisfy the exact-release gates. Historical evidence is not release evidence for a new SHA.
+Every later deployable application release must independently satisfy the exact-release gates. Historical evidence is not release evidence for a new application SHA.
