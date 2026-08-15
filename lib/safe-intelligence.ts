@@ -15,6 +15,47 @@ type SlotRow = {
   model: string | null;
 };
 
+function exactBaselineHref(latestRunId: string) {
+  return `/app/runs/${latestRunId}`;
+}
+
+function makeCustomerReturnLoopTruthful(intelligence: WeeklyIntelligence): WeeklyIntelligence {
+  const latest = intelligence.latest;
+  if (!latest) return intelligence;
+
+  if (!intelligence.previous && intelligence.nextAction.title === "Repeat the same evidence set") {
+    return {
+      ...intelligence,
+      nextAction: {
+        ...intelligence.nextAction,
+        title: "Repeat the same questions and provider",
+        reason: "Open the latest reviewed baseline to reuse its saved questions and provider. Foremention will compare the later observation only if the exact question text, provider, model, and methodology remain compatible.",
+        href: exactBaselineHref(latest.id),
+        cta: "Open reviewed baseline",
+      },
+    };
+  }
+
+  if (intelligence.nextAction.title === "Run the next scheduled comparison") {
+    return {
+      ...intelligence,
+      nextAction: {
+        priority: "watch",
+        title: "Repeat the reviewed baseline when ready",
+        reason: "Foremention does not automatically schedule a paid rerun. Open the latest reviewed baseline when another observation is worth collecting; comparison is reported only when exact question text, provider, model, and methodology remain compatible.",
+        href: exactBaselineHref(latest.id),
+        cta: "Open reviewed baseline",
+      },
+      cadence: {
+        ...intelligence.cadence,
+        description: `Updated from the latest human-reviewed collection on ${latest.date}. Foremention does not automatically schedule a paid rerun; collect another observation only when it is useful, then compare it only under compatible measurement conditions.`,
+      },
+    };
+  }
+
+  return intelligence;
+}
+
 function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): WeeklyIntelligence {
   const latest = intelligence.latest;
   if (!latest) return intelligence;
@@ -36,16 +77,16 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
       tone: "attention",
       title: "Cross-collection movement withheld",
       detail: `${reason} The latest reviewed collection remains valid evidence on its own; no trend delta is being inferred from a non-identical run.`,
-      href: `/app/runs/${latest.id}`,
+      href: exactBaselineHref(latest.id),
     }],
     confidence: intelligence.confidence === "decision-ready" ? "directional" : intelligence.confidence,
     confidenceChecks,
     nextAction: {
       priority: "now",
-      title: "Repeat the exact reviewed evidence set",
-      reason: "A comparable trend requires the same persisted buyer-question text, provider, exact model, and methodology.",
-      href: "/app/runs",
-      cta: "Prepare exact comparison",
+      title: "Repeat the same reviewed questions and provider",
+      reason: "Open the latest reviewed baseline. A later trend is comparable only if the persisted question text, provider, exact model, and methodology all match.",
+      href: exactBaselineHref(latest.id),
+      cta: "Open reviewed baseline",
     },
     cadence: {
       mode: "reviewed runs",
@@ -61,10 +102,14 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
  * runs with matching methodology + prompt-key/provider/model matrices. This
  * final customer-facing gate verifies the exact persisted question text too,
  * preventing a reused prompt key from creating a false like-for-like trend.
+ * It also routes repeat work through the exact reviewed baseline without
+ * implying that Foremention automatically schedules a paid provider rerun.
  */
 export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<WeeklyIntelligence> {
   const intelligence = await loadWeeklyIntelligence(viewer);
-  if (viewer.mode === "demo" || !viewer.accessToken || !intelligence.latest || !intelligence.previous) return intelligence;
+  if (viewer.mode === "demo" || !viewer.accessToken || !intelligence.latest || !intelligence.previous) {
+    return makeCustomerReturnLoopTruthful(intelligence);
+  }
 
   const context = await loadWorkspaceContext(viewer);
   if (!context) return withholdUnsafePair(intelligence, "The active workspace context could not be verified.");
@@ -83,6 +128,6 @@ export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<Weekly
   }));
   const assessment = assessExactQuestionComparability(intelligence.latest.id, intelligence.previous.id, slots);
   return assessment.comparable
-    ? intelligence
+    ? makeCustomerReturnLoopTruthful(intelligence)
     : withholdUnsafePair(intelligence, assessment.reason || "The reviewed collections are not exactly comparable.");
 }
