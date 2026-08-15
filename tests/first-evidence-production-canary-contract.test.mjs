@@ -33,6 +33,8 @@ test("the production canary is trusted-main only and exact releases require expl
 
 test("the canary uses the real customer session and API path without an auth, RLS, provider, or publication bypass", () => {
   assert.match(canary, /getByRole\("button", \{ name: "Sign in", exact: true \}\)/);
+  assert.match(canary, /locator\('input\[name="password"\]'\)/);
+  assert.doesNotMatch(canary, /getByLabel\("Password", \{ exact: true \}\)/);
   assert.match(canary, /credentials: "same-origin"/);
   assert.match(canary, /\/api\/onboarding/);
   assert.match(canary, /\/api\/prompts/);
