@@ -71,3 +71,13 @@ test("trusted production authenticated browser acceptance fails closed while pul
   assert.match(runner, /Authenticated routes SKIPPED/);
   assert.match(runner, /Authenticated critical path did not render/);
 });
+
+test("authenticated axe failures persist privacy-minimized actionable diagnostics", () => {
+  assert.match(runner, /authenticated-axe/);
+  assert.match(runner, /function sanitizeAxeViolation/);
+  assert.match(runner, /target: node\.target/);
+  assert.match(runner, /failureSummary: node\.failureSummary/);
+  assert.match(runner, /data: check\.data/);
+  assert.doesNotMatch(runner, /html:\s*node\.html/);
+  assert.doesNotMatch(runner, /JSON\.stringify\(result, null, 2\)[\s\S]{0,180}authenticated-axe/);
+});
