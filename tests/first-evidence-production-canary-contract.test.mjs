@@ -74,5 +74,5 @@ test("the canary proves ordinary sign-out clears the acceptance session and re-p
   assert.match(canary, /getByRole\("button", \{ name: "Sign out", exact: true \}\)/);
   assert.match(canary, /authenticated-session-cleared-after-sign-out/);
   assert.match(canary, /post-logout-workspace-boundary-verified/);
-  assert.match(canary, /next\) !== "\/app"/);
+  assert.match(canary, /searchParams\.get\("next"\) !== "\/app"/);
 });
