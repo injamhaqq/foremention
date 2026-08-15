@@ -2,12 +2,11 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { LiveSiteAudit } from "@/components/live-site-audit";
 import { PublicShell } from "@/components/public-shell";
-import { marketEvidenceRecords, marketEvidenceSnapshot } from "@/lib/market-evidence-data";
 import { pageMetadata } from "@/lib/seo";
 import { siteAuditRecords, siteAuditSnapshot } from "@/lib/site-audit-data";
 
 export const metadata = pageMetadata({
-  title: "AI Search Source Map: Live Website Audit",
+  title: "AI Search Source Map: Dated Website Audit",
   description:
     "Inspect a dated, evidence-based Source Map of Foremention.com: crawlability, canonicals, sitemap health, content gaps, resolved issues, and unconnected external signals.",
   path: "/source-map",
@@ -41,12 +40,11 @@ export default function SourceMapProductPage() {
     <PublicShell>
       <section className="page-hero page-hero--ink">
         <div className="shell narrow-heading">
-          <span className="eyebrow eyebrow--on-ink">Live Source Map · Foremention.com</span>
-          <h1>See the real website problems—and the evidence behind each fix.</h1>
+          <span className="eyebrow eyebrow--on-ink">Public Source Map · dated website audit</span>
+          <h1>See the website problems we observed—and the evidence behind each fix.</h1>
           <p>
-            This is not a fictional customer report. It is a dated self-audit of the
-            production Foremention website, collected from public pages on July 27,
-            2026.
+            This is not a fictional customer report or a continuously refreshed dashboard. It is a dated self-audit of the
+            production Foremention website, collected from public pages on July 27, 2026.
           </p>
         </div>
       </section>
@@ -76,52 +74,11 @@ export default function SourceMapProductPage() {
             <span className="eyebrow">Evidence record</span>
             <h2>Problems, proof, resolution, and remaining connections.</h2>
             <p>
-              “Resolved” means the problem was observed on the live site and repaired
-              in this release. “Needs live connection” means the website alone cannot
-              truthfully produce the signal. Open “Inspect this evidence” to read the
-              record here; raw technical files open only as a clearly labelled secondary source.
+              “Resolved” means the problem was observed on the audited production snapshot and repaired. “Needs live connection” means the website alone cannot
+              truthfully produce the signal. Open “Inspect this evidence” to read the record here; raw technical files open only as a clearly labelled secondary source.
             </p>
           </div>
           <LiveSiteAudit records={siteAuditRecords} />
-        </div>
-      </section>
-
-      <section className="section section--yellow">
-        <div className="shell">
-          <div className="section-heading">
-            <span className="eyebrow">Real-company market evidence</span>
-            <h2>Four real platforms. Four inspectable first-party sources.</h2>
-            <p>
-              Buyer question: <strong>{marketEvidenceSnapshot.buyerQuestion}</strong> These
-              records were collected from official company pages on July 27, 2026. They
-              prove what each company publicly describes, not that an AI engine cited the
-              page or that the claim is independently true.
-            </p>
-          </div>
-          <nav className="market-evidence__index" aria-label="Companies in this evidence set">
-            {marketEvidenceRecords.map((record, index) => (
-              <a href={`#company-${record.company.toLowerCase().replaceAll(" ", "-")}`} key={record.company}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                {record.company}
-              </a>
-            ))}
-          </nav>
-          <div className="market-evidence">
-            {marketEvidenceRecords.map((record, index) => (
-              <article id={`company-${record.company.toLowerCase().replaceAll(" ", "-")}`} key={record.company}>
-                <div className="market-evidence__head">
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <b>Official source verified</b>
-                </div>
-                <h3>{record.company}</h3>
-                <a href={record.officialUrl} target="_blank" rel="noreferrer">{record.domain} ↗</a>
-                <dl>
-                  <div><dt>Observed on the page</dt><dd>{record.observed}</dd></div>
-                  <div><dt>Evidence boundary</dt><dd>{record.evidenceBoundary}</dd></div>
-                </dl>
-              </article>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -145,6 +102,13 @@ export default function SourceMapProductPage() {
               <p><strong>Still unavailable.</strong> Search impressions, backlinks, AI citations, and conversions stay unreported until their real systems are connected.</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="section section--paper">
+        <div className="shell split-section">
+          <div><span className="eyebrow">Looking for market research?</span><h2>Company evidence now has its own comparison home.</h2></div>
+          <div><p>Keep this page focused on one audited origin. Dated first-party observations about Profound, Scrunch, Peec AI, and OtterlyAI are preserved separately with their evidence boundaries intact.</p><Link className="text-link" href="/compare">Open market evidence <Arrow /></Link></div>
         </div>
       </section>
 
