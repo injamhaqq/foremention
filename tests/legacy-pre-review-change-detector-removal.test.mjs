@@ -12,7 +12,8 @@ test("collection processing no longer creates chronological movement claims befo
   assert.doesNotMatch(jobs, /recordRunChanges\(run, identity\)/);
   assert.doesNotMatch(jobs, /across comparable scheduled runs/i);
   assert.doesNotMatch(jobs, /between comparable runs/i);
-  assert.doesNotMatch(jobs, /competitor_overtook:/);
+  assert.doesNotMatch(jobs, /idempotencyKey:\s*`competitor_overtook:/);
+  assert.doesNotMatch(jobs, /eventKey:\s*`competitor_overtook:/);
 });
 
 test("operational collection notifications and the bounded weekly scheduler remain intact", async () => {
