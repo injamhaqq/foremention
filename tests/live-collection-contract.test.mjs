@@ -371,17 +371,14 @@ test("Foremention Agent Control Plane records evidence-bound stages without extr
   assert.match(migration, /enable row level security/);
 });
 
-test("weekly Inngest runs enforce capacity and record evidence changes", async () => {
+test("weekly Inngest runs enforce capacity without pre-review movement detection", async () => {
   const [jobs, route] = await Promise.all([text("lib/jobs/inngest.ts"), text("app/api/inngest/route.ts")]);
   assert.match(jobs, /id: "schedule-weekly-workspace-runs"/);
   assert.match(jobs, /triggers: \{ cron: "0 8 \* \* 1" \}/);
   assert.match(jobs, /monthly_run_units/);
   assert.match(jobs, /monthly_ai_spend_cap_usd/);
   assert.match(jobs, /status=in\.\(queued,running\)/);
-  assert.match(jobs, /brand_presence_changed/);
-  assert.match(jobs, /new_sources/);
-  assert.match(jobs, /lost_sources/);
-  assert.match(jobs, /competitor_movement/);
+  assert.doesNotMatch(jobs, /brand_presence_changed|new_sources|lost_sources|competitor_movement/);
   assert.match(route, /scheduleWeeklyWorkspaceRuns/);
 });
 

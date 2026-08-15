@@ -4,10 +4,12 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("scheduled evidence-change notifications use the deployed notification kind contract", async () => {
-  const source = await read("lib/jobs/inngest.ts");
+test("reviewed evidence-change notifications use the deployed notification kind contract", async () => {
+  const source = await read("lib/reviewed-change-notifications.ts");
 
-  assert.match(source, /event_key:\s*`\$\{change\.kind\}:\$\{run\.id\}`,[\s\S]*?kind:\s*"workspace"/);
+  assert.match(source, /assessWorkspaceRunPairComparability/);
+  assert.match(source, /event_key:\s*change\.eventKey,[\s\S]*?kind:\s*"workspace"/);
+  assert.match(source, /reviewed_change:/);
 });
 
 test("the seeded demo never labels fictional observations as real customer evidence", async () => {
