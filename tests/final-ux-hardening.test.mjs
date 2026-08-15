@@ -54,5 +54,5 @@ test("getting-started helper text stays readable on the mint hover state", () =>
 
 test("public ROI scenario tool is discoverable in the sitemap", () => {
   assert.match(sitemap, /path: "\/roi"/);
-  assert.match(sitemap, /2026-08-14T00:00:00Z/);
+  assert.match(sitemap, /const updated = new Date\("\d{4}-\d{2}-\d{2}T00:00:00Z"\)/);
 });
