@@ -1,37 +1,62 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 
-const read = (path) => readFileSync(path, "utf8");
+const root = new URL("../", import.meta.url);
+const text = (path) => readFile(new URL(path, root), "utf8");
 
-test("background collection no longer computes or publishes pre-review movement", () => {
-  const jobs = read("lib/jobs/inngest.ts");
+test("collection processing no longer creates chronological movement claims before human review", async () => {
+  const jobs = await text("lib/jobs/inngest.ts");
   assert.doesNotMatch(jobs, /async function recordRunChanges/);
   assert.doesNotMatch(jobs, /detect-run-changes/);
-  assert.doesNotMatch(jobs, /change_type: "brand_appeared"/);
-  assert.doesNotMatch(jobs, /change_type: "brand_disappeared"/);
-  assert.doesNotMatch(jobs, /change_type: "competitor_overtook"/);
-  assert.doesNotMatch(jobs, /change_type: "new_citation"/);
-  assert.doesNotMatch(jobs, /change_type: "lost_citation"/);
+  assert.doesNotMatch(jobs, /recordRunChanges\(run, identity\)/);
+  assert.doesNotMatch(jobs, /across comparable scheduled runs/i);
+  assert.doesNotMatch(jobs, /between comparable runs/i);
+  assert.doesNotMatch(jobs, /competitor_overtook:/);
 });
 
-test("review-time comparable movement remains the only active movement notification path", () => {
-  const review = read("app/api/runs/[id]/review/route.ts");
-  const reviewedChanges = read("lib/reviewed-comparable-change-notifications.ts");
+test("operational collection notifications and the bounded weekly scheduler remain intact", async () => {
+  const jobs = await text("lib/jobs/inngest.ts");
+  for (const value of [
+    "mark-run-for-human-review",
+    "notify-run-owner",
+    "email-first-run-owner",
+    "run_ready",
+    "first_run_completed",
+    "schedule-weekly-workspace-runs",
+    'cron: "0 8 * * 1"',
+    "prepareWeeklyRun",
+  ]) assert.match(jobs, new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+});
+
+test("review-time movement remains behind human review and exact run-pair comparability", async () => {
+  const [review, reviewedChanges, comparability] = await Promise.all([
+    text("app/api/runs/[id]/review/route.ts"),
+    text("lib/reviewed-change-notifications.ts"),
+    text("lib/run-pair-comparability.ts"),
+  ]);
 
   assert.match(review, /recordReviewedComparableChangeNotifications/);
   assert.match(reviewedChanges, /assessWorkspaceRunPairComparability/);
-  assert.match(reviewedChanges, /currentRunStatus: runStatus/);
-  assert.match(reviewedChanges, /priorRunStatus: prior\.status/);
+  assert.match(reviewedChanges, /terminalReviewedStates = new Set\(\["complete", "partial"\]\)/);
   assert.match(reviewedChanges, /status=in\.\(complete,partial\)/);
   assert.match(reviewedChanges, /reviewed_change:/);
+
+  assert.match(comparability, /terminalReviewedStates = new Set\(\["complete", "partial"\]\)/);
+  assert.match(comparability, /methodology_version/);
+  assert.match(comparability, /review_status=eq\.verified/);
+  assert.match(comparability, /prompt_text,provider,model/);
+  assert.match(comparability, /assessExactQuestionComparability/);
 });
 
-test("the run API still blocks brand, citation, competitor, and recommendation movement before review", () => {
-  const route = read("app/api/runs/route.ts");
-  assert.match(route, /Current collections are queued or waiting for human review\. Longitudinal change alerts are withheld here/);
-  assert.match(route, /brand_appeared/);
-  assert.match(route, /citation_(?:appeared|disappeared)/);
-  assert.match(route, /competitor_overtook/);
-  assert.match(route, /recommendation_(?:gained|lost)/);
+test("legacy notification and email suppression guards remain as defense in depth", async () => {
+  const [migration, email] = await Promise.all([
+    text("supabase/migrations/20260813033833_suppress_legacy_ungated_movement_alerts.sql"),
+    text("lib/workspace-email-alerts.ts"),
+  ]);
+  assert.match(migration, /brand_presence_changed:/);
+  assert.match(migration, /new_sources:/);
+  assert.match(migration, /lost_sources:/);
+  assert.match(migration, /competitor_movement:/);
+  assert.match(email, /input\.kind === "competitor_overtook"/);
 });
