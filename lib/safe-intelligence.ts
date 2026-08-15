@@ -41,14 +41,14 @@ function makeCustomerReturnLoopTruthful(intelligence: WeeklyIntelligence): Weekl
       ...intelligence,
       nextAction: {
         priority: "watch",
-        title: "Repeat the reviewed baseline when ready",
-        reason: "Foremention does not automatically schedule a paid rerun. Open the latest reviewed baseline when another observation is worth collecting; comparison is reported only when exact question text, provider, model, and methodology remain compatible.",
+        title: "Open the reviewed baseline",
+        reason: "Eligible workspaces are checked weekly for a capped re-observation. A new provider run is queued only when provider configuration, capacity, quota, and spend controls allow it. You can also repeat this reviewed baseline manually. Foremention reports a comparison only when exact question text, provider, model, and methodology remain compatible.",
         href: exactBaselineHref(latest.id),
         cta: "Open reviewed baseline",
       },
       cadence: {
         ...intelligence.cadence,
-        description: `Updated from the latest human-reviewed collection on ${latest.date}. Foremention does not automatically schedule a paid rerun; collect another observation only when it is useful, then compare it only under compatible measurement conditions.`,
+        description: `Updated from the latest human-reviewed collection on ${latest.date}. Eligible workspaces are checked weekly for a capped re-observation; a new provider run is queued only when provider configuration, capacity, quota, and spend controls allow it. Any later movement still requires compatible measurement conditions.`,
       },
     };
   }
@@ -102,8 +102,9 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
  * runs with matching methodology + prompt-key/provider/model matrices. This
  * final customer-facing gate verifies the exact persisted question text too,
  * preventing a reused prompt key from creating a false like-for-like trend.
- * It also routes repeat work through the exact reviewed baseline without
- * implying that Foremention automatically schedules a paid provider rerun.
+ * It also routes repeat work through the exact reviewed baseline while
+ * describing the conditional capped weekly scheduler without implying
+ * guaranteed recurrence or comparability.
  */
 export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<WeeklyIntelligence> {
   const intelligence = await loadWeeklyIntelligence(viewer);
