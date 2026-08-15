@@ -48,10 +48,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description: "Self-serve recommendation intelligence for AI answer monitoring, exact-source mapping, competitive analytics, and change tracking.",
-        offers: [
-          { "@type": "Offer", name: "Foremention Core", price: "149", priceCurrency: "USD", url: "https://foremention.com/pricing" },
-          { "@type": "Offer", name: "Foremention Signal", price: "499", priceCurrency: "USD", url: "https://foremention.com/pricing" },
-        ],
       },
     ],
   };
