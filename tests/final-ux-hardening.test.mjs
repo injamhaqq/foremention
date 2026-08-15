@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const appShell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
+const globals = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const productPolish = await readFile(new URL("../app/product-polish.css", import.meta.url), "utf8");
 const sitemap = await readFile(new URL("../app/sitemap.ts", import.meta.url), "utf8");
 
@@ -38,6 +39,18 @@ test("desktop workspace navigation arrows retain WCAG AA text contrast", () => {
   const renderedArrow = compositeHex("#cfc8be", "#041514", opacity);
   const ratio = contrastRatio(renderedArrow, "#041514");
   assert.ok(ratio >= 4.5, `workspace navigation arrow contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
+});
+
+test("inverse workspace wordmark has an explicit dark contrast backdrop", () => {
+  assert.match(globals, /\.app-sidebar > \.wordmark \{ background: var\(--ink\); \}/);
+  const ratio = contrastRatio("#f3fff9", "#041514");
+  assert.ok(ratio >= 4.5, `inverse workspace wordmark contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
+});
+
+test("getting-started helper text stays readable on the mint hover state", () => {
+  assert.match(globals, /\.getting-started li a:hover small \{ color: var\(--ink\); \}/);
+  const ratio = contrastRatio("#041514", "#70f0c6");
+  assert.ok(ratio >= 4.5, `getting-started hover helper contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
 });
 
 test("public ROI scenario tool is discoverable in the sitemap", () => {
