@@ -2,12 +2,11 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { LiveSiteAudit } from "@/components/live-site-audit";
 import { PublicShell } from "@/components/public-shell";
-import { marketEvidenceRecords, marketEvidenceSnapshot } from "@/lib/market-evidence-data";
 import { pageMetadata } from "@/lib/seo";
 import { siteAuditRecords, siteAuditSnapshot } from "@/lib/site-audit-data";
 
 export const metadata = pageMetadata({
-  title: "AI Search Source Map: Live Website Audit",
+  title: "AI Search Source Map: Dated Website Audit",
   description:
     "Inspect a dated, evidence-based Source Map of Foremention.com: crawlability, canonicals, sitemap health, content gaps, resolved issues, and unconnected external signals.",
   path: "/source-map",
@@ -18,8 +17,7 @@ export default function SourceMapProductPage() {
     "@context": "https://schema.org",
     "@type": "Dataset",
     name: "Foremention public website Source Map",
-    description:
-      "A dated technical and content audit of the public Foremention website.",
+    description: "A dated technical and content audit of the public Foremention website.",
     url: "https://foremention.com/source-map",
     dateModified: siteAuditSnapshot.collectedAt,
     creator: {
@@ -41,12 +39,11 @@ export default function SourceMapProductPage() {
     <PublicShell>
       <section className="page-hero page-hero--ink">
         <div className="shell narrow-heading">
-          <span className="eyebrow eyebrow--on-ink">Live Source Map · Foremention.com</span>
+          <span className="eyebrow eyebrow--on-ink">Source Map · Foremention.com</span>
           <h1>See the real website problems—and the evidence behind each fix.</h1>
           <p>
-            This is not a fictional customer report. It is a dated self-audit of the
-            production Foremention website, collected from public pages on July 27,
-            2026.
+            This is a dated website audit of the production Foremention site, collected
+            from public pages on July 27, 2026—not a continuously refreshed dashboard and not a fictional customer report.
           </p>
         </div>
       </section>
@@ -68,7 +65,10 @@ export default function SourceMapProductPage() {
             </div>
             <div>
               <span>HTTP availability</span>
-              <strong>{siteAuditSnapshot.before.successfulPages}/{siteAuditSnapshot.before.sitemapUrls} passed</strong>
+              <strong>
+                {siteAuditSnapshot.before.successfulPages}/
+                {siteAuditSnapshot.before.sitemapUrls} passed
+              </strong>
             </div>
           </div>
 
@@ -77,9 +77,10 @@ export default function SourceMapProductPage() {
             <h2>Problems, proof, resolution, and remaining connections.</h2>
             <p>
               “Resolved” means the problem was observed on the live site and repaired
-              in this release. “Needs live connection” means the website alone cannot
-              truthfully produce the signal. Open “Inspect this evidence” to read the
-              record here; raw technical files open only as a clearly labelled secondary source.
+              in the recorded release. “Needs live connection” means the website alone
+              cannot truthfully produce the signal. Open “Inspect this evidence” to read
+              the record here; raw technical files open only as a clearly labelled
+              secondary source.
             </p>
           </div>
           <LiveSiteAudit records={siteAuditRecords} />
@@ -87,40 +88,18 @@ export default function SourceMapProductPage() {
       </section>
 
       <section className="section section--yellow">
-        <div className="shell">
-          <div className="section-heading">
+        <div className="shell split-section">
+          <div>
             <span className="eyebrow">Real-company market evidence</span>
-            <h2>Four real platforms. Four inspectable first-party sources.</h2>
-            <p>
-              Buyer question: <strong>{marketEvidenceSnapshot.buyerQuestion}</strong> These
-              records were collected from official company pages on July 27, 2026. They
-              prove what each company publicly describes, not that an AI engine cited the
-              page or that the claim is independently true.
-            </p>
+            <h2>Competitor research has its own evidence set.</h2>
           </div>
-          <nav className="market-evidence__index" aria-label="Companies in this evidence set">
-            {marketEvidenceRecords.map((record, index) => (
-              <a href={`#company-${record.company.toLowerCase().replaceAll(" ", "-")}`} key={record.company}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                {record.company}
-              </a>
-            ))}
-          </nav>
-          <div className="market-evidence">
-            {marketEvidenceRecords.map((record, index) => (
-              <article id={`company-${record.company.toLowerCase().replaceAll(" ", "-")}`} key={record.company}>
-                <div className="market-evidence__head">
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <b>Official source verified</b>
-                </div>
-                <h3>{record.company}</h3>
-                <a href={record.officialUrl} target="_blank" rel="noreferrer">{record.domain} ↗</a>
-                <dl>
-                  <div><dt>Observed on the page</dt><dd>{record.observed}</dd></div>
-                  <div><dt>Evidence boundary</dt><dd>{record.evidenceBoundary}</dd></div>
-                </dl>
-              </article>
-            ))}
+          <div>
+            <p>
+              The Source Map stays focused on Foremention&apos;s own website. Dated first-party observations about other AI-visibility products live separately; they show what vendors published when checked, not that an AI engine cited the page. This keeps market context from blurring the self-audit.
+            </p>
+            <Link className="button button--outline" href="/compare">
+              Explore market evidence <Arrow />
+            </Link>
           </div>
         </div>
       </section>
@@ -134,15 +113,25 @@ export default function SourceMapProductPage() {
           <div className="truth-list">
             <div>
               <span>01</span>
-              <p><strong>Directly observed.</strong> Status codes, metadata, sitemap entries, and page structure came from the public production origin.</p>
+              <p>
+                <strong>Directly observed.</strong> Status codes, metadata, sitemap
+                entries, and page structure came from the public production origin.
+              </p>
             </div>
             <div>
               <span>02</span>
-              <p><strong>Clearly inferred.</strong> Content and measurement gaps are labelled analysis, not traffic or ranking facts.</p>
+              <p>
+                <strong>Clearly inferred.</strong> Content and measurement gaps are
+                labelled analysis, not traffic or ranking facts.
+              </p>
             </div>
             <div>
               <span>03</span>
-              <p><strong>Still unavailable.</strong> Search impressions, backlinks, AI citations, and conversions stay unreported until their real systems are connected.</p>
+              <p>
+                <strong>Still unavailable.</strong> Search impressions, backlinks, AI
+                citations, and conversions stay unreported until their real systems are
+                connected.
+              </p>
             </div>
           </div>
         </div>

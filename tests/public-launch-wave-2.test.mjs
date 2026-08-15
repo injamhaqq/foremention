@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const root = new URL("../", import.meta.url);
+const text = (path) => readFile(new URL(path, root), "utf8");
+const optionalText = async (path) => {
+  try {
+    return await text(path);
+  } catch (error) {
+    if (error?.code === "ENOENT") return "";
+    throw error;
+  }
+};
+
+const pricing = await text("app/pricing/page.tsx");
+const sourceMap = await text("app/source-map/page.tsx");
+const homepageStyles = await text("components/homepage-readiness.module.css");
+const sitemap = await text("app/sitemap.ts");
+const compare = await optionalText("app/compare/page.tsx");
+
+test("pricing sells the outcome while keeping the free-beta commercial boundary truthful", () => {
+  assert.match(pricing, /Know what AI says about your brand/i);
+  assert.match(pricing, /\$149/);
+  assert.match(pricing, /\$499/);
+  assert.match(pricing, /Custom/);
+  assert.match(pricing, /Join private beta/);
+  assert.match(pricing, /does not charge a card/i);
+  assert.doesNotMatch(pricing, /pricingComparison/);
+  assert.doesNotMatch(pricing, /peec\.ai\/pricing|scrunch\.com\/pricing|tryprofound\.com\/pricing/);
+});
+
+test("Source Map is a clearly dated self-audit instead of a mixed competitor destination", () => {
+  assert.match(sourceMap, /dated website audit/i);
+  assert.match(sourceMap, /not a continuously refreshed dashboard/i);
+  assert.doesNotMatch(sourceMap, /marketEvidenceRecords/);
+  assert.doesNotMatch(sourceMap, /Live Source Map/);
+  assert.match(sourceMap, /href="\/compare"/);
+});
+
+test("market evidence has a dedicated comparison hub with explicit evidence boundaries", () => {
+  assert.match(compare, /marketEvidenceRecords/);
+  assert.match(compare, /not that an AI engine cited the page/i);
+  assert.match(compare, /not that a vendor claim is independently true/i);
+  assert.match(compare, /\/compare\/monitoring-tools/);
+  assert.match(compare, /\/compare\/geo-agencies/);
+  assert.match(compare, /\/compare\/pr-agencies/);
+  assert.match(sitemap, /path:\s*"\/compare"/);
+});
+
+test("Recommendation Monitor compacts intentionally on narrow phones", () => {
+  assert.match(homepageStyles, /\.previewEvidence\s*>\s*div:first-child\s*>\s*strong\s*\{[^}]*display:\s*block;/s);
+  assert.match(homepageStyles, /@media\s*\(max-width:\s*520px\)/);
+  assert.match(homepageStyles, /@media\s*\(max-width:\s*520px\)[\s\S]*\.previewAnswer,[\s\S]*\.previewEvidence\s*\{[^}]*padding:\s*0\.9rem;/);
+});
