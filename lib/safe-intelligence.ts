@@ -39,14 +39,14 @@ function tightenCustomerReturnLoop(intelligence: WeeklyIntelligence): WeeklyInte
       ...intelligence,
       nextAction: {
         priority: "watch",
-        title: "Repeat the same evidence set when ready",
+        title: "Repeat the same questions and provider when ready",
         reason: "No automatic schedule is implied. Open the latest reviewed baseline and repeat its exact questions with the same provider; movement is reported only if the exact model and methodology also remain comparable.",
         href: exactBaselineHref(latest.id),
         cta: "Open exact baseline",
       },
       cadence: {
         ...intelligence.cadence,
-        description: `Updated from the latest human-reviewed collection on ${latest.date}. Foremention does not automatically schedule a paid rerun; repeat the exact reviewed evidence set when a new comparable observation is worth collecting.`,
+        description: `Updated from the latest human-reviewed collection on ${latest.date}. Foremention does not automatically schedule a paid rerun; repeat the exact reviewed questions and provider when a new comparable observation is worth collecting.`,
       },
     };
   }
@@ -81,7 +81,7 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
     confidenceChecks,
     nextAction: {
       priority: "now",
-      title: "Repeat the exact reviewed evidence set",
+      title: "Repeat the exact reviewed questions and provider",
       reason: "A comparable trend requires the same persisted buyer-question text, provider, exact model, and methodology.",
       href: exactBaselineHref(latest.id),
       cta: "Open exact baseline",
