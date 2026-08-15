@@ -127,6 +127,11 @@
   gap: 1rem;
 }
 
+.previewEvidence > div:first-child > strong {
+  display: block;
+  margin-top: 0.32rem;
+}
+
 .previewEvidenceCard {
   padding: 0.9rem;
   border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
@@ -318,5 +323,40 @@
     max-width: 10ch;
     font-size: clamp(3rem, 13vw, 3.75rem);
     line-height: 0.92;
+  }
+}
+
+@media (max-width: 520px) {
+  .previewTopline {
+    gap: 0.35rem;
+    padding: 0.65rem 0.8rem;
+    font-size: 0.7rem;
+  }
+
+  .previewAnswer,
+  .previewEvidence {
+    padding: 0.9rem;
+  }
+
+  .previewStatus {
+    margin-bottom: 0.7rem;
+    font-size: 0.7rem;
+  }
+
+  .previewQuestion {
+    margin: 0.3rem 0 0.75rem;
+  }
+
+  .previewRows,
+  .previewEvidence {
+    gap: 0.6rem;
+  }
+
+  .previewRow {
+    padding-top: 0.55rem;
+  }
+
+  .previewEvidenceCard {
+    padding: 0.72rem;
   }
 }
