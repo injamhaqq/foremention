@@ -15,6 +15,45 @@ type SlotRow = {
   model: string | null;
 };
 
+function exactBaselineHref(latestRunId: string) {
+  return `/app/runs/${latestRunId}`;
+}
+
+function tightenCustomerReturnLoop(intelligence: WeeklyIntelligence): WeeklyIntelligence {
+  const latest = intelligence.latest;
+  if (!latest) return intelligence;
+
+  if (!intelligence.previous && intelligence.nextAction.title === "Repeat the same evidence set") {
+    return {
+      ...intelligence,
+      nextAction: {
+        ...intelligence.nextAction,
+        href: exactBaselineHref(latest.id),
+        cta: "Open exact baseline",
+      },
+    };
+  }
+
+  if (intelligence.nextAction.title === "Run the next scheduled comparison") {
+    return {
+      ...intelligence,
+      nextAction: {
+        priority: "watch",
+        title: "Repeat the same evidence set when ready",
+        reason: "No automatic schedule is implied. Open the latest reviewed baseline and repeat its exact questions with the same provider; movement is reported only if the exact model and methodology also remain comparable.",
+        href: exactBaselineHref(latest.id),
+        cta: "Open exact baseline",
+      },
+      cadence: {
+        ...intelligence.cadence,
+        description: `Updated from the latest human-reviewed collection on ${latest.date}. Foremention does not automatically schedule a paid rerun; repeat the exact reviewed evidence set when a new comparable observation is worth collecting.`,
+      },
+    };
+  }
+
+  return intelligence;
+}
+
 function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): WeeklyIntelligence {
   const latest = intelligence.latest;
   if (!latest) return intelligence;
@@ -36,7 +75,7 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
       tone: "attention",
       title: "Cross-collection movement withheld",
       detail: `${reason} The latest reviewed collection remains valid evidence on its own; no trend delta is being inferred from a non-identical run.`,
-      href: `/app/runs/${latest.id}`,
+      href: exactBaselineHref(latest.id),
     }],
     confidence: intelligence.confidence === "decision-ready" ? "directional" : intelligence.confidence,
     confidenceChecks,
@@ -44,8 +83,8 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
       priority: "now",
       title: "Repeat the exact reviewed evidence set",
       reason: "A comparable trend requires the same persisted buyer-question text, provider, exact model, and methodology.",
-      href: "/app/runs",
-      cta: "Prepare exact comparison",
+      href: exactBaselineHref(latest.id),
+      cta: "Open exact baseline",
     },
     cadence: {
       mode: "reviewed runs",
@@ -61,10 +100,14 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
  * runs with matching methodology + prompt-key/provider/model matrices. This
  * final customer-facing gate verifies the exact persisted question text too,
  * preventing a reused prompt key from creating a false like-for-like trend.
+ * It also routes repeat work back through the exact reviewed baseline instead
+ * of implying that Foremention automatically schedules a paid rerun.
  */
 export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<WeeklyIntelligence> {
   const intelligence = await loadWeeklyIntelligence(viewer);
-  if (viewer.mode === "demo" || !viewer.accessToken || !intelligence.latest || !intelligence.previous) return intelligence;
+  if (viewer.mode === "demo" || !viewer.accessToken || !intelligence.latest || !intelligence.previous) {
+    return tightenCustomerReturnLoop(intelligence);
+  }
 
   const context = await loadWorkspaceContext(viewer);
   if (!context) return withholdUnsafePair(intelligence, "The active workspace context could not be verified.");
@@ -83,6 +126,6 @@ export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<Weekly
   }));
   const assessment = assessExactQuestionComparability(intelligence.latest.id, intelligence.previous.id, slots);
   return assessment.comparable
-    ? intelligence
+    ? tightenCustomerReturnLoop(intelligence)
     : withholdUnsafePair(intelligence, assessment.reason || "The reviewed collections are not exactly comparable.");
 }
