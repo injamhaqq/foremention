@@ -97,8 +97,7 @@ export default function PricingPage() {
           <p>
             Foremention turns AI answers into dated, inspectable evidence your team can
             review: what was said, which sources appeared, where the evidence is weak,
-            and what to investigate next. Self-serve signup currently creates a controlled
-            free-beta workspace; the prices below are planned packaging, not active checkout.
+            and what to investigate next. Self-serve signup currently creates a controlled free-beta workspace; the prices below are planned packaging, not active checkout.
             The workflow is a repeatable intelligence system, not a hidden composite score.
           </p>
         </div>
