@@ -13,6 +13,7 @@ const acceptanceEmail = (process.env.FOREMENTION_ACCEPTANCE_EMAIL || "").trim();
 const acceptancePassword = process.env.FOREMENTION_ACCEPTANCE_PASSWORD || "";
 const enabled = (process.env.FOREMENTION_ACCEPTANCE_CANARY_ENABLED || "").trim().toLowerCase() === "true";
 const spendApproved = (process.env.FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED || "").trim().toLowerCase() === "true";
+const canaryRequired = (process.env.FOREMENTION_ACCEPTANCE_CANARY_REQUIRED || "").trim().toLowerCase() === "true";
 const provider = (process.env.FOREMENTION_ACCEPTANCE_PROVIDER || "").trim().toLowerCase();
 const maxCostUsd = Number(process.env.FOREMENTION_ACCEPTANCE_MAX_COST_USD || "");
 const timeoutMs = Math.max(60_000, Math.min(Number(process.env.FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS || 600_000), 900_000));
@@ -26,6 +27,7 @@ const summary = {
   expectedBuildCommit: expectedBuildCommit || null,
   enabled,
   spendApproved,
+  required: canaryRequired,
   provider: provider || null,
   maxCostUsd: Number.isFinite(maxCostUsd) && maxCostUsd > 0 ? maxCostUsd : null,
   skipped: false,
@@ -211,9 +213,25 @@ async function verifyRunEvidenceAndPublish(page, run) {
   stage("opportunity-mutation-withheld-without-human-source-facts");
 }
 
+async function verifySignOutBoundary(page) {
+  const signOut = page.getByRole("button", { name: "Sign out", exact: true });
+  if (await signOut.count() === 0 || !await signOut.first().isVisible().catch(() => false)) fail("The authenticated acceptance workspace did not expose the ordinary Sign out control.");
+  await signOut.first().click();
+  await page.waitForURL((url) => url.pathname === "/login", { timeout: 20_000 });
+  const signedOut = new URL(page.url());
+  if (signedOut.pathname !== "/login") fail("Ordinary sign-out did not clear the acceptance workspace session.");
+  stage("authenticated-session-cleared-after-sign-out");
+
+  await page.goto(new URL("/app", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
+  const postLogout = new URL(page.url());
+  if (postLogout.pathname !== "/login" || postLogout.searchParams.get("next") !== "/app") fail("Protected workspace access remained available after acceptance sign-out.");
+  stage("post-logout-workspace-boundary-verified");
+}
+
 async function run() {
   await persist();
   if (!enabled) {
+    if (canaryRequired) fail("Exact-release authenticated first-evidence canary is required but is not explicitly enabled.");
     summary.skipped = true;
     summary.skipReason = "FOREMENTION_ACCEPTANCE_CANARY_ENABLED is not explicitly true.";
     stage("skipped-canary-not-enabled");
@@ -221,6 +239,7 @@ async function run() {
     return;
   }
   if (!spendApproved) {
+    if (canaryRequired) fail("Exact-release authenticated first-evidence canary requires explicit provider-spend approval.");
     summary.skipped = true;
     summary.skipReason = "Real-provider canary spend has not been explicitly approved.";
     stage("skipped-provider-spend-not-approved");
@@ -238,7 +257,7 @@ async function run() {
     const page = await context.newPage();
     await page.goto(new URL("/login", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.getByLabel("Email").fill(acceptanceEmail);
-    await page.getByLabel("Password", { exact: true }).fill(acceptancePassword);
+    await page.locator('input[name="password"]').fill(acceptancePassword);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await page.waitForURL((url) => url.pathname.startsWith("/app") || url.pathname.startsWith("/onboarding"), { timeout: 20_000 });
     stage("authenticated-session-established");
@@ -248,6 +267,7 @@ async function run() {
     const runId = await queueOneQuestionRun(page, promptId);
     const runState = await waitForRun(page, runId);
     await verifyRunEvidenceAndPublish(page, runState);
+    await verifySignOutBoundary(page);
     await context.close();
   } finally {
     await browser.close();

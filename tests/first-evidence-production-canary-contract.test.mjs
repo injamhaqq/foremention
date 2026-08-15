@@ -10,13 +10,17 @@ const [workflow, canary] = await Promise.all([
   text("scripts/first-evidence-production-canary.mjs"),
 ]);
 
-test("the production canary is trusted-main only and remains inert without explicit enablement plus spend approval", () => {
+test("the production canary is trusted-main only and exact releases require explicit enablement plus spend approval", () => {
   assert.match(workflow, /push:\s*\n\s*branches:\s*\n\s*- main/);
   assert.doesNotMatch(workflow, /pull_request:/);
   assert.match(canary, /FOREMENTION_ACCEPTANCE_CANARY_ENABLED/);
   assert.match(canary, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED/);
+  assert.match(canary, /FOREMENTION_ACCEPTANCE_CANARY_REQUIRED/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_CANARY_REQUIRED: 'true'/);
   assert.match(canary, /skipped-canary-not-enabled/);
   assert.match(canary, /skipped-provider-spend-not-approved/);
+  assert.match(canary, /Exact-release authenticated first-evidence canary is required but is not explicitly enabled/);
+  assert.match(canary, /Exact-release authenticated first-evidence canary requires explicit provider-spend approval/);
   assert.match(canary, /restricted to https:\/\/foremention\.com/);
   assert.match(workflow, /Run authenticated first-evidence production canary/);
   assert.match(workflow, /production-auth-smoke\.mjs/);
@@ -29,6 +33,8 @@ test("the production canary is trusted-main only and remains inert without expli
 
 test("the canary uses the real customer session and API path without an auth, RLS, provider, or publication bypass", () => {
   assert.match(canary, /getByRole\("button", \{ name: "Sign in", exact: true \}\)/);
+  assert.match(canary, /locator\('input\[name="password"\]'\)/);
+  assert.doesNotMatch(canary, /getByLabel\("Password", \{ exact: true \}\)/);
   assert.match(canary, /credentials: "same-origin"/);
   assert.match(canary, /\/api\/onboarding/);
   assert.match(canary, /\/api\/prompts/);
@@ -64,4 +70,11 @@ test("the canary refuses to manufacture analyst source facts or opportunity evid
   assert.match(canary, /opportunity-mutation-withheld-without-human-source-facts/);
   assert.doesNotMatch(canary, /api\/sources\/.*\/review/);
   assert.doesNotMatch(canary, /method:\s*"PATCH"/);
+});
+
+test("the canary proves ordinary sign-out clears the acceptance session and re-protects the workspace", () => {
+  assert.match(canary, /getByRole\("button", \{ name: "Sign out", exact: true \}\)/);
+  assert.match(canary, /authenticated-session-cleared-after-sign-out/);
+  assert.match(canary, /post-logout-workspace-boundary-verified/);
+  assert.match(canary, /searchParams\.get\("next"\) !== "\/app"/);
 });

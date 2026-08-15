@@ -144,6 +144,7 @@ jobs:
         env:
           FOREMENTION_ACCEPTANCE_EMAIL: ${{ secrets.FOREMENTION_ACCEPTANCE_EMAIL }}
           FOREMENTION_ACCEPTANCE_PASSWORD: ${{ secrets.FOREMENTION_ACCEPTANCE_PASSWORD }}
+          FOREMENTION_REQUIRE_AUTHENTICATED_ACCEPTANCE: 'true'
         run: node scripts/browser-acceptance.mjs
 
       - name: Collect trusted production Lighthouse audit baseline
