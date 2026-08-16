@@ -16,3 +16,10 @@ test("auth next validation rejects browser-normalized cross-origin targets", asy
   assert.match(auth, /\.origin/);
   assert.match(auth, /return "\/app"/);
 });
+
+test("session refresh reuses the canonical auth-next validator", async () => {
+  const refresh = await text("app/api/auth/refresh/route.ts");
+  assert.match(refresh, /import \{ safeAuthNext \} from "@\/lib\/google-auth"/);
+  assert.match(refresh, /safeAuthNext\(new URL\(request\.url\)\.searchParams\.get\("next"\)\)/);
+  assert.doesNotMatch(refresh, /candidate\.startsWith/);
+});
