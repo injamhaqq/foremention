@@ -73,6 +73,19 @@ export function estimateMaximumRunCost(
   ));
 }
 
+export function estimateReservedRunCost(
+  provider: Exclude<ProviderId, "mock">,
+  promptCount: number,
+  rates: CostRates,
+  limits = LIVE_COLLECTION_LIMITS,
+) {
+  const safePromptCount = Math.max(0, Math.min(limits.maxPromptsPerRun, Math.trunc(promptCount)));
+  if (provider === "groq") {
+    return roundUsd(safePromptCount * GROQ_SPEND_LIMITS.maxRunCostUsd);
+  }
+  return estimateMaximumRunCost(safePromptCount, rates, limits);
+}
+
 export function configuredMaxRunCostUsd() {
   return finiteNonNegative(process.env.FOREMENTION_MAX_RUN_COST_USD) ?? LIVE_COLLECTION_LIMITS.maxRunCostUsd;
 }
