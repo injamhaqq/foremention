@@ -1,6 +1,8 @@
 import { ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
 import { estimateMaximumRunCost, getProviderCostRates, GROQ_SPEND_LIMITS, roundUsd } from "@/lib/collection-policy";
 
+const GROQ_BASIC_SEARCH_REQUEST_COST_USD = 0.005;
+
 type GroqSearchResult = {
   title?: string;
   url?: string;
@@ -54,6 +56,9 @@ export const groqAdapter: AnswerProviderAdapter = {
     const model = String(process.env.GROQ_MODEL);
     const rates = getProviderCostRates("groq");
     if (!rates) throw new ProviderRequestError("Groq", 503, "Groq cost rates are not configured.");
+    if (rates.requestUsd < GROQ_BASIC_SEARCH_REQUEST_COST_USD) {
+      throw new ProviderRequestError("Groq", 503, `Groq fixed request cost must reserve at least $${GROQ_BASIC_SEARCH_REQUEST_COST_USD.toFixed(3)} for mandatory basic web search.`);
+    }
     const estimatedPromptCost = estimateMaximumRunCost(1, rates);
     if (options.budget) {
       const nextRunSpend = roundUsd(options.budget.runSpendSoFarUsd + estimatedPromptCost);
@@ -76,6 +81,7 @@ export const groqAdapter: AnswerProviderAdapter = {
       body: JSON.stringify({
         model,
         compound_custom: { tools: { enabled_tools: ["web_search"] } },
+        tool_choice: "required",
         messages: [
           {
             role: "system",
