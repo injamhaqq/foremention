@@ -39,6 +39,9 @@ test("Groq web-search execution remains distinct from returned citations", async
   assert.match(workerConfig, /"GROQ_INPUT_COST_PER_MILLION_USD":\s*"0\.075"/);
   assert.match(workerConfig, /"GROQ_OUTPUT_COST_PER_MILLION_USD":\s*"0\.30"/);
   assert.match(workerConfig, /"GROQ_REQUEST_COST_USD":\s*"0\.05"/);
+  // Production must deploy a global ceiling high enough for the conservative
+  // browser-search reservation while remaining no higher than Groq's $0.10 cap.
+  assert.match(workerConfig, /"FOREMENTION_MAX_RUN_COST_USD":\s*"0\.10"/);
 
   assert.match(diagnostics, /raw_json/);
   assert.match(diagnostics, /sanitizeProviderRunDiagnostics/);
