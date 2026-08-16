@@ -21,10 +21,10 @@ test("monitoring comparison qualifies citation-dependent source intelligence", (
   assert.doesNotMatch(comparison, /Foremention maps what shaped it/i);
 });
 
-test("unknown public routes have a branded recovery path", async () => {
+test("unknown public routes preserve Foremention identity and expose real recovery choices", async () => {
   const notFound = await text("app/not-found.tsx");
   assert.match(notFound, /PublicShell/);
-  assert.match(notFound, /This page isn['’]t here/i);
+  assert.match(notFound, /This page is outside the map/i);
   assert.match(notFound, /href="\/product"/);
   assert.match(notFound, /href="\/"/);
 });
