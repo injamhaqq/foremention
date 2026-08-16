@@ -56,19 +56,23 @@ test("the canary preserves the five-question baseline but spends on exactly one 
   assert.match(canary, /duplicate\.body\?\.duplicate !== true/);
 });
 
-test("the canary authorizes synthetic prompt mutation from invariant question fingerprint, not a mutable workspace label", () => {
-  assert.match(canary, /const stableSyntheticQuestions = \[/);
-  assert.match(canary, /What should a synthetic buyer verify before trusting an AI recommendation monitoring platform\?/);
-  assert.match(canary, /Which evidence should a synthetic buyer inspect when an AI system cites a source\?/);
-  assert.match(canary, /How should a synthetic buyer compare repeated AI recommendation observations safely\?/);
-  assert.match(canary, /What makes a recommendation evidence platform trustworthy for a synthetic evaluation\?/);
-  assert.match(canary, /stableSyntheticQuestions\.every\(\(text\) => approved\.some\(\(item\) => item\?\.text === text\)\)/);
-  assert.match(canary, /const canarySlotCandidates = approved\.filter\(\(item\) => !stableSyntheticQuestions\.includes\(item\?\.text\)\)/);
-  assert.match(canary, /canarySlotCandidates\.length !== 1/);
-  assert.match(canary, /synthetic-baseline-fingerprint-verified/);
-  assert.doesNotMatch(canary, /\.sidebar-company strong/);
-  assert.doesNotMatch(canary, /workspaceName !== syntheticOnboarding\.companyName/);
-  assert.doesNotMatch(canary, /Dedicated canary workspace identity did not match/);
+test("the canary derives a privacy-safe exact fixture fingerprint and fails closed until it is pinned", () => {
+  assert.match(canary, /import \{ createHash \} from "node:crypto"/);
+  assert.match(canary, /acceptanceFixtureFingerprint: null/);
+  assert.match(canary, /const expectedAcceptanceFixtureFingerprint = ""/);
+  assert.match(canary, /sameOriginFetch\(page, "\/api\/onboarding", \{\s*method: "POST"/s);
+  assert.match(canary, /existing !== true/);
+  assert.match(canary, /organizationId/);
+  assert.match(canary, /const canarySlot = approved\[0\]/);
+  assert.match(canary, /createHash\("sha256"\)/);
+  assert.match(canary, /\.update\(`\$\{organizationId\}:\$\{canarySlot\.id\}`\)/);
+  assert.match(canary, /acceptance-fixture-fingerprint-observed/);
+  assert.match(canary, /Acceptance fixture fingerprint is not pinned; refusing to mutate or spend/);
+  assert.doesNotMatch(canary, /stableSyntheticQuestions/);
+  assert.doesNotMatch(canary, /sidebar-company strong/);
+  const fingerprintGate = canary.indexOf("Acceptance fixture fingerprint is not pinned; refusing to mutate or spend");
+  const patchMutation = canary.indexOf('sameOriginFetch(page, "/api/prompts", {');
+  assert.ok(fingerprintGate >= 0 && patchMutation > fingerprintGate, "fingerprint pin gate must precede prompt mutation");
 });
 
 test("the dedicated synthetic canary maintains a freshness-dependent web-evidence question through the ordinary prompt API", () => {
