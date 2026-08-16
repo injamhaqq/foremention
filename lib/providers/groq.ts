@@ -28,13 +28,16 @@ type GroqResponse = {
   x_groq?: { id?: string };
 };
 
+function toolSearchResults(tool: NonNullable<NonNullable<GroqResponse["choices"]>[number]["message"]>["executed_tools"] extends Array<infer T> ? T : never): GroqSearchResult[] {
+  return Array.isArray(tool.search_results)
+    ? tool.search_results
+    : tool.search_results?.results || [];
+}
+
 function searchCitations(raw: GroqResponse): ProviderCitation[] {
   const citations: ProviderCitation[] = [];
   for (const tool of raw.choices?.[0]?.message?.executed_tools || []) {
-    const searchResults = Array.isArray(tool.search_results)
-      ? tool.search_results
-      : tool.search_results?.results || [];
-    for (const result of searchResults) {
+    for (const result of toolSearchResults(tool)) {
       if (result.url) citations.push({ url: result.url, title: result.title });
     }
   }
@@ -97,6 +100,9 @@ export const groqAdapter: AnswerProviderAdapter = {
     }
     const choice = raw.choices?.[0];
     const answer = choice?.message?.content || "";
+    const executedTools = choice?.message?.executed_tools || [];
+    const webSearchTools = executedTools.filter((tool) => tool.type === "search");
+    const searchResultCount = webSearchTools.reduce((total, tool) => total + toolSearchResults(tool).length, 0);
     const citations = searchCitations(raw);
     const usage = raw.usage ? {
       inputTokens: raw.usage.prompt_tokens,
@@ -114,7 +120,9 @@ export const groqAdapter: AnswerProviderAdapter = {
         finishReason: choice?.finish_reason,
         usage,
         citationCount: citations.length,
-        searchUsed: citations.length > 0,
+        searchObservationVersion: 1,
+        searchUsed: webSearchTools.length > 0,
+        searchResultCount,
       },
       collectedAt: new Date().toISOString(),
       latencyMs: Date.now() - started,
