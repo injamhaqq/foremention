@@ -56,6 +56,16 @@ test("the canary preserves the five-question baseline but spends on exactly one 
   assert.match(canary, /duplicate\.body\?\.duplicate !== true/);
 });
 
+test("the dedicated synthetic canary maintains a freshness-dependent web-evidence question through the ordinary prompt API", () => {
+  assert.match(canary, /const freshWebEvidenceQuestion =/);
+  assert.match(canary, /most recently published post on openai\.com\/news/);
+  assert.match(canary, /Cite the exact openai\.com source URL/);
+  assert.match(canary, /If you cannot verify it with current web evidence, say so rather than answering from memory/);
+  assert.match(canary, /sameOriginFetch\(page, "\/api\/prompts", \{\s*method: "PATCH"/s);
+  assert.match(canary, /fresh-web-evidence-question-updated/);
+  assert.match(canary, /fresh-web-evidence-question-verified/);
+});
+
 test("the release canary proves persisted answer, model, review publication and exact Source X-Ray navigation when citations exist", () => {
   assert.match(canary, /The real provider run persisted no answer observations/);
   assert.match(canary, /Recorded model/);
@@ -69,7 +79,7 @@ test("the canary refuses to manufacture analyst source facts or opportunity evid
   assert.match(canary, /opportunityMutationAttempted: false/);
   assert.match(canary, /opportunity-mutation-withheld-without-human-source-facts/);
   assert.doesNotMatch(canary, /api\/sources\/.*\/review/);
-  assert.doesNotMatch(canary, /method:\s*"PATCH"/);
+  assert.doesNotMatch(canary, /\/api\/opportunities\/.*method:\s*"PATCH"/s);
 });
 
 test("the canary proves ordinary sign-out clears the acceptance session and re-protects the workspace", () => {
