@@ -1,4 +1,5 @@
 import { Inngest } from "inngest";
+import { toInngestProviderStepError } from "./provider-step-error";
 import { recordAgentExecution } from "@/lib/agent-control-plane";
 import {
   canonicalizeEvidenceUrl,
@@ -636,7 +637,7 @@ export const runMultiEngineScan = inngest.createFunction(
           } catch (error) {
             logOperationalEvent("provider_request_failed", { runId: run.id, provider: providerId, attempt: attempt + 1, errorCode: error instanceof ProviderRequestError ? error.code : "provider_failure" });
             await persistFailureAttempt(run, prompt, providerId, model, attempt + 1, error);
-            throw error;
+            throw toInngestProviderStepError(error);
           } finally {
             clearTimeout(timer);
           }
