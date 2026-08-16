@@ -59,7 +59,7 @@ test("the canary preserves the five-question baseline but spends on exactly one 
 test("the canary derives a privacy-safe exact fixture fingerprint and fails closed until it is pinned", () => {
   assert.match(canary, /import \{ createHash \} from "node:crypto"/);
   assert.match(canary, /acceptanceFixtureFingerprint: null/);
-  assert.match(canary, /const expectedAcceptanceFixtureFingerprint = ""/);
+  assert.match(canary, /const expectedAcceptanceFixtureFingerprint = "10387d827457605531a1a2c469385f2adbd158206a50f7dd5d566bdc65dcdedd"/);
   assert.match(canary, /sameOriginFetch\(page, "\/api\/onboarding", \{\s*method: "POST"/s);
   assert.match(canary, /const workspace = await sameOriginFetch\(page, "\/api\/onboarding", \{\s*method: "POST",\s*headers: \{ "content-type": "application\/json" \},\s*body: JSON\.stringify\(syntheticOnboarding\),\s*\}\);/s);
   assert.doesNotMatch(canary, /const workspace = await sameOriginFetch\(page, "\/api\/onboarding", \{[\s\S]*?body: JSON\.stringify\(\{\}\)/);
