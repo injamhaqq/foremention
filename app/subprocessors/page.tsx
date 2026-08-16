@@ -12,8 +12,8 @@ const providers = [
   {
     name: "Cloudflare",
     status: "Core",
-    purpose: "Application hosting, edge delivery, runtime execution, network protection, and production request handling.",
-    boundary: "Receives the network and request metadata needed to serve Foremention. Product secrets remain server-side bindings.",
+    purpose: "Application hosting, edge delivery, runtime execution, network protection, production request handling, and Cloudflare Web Analytics browser performance measurement.",
+    boundary: "Receives the network and request metadata needed to serve Foremention and browser performance data used for real-user measurement. Cloudflare documents that its Web Analytics RUM beacon does not use cookies or browser storage. Product secrets remain server-side bindings.",
   },
   {
     name: "Supabase",
