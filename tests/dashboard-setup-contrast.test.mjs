@@ -3,11 +3,17 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
-const css = await readFile(new URL("app/globals.css", root), "utf8");
+const text = (path) => readFile(new URL(path, root), "utf8");
+const [globalCss, workspaceCss, layout, dashboard] = await Promise.all([
+  text("app/globals.css"),
+  text("app/app/workspace-accessibility.css"),
+  text("app/app/layout.tsx"),
+  text("app/app/page.tsx"),
+]);
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-function declaration(selector, property) {
+function declaration(css, selector, property) {
   const block = css.match(new RegExp(`${escapeRegex(selector)}\\s*\\{([^}]*)\\}`));
   assert.ok(block, `Missing CSS rule for ${selector}`);
   const value = block[1].match(new RegExp(`(?:^|;)\\s*${escapeRegex(property)}\\s*:\\s*([^;]+)`));
@@ -16,12 +22,6 @@ function declaration(selector, property) {
 }
 
 function resolveColor(value) {
-  const variable = value.match(/^var\((--[a-z0-9-]+)\)$/i);
-  if (variable) {
-    const match = css.match(new RegExp(`${escapeRegex(variable[1])}\\s*:\\s*(#[0-9a-f]{6})`, "i"));
-    assert.ok(match, `Missing color variable ${variable[1]}`);
-    return match[1].toLowerCase();
-  }
   assert.match(value, /^#[0-9a-f]{6}$/i, `Expected a six-digit CSS color, received ${value}`);
   return value.toLowerCase();
 }
@@ -43,10 +43,17 @@ function contrastRatio(foreground, background) {
 }
 
 test("completed dashboard setup text meets WCAG AA contrast on the authenticated app background", () => {
-  const background = resolveColor(declaration(".app-frame", "background"));
-  const selectors = [".setup-complete > strong", ".setup-complete > span"];
+  assert.match(layout, /import "\.\/workspace-accessibility\.css";/);
+  assert.match(dashboard, /<main className="workspace"/);
+  assert.match(dashboard, /<section className="setup-complete"/);
+
+  const background = resolveColor(declaration(globalCss, ".app-frame", "background"));
+  const selectors = [
+    ".workspace .setup-complete > strong",
+    ".workspace .setup-complete > span",
+  ];
   const failures = selectors.flatMap((selector) => {
-    const foreground = resolveColor(declaration(selector, "color"));
+    const foreground = resolveColor(declaration(workspaceCss, selector, "color"));
     const ratio = contrastRatio(foreground, background);
     return ratio >= 4.5 ? [] : [{ selector, foreground, background, ratio: Number(ratio.toFixed(2)) }];
   });
