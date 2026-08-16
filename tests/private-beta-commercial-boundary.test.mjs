@@ -7,6 +7,8 @@ const entitlement = await readFile(new URL("../supabase/migrations/2026072400010
 const providers = await readFile(new URL("../app/subprocessors/page.tsx", import.meta.url), "utf8");
 const privacy = await readFile(new URL("../app/privacy/page.tsx", import.meta.url), "utf8");
 const policy = await readFile(new URL("../docs/PRIVATE-BETA-OPERATING-POLICY.md", import.meta.url), "utf8");
+const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+const firstWaveMerge = await readFile(new URL("../docs/FIRST-WAVE-MERGE.md", import.meta.url), "utf8");
 
 test("self-serve production remains explicitly free beta", () => {
   assert.match(entitlement, /plan text not null default 'free_beta'/);
@@ -18,6 +20,18 @@ test("self-serve production remains explicitly free beta", () => {
   assert.match(pricing, /Paid checkout is not active/);
   assert.match(pricing, /Join private beta/);
   assert.doesNotMatch(pricing, /\$149|\$499/);
+});
+
+test("current repository documentation matches the private-beta commercial boundary", () => {
+  for (const document of [readme, firstWaveMerge]) {
+    assert.match(document, /Core/);
+    assert.match(document, /Signal/);
+    assert.match(document, /Intelligence/);
+    assert.match(document, /Pricing to be confirmed/);
+    assert.match(document, /free private beta/i);
+    assert.match(document, /paid checkout is not active/i);
+    assert.doesNotMatch(document, /\$149|\$499|149\/month|499\/month/);
+  }
 });
 
 test("provider transparency does not overclaim activation or contracts", () => {
