@@ -11,7 +11,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function PrivacyPage() {
   return <PublicShell>
-    <section className="page-hero"><div className="shell narrow-heading"><span className="eyebrow">Effective July 27, 2026</span><h1>Privacy</h1><p>This notice explains the product data Foremention processes, why it is needed, and the choices available to account owners.</p></div></section>
+    <section className="page-hero"><div className="shell narrow-heading"><span className="eyebrow">Effective August 16, 2026</span><h1>Privacy</h1><p>This notice explains the product data Foremention processes, why it is needed, and the choices available to account owners.</p></div></section>
     <article className="legal-copy shell">
       <div className="legal-summary"><strong>Plain-language summary</strong><p>Foremention uses account and workspace data to operate the product. It does not sell personal information. A live integration is used only after it is connected, and customer metrics do not appear from fictional data.</p></div>
       <h2>Information you provide</h2>
@@ -23,6 +23,7 @@ export default function PrivacyPage() {
       <h2>Service providers and integrations</h2>
       <p>Foremention may rely on infrastructure, database, email, analytics, error-monitoring, payment, and AI providers. A feature that requires a provider or customer integration remains labelled until that connection is active. Providers process data under their own terms as applicable. The current operational list and activation boundaries are published on the <Link href="/subprocessors">Subprocessors</Link> page.</p>
       <h2>Website measurement</h2>
+      <p>Foremention currently uses Cloudflare Web Analytics for browser performance measurement on the website. Cloudflare&apos;s browser RUM beacon measures page-load and performance data. Cloudflare documents that this beacon does not use cookies or browser storage. This measurement is separate from Foremention&apos;s optional experience-analytics controls.</p>
       <p>Foremention may use PostHog EU for limited product and web analytics. The integration is configured without session replay, automatic click or form capture, form values, AI-provider answers, citations, or customer evidence. It records page routes and selected product milestones so Foremention can find broken journeys and improve the product. Identified product events use internal account and organization IDs rather than names or email addresses. Google Analytics and Google Tag Manager are not loaded.</p>
       <p>Foremention may also use Microsoft Clarity and Contentsquare for optional experience analytics, only after a visitor explicitly accepts it in the browser. This helps identify usability issues; it is not used to analyze AI-provider answers, customer evidence, passwords, or form content. A visitor can decline this optional collection without losing access to the website and can revisit the choice from Analytics settings in the footer.</p>
       <h2>Public-source research</h2>
