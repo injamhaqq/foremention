@@ -1,0 +1,7 @@
+.workspace .setup-complete > strong {
+  color: var(--green);
+}
+
+.workspace .setup-complete > span {
+  color: var(--muted);
+}
