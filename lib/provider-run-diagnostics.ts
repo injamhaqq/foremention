@@ -42,7 +42,7 @@ export async function loadProviderRunDiagnostics(viewer: Viewer, runId: string):
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return [];
   const rows = await supabaseRest<RawAnswerRow[]>(
-    `run_answers?select=id,provider,raw_json&organization_id=eq.${organizationId}&run_id=eq.${runId}&order=collected_at.asc`,
+    `run_answers?select=id,provider,raw_json&organization_id=eq.${organizationId}&run_id=eq.${runId}&provider=eq.groq&order=collected_at.asc`,
     { token: viewer.accessToken },
   );
   return rows
