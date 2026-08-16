@@ -4,13 +4,13 @@ import { clearSessionCookies, REFRESH_COOKIE, setSessionCookies } from "@/lib/se
 import { SupabaseAuthError, supabaseAuth } from "@/lib/supabase-rest";
 
 export async function GET(request: Request) {
-  const next = safeAuthNext(new URL(request.url).searchParams.get("next"));
+  const safeNext = safeAuthNext(new URL(request.url).searchParams.get("next"));
   const refreshToken = request.headers
     .get("cookie")
     ?.match(new RegExp(`(?:^|;\\s*)${REFRESH_COOKIE}=([^;]+)`))?.[1];
 
   if (!refreshToken) {
-    return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(next)}`, request.url), 303);
+    return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(safeNext)}`, request.url), 303);
   }
 
   try {
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const accessToken = String(data.access_token || "");
     if (!accessToken) throw new Error("No refreshed session was returned.");
 
-    const response = NextResponse.redirect(new URL(next, request.url), 303);
+    const response = NextResponse.redirect(new URL(safeNext, request.url), 303);
     setSessionCookies(response, {
       accessToken,
       expiresIn: Number(data.expires_in || 3600),
@@ -32,12 +32,12 @@ export async function GET(request: Request) {
       // A transient GoTrue/database outage must not destroy a still-valid
       // refresh token. Preserve the cookies so the customer can retry later.
       return NextResponse.redirect(
-        new URL(`/login?next=${encodeURIComponent(next)}&reason=auth_temporarily_unavailable`, request.url),
+        new URL(`/login?next=${encodeURIComponent(safeNext)}&reason=auth_temporarily_unavailable`, request.url),
         303,
       );
     }
     const response = NextResponse.redirect(
-      new URL(`/login?next=${encodeURIComponent(next)}&reason=session_expired`, request.url),
+      new URL(`/login?next=${encodeURIComponent(safeNext)}&reason=session_expired`, request.url),
       303,
     );
     clearSessionCookies(response);
