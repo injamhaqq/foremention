@@ -29,4 +29,4 @@ This rebuild reconciles the supplied Foremention artifacts with the current prod
 
 ## Current commercial model
 
-Foremention is recurring software: Explorer free, Core $149/month, Signal $499/month, and custom Intelligence capacity. Customers operate their own workspaces; the founder may support onboarding, but support is not the product.
+Foremention is a free private beta today. Core and Signal remain software package scopes with Pricing to be confirmed; Intelligence remains a custom-scope future commercial package. Paid checkout is not active. Creating a workspace does not charge a card or activate a paid package, and final paid pricing and entitlements remain under validation before commercial launch.
