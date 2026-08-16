@@ -56,6 +56,20 @@ test("the canary preserves the five-question baseline but spends on exactly one 
   assert.match(canary, /duplicate\.body\?\.duplicate !== true/);
 });
 
+test("the canary proves the dedicated synthetic fixture before mutating its designated question slot", () => {
+  assert.match(canary, /const stableSyntheticQuestions = \[/);
+  assert.match(canary, /What should a synthetic buyer verify before trusting an AI recommendation monitoring platform\?/);
+  assert.match(canary, /Which evidence should a synthetic buyer inspect when an AI system cites a source\?/);
+  assert.match(canary, /How should a synthetic buyer compare repeated AI recommendation observations safely\?/);
+  assert.match(canary, /What makes a recommendation evidence platform trustworthy for a synthetic evaluation\?/);
+  assert.match(canary, /\.sidebar-company strong/);
+  assert.match(canary, /synthetic-workspace-identity-verified/);
+  assert.match(canary, /stableSyntheticQuestions\.every\(\(text\) => approved\.some\(\(item\) => item\?\.text === text\)\)/);
+  assert.match(canary, /const canarySlotCandidates = approved\.filter\(\(item\) => !stableSyntheticQuestions\.includes\(item\?\.text\)\)/);
+  assert.match(canary, /canarySlotCandidates\.length !== 1/);
+  assert.match(canary, /synthetic-baseline-fingerprint-verified/);
+});
+
 test("the dedicated synthetic canary maintains a freshness-dependent web-evidence question through the ordinary prompt API", () => {
   assert.match(canary, /const freshWebEvidenceQuestion =/);
   assert.match(canary, /most recently published post on openai\.com\/news/);
