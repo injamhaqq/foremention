@@ -89,6 +89,9 @@ async function ensureExactHealth(page) {
   stage("exact-production-sha-verified");
 }
 
+const priorGenericCanaryQuestion = "Which recommendation evidence platform should a synthetic test buyer evaluate first?";
+const freshWebEvidenceQuestion = "Use web search now. According to the official OpenAI website, what is the title and publication date of the most recently published post on openai.com/news at the time you answer? Cite the exact openai.com source URL you used. If you cannot verify it with current web evidence, say so rather than answering from memory.";
+
 const syntheticOnboarding = {
   companyName: "Foremention Acceptance Fixture",
   domain: "https://example.com",
@@ -99,7 +102,7 @@ const syntheticOnboarding = {
   goal: "Verify the authenticated first-evidence production path",
   constraint: "Synthetic production acceptance data only. Do not infer customer outcomes or causal lift.",
   prompts: [
-    "Which recommendation evidence platform should a synthetic test buyer evaluate first?",
+    freshWebEvidenceQuestion,
     "What should a synthetic buyer verify before trusting an AI recommendation monitoring platform?",
     "Which evidence should a synthetic buyer inspect when an AI system cites a source?",
     "How should a synthetic buyer compare repeated AI recommendation observations safely?",
@@ -128,9 +131,32 @@ async function ensureCanaryWorkspace(page) {
 
   summary.evidence.approvedQuestionCount = approved.length;
   if (approved.length !== 5) fail(`The dedicated canary workspace must contain exactly five approved baseline questions; observed ${approved.length}.`);
-  if (!approved[0]?.id || !/^[0-9a-f-]{36}$/i.test(approved[0].id)) fail("The first approved canary buyer question is missing a valid ID.");
   stage("five-question-baseline-verified", { count: approved.length });
-  return approved[0].id;
+
+  let freshQuestion = approved.find((item) => item?.text === freshWebEvidenceQuestion);
+  if (!freshQuestion) {
+    const priorQuestion = approved.find((item) => item?.text === priorGenericCanaryQuestion);
+    if (!priorQuestion?.id || !/^[0-9a-f-]{36}$/i.test(priorQuestion.id)) {
+      fail("Dedicated canary workspace baseline did not match the expected synthetic fixture; refusing to mutate an unknown workspace.");
+    }
+    const update = await sameOriginFetch(page, "/api/prompts", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: priorQuestion.id, text: freshWebEvidenceQuestion }),
+    });
+    if (!update.ok) fail(`Fresh web-evidence buyer-question update failed with status ${update.status}: ${update.body?.error || "unknown error"}`);
+    stage("fresh-web-evidence-question-updated");
+
+    prompts = await sameOriginFetch(page, "/api/prompts");
+    if (!prompts.ok) fail(`Buyer-question verification read failed with status ${prompts.status}.`);
+    approved = Array.isArray(prompts.body?.data) ? prompts.body.data.filter((item) => item?.approved) : [];
+    if (approved.length !== 5) fail(`Fresh-question reconciliation changed the five-question canary baseline; observed ${approved.length}.`);
+    freshQuestion = approved.find((item) => item?.id === priorQuestion.id && item?.text === freshWebEvidenceQuestion);
+  }
+
+  if (!freshQuestion?.id || !/^[0-9a-f-]{36}$/i.test(freshQuestion.id)) fail("The fresh web-evidence canary buyer question is missing a valid ID.");
+  stage("fresh-web-evidence-question-verified");
+  return freshQuestion.id;
 }
 
 async function queueOneQuestionRun(page, promptId) {
