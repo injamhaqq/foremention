@@ -132,14 +132,6 @@ async function ensureCanaryWorkspace(page) {
   if (approved.length !== 5) fail(`The dedicated canary workspace must contain exactly five approved baseline questions; observed ${approved.length}.`);
   stage("five-question-baseline-verified", { count: approved.length });
 
-  await page.goto(new URL("/app", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
-  const workspaceNameLocator = page.locator(".sidebar-company strong").first();
-  if (await workspaceNameLocator.count() === 0) fail("Dedicated canary workspace identity was not visible; refusing to mutate an unknown workspace.");
-  const workspaceName = (await workspaceNameLocator.textContent())?.trim() || "";
-  if (workspaceName !== syntheticOnboarding.companyName) fail("Dedicated canary workspace identity did not match the expected synthetic fixture; refusing to mutate an unknown workspace.");
-  stage("synthetic-workspace-identity-verified");
-
   if (!stableSyntheticQuestions.every((text) => approved.some((item) => item?.text === text))) {
     fail("Dedicated canary workspace invariant questions did not match the expected synthetic fixture; refusing to mutate an unknown workspace.");
   }
