@@ -140,7 +140,7 @@ test("customer mutations explicitly enforce workspace roles and organization fil
   }
 });
 
-test("Groq Compound is a first-class, citation-preserving provider", async () => {
+test("Groq Browser Search is a first-class, citation-preserving provider", async () => {
   const [adapter, registry, data, route, sourceMap] = await Promise.all([
     text("lib/providers/groq.ts"),
     text("lib/providers/index.ts"),
@@ -148,16 +148,17 @@ test("Groq Compound is a first-class, citation-preserving provider", async () =>
     text("app/api/runs/route.ts"),
     text("lib/source-map-generation.ts"),
   ]);
-  assert.match(adapter, /groq\/compound-mini|process\.env\.GROQ_MODEL/);
-  assert.match(adapter, /enabled_tools: \["web_search"\]/);
+  assert.match(adapter, /process\.env\.GROQ_MODEL/);
+  assert.match(adapter, /tools: \[\{ type: "browser_search" \}\]/);
+  assert.match(adapter, /tool_choice: "required"/);
   assert.match(adapter, /executed_tools/);
   assert.match(adapter, /search_results/);
   assert.doesNotMatch(adapter, /extractUrls/);
   assert.doesNotMatch(adapter, /citation_options/);
   assert.match(registry, /groqAdapter/);
-  assert.match(data, /Groq Compound/);
+  assert.match(data, /id: "groq"/);
   assert.match(route, /"groq"/);
-  assert.match(sourceMap, /groq: "Groq Compound"/);
+  assert.match(sourceMap, /groq:/);
 });
 
 test("Cloudflare Workers AI is a cost-capped answer-only comparison provider", async () => {
