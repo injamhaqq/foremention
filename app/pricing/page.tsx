@@ -7,15 +7,15 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata: Metadata = pageMetadata({
   title: "AI Visibility Platform Pricing",
   description:
-    "See Foremention private-beta access and the planned Core, Signal, and Intelligence commercial packaging for evidence-backed AI visibility workflows.",
+    "See Foremention free private-beta access and the Core, Signal, and Intelligence package scopes being validated for evidence-backed AI visibility workflows.",
   path: "/pricing",
 });
 
 const plans = [
   {
     name: "Core",
-    price: "$149",
-    availability: "Planned paid packaging",
+    price: "Pricing to be confirmed",
+    availability: "Private-beta package",
     label: "Know your baseline",
     summary:
       "For one team that needs a defensible baseline of how buyers see its brand and category in AI answers.",
@@ -33,8 +33,8 @@ const plans = [
   },
   {
     name: "Signal",
-    price: "$499",
-    availability: "Planned paid packaging",
+    price: "Pricing to be confirmed",
+    availability: "Private-beta package",
     label: "Know what moved",
     lead: true,
     summary:
@@ -53,8 +53,8 @@ const plans = [
   },
   {
     name: "Intelligence",
-    price: "Custom",
-    availability: "Future commercial activation",
+    price: "Custom scope",
+    availability: "Future commercial package",
     label: "Operate across brands",
     summary:
       "For multi-brand or high-volume teams that need a tailored evidence and data layer without losing the review trail.",
@@ -92,13 +92,14 @@ export default function PricingPage() {
     <PublicShell>
       <section className="page-hero">
         <div className="shell narrow-heading">
-          <span className="eyebrow">Private beta + planned pricing</span>
+          <span className="eyebrow">Private beta · packaging under validation</span>
           <h1>Know what AI says about your brand—and what changed.</h1>
           <p>
             Foremention turns AI answers into dated, inspectable evidence your team can
             review: what was said, which sources appeared, where the evidence is weak,
-            and what to investigate next. Self-serve signup currently creates a controlled free-beta workspace; the prices below are planned packaging, not active checkout.
-            The workflow is a repeatable intelligence system, not a hidden composite score.
+            and what to investigate next. Self-serve signup currently creates a controlled
+            free-beta workspace. The package scopes below describe intended operating levels;
+            final paid pricing is still being validated before commercial launch.
           </p>
         </div>
       </section>
@@ -114,7 +115,6 @@ export default function PricingPage() {
               <h2>{plan.name}</h2>
               <div className="price">
                 <strong>{plan.price}</strong>
-                {plan.price !== "Custom" && <span>/ month</span>}
               </div>
               <p className="pricing-includes">{plan.availability}</p>
               <p className="pricing-summary">{plan.summary}</p>
@@ -138,8 +138,8 @@ export default function PricingPage() {
           <strong>Private beta is free today.</strong>
           <p>
             Creating a workspace does not charge a card or activate Core, Signal, or Intelligence.
-            The $149 Core and $499 Signal prices are planned commercial packaging only; checkout,
-            billing terms, and paid entitlements remain inactive until separately verified and authorized.
+            Paid checkout is not active. Final paid pricing, billing terms, and paid entitlements
+            are being validated during private beta and will be confirmed before commercial launch.
           </p>
         </div>
       </section>

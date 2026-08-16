@@ -90,15 +90,15 @@ export default function HomePage() {
 
     <section className="home-pricing-section" id="pricing">
       <div className="shell">
-        <div className={styles.sectionIntro}><span className="goat-kicker">Start with a workspace</span><h2>Explore the product before paid collection is activated.</h2><p>Creating a workspace does not charge a card. Paid plans describe intended capacity, but checkout and entitlements are not represented as live until the billing flow is verified.</p></div>
+        <div className={styles.sectionIntro}><span className="goat-kicker">Start with a workspace</span><h2>Explore the product before paid access is activated.</h2><p>Creating a workspace does not charge a card. Core, Signal, and Intelligence show the operating scopes being validated during private beta; final paid pricing will be confirmed before commercial launch.</p></div>
         <div className={styles.entryBand}>
           <div><span className="goat-kicker">Workspace entry</span><h3>Create your Foremention workspace.</h3><p>Set your company, category, competitors, and buyer questions. Collection capacity is confirmed separately.</p></div>
-          <div className={styles.entryAction}><Link className="button button--ink button--large" href="/signup">Create a workspace <Arrow /></Link><small>No card charge for workspace creation. See the pricing page for current plan definitions and activation status.</small></div>
+          <div className={styles.entryAction}><Link className="button button--ink button--large" href="/signup">Create a workspace <Arrow /></Link><small>No card charge for workspace creation. See the pricing page for current package scope and activation status.</small></div>
         </div>
         <div className="home-pricing-grid">
-          <article><span>Core</span><strong>$149<small>/month</small></strong><p>One brand and category, up to 25 buyer questions, monthly collection capacity, Source Map, evidence history, and review workflow.</p><Link href="/pricing">View Core details <Arrow /></Link></article>
-          <article className="is-featured"><span>Signal</span><strong>$499<small>/month</small></strong><p><b>Everything in Core, plus</b> weekly capacity, broader question coverage, cross-provider agreement, source movement, and team review workflow.</p><Link href="/pricing">View Signal details <Arrow /></Link></article>
-          <article><span>Intelligence</span><strong>Custom</strong><p><b>Everything in Signal, plus</b> multi-brand scope, tailored capacity, longer evidence history, and a confirmed integration scope.</p><Link href="/pricing">View platform plans <Arrow /></Link></article>
+          <article><span>Core</span><strong>Pricing to be confirmed</strong><p>One brand and category, up to 25 buyer questions, monthly collection capacity, Source Map, evidence history, and review workflow.</p><Link href="/pricing">View Core details <Arrow /></Link></article>
+          <article className="is-featured"><span>Signal</span><strong>Pricing to be confirmed</strong><p><b>Everything in Core, plus</b> weekly capacity, broader question coverage, cross-provider agreement, source movement, and team review workflow.</p><Link href="/pricing">View Signal details <Arrow /></Link></article>
+          <article><span>Intelligence</span><strong>Custom scope</strong><p><b>Everything in Signal, plus</b> multi-brand scope, tailored capacity, longer evidence history, and a confirmed integration scope.</p><Link href="/pricing">View platform plans <Arrow /></Link></article>
         </div>
       </div>
     </section>
