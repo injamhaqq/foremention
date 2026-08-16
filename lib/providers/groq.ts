@@ -6,6 +6,11 @@ type GroqSearchResult = {
   url?: string;
 };
 
+type GroqExecutedTool = {
+  type?: string;
+  search_results?: { results?: GroqSearchResult[] } | GroqSearchResult[];
+};
+
 type GroqResponse = {
   id?: string;
   model?: string;
@@ -14,10 +19,7 @@ type GroqResponse = {
     finish_reason?: string;
     message?: {
       content?: string;
-      executed_tools?: Array<{
-        type?: string;
-        search_results?: { results?: GroqSearchResult[] } | GroqSearchResult[];
-      }>;
+      executed_tools?: GroqExecutedTool[];
     };
   }>;
   usage?: {
@@ -28,7 +30,7 @@ type GroqResponse = {
   x_groq?: { id?: string };
 };
 
-function toolSearchResults(tool: NonNullable<NonNullable<GroqResponse["choices"]>[number]["message"]>["executed_tools"] extends Array<infer T> ? T : never): GroqSearchResult[] {
+function toolSearchResults(tool: GroqExecutedTool): GroqSearchResult[] {
   return Array.isArray(tool.search_results)
     ? tool.search_results
     : tool.search_results?.results || [];
