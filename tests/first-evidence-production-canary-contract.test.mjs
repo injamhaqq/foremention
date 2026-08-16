@@ -61,6 +61,8 @@ test("the canary derives a privacy-safe exact fixture fingerprint and fails clos
   assert.match(canary, /acceptanceFixtureFingerprint: null/);
   assert.match(canary, /const expectedAcceptanceFixtureFingerprint = ""/);
   assert.match(canary, /sameOriginFetch\(page, "\/api\/onboarding", \{\s*method: "POST"/s);
+  assert.match(canary, /const workspace = await sameOriginFetch\(page, "\/api\/onboarding", \{\s*method: "POST",\s*headers: \{ "content-type": "application\/json" \},\s*body: JSON\.stringify\(syntheticOnboarding\),\s*\}\);/s);
+  assert.doesNotMatch(canary, /const workspace = await sameOriginFetch\(page, "\/api\/onboarding", \{[\s\S]*?body: JSON\.stringify\(\{\}\)/);
   assert.match(canary, /existing !== true/);
   assert.match(canary, /organizationId/);
   assert.match(canary, /const canarySlot = approved\[0\]/);
