@@ -1,0 +1,7 @@
+.workspace .setup-complete > strong {
+  color: #1f6b49;
+}
+
+.workspace .setup-complete > span {
+  color: #455a55;
+}
