@@ -4,6 +4,7 @@ import { requireViewer } from "@/lib/auth";
 import { loadNotifications, loadWorkspaceSummary } from "@/lib/data";
 import { PostHogIdentity } from "@/components/posthog-analytics";
 import { WorkspaceActivationAnalytics } from "@/components/workspace-activation-analytics";
+import "./workspace-accessibility.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
