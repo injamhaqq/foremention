@@ -39,7 +39,7 @@ export default function SourceMapProductPage() {
     <PublicShell>
       <section className="page-hero page-hero--ink">
         <div className="shell narrow-heading">
-          <span className="eyebrow eyebrow--on-ink">Source Map · Foremention.com</span>
+          <span className="eyebrow eyebrow--on-ink">Website evidence · Foremention.com</span>
           <h1>See the real website problems—and the evidence behind each fix.</h1>
           <p>
             This is a dated website audit of the production Foremention site, collected
