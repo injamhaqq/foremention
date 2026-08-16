@@ -37,9 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         email: "hello@foremention.com",
         sameAs: [
           "https://www.linkedin.com/company/foremention/",
-          "https://x.com/forementionhq",
           "https://www.instagram.com/forementionhq/",
-          "https://www.facebook.com/foremention/",
         ],
       },
       {
