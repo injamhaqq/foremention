@@ -138,7 +138,7 @@ async function ensureCanaryWorkspace(page) {
   const workspace = await sameOriginFetch(page, "/api/onboarding", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({}),
+    body: JSON.stringify(syntheticOnboarding),
   });
   if (!workspace.ok || workspace.body?.existing !== true) {
     fail(`Dedicated canary workspace identity lookup failed with status ${workspace.status}; refusing to mutate or spend.`);
