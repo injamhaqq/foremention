@@ -89,8 +89,13 @@ async function ensureExactHealth(page) {
   stage("exact-production-sha-verified");
 }
 
-const priorGenericCanaryQuestion = "Which recommendation evidence platform should a synthetic test buyer evaluate first?";
 const freshWebEvidenceQuestion = "Use web search now. According to the official OpenAI website, what is the title and publication date of the most recently published post on openai.com/news at the time you answer? Cite the exact openai.com source URL you used. If you cannot verify it with current web evidence, say so rather than answering from memory.";
+const stableSyntheticQuestions = [
+  "What should a synthetic buyer verify before trusting an AI recommendation monitoring platform?",
+  "Which evidence should a synthetic buyer inspect when an AI system cites a source?",
+  "How should a synthetic buyer compare repeated AI recommendation observations safely?",
+  "What makes a recommendation evidence platform trustworthy for a synthetic evaluation?",
+];
 
 const syntheticOnboarding = {
   companyName: "Foremention Acceptance Fixture",
@@ -101,13 +106,7 @@ const syntheticOnboarding = {
   competitors: ["Synthetic Alpha", "Synthetic Beta"],
   goal: "Verify the authenticated first-evidence production path",
   constraint: "Synthetic production acceptance data only. Do not infer customer outcomes or causal lift.",
-  prompts: [
-    freshWebEvidenceQuestion,
-    "What should a synthetic buyer verify before trusting an AI recommendation monitoring platform?",
-    "Which evidence should a synthetic buyer inspect when an AI system cites a source?",
-    "How should a synthetic buyer compare repeated AI recommendation observations safely?",
-    "What makes a recommendation evidence platform trustworthy for a synthetic evaluation?",
-  ],
+  prompts: [freshWebEvidenceQuestion, ...stableSyntheticQuestions],
   locale: "en-US",
 };
 
@@ -133,16 +132,30 @@ async function ensureCanaryWorkspace(page) {
   if (approved.length !== 5) fail(`The dedicated canary workspace must contain exactly five approved baseline questions; observed ${approved.length}.`);
   stage("five-question-baseline-verified", { count: approved.length });
 
-  let freshQuestion = approved.find((item) => item?.text === freshWebEvidenceQuestion);
+  await page.goto(new URL("/app", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
+  const workspaceNameLocator = page.locator(".sidebar-company strong").first();
+  if (await workspaceNameLocator.count() === 0) fail("Dedicated canary workspace identity was not visible; refusing to mutate an unknown workspace.");
+  const workspaceName = (await workspaceNameLocator.textContent())?.trim() || "";
+  if (workspaceName !== syntheticOnboarding.companyName) fail("Dedicated canary workspace identity did not match the expected synthetic fixture; refusing to mutate an unknown workspace.");
+  stage("synthetic-workspace-identity-verified");
+
+  if (!stableSyntheticQuestions.every((text) => approved.some((item) => item?.text === text))) {
+    fail("Dedicated canary workspace invariant questions did not match the expected synthetic fixture; refusing to mutate an unknown workspace.");
+  }
+  const canarySlotCandidates = approved.filter((item) => !stableSyntheticQuestions.includes(item?.text));
+  if (canarySlotCandidates.length !== 1) fail("Dedicated canary workspace did not contain exactly one designated canary question slot; refusing to mutate an unknown workspace.");
+  stage("synthetic-baseline-fingerprint-verified");
+
+  const canarySlot = canarySlotCandidates[0];
+  if (!canarySlot?.id || !/^[0-9a-f-]{36}$/i.test(canarySlot.id)) fail("The designated canary buyer question is missing a valid ID.");
+  let freshQuestion = canarySlot.text === freshWebEvidenceQuestion ? canarySlot : null;
+
   if (!freshQuestion) {
-    const priorQuestion = approved.find((item) => item?.text === priorGenericCanaryQuestion);
-    if (!priorQuestion?.id || !/^[0-9a-f-]{36}$/i.test(priorQuestion.id)) {
-      fail("Dedicated canary workspace baseline did not match the expected synthetic fixture; refusing to mutate an unknown workspace.");
-    }
     const update = await sameOriginFetch(page, "/api/prompts", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: priorQuestion.id, text: freshWebEvidenceQuestion }),
+      body: JSON.stringify({ id: canarySlot.id, text: freshWebEvidenceQuestion }),
     });
     if (!update.ok) fail(`Fresh web-evidence buyer-question update failed with status ${update.status}: ${update.body?.error || "unknown error"}`);
     stage("fresh-web-evidence-question-updated");
@@ -151,7 +164,8 @@ async function ensureCanaryWorkspace(page) {
     if (!prompts.ok) fail(`Buyer-question verification read failed with status ${prompts.status}.`);
     approved = Array.isArray(prompts.body?.data) ? prompts.body.data.filter((item) => item?.approved) : [];
     if (approved.length !== 5) fail(`Fresh-question reconciliation changed the five-question canary baseline; observed ${approved.length}.`);
-    freshQuestion = approved.find((item) => item?.id === priorQuestion.id && item?.text === freshWebEvidenceQuestion);
+    if (!stableSyntheticQuestions.every((text) => approved.some((item) => item?.text === text))) fail("Fresh-question reconciliation changed an invariant synthetic baseline question.");
+    freshQuestion = approved.find((item) => item?.id === canarySlot.id && item?.text === freshWebEvidenceQuestion);
   }
 
   if (!freshQuestion?.id || !/^[0-9a-f-]{36}$/i.test(freshQuestion.id)) fail("The fresh web-evidence canary buyer question is missing a valid ID.");
