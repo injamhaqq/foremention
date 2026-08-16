@@ -1,7 +1,7 @@
 import { ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
 import { estimateMaximumRunCost, getProviderCostRates, GROQ_SPEND_LIMITS, roundUsd } from "@/lib/collection-policy";
 
-const GROQ_BASIC_SEARCH_REQUEST_COST_USD = 0.005;
+const GROQ_BROWSER_SEARCH_RESERVED_USD = 0.05;
 
 type GroqSearchResult = {
   title?: string;
@@ -56,8 +56,8 @@ export const groqAdapter: AnswerProviderAdapter = {
     const model = String(process.env.GROQ_MODEL);
     const rates = getProviderCostRates("groq");
     if (!rates) throw new ProviderRequestError("Groq", 503, "Groq cost rates are not configured.");
-    if (rates.requestUsd < GROQ_BASIC_SEARCH_REQUEST_COST_USD) {
-      throw new ProviderRequestError("Groq", 503, `Groq fixed request cost must reserve at least $${GROQ_BASIC_SEARCH_REQUEST_COST_USD.toFixed(3)} for mandatory basic web search.`);
+    if (rates.requestUsd < GROQ_BROWSER_SEARCH_RESERVED_USD) {
+      throw new ProviderRequestError("Groq", 503, `Groq fixed request cost must reserve at least $${GROQ_BROWSER_SEARCH_RESERVED_USD.toFixed(2)} for mandatory browser search.`);
     }
     const estimatedPromptCost = estimateMaximumRunCost(1, rates);
     if (options.budget) {
@@ -76,16 +76,16 @@ export const groqAdapter: AnswerProviderAdapter = {
       headers: {
         authorization: `Bearer ${String(process.env.GROQ_API_KEY)}`,
         "content-type": "application/json",
-        "Groq-Model-Version": process.env.GROQ_MODEL_VERSION || "2025-07-23",
       },
       body: JSON.stringify({
         model,
-        compound_custom: { tools: { enabled_tools: ["web_search"] } },
+        reasoning_effort: "low",
+        tools: [{ type: "browser_search" }],
         tool_choice: "required",
         messages: [
           {
             role: "system",
-            content: "Use web search for this buyer question. Give a direct, evidence-based answer and cite the sources returned by the search tool. Do not invent companies, claims, or URLs.",
+            content: "Use browser search for this buyer question. Give a direct, evidence-based answer and cite the sources returned by the search tool. Do not invent companies, claims, or URLs.",
           },
           { role: "user", content: prompt.text },
         ],
@@ -109,8 +109,7 @@ export const groqAdapter: AnswerProviderAdapter = {
     const choice = raw.choices?.[0];
     const answer = choice?.message?.content || "";
     const executedTools = choice?.message?.executed_tools || [];
-    const webSearchTools = executedTools.filter((tool) => tool.type === "search");
-    const searchResultCount = webSearchTools.reduce((total, tool) => total + toolSearchResults(tool).length, 0);
+    const searchResultCount = executedTools.reduce((total, tool) => total + toolSearchResults(tool).length, 0);
     const citations = searchCitations(raw);
     const usage = raw.usage ? {
       inputTokens: raw.usage.prompt_tokens,
@@ -129,7 +128,7 @@ export const groqAdapter: AnswerProviderAdapter = {
         usage,
         citationCount: citations.length,
         searchObservationVersion: 1,
-        searchUsed: webSearchTools.length > 0,
+        searchUsed: executedTools.length > 0,
         searchResultCount,
       },
       collectedAt: new Date().toISOString(),
