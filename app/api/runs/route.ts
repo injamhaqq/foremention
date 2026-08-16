@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import {
   configuredMaxRunCostUsd,
-  estimateMaximumRunCost,
+  estimateReservedRunCost,
   GROQ_SPEND_LIMITS,
   getProviderCostRates,
   LIVE_COLLECTION_LIMITS,
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "The selected provider is not configured for live collection." }, { status: 503 });
   }
-  const estimatedMaximumCost = estimateMaximumRunCost(prompts.length, rates);
+  const estimatedMaximumCost = estimateReservedRunCost(providerId, prompts.length, rates);
   if (estimatedMaximumCost > configuredMaxRunCostUsd()) {
     return NextResponse.json({
       error: "This collection exceeds the configured per-run spending ceiling. Select fewer questions or raise the ceiling privately.",

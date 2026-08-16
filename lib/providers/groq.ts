@@ -1,5 +1,5 @@
 import { ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
-import { estimateMaximumRunCost, getProviderCostRates, GROQ_SPEND_LIMITS, roundUsd } from "@/lib/collection-policy";
+import { getProviderCostRates, GROQ_SPEND_LIMITS, roundUsd } from "@/lib/collection-policy";
 
 const GROQ_BROWSER_SEARCH_RESERVED_USD = 0.05;
 
@@ -59,7 +59,7 @@ export const groqAdapter: AnswerProviderAdapter = {
     if (rates.requestUsd < GROQ_BROWSER_SEARCH_RESERVED_USD) {
       throw new ProviderRequestError("Groq", 503, `Groq fixed request cost must reserve at least $${GROQ_BROWSER_SEARCH_RESERVED_USD.toFixed(2)} for mandatory browser search.`);
     }
-    const estimatedPromptCost = estimateMaximumRunCost(1, rates);
+    const estimatedPromptCost = GROQ_SPEND_LIMITS.maxRunCostUsd;
     if (options.budget) {
       const nextRunSpend = roundUsd(options.budget.runSpendSoFarUsd + estimatedPromptCost);
       const nextMonthlySpend = roundUsd(options.budget.monthlySpendSoFarUsd + estimatedPromptCost);
