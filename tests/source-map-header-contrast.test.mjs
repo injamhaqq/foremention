@@ -4,8 +4,10 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
-const [css, sourceMapTable] = await Promise.all([
+const [css, workspaceCss, appLayout, sourceMapTable] = await Promise.all([
   text("app/globals.css"),
+  text("app/app/workspace-accessibility.css"),
+  text("app/app/layout.tsx"),
   text("components/source-map-table.tsx"),
 ]);
 
@@ -50,8 +52,9 @@ test("Source Map table headers meet WCAG AA contrast on their rendered backgroun
   assert.match(sourceMapTable, /Crawler/);
   assert.match(sourceMapTable, /Entry route/);
   assert.match(sourceMapTable, /Next step/);
+  assert.match(appLayout, /import "\.\/workspace-accessibility\.css";/);
 
-  const foreground = resolveColor(declaration(css, ".data-row--head", "color"));
+  const foreground = resolveColor(declaration(workspaceCss, ".workspace .data-row--head", "color"));
   const background = resolveColor(declaration(css, ".data-row--head", "background"));
   const ratio = contrastRatio(foreground, background);
 
