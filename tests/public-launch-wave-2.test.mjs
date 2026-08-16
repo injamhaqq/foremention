@@ -14,18 +14,23 @@ const optionalText = async (path) => {
 };
 
 const pricing = await text("app/pricing/page.tsx");
+const homepage = await text("app/page.tsx");
 const sourceMap = await text("app/source-map/page.tsx");
 const homepageStyles = await text("components/homepage-readiness.module.css");
 const sitemap = await text("app/sitemap.ts");
 const compare = await optionalText("app/compare/page.tsx");
 
-test("pricing sells the outcome while keeping the free-beta commercial boundary truthful", () => {
+test("pricing sells the outcome without publishing unvalidated paid anchors during free beta", () => {
   assert.match(pricing, /Know what AI says about your brand/i);
-  assert.match(pricing, /\$149/);
-  assert.match(pricing, /\$499/);
-  assert.match(pricing, /Custom/);
+  assert.match(pricing, /Core/);
+  assert.match(pricing, /Signal/);
+  assert.match(pricing, /Intelligence/);
+  assert.match(pricing, /Pricing to be confirmed/i);
   assert.match(pricing, /Join private beta/);
   assert.match(pricing, /does not charge a card/i);
+  assert.match(pricing, /paid checkout is not active/i);
+  assert.doesNotMatch(pricing, /\$149|\$499/);
+  assert.doesNotMatch(homepage, /\$149|\$499/);
   assert.doesNotMatch(pricing, /pricingComparison/);
   assert.doesNotMatch(pricing, /peec\.ai\/pricing|scrunch\.com\/pricing|tryprofound\.com\/pricing/);
 });
