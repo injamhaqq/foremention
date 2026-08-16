@@ -26,12 +26,11 @@ Observed evidence, product assessments, and customer-supplied outcomes remain vi
 
 ## Plans represented in the product
 
-- Explorer: free
-- Core: $149/month
-- Signal: $499/month
-- Intelligence: custom capacity and terms
+- Core: Pricing to be confirmed — private-beta package
+- Signal: Pricing to be confirmed — private-beta package
+- Intelligence: custom scope — future commercial package
 
-These are recurring software plans. Payment activation is not complete until a verified billing webhook updates the organization entitlement; a checkout return must never unlock paid access by itself.
+Foremention is a free private beta today. Paid checkout is not active. Creating a workspace does not charge a card or silently activate Core, Signal, or Intelligence. Final paid pricing, billing terms, and paid entitlements remain under validation before commercial launch.
 
 ## Quick start
 
