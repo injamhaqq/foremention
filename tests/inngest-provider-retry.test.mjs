@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { NonRetriableError } from "inngest";
 
+const root = new URL("../", import.meta.url);
+const inngestSource = await readFile(new URL("lib/jobs/inngest.ts", root), "utf8");
 const { ProviderRequestError } = await import("../lib/providers/types.ts");
+
+test("live collection routes provider step failures through the retry classifier", () => {
+  assert.match(inngestSource, /import \{ toInngestProviderStepError \} from "\.\/provider-step-error";/);
+  assert.match(inngestSource, /throw toInngestProviderStepError\(error\);/);
+});
 
 test("provider step errors stop retries only for permanent provider rejections", async () => {
   const { toInngestProviderStepError } = await import("../lib/jobs/provider-step-error.ts");
