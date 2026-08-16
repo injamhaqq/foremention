@@ -5,3 +5,7 @@
 .workspace .setup-complete > span {
   color: #455a55;
 }
+
+.workspace .data-row--head {
+  color: #455a55;
+}
