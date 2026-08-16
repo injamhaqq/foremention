@@ -16,3 +16,9 @@ test("public and workspace mobile layouts stay bounded and preserve dense data s
   assert.match(css, /-webkit-overflow-scrolling: touch/);
   assert.match(css, /min-height: 44px/);
 });
+
+test("completed workspace setup text uses accessible semantic color tokens", async () => {
+  const css = await text("app/globals.css");
+  assert.match(css, /\.setup-complete > strong \{ color: var\(--green\);/);
+  assert.match(css, /\.setup-complete > span \{ color: var\(--muted\);/);
+});
