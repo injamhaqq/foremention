@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -20,6 +21,7 @@ const timeoutMs = Math.max(60_000, Math.min(Number(process.env.FOREMENTION_ACCEP
 const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-acceptance");
 const outputPath = resolve(outputRoot, "first-evidence-production-canary.json");
 const liveProviders = new Set(["openai", "gemini", "anthropic", "perplexity", "groq", "cloudflare", "openrouter", "zenmux", "omnirouters"]);
+const expectedAcceptanceFixtureFingerprint = "";
 
 const summary = {
   checkedAt: new Date().toISOString(),
@@ -35,6 +37,7 @@ const summary = {
   stages: [],
   evidence: {
     approvedQuestionCount: null,
+    acceptanceFixtureFingerprint: null,
     runStatus: null,
     answerCount: null,
     citationCount: null,
@@ -90,12 +93,6 @@ async function ensureExactHealth(page) {
 }
 
 const freshWebEvidenceQuestion = "Use web search now. According to the official OpenAI website, what is the title and publication date of the most recently published post on openai.com/news at the time you answer? Cite the exact openai.com source URL you used. If you cannot verify it with current web evidence, say so rather than answering from memory.";
-const stableSyntheticQuestions = [
-  "What should a synthetic buyer verify before trusting an AI recommendation monitoring platform?",
-  "Which evidence should a synthetic buyer inspect when an AI system cites a source?",
-  "How should a synthetic buyer compare repeated AI recommendation observations safely?",
-  "What makes a recommendation evidence platform trustworthy for a synthetic evaluation?",
-];
 
 const syntheticOnboarding = {
   companyName: "Foremention Acceptance Fixture",
@@ -106,7 +103,13 @@ const syntheticOnboarding = {
   competitors: ["Synthetic Alpha", "Synthetic Beta"],
   goal: "Verify the authenticated first-evidence production path",
   constraint: "Synthetic production acceptance data only. Do not infer customer outcomes or causal lift.",
-  prompts: [freshWebEvidenceQuestion, ...stableSyntheticQuestions],
+  prompts: [
+    freshWebEvidenceQuestion,
+    "What should a synthetic buyer verify before trusting an AI recommendation monitoring platform?",
+    "Which evidence should a synthetic buyer inspect when an AI system cites a source?",
+    "How should a synthetic buyer compare repeated AI recommendation observations safely?",
+    "What makes a recommendation evidence platform trustworthy for a synthetic evaluation?",
+  ],
   locale: "en-US",
 };
 
@@ -132,17 +135,35 @@ async function ensureCanaryWorkspace(page) {
   if (approved.length !== 5) fail(`The dedicated canary workspace must contain exactly five approved baseline questions; observed ${approved.length}.`);
   stage("five-question-baseline-verified", { count: approved.length });
 
-  if (!stableSyntheticQuestions.every((text) => approved.some((item) => item?.text === text))) {
-    fail("Dedicated canary workspace invariant questions did not match the expected synthetic fixture; refusing to mutate an unknown workspace.");
+  const workspace = await sameOriginFetch(page, "/api/onboarding", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  if (!workspace.ok || workspace.body?.existing !== true) {
+    fail(`Dedicated canary workspace identity lookup failed with status ${workspace.status}; refusing to mutate or spend.`);
   }
-  const canarySlotCandidates = approved.filter((item) => !stableSyntheticQuestions.includes(item?.text));
-  if (canarySlotCandidates.length !== 1) fail("Dedicated canary workspace did not contain exactly one designated canary question slot; refusing to mutate an unknown workspace.");
-  stage("synthetic-baseline-fingerprint-verified");
+  const organizationId = typeof workspace.body?.organizationId === "string" ? workspace.body.organizationId.trim().toLowerCase() : "";
+  if (!/^[0-9a-f-]{36}$/i.test(organizationId)) fail("Dedicated canary workspace identity lookup returned an invalid organization identifier; refusing to mutate or spend.");
 
-  const canarySlot = canarySlotCandidates[0];
-  if (!canarySlot?.id || !/^[0-9a-f-]{36}$/i.test(canarySlot.id)) fail("The designated canary buyer question is missing a valid ID.");
+  const canarySlot = approved[0];
+  if (!canarySlot?.id || !/^[0-9a-f-]{36}$/i.test(canarySlot.id)) fail("The historical canary buyer question is missing a valid ID.");
+  const observedFingerprint = createHash("sha256")
+    .update(`${organizationId}:${canarySlot.id}`)
+    .digest("hex");
+  if (!/^[0-9a-f]{64}$/.test(observedFingerprint)) fail("Acceptance fixture fingerprint derivation failed; refusing to mutate or spend.");
+  summary.evidence.acceptanceFixtureFingerprint = observedFingerprint;
+  stage("acceptance-fixture-fingerprint-observed");
+
+  if (!expectedAcceptanceFixtureFingerprint) {
+    fail("Acceptance fixture fingerprint is not pinned; refusing to mutate or spend");
+  }
+  if (observedFingerprint !== expectedAcceptanceFixtureFingerprint) {
+    fail("Acceptance fixture fingerprint did not match the pinned synthetic fixture; refusing to mutate or spend.");
+  }
+  stage("acceptance-fixture-fingerprint-verified");
+
   let freshQuestion = canarySlot.text === freshWebEvidenceQuestion ? canarySlot : null;
-
   if (!freshQuestion) {
     const update = await sameOriginFetch(page, "/api/prompts", {
       method: "PATCH",
@@ -156,7 +177,6 @@ async function ensureCanaryWorkspace(page) {
     if (!prompts.ok) fail(`Buyer-question verification read failed with status ${prompts.status}.`);
     approved = Array.isArray(prompts.body?.data) ? prompts.body.data.filter((item) => item?.approved) : [];
     if (approved.length !== 5) fail(`Fresh-question reconciliation changed the five-question canary baseline; observed ${approved.length}.`);
-    if (!stableSyntheticQuestions.every((text) => approved.some((item) => item?.text === text))) fail("Fresh-question reconciliation changed an invariant synthetic baseline question.");
     freshQuestion = approved.find((item) => item?.id === canarySlot.id && item?.text === freshWebEvidenceQuestion);
   }
 
