@@ -19,7 +19,8 @@ test("Google account auth is feature-gated and reuses the verified Supabase sess
 
   assert.match(gate, /FOREMENTION_GOOGLE_AUTH_ENABLED === "1"/);
   assert.match(gate, /!value\.startsWith\("\/"\)/);
-  assert.match(gate, /value\.startsWith\("\/\/"\)/);
+  assert.match(gate, /new URL\(value, AUTH_NEXT_BASE\)/);
+  assert.match(gate, /parsed\.origin !== AUTH_NEXT_BASE\.origin/);
   assert.match(route, /\/auth\/v1\/authorize/);
   assert.match(route, /provider", "google"/);
   assert.match(route, /redirect_to/);

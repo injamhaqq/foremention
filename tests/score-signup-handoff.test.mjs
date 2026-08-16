@@ -37,7 +37,8 @@ test("signup and confirmation preserve a safe continuation path", () => {
   assert.match(signupRoute, /const next = safeAuthNext/);
   assert.match(signupRoute, /emailRedirect\.searchParams\.set\("next", next\)/);
   assert.match(callback, /safeAuthNext\(requestedNext\)/);
-  assert.match(authNavigation, /value\.startsWith\("\/\/"\)/);
+  assert.match(authNavigation, /new URL\(value, AUTH_NEXT_BASE\)/);
+  assert.match(authNavigation, /parsed\.origin !== AUTH_NEXT_BASE\.origin/);
 });
 
 test("score-aware onboarding carries setup context without importing public evidence", () => {
