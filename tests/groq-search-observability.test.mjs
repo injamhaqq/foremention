@@ -22,6 +22,9 @@ test("Groq web-search execution remains distinct from returned citations", async
   assert.match(diagnostics, /raw_json/);
   assert.match(diagnostics, /sanitizeProviderRunDiagnostics/);
   assert.match(diagnostics, /searchObservationVersion !== 1/);
+  assert.match(diagnostics, /provider=eq\.groq/);
+  assert.match(diagnostics, /organization_id=eq\./);
+  assert.match(diagnostics, /run_id=eq\./);
   assert.match(diagnostics, /searchResultCount/);
   assert.match(diagnostics, /searchUsed/);
   assert.doesNotMatch(diagnostics, /arguments|content|reasoning|snippet/i);
@@ -29,6 +32,7 @@ test("Groq web-search execution remains distinct from returned citations", async
   assert.match(page, /loadProviderRunDiagnostics/);
   assert.match(page, /data-provider-search-used/);
   assert.match(page, /data-provider-search-result-count/);
+  assert.match(page, /structured search-result count was not recorded/i);
   assert.match(page, /search execution and returned citations are separate facts/i);
   assert.doesNotMatch(page, /raw_json|raw_response/);
 
