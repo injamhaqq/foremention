@@ -38,6 +38,8 @@ const summary = {
     runStatus: null,
     answerCount: null,
     citationCount: null,
+    providerSearchUsed: null,
+    providerSearchResultCount: null,
     duplicateRequestConfirmed: false,
     runReviewPublished: false,
     sourceXrayOpened: false,
@@ -178,6 +180,20 @@ async function verifyRunEvidenceAndPublish(page, run) {
   if (await page.getByText("Your first real evidence", { exact: false }).count() === 0) fail("The first-evidence guidance was not rendered on the exact run.");
   if (await page.getByText("Recorded model", { exact: true }).count() > 0) fail("The persisted provider answer is missing its exact model identifier.");
   if (await page.getByText(provider, { exact: false }).count() === 0) fail("The run detail did not expose the configured canary provider identifier.");
+
+  if (provider === "groq") {
+    const providerDiagnostics = page.locator("[data-provider-search-used][data-provider-search-result-count]").first();
+    if (await providerDiagnostics.count() === 0) fail("The Groq answer is missing sanitized provider-search diagnostics.");
+    const searchUsedValue = await providerDiagnostics.getAttribute("data-provider-search-used");
+    const searchResultCountValue = await providerDiagnostics.getAttribute("data-provider-search-result-count");
+    if (searchUsedValue !== "true" && searchUsedValue !== "false") fail("The Groq answer did not record whether web search executed on this release.");
+    const parsedSearchResultCount = Number(searchResultCountValue);
+    if (!Number.isInteger(parsedSearchResultCount) || parsedSearchResultCount < 0) fail("The Groq answer did not record a valid structured search-result count.");
+    summary.evidence.providerSearchUsed = searchUsedValue === "true";
+    summary.evidence.providerSearchResultCount = parsedSearchResultCount;
+    stage("provider-search-diagnostics-recorded", { searchUsed: summary.evidence.providerSearchUsed, searchResultCount: parsedSearchResultCount });
+  }
+
   stage("persisted-provider-answer-verified", { answers: Number(run.answers), citations: Number(run.citations || 0) });
 
   if (run.status === "review") {
