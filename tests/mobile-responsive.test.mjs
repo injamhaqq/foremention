@@ -18,7 +18,11 @@ test("public and workspace mobile layouts stay bounded and preserve dense data s
 });
 
 test("completed workspace setup text uses accessible semantic color tokens", async () => {
-  const css = await text("app/globals.css");
-  assert.match(css, /\.setup-complete > strong \{ color: var\(--green\);/);
-  assert.match(css, /\.setup-complete > span \{ color: var\(--muted\);/);
+  const [css, layout] = await Promise.all([
+    text("app/app/workspace-accessibility.css"),
+    text("app/app/layout.tsx"),
+  ]);
+  assert.match(layout, /import "\.\/workspace-accessibility\.css";/);
+  assert.match(css, /\.workspace \.setup-complete > strong \{[\s\S]*color: var\(--green\);[\s\S]*\}/);
+  assert.match(css, /\.workspace \.setup-complete > span \{[\s\S]*color: var\(--muted\);[\s\S]*\}/);
 });
