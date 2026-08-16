@@ -4,6 +4,7 @@ import { recordAgentExecution } from "@/lib/agent-control-plane";
 import {
   canonicalizeEvidenceUrl,
   estimateMaximumRunCost,
+  estimateReservedRunCost,
   estimateProviderCost,
   GROQ_SPEND_LIMITS,
   getProviderCostRates,
@@ -105,7 +106,7 @@ async function prepareWeeklyRun(seed: ScheduledRunSeed, weekKey: string) {
   if (!entitlement || entitlement.status !== "active" || activeRuns.length || !prompts.length) return null;
   const requestedUnits = prompts.length;
   const usedUnits = monthlyUsage.reduce((sum, row) => sum + Number(row.units || 0), 0);
-  const estimatedMaximumCost = estimateMaximumRunCost(prompts.length, rates);
+  const estimatedMaximumCost = estimateReservedRunCost(providerId, prompts.length, rates);
   const reservedSpend = monthlyRuns.reduce((sum, row) => sum + (["failed", "cancelled"].includes(row.status) && !row.started_at ? 0 : Number(row.actual_cost_usd || row.estimated_max_cost_usd || 0)), 0);
   if (usedUnits + requestedUnits > entitlement.monthly_run_units || reservedSpend + estimatedMaximumCost > Number(entitlement.monthly_ai_spend_cap_usd)) return null;
   const runId = crypto.randomUUID();
