@@ -89,45 +89,53 @@ jobs:
         run: |
           set -euo pipefail
           server_pid=""
-          cleanup() {
+          : > .browser-server.log
+
+          stop_worker() {
             if [ -n "$server_pid" ] && kill -0 "$server_pid" 2>/dev/null; then
               kill "$server_pid" 2>/dev/null || true
               wait "$server_pid" 2>/dev/null || true
             fi
+            server_pid=""
+          }
+
+          start_worker() {
+            stop_worker
+            echo "=== Starting fresh local Worker ===" >> .browser-server.log
+            pnpm exec wrangler dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4173 >> .browser-server.log 2>&1 &
+            server_pid=$!
+            echo "$server_pid" > .browser-server.pid
+
+            ready=false
+            for attempt in $(seq 1 60); do
+              if curl --fail --silent --show-error --max-time 2 http://127.0.0.1:4173/ >/dev/null; then
+                ready=true
+                break
+              fi
+              echo "Waiting for local Worker (${attempt}/60)..."
+              if ! kill -0 "$server_pid" 2>/dev/null; then
+                cat .browser-server.log
+                exit 1
+              fi
+              sleep 1
+            done
+            if [ "$ready" != "true" ]; then
+              cat .browser-server.log
+              echo "Local Worker did not become ready within 60 seconds." >&2
+              exit 1
+            fi
+          }
+
+          cleanup() {
+            stop_worker
           }
           trap cleanup EXIT
 
-          pnpm exec wrangler dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4173 > .browser-server.log 2>&1 &
-          server_pid=$!
-          echo "$server_pid" > .browser-server.pid
-
-          ready=false
-          for attempt in $(seq 1 60); do
-            if curl --fail --silent --show-error --max-time 2 http://127.0.0.1:4173/ >/dev/null; then
-              ready=true
-              break
-            fi
-            echo "Waiting for local Worker (${attempt}/60)..."
-            if ! kill -0 "$server_pid" 2>/dev/null; then
-              cat .browser-server.log
-              exit 1
-            fi
-            sleep 1
-          done
-          if [ "$ready" != "true" ]; then
-            cat .browser-server.log
-            echo "Local Worker did not become ready within 60 seconds." >&2
-            exit 1
-          fi
-
           export FOREMENTION_BROWSER_BASE_URL=http://127.0.0.1:4173
-          node scripts/browser-acceptance.mjs
 
-          if ! kill -0 "$server_pid" 2>/dev/null; then
-            echo "Local Worker exited before Lighthouse acceptance." >&2
-            cat .browser-server.log
-            exit 1
-          fi
+          start_worker
+          node scripts/browser-acceptance.mjs
+          stop_worker
 
           chrome="$(command -v google-chrome || command -v google-chrome-stable || true)"
           if [ -z "$chrome" ]; then
@@ -135,8 +143,14 @@ jobs:
             exit 1
           fi
           export CHROME_PATH="$chrome"
+
           rm -rf .lighthouseci
-          .ci-tools/node_modules/.bin/lhci collect --config=./lighthouserc.cjs
+          for lighthouse_path in "/" "/product" "/pricing" "/score"; do
+            echo "Running isolated Lighthouse audit for ${lighthouse_path}"
+            start_worker
+            .ci-tools/node_modules/.bin/lhci collect --config=./lighthouserc.cjs --additive --url "${FOREMENTION_BROWSER_BASE_URL}${lighthouse_path}"
+            stop_worker
+          done
           .ci-tools/node_modules/.bin/lhci assert --config=./lighthouserc.cjs
 
       - name: Run trusted production browser and accessibility acceptance

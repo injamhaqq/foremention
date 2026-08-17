@@ -19,3 +19,14 @@ test("PostHog environment template points Foremention at the connected US Cloud 
   const envExample = await text(".env.example");
   assert.match(envExample, /^NEXT_PUBLIC_POSTHOG_HOST=https:\/\/us\.i\.posthog\.com$/m);
 });
+
+test("PostHog transport identity survives final-send minimization without weakening application property filtering", async () => {
+  const analytics = await text("lib/product-analytics.ts");
+
+  assert.match(analytics, /blockedPropertyPattern[\s\S]*token/);
+  assert.match(analytics, /postHogTransportPropertyKeys\s*=\s*new Set\(\["token", "distinct_id"\]\)/);
+  assert.match(analytics, /function sanitizePostHogEventProperties/);
+  assert.match(analytics, /postHogTransportPropertyKeys\.has\(key\) \|\| !blockedPropertyPattern\.test\(key\)/);
+  assert.match(analytics, /properties: sanitizePostHogEventProperties\(event\.properties\)/);
+  assert.match(analytics, /posthog\.capture\(event, sanitizeAnalyticsProperties\(properties\)\)/);
+});

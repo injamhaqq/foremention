@@ -27,7 +27,8 @@ test("PostHog pageviews expose only stable product surfaces", () => {
 test("PostHog strips URL, path and referrer context at the final send boundary", () => {
   const source = readFileSync("lib/product-analytics.ts", "utf8");
   assert.match(source, /before_send:/);
-  assert.match(source, /sanitizeAnalyticsProperties\(event\.properties\)/);
+  assert.match(source, /sanitizePostHogEventProperties\(event\.properties\)/);
+  assert.match(source, /postHogTransportPropertyKeys\.has\(key\) \|\| !blockedPropertyPattern\.test\(key\)/);
   assert.match(source, /url\|pathname\|referrer\|referring_domain/);
   assert.match(source, /capture_pageview: false/);
   assert.match(source, /autocapture: false/);
