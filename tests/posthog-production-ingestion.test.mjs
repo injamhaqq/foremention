@@ -15,8 +15,7 @@ test("production PostHog config cannot silently depend on missing NEXT_PUBLIC bu
   assert.match(analytics, /apiHost: PRODUCTION_POSTHOG_HOST/);
 });
 
-test("PostHog environment template points to the connected US Cloud ingestion region", async () => {
+test("PostHog environment template points Foremention at the connected US Cloud ingestion region", async () => {
   const envExample = await text(".env.example");
-  assert.match(envExample, /NEXT_PUBLIC_POSTHOG_HOST=https:\/\/us\.i\.posthog\.com/);
-  assert.doesNotMatch(envExample, /NEXT_PUBLIC_POSTHOG_HOST=https:\/\/eu\.i\.posthog\.com/);
+  assert.match(envExample, /^NEXT_PUBLIC_POSTHOG_HOST=https:\/\/us\.i\.posthog\.com$/m);
 });
