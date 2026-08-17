@@ -5,6 +5,13 @@ import posthog from "posthog-js";
 type AnalyticsValue = string | number | boolean | null;
 
 const blockedPropertyPattern = /(email|name|password|token|secret|answer|prompt|citation|content|message|url|pathname|referrer|referring_domain)/i;
+
+// PostHog project tokens are public browser identifiers, not secret API keys.
+// Pin the production project and region so analytics cannot silently disappear
+// because a NEXT_PUBLIC build variable was omitted or points at another region.
+const PRODUCTION_POSTHOG_PROJECT_TOKEN = "phc_kE9qcChyPtqY7sRQ5oUFbaNk6aiGRFFkaiXpr9B3ycrG";
+const PRODUCTION_POSTHOG_HOST = "https://us.i.posthog.com";
+
 let initialized = false;
 
 function sanitizeAnalyticsProperties(properties: Record<string, unknown> = {}) {
@@ -13,10 +20,23 @@ function sanitizeAnalyticsProperties(properties: Record<string, unknown> = {}) {
   );
 }
 
+function getProductAnalyticsConfig() {
+  if (process.env.NODE_ENV === "production") {
+    return {
+      projectToken: PRODUCTION_POSTHOG_PROJECT_TOKEN,
+      apiHost: PRODUCTION_POSTHOG_HOST,
+    };
+  }
+
+  return {
+    projectToken: process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN,
+    apiHost: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  };
+}
+
 export function initializeProductAnalytics() {
   if (initialized || typeof window === "undefined") return initialized;
-  const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-  const apiHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+  const { projectToken, apiHost } = getProductAnalyticsConfig();
   if (!projectToken || !apiHost) return false;
   posthog.init(projectToken, {
     api_host: apiHost,
