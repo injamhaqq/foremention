@@ -21,6 +21,16 @@ test("browser acceptance is permanent on pull requests and exact main releases",
   assert.match(workflow, /Waiting for local Worker \(\$\{attempt\}\/60\)/);
 });
 
+test("pull request Lighthouse audits isolate every route behind a fresh local Worker", () => {
+  const prStep = workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?\.ci-tools\/node_modules\/\.bin\/lhci assert/)?.[0] || "";
+  assert.match(prStep, /start_worker\(\)/);
+  assert.match(prStep, /stop_worker\(\)/);
+  assert.match(prStep, /for lighthouse_path in "\/" "\/product" "\/pricing" "\/score"/);
+  assert.match(prStep, /start_worker[\s\S]*lhci collect[\s\S]*stop_worker/);
+  assert.match(prStep, /lhci collect --config=\.\/lighthouserc\.cjs --additive --url "\$\{FOREMENTION_BROWSER_BASE_URL\}\$\{lighthouse_path\}"/);
+  assert.match(prStep, /rm -rf \.lighthouseci/);
+});
+
 test("browser tooling is pinned and production secrets are confined to trusted acceptance", () => {
   assert.match(workflow, /"playwright": "1\.60\.0"/);
   assert.match(workflow, /"@axe-core\/playwright": "4\.12\.1"/);
