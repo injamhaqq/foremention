@@ -5,6 +5,7 @@ import posthog from "posthog-js";
 type AnalyticsValue = string | number | boolean | null;
 
 const blockedPropertyPattern = /(email|name|password|token|secret|answer|prompt|citation|content|message|url|pathname|referrer|referring_domain)/i;
+const postHogTransportPropertyKeys = new Set(["token", "distinct_id"]);
 
 // PostHog project tokens are public browser identifiers, not secret API keys.
 // Pin the production project and region so analytics cannot silently disappear
@@ -17,6 +18,14 @@ let initialized = false;
 function sanitizeAnalyticsProperties(properties: Record<string, unknown> = {}) {
   return Object.fromEntries(
     Object.entries(properties).filter(([key]) => !blockedPropertyPattern.test(key)),
+  );
+}
+
+function sanitizePostHogEventProperties(properties: Record<string, unknown> = {}) {
+  return Object.fromEntries(
+    Object.entries(properties).filter(
+      ([key]) => postHogTransportPropertyKeys.has(key) || !blockedPropertyPattern.test(key),
+    ),
   );
 }
 
@@ -53,7 +62,7 @@ export function initializeProductAnalytics() {
       if (!event) return null;
       return {
         ...event,
-        properties: sanitizeAnalyticsProperties(event.properties),
+        properties: sanitizePostHogEventProperties(event.properties),
       };
     },
   });
