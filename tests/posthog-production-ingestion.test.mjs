@@ -27,6 +27,6 @@ test("PostHog transport identity survives final-send minimization without weaken
   assert.match(analytics, /postHogTransportPropertyKeys\s*=\s*new Set\(\["token", "distinct_id"\]\)/);
   assert.match(analytics, /function sanitizePostHogEventProperties/);
   assert.match(analytics, /postHogTransportPropertyKeys\.has\(key\) \|\| !blockedPropertyPattern\.test\(key\)/);
-  assert.match(analytics, /properties: sanitizePostHogEventProperties\(event\.properties as Record<string, unknown>\)/);
-  assert.match(analytics, /posthog\.capture\(name, sanitizeProperties\(properties\)\)/);
+  assert.match(analytics, /properties: sanitizePostHogEventProperties\(event\.properties\)/);
+  assert.match(analytics, /posthog\.capture\(event, sanitizeAnalyticsProperties\(properties\)\)/);
 });
