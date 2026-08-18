@@ -1,54 +1,75 @@
 "use client";
 
 import posthog from "posthog-js";
-
-type AnalyticsValue = string | number | boolean | null;
-
-const blockedPropertyPattern = /(email|name|password|token|secret|answer|prompt|citation|content|message|url|pathname|referrer|referring_domain)/i;
-const postHogTransportPropertyKeys = new Set(["token", "distinct_id"]);
+import {
+  normalizeInternalAnalyticsId,
+  sanitizeProductAnalyticsEvent,
+  shouldEnableProductAnalytics,
+  type ProductAnalyticsEventName,
+} from "@/lib/product-analytics-contract";
 
 // PostHog project tokens are public browser identifiers, not secret API keys.
-// Pin the production project and region so analytics cannot silently disappear
-// because a NEXT_PUBLIC build variable was omitted or points at another region.
+// Production analytics is pinned to the connected Foremention project and is
+// additionally hostname-gated so local, test, preview, and QA builds cannot
+// contaminate production product data.
 const PRODUCTION_POSTHOG_PROJECT_TOKEN = "phc_kE9qcChyPtqY7sRQ5oUFbaNk6aiGRFFkaiXpr9B3ycrG";
 const PRODUCTION_POSTHOG_HOST = "https://us.i.posthog.com";
 
 let initialized = false;
+let currentViewerId: string | null = null;
+let currentOrganizationId: string | null = null;
 
-function sanitizeAnalyticsProperties(properties: Record<string, unknown> = {}) {
-  return Object.fromEntries(
-    Object.entries(properties).filter(([key]) => !blockedPropertyPattern.test(key)),
-  );
+function safeAnonymousTransportId(value: unknown) {
+  if (typeof value !== "string" || value.length < 8 || value.length > 128) return null;
+  if (value.includes("@") || /https?:\/\//i.test(value) || /\s/.test(value)) return null;
+  return /^[A-Za-z0-9_$:.-]+$/.test(value) ? value : null;
 }
 
-function sanitizePostHogEventProperties(properties: Record<string, unknown> = {}) {
-  return Object.fromEntries(
-    Object.entries(properties).filter(
-      ([key]) => postHogTransportPropertyKeys.has(key) || !blockedPropertyPattern.test(key),
-    ),
-  );
+function transportProperties(properties: Record<string, unknown> = {}) {
+  const safe: Record<string, unknown> = {};
+  if (properties.token === PRODUCTION_POSTHOG_PROJECT_TOKEN) safe.token = PRODUCTION_POSTHOG_PROJECT_TOKEN;
+  const distinctId = currentViewerId || safeAnonymousTransportId(properties.distinct_id);
+  if (distinctId) safe.distinct_id = distinctId;
+  return safe;
 }
 
-function getProductAnalyticsConfig() {
-  if (process.env.NODE_ENV === "production") {
+function sanitizePostHogPayload(event: { event?: string; properties?: Record<string, unknown> } | null) {
+  if (!event?.event) return null;
+  const rawProperties = event.properties || {};
+  const transport = transportProperties(rawProperties);
+
+  if (event.event === "$identify") {
+    if (!currentViewerId) return null;
+    const anonymousId = safeAnonymousTransportId(rawProperties.$anon_distinct_id);
     return {
-      projectToken: PRODUCTION_POSTHOG_PROJECT_TOKEN,
-      apiHost: PRODUCTION_POSTHOG_HOST,
+      ...event,
+      properties: {
+        ...transport,
+        distinct_id: currentViewerId,
+        ...(anonymousId ? { $anon_distinct_id: anonymousId } : {}),
+      },
     };
   }
 
+  const sanitized = sanitizeProductAnalyticsEvent(event.event, rawProperties);
+  if (!sanitized) return null;
   return {
-    projectToken: process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN,
-    apiHost: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    ...event,
+    event: sanitized.event,
+    properties: {
+      ...transport,
+      ...sanitized.properties,
+      ...(currentOrganizationId ? { $groups: { organization: currentOrganizationId } } : {}),
+    },
   };
 }
 
 export function initializeProductAnalytics() {
   if (initialized || typeof window === "undefined") return initialized;
-  const { projectToken, apiHost } = getProductAnalyticsConfig();
-  if (!projectToken || !apiHost) return false;
-  posthog.init(projectToken, {
-    api_host: apiHost,
+  if (!shouldEnableProductAnalytics(process.env.NODE_ENV, window.location.hostname)) return false;
+
+  posthog.init(PRODUCTION_POSTHOG_PROJECT_TOKEN, {
+    api_host: PRODUCTION_POSTHOG_HOST,
     defaults: "2026-05-30",
     autocapture: false,
     capture_pageview: false,
@@ -58,24 +79,34 @@ export function initializeProductAnalytics() {
     person_profiles: "identified_only",
     persistence: "localStorage+cookie",
     secure_cookie: window.location.protocol === "https:",
-    before_send: (event) => {
-      if (!event) return null;
-      return {
-        ...event,
-        properties: sanitizePostHogEventProperties(event.properties),
-      };
-    },
+    before_send: (event) => sanitizePostHogPayload(event),
   });
   initialized = true;
   return true;
 }
 
-export function captureProductEvent(event: string, properties: Record<string, AnalyticsValue> = {}) {
+export function captureProductEvent(event: ProductAnalyticsEventName, properties: Record<string, unknown> = {}) {
   if (!initializeProductAnalytics()) return;
-  posthog.capture(event, sanitizeAnalyticsProperties(properties));
+  const sanitized = sanitizeProductAnalyticsEvent(event, properties);
+  if (!sanitized) return;
+  posthog.capture(sanitized.event, sanitized.properties);
+}
+
+export function identifyProductAnalyticsUser(viewerId: string, organizationId?: string) {
+  if (!initializeProductAnalytics()) return false;
+  const normalizedViewerId = normalizeInternalAnalyticsId(viewerId);
+  if (!normalizedViewerId) return false;
+  const normalizedOrganizationId = organizationId ? normalizeInternalAnalyticsId(organizationId) : null;
+
+  currentViewerId = normalizedViewerId;
+  currentOrganizationId = normalizedOrganizationId;
+  posthog.identify(normalizedViewerId);
+  return true;
 }
 
 export function resetProductAnalytics() {
-  if (!initializeProductAnalytics()) return;
+  currentViewerId = null;
+  currentOrganizationId = null;
+  if (!initialized) return;
   posthog.reset();
 }
