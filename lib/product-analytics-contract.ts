@@ -7,6 +7,7 @@ export const PRODUCT_ANALYTICS_EVENTS = [
   "score_started",
   "score_completed",
   "score_failed",
+  "score_cta_clicked",
   "signup_started",
   "signup_completed",
   "auth_session_established",
@@ -181,6 +182,7 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
       addBoolean(properties, "shared_result", normalizedInput.shared_result);
       break;
     case "score_started":
+    case "score_cta_clicked":
     case "buyer_question_updated":
     case "ai_result_viewed":
     case "citation_result_viewed":
