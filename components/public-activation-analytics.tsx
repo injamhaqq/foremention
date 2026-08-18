@@ -35,7 +35,7 @@ export function PublicActivationAnalytics() {
         if (root.querySelector(".form-error")) {
           scoreOutcomeCaptured.current = true;
           scoreAttempt.current = false;
-          captureProductEvent("score_failed", { stage: "live_check" });
+          captureProductEvent("score_failed", { error_category: "live_check_failed" });
         }
       };
 
