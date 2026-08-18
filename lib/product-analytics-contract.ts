@@ -36,6 +36,11 @@ type SanitizedProductAnalyticsEvent = {
   properties: ProductAnalyticsProperties;
 };
 
+type NormalizedProductAnalyticsInput = {
+  event: string;
+  input: Record<string, unknown>;
+};
+
 const EVENT_NAMES = new Set<string>(PRODUCT_ANALYTICS_EVENTS);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -120,7 +125,7 @@ export function shouldEnableProductAnalytics(nodeEnv: string | undefined, hostna
   return normalized === "foremention.com" || normalized === "www.foremention.com";
 }
 
-function normalizeLegacyEvent(event: string, input: Record<string, unknown>) {
+function normalizeLegacyEvent(event: string, input: Record<string, unknown>): NormalizedProductAnalyticsInput {
   if (event === "onboarding_started") return { event: "activation_setup_started", input };
   if (event === "onboarding_completed") return { event: "activation_setup_completed", input };
   if (event === "onboarding_website_draft_created") return {
