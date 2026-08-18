@@ -34,6 +34,12 @@ const IDENTIFIED_WORKSPACE_EVENTS = new Set([
   "decision_insight_reached",
 ]);
 
+type PostHogCapturePayload = {
+  uuid: string;
+  event: string;
+  properties?: Record<string, unknown>;
+};
+
 let initialized = false;
 let currentViewerId: string | null = null;
 let currentOrganizationId: string | null = null;
@@ -52,7 +58,7 @@ function transportProperties(properties: Record<string, unknown> = {}) {
   return safe;
 }
 
-function sanitizePostHogPayload(event: { event?: string; properties?: Record<string, unknown> } | null) {
+function sanitizePostHogPayload(event: PostHogCapturePayload | null): PostHogCapturePayload | null {
   if (!event?.event) return null;
   const rawProperties = event.properties || {};
   const transport = transportProperties(rawProperties);
@@ -62,6 +68,7 @@ function sanitizePostHogPayload(event: { event?: string; properties?: Record<str
     const anonymousId = safeAnonymousTransportId(rawProperties.$anon_distinct_id);
     return {
       ...event,
+      event: "$identify",
       properties: {
         ...transport,
         distinct_id: currentViewerId,
