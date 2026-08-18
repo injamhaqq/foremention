@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(path, "utf8");
 
-test("activation funnel exposes every decision-grade milestone without a second analytics system", () => {
+test("activation funnel exposes every canonical decision-grade milestone without a second analytics system", () => {
+  const contract = read("lib/product-analytics-contract.ts");
   const sources = [
     read("components/public-activation-analytics.tsx"),
     read("components/visibility-score-form.tsx"),
@@ -12,39 +13,41 @@ test("activation funnel exposes every decision-grade milestone without a second 
     read("components/workspace-activation-analytics.tsx"),
     read("components/onboarding-wizard.tsx"),
     read("components/product-event.tsx"),
-    read("components/run-review.tsx"),
     read("components/source-review-form.tsx"),
+    contract,
   ].join("\n");
 
   for (const event of [
     "score_viewed",
     "score_started",
     "score_completed",
-    "score_monitor_clicked",
     "signup_started",
     "signup_completed",
     "auth_session_established",
-    "onboarding_started",
-    "onboarding_completed",
-    "collection_started",
-    "collection_completed",
+    "activation_setup_started",
+    "activation_context_ready",
+    "activation_setup_completed",
+    "workflow_started",
+    "workflow_completed",
+    "workflow_failed",
     "ai_result_viewed",
     "citation_result_viewed",
     "source_xray_viewed",
-    "evidence_reviewed",
-    "reviewed_opportunity_created",
-    "activation_completed",
+    "source_xray_reviewed",
+    "decision_insight_reached",
   ]) {
-    assert.match(sources, new RegExp(`\\b${event}\\b`), `missing activation milestone ${event}`);
+    assert.match(contract, new RegExp(`"${event}"`), `missing canonical activation milestone ${event}`);
   }
 
   assert.doesNotMatch(sources, /segment|mixpanel|amplitude/i);
 });
 
-test("activation events preserve the existing sensitive-property denylist", () => {
-  const analytics = read("lib/product-analytics.ts");
-  for (const sensitiveKey of ["email", "name", "password", "token", "secret", "answer", "prompt", "citation", "content", "message", "url"]) {
-    assert.match(analytics, new RegExp(sensitiveKey, "i"), `missing denylisted analytics key ${sensitiveKey}`);
+test("activation events use the fail-closed product contract and never expose customer-content properties", () => {
+  const contract = read("lib/product-analytics-contract.ts");
+  assert.match(contract, /sanitizeProductAnalyticsEvent/);
+  assert.match(contract, /if \(!EVENT_NAMES\.has\(normalized\.event\)\) return null/);
+  for (const forbiddenKey of ["password", "secret", "answer", "prompt", "citation", "content", "message", "url"]) {
+    assert.doesNotMatch(contract, new RegExp(`properties\\["${forbiddenKey}"\\]`, "i"), `contract must not emit ${forbiddenKey}`);
   }
 
   const publicAnalytics = read("components/public-activation-analytics.tsx");
@@ -69,11 +72,12 @@ test("workspace milestones exclude demo data and require real evidence surfaces"
   assert.match(source, /sessionStorage/);
 });
 
-test("reviewed opportunity and activation completion milestones are emitted only when the review API creates one", () => {
+test("decision insight is emitted only when the review API creates a new actionable opportunity", () => {
   const source = read("components/source-review-form.tsx");
-  assert.match(source, /if \(result\.opportunity\?\.action === "created"\) \{[\s\S]*?captureProductEvent\("reviewed_opportunity_created"\);[\s\S]*?captureProductEvent\("activation_completed"\);[\s\S]*?\}/);
-  assert.doesNotMatch(source, /if \(result\.opportunity\?\.action === "refreshed"\) \{[\s\S]*?captureProductEvent\("reviewed_opportunity_created"\)/);
-  assert.doesNotMatch(source, /if \(result\.opportunity\?\.action === "refreshed"\) \{[\s\S]*?captureProductEvent\("activation_completed"\)/);
+  assert.match(source, /if \(result\.opportunity\?\.action === "created"\) \{[\s\S]*?captureProductEvent\("decision_insight_reached", \{ insight_type: "actionable_source_gap" \}\);[\s\S]*?\}/);
+  assert.equal((source.match(/captureProductEvent\("decision_insight_reached"/g) || []).length, 1);
+  assert.doesNotMatch(source, /captureProductEvent\("activation_completed"/);
+  assert.doesNotMatch(source, /captureProductEvent\("reviewed_opportunity_created"/);
 });
 
 test("activation observers are mounted at public and authenticated boundaries", () => {
