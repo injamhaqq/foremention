@@ -5,7 +5,6 @@ import {
   normalizeInternalAnalyticsId,
   sanitizeProductAnalyticsEvent,
   shouldEnableProductAnalytics,
-  type ProductAnalyticsEventName,
 } from "@/lib/product-analytics-contract";
 
 // PostHog project tokens are public browser identifiers, not secret API keys.
@@ -85,7 +84,7 @@ export function initializeProductAnalytics() {
   return true;
 }
 
-export function captureProductEvent(event: ProductAnalyticsEventName, properties: Record<string, unknown> = {}) {
+export function captureProductEvent(event: string, properties: Record<string, unknown> = {}) {
   if (!initializeProductAnalytics()) return;
   const sanitized = sanitizeProductAnalyticsEvent(event, properties);
   if (!sanitized) return;
