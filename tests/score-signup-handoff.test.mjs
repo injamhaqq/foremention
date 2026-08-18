@@ -7,8 +7,11 @@ const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
 
 test("public score CTA preserves only a score identifier into signup", () => {
   const ui = read("components/visibility-score-form.tsx");
+  const analyticsContract = read("lib/product-analytics-contract.ts");
   assert.match(ui, /href=\{`\/signup\?score_id=\$\{encodeURIComponent\(result\.id\)\}`\}/);
-  assert.match(ui, /score_monitor_clicked/);
+  assert.match(ui, /captureProductEvent\("score_cta_clicked"\)/);
+  assert.match(analyticsContract, /"score_cta_clicked"/);
+  assert.doesNotMatch(ui, /score_monitor_clicked/);
   assert.match(ui, /public result does not become verified workspace evidence/i);
   assert.doesNotMatch(ui, /signup\?brand=/);
   assert.doesNotMatch(ui, /signup\?category=/);
