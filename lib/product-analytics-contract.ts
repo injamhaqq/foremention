@@ -120,16 +120,60 @@ export function shouldEnableProductAnalytics(nodeEnv: string | undefined, hostna
   return normalized === "foremention.com" || normalized === "www.foremention.com";
 }
 
+function normalizeLegacyEvent(event: string, input: Record<string, unknown>) {
+  if (event === "onboarding_started") return { event: "activation_setup_started", input };
+  if (event === "onboarding_completed") return { event: "activation_setup_completed", input };
+  if (event === "onboarding_website_draft_created") return {
+    event: "activation_context_ready",
+    input: { ...input, context_source: "website", context_quality: input.limited === true ? "limited" : "complete" },
+  };
+  if (event === "onboarding_website_draft_failed") return {
+    event: "activation_setup_failed",
+    input: { error_category: "client_error" },
+  };
+  if (event === "onboarding_manual_context_created") return {
+    event: "activation_context_ready",
+    input: { ...input, context_source: "manual", context_quality: "complete" },
+  };
+  if (event === "score_context_prefilled") return {
+    event: "activation_context_ready",
+    input: { ...input, context_source: "score_handoff", context_quality: "complete" },
+  };
+  if (event === "score_context_prefill_failed") {
+    const reason = input.reason === "invalid_context" || input.reason === "client_error" ? input.reason : "unavailable";
+    return { event: "activation_setup_failed", input: { error_category: reason } };
+  }
+  if (event === "collection_started") return {
+    event: "workflow_started",
+    input: {
+      ...input,
+      workflow_source: input.source === "onboarding" ? "onboarding" : "workspace",
+      cycle_type: input.cycle_type || (input.source === "onboarding" ? "first" : undefined),
+    },
+  };
+  if (event === "collection_queue_failed") return {
+    event: "workflow_failed",
+    input: { ...input, workflow_stage: "queue", error_category: "queue_failed" },
+  };
+  if (event === "reviewed_opportunity_created") return {
+    event: "decision_insight_reached",
+    input: { insight_type: "actionable_source_gap" },
+  };
+  return { event, input };
+}
+
 export function sanitizeProductAnalyticsEvent(event: string, input: Record<string, unknown> = {}): SanitizedProductAnalyticsEvent | null {
-  if (!EVENT_NAMES.has(event)) return null;
+  const normalized = normalizeLegacyEvent(event, input);
+  if (!EVENT_NAMES.has(normalized.event)) return null;
+  const normalizedInput = normalized.input;
   const properties: ProductAnalyticsProperties = {};
 
-  switch (event as ProductAnalyticsEventName) {
+  switch (normalized.event as ProductAnalyticsEventName) {
     case "$pageview":
-      addEnum(properties, "surface", input.surface, surfaces);
+      addEnum(properties, "surface", normalizedInput.surface, surfaces);
       break;
     case "score_viewed":
-      addBoolean(properties, "shared_result", input.shared_result);
+      addBoolean(properties, "shared_result", normalizedInput.shared_result);
       break;
     case "score_started":
     case "buyer_question_updated":
@@ -139,71 +183,71 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
     case "source_xray_viewed":
       break;
     case "score_completed":
-      addCountBucket(properties, "question_count_bucket", input.question_count);
+      addCountBucket(properties, "question_count_bucket", normalizedInput.question_count);
       break;
     case "score_failed":
     case "activation_setup_failed":
-      addEnum(properties, "error_category", input.error_category, errorCategories);
+      addEnum(properties, "error_category", normalizedInput.error_category, errorCategories);
       break;
     case "signup_started":
-      addEnum(properties, "method", input.method, authMethods);
+      addEnum(properties, "method", normalizedInput.method, authMethods);
       break;
     case "signup_completed":
-      addBoolean(properties, "confirmation_required", input.confirmation_required);
+      addBoolean(properties, "confirmation_required", normalizedInput.confirmation_required);
       break;
     case "auth_session_established":
-      addEnum(properties, "entry_surface", input.entry_surface, entrySurfaces);
+      addEnum(properties, "entry_surface", normalizedInput.entry_surface, entrySurfaces);
       break;
     case "activation_setup_started":
-      addEnum(properties, "context_source", input.context_source, contextSources);
+      addEnum(properties, "context_source", normalizedInput.context_source, contextSources);
       break;
     case "activation_context_ready":
-      addEnum(properties, "context_source", input.context_source, contextSources);
-      addEnum(properties, "context_quality", input.context_quality, contextQualities);
-      addCountBucket(properties, "question_count_bucket", input.question_count);
-      addCountBucket(properties, "competitor_count_bucket", input.competitor_count);
+      addEnum(properties, "context_source", normalizedInput.context_source, contextSources);
+      addEnum(properties, "context_quality", normalizedInput.context_quality, contextQualities);
+      addCountBucket(properties, "question_count_bucket", normalizedInput.question_count);
+      addCountBucket(properties, "competitor_count_bucket", normalizedInput.competitor_count);
       break;
     case "activation_setup_completed":
-      addCountBucket(properties, "question_count_bucket", input.question_count);
-      addCountBucket(properties, "competitor_count_bucket", input.competitor_count);
+      addCountBucket(properties, "question_count_bucket", normalizedInput.question_count);
+      addCountBucket(properties, "competitor_count_bucket", normalizedInput.competitor_count);
       break;
     case "question_created":
-      addEnum(properties, "cluster", input.cluster, questionClusters);
+      addEnum(properties, "cluster", normalizedInput.cluster, questionClusters);
       break;
     case "buyer_question_status_changed":
-      addBoolean(properties, "active", input.active);
+      addBoolean(properties, "active", normalizedInput.active);
       break;
     case "workflow_started":
-      addCountBucket(properties, "question_count_bucket", input.question_count);
-      addCountBucket(properties, "provider_count_bucket", input.provider_count);
-      addEnum(properties, "provider", input.provider, providers);
-      addEnum(properties, "workflow_source", input.workflow_source, workflowSources);
-      addEnum(properties, "cycle_type", input.cycle_type, cycleTypes);
+      addCountBucket(properties, "question_count_bucket", normalizedInput.question_count);
+      addCountBucket(properties, "provider_count_bucket", normalizedInput.provider_count);
+      addEnum(properties, "provider", normalizedInput.provider, providers);
+      addEnum(properties, "workflow_source", normalizedInput.workflow_source, workflowSources);
+      addEnum(properties, "cycle_type", normalizedInput.cycle_type, cycleTypes);
       break;
     case "workflow_completed":
-      addEnum(properties, "outcome", input.outcome, workflowOutcomes);
+      addEnum(properties, "outcome", normalizedInput.outcome, workflowOutcomes);
       break;
     case "workflow_failed":
-      addEnum(properties, "error_category", input.error_category, errorCategories);
-      addEnum(properties, "workflow_stage", input.workflow_stage, workflowStages);
-      addEnum(properties, "provider", input.provider, providers);
+      addEnum(properties, "error_category", normalizedInput.error_category, errorCategories);
+      addEnum(properties, "workflow_stage", normalizedInput.workflow_stage, workflowStages);
+      addEnum(properties, "provider", normalizedInput.provider, providers);
       break;
     case "source_xray_reviewed":
-      addBoolean(properties, "brand_present", input.brand_present);
-      addEnum(properties, "crawler_access", input.crawler_access, crawlerAccess);
-      addEnum(properties, "entry_route", input.entry_route, entryRoutes);
-      addBoolean(properties, "decision_ready", input.decision_ready);
+      addBoolean(properties, "brand_present", normalizedInput.brand_present);
+      addEnum(properties, "crawler_access", normalizedInput.crawler_access, crawlerAccess);
+      addEnum(properties, "entry_route", normalizedInput.entry_route, entryRoutes);
+      addBoolean(properties, "decision_ready", normalizedInput.decision_ready);
       break;
     case "decision_insight_reached":
-      addEnum(properties, "insight_type", input.insight_type, insightTypes);
+      addEnum(properties, "insight_type", normalizedInput.insight_type, insightTypes);
       break;
     case "performance_observed":
-      addEnum(properties, "operation", input.operation, performanceOperations);
-      addEnum(properties, "latency_bucket", input.latency_bucket, latencyBuckets);
-      addEnum(properties, "outcome", input.outcome, performanceOutcomes);
-      addEnum(properties, "status_class", input.status_class, statusClasses);
+      addEnum(properties, "operation", normalizedInput.operation, performanceOperations);
+      addEnum(properties, "latency_bucket", normalizedInput.latency_bucket, latencyBuckets);
+      addEnum(properties, "outcome", normalizedInput.outcome, performanceOutcomes);
+      addEnum(properties, "status_class", normalizedInput.status_class, statusClasses);
       break;
   }
 
-  return { event: event as ProductAnalyticsEventName, properties };
+  return { event: normalized.event as ProductAnalyticsEventName, properties };
 }
