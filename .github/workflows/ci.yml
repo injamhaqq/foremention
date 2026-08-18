@@ -63,11 +63,11 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: git diff --check "${BASE_SHA}...HEAD"
 
-      - name: Replay Supabase migrations in isolated local stack
+      - name: Replay Supabase migrations in isolated local database
         shell: bash
         run: |
           set -euo pipefail
-          supabase start
+          supabase db start
           supabase db reset
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-company-migrations.sql
 
