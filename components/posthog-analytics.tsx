@@ -27,6 +27,16 @@ function productSurface(pathname: string) {
   return pathname.startsWith("/app") ? "workspace_other" : "public_other";
 }
 
+function isFirstPartyApiRequest(input: Parameters<typeof fetch>[0]) {
+  try {
+    const target = typeof input === "string" ? input : input instanceof Request ? input.url : input.toString();
+    const parsed = new URL(target, window.location.origin);
+    return parsed.origin === window.location.origin && parsed.pathname.startsWith("/api/");
+  } catch {
+    return false;
+  }
+}
+
 export function PostHogAnalytics() {
   const pathname = usePathname();
   const initialized = useRef(false);
@@ -54,12 +64,11 @@ export function PostHogAnalytics() {
 
     const originalFetch = window.fetch;
     window.fetch = async (...args: Parameters<typeof fetch>) => {
+      const firstPartyApiRequest = isFirstPartyApiRequest(args[0]);
       const startedAt = performance.now();
       try {
         const response = await originalFetch(...args);
-        const target = typeof args[0] === "string" ? args[0] : args[0] instanceof Request ? args[0].url : args[0].toString();
-        const parsed = new URL(target, window.location.origin);
-        if (parsed.origin === window.location.origin && parsed.pathname.startsWith("/api/")) {
+        if (firstPartyApiRequest) {
           captureProductEvent("performance_observed", {
             operation: "api_request",
             latency_bucket: latencyBucket(performance.now() - startedAt),
@@ -69,12 +78,14 @@ export function PostHogAnalytics() {
         }
         return response;
       } catch (error) {
-        captureProductEvent("performance_observed", {
-          operation: "api_request",
-          latency_bucket: latencyBucket(performance.now() - startedAt),
-          outcome: "failure",
-          status_class: "network_error",
-        });
+        if (firstPartyApiRequest) {
+          captureProductEvent("performance_observed", {
+            operation: "api_request",
+            latency_bucket: latencyBucket(performance.now() - startedAt),
+            outcome: "failure",
+            status_class: "network_error",
+          });
+        }
         throw error;
       }
     };
