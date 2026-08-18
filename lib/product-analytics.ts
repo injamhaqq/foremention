@@ -14,6 +14,26 @@ import {
 const PRODUCTION_POSTHOG_PROJECT_TOKEN = "phc_kE9qcChyPtqY7sRQ5oUFbaNk6aiGRFFkaiXpr9B3ycrG";
 const PRODUCTION_POSTHOG_HOST = "https://us.i.posthog.com";
 
+const IDENTIFIED_WORKSPACE_EVENTS = new Set([
+  "auth_session_established",
+  "activation_setup_started",
+  "activation_context_ready",
+  "activation_setup_failed",
+  "activation_setup_completed",
+  "question_created",
+  "buyer_question_status_changed",
+  "buyer_question_updated",
+  "workflow_started",
+  "workflow_completed",
+  "workflow_failed",
+  "ai_result_viewed",
+  "citation_result_viewed",
+  "source_map_opened",
+  "source_xray_viewed",
+  "source_xray_reviewed",
+  "decision_insight_reached",
+]);
+
 let initialized = false;
 let currentViewerId: string | null = null;
 let currentOrganizationId: string | null = null;
@@ -52,6 +72,7 @@ function sanitizePostHogPayload(event: { event?: string; properties?: Record<str
 
   const sanitized = sanitizeProductAnalyticsEvent(event.event, rawProperties);
   if (!sanitized) return null;
+  if (IDENTIFIED_WORKSPACE_EVENTS.has(sanitized.event) && !currentViewerId) return null;
   return {
     ...event,
     event: sanitized.event,
@@ -88,6 +109,7 @@ export function captureProductEvent(event: string, properties: Record<string, un
   if (!initializeProductAnalytics()) return;
   const sanitized = sanitizeProductAnalyticsEvent(event, properties);
   if (!sanitized) return;
+  if (IDENTIFIED_WORKSPACE_EVENTS.has(sanitized.event) && !currentViewerId) return;
   posthog.capture(sanitized.event, sanitized.properties);
 }
 
