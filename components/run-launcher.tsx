@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ProviderStatus, WorkspacePrompt } from "@/lib/data";
 import { captureProductEvent } from "@/lib/product-analytics";
 
-export function RunLauncher({ prompts, providers, demo }: { prompts: WorkspacePrompt[]; providers: ProviderStatus[]; demo: boolean }) {
+export function RunLauncher({ prompts, providers, demo, priorRunCount = 0 }: { prompts: WorkspacePrompt[]; providers: ProviderStatus[]; demo: boolean; priorRunCount?: number }) {
   const router = useRouter();
   const active = prompts.filter((prompt) => prompt.approved);
   const preferredProvider = providers.find((provider) => provider.configured && provider.supportsCitations && provider.health === "available")
@@ -30,7 +30,12 @@ export function RunLauncher({ prompts, providers, demo }: { prompts: WorkspacePr
       const result = responseText ? JSON.parse(responseText) as { error?: string; note?: string } : {};
       if (!response.ok) throw new Error(result.error || `Could not start collection (HTTP ${response.status}).`);
       setMessage(result.note || "Collection started. Foremention will preserve the answer, citations, and any failures for review.");
-      if (!demo) captureProductEvent("collection_started", { question_count: selectedPrompts.length, provider_count: selectedProviders.length, provider: selectedProviders[0] || "unknown" });
+      if (!demo) captureProductEvent("collection_started", {
+        question_count: selectedPrompts.length,
+        provider_count: selectedProviders.length,
+        provider: selectedProviders[0] || "unknown",
+        cycle_type: priorRunCount > 0 ? "repeat" : "first",
+      });
       idempotencyKey.current = crypto.randomUUID();
       router.refresh();
     } catch (error) {

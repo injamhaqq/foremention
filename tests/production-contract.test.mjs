@@ -439,10 +439,11 @@ test("the health endpoint exposes only a validated non-secret build commit", asy
   assert.match(env, /FOREMENTION_BUILD_COMMIT=/);
 });
 
-test("product analytics is optional, privacy-limited, and configured outside source", async () => {
-  const [client, events, milestone, sourceMapPage, env, worker, privacy, auth, onboarding, questions, launcher, review, sourceReview] = await Promise.all([
+test("product analytics is production-only, privacy-limited, and fail-closed", async () => {
+  const [client, events, contract, milestone, sourceMapPage, env, worker, privacy, auth, onboarding, questions, launcher, sourceReview] = await Promise.all([
     text("components/posthog-analytics.tsx"),
     text("lib/product-analytics.ts"),
+    text("lib/product-analytics-contract.ts"),
     text("components/product-event.tsx"),
     text("app/app/source-map/page.tsx"),
     text(".env.example"),
@@ -452,26 +453,29 @@ test("product analytics is optional, privacy-limited, and configured outside sou
     text("components/onboarding-wizard.tsx"),
     text("components/prompt-library.tsx"),
     text("components/run-launcher.tsx"),
-    text("components/run-review.tsx"),
     text("components/source-review-form.tsx"),
   ]);
-  assert.match(events, /NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN/);
+  assert.match(events, /PRODUCTION_POSTHOG_PROJECT_TOKEN/);
+  assert.match(events, /PRODUCTION_POSTHOG_HOST/);
+  assert.doesNotMatch(events, /process\.env\.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN|process\.env\.NEXT_PUBLIC_POSTHOG_HOST/);
   assert.match(events, /autocapture: false/);
   assert.match(events, /disable_session_recording: true/);
   assert.match(events, /capture_exceptions: false/);
   assert.match(client, /initializeProductAnalytics/);
-  assert.match(events, /blockedPropertyPattern/);
-  assert.match(events, /email\|name\|password\|token\|secret\|answer\|prompt\|citation\|content\|message\|url/);
-  assert.match(env, /NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN=/);
-  assert.match(env, /NEXT_PUBLIC_POSTHOG_HOST=https:\/\/eu\.i\.posthog\.com/);
+  assert.match(events, /sanitizePostHogPayload/);
+  assert.match(events, /sanitizeProductAnalyticsEvent\(event\.event, rawProperties\)/);
+  assert.match(contract, /if \(!EVENT_NAMES\.has\(normalized\.event\)\) return null/);
+  assert.doesNotMatch(env, /^NEXT_PUBLIC_POSTHOG_/m);
   assert.match(worker, /https:\/\/\*\.posthog\.com/);
   assert.match(privacy, /without session replay/i);
   for (const event of ["signup_completed", "onboarding_completed", "question_created", "collection_started"]) {
     assert.match(`${auth}\n${onboarding}\n${questions}\n${launcher}`, new RegExp(event));
   }
-  assert.match(milestone, /collection_completed/);
+  assert.match(milestone, /workflow_completed/);
+  assert.match(milestone, /workflow_failed/);
   assert.match(sourceMapPage, /source_map_opened/);
-  assert.match(`${review}\n${sourceReview}`, /evidence_reviewed/);
+  assert.match(sourceReview, /source_xray_reviewed/);
+  assert.match(sourceReview, /decision_insight_reached/);
 });
 
 test("Experience analytics are optional, consent-gated, and limited by CSP", async () => {

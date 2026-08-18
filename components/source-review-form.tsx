@@ -56,10 +56,15 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
         setMessage("Review saved with a dated audit record. Complete both influence and feasibility review before this gap becomes a Resolution Center opportunity.");
       }
       if (!demo) {
-        captureProductEvent("evidence_reviewed", { review_type: "source", brand_present: clientPresent, crawler_access: crawlerAccess, entry_route: route });
+        const decisionReady = result.opportunity?.action === "created" || result.opportunity?.action === "refreshed";
+        captureProductEvent("source_xray_reviewed", {
+          brand_present: clientPresent,
+          crawler_access: crawlerAccess,
+          entry_route: route,
+          decision_ready: decisionReady,
+        });
         if (result.opportunity?.action === "created") {
-          captureProductEvent("reviewed_opportunity_created");
-          captureProductEvent("activation_completed");
+          captureProductEvent("decision_insight_reached", { insight_type: "actionable_source_gap" });
         }
       }
       router.refresh();

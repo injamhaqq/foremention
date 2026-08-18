@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { captureProductEvent } from "@/lib/product-analytics";
+import type { ProductAnalyticsEventName } from "@/lib/product-analytics-contract";
 
-function captureOncePerSession(key: string, event: string, properties: Record<string, string | number | boolean | null> = {}) {
+function captureOncePerSession(key: string, event: ProductAnalyticsEventName, properties: Record<string, unknown> = {}) {
   const storageKey = `foremention:analytics:${key}`;
   try {
     if (window.sessionStorage.getItem(storageKey)) return;
@@ -34,7 +35,7 @@ export function WorkspaceActivationAnalytics({ demo }: { demo: boolean }) {
     });
 
     if (pathname === "/app/onboarding") {
-      captureOncePerSession("onboarding-started", "onboarding_started");
+      captureOncePerSession("activation-setup-started", "activation_setup_started");
     }
 
     const runDetail = /^\/app\/runs\/(?!compare(?:\/|$))[^/]+$/.test(pathname);

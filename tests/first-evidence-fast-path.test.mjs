@@ -42,15 +42,16 @@ test("run detail keeps provider citations intact and links only published mapped
   assert.doesNotMatch(matcher, /hostname/);
 });
 
-test("activation completion is tied to a newly created reviewed opportunity", () => {
+test("decision insight is tied to a newly created reviewed opportunity", () => {
   const review = read("components/source-review-form.tsx");
-  const contract = read("docs/ACTIVATION-FUNNEL-EVENTS-2026-08-14.md");
+  const analyticsContract = read("lib/product-analytics-contract.ts");
 
   assert.match(review, /result\.opportunity\?\.action === "created"/);
-  assert.match(review, /captureProductEvent\("reviewed_opportunity_created"\)/);
-  assert.match(review, /captureProductEvent\("activation_completed"\)/);
-  assert.match(contract, /`activation_completed` — emitted at the same evidence-backed boundary/);
-  assert.match(contract, /not a claim that the opportunity caused a later business outcome/);
+  assert.match(review, /captureProductEvent\("decision_insight_reached", \{ insight_type: "actionable_source_gap" \}\)/);
+  assert.equal((review.match(/captureProductEvent\("decision_insight_reached"/g) || []).length, 1);
+  assert.match(analyticsContract, /const insightTypes = new Set\(\["actionable_source_gap"\]\)/);
+  assert.doesNotMatch(review, /captureProductEvent\("activation_completed"/);
+  assert.doesNotMatch(review, /captureProductEvent\("reviewed_opportunity_created"/);
 });
 
 test("first-evidence changes do not introduce a second data or orchestration system", () => {

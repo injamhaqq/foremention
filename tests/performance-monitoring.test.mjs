@@ -2,14 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
-test("performance events report only aggregate timing and sanitized API routes", () => {
+test("performance events report only bucketed latency for first-party API requests", () => {
   const source = readFileSync("components/posthog-analytics.tsx", "utf8");
-  assert.match(source, /page_load_performance/);
-  assert.match(source, /api_performance/);
-  assert.match(source, /p50_ms/);
-  assert.match(source, /p95_ms/);
-  assert.match(source, /p99_ms/);
-  assert.match(source, /safeApiRoute/);
+  assert.match(source, /performance_observed/);
+  assert.match(source, /latencyBucket/);
+  assert.match(source, /httpStatusClass/);
+  assert.match(source, /function isFirstPartyApiRequest/);
+  assert.match(source, /parsed\.origin === window\.location\.origin/);
+  assert.match(source, /parsed\.pathname\.startsWith\("\/api\/"\)/);
+  assert.doesNotMatch(source, /page_load_performance|api_performance/);
+  assert.doesNotMatch(source, /p50_ms|p95_ms|p99_ms|duration_ms|safeApiRoute/);
+  assert.doesNotMatch(source, /route:\s*parsed\.pathname/);
 });
 
 test("PostHog pageviews expose only stable product surfaces", () => {
@@ -24,13 +27,17 @@ test("PostHog pageviews expose only stable product surfaces", () => {
   }
 });
 
-test("PostHog strips URL, path and referrer context at the final send boundary", () => {
-  const source = readFileSync("lib/product-analytics.ts", "utf8");
-  assert.match(source, /before_send:/);
-  assert.match(source, /sanitizePostHogEventProperties\(event\.properties\)/);
-  assert.match(source, /postHogTransportPropertyKeys\.has\(key\) \|\| !blockedPropertyPattern\.test\(key\)/);
-  assert.match(source, /url\|pathname\|referrer\|referring_domain/);
-  assert.match(source, /capture_pageview: false/);
-  assert.match(source, /autocapture: false/);
-  assert.match(source, /disable_session_recording: true/);
+test("PostHog rebuilds final-send properties from the strict allowlist contract", () => {
+  const analytics = readFileSync("lib/product-analytics.ts", "utf8");
+  const contract = readFileSync("lib/product-analytics-contract.ts", "utf8");
+  assert.match(analytics, /before_send: \(event\) => sanitizePostHogPayload\(event\)/);
+  assert.match(analytics, /sanitizeProductAnalyticsEvent\(event\.event, rawProperties\)/);
+  assert.match(analytics, /\.\.\.transport/);
+  assert.match(analytics, /\.\.\.sanitized\.properties/);
+  assert.match(contract, /if \(!EVENT_NAMES\.has\(normalized\.event\)\) return null/);
+  assert.doesNotMatch(analytics, /sanitizePostHogEventProperties|blockedPropertyPattern/);
+  assert.match(analytics, /capture_pageview: false/);
+  assert.match(analytics, /autocapture: false/);
+  assert.match(analytics, /capture_exceptions: false/);
+  assert.match(analytics, /disable_session_recording: true/);
 });
