@@ -62,7 +62,7 @@ test("manual page checks append snapshot history and return no extracted page te
 });
 
 test("snapshot write policy includes every role allowed by live inspection while viewers remain read-only", async () => {
-  const migration = await read("supabase/migrations/20260813083000_source_snapshot_admin_policy.sql");
+  const migration = await read("supabase/migrations/20260813083100_source_snapshot_admin_policy.sql");
 
   assert.match(migration, /array\['owner','admin','analyst'\]::public\.organization_role\[\]/g);
   assert.doesNotMatch(migration, /array\[[^\]]*'viewer'/);
