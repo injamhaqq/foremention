@@ -37,7 +37,7 @@ const IDENTIFIED_WORKSPACE_EVENTS = new Set([
 type PostHogCapturePayload = {
   uuid: string;
   event: string;
-  properties?: Record<string, unknown>;
+  properties: Record<string, unknown>;
 };
 
 let initialized = false;
@@ -60,7 +60,7 @@ function transportProperties(properties: Record<string, unknown> = {}) {
 
 function sanitizePostHogPayload(event: PostHogCapturePayload | null): PostHogCapturePayload | null {
   if (!event?.event) return null;
-  const rawProperties = event.properties || {};
+  const rawProperties = event.properties;
   const transport = transportProperties(rawProperties);
 
   if (event.event === "$identify") {
