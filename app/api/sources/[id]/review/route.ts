@@ -130,8 +130,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!context) return NextResponse.json({ error: "Complete onboarding before reviewing a source." }, { status: 409 });
   if (!role || role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
   const organizationId = context.organizationId;
-  const rows = await supabaseRest<Array<{ id: string; source_id: string; client_present: boolean; competitors_present: string[]; entry_route: string | null; feasibility: string; influence: string; analyst_note: string | null }>>(
-    `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note&id=eq.${encodeURIComponent(id)}&organization_id=eq.${organizationId}&limit=1`,
+  const rows = await supabaseRest<Array<{ id: string; source_id: string; client_present: boolean; competitors_present: string[]; entry_route: string | null; feasibility: string; influence: string; analyst_note: string | null; reviewed_at: string | null; reviewed_by: string | null }>>(
+    `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note,reviewed_at,reviewed_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${organizationId}&limit=1`,
     { token: accessToken },
   );
   const entry = rows[0];
@@ -155,7 +155,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       method: "PATCH",
       token: accessToken,
       prefer: "return=minimal",
-      body: { client_present: Boolean(body.clientPresent), competitors_present: competitors, entry_route: body.route, feasibility: body.feasibility, influence: body.influence, analyst_note: note || null },
+      body: {
+        client_present: Boolean(body.clientPresent),
+        competitors_present: competitors,
+        entry_route: body.route,
+        feasibility: body.feasibility,
+        influence: body.influence,
+        analyst_note: note || null,
+        reviewed_at: reviewedAt,
+        reviewed_by: viewer.id,
+      },
     }),
   ]);
 
@@ -193,6 +202,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         influence: body.influence,
         analyst_note: note || null,
         reviewed_at: reviewedAt,
+        reviewed_by: viewer.id,
         opportunity_sync: opportunity,
       },
     },
