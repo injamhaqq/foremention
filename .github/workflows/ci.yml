@@ -17,7 +17,7 @@ jobs:
   verify:
     name: CI
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Harden runner
@@ -42,6 +42,11 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
+        with:
+          version: 2.111.0
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -58,6 +63,14 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: git diff --check "${BASE_SHA}...HEAD"
 
+      - name: Replay Supabase migrations in isolated local stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase start
+          supabase db reset
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-company-migrations.sql
+
       - name: Run tests
         run: pnpm test
 
@@ -72,6 +85,10 @@ jobs:
 
       - name: Cloudflare Worker dry run
         run: pnpm exec wrangler deploy --dry-run --config dist/server/wrangler.json --outdir .wrangler-dry-run
+
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --no-backup || true
 
       - name: Generate release SBOM
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
