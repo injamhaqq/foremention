@@ -45,7 +45,7 @@ test("migration validation is a release gate, not a prose assertion", async () =
   ]);
 
   assert.match(workflow, /supabase\/setup-cli/i);
-  assert.match(workflow, /supabase start/i);
+  assert.match(workflow, /supabase db start/i);
   assert.match(workflow, /supabase db reset/i);
   assert.match(workflow, /verify-company-migrations\.sql/i);
   assert.match(verifier, /company_ceo_scorecard/i);
