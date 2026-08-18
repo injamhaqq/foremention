@@ -37,7 +37,7 @@ test("source map export is viewer-bound and cannot accept a caller organization 
   const route = await readFile(new URL("app/api/export/source-map/route.ts", root), "utf8");
   assert.match(route, /const viewer = await getViewer\(\)/);
   assert.match(route, /if \(!viewer\).*status: 401/s);
-  assert.match(route, /const rows = await loadSourceMap\(viewer\)/);
+  assert.match(route, /const rows = await loadTruthfulSourceMap\(viewer\)/);
   assert.match(route, /\.map\(csvCell\)/);
   assert.match(route, /"cache-control": "no-store"/);
   assert.match(route, /"x-content-type-options": "nosniff"/);
