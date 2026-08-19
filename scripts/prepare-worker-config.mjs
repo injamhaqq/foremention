@@ -1,12 +1,32 @@
+import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
+const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const configPath = new URL("../dist/server/wrangler.json", import.meta.url);
 const config = JSON.parse(await readFile(configPath, "utf8"));
 
+function gitValue(args) {
+  try {
+    return execFileSync("git", args, {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+
+// `git rev-parse HEAD` is the provider-independent fallback. Cloudflare's
+// direct build environment checks out the release commit even when it does
+// not populate a provider-specific commit environment variable.
 const buildCommitCandidates = [
   process.env.WORKERS_CI_COMMIT_SHA,
   process.env.GITHUB_SHA,
+  process.env.CF_PAGES_COMMIT_SHA,
   process.env.GIT_COMMIT,
+  gitValue(["rev-parse", "HEAD"]),
 ];
 const buildCommit = buildCommitCandidates.find((candidate) => /^[0-9a-f]{40}$/i.test(candidate || ""));
 
