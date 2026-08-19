@@ -20,11 +20,12 @@ export function estimateSourceCredibility(source: SourceMapEntry): SourceCredibi
   score += recurrence; signals.push(`${source.evidenceCount} provider-returned citation observation${source.evidenceCount === 1 ? "" : "s"}`);
   const coverage = Math.min(20, new Set(source.engines).size * 7);
   score += coverage; signals.push(`${new Set(source.engines).size} observed provider${new Set(source.engines).size === 1 ? "" : "s"}`);
-  if (source.crawlerAccess === "open") { score += 15; signals.push("page reachable at human review"); }
-  else if (source.crawlerAccess === "partial") { score += 8; signals.push("page partly reachable at human review"); }
-  else if (source.crawlerAccess === "blocked") signals.push("page blocked at human review");
-  else signals.push("page reachability not reviewed");
-  if (source.reviewedAt) { score += 10; signals.push(`human review recorded ${source.reviewedAt}`); }
+  if (source.crawlerAccess === "open") { score += 15; signals.push("automated page retrieval was open"); }
+  else if (source.crawlerAccess === "partial") { score += 8; signals.push("automated page retrieval was partial"); }
+  else if (source.crawlerAccess === "blocked") signals.push("automated page retrieval was blocked");
+  else signals.push("page reachability has not been checked");
+  if (source.reviewedAt) { score += 10; signals.push(`explicit human review recorded ${source.reviewedAt}`); }
+  else missing.push("explicit human page review");
   const confidence: SourceCredibility["confidence"] = source.reviewedAt && source.engines.length >= 2 && source.evidenceCount >= 3 ? "high" : source.reviewedAt || source.evidenceCount > 1 ? "medium" : "low";
   return { score: Math.min(100, score), confidence, signals, missing };
 }

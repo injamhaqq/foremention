@@ -4,7 +4,8 @@ import { ProductTruthPanel } from "@/components/product-truth-panel";
 import { requireViewer } from "@/lib/auth";
 import { loadAiObservationChangeGraph } from "@/lib/ai-observation-change";
 import { loadSourceChangeGraph } from "@/lib/change-graph";
-import { loadQuestionPerformance, loadRunAnswers, loadRuns, loadSourceMap } from "@/lib/data";
+import { loadRunAnswers, loadRuns } from "@/lib/data";
+import { loadExactQuestionPerformance, loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
 import { productTruthForRunMetric } from "@/lib/product-truth";
 import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
@@ -28,13 +29,12 @@ const sourceHost = (value: string) => {
 
 export default async function AnalyticsPage() {
   const viewer = await requireViewer("/app/analytics");
-  const [allRuns, sources, questions, intelligence] = await Promise.all([
+  const [allRuns, questions, intelligence] = await Promise.all([
     loadRuns(viewer),
-    loadSourceMap(viewer),
-    loadQuestionPerformance(viewer),
+    loadExactQuestionPerformance(viewer),
     loadSafeWeeklyIntelligence(viewer),
   ]);
-  const observedRuns = allRuns.filter((run) => ["review", "complete", "partial"].includes(run.status));
+  const finalizedRuns = allRuns.filter((run) => ["complete", "partial"].includes(run.status));
   const latest = intelligence.latest;
   const previous = intelligence.previous;
 
@@ -42,9 +42,10 @@ export default async function AnalyticsPage() {
     const pendingOrFailed = allRuns.find((run) => ["queued", "running", "review", "failed"].includes(run.status));
     const state = stateForRun(pendingOrFailed ? { status: pendingOrFailed.status, answerCount: pendingOrFailed.answers, citationCount: pendingOrFailed.citations } : null);
     const waitingForReview = pendingOrFailed?.status === "review";
-    return <main className="workspace" data-product-state={state}><div className="workspace-heading"><div><span className="eyebrow">Did anything change?</span><h1>Analytics</h1><p>Analytics begin only after persisted provider observations pass the human-review boundary. Foremention will never substitute demo values for customer data.</p><p className="table-caption"><strong>{productStateLabel(state)}</strong></p></div></div><section className="panel empty-state empty-state--border"><h2>{pendingOrFailed?.status === "failed" ? "The latest collection needs another try." : waitingForReview ? "Your first collection is waiting for review." : pendingOrFailed ? "Your first collection is still running." : "No reviewed baseline exists yet."}</h2><p>{pendingOrFailed?.status === "failed" ? "Your audit is taking longer than expected or ended before a reviewed baseline was ready. No zero-value placeholder is being presented as a result. Inspect the failed collection and retry when the AI system is available." : waitingForReview ? "Review or exclude the persisted answers before they enter customer-facing trend analytics." : pendingOrFailed ? "This page will populate automatically when real answers and citations arrive and pass review." : "Start the first connected AI collection. Foremention will never substitute demo values for customer data."}</p><Link className="button button--ink" href={pendingOrFailed ? `/app/runs/${pendingOrFailed.id}` : "/app/runs"}>Open AI Results →</Link></section></main>;
+    return <main className="workspace" data-product-state={state}><div className="workspace-heading"><div><span className="eyebrow">Did anything change?</span><h1>Analytics</h1><p>Analytics begin only after persisted provider observations pass the human-review boundary. Foremention will never substitute demo values for customer data.</p><p className="table-caption"><strong>{productStateLabel(state)}</strong></p></div></div><section className="panel empty-state empty-state--border"><h2>{pendingOrFailed?.status === "failed" ? "The latest collection needs another try." : waitingForReview ? "Your first collection is waiting for review." : pendingOrFailed ? "Your first collection is still running." : "No reviewed baseline exists yet."}</h2><p>{pendingOrFailed?.status === "failed" ? "The latest collection ended before a finalized reviewed baseline was ready. No zero-value placeholder is being presented as a result. Inspect the failed collection and retry when the AI system is available." : waitingForReview ? "Review or exclude the persisted answers before they enter customer-facing trend analytics." : pendingOrFailed ? "This page will populate automatically when real answers and citations arrive and pass review." : "Start the first connected AI collection. Foremention will never substitute demo values for customer data."}</p><Link className="button button--ink" href={pendingOrFailed ? `/app/runs/${pendingOrFailed.id}` : "/app/runs"}>Open AI Results →</Link></section></main>;
   }
 
+  const sources = await loadTruthfulSourceMap(viewer, { runId: latest.id });
   const sourceIds = sources.flatMap((source) => source.sourceId ? [source.sourceId] : []);
   const [answers, changeGraph, aiObservationChangeGraph] = await Promise.all([
     loadRunAnswers(viewer, latest.id),
@@ -55,28 +56,31 @@ export default async function AnalyticsPage() {
   const recurringSources = sources.filter((source) => source.evidenceCount > 1).length;
   const pageCheckedCount = sources.filter((source) => source.crawlerAccess !== "unknown").length;
   const humanReviewedSourceCount = sources.filter((source) => Boolean(source.reviewedAt)).length;
-  const recentRuns = observedRuns.slice(0, 8);
-  const reviewedRunCount = observedRuns.filter((run) => ["complete", "partial"].includes(run.status)).length;
+  const recentRuns = finalizedRuns.slice(0, 8);
+  const reviewedRunCount = finalizedRuns.length;
   const newestRun = allRuns[0] || null;
-  const state = newestRun && ["queued", "running"].includes(newestRun.status)
-    ? "COLLECTING"
-    : newestRun?.status === "review"
-      ? "NEEDS_REVIEW"
-      : previous
-        ? "COMPLETE"
-        : "PARTIALLY_COMPLETE";
+  const newestRunFailed = newestRun?.status === "failed";
+  const state = newestRunFailed
+    ? "FAILED_RECOVERABLE"
+    : newestRun && ["queued", "running"].includes(newestRun.status)
+      ? "COLLECTING"
+      : newestRun?.status === "review"
+        ? "NEEDS_REVIEW"
+        : previous
+          ? "COMPLETE"
+          : "PARTIALLY_COMPLETE";
   const comparisonWindowNote = previous
     ? `Comparable prior collection ${previous.date}`
     : reviewedRunCount > 1
-      ? "Other reviewed collections exist, but no exact comparison pair is currently available for the latest baseline"
-      : "A second exactly comparable reviewed collection is required before Foremention reports movement";
+      ? "Other finalized reviewed collections exist, but no exact comparison pair is currently available for the latest baseline"
+      : "A second exactly comparable finalized reviewed collection is required before Foremention reports movement";
   const metricTruth = [
     productTruthForRunMetric({
       id: "analytics-brand-presence",
       label: "Brand presence",
       source: "Human-verified AI answers in the current Safe Intelligence baseline",
       sample: `${latest.answers} verified answer${latest.answers === 1 ? "" : "s"}`,
-      denominator: `${latest.answers} verified answer slot${latest.answers === 1 ? "" : "s"} in the current reviewed collection`,
+      denominator: `${latest.answers} verified answer slot${latest.answers === 1 ? "" : "s"} in the current finalized reviewed collection`,
       collectedAt: latest.date,
       verification: "Only verified answer rows from a finalized reviewed collection enter this baseline",
       demo: viewer.mode === "demo",
@@ -89,16 +93,16 @@ export default async function AnalyticsPage() {
       sample: `${latest.answers} verified answer${latest.answers === 1 ? "" : "s"}`,
       denominator: `${latest.answers} verified answer slot${latest.answers === 1 ? "" : "s"}; unknown positions are not invented`,
       collectedAt: latest.date,
-      verification: "Human-review boundary passed before this collection entered Analytics",
+      verification: "Human-review boundary passed before this finalized collection entered Analytics",
       demo: viewer.mode === "demo",
-      methodology: previous ? "Delta uses only the exact comparable Safe Intelligence pair." : "Current reviewed baseline only; no cross-collection delta is inferred.",
+      methodology: previous ? "Delta uses only the exact comparable Safe Intelligence pair." : "Current finalized reviewed baseline only; no cross-collection delta is inferred.",
     }),
     productTruthForRunMetric({
       id: "analytics-citation-observations",
       label: "Citation observations",
       source: "Provider-returned citations preserved on verified AI answers",
       sample: `${latest.citations} returned citation observation${latest.citations === 1 ? "" : "s"}`,
-      denominator: `${latest.answers} verified answer${latest.answers === 1 ? "" : "s"} in the current baseline; ${sources.length} unique mapped source record${sources.length === 1 ? "" : "s"}`,
+      denominator: `${latest.answers} verified answer${latest.answers === 1 ? "" : "s"} in the current baseline; ${sources.length} unique mapped source record${sources.length === 1 ? "" : "s"} tied to that same run`,
       collectedAt: latest.date,
       verification: "Only returned citation evidence is counted; absent citations are not inferred",
       demo: viewer.mode === "demo",
@@ -107,25 +111,27 @@ export default async function AnalyticsPage() {
     productTruthForRunMetric({
       id: "analytics-human-reviewed-sources",
       label: "Human-reviewed sources",
-      source: "Current Source Map records with an explicit persisted human review timestamp",
+      source: "Current baseline Source Map records with an explicit persisted human review timestamp",
       sample: `${humanReviewedSourceCount} human-reviewed mapped page${humanReviewedSourceCount === 1 ? "" : "s"}`,
-      denominator: `${sources.length} mapped cited page${sources.length === 1 ? "" : "s"}; ${pageCheckedCount} have a dated automated or manual page-level reachability check`,
+      denominator: `${sources.length} mapped cited page${sources.length === 1 ? "" : "s"} from this exact baseline run; ${pageCheckedCount} have a dated automated reachability check`,
       collectedAt: latest.date,
-      verification: "A page check alone is not counted as human review; only a recorded source review qualifies",
+      verification: "An automated page check alone is not counted as human review; only an explicit source review qualifies",
       demo: viewer.mode === "demo",
       methodology: "Source review is separate from AI-answer verification and separate from Source Change Graph fingerprint observations.",
     }),
   ];
 
   return <main className="workspace" data-product-state={state}>
-    <div className="workspace-heading"><div><span className="eyebrow">Did anything change?</span><h1>Analytics</h1><p>Compare reviewed collections, question evidence yield, source-review progress, and saved cited-page changes. Trend deltas appear only when Foremention finds the same exact persisted buyer-question text, provider, exact model, and methodology. Movement is observed change, not proof that an action caused it.</p><p className="table-caption"><strong>{productStateLabel(state)}</strong> · Current reviewed baseline {latest.date} · {latest.answers} answer{latest.answers === 1 ? "" : "s"} · {comparisonWindowNote}</p></div><Link className="button button--outline" href="/app/runs">Inspect AI Results</Link></div>
+    <div className="workspace-heading"><div><span className="eyebrow">Did anything change?</span><h1>Analytics</h1><p>Compare finalized reviewed collections, question evidence yield, source-review progress, and saved cited-page changes. Trend deltas appear only when Foremention finds the same exact persisted buyer-question text, provider, exact model, and methodology. Movement is observed change, not proof that an action caused it.</p><p className="table-caption"><strong>{productStateLabel(state)}</strong> · Current reviewed baseline {latest.date} · {latest.answers} answer{latest.answers === 1 ? "" : "s"} · {comparisonWindowNote}</p></div><Link className="button button--outline" href="/app/runs">Inspect AI Results</Link></div>
 
-    <div className="metric-grid"><article><span>Brand presence</span><strong>{latest.presence}%</strong><small>{latest.answers} verified answer{latest.answers === 1 ? "" : "s"}{previous ? ` · ${signed(latest.presence - previous.presence)} pts vs comparable prior` : " · reviewed baseline only"}</small></article><article><span>First mention</span><strong>{latest.firstMention}%</strong><small>{latest.answers} verified answer{latest.answers === 1 ? "" : "s"}{previous ? ` · ${signed(latest.firstMention - previous.firstMention)} pts vs comparable prior` : " · reviewed baseline only"}</small></article><article><span>Citation observations</span><strong>{latest.citations}</strong><small>{previous ? `${signed(latest.citations - previous.citations)} vs comparable prior` : `${recurringSources} recurring mapped sources · no trend delta yet`}</small></article><article><span>Human-reviewed sources</span><strong>{humanReviewedSourceCount} of {sources.length}</strong><small>{sources.length - humanReviewedSourceCount} cited page{sources.length - humanReviewedSourceCount === 1 ? "" : "s"} still need human review · {pageCheckedCount} page check{pageCheckedCount === 1 ? "" : "s"} recorded</small></article></div>
+    {newestRunFailed && newestRun && <section className="inline-notice" role="alert"><strong>The newest collection failed.</strong><p>The prior reviewed baseline below remains intact and is not replaced by the failed collection. Open the failed run to inspect the operational error before retrying; no failed-run zeros are mixed into Analytics.</p><Link href={`/app/runs/${newestRun.id}`}>Inspect newest collection →</Link></section>}
+
+    <div className="metric-grid"><article><span>Brand presence</span><strong>{latest.presence}%</strong><small>{latest.answers} verified answer{latest.answers === 1 ? "" : "s"}{previous ? ` · ${signed(latest.presence - previous.presence)} pts vs comparable prior` : " · reviewed baseline only"}</small></article><article><span>First mention</span><strong>{latest.firstMention}%</strong><small>{latest.answers} verified answer{latest.answers === 1 ? "" : "s"}{previous ? ` · ${signed(latest.firstMention - previous.firstMention)} pts vs comparable prior` : " · reviewed baseline only"}</small></article><article><span>Citation observations</span><strong>{latest.citations}</strong><small>{previous ? `${signed(latest.citations - previous.citations)} vs comparable prior` : `${recurringSources} recurring mapped sources · no trend delta yet`}</small></article><article><span>Human-reviewed sources</span><strong>{humanReviewedSourceCount} of {sources.length}</strong><small>{sources.length - humanReviewedSourceCount} cited page{sources.length - humanReviewedSourceCount === 1 ? "" : "s"} still need human review · {pageCheckedCount} automated page check{pageCheckedCount === 1 ? "" : "s"} recorded</small></article></div>
     <ProductTruthPanel metrics={metricTruth} title="Why you can trust these Analytics metrics" />
 
     <AiObservationChangeGraphPanel graph={aiObservationChangeGraph} />
 
-    <div className="analytics-grid"><section className="panel panel--wide"><span className="eyebrow">Comparable brand presence</span><h2>{previous ? "Exact comparison pair" : "One comparable baseline so far"}</h2>{previous ? <div className="trend-chart trend-chart--dynamic" style={{ gridTemplateColumns: "repeat(2, minmax(80px, 1fr))" }} role="img" aria-label="Brand presence across the comparable prior and current reviewed collections"><div><i style={{ height: `${Math.max(2, previous.presence)}%` }} /><span>Prior</span><small>{previous.presence}%</small></div><div><i style={{ height: `${Math.max(2, latest.presence)}%` }} /><span>Current</span><small>{latest.presence}%</small></div></div> : <div className="baseline-record"><strong>{answers[0]?.provider}{answers[0]?.model ? ` · ${answers[0].model}` : ""}</strong><p>{answers[0] ? `${answers[0].citations.length} cited source${answers[0].citations.length === 1 ? "" : "s"} were preserved from this verified answer. Foremention will not compare this baseline with a run that changed the exact buyer-question text, provider, exact model, or methodology.` : "The reviewed run establishes a baseline. A second exactly comparable collection is required before Foremention draws a trend."}</p></div>}<p className="table-caption">Only the exact comparable pair above is used for movement. Other reviewed collections remain inspectable below but are not silently mixed into the trend.</p></section><section className="panel"><span className="eyebrow">Source review progress</span><h2>{humanReviewedSourceCount} of {sources.length} pages human-reviewed.</h2><div className="empty-state empty-state--compact"><p>{sources.length ? `${pageCheckedCount} cited page${pageCheckedCount === 1 ? " has" : "s have"} a dated reachability/content check; ${sources.length - humanReviewedSourceCount} still need the explicit human source review before they can become reviewed opportunities.` : "No cited sources are available yet."}</p><Link className="text-link" href="/app/source-map">Review Sources →</Link></div></section></div>
+    <div className="analytics-grid"><section className="panel panel--wide"><span className="eyebrow">Comparable brand presence</span><h2>{previous ? "Exact comparison pair" : "One comparable baseline so far"}</h2>{previous ? <div className="trend-chart trend-chart--dynamic" style={{ gridTemplateColumns: "repeat(2, minmax(80px, 1fr))" }} role="img" aria-label="Brand presence across the comparable prior and current reviewed collections"><div><i style={{ height: `${Math.max(2, previous.presence)}%` }} /><span>Prior</span><small>{previous.presence}%</small></div><div><i style={{ height: `${Math.max(2, latest.presence)}%` }} /><span>Current</span><small>{latest.presence}%</small></div></div> : <div className="baseline-record"><strong>{answers[0]?.provider}{answers[0]?.model ? ` · ${answers[0].model}` : ""}</strong><p>{answers[0] ? `${answers[0].citations.length} cited source${answers[0].citations.length === 1 ? "" : "s"} were preserved from this verified answer. Foremention will not compare this baseline with a run that changed the exact buyer-question text, provider, exact model, or methodology.` : "The finalized reviewed run establishes a baseline. A second exactly comparable collection is required before Foremention draws a trend."}</p></div>}<p className="table-caption">Only the exact comparable pair above is used for movement. Other finalized reviewed collections remain inspectable below but are not silently mixed into the trend.</p></section><section className="panel"><span className="eyebrow">Source review progress</span><h2>{humanReviewedSourceCount} of {sources.length} pages human-reviewed.</h2><div className="empty-state empty-state--compact"><p>{sources.length ? `${pageCheckedCount} cited page${pageCheckedCount === 1 ? " has" : "s have"} an automated reachability/content check; ${sources.length - humanReviewedSourceCount} still need the explicit human source review before they can become reviewed opportunities.` : "No cited sources are available for this baseline run."}</p><Link className="text-link" href="/app/source-map">Review Sources →</Link></div></section></div>
 
     <section className="panel panel--flush source-change-graph">
       <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Source Change Graph</span><h2>Which cited pages actually changed?</h2><p>Foremention compares immutable bounded page observations from collections and manual source checks. It records fingerprint and reachability differences without storing page bodies or claiming why a page changed.</p><p className="table-caption"><strong>{changeGraph.checkedCount ? `${changeGraph.checkedCount} saved page check${changeGraph.checkedCount === 1 ? "" : "s"}` : "No saved page checks yet"}</strong>{changeGraph.checkedCount ? ` · ${changeGraph.differenceCount} observed difference${changeGraph.differenceCount === 1 ? "" : "s"} · ${changeGraph.unreachableCount} became unreachable · ${changeGraph.nonComparableCount} not comparable` : " · Run a new collection or inspect a cited source to establish the first immutable page baseline."}</p></div></div>
@@ -133,8 +139,8 @@ export default async function AnalyticsPage() {
       <p className="table-caption panel-heading--padded">A fingerprint or reachability difference shows that the bounded public-page observation changed between two saved checks. It does not establish causation, editorial acceptance, AI ranking movement, traffic, leads, or revenue.</p>
     </section>
 
-    <section className="panel panel--flush"><div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Recent collections</span><h2>See the denominator behind every observation.</h2><p>Latest first. These rows are preserved observations; only the current baseline and an exact matching prior run are used for the trend above.</p></div></div><div className="run-table"><div className="run-row run-row--head"><span>Date</span><span>Status</span><span>Answers</span><span>Citations</span><span>Brand presence</span><span>First mention</span><span>New sources</span><span>Inspect</span></div>{recentRuns.map((run) => <Link className="run-row" href={`/app/runs/${run.id}`} key={run.id}><strong>{run.date}</strong><span>{productStateLabel(stateForRun({ status: run.status, answerCount: run.answers, citationCount: run.citations }))}</span><strong>{run.answers}</strong><strong>{run.citations}</strong><span>{run.presence}% of {run.answers}</span><span>{run.firstMention}% of {run.answers}</span><strong>{run.newSources}</strong><span>Open →</span></Link>)}</div></section>
+    <section className="panel panel--flush"><div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Recent finalized collections</span><h2>See the denominator behind every observation.</h2><p>Latest first. These rows are finalized preserved observations; only the current baseline and an exact matching prior run are used for the trend above.</p></div></div><div className="run-table"><div className="run-row run-row--head"><span>Date</span><span>Status</span><span>Answers</span><span>Citations</span><span>Brand presence</span><span>First mention</span><span>New sources</span><span>Inspect</span></div>{recentRuns.map((run) => <Link className="run-row" href={`/app/runs/${run.id}`} key={run.id}><strong>{run.date}</strong><span>{productStateLabel(stateForRun({ status: run.status, answerCount: run.answers, citationCount: run.citations }))}</span><strong>{run.answers}</strong><strong>{run.citations}</strong><span>{run.presence}% of {run.answers}</span><span>{run.firstMention}% of {run.answers}</span><strong>{run.newSources}</strong><span>Open →</span></Link>)}</div></section>
 
-    <section className="panel panel--flush question-performance"><div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Question performance</span><h2>Which buyer questions produce inspectable evidence?</h2><p>Based on citations and exact brand mentions in human-verified answers. This is evidence yield, not search volume or revenue value. It does not estimate demand.</p></div></div>{questions.length ? <div className="question-performance__table"><div className="question-performance__row question-performance__head"><span>Buyer question</span><span>Reviewed runs</span><span>Citations</span><span>Cited answer rate</span><span>Brand mentions</span><span>Guidance</span></div>{questions.map((question) => <div className="question-performance__row" key={question.key}><strong>{question.question}</strong><span>{question.runCount}</span><span>{question.citationCount}</span><span>{question.citedAnswerPct}% across {question.runCount}</span><span>{question.brandMentionCount}</span><span>{question.guidance}</span></div>)}</div> : <div className="empty-state"><h2>No verified question results yet.</h2><p>Review the first completed collection to compare evidence yield by buyer question.</p></div>}</section>
+    <section className="panel panel--flush question-performance"><div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Question performance</span><h2>Which buyer questions produce inspectable evidence?</h2><p>Based on citations and exact brand mentions in human-verified answers. Edited wording creates a separate measurement identity instead of being merged into the old question. This is evidence yield, not search volume or revenue value.</p></div></div>{questions.length ? <div className="question-performance__table"><div className="question-performance__row question-performance__head"><span>Buyer question</span><span>Observed runs</span><span>Citations</span><span>Cited answer rate</span><span>Brand mentions</span><span>Guidance</span></div>{questions.map((question) => <div className="question-performance__row" key={question.key}><strong>{question.question}</strong><span>{question.runCount}</span><span>{question.citationCount}</span><span>{question.citedAnswerPct}% across {question.runCount}</span><span>{question.brandMentionCount}</span><span>{question.guidance}</span></div>)}</div> : <div className="empty-state"><h2>No verified question results yet.</h2><p>Review the first completed collection to compare evidence yield by exact buyer-question wording.</p></div>}</section>
   </main>;
 }

@@ -4,7 +4,8 @@ import { Arrow, StatusDot } from "@/components/brand";
 import { ProductTruthPanel } from "@/components/product-truth-panel";
 import { demoCompany } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
-import { loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadSourceMap, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
+import { loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
+import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
 import { productTruthForRunMetric } from "@/lib/product-truth";
 import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
@@ -17,16 +18,17 @@ export default async function DashboardPage() {
   });
   if (viewer.mode === "supabase" && !context) redirect("/app/onboarding");
 
-  const [prompts, runs, sources, placements, providers, intelligence] = await Promise.all([
+  const [prompts, runs, placements, providers, intelligence] = await Promise.all([
     loadPrompts(viewer),
     loadRuns(viewer),
-    loadSourceMap(viewer),
     loadPlacements(viewer),
     loadProviderStatuses(viewer),
     loadSafeWeeklyIntelligence(viewer),
   ]);
+  const newestRun = runs[0] || null;
   const observedRuns = runs.filter((run) => ["review", "complete", "partial"].includes(run.status));
   const latest = observedRuns[0] || null;
+  const sources = await loadTruthfulSourceMap(viewer, { runId: latest?.id || null });
   const comparableLatest = intelligence.latest;
   const comparablePrevious = intelligence.previous;
   const [observedAnswers, sourceContexts, competitors] = await Promise.all([
@@ -36,8 +38,10 @@ export default async function DashboardPage() {
   ]);
   const latestAnswer = observedAnswers[0];
   const appearedCompetitors = competitors.filter((name) => observedAnswers.some((answer) => answer.answer.toLocaleLowerCase().includes(name.toLocaleLowerCase())));
-  const reviewedOpportunities = sources.filter((source) => !source.clientPresent && source.crawlerAccess !== "unknown" && source.route !== "unknown" && source.influence !== "unknown" && source.feasibility !== "unknown");
-  const pendingOrFailedRun = !latest ? runs.find((run) => ["queued", "running", "failed"].includes(run.status)) : null;
+  const reviewedOpportunities = sources.filter((source) => Boolean(source.reviewedAt) && !source.clientPresent && source.route !== "unknown" && source.influence !== "unknown" && source.feasibility !== "unknown");
+  const newestFailed = newestRun?.status === "failed";
+  const newestCollecting = newestRun?.status === "running" || newestRun?.status === "queued";
+  const pendingOrFailedRun = newestFailed || newestCollecting ? newestRun : null;
   const firstReviewedSource = sources.find((source) => Boolean(source.reviewedAt));
   const firstObservedRun = runs.find((run) => run.answers > 0);
   const activation = [
@@ -48,7 +52,11 @@ export default async function DashboardPage() {
     { label: "Review your first source", detail: "Check one cited page before treating it as evidence for an opportunity.", done: Boolean(firstReviewedSource), href: firstReviewedSource ? `/app/sources/${firstReviewedSource.id}` : "/app/source-map" },
   ];
   const next = activation.find((item) => !item.done) || { label: reviewedOpportunities.length ? "Choose an opportunity" : "Review your Sources", href: reviewedOpportunities.length ? "/app/opportunities" : "/app/source-map" };
-  const state = latest ? stateForRun({ status: latest.status, answerCount: latest.answers, citationCount: latest.citations }) : pendingOrFailedRun ? stateForRun({ status: pendingOrFailedRun.status, answerCount: pendingOrFailedRun.answers, citationCount: pendingOrFailedRun.citations }) : "READY_TO_COLLECT";
+  const state = pendingOrFailedRun
+    ? stateForRun({ status: pendingOrFailedRun.status, answerCount: pendingOrFailedRun.answers, citationCount: pendingOrFailedRun.citations })
+    : latest
+      ? stateForRun({ status: latest.status, answerCount: latest.answers, citationCount: latest.citations })
+      : "READY_TO_COLLECT";
   const exactMovement = comparableLatest && comparablePrevious
     ? {
       delta: comparableLatest.presence - comparablePrevious.presence,
@@ -82,13 +90,13 @@ export default async function DashboardPage() {
     productTruthForRunMetric({
       id: "overview-cited-sources",
       label: "Cited sources",
-      source: "Provider-returned citation observations normalized into the current Source Map",
+      source: "Provider-returned citation observations normalized into the baseline run's Source Map",
       sample: `${latest.citations} returned citation observation${latest.citations === 1 ? "" : "s"}`,
       denominator: `${sources.length} unique mapped source record${sources.length === 1 ? "" : "s"}`,
       collectedAt: latest.date,
-      verification: `${sources.filter((source) => source.crawlerAccess !== "unknown").length} of ${sources.length} mapped pages have a dated page-level check`,
+      verification: `${sources.filter((source) => source.reviewedAt).length} of ${sources.length} mapped pages have an explicit human review`,
       demo: viewer.mode === "demo",
-      methodology: "Only returned citation evidence is mapped; missing citations are not inferred or fabricated.",
+      methodology: "Only returned citation evidence is mapped; automated retrieval checks are not counted as human source review.",
     }),
     productTruthForRunMetric({
       id: "overview-reviewed-opportunities",
@@ -97,7 +105,7 @@ export default async function DashboardPage() {
       sample: `${reviewedOpportunities.length} qualifying reviewed page${reviewedOpportunities.length === 1 ? "" : "s"}`,
       denominator: `${sources.length} mapped cited page${sources.length === 1 ? "" : "s"}`,
       collectedAt: latest.date,
-      verification: "Requires recorded page review plus known route, influence, and feasibility; unreviewed pages are excluded",
+      verification: "Requires explicit human review plus known route, influence, and feasibility; automated checks are excluded",
       demo: viewer.mode === "demo",
       methodology: "Opportunity status is evidence-gated human review, not a ranking score, publisher promise, or predicted outcome.",
     }),
@@ -109,12 +117,12 @@ export default async function DashboardPage() {
         <span className="eyebrow">{viewer.mode === "demo" ? demoCompany.category : context?.category || "Customer workspace"}</span>
         <h1>{latest ? "What changed in your AI evidence?" : "Build your first trustworthy baseline."}</h1>
         <p>{viewer.mode === "demo" ? "Every metric below comes from fictional sample observations and fictional sample answers created only for this isolated demo." : latest ? "Start with the latest observed answer, the cited pages behind it, and the next reviewed opportunity. Unreviewed evidence stays clearly labelled." : "Five clear steps take you from your website to a reviewed cited source. No fake metrics appear while Foremention is waiting for real observations."}</p>
-        <p className="table-caption"><strong>{productStateLabel(state)}</strong>{latest ? ` · Last collected ${latest.date} · ${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}` : ""}</p>
+        <p className="table-caption"><strong>{productStateLabel(state)}</strong>{latest ? ` · Baseline collected ${latest.date} · ${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}` : ""}</p>
       </div>
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
     </div>
 
-    {pendingOrFailedRun && <section className="inline-notice" role={pendingOrFailedRun.status === "failed" ? "alert" : "status"}><strong>{pendingOrFailedRun.status === "failed" ? "The latest collection needs another try." : "Collecting AI answers now."}</strong><p>{pendingOrFailedRun.status === "failed" ? "Your audit is taking longer than expected or ended before usable evidence was ready. No fake metrics were added. Saved workspace data remains intact; open the collection to inspect the failure and retry safely." : "Foremention is collecting AI answers, preserving returned citations, and preparing evidence. You can leave this page and return later."}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open collection status <Arrow /></Link></section>}
+    {pendingOrFailedRun && <section className="inline-notice" role={newestFailed ? "alert" : "status"}><strong>{newestFailed ? "The newest collection failed." : "A newer collection is running now."}</strong><p>{newestFailed ? `${latest ? "The prior reviewed baseline remains visible below; it has not been replaced by the failed run. " : ""}No fake metrics were added. Open the newest collection to inspect the failure and retry safely.` : `${latest ? "The prior reviewed baseline remains visible below until this collection reaches a reviewable state. " : ""}Foremention is collecting answers and preserving returned citations without rewriting historical evidence.`}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open newest collection <Arrow /></Link></section>}
 
     {!activation.every((item) => item.done) ? <section className="getting-started" aria-labelledby="getting-started-title">
       <div className="getting-started__heading"><div><span className="eyebrow">Workspace readiness</span><h2 id="getting-started-title">Five steps to useful evidence.</h2></div><strong>{activation.filter((item) => item.done).length}/{activation.length} complete</strong></div>
@@ -140,8 +148,8 @@ export default async function DashboardPage() {
         {latestAnswer ? <div className="latest-answer"><div><span>{latestAnswer.provider}{latestAnswer.model ? ` · ${latestAnswer.model}` : ""}</span><strong>{latestAnswer.citations.length} cited source{latestAnswer.citations.length === 1 ? "" : "s"} · {latestAnswer.collectedAt}{latest?.status === "review" ? " · awaiting review" : ""}</strong></div><p>{latestAnswer.answer.length > 520 ? `${latestAnswer.answer.slice(0, 519).trimEnd()}…` : latestAnswer.answer}</p></div> : <div className="empty-state empty-state--compact"><p>{runs.some((run) => ["queued", "running"].includes(run.status)) ? "Your first collection is running now. Real AI answers will appear here automatically." : "A real AI answer will appear here after the first collection."}</p></div>}
       </section>
       <section className="panel">
-        <div className="panel-heading"><div><span className="eyebrow">Why?</span><h2>{sources.filter((source) => source.crawlerAccess === "unknown").length} cited page{sources.filter((source) => source.crawlerAccess === "unknown").length === 1 ? "" : "s"} need review.</h2></div></div>
-        {sources.length ? <div className="compact-sources">{sources.slice(0, 4).map((source) => { const evidence = source.sourceId ? sourceContexts[source.sourceId]?.[0] : undefined; return <Link href={`/app/sources/${source.id}`} key={source.id}><span><StatusDot tone={source.crawlerAccess === "unknown" ? "gray" : source.clientPresent ? "green" : "red"} /><strong>{source.domain}</strong></span><small>{evidence ? `${evidence.provider} · citation ${evidence.citationOrdinal || "recorded"}` : source.crawlerAccess === "unknown" ? "Presence not reviewed" : source.route}</small></Link>; })}</div> : <div className="empty-state empty-state--compact"><p>No mapped sources yet. Sources appear only from real returned citations.</p></div>}
+        <div className="panel-heading"><div><span className="eyebrow">Why?</span><h2>{sources.filter((source) => !source.reviewedAt).length} cited page{sources.filter((source) => !source.reviewedAt).length === 1 ? "" : "s"} need human review.</h2></div></div>
+        {sources.length ? <div className="compact-sources">{sources.slice(0, 4).map((source) => { const evidence = source.sourceId ? sourceContexts[source.sourceId]?.[0] : undefined; return <Link href={`/app/sources/${source.id}`} key={source.id}><span><StatusDot tone={!source.reviewedAt ? "gray" : source.clientPresent ? "green" : "red"} /><strong>{source.domain}</strong></span><small>{evidence ? `${evidence.provider} · citation ${evidence.citationOrdinal || "recorded"}` : !source.reviewedAt ? "Presence not human-reviewed" : source.route}</small></Link>; })}</div> : <div className="empty-state empty-state--compact"><p>No mapped sources yet. Sources appear only from real returned citations.</p></div>}
         <Link className="text-link" href="/app/source-map">Open Sources <Arrow /></Link>
       </section>
       <section className="panel">

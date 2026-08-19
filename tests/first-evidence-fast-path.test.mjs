@@ -24,11 +24,12 @@ test("completed onboarding collection opens the exact first-evidence run instead
   assert.doesNotMatch(onboarding, /window\.location\.assign\("\/app"\)/);
 });
 
-test("run detail keeps provider citations intact and links only published mapped pages into Source X-Ray", () => {
+test("run detail keeps provider citations intact and links only its own finalized mapped pages into Source X-Ray", () => {
   const page = read("app/app/runs/[id]/page.tsx");
   const matcher = read("lib/source-xray-link.ts");
 
-  assert.match(page, /loadSourceMap/);
+  assert.match(page, /loadTruthfulSourceMap\(viewer, \{ runId: run\.id \}\)/);
+  assert.match(page, /\["complete", "partial"\]\.includes\(run\.status\)/);
   assert.match(page, /run\.status === "review" \? null : findSourceXrayTarget\(citation\.url, sourceMap\)/);
   assert.match(page, /href=\{citation\.url\} target="_blank" rel="noreferrer"/);
   assert.match(page, /href=\{`\/app\/sources\/\$\{sourceTarget\.id\}`\}/);

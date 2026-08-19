@@ -85,7 +85,7 @@ const toMeasurement = (run: OutcomeLedgerRunRow): RunMeasurement => ({
 });
 
 const isComparableBaselineRun = (run: OutcomeLedgerRunRow | undefined) =>
-  Boolean(run && ["review", "complete", "partial"].includes(run.status));
+  Boolean(run && ["complete", "partial"].includes(run.status));
 const isComparableFollowUpRun = (run: OutcomeLedgerRunRow | undefined) =>
   Boolean(run && ["complete", "partial"].includes(run.status));
 
@@ -135,10 +135,10 @@ const readStoredComparison = (
 };
 
 /**
- * Assemble one inspectable record per resolution asset: baseline measurement,
- * drafted asset, customer approval, recorded application, and the comparable
- * remeasurement. Reads persisted rows only; never calls a provider and never
- * upgrades an observed association into a causal claim.
+ * Assemble one inspectable record per resolution asset: finalized baseline
+ * measurement, drafted asset, customer approval, recorded application, and a
+ * finalized comparable remeasurement. Reads persisted rows only; never calls a
+ * provider and never upgrades an observed association into a causal claim.
  */
 export function buildOutcomeLedger(input: {
   assets: OutcomeLedgerAssetRow[];
@@ -180,11 +180,11 @@ export function buildOutcomeLedger(input: {
             ? "Waiting for a reviewer decision."
             : "Not submitted for review yet.";
     const steps: OutcomeLedgerStep[] = [
-      { key: "measured", label: "Problem measured", done: baselineMeasured, at: baseline?.completed_at || (baselineMeasured ? asset.created_at : null), detail: baselineMeasured ? "A reviewed baseline run recorded the observed gap." : "No readable reviewed baseline run is attached." },
+      { key: "measured", label: "Problem measured", done: baselineMeasured, at: baseline?.completed_at || (baselineMeasured ? asset.created_at : null), detail: baselineMeasured ? "A finalized reviewed baseline run recorded the observed gap." : "No readable finalized reviewed baseline run is attached." },
       { key: "drafted", label: "Solution asset drafted", done: true, at: asset.created_at, detail: asset.title },
       { key: "approved", label: "Customer approval", done: Boolean(asset.approved_at), at: asset.approved_at || asset.decision_at, detail: decisionDetail },
       { key: "applied", label: "Applied in customer tools", done: Boolean(asset.applied_at), at: asset.applied_at, detail: asset.application_reference || "Not recorded as applied yet." },
-      { key: "remeasured", label: "Comparable remeasurement", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, detail: followUp ? (comparison ? "The same buyer questions and providers were measured again." : followUp.status === "complete" ? "The follow-up finished, but its stored comparison could not be validated." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
+      { key: "remeasured", label: "Comparable remeasurement", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, detail: followUp ? (comparison ? "The same buyer questions and providers were measured again in finalized runs." : followUp.status === "complete" ? "The follow-up finished, but its stored comparison could not be validated against finalized runs." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
     ];
     return {
       id: asset.id,

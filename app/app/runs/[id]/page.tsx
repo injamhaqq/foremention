@@ -4,7 +4,8 @@ import { RunReview } from "@/components/run-review";
 import { RunCancel } from "@/components/run-cancel";
 import { RunRerunButton } from "@/components/run-rerun-button";
 import { requireViewer } from "@/lib/auth";
-import { loadRunAnswers, loadRunConfiguration, loadRunCostEvents, loadRuns, loadSourceMap, loadWorkspaceContext } from "@/lib/data";
+import { loadRunAnswers, loadRunConfiguration, loadRunCostEvents, loadRuns, loadWorkspaceContext } from "@/lib/data";
+import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { extractBrandMentionContexts } from "@/lib/mention-context";
 import { loadProviderRunDiagnostics } from "@/lib/provider-run-diagnostics";
 import { findSourceXrayTarget } from "@/lib/source-xray-link";
@@ -16,9 +17,19 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
   const { id } = await params;
   const { first_evidence: firstEvidenceParam = "" } = await searchParams;
   const firstEvidence = firstEvidenceParam === "1";
-  const [runs, answers, providerDiagnostics, costEvents, configuration, context, sourceMap] = await Promise.all([loadRuns(viewer), loadRunAnswers(viewer, id), loadProviderRunDiagnostics(viewer, id), loadRunCostEvents(viewer, id), loadRunConfiguration(viewer, id), loadWorkspaceContext(viewer), loadSourceMap(viewer)]);
+  const [runs, answers, providerDiagnostics, costEvents, configuration, context] = await Promise.all([
+    loadRuns(viewer),
+    loadRunAnswers(viewer, id),
+    loadProviderRunDiagnostics(viewer, id),
+    loadRunCostEvents(viewer, id),
+    loadRunConfiguration(viewer, id),
+    loadWorkspaceContext(viewer),
+  ]);
   const run = runs.find((item) => item.id === id);
   if (!run) notFound();
+  const sourceMap = ["complete", "partial"].includes(run.status)
+    ? await loadTruthfulSourceMap(viewer, { runId: run.id })
+    : [];
   const providerDiagnosticsByAnswer = new Map(providerDiagnostics.map((item) => [item.answerId, item]));
   const totalCost = costEvents.reduce((sum, event) => sum + event.costUsd, 0);
   const totalTokens = costEvents.some((event) => event.totalTokens !== null) ? costEvents.reduce((sum, event) => sum + Number(event.totalTokens || 0), 0) : null;
@@ -34,8 +45,8 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
       : ["complete", "partial", "review"].includes(run.status) ? { title: "No usable answers were returned.", body: "The collection finished without evidence that can be reviewed or published." }
         : { title: "Answers have not arrived yet.", body: "The collection is queued, running, or waiting for a provider retry." };
   return <main className="workspace">
-    <div className="workspace-heading"><div><span className="eyebrow">Collection {run.id.slice(0, 8).toUpperCase()}</span><h1>{run.status === "review" ? "Review AI results" : "AI Results"}</h1><p>{run.date} · {run.answers} answer{run.answers === 1 ? "" : "s"} · {run.citations} citation observation{run.citations === 1 ? "" : "s"}. Every result remains tied to this exact collection.</p></div><Link className="button button--outline" href="/app/runs">&larr; All AI Results</Link></div>
-    {firstEvidence && <section className="panel"><span className="eyebrow">Your first real evidence</span><h2>Read the exact AI answer, then follow the source.</h2><p>{run.status === "review" ? "Review the recorded answer and every returned citation below. Approve the run only when they match what the AI system actually returned; that publishes the Source Map so you can inspect a cited page in Source X-Ray." : sourceMap.length ? "This reviewed collection is published. Open a mapped citation in Source X-Ray to compare the provider observation with the cited page, then complete the source review before acting on an opportunity." : "This collection is recorded. If no mapped source is available yet, keep the provider answer and citation as the evidence boundary rather than inventing a page-level conclusion."}</p><ol className="record-steps"><li>Read the exact buyer question and provider answer.</li><li>Check the provider-returned citation without changing it.</li><li>{run.status === "review" ? "Approve the run to publish its dated Source Map." : "Inspect a mapped citation in Source X-Ray when available."}</li><li>Keep crawler observations separate from human review before acting.</li></ol></section>}
+    <div className="workspace-heading"><div><span className="eyebrow">Collection {run.id.slice(0, 8).toUpperCase()}</span><h1>{run.status === "review" ? "Review AI results" : "AI Results"}</h1><p>{run.date} · {run.answers} answer{run.answers === 1 ? "" : "s"} · {run.citations} citation observation{run.citations === 1 ? "" : "s"}. Every result and Source X-Ray link remains tied to this exact collection.</p></div><Link className="button button--outline" href="/app/runs">&larr; All AI Results</Link></div>
+    {firstEvidence && <section className="panel"><span className="eyebrow">Your first real evidence</span><h2>Read the exact AI answer, then follow the source.</h2><p>{run.status === "review" ? "Review the recorded answer and every returned citation below. Approve the run only when they match what the AI system actually returned; that publishes the Source Map so you can inspect a cited page in Source X-Ray." : sourceMap.length ? "This finalized collection has its own published Source Map. Open a mapped citation in Source X-Ray to compare the provider observation with the cited page, then complete the explicit source review before acting on an opportunity." : "This collection is recorded. If no run-scoped mapped source is available, keep the provider answer and citation as the evidence boundary rather than borrowing a source record from another collection."}</p><ol className="record-steps"><li>Read the exact buyer question and provider answer.</li><li>Check the provider-returned citation without changing it.</li><li>{run.status === "review" ? "Approve the run to publish its dated Source Map." : "Inspect a mapped citation in this collection's Source X-Ray when available."}</li><li>Keep automated crawler observations separate from human review before acting.</li></ol></section>}
     {run.status === "review" && <RunReview runId={run.id} />}
     {(run.status === "queued" || run.status === "running") && <RunCancel runId={run.id} />}
     {["complete", "partial"].includes(run.status) && configuration && <RunRerunButton promptIds={configuration.promptIds} provider={configuration.provider} demo={viewer.mode === "demo"} />}

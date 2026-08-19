@@ -23,7 +23,7 @@ test("Analytics does not mislabel a crawler check as human source review", async
   const page = await text("app/app/analytics/page.tsx");
   assert.match(page, /pageCheckedCount = sources\.filter\(\(source\) => source\.crawlerAccess !== "unknown"\)\.length/);
   assert.match(page, /humanReviewedSourceCount = sources\.filter\(\(source\) => Boolean\(source\.reviewedAt\)\)\.length/);
-  assert.match(page, /A page check alone is not counted as human review/);
+  assert.match(page, /automated page check alone is not counted as human review/i);
   assert.match(page, /Human-reviewed sources/);
   assert.doesNotMatch(page, /const reviewedSourceCount = sources\.filter\(\(source\) => source\.crawlerAccess !== "unknown"\)/);
 });
