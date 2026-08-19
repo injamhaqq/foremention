@@ -104,7 +104,7 @@ test("a queued or failed remeasurement stays explicit instead of showing an outc
 test("a baseline identifier without a readable reviewed run is not called measured", () => {
   const [record] = buildOutcomeLedger({ assets: [asset], followUps: [], runs: [] });
   assert.equal(record.steps[0].done, false);
-  assert.match(record.steps[0].detail, /No readable reviewed baseline run/);
+  assert.match(record.steps[0].detail, /No readable finalized reviewed baseline run/);
 });
 
 test("the ledger page is tenant-scoped, demo-isolated, and free of outcome promises", async () => {

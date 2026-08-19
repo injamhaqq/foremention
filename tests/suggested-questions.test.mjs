@@ -3,9 +3,18 @@ import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { buildSourceMapQuestionSuggestions } from "../lib/question-suggestions.ts";
 
-test("follow-up questions are derived from recorded Source Map framing", () => {
-  const suggestions = buildSourceMapQuestionSuggestions("AI visibility software", [{ id: "1", rank: 1, domain: "example.com", title: "Guide", url: "https://example.com", type: "industry guide", influence: "unknown", engines: ["Perplexity"], clientPresent: false, competitors: ["Acme"], crawlerAccess: "open", route: "unknown", feasibility: "unknown", evidenceCount: 3 }]);
-  assert.equal(suggestions.length, 5); assert.match(suggestions[0].text, /example\.com/); assert.match(suggestions[1].text, /Acme/); assert.match(suggestions[3].text, /Perplexity/);
+const sourceEntry = { id: "1", rank: 1, domain: "example.com", title: "Guide", url: "https://example.com", type: "industry guide", influence: "unknown", engines: ["Perplexity"], clientPresent: false, competitors: ["Acme"], crawlerAccess: "open", route: "unknown", feasibility: "unknown", evidenceCount: 3 };
+
+test("follow-up questions are derived from recorded Source Map framing without promoting unreviewed competitor facts", () => {
+  const unreviewed = buildSourceMapQuestionSuggestions("AI visibility software", [sourceEntry]);
+  assert.equal(unreviewed.length, 5);
+  assert.match(unreviewed[0].text, /example\.com/);
+  assert.match(unreviewed[1].text, /established alternatives/);
+  assert.doesNotMatch(unreviewed[1].text, /Acme/);
+  assert.match(unreviewed[3].text, /Perplexity/);
+
+  const reviewed = buildSourceMapQuestionSuggestions("AI visibility software", [{ ...sourceEntry, reviewedAt: "2026-08-19T00:00:00.000Z" }]);
+  assert.match(reviewed[1].text, /Acme/);
   assert.deepEqual(buildSourceMapQuestionSuggestions("Anything", []), []);
 });
 

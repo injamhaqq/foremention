@@ -390,7 +390,8 @@ test("failed first evidence checks remain explicit instead of showing unexplaine
     text("app/app/analytics/page.tsx"),
   ]);
   assert.match(wizard, /Your first evidence check could not finish yet/);
-  for (const source of [overview, analytics]) assert.match(source, /Your audit is taking longer than expected/);
+  assert.match(overview, /The newest collection failed/);
+  assert.match(analytics, /The latest collection needs another try/);
   assert.match(overview, /No fake metrics were added/);
   assert.match(analytics, /No zero-value placeholder is being presented as a result/);
 });

@@ -140,7 +140,7 @@ async function withTruthfulSourceReview(viewer: Viewer, intelligence: WeeklyInte
       title: intelligence.previous ? "Open the reviewed baseline" : "Repeat the same questions and provider",
       reason: intelligence.previous
         ? "The human source-review gate is healthy. Preserve the exact buyer-question wording, provider, model, and methodology for the next controlled observation."
-        : "The source-review gate is healthy, but one finalized baseline is not a trend. Repeat the same evidence set before interpreting movement.",
+        : "The source-review gate is healthy, but one finalized baseline is not a trend. Repeat the same reviewed questions with the same provider; a later trend is comparable only if the exact question text, provider, exact model, and methodology still match.",
       href: exactBaselineHref(intelligence.latest.id),
       cta: "Open reviewed baseline",
     };
