@@ -105,6 +105,7 @@ export function initializeProductAnalytics() {
     disable_session_recording: true,
     person_profiles: "identified_only",
     persistence: "localStorage+cookie",
+    cross_subdomain_cookie: false,
     secure_cookie: window.location.protocol === "https:",
     before_send: (event) => sanitizePostHogPayload(event),
   });
