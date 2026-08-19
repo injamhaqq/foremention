@@ -63,6 +63,13 @@ test("activation events use the fail-closed product contract and never expose cu
   }
 });
 
+test("production PostHog persistence stays first-party and does not probe parent cookie domains", () => {
+  const source = read("lib/product-analytics.ts");
+  assert.match(source, /persistence: "localStorage\+cookie"/);
+  assert.match(source, /cross_subdomain_cookie: false/);
+  assert.match(source, /secure_cookie: window\.location\.protocol === "https:"/);
+});
+
 test("workspace milestones exclude demo data and require real evidence surfaces", () => {
   const source = read("components/workspace-activation-analytics.tsx");
   assert.match(source, /if \(demo\) return/);

@@ -105,6 +105,10 @@ export function initializeProductAnalytics() {
     disable_session_recording: true,
     person_profiles: "identified_only",
     persistence: "localStorage+cookie",
+    // Foremention analytics is intentionally first-party to foremention.com. Avoid
+    // PostHog's registrable-domain cookie probe, which Firefox reports as invalid
+    // domain console errors while testing candidate parent domains.
+    cross_subdomain_cookie: false,
     secure_cookie: window.location.protocol === "https:",
     before_send: (event) => sanitizePostHogPayload(event),
   });
