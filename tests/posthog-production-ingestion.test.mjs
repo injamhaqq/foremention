@@ -16,6 +16,13 @@ test("production PostHog config is pinned and cannot be overridden by preview bu
   assert.match(contract, /normalized === "foremention\.com" \|\| normalized === "www\.foremention\.com"/);
 });
 
+test("production PostHog cookie scope is first-party only and does not probe parent domains", async () => {
+  const analytics = await text("lib/product-analytics.ts");
+
+  assert.match(analytics, /cross_subdomain_cookie:\s*false/);
+  assert.match(analytics, /persistence:\s*"localStorage\+cookie"/);
+});
+
 test("environment template cannot configure local, preview, test, or QA traffic into PostHog", async () => {
   const envExample = await text(".env.example");
   assert.doesNotMatch(envExample, /^NEXT_PUBLIC_POSTHOG_/m);
