@@ -61,6 +61,8 @@ test("decision-readiness uses finalized runs, verified answers, and safe compara
   assert.match(page, /loadSafeWeeklyIntelligence/);
   assert.match(page, /intelligence\.previous/);
   assert.match(page, /exactComparablePair/);
+  assert.match(page, /Repeat the exact measurement setup/);
+  assert.doesNotMatch(page, /exact evidence set/i);
 });
 
 test("competitor metrics exclude unreviewed answers and withhold unsafe run-to-run movement", async () => {
