@@ -51,6 +51,12 @@ export default async function DecisionLabPage() {
       tone: signal.sourceReviewPct !== null && signal.sourceReviewPct >= 80 ? "good" : "attention",
     },
     {
+      label: "Source concentration",
+      value: value(signal.sourceDependencyPct),
+      detail: signal.sourceDependencyPct === null ? "Citation observations are required before source concentration can be described." : "Share of baseline citation observations held by the three most recurrent sources. This is an evidence-diversity signal, not a quality or authority score.",
+      tone: signal.sourceDependencyPct !== null && signal.sourceDependencyPct < 50 ? "good" : "attention",
+    },
+    {
       label: "Exact repeatability",
       value: exactComparablePair ? "Passed" : "Needs repeat",
       detail: exactComparablePair ? "The latest finalized baseline has a prior run with the same persisted buyer-question wording, provider, exact model, and methodology." : "No exact comparable prior run exists for the latest finalized baseline. Movement is withheld.",
@@ -95,7 +101,7 @@ export default async function DecisionLabPage() {
     </section>
 
     <section className="decision-checks" aria-labelledby="decision-checks-title">
-      <div className="decision-section-heading"><div><span className="eyebrow">Evidence gate</span><h2 id="decision-checks-title">Four checks before action.</h2></div><p>A weak check stays visible. No composite score hides missing evidence.</p></div>
+      <div className="decision-section-heading"><div><span className="eyebrow">Evidence gate</span><h2 id="decision-checks-title">Five checks before action.</h2></div><p>A weak check stays visible. No composite score hides missing evidence.</p></div>
       <div className="decision-check-grid">
         {evidenceChecks.map((check, index) => <article className={`decision-check decision-check--${check.tone}`} key={check.label}>
           <span>{String(index + 1).padStart(2, "0")} · {check.label}</span>
@@ -118,7 +124,7 @@ export default async function DecisionLabPage() {
 
     <section className="decision-note">
       <strong>Why this is different</strong>
-      <p>Visibility tells you what an answer said. Decision Lab tells you whether finalized verified observations have enough coverage, agreement, exact repeatability, and human-reviewed source evidence to justify action.</p>
+      <p>Visibility tells you what an answer said. Decision Lab tells you whether finalized verified observations have enough coverage, agreement, source diversity, exact repeatability, and human-reviewed source evidence to justify action.</p>
       <Link href="/methodology">Read the measurement standard <Arrow /></Link>
     </section>
   </main>;
