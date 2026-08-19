@@ -181,20 +181,26 @@ export async function POST(request: Request) {
       })),
     });
     capacityStage = "reserve-usage";
-    await supabaseRest("rpc/reserve_run_quota", {
+    await supabaseRest("rpc/reserve_run_quota_server", {
       method: "POST",
-      token: viewer.accessToken,
-      body: { p_organization_id: context.organizationId, p_units: requestedUnits, p_run_id: runId },
+      serviceRole: true,
+      body: {
+        p_organization_id: context.organizationId,
+        p_units: requestedUnits,
+        p_run_id: runId,
+        p_actor_id: viewer.id,
+      },
     });
     quotaReserved = true;
     capacityStage = "reserve-budget";
-    await supabaseRest("rpc/reserve_run_budget", {
+    await supabaseRest("rpc/reserve_run_budget_server", {
       method: "POST",
-      token: viewer.accessToken,
+      serviceRole: true,
       body: {
         p_organization_id: context.organizationId,
         p_run_id: runId,
         p_estimated_max_cost_usd: estimatedMaximumCost,
+        p_actor_id: viewer.id,
       },
     });
   } catch (error) {
@@ -215,13 +221,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ id: concurrentActiveDuplicate[0].id, status: concurrentActiveDuplicate[0].status, duplicate: true }, { status: 202 });
     }
     if (quotaReserved) {
-      await supabaseRest("rpc/release_queued_run", {
+      await supabaseRest("rpc/release_queued_run_server", {
         method: "POST",
-        token: viewer.accessToken,
+        serviceRole: true,
         body: {
           p_organization_id: context.organizationId,
           p_run_id: runId,
           p_reason: safeOperationalError(error),
+          p_actor_id: viewer.id,
         },
       }).catch(() => undefined);
     } else {
@@ -253,13 +260,14 @@ export async function POST(request: Request) {
   } catch (error) {
     logOperationalEvent("collection_queue_failed", { correlationId, route: "/api/runs", runId, provider: providerId, errorCode: "background_queue_failed" });
     console.warn("Background collection could not be queued.", safeOperationalError(error));
-    await supabaseRest("rpc/release_queued_run", {
+    await supabaseRest("rpc/release_queued_run_server", {
       method: "POST",
-      token: viewer.accessToken,
+      serviceRole: true,
       body: {
         p_organization_id: context.organizationId,
         p_run_id: runId,
         p_reason: "The background collection service could not accept this run.",
+        p_actor_id: viewer.id,
       },
     }).catch(() => undefined);
     return NextResponse.json({

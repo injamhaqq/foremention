@@ -27,13 +27,14 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   if (!run.started_at) {
-    await supabaseRest("rpc/release_queued_run", {
+    await supabaseRest("rpc/release_queued_run_server", {
       method: "POST",
-      token: viewer.accessToken,
+      serviceRole: true,
       body: {
         p_organization_id: context.organizationId,
         p_run_id: run.id,
         p_reason: "Collection was cancelled before it started.",
+        p_actor_id: viewer.id,
       },
     });
   }
