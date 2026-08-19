@@ -65,7 +65,7 @@ export default async function DecisionLabPage() {
   ];
   const actions = exactComparablePair
     ? signal.actions
-    : [{ priority: "now" as const, title: "Repeat the exact evidence set", reason: "Decision-ready movement requires the same buyer-question wording, provider, exact model, and methodology. Other finalized runs remain valid observations but cannot substitute for this comparison.", href: "/app/runs" }, ...signal.actions].slice(0, 4);
+    : [{ priority: "now" as const, title: "Repeat the exact measurement setup", reason: "Decision-ready movement requires the same buyer-question wording, provider, exact model, and methodology. The later answers and evidence remain new observations; other finalized runs remain valid observations but cannot substitute for this comparison.", href: "/app/runs" }, ...signal.actions].slice(0, 4);
 
   return <main className="workspace">
     <div className="workspace-heading">
