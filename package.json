@@ -18,28 +18,28 @@
         "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .wrangler-dry-run --ignore-pattern scripts/codex-*"
     },
     "dependencies": {
-        "@sentry/cloudflare": "^10.68.0",
-        "@sentry/react": "^10.68.0",
-        "inngest": "^4.13.0",
-        "next": "16.2.12",
-        "posthog-js": "^1.409.5",
+        "@sentry/cloudflare": "^10.70.0",
+        "@sentry/react": "^10.70.0",
+        "inngest": "^4.18.1",
+        "next": "16.3.1",
+        "posthog-js": "^1.418.5",
         "react": "19.2.8",
         "react-dom": "19.2.8"
     },
     "devDependencies": {
-        "@cloudflare/vite-plugin": "1.47.0",
-        "@types/node": "22.19.19",
-        "@types/react": "19.2.14",
-        "@types/react-dom": "19.2.3",
-        "@vitejs/plugin-react": "6.0.2",
-        "@vitejs/plugin-rsc": "0.5.26",
-        "eslint": "9.39.4",
-        "eslint-config-next": "16.2.12",
+        "@cloudflare/vite-plugin": "1.53.0",
+        "@types/node": "26.2.0",
+        "@types/react": "19.2.18",
+        "@types/react-dom": "19.2.4",
+        "@vitejs/plugin-react": "6.1.0",
+        "@vitejs/plugin-rsc": "0.5.34",
+        "eslint": "10.8.1",
+        "eslint-config-next": "16.3.1",
         "react-server-dom-webpack": "19.2.8",
-        "typescript": "5.9.3",
-        "vinext": "0.0.50",
-        "vite": "8.2.0",
-        "wrangler": "4.114.0"
+        "typescript": "7.0.2",
+        "vinext": "0.2.1",
+        "vite": "8.2.2",
+        "wrangler": "4.124.0"
     },
     "type": "module"
 }
