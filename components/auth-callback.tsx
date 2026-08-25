@@ -62,17 +62,20 @@ export function AuthCallback() {
   }, [searchParams]);
 
   return (
-    <main className="auth-page">
+    <main className="auth-page auth-page--evidence">
       <div className="auth-brand">
         <Wordmark />
-        <div>
-          <span>One clear step.</span>
-          <span>One verified account.</span>
-          <span>One secure workspace.</span>
+        <div className="auth-brand__positioning">
+          <span className="auth-brand__kicker">Recommendation intelligence for B2B SaaS</span>
+          <strong>Verify access before opening the workspace.</strong>
+          <p>Account verification is an authentication boundary. It does not create evidence, alter a recommendation record, or manufacture a result.</p>
+          <ol className="auth-brand__trace" aria-label="Verification boundary"><li><span>01</span><small>Link</small></li><li><span>02</span><small>Verify</small></li><li><span>03</span><small>Session</small></li><li><span>04</span><small>Continue</small></li></ol>
+          <span className="auth-brand__principle">EVIDENCE BEFORE THEATRE</span>
         </div>
         <Link href="/">← Back to site</Link>
       </div>
-      <section className="auth-card auth-card--status">
+      <section className="auth-card auth-card--status" data-evidence-record="auth">
+        <span className="auth-record-index">AUTH / VERIFY</span>
         <span className="eyebrow">Account verification</span>
         <h1>{failed ? "Let's get you back in." : "Confirming your workspace."}</h1>
         <p role="status" aria-live="polite">{message}</p>
