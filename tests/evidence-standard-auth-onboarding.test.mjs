@@ -35,6 +35,20 @@ test("auth routes enter the Evidence Standard workspace without changing auth me
   assert.match(form, /aria-live="polite"/);
 });
 
+test("auth status and onboarding continuation copy stays actionable", () => {
+  const login = read("app/login/page.tsx");
+  const signup = read("app/signup/page.tsx");
+  const onboarding = read("app/app/onboarding/page.tsx");
+
+  assert.match(login, /You have been signed out of all devices/);
+  assert.match(login, /Sign in here to continue/);
+  assert.doesNotMatch(login, /refresh sessions|access tokens|encoded expiry/i);
+  assert.match(signup, /Your public check results will carry into your workspace after you verify your account\./);
+  assert.doesNotMatch(signup, /public result itself will not become verified workspace evidence/);
+  assert.match(onboarding, />Start collection<\/Link>/);
+  assert.doesNotMatch(onboarding, />Open collection<\/Link>/);
+});
+
 test("auth navigation keeps decorative arrows out of accessible names", () => {
   for (const file of ["app/login/page.tsx", "app/signup/page.tsx", "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "components/auth-callback.tsx"]) {
     const source = read(file);
@@ -85,7 +99,7 @@ test("Evidence Standard auth and onboarding CSS is restrained, responsive, and s
   assert.match(css, /\.auth-page--evidence/);
   assert.match(css, /\.onboarding-wizard--evidence/);
   assert.match(css, /\.auth-brand__principle[\s\S]*text-transform:\s*uppercase/);
-  assert.match(css, /\.auth-brand__trace span,[\s\S]*\.auth-brand__trace small[\s\S]*font-size:\s*11px/);
+  assert.match(css, /\.auth-brand__trace span,[\s\S]*\.auth-brand__trace small[\s\S]*font-size:\s*12px/);
   assert.match(css, /@media \(max-width: 780px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(css, /radial-gradient|linear-gradient|filter:\s*blur|box-shadow:\s*0 0 [^;]*rgba/i);
@@ -110,4 +124,5 @@ test("canonical Foremention vector artwork is the active brand identity", () => 
   assert.match(mark, /viewBox="0 0 22\.625 22\.625"/);
   assert.match(mark, /fill="#0F0F0F"/);
   assert.match(markWhite, /fill="#FFFFFF"/);
+  assert.ok(fs.existsSync(path.join(process.cwd(), "app/favicon.ico")));
 });
