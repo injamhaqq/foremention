@@ -28,6 +28,19 @@ test("Evidence Standard tokens replace the legacy public visual grammar", () => 
   assert.doesNotMatch(css, /\.public-nav[^}]*var\(--fm-evidence\)/);
 });
 
+test("public Evidence Standard accessibility refinements remain explicit", () => {
+  const homeCss = read("app/evidence-standard-home.css");
+  const home = read("app/page.tsx");
+
+  assert.match(homeCss, /@media \(prefers-reduced-transparency: reduce\)/);
+  assert.match(homeCss, /backdrop-filter:\s*none/);
+  assert.match(homeCss, /\.fm-honesty-state[\s\S]*font-size:\s*11px/);
+  assert.match(homeCss, /\.fm-record-meta[\s\S]*font-size:\s*11px/);
+  assert.match(homeCss, /\.fm-readiness-states span[\s\S]*font-size:\s*11px/);
+  assert.match(homeCss, /\.xray-product-shell[\s\S]*background:\s*var\(--fm-ink\)/);
+  assert.match(home, /fm-compare__boundary[^>]*><Arrow \/><\/div>/);
+});
+
 test("public navigation reflects the Evidence Standard information architecture", () => {
   const shell = read("components/public-shell.tsx");
   for (const item of ["Product", "Evidence", "Method", "Insights"]) assert.ok(shell.includes(`"${item}"`));
