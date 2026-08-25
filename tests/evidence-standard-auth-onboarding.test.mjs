@@ -12,6 +12,7 @@ test("auth routes enter the Evidence Standard workspace without changing auth me
   const form = read("components/auth-form.tsx");
 
   assert.match(layout, /evidence-standard-auth\.css/);
+  assert.match(layout, /evidence-standard-auth-a11y\.css/);
   assert.match(login, /auth-page auth-page--evidence/);
   assert.match(signup, /auth-page auth-page--evidence/);
   assert.match(login, /Recommendation intelligence for B2B SaaS/);
@@ -65,7 +66,7 @@ test("onboarding is presented as a measurement record while retaining the proven
 });
 
 test("Evidence Standard auth and onboarding CSS is restrained, responsive, and semantic", () => {
-  const css = read("app/evidence-standard-auth.css");
+  const css = `${read("app/evidence-standard-auth.css")}\n${read("app/evidence-standard-auth-a11y.css")}`;
 
   for (const token of ["--fm-paper", "--fm-surface", "--fm-ink", "--fm-rule", "--fm-evidence", "--fm-evidence-wash"]) {
     assert.match(css, new RegExp(token));
