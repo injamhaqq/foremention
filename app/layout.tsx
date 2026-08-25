@@ -4,6 +4,7 @@ import "./product-polish.css";
 import "./accessibility-hardening.css";
 import "./public-trust-funnel.css";
 import "./evidence-standard.css";
+import "./evidence-standard-home.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
