@@ -54,6 +54,50 @@ test("homepage hero and public record use the approved category and evidence lan
   assert.match(combined, /± INSUFFICIENT EVIDENCE/);
 });
 
+test("homepage implements the approved seven-scene Evidence Standard narrative", () => {
+  const home = read("app/page.tsx");
+
+  for (const scene of [
+    "01 / Recommendation record",
+    "02 / Source X-Ray",
+    "03 / Honesty as product",
+    "04 / Competitor evidence",
+    "05 / Decision Gate",
+    "06 / Later measurement",
+    "07 / Enter workspace",
+  ]) assert.ok(home.includes(scene), `missing homepage scene: ${scene}`);
+
+  assert.match(home, /Decision-ready/);
+  assert.match(home, /Directional only/);
+  assert.match(home, /Insufficient evidence/);
+  assert.match(home, /collection coverage/i);
+  assert.match(home, /provider agreement/i);
+  assert.match(home, /source review/i);
+  assert.match(home, /source concentration/i);
+  assert.match(home, /exact repeatability/i);
+  assert.doesNotMatch(home, /\b\d{1,3}\s*\/\s*100\b/);
+
+  assert.match(home, /RUN \/ 01/);
+  assert.match(home, /RUN \/ 02/);
+  assert.match(home, /Build your first evidence record\./);
+  assert.match(home, /Collection capacity is activated separately\./);
+});
+
+test("competitor and later-measurement scenes preserve product truth boundaries", () => {
+  const home = read("app/page.tsx");
+
+  assert.match(home, /Illustrative product interface/);
+  assert.match(home, /provider/i);
+  assert.match(home, /run id/i);
+  assert.match(home, /returned reference/i);
+  assert.match(home, /distinct source/i);
+  assert.match(home, /review state/i);
+  assert.match(home, /observed change/i);
+  assert.match(home, /not proof of causation/i);
+  assert.match(home, /≠ NOT COMPARABLE/);
+  assert.doesNotMatch(home, /leaderboard/i);
+});
+
 test("Source X-Ray preserves returned-source truth without causal overclaim", () => {
   const experience = read("components/goat-home-experience.tsx");
   const home = read("app/page.tsx");
