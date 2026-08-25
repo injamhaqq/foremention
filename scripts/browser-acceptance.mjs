@@ -301,7 +301,7 @@ async function verifyAuthenticatedRoutes() {
     return;
   }
 
-  const authProfiles = [profiles[0], profiles[1]];
+  const authProfiles = [profiles[0], profiles[2]];
   const evidence = [];
   for (const profile of authProfiles) {
     const browser = await profile.browserType.launch({ headless: true });
