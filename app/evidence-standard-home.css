@@ -18,6 +18,19 @@
   background: var(--fm-paper);
 }
 
+/* Remove inherited neon/glow chrome from the legacy Source X-Ray surface. */
+.fm-public-shell .xray-product-shell,
+.fm-public-shell .xray-stage,
+.fm-public-shell .xray-beam {
+  box-shadow: none;
+  filter: none;
+}
+
+.fm-public-shell .xray-beam {
+  background: transparent;
+  border-color: transparent;
+}
+
 /* Competitor evidence record */
 .fm-competitor-record {
   border: 1px solid var(--fm-rule);
