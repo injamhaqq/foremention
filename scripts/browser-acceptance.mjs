@@ -21,7 +21,8 @@ const publicPaths = ["/", "/product", "/pricing", "/score", "/prompt-check", "/l
 const authenticatedPaths = ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"];
 const profiles = [
   { name: "chromium-desktop", browserType: chromium, viewport: { width: 1440, height: 1200 } },
-  { name: "chromium-mobile", browserType: chromium, viewport: { width: 390, height: 844 }, isMobile: true },
+  { name: "chromium-tablet", browserType: chromium, viewport: { width: 768, height: 1024 }, isMobile: true },
+  { name: "chromium-mobile", browserType: chromium, viewport: { width: 375, height: 812 }, isMobile: true },
   { name: "firefox-desktop", browserType: firefox, viewport: { width: 1440, height: 1200 } },
 ];
 
@@ -300,7 +301,7 @@ async function verifyAuthenticatedRoutes() {
     return;
   }
 
-  const authProfiles = [profiles[0], profiles[1]];
+  const authProfiles = [profiles[0], profiles[2]];
   const evidence = [];
   for (const profile of authProfiles) {
     const browser = await profile.browserType.launch({ headless: true });

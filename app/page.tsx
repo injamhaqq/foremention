@@ -1,124 +1,205 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
+import { EvidenceReference, HonestyState, RunningLabel } from "@/components/evidence-standard-primitives";
 import { MissingAnswerExperience, SourceXRayExperience } from "@/components/goat-home-experience";
 import { PublicShell } from "@/components/public-shell";
-import { VerifiedSocialProof } from "@/components/verified-social-proof";
-import styles from "@/components/homepage-readiness.module.css";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "AI Recommendation Intelligence for B2B SaaS",
+  title: "Recommendation Intelligence for B2B SaaS",
   description:
-    "See where your B2B SaaS brand and competitors appear in AI recommendations, preserve returned citation URLs, review the evidence, and compare what changes over time.",
+    "Record the AI answers buyers see, preserve returned source evidence, review competitor presence, and compare equivalent runs over time.",
   path: "/",
 });
 
-const faq = [
-  { q: "What does Foremention do?", a: "Foremention records the buyer questions that matter, collects dated AI answers from connected providers, shows which brands appear, preserves returned citation URLs when available, and keeps later review and analysis tied to the original evidence." },
-  { q: "Who is Foremention for?", a: "Foremention is built for B2B SaaS marketing, growth, product, and strategy teams that need a shared record of how important category questions are answered across AI systems." },
-  { q: "What is Source X-Ray?", a: "Source X-Ray is Foremention's inspection layer. It helps teams move from an observed AI answer to returned citation URLs, named brands, review status, and the evidence record behind a finding." },
-  { q: "What is the difference between an observation and a finding?", a: "An observation is what a provider returned at a specific time. A finding is a later conclusion made from reviewed evidence. Foremention keeps those states separate so an inference is not mistaken for a fact." },
-  { q: "Does Foremention guarantee better AI rankings or citations?", a: "No. AI answers, citations, and publisher decisions can change. Foremention records evidence and change; it does not guarantee rankings, recommendations, citations, traffic, leads, revenue, or causation." },
-  { q: "Can I start without paying?", a: "You can create a workspace without a card charge. Collection capacity and paid access are activated separately. Foremention does not present paid checkout as live until billing and entitlement handling are verified." },
+const honestyStates = [
+  {
+    tone: "not-observed" as const,
+    title: "No observation exists",
+    body: "The provider did not return a usable observation for this record. Foremention leaves the gap visible instead of filling it with an estimate.",
+  },
+  {
+    tone: "not-comparable" as const,
+    title: "The measurement changed",
+    body: "Question, provider, configuration, or another comparison condition changed enough that a later run should not be presented as the same measurement.",
+  },
+  {
+    tone: "insufficient" as const,
+    title: "The record is too thin",
+    body: "Evidence exists, but coverage, review, agreement, or history is not strong enough to support the next decision yet.",
+  },
 ];
 
-const evidenceChain = [
-  { n: "01", title: "Buyer question", body: "Approve the exact question before collection so later runs stay comparable." },
-  { n: "02", title: "Dated answer", body: "Keep the provider, model label, response, status, and collection time together." },
-  { n: "03", title: "Returned sources", body: "Preserve citation URLs when the provider supplies them instead of replacing them with a score." },
-  { n: "04", title: "Human review", body: "Check what the cited page actually says and keep observation separate from inference." },
-  { n: "05", title: "Comparable change", body: "Run the same approved question later and show what changed without pretending causation." },
-];
+const decisionChecks = [
+  ["01", "Collection coverage", "Complete"],
+  ["02", "Provider agreement", "Directional"],
+  ["03", "Source review", "Pending"],
+  ["04", "Source concentration", "Review"],
+  ["05", "Exact repeatability", "Matched"],
+] as const;
 
-const learn = [
-  { n: "Presence", title: "Who appears", body: "See whether your brand is present and which competitors appear in the same answer record." },
-  { n: "Sources", title: "What shaped the answer", body: "Inspect the returned citation URLs and review the pages behind those observations." },
-  { n: "Change", title: "What moved", body: "Compare later runs to find new, lost, or recurring evidence once enough comparable data exists." },
-];
-
-const differences = [
-  { n: "01", title: "Evidence before scores", body: "A metric should trace back to a question, answer, source record, date, and review state." },
-  { n: "02", title: "Uncertainty stays visible", body: "Partial runs, missing citations, unreviewed pages, and insufficient history stay clearly labelled." },
-  { n: "03", title: "Action stays accountable", body: "A proposed next step can be linked to the evidence that supported it and compared with later observations." },
-];
-
-const workflow = [
-  { n: "Monitor", title: "Collect", body: "Run approved buyer questions under defined provider and capacity controls." },
-  { n: "Review", title: "Inspect", body: "Open answer records, returned citations, competitor presence, and Source X-Ray." },
-  { n: "Act", title: "Decide", body: "Turn reviewed evidence into a legitimate next action instead of a generic AI recommendation." },
-  { n: "Repeat", title: "Compare", body: "Rerun the same question later and record what changed, what did not, and what remains uncertain." },
-];
+const readinessStates = ["Decision-ready", "Directional only", "Insufficient evidence"] as const;
 
 export default function HomePage() {
-  const structuredData = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((item) => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })) };
-
   return <PublicShell>
-    <section className="goat-hero"><MissingAnswerExperience /></section>
-
-    <section className="goat-proof-strip" aria-label="Foremention evidence standard"><div className="shell"><div><strong>DATED</strong><span>Every observation has a time</span></div><div><strong>TRACEABLE</strong><span>Findings link back to records</span></div><div><strong>REVIEWED</strong><span>Human judgment stays labelled</span></div><div><strong>LIMITED</strong><span>Unknowns stay visible</span></div></div></section>
-
-    <section className="platform-section" id="how-it-works">
-      <div className="shell">
-        <div className={styles.sectionIntro}><span className="goat-kicker">The evidence chain</span><h2>Know where every conclusion came from.</h2><p>Most AI-visibility dashboards start with a score. Foremention starts with the record underneath it, then keeps each later judgment attached to that evidence.</p></div>
-        <div className={styles.chainGrid}>{evidenceChain.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
-      </div>
+    <section className="goat-hero" aria-label="01 / Recommendation record">
+      <MissingAnswerExperience />
     </section>
 
-    <section className="goat-xray-section"><div className="shell"><SourceXRayExperience /></div></section>
-
-    <section className="platform-section">
-      <div className="shell">
-        <div className={styles.sectionIntro}><span className="goat-kicker">What your team learns</span><h2>Three questions your AI visibility data should answer.</h2><p>Foremention is designed to help a team understand presence, source evidence, and change without turning uncertainty into marketing theatre.</p></div>
-        <div className={styles.learnGrid}>{learn.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
-      </div>
+    <section className="goat-xray-section" aria-label="02 / Source X-Ray">
+      <div className="shell"><SourceXRayExperience /></div>
     </section>
 
-    <section className="platform-value-section">
+    <section className="fm-section" aria-labelledby="honesty-title">
       <div className="shell">
-        <div className={styles.sectionIntro}><span className="goat-kicker">Why Foremention is different</span><h2>The evidence stays inspectable after the dashboard loads.</h2><p>Foremention separates what an AI provider returned, what a cited page contained, what the system inferred, what a human approved, and what happened later.</p></div>
-        <div className={styles.differenceGrid}>{differences.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
-      </div>
-    </section>
-
-    <section className="platform-section">
-      <div className="shell">
-        <div className={styles.sectionIntro}><span className="goat-kicker">Recurring workflow</span><h2>From one observation to a repeatable operating loop.</h2><p>The product becomes more useful as the same approved questions are collected, reviewed, acted on, and compared again over time.</p></div>
-        <div className={styles.workflowGrid}>{workflow.map((item) => <article key={item.n}><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
-      </div>
-    </section>
-
-    <section className="home-pricing-section" id="pricing">
-      <div className="shell">
-        <div className={styles.sectionIntro}><span className="goat-kicker">Start with a workspace</span><h2>Explore the product before paid access is activated.</h2><p>Creating a workspace does not charge a card. Core, Signal, and Intelligence show the operating scopes being validated during private beta; final paid pricing will be confirmed before commercial launch.</p></div>
-        <div className={styles.entryBand}>
-          <div><span className="goat-kicker">Workspace entry</span><h3>Create your Foremention workspace.</h3><p>Set your company, category, competitors, and buyer questions. Collection capacity is confirmed separately.</p></div>
-          <div className={styles.entryAction}><Link className="button button--ink button--large" href="/signup">Create a workspace <Arrow /></Link><small>No card charge for workspace creation. See the pricing page for current package scope and activation status.</small></div>
+        <div className="fm-section__intro">
+          <div><span className="goat-kicker">03 / Honesty as product</span></div>
+          <div>
+            <h2 id="honesty-title">Absence and uncertainty are part of the interface.</h2>
+            <p>A serious evidence system must show when a record is missing, when two runs cannot be compared, and when the available evidence is not yet strong enough for a decision. These are product states, not error decoration.</p>
+          </div>
         </div>
-        <div className="home-pricing-grid">
-          <article><span>Core</span><strong>Pricing to be confirmed</strong><p>One brand and category, up to 25 buyer questions, monthly collection capacity, Source Map, evidence history, and review workflow.</p><Link href="/pricing">View Core details <Arrow /></Link></article>
-          <article className="is-featured"><span>Signal</span><strong>Pricing to be confirmed</strong><p><b>Everything in Core, plus</b> weekly capacity, broader question coverage, cross-provider agreement, source movement, and team review workflow.</p><Link href="/pricing">View Signal details <Arrow /></Link></article>
-          <article><span>Intelligence</span><strong>Custom scope</strong><p><b>Everything in Signal, plus</b> multi-brand scope, tailored capacity, longer evidence history, and a confirmed integration scope.</p><Link href="/pricing">View platform plans <Arrow /></Link></article>
+        <div className="fm-honesty-grid">
+          {honestyStates.map((item) => <article key={item.tone}>
+            <HonestyState tone={item.tone} />
+            <h3>{item.title}</h3>
+            <p>{item.body}</p>
+          </article>)}
         </div>
       </div>
     </section>
 
-    <section className="trust-band">
+    <section className="fm-section fm-section--surface" aria-labelledby="competitor-title">
       <div className="shell">
-        <div className="trust-band-grid">
-          <div><span className="goat-kicker goat-kicker--light">Method before claims</span><h2>Foremention shows the limits with the result.</h2></div>
-          <div><p>A provider may return no citations. A source may still need review. One run is a baseline, not a trend. A later change is an observation, not proof of causation. No fake reviews. No hidden promotion. No ranking guarantees.</p><div className="goat-hero__actions"><Link className="button button--large" href="/methodology">Read the methodology <Arrow /></Link><Link className="goat-text-link" href="/standards">Read our standards</Link></div></div>
+        <div className="fm-section__intro">
+          <div><span className="goat-kicker">04 / Competitor evidence</span></div>
+          <div>
+            <h2 id="competitor-title">Competitor presence stays attached to the exact answer record.</h2>
+            <p>This illustrative product interface shows an observation, the evidence returned with it, and the review boundary. Competitors are presented as evidence in a specific answer record, not as a universal ranking, and a returned source is not treated as proof of causation.</p>
+          </div>
         </div>
-        <div className={styles.truthRow} aria-label="Foremention evidence states"><div><strong>Observed</strong><span>What the provider returned</span></div><div><strong>Reviewed</strong><span>What a person checked</span></div><div><strong>Inferred</strong><span>What Foremention concluded</span></div><div><strong>Compared</strong><span>What changed later</span></div></div>
+
+        <article className="fm-competitor-record" aria-label="Illustrative competitor evidence record">
+          <header className="fm-competitor-record__header">
+            <div><RunningLabel number="RECORD" label="COMPETITOR EVIDENCE" /><strong>Illustrative product interface</strong></div>
+            <div className="fm-record-meta"><span>Provider / Example provider</span><span>Run ID / RUN-2026-08-25-01</span><span>Collected / 2026-08-25</span></div>
+          </header>
+
+          <div className="fm-competitor-record__question">
+            <RunningLabel number="01" label="QUESTION" />
+            <h3>Which reporting platform fits a growing B2B SaaS team?</h3>
+          </div>
+
+          <div className="fm-competitor-record__body">
+            <div className="fm-competitor-observation">
+              <RunningLabel number="02" label="OBSERVED ANSWER" />
+              <p><strong>Brand A, Brand B, and Brand C appear.</strong> Brand B is present in the provider response. That presence is an observation tied to this run—not a universal rank.</p>
+              <div className="fm-competitor-presence" aria-label="Observed competitor presence">
+                <span>Brand A / observed</span><span>Brand B / observed</span><span>Brand C / observed</span>
+              </div>
+            </div>
+
+            <div className="fm-competitor-evidence">
+              <div>
+                <EvidenceReference>[03]</EvidenceReference>
+                <strong>Returned reference</strong>
+                <p>example.com/category-guide</p>
+              </div>
+              <div>
+                <RunningLabel number="SOURCE" label="03" />
+                <strong>Distinct source · retrievable</strong>
+                <p>The URL is preserved as a source record. Retrievability is not the same as review.</p>
+              </div>
+              <div>
+                <RunningLabel number="04" label="REVIEW STATE" />
+                <strong>Human review pending</strong>
+                <p>The source-to-answer relationship is observable. Causal influence is not established.</p>
+              </div>
+            </div>
+          </div>
+
+          <footer className="fm-competitor-record__footer">
+            <div><RunningLabel number="BOUNDARY" label="CAUSAL RESTRAINT" /><p>ANSWER ↔ RETURNED SOURCE is recorded. SOURCE → CAUSED ANSWER is not claimed.</p></div>
+            <div><RunningLabel number="ACTION" label="NEXT REVIEW" /><p>Review the returned source and source concentration before committing category-page work.</p></div>
+          </footer>
+        </article>
       </div>
     </section>
 
-    <VerifiedSocialProof />
+    <section className="fm-section" aria-labelledby="decision-title">
+      <div className="shell">
+        <div className="fm-section__intro">
+          <div><span className="goat-kicker">05 / Decision Gate</span></div>
+          <div>
+            <h2 id="decision-title">Readiness is a set of evidence checks, not a composite score.</h2>
+            <p>The gate separates a record that is ready to support a decision from one that is only directional or still lacks enough evidence. No arbitrary composite readiness number is manufactured.</p>
+          </div>
+        </div>
 
-    <section className="goat-faq-section"><div className="shell goat-faq-grid"><div><span className="goat-kicker">Clear answers</span><h2>Before you create a workspace.</h2></div><div>{faq.map((item) => <details key={item.q}><summary>{item.q}<span aria-hidden="true">+</span></summary><p>{item.a}</p></details>)}</div></div></section>
+        <div className="fm-decision-gate">
+          <div className="fm-decision-gate__summary">
+            <RunningLabel number="STATE" label="CURRENT" />
+            <strong>Directional only</strong>
+            <p>Collection is present and the repeat setup is matched, but provider agreement is directional and source review is still pending. The correct next move is review, not certainty.</p>
+            <div className="fm-readiness-states" aria-label="Decision readiness states">
+              {readinessStates.map((state) => <span key={state}>{state}</span>)}
+            </div>
+          </div>
+          <div className="fm-decision-gate__checks" aria-label="Decision Gate evidence checks">
+            {decisionChecks.map(([n, label, state]) => <div className="fm-decision-check" key={label}>
+              <span>{n}</span><span>{label}</span><strong>{state}</strong>
+            </div>)}
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <section className="goat-final-cta"><div className="shell"><span>Recommendation intelligence for B2B SaaS</span><h2>See the answer. Inspect the source. Decide what to do next.</h2><Link className="button button--ink button--large" href="/signup">Create a workspace <Arrow /></Link><p>Questions, answers, citations, competitors, review, and change — connected in one evidence trail.</p></div></section>
+    <section className="fm-section fm-section--surface" aria-labelledby="measurement-title">
+      <div className="shell">
+        <div className="fm-section__intro">
+          <div><span className="goat-kicker">06 / Later measurement</span></div>
+          <div>
+            <h2 id="measurement-title">Compare later only when the measurement remains equivalent.</h2>
+            <p>Equivalent buyer question, provider, collection configuration, and comparison rules make a later observation reviewable. When those conditions drift, Foremention should show <strong>≠ NOT COMPARABLE</strong> instead of a trend.</p>
+          </div>
+        </div>
 
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+        <div className="fm-compare" aria-label="Illustrative equivalent later measurement">
+          <article className="fm-compare__run" aria-label="RUN / 01">
+            <RunningLabel number="RUN" label="01" />
+            <h3>Brand B observed with returned reference [03].</h3>
+            <p>Run ID / RUN-2026-08-25-01 · exact buyer question preserved · provider configuration recorded.</p>
+          </article>
+          <div className="fm-compare__boundary" aria-hidden="true"><Arrow /></div>
+          <article className="fm-compare__run" aria-label="RUN / 02">
+            <RunningLabel number="RUN" label="02" />
+            <h3>Brand B remains observed; returned source set changes.</h3>
+            <p>Run ID / RUN-2026-09-01-01 · equivalent measurement setup · later source set preserved for review.</p>
+          </article>
+        </div>
+
+        <div className="fm-measurement-note">
+          <div><RunningLabel number="OBSERVED" label="CHANGE" /><strong>Observed change</strong><p>The source set differs between equivalent runs. That is a later observation, not proof of causation or proof that an action produced the change.</p></div>
+          <div><HonestyState tone="not-comparable" /><p>If the approved question, provider, configuration, or another material comparison condition changes, the run is withheld from equivalent comparison.</p></div>
+          <div><HonestyState tone="insufficient" /><p>A repeated observation can still be too thin for a decision when review or supporting coverage remains incomplete.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section className="fm-workspace-entry" aria-labelledby="workspace-title">
+      <div className="shell fm-workspace-entry__inner">
+        <div>
+          <span className="goat-kicker">07 / Enter workspace</span>
+          <h2 id="workspace-title">Build your first evidence record.</h2>
+          <p>Start with the company, category, competitors, and buyer questions that matter. Then collect, review returned evidence, and make the first decision-relevant record.</p>
+        </div>
+        <div className="fm-workspace-entry__action">
+          <Link className="button button--ink button--large" href="/signup">Create workspace <Arrow /></Link>
+          <p>Recommendation intelligence for B2B SaaS. <Link href="/standards">Evidence standards</Link> · <Link href="/source-map">Source Map</Link>.</p>
+          <p>Private beta. Creating a workspace does not charge a card. Collection capacity is activated separately. No fake reviews. No hidden promotion. No ranking guarantees.</p>
+        </div>
+      </div>
+    </section>
   </PublicShell>;
 }

@@ -1,49 +1,57 @@
 "use client";
 
 import { useRef, useState } from "react";
-import styles from "./homepage-readiness.module.css";
+import { EvidenceReference, HonestyState, RunningLabel } from "@/components/evidence-standard-primitives";
 
 const sourceCards = [
-  ["Editorial source", "Independent category guide", "Names a competitor in a decision-making comparison."],
-  ["Review source", "Verified review category", "Adds current customer evidence to the category record."],
-  ["Research source", "Industry benchmark", "Supplies an evidence point that other pages reuse."],
+  { kind: "Returned reference", title: "[03] · Category comparison page", body: "Provider-returned URL preserved with the observed answer." },
+  { kind: "Distinct source", title: "example.com/category-guide", body: "Retrievable page record · review pending." },
+  { kind: "Competitor evidence", title: "Brand B appears in the answer", body: "Observed in this answer record · not inferred." },
 ] as const;
 
 export function MissingAnswerExperience() {
-  return <div className={`${styles.heroGrid} shell`}>
-    <div className={`${styles.heroCopy} goat-hero__copy`}>
+  return <div className="fm-home-hero shell">
+    <div className="fm-home-hero__copy goat-hero__copy">
       <span className="goat-kicker">Recommendation intelligence for B2B SaaS</span>
-      <h1>See how your brand appears in <em>AI answers.</em></h1>
-      <p className={styles.heroLead}>Run the buyer questions that matter, see which brands appear, preserve returned citation URLs, and review the evidence before deciding what to do next.</p>
-      <div className="goat-hero__actions">
-        <a className="button button--ink button--large" href="/signup">Create a workspace <span aria-hidden="true">→</span></a>
+      <h1>See what AI recommends. Inspect the evidence behind the record.</h1>
+      <p className="fm-home-hero__lede">Run the buyer questions that matter, record which brands appear, preserve returned citation URLs when providers supply them, review the evidence, and compare equivalent runs over time.</p>
+      <div className="fm-home-hero__actions goat-hero__actions">
+        <a className="button button--ink button--large" href="/signup">Create workspace <span aria-hidden="true">→</span></a>
         <a className="goat-text-link" href="#source-xray">Inspect the evidence</a>
       </div>
-      <p className={styles.heroMeta}>No card charge for workspace creation. Collection capacity is activated separately.</p>
-      <ul className="goat-trust-line" aria-label="What Foremention helps B2B SaaS teams do"><li>Track buyer questions</li><li>Compare competitors</li><li>Inspect cited sources</li><li>Review change over time</li></ul>
+      <p className="fm-home-hero__disclosure">Private beta · Creating a workspace does not charge a card. Collection capacity is activated separately.</p>
     </div>
 
-    <section className={`${styles.preview} missing-demo`} aria-labelledby="monitor-title">
-      <div className={styles.previewFrame}>
-        <div className={styles.previewTopline}><strong id="monitor-title">Recommendation Monitor</strong><span>Illustrative product interface</span></div>
-        <div className={styles.previewBody}>
-          <div className={styles.previewAnswer}>
-            <span className={styles.previewStatus}>Observed answer record</span>
-            <p className={styles.previewQuestion}>Which reporting platform fits a growing B2B SaaS team?</p>
-            <div className={styles.previewRows}>
-              <div className={styles.previewRow}><span>Buyer question</span><strong>Approved and dated before collection</strong></div>
-              <div className={styles.previewRow}><span>Provider result</span><strong>Named brands stay attached to the exact answer</strong></div>
-              <div className={styles.previewRow}><span>Citations</span><strong>Returned URLs are preserved when the provider supplies them</strong></div>
-              <div className={styles.previewRow}><span>Review state</span><strong>Observation, inference, and human review remain separate</strong></div>
-            </div>
-          </div>
-          <aside className={styles.previewEvidence} aria-label="Illustrative evidence records">
-            <div><small>Evidence layer</small><strong>Trace the conclusion back to its record.</strong></div>
-            <div className={styles.previewEvidenceCard}><small>Returned citation</small><strong>Category comparison page</strong><span>Awaiting page review</span></div>
-            <div className={styles.previewEvidenceCard}><small>Competitor presence</small><strong>Brand B appears in answer</strong><span>Observed, not inferred</span></div>
-            <div className={styles.previewEvidenceCard}><small>Comparable rerun</small><strong>Not enough data yet</strong><span>No trend claimed from one run</span></div>
-          </aside>
-        </div>
+    <section className="fm-record" aria-labelledby="monitor-title">
+      <div className="fm-record__topline"><strong id="monitor-title">Recommendation record</strong><span>Illustrative product interface</span></div>
+      <div className="fm-record__question" aria-label="01 / QUESTION">
+        <RunningLabel number="01" label="QUESTION" />
+        <p>Which reporting platform fits a growing B2B SaaS team?</p>
+      </div>
+      <div className="fm-record__row" aria-label="02 / ANSWER">
+        <RunningLabel number="02" label="ANSWER" />
+        <div><strong>Brand A, Brand B, and Brand C appear in the observed answer.</strong><p>Named brands stay attached to the exact provider response and collection time.</p></div>
+      </div>
+      <div className="fm-record__row fm-record__row--evidence">
+        <div><EvidenceReference>[03]</EvidenceReference></div>
+        <div><strong>Returned reference</strong><p>example.com/category-guide · provider-returned URL</p></div>
+      </div>
+      <div className="fm-record__row fm-record__row--evidence" aria-label="SOURCE / 03">
+        <RunningLabel number="SOURCE" label="03" />
+        <div><strong>Distinct source · retrievable</strong><p>The returned URL becomes a dated source record. Retrievability does not equal human review.</p></div>
+      </div>
+      <div className="fm-record__row" aria-label="04 / REVIEW">
+        <RunningLabel number="04" label="REVIEW" />
+        <div><strong>Human review pending</strong><p>Observation, later analysis, and human judgment remain visibly separate.</p></div>
+      </div>
+      <div className="fm-record__row" aria-label="06 / COMPARE">
+        <RunningLabel number="06" label="COMPARE" />
+        <div><strong>One run is a record, not a trend.</strong><p>A later run becomes comparable only when the measurement setup is equivalent.</p></div>
+      </div>
+      <div className="fm-record__footer" aria-label="— NOT OBSERVED · ≠ NOT COMPARABLE · ± INSUFFICIENT EVIDENCE">
+        <HonestyState tone="not-observed" />
+        <HonestyState tone="not-comparable" />
+        <HonestyState tone="insufficient" />
       </div>
     </section>
   </div>;
@@ -60,29 +68,77 @@ export function SourceXRayExperience() {
     if (!bounds) return;
     setShowAll(false);
     setHasInteracted(true);
-    setLens({ x: Math.max(0, Math.min(100, ((clientX - bounds.left) / bounds.width) * 100)), y: Math.max(0, Math.min(100, ((clientY - bounds.top) / bounds.height) * 100)), radius: 112 });
+    setLens({
+      x: Math.max(0, Math.min(100, ((clientX - bounds.left) / bounds.width) * 100)),
+      y: Math.max(0, Math.min(100, ((clientY - bounds.top) / bounds.height) * 100)),
+      radius: 112,
+    });
   }
 
   function moveWithKeys(key: string) {
-    const step = key === "PageUp" || key === "PageDown" ? 14 : 7;
+    const step = 7;
     const direction = key === "ArrowLeft" ? [-step, 0] : key === "ArrowRight" ? [step, 0] : key === "ArrowUp" ? [0, -step] : key === "ArrowDown" ? [0, step] : null;
     if (!direction) return false;
     setShowAll(false);
     setHasInteracted(true);
-    setLens((current) => ({ ...current, x: Math.max(0, Math.min(100, current.x + direction[0])), y: Math.max(0, Math.min(100, current.y + direction[1])) }));
+    setLens((current) => ({
+      ...current,
+      x: Math.max(0, Math.min(100, current.x + direction[0])),
+      y: Math.max(0, Math.min(100, current.y + direction[1])),
+    }));
     return true;
   }
 
   return <section className="xray-experience" id="source-xray" aria-labelledby="xray-title">
-    <div className="xray-experience__intro"><div><span className="goat-kicker goat-kicker--light">Source X-Ray</span><h2 id="xray-title">Inspect what was returned with the answer.</h2></div><p>Foremention connects an observed answer to returned citation URLs, named brands, and reviewable evidence records. It keeps the answer separate from Foremention&apos;s later analysis.</p></div>
+    <div className="xray-experience__intro">
+      <div><span className="goat-kicker goat-kicker--light">02 / Source X-Ray</span><h2 id="xray-title">What evidence came with the answer?</h2></div>
+      <p>Foremention keeps an observed AI answer attached to the returned references that accompanied it, then separates retrievability, review, later analysis, and decision state. A returned source is evidence of what came with the answer—not proof that the source caused the answer.</p>
+    </div>
     <div className="xray-product-shell">
-      <div id="source-xray-stage" ref={stage} className={`xray-stage${showAll ? " is-all" : ""}${hasInteracted ? " is-interacting" : " is-idle"}`} style={{ "--xray-x": `${lens.x}%`, "--xray-y": `${lens.y}%`, "--xray-radius": `${lens.radius}px` } as React.CSSProperties} tabIndex={0} role="group" aria-label="Interactive Source X-Ray" aria-describedby="xray-instructions" onPointerMove={(event) => moveLens(event.clientX, event.clientY)} onPointerDown={(event) => moveLens(event.clientX, event.clientY)} onKeyDown={(event) => { if (event.key === " " || event.key === "Enter") { event.preventDefault(); setShowAll((current) => !current); setHasInteracted(true); } else if (moveWithKeys(event.key)) event.preventDefault(); }}>
-        <span className="sr-only" id="xray-instructions">Move the pointer or use the arrow keys to inspect the evidence layer. Press Enter or Space to show or hide the full layer.</span>
-        <div className="xray-answer xray-answer--clean"><div className="xray-browser-bar"><span>AI answer record</span><span>Observed view</span></div><div className="xray-question">Which reporting platform fits a growing SaaS team?</div><small>Tracked answer</small><h3>Recommendations appear as a shortlist. Foremention records the named brands and keeps returned citations alongside the answer when available.</h3><div className="xray-answer-grid"><article><strong>Brand A</strong><span>Present in the answer record.</span></article><article><strong>Brand B</strong><span>Present in the answer record.</span></article><article><strong>Brand C</strong><span>Present in the answer record.</span></article></div></div>
-        <div className="xray-answer xray-answer--evidence"><div className="xray-browser-bar"><span>Source evidence layer</span><span>Returned citations</span></div><div className="xray-question">Buyer question → answer record → returned citation → named brand</div><small>What the provider returned with the answer</small><h3>Each returned citation becomes a dated record your team can inspect, compare, and revisit.</h3><div className="xray-answer-grid">{sourceCards.map(([type, title, body]) => <article key={title}><strong>{title}</strong><span>{body}</span><small>{type}</small></article>)}</div><b className="xray-absence">Evidence status: reviewable</b></div>
+      <div
+        id="source-xray-stage"
+        ref={stage}
+        className={`xray-stage${showAll ? " is-all" : ""}${hasInteracted ? " is-interacting" : " is-idle"}`}
+        style={{ "--xray-x": `${lens.x}%`, "--xray-y": `${lens.y}%`, "--xray-radius": `${lens.radius}px` } as React.CSSProperties}
+        tabIndex={0}
+        role="group"
+        aria-label="Interactive Source X-Ray"
+        aria-describedby="xray-instructions"
+        onPointerMove={(event) => moveLens(event.clientX, event.clientY)}
+        onPointerDown={(event) => moveLens(event.clientX, event.clientY)}
+        onKeyDown={(event) => {
+          if (event.key === " " || event.key === "Enter") {
+            event.preventDefault();
+            setShowAll((current) => !current);
+            setHasInteracted(true);
+          } else if (moveWithKeys(event.key)) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <span className="sr-only" id="xray-instructions">Move the pointer or use the arrow keys to inspect the evidence layer. Press Enter or Space to show or hide the full layer. The same evidence sequence is also summarized beside this interactive view.</span>
+        <div className="xray-answer xray-answer--clean">
+          <div className="xray-browser-bar"><span>Recommendation record</span><span>Observed answer</span></div>
+          <div className="xray-question">01 / QUESTION · Which reporting platform fits a growing B2B SaaS team?</div>
+          <small>02 / ANSWER</small>
+          <h3>Brand A, Brand B, and Brand C appear in the observed answer record.</h3>
+          <div className="xray-answer-grid"><article><strong>Brand A</strong><span>Present in the answer record.</span><small>Observed</small></article><article><strong>Brand B</strong><span>Present in the answer record.</span><small>Observed</small></article><article><strong>Brand C</strong><span>Present in the answer record.</span><small>Observed</small></article></div>
+        </div>
+        <div className="xray-answer xray-answer--evidence">
+          <div className="xray-browser-bar"><span>Evidence layer</span><span>Returned references</span></div>
+          <div className="xray-question">Question → answer → returned reference → distinct source → review</div>
+          <small>What the provider returned with the answer</small>
+          <h3>Returned references become dated source records your team can retrieve, review, and revisit.</h3>
+          <div className="xray-answer-grid">{sourceCards.map((card) => <article key={card.kind}><strong>{card.title}</strong><span>{card.body}</span><small>{card.kind}</small></article>)}</div>
+          <b className="xray-absence">Evidence state · reviewable</b>
+        </div>
         <div className="xray-beam" aria-hidden="true" />
       </div>
-      <aside className="xray-controls"><div><span>Illustrative product interface</span><h3>Source X-Ray</h3><p>One layer for the answer. One layer for returned citations and reviewed evidence.</p><button className="xray-toggle" type="button" aria-controls="source-xray-stage" aria-pressed={showAll} onClick={() => { setShowAll((current) => !current); setHasInteracted(true); }}>{showAll ? "Use inspection lens" : "Show full evidence"}<span aria-hidden="true">→</span></button><small className="xray-hint">Move the lens with your cursor, finger, or arrow keys.</small></div><div className="xray-source-detail"><small>What the record preserves</small><strong>Returned source URL, brand, question, provider, time, and collection status.</strong><span>Teams can trace each observation back to its underlying record.</span><b>Designed for review</b></div><p className="xray-truth"><strong>Clear limits.</strong> A provider may return no citations. Collection status stays visible when a result is partial, unavailable, or still being verified.</p></aside>
+      <aside className="xray-controls">
+        <div><span>Illustrative product interface</span><h3>Source X-Ray</h3><p>One layer for what the provider returned. One layer for the references and evidence records attached to that observation.</p><button className="xray-toggle" type="button" aria-controls="source-xray-stage" aria-pressed={showAll} onClick={() => { setShowAll((current) => !current); setHasInteracted(true); }}>{showAll ? "Use inspection lens" : "Show full evidence"}<span aria-hidden="true">→</span></button><small className="xray-hint">Move the lens with your cursor, finger, or arrow keys.</small></div>
+        <div className="xray-source-detail"><small>Evidence sequence</small><strong>Returned reference → Distinct source → Retrievability → Human review → Decision implication</strong><span>The sequence remains readable with motion disabled and without interacting with the lens.</span><b>Evidence before theatre</b></div>
+        <p className="xray-truth"><strong>Clear limits.</strong> A provider may return no citations. A URL may be unreachable. A retrieved page may still be unreviewed. Those states stay visible rather than being converted into a score.</p>
+      </aside>
     </div>
   </section>;
 }
