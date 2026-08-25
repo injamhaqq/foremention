@@ -66,11 +66,9 @@ export function AuthCallback() {
       <div className="auth-brand">
         <Wordmark />
         <div className="auth-brand__positioning">
-          <span className="auth-brand__kicker">Recommendation intelligence for B2B SaaS</span>
-          <strong>Verify access before opening the workspace.</strong>
-          <p>Account verification is an authentication boundary. It does not create evidence, alter a recommendation record, or manufacture a result.</p>
-          <ol className="auth-brand__trace" aria-label="Verification boundary"><li><span>01</span><small>Link</small></li><li><span>02</span><small>Verify</small></li><li><span>03</span><small>Session</small></li><li><span>04</span><small>Continue</small></li></ol>
-          <span className="auth-brand__principle">EVIDENCE BEFORE THEATRE</span>
+          <span className="auth-brand__kicker">Secure workspace verification</span>
+          <strong>Verifying access.</strong>
+          <p>Authentication completes before the workspace opens. No recommendation evidence is created or changed on this screen.</p>
         </div>
         <Link href="/">← Back to site</Link>
       </div>
