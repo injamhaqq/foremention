@@ -35,6 +35,14 @@ test("auth routes enter the Evidence Standard workspace without changing auth me
   assert.match(form, /aria-live="polite"/);
 });
 
+test("auth navigation keeps decorative arrows out of accessible names", () => {
+  for (const file of ["app/login/page.tsx", "app/signup/page.tsx", "app/forgot-password/page.tsx", "app/reset-password/page.tsx", "components/auth-callback.tsx"]) {
+    const source = read(file);
+    assert.match(source, /<span aria-hidden="true">←<\/span> Back to site/);
+    assert.doesNotMatch(source, />← Back to site</);
+  }
+});
+
 test("recovery and callback screens avoid decorative evidence-step theatre", () => {
   const forgot = read("app/forgot-password/page.tsx");
   const reset = read("app/reset-password/page.tsx");
@@ -49,6 +57,7 @@ test("recovery and callback screens avoid decorative evidence-step theatre", () 
 
 test("onboarding is presented as a measurement record while retaining the proven workflow", () => {
   const wizard = read("components/onboarding-wizard.tsx");
+  const page = read("app/app/onboarding/page.tsx");
 
   assert.match(wizard, /onboarding-wizard onboarding-wizard--evidence/);
   assert.match(wizard, /Measurement record setup/);
@@ -56,6 +65,8 @@ test("onboarding is presented as a measurement record while retaining the proven
   assert.match(wizard, /06 \/ REVIEW/);
   assert.match(wizard, /Review your evidence boundary/);
   assert.match(wizard, /Your workspace is private/);
+  assert.match(page, />Review questions<\/Link>/);
+  assert.doesNotMatch(page, /Review questions →/);
 
   // Do not replace real onboarding behavior with a mock flow.
   assert.match(wizard, /\/api\/onboarding\/analyze/);
