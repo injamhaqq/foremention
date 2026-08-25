@@ -171,7 +171,7 @@ export default function HomePage() {
             <h3>Brand B observed with returned reference [03].</h3>
             <p>Run ID / RUN-2026-08-25-01 · exact buyer question preserved · provider configuration recorded.</p>
           </article>
-          <div className="fm-compare__boundary" aria-hidden="true">→</div>
+          <div className="fm-compare__boundary" aria-hidden="true"><Arrow /></div>
           <article className="fm-compare__run" aria-label="RUN / 02">
             <RunningLabel number="RUN" label="02" />
             <h3>Brand B remains observed; returned source set changes.</h3>
