@@ -58,6 +58,12 @@ test("public acceptance covers the core conversion surfaces and product regressi
   assert.match(runner, /Browser console error detected/);
 });
 
+test("browser acceptance captures the approved desktop, tablet, and mobile Evidence Standard targets", () => {
+  assert.match(runner, /name: "chromium-desktop"[\s\S]{0,120}width: 1440/);
+  assert.match(runner, /name: "chromium-tablet"[\s\S]{0,120}width: 768[\s\S]{0,80}height: 1024/);
+  assert.match(runner, /name: "chromium-mobile"[\s\S]{0,120}width: 375/);
+});
+
 test("accessibility is blocking for serious regressions while Lighthouse starts audit-first", () => {
   assert.match(runner, /wcag2a/);
   assert.match(runner, /wcag2aa/);
