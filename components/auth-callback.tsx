@@ -70,7 +70,7 @@ export function AuthCallback() {
           <strong>Verifying access.</strong>
           <p>Authentication completes before the workspace opens. No recommendation evidence is created or changed on this screen.</p>
         </div>
-        <Link href="/">← Back to site</Link>
+        <Link href="/"><span aria-hidden="true">←</span> Back to site</Link>
       </div>
       <section className="auth-card auth-card--status" data-evidence-record="auth">
         <span className="auth-record-index">AUTH / VERIFY</span>
