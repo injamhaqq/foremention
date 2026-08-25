@@ -1,19 +1,5 @@
 import Link from "next/link";
 
-/**
- * @deprecated Legacy pre-Evidence-Standard mark kept temporarily for compatibility
- * with historical documentation/tests. Active product branding uses the canonical
- * Foremention vector assets below.
- */
-export function SourceEclipseMark({ inverse = false }: { inverse?: boolean }) {
-  return (
-    <span className={`source-eclipse${inverse ? " source-eclipse--inverse" : ""}`} aria-hidden="true">
-      <span className="source-eclipse__orbit" />
-      <span className="source-eclipse__point" />
-    </span>
-  );
-}
-
 export function ForementionMark({ inverse = false }: { inverse?: boolean }) {
   return (
     <img
@@ -25,6 +11,15 @@ export function ForementionMark({ inverse = false }: { inverse?: boolean }) {
       aria-hidden="true"
     />
   );
+}
+
+/**
+ * @deprecated Compatibility alias only. The historical implementation used
+ * `source-eclipse__orbit` and `source-eclipse__point`; those classes no longer
+ * define the active Foremention identity. Use ForementionMark for new code.
+ */
+export function SourceEclipseMark({ inverse = false }: { inverse?: boolean }) {
+  return <ForementionMark inverse={inverse} />;
 }
 
 export function Wordmark({ inverse = false }: { inverse?: boolean }) {
