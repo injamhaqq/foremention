@@ -76,7 +76,7 @@ export default function HomePage() {
           <div><span className="goat-kicker">04 / Competitor evidence</span></div>
           <div>
             <h2 id="competitor-title">Competitor presence stays attached to the exact answer record.</h2>
-            <p>This illustrative product interface shows an observation, the evidence returned with it, and the review boundary. It is not a leaderboard and it does not claim that a returned source caused the answer.</p>
+            <p>This illustrative product interface shows an observation, the evidence returned with it, and the review boundary. Competitors are presented as evidence in a specific answer record, not as a universal ranking, and a returned source is not treated as proof of causation.</p>
           </div>
         </div>
 
@@ -133,7 +133,7 @@ export default function HomePage() {
           <div><span className="goat-kicker">05 / Decision Gate</span></div>
           <div>
             <h2 id="decision-title">Readiness is a set of evidence checks, not a composite score.</h2>
-            <p>The gate separates a record that is ready to support a decision from one that is only directional or still lacks enough evidence. No arbitrary 73/100-style number is manufactured.</p>
+            <p>The gate separates a record that is ready to support a decision from one that is only directional or still lacks enough evidence. No arbitrary composite readiness number is manufactured.</p>
           </div>
         </div>
 
@@ -166,13 +166,13 @@ export default function HomePage() {
         </div>
 
         <div className="fm-compare" aria-label="Illustrative equivalent later measurement">
-          <article className="fm-compare__run">
+          <article className="fm-compare__run" aria-label="RUN / 01">
             <RunningLabel number="RUN" label="01" />
             <h3>Brand B observed with returned reference [03].</h3>
             <p>Run ID / RUN-2026-08-25-01 · exact buyer question preserved · provider configuration recorded.</p>
           </article>
           <div className="fm-compare__boundary" aria-hidden="true">→</div>
-          <article className="fm-compare__run">
+          <article className="fm-compare__run" aria-label="RUN / 02">
             <RunningLabel number="RUN" label="02" />
             <h3>Brand B remains observed; returned source set changes.</h3>
             <p>Run ID / RUN-2026-09-01-01 · equivalent measurement setup · later source set preserved for review.</p>
