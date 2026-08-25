@@ -36,6 +36,14 @@ test("public navigation reflects the Evidence Standard information architecture"
   assert.doesNotMatch(shell, /\["\/pricing", "Pricing"\]/);
 });
 
+test("public metadata keeps the returned-evidence boundary without causal overclaim", () => {
+  const layout = read("app/layout.tsx");
+  assert.match(layout, /returned citation URLs/i);
+  assert.match(layout, /returned-source records/i);
+  assert.doesNotMatch(layout, /Know why AI recommends/i);
+  assert.doesNotMatch(layout, /webpages supporting them/i);
+});
+
 test("homepage hero and public record use the approved category and evidence language", () => {
   const experience = read("components/goat-home-experience.tsx");
   const home = read("app/page.tsx");
