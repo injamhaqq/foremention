@@ -196,7 +196,7 @@ export default function HomePage() {
         </div>
         <div className="fm-workspace-entry__action">
           <Link className="button button--ink button--large" href="/signup">Create workspace <Arrow /></Link>
-          <p>Private beta. Creating a workspace does not charge a card. Collection capacity is activated separately.</p>
+          <p>Private beta. Creating a workspace does not charge a card. Collection capacity is activated separately. No fake reviews. No hidden promotion. No ranking guarantees.</p>
         </div>
       </div>
     </section>
