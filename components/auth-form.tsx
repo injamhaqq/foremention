@@ -79,7 +79,8 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
   if (notice) {
     if (accountHelp) {
       return (
-        <div className="auth-card auth-card--status">
+        <div className="auth-card auth-card--status" data-evidence-record="auth">
+          <span className="auth-record-index">AUTH / ACCOUNT</span>
           <span className="eyebrow">Account found</span>
           <h1>Continue to your account.</h1>
           <p role="status" aria-live="polite">{notice}</p>
@@ -91,7 +92,8 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
       );
     }
     return (
-      <div className="auth-card auth-card--status">
+      <div className="auth-card auth-card--status" data-evidence-record="auth">
+        <span className="auth-record-index">AUTH / VERIFY</span>
         <span className="eyebrow">Check your inbox</span>
         <h1>Confirm your email.</h1>
         <p role="status" aria-live="polite">{notice}</p>
@@ -110,7 +112,8 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
   const isLogin = mode === "login";
   const googleHref = `/api/auth/google?next=${encodeURIComponent(safeNext)}`;
   return (
-    <div className="auth-card">
+    <div className="auth-card" data-evidence-record="auth">
+      <span className="auth-record-index">{isLogin ? "AUTH / ACCESS" : "AUTH / CREATE"}</span>
       <div>
         <span className="eyebrow">{isLogin ? "Workspace access" : "Create your workspace"}</span>
         <h1>{isLogin ? "Sign in to Foremention." : "Create your workspace."}</h1>
