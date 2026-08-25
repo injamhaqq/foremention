@@ -196,6 +196,7 @@ export default function HomePage() {
         </div>
         <div className="fm-workspace-entry__action">
           <Link className="button button--ink button--large" href="/signup">Create workspace <Arrow /></Link>
+          <p>Recommendation intelligence for B2B SaaS. <Link href="/standards">Evidence standards</Link> · <Link href="/source-map">Source Map</Link>.</p>
           <p>Private beta. Creating a workspace does not charge a card. Collection capacity is activated separately. No fake reviews. No hidden promotion. No ranking guarantees.</p>
         </div>
       </div>
