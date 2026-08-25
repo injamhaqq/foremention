@@ -6,6 +6,20 @@
   box-shadow: inset 5px 0 0 var(--fm-evidence-wash);
 }
 
+/* Core evidence labels stay readable at normal zoom and remain legible when
+ * the page is captured as a screenshot or PDF. */
+.fm-public-shell .goat-kicker,
+.fm-public-shell .fm-running-label,
+.fm-public-shell .fm-honesty-state,
+.fm-public-shell .fm-record__topline,
+.fm-public-shell .xray-browser-bar,
+.fm-public-shell .xray-question,
+.fm-public-shell .xray-answer-grid small,
+.fm-public-shell .xray-source-detail b,
+.fm-public-shell .fm-home-hero__disclosure {
+  font-size: 11px;
+}
+
 /* Axe: the generic public kicker is intentionally muted on paper, but dark
  * evidence sections require a light foreground with independent AA contrast. */
 .fm-public-shell .goat-xray-section .goat-kicker,
@@ -18,7 +32,12 @@
   background: var(--fm-paper);
 }
 
-/* Remove inherited neon/glow chrome from the legacy Source X-Ray surface. */
+/* Remove inherited neon/glow chrome from the legacy Source X-Ray surface and
+ * keep the dark surface on the approved Ink token. */
+.fm-public-shell .xray-product-shell {
+  background: var(--fm-ink);
+}
+
 .fm-public-shell .xray-product-shell,
 .fm-public-shell .xray-stage,
 .fm-public-shell .xray-beam {
@@ -63,8 +82,8 @@
   gap: 8px 18px;
   color: var(--fm-muted);
   font-family: var(--fm-font-mono);
-  font-size: 9px;
-  letter-spacing: .045em;
+  font-size: 11px;
+  letter-spacing: .04em;
   line-height: 1.5;
   text-transform: uppercase;
 }
@@ -116,8 +135,8 @@
   border-bottom: 1px solid var(--fm-rule);
   color: var(--fm-graphite);
   font-family: var(--fm-font-mono);
-  font-size: 10px;
-  letter-spacing: .045em;
+  font-size: 11px;
+  letter-spacing: .04em;
   text-transform: uppercase;
 }
 
@@ -188,8 +207,8 @@
   border-bottom: 1px solid var(--fm-rule);
   color: var(--fm-muted);
   font-family: var(--fm-font-mono);
-  font-size: 9px;
-  letter-spacing: .045em;
+  font-size: 11px;
+  letter-spacing: .04em;
   text-transform: uppercase;
 }
 
@@ -230,6 +249,13 @@
   color: var(--fm-muted);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.fm-compare__boundary > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 /* Quiet final conversion scene */
@@ -275,7 +301,7 @@
   margin: 0;
   color: var(--fm-muted);
   font-family: var(--fm-font-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.55;
 }
 
@@ -359,11 +385,14 @@
     font-size: 30px;
   }
 
-  .fm-competitor-presence span {
-    font-size: 9px;
-  }
-
   .fm-workspace-entry {
     padding-block: 68px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .fm-public-shell .public-header {
+    background: var(--fm-paper);
+    backdrop-filter: none;
   }
 }
