@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
 import { createManualOnboardingDraft, generateBuyerQuestions } from "@/lib/onboarding-profile";
 
-const steps = ["Organization", "Category", "Competitors", "Goals", "Buyer questions", "Review"];
+const steps = ["01 / ORGANIZATION", "02 / CATEGORY", "03 / COMPETITORS", "04 / GOAL", "05 / BUYER QUESTIONS", "06 / REVIEW"];
 
 type WebsiteDraftResponse = {
   error?: string;
@@ -304,8 +304,9 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
 
   if (!hydrated) return <div className="empty-state" role="status"><h2>Restoring your setup…</h2><p>Your saved progress stays on this device until the workspace is created.</p></div>;
 
-  return <div className="onboarding-wizard">
-    <ol aria-label="Workspace setup progress">{steps.map((label, index) => <li className={step === index ? "is-active" : step > index ? "is-complete" : ""} key={label}><span>{String(index + 1).padStart(2, "0")}</span>{label}</li>)}</ol>
+  return <div className="onboarding-wizard onboarding-wizard--evidence">
+    <div className="onboarding-record-heading"><span>Measurement record setup</span><strong>Define the boundary before the first collection.</strong><small>Evidence boundary / controlled baseline</small></div>
+    <ol aria-label="Workspace setup progress">{steps.map((label, index) => <li className={step === index ? "is-active" : step > index ? "is-complete" : ""} key={label}><span>{label}</span></li>)}</ol>
     <form onSubmit={(event) => {
       event.preventDefault();
       if (step < steps.length - 1) {
@@ -318,7 +319,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
       } else void submit();
     }} aria-busy={status === "saving"}>
       <div className="wizard-progress" aria-live="polite">
-        <span>Step {step + 1} of {steps.length}</span>
+        <span>Measurement record setup · Step {step + 1} of {steps.length}</span>
         <div aria-hidden="true"><i style={{ width: `${((step + 1) / steps.length) * 100}%` }} /></div>
       </div>
       {!demo && <p className="field-hint">Your draft is saved on this device until you create the workspace.</p>}

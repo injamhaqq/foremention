@@ -1,0 +1,5 @@
+/* Evidence Standard auth accessibility refinements. Loaded after the base auth layer. */
+.auth-page--evidence .auth-brand__trace span,
+.auth-page--evidence .auth-brand__trace small {
+  font-size: 12px;
+}

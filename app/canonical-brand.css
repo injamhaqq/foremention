@@ -1,0 +1,45 @@
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  line-height: 0;
+  white-space: nowrap;
+}
+
+.wordmark__art {
+  display: block;
+  width: 168px;
+  height: auto;
+  max-width: 100%;
+}
+
+.foremention-mark {
+  display: block;
+  width: 23px;
+  height: 23px;
+  flex: 0 0 auto;
+}
+
+.public-footer .wordmark__art {
+  width: 176px;
+}
+
+.app-sidebar > .wordmark .wordmark__art {
+  width: 172px;
+}
+
+.auth-brand .wordmark__art,
+.auth-card .wordmark__art {
+  width: 176px;
+}
+
+@media (max-width: 520px) {
+  .public-header .wordmark__art {
+    width: 144px;
+  }
+
+  .auth-brand .wordmark__art,
+  .auth-card .wordmark__art {
+    width: 158px;
+  }
+}

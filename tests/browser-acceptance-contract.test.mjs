@@ -36,7 +36,7 @@ test("browser tooling is pinned and production secrets are confined to trusted a
   assert.match(workflow, /"@axe-core\/playwright": "4\.12\.1"/);
   assert.match(workflow, /"@lhci\/cli": "0\.15\.1"/);
   const prStep = workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?\.ci-tools\/node_modules\/\.bin\/lhci assert/)?.[0] || "";
-  const trustedStep = workflow.match(/- name: Run trusted production browser and accessibility acceptance[\s\S]*?run: node scripts\/browser-acceptance\.mjs/)?.[0] || "";
+  const trustedStep = workflow.match(/- name: Run trusted production browser and accessibility acceptance[\s\S]*?node scripts\/canonical-brand-visual-proof\.mjs/)?.[0] || "";
   assert.doesNotMatch(prStep, /secrets\./);
   assert.match(trustedStep, /if: github\.event_name != 'pull_request'/);
   assert.match(trustedStep, /FOREMENTION_ACCEPTANCE_EMAIL: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_EMAIL \}\}/);
@@ -58,10 +58,27 @@ test("public acceptance covers the core conversion surfaces and product regressi
   assert.match(runner, /Browser console error detected/);
 });
 
-test("browser acceptance captures the approved desktop, tablet, and mobile Evidence Standard targets", () => {
+test("browser acceptance captures every approved Foremention brand QA width", () => {
   assert.match(runner, /name: "chromium-desktop"[\s\S]{0,120}width: 1440/);
+  assert.match(runner, /name: "chromium-laptop"[\s\S]{0,120}width: 1024/);
   assert.match(runner, /name: "chromium-tablet"[\s\S]{0,120}width: 768[\s\S]{0,80}height: 1024/);
   assert.match(runner, /name: "chromium-mobile"[\s\S]{0,120}width: 375/);
+  assert.match(runner, /name: "chromium-narrow"[\s\S]{0,120}width: 320/);
+});
+
+test("browser acceptance blocks canonical brand distortion and visible legacy substitutes", () => {
+  assert.match(runner, /verifyCanonicalBrandArtwork/);
+  assert.match(runner, /\/brand\/foremention-logo\.svg/);
+  assert.match(runner, /\/brand\/foremention-logo-white\.svg/);
+  assert.match(runner, /\/brand\/foremention-mark\.svg/);
+  assert.match(runner, /\/brand\/foremention-mark-white\.svg/);
+  assert.match(runner, /Canonical Foremention artwork is not visibly rendered/);
+  assert.match(runner, /Canonical Foremention lockup rendered below its 100px minimum/);
+  assert.match(runner, /Canonical Foremention mark rendered below its 16px minimum/);
+  assert.match(runner, /Canonical Foremention artwork is stretched or squashed/);
+  assert.match(runner, /Visible legacy Foremention identity substitute detected/);
+  assert.match(runner, /\.source-eclipse/);
+  assert.match(runner, /\.wordmark__name/);
 });
 
 test("accessibility is blocking for serious regressions while Lighthouse starts audit-first", () => {

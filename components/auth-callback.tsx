@@ -62,17 +62,18 @@ export function AuthCallback() {
   }, [searchParams]);
 
   return (
-    <main className="auth-page">
+    <main className="auth-page auth-page--evidence">
       <div className="auth-brand">
         <Wordmark />
-        <div>
-          <span>One clear step.</span>
-          <span>One verified account.</span>
-          <span>One secure workspace.</span>
+        <div className="auth-brand__positioning">
+          <span className="auth-brand__kicker">Secure workspace verification</span>
+          <strong>Verifying access.</strong>
+          <p>Authentication completes before the workspace opens. No recommendation evidence is created or changed on this screen.</p>
         </div>
-        <Link href="/">← Back to site</Link>
+        <Link href="/"><span aria-hidden="true">←</span> Back to site</Link>
       </div>
-      <section className="auth-card auth-card--status">
+      <section className="auth-card auth-card--status" data-evidence-record="auth">
+        <span className="auth-record-index">AUTH / VERIFY</span>
         <span className="eyebrow">Account verification</span>
         <h1>{failed ? "Let's get you back in." : "Confirming your workspace."}</h1>
         <p role="status" aria-live="polite">{message}</p>

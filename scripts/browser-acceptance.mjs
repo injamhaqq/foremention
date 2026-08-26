@@ -19,10 +19,18 @@ const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-ac
 
 const publicPaths = ["/", "/product", "/pricing", "/score", "/prompt-check", "/login", "/signup"];
 const authenticatedPaths = ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"];
+const canonicalBrandPaths = new Set([
+  "/brand/foremention-logo.svg",
+  "/brand/foremention-logo-white.svg",
+  "/brand/foremention-mark.svg",
+  "/brand/foremention-mark-white.svg",
+]);
 const profiles = [
   { name: "chromium-desktop", browserType: chromium, viewport: { width: 1440, height: 1200 } },
+  { name: "chromium-laptop", browserType: chromium, viewport: { width: 1024, height: 900 } },
   { name: "chromium-tablet", browserType: chromium, viewport: { width: 768, height: 1024 }, isMobile: true },
   { name: "chromium-mobile", browserType: chromium, viewport: { width: 375, height: 812 }, isMobile: true },
+  { name: "chromium-narrow", browserType: chromium, viewport: { width: 320, height: 568 }, isMobile: true },
   { name: "firefox-desktop", browserType: firefox, viewport: { width: 1440, height: 1200 } },
 ];
 
@@ -147,6 +155,87 @@ async function visible(locator) {
   return locator.first().isVisible().catch(() => false);
 }
 
+async function verifyCanonicalBrandArtwork(page, profileName, path) {
+  const artwork = await page.locator("img.wordmark__art, img.foremention-mark").evaluateAll((images) => images.map((image) => {
+    const rect = image.getBoundingClientRect();
+    const style = getComputedStyle(image);
+    const link = image.closest(".wordmark");
+    return {
+      src: image.getAttribute("src") || "",
+      visible: rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0,
+      width: rect.width,
+      height: rect.height,
+      naturalWidth: image.naturalWidth,
+      naturalHeight: image.naturalHeight,
+      isMark: image.classList.contains("foremention-mark"),
+      inverseWordmark: Boolean(link?.classList.contains("wordmark--inverse")),
+      filter: style.filter,
+      boxShadow: style.boxShadow,
+      transform: style.transform,
+    };
+  }));
+  const visibleArtwork = artwork.filter((item) => item.visible);
+
+  if (!visibleArtwork.length) {
+    recordFailure("Canonical Foremention artwork is not visibly rendered.", { profile: profileName, path });
+    return;
+  }
+
+  for (const item of visibleArtwork) {
+    let sourcePath = "";
+    try {
+      sourcePath = new URL(item.src, baseUrl).pathname;
+    } catch {
+      sourcePath = item.src;
+    }
+    if (!canonicalBrandPaths.has(sourcePath)) {
+      recordFailure("Visible Foremention artwork uses an unapproved asset source.", { profile: profileName, path, sourcePath });
+      continue;
+    }
+    if (item.isMark) {
+      if (item.width < 16 || item.height < 16) {
+        recordFailure("Canonical Foremention mark rendered below its 16px minimum.", { profile: profileName, path, sourcePath, width: item.width, height: item.height });
+      }
+    } else if (item.width < 100) {
+      recordFailure("Canonical Foremention lockup rendered below its 100px minimum.", { profile: profileName, path, sourcePath, width: item.width });
+    }
+    if (item.naturalWidth > 0 && item.naturalHeight > 0 && item.width > 0 && item.height > 0) {
+      const naturalRatio = item.naturalWidth / item.naturalHeight;
+      const renderedRatio = item.width / item.height;
+      const ratioDrift = Math.abs(renderedRatio - naturalRatio) / naturalRatio;
+      if (ratioDrift > 0.01) {
+        recordFailure("Canonical Foremention artwork is stretched or squashed.", { profile: profileName, path, sourcePath, ratioDrift });
+      }
+    }
+    if (item.filter !== "none" || item.boxShadow !== "none" || item.transform !== "none") {
+      recordFailure("Canonical Foremention artwork has an unapproved visual effect or transform.", {
+        profile: profileName,
+        path,
+        sourcePath,
+        filter: item.filter,
+        boxShadow: item.boxShadow,
+        transform: item.transform,
+      });
+    }
+    if (!item.isMark) {
+      const expectsWhite = item.inverseWordmark;
+      const isWhite = sourcePath.endsWith("-white.svg");
+      if (expectsWhite !== isWhite) {
+        recordFailure("Canonical Foremention wordmark variant does not match its inverse treatment.", { profile: profileName, path, sourcePath, inverse: expectsWhite });
+      }
+    }
+  }
+
+  const visibleLegacy = await page.locator(".source-eclipse, .source-eclipse__orbit, .source-eclipse__point, .wordmark__name").evaluateAll((elements) => elements.filter((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
+  }).length);
+  if (visibleLegacy > 0) {
+    recordFailure("Visible legacy Foremention identity substitute detected.", { profile: profileName, path, visibleLegacy });
+  }
+}
+
 async function auditPage({ page, observers, path, profileName, axe = true, requireSingleH1 = true }) {
   observers.reset();
   const url = new URL(path, baseUrl).toString();
@@ -191,6 +280,8 @@ async function auditPage({ page, observers, path, profileName, axe = true, requi
       failedResponses: runtime.failedResponses,
     });
   }
+
+  await verifyCanonicalBrandArtwork(page, profileName, path);
 
   if (path === "/login" || path === "/signup") {
     if (!await visible(page.locator("form"))) recordFailure("Authentication form is not visibly rendered.", { profile: profileName, path });
@@ -241,6 +332,8 @@ async function verifyAnalyticsOverlayRegression(page, profileName) {
 
 async function verifySourceXRay(page, profileName) {
   await page.goto(new URL("/", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
+  await page.waitForTimeout(250);
   const xray = page.locator("#source-xray");
   const stage = page.locator("#source-xray-stage");
   if (!await visible(xray) || !await visible(stage)) {
@@ -301,7 +394,7 @@ async function verifyAuthenticatedRoutes() {
     return;
   }
 
-  const authProfiles = [profiles[0], profiles[2]];
+  const authProfiles = profiles.filter(({ name }) => name === "chromium-desktop" || name === "chromium-mobile");
   const evidence = [];
   for (const profile of authProfiles) {
     const browser = await profile.browserType.launch({ headless: true });
