@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
-import { SourceXRayExperience } from "@/components/goat-home-experience";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
   title: "Recommendation Intelligence for B2B Software",
   description:
-    "Explore Foremention Recommendation Records, Source X-Ray, buyer questions, review state, competitor context, and comparable later measurement for AI-mediated software buying.",
+    "Explore Foremention Recommendation Records, buyer questions, integrated evidence inspection, review state, competitor context, and comparable later measurement for AI-mediated software buying.",
   path: "/product",
 });
 
@@ -16,34 +15,37 @@ const systems = [
   [
     "01",
     "Recommendation Record",
-    "Keeps the buyer question, provider/model, timestamp, observed answer, named brands, returned references, distinct sources, retrievability, review state, limitations, and comparison eligibility together as one inspectable record.",
+    "Keeps the buyer question, provider/model, timestamp, observed answer, named brands, returned references, distinct sources, retrievability, review state, limitations, evidence inspection, and comparison eligibility together as one inspectable record.",
   ],
   [
     "02",
-    "Source X-Ray",
-    "Shows what the provider returned, what could be retrieved, what evidence was actually observed, what a human reviewed, what remains uncertain, and what can safely be concluded.",
-  ],
-  [
-    "03",
     "Buyer Questions",
     "Organizes the real questions software buyers may ask so observations remain tied to a stable question identity and version instead of a vague visibility score.",
   ],
   [
-    "04",
+    "03",
     "Attention",
     "Surfaces what changed or requires review: a new recommendation, changed source, insufficient evidence, or a later observation that is finally comparable.",
   ],
   [
-    "05",
+    "04",
     "Comparisons",
     "Aligns later observations only when the measurement is equivalent. If the question, provider context, or protocol is not comparable, Foremention keeps the misalignment visible.",
   ],
   [
-    "06",
+    "05",
     "Methodology",
-    "Preserves provider metadata, timestamps, failed runs, repeated sampling, source provenance, review state, uncertainty, and explicit causal limits so one observation never masquerades as a trend.",
+    "Preserves provider metadata, timestamps, failed runs, repeated sampling, source provenance, retrievability, review state, uncertainty, and explicit causal limits so one observation never masquerades as a trend.",
   ],
-];
+] as const;
+
+const inspectionStages = [
+  ["Returned", "What reference or source location accompanied the observed answer?"],
+  ["Retrieved", "Could that destination actually be retrieved?"],
+  ["Observed", "What relevant evidence was present in the retrievable source?"],
+  ["Reviewed", "What did a human inspect, accept, reject, or leave pending?"],
+  ["Safe conclusion", "What can this record support, and which claims remain unproven?"],
+] as const;
 
 export default function ProductPage() {
   return (
@@ -91,9 +93,18 @@ export default function ProductPage() {
         </div>
       </section>
 
-      <section className="goat-xray-section goat-xray-section--product">
+      <section className="section section--surface">
         <div className="shell">
-          <SourceXRayExperience />
+          <div className="section-heading">
+            <span className="eyebrow">Evidence inspection lives in the record</span>
+            <h2>Returned → Retrieved → Observed → Reviewed → Safe conclusion.</h2>
+            <p>Foremention keeps the evidence chain inside the Recommendation Record, so provenance, retrievability, review, uncertainty, and causal restraint travel with the observation instead of becoming a separate product.</p>
+          </div>
+          <div className="system-grid">
+            {inspectionStages.map(([title, body], index) => (
+              <article key={title}><span>{String(index + 1).padStart(2, "0")}</span><h2>{title}</h2><p>{body}</p></article>
+            ))}
+          </div>
         </div>
       </section>
 
