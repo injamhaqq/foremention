@@ -22,6 +22,14 @@ const fields = [
   ["Comparison eligibility", "Whether a later observation can be validly aligned under an equivalent measurement protocol."],
 ] as const;
 
+const inspectionStages = [
+  ["Returned", "What reference or source location did the provider return with the observed answer?"],
+  ["Retrieved", "Could Foremention retrieve the returned destination, or was it unavailable at review time?"],
+  ["Observed", "What relevant evidence was actually present in the retrievable source?"],
+  ["Reviewed", "What did a human inspect, accept, reject, or leave pending?"],
+  ["Safe conclusion", "What conclusion is supported by this record, and which claims remain unproven?"],
+] as const;
+
 export default function RecommendationRecordPage() {
   const breadcrumb = {
     "@context": "https://schema.org",
@@ -45,7 +53,7 @@ export default function RecommendationRecordPage() {
             limitations and later-comparison eligibility together instead of flattening them into a score.
           </p>
           <div className="page-hero__actions">
-            <Link className="button" href="/source-x-ray">Open Source X-Ray concept <Arrow /></Link>
+            <Link className="button" href="#evidence-inspection">Inspect the evidence chain <Arrow /></Link>
             <Link className="text-link text-link--inverse" href="/contact">Request a demo <Arrow /></Link>
           </div>
         </div>
@@ -73,12 +81,31 @@ export default function RecommendationRecordPage() {
         </div>
       </section>
 
+      <section className="section section--surface" id="evidence-inspection">
+        <div className="shell">
+          <div className="section-heading">
+            <span className="eyebrow">Evidence inspection inside the record</span>
+            <h2>Returned → Retrieved → Observed → Reviewed → Safe conclusion.</h2>
+            <p>Each stage answers a different question. Keeping them inside the Recommendation Record prevents returned references, retrieved sources, observed evidence, and human review from being collapsed into one claim.</p>
+          </div>
+          <div className="system-grid">
+            {inspectionStages.map(([title, body], index) => (
+              <article key={title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <h2>{title}</h2>
+                <p>{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="section section--yellow">
         <div className="shell metric-layers">
           <div><span className="eyebrow">Illustrative record logic</span><h2>RR-2026-08-26-017 · Q-017 v3 · review pending.</h2></div>
           <div><h3>Observed</h3><p>Vendor A was recommended. Vendor B and Vendor C were also named. Three references were returned.</p></div>
           <div><h3>Retrieved</h3><p>Two distinct source destinations were retrievable. One returned reference was unavailable.</p></div>
-          <div><h3>Cannot conclude</h3><p>The returned references do not establish that those sources caused the recommendation, and one observation does not establish a trend.</p></div>
+          <div><h3>Safe conclusion</h3><p>The returned references do not establish causal influence on the recommendation, and one observation does not establish a trend.</p></div>
         </div>
       </section>
 
@@ -88,12 +115,12 @@ export default function RecommendationRecordPage() {
           <div className="truth-list">
             <div><span>01</span><p><strong>Immutable identity.</strong> A changed buyer question creates a new version instead of silently rewriting history.</p></div>
             <div><span>02</span><p><strong>Source separation.</strong> Returned references and distinct retrievable sources remain separate concepts.</p></div>
-            <div><span>03</span><p><strong>Comparison gate.</strong> A later observation is marked not comparable when the measurement protocol is not equivalent.</p></div>
+            <div><span>03</span><p><strong>Comparison gate.</strong> Comparison eligibility is explicit: a later observation is marked not comparable when the measurement protocol is not equivalent.</p></div>
           </div>
         </div>
       </section>
 
-      <section className="cta-band"><div className="shell cta-band__inner"><div><span className="eyebrow">Inspect the evidence chain</span><h2>Source X-Ray explains what came back and what remains uncertain.</h2></div><Link className="button button--ink button--large" href="/source-x-ray">Source X-Ray <Arrow /></Link></div></section>
+      <section className="cta-band"><div className="shell cta-band__inner"><div><span className="eyebrow">Register. Prove. Prepare.</span><h2>Keep the observation, evidence, review boundary and later-comparison eligibility in one inspectable record.</h2></div><Link className="button button--ink button--large" href="/contact">Request a demo <Arrow /></Link></div></section>
     </PublicShell>
   );
 }
