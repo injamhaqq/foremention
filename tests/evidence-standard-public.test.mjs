@@ -62,6 +62,7 @@ test("public metadata keeps the returned-evidence boundary without causal overcl
 test("homepage hero uses Registered Evidence while commercial truth remains explicit", () => {
   const experience = read("components/goat-home-experience.tsx");
   const home = read("app/page.tsx");
+  const primitives = read("components/evidence-standard-primitives.tsx");
   const combined = `${experience}\n${home}`;
 
   assert.match(experience, /Register\. Prove\./);
@@ -73,9 +74,9 @@ test("homepage hero uses Registered Evidence while commercial truth remains expl
   assert.match(combined, /returned reference/i);
   assert.match(combined, /retrievable/i);
   assert.match(combined, /review/i);
-  assert.match(combined, /NOT OBSERVED/);
-  assert.match(combined, /NOT COMPARABLE/);
-  assert.match(combined, /INSUFFICIENT EVIDENCE/);
+  assert.match(primitives, /NOT OBSERVED/);
+  assert.match(primitives, /NOT COMPARABLE/);
+  assert.match(primitives, /INSUFFICIENT EVIDENCE/);
 });
 
 test("homepage retains the proven seven-scene evidence narrative beneath the new conviction layer", () => {
