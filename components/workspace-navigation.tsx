@@ -9,24 +9,24 @@ import type { Viewer } from "@/lib/auth";
 import { resetProductAnalytics } from "@/lib/product-analytics";
 
 const primaryNav = [
-  ["/app", "Overview"],
+  ["/app", "Attention"],
   ["/app/prompts", "Questions"],
-  ["/app/runs", "AI Results"],
-  ["/app/source-map", "Sources"],
-  ["/app/competitors", "Competitors"],
-  ["/app/opportunities", "Opportunities"],
-  ["/app/placements", "Actions"],
-  ["/app/analytics", "Analytics"],
+  ["/app/runs", "Records"],
+  ["/app/source-map", "Source X-Ray"],
+  ["/app/analytics", "Comparisons"],
+  ["/app/settings", "Settings"],
 ] as const;
 
 const workspaceNav = [
   ["/app/alerts", "Alerts"],
   ["/app/team", "Team"],
   ["/app/settings#integrations", "Integrations"],
-  ["/app/settings", "Settings"],
 ] as const;
 
 const advancedNav = [
+  ["/app/competitors", "Competitors"],
+  ["/app/opportunities", "Opportunities"],
+  ["/app/placements", "Actions"],
   ["/app/resolutions", "Resolution Center"],
   ["/app/outcomes", "Outcome Ledger"],
   ["/app/passport", "Vendor Passport"],
@@ -83,7 +83,7 @@ function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigat
 
 export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
   const pathname = usePathname();
-  return <aside className="app-sidebar">
+  return <aside className="app-sidebar registered-workspace-sidebar">
     <Wordmark inverse />
     <div className="app-sidebar__navigation">
       <NavigationLinks pathname={pathname} />
@@ -99,7 +99,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
   const pathname = usePathname();
   const mobileMenu = useRef<HTMLDetailsElement>(null);
   const closeMenu = () => { if (mobileMenu.current) mobileMenu.current.open = false; };
-  return <details className="app-mobile-nav" ref={mobileMenu}>
+  return <details className="app-mobile-nav registered-workspace-mobile" ref={mobileMenu}>
       <summary><ForementionMark />Workspace menu</summary>
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={closeMenu} />
