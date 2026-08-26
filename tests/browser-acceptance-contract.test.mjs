@@ -66,6 +66,21 @@ test("browser acceptance captures every approved Foremention brand QA width", ()
   assert.match(runner, /name: "chromium-narrow"[\s\S]{0,120}width: 320/);
 });
 
+test("browser acceptance blocks canonical brand distortion and visible legacy substitutes", () => {
+  assert.match(runner, /verifyCanonicalBrandArtwork/);
+  assert.match(runner, /\/brand\/foremention-logo\.svg/);
+  assert.match(runner, /\/brand\/foremention-logo-white\.svg/);
+  assert.match(runner, /\/brand\/foremention-mark\.svg/);
+  assert.match(runner, /\/brand\/foremention-mark-white\.svg/);
+  assert.match(runner, /Canonical Foremention artwork is not visibly rendered/);
+  assert.match(runner, /Canonical Foremention lockup rendered below its 100px minimum/);
+  assert.match(runner, /Canonical Foremention mark rendered below its 16px minimum/);
+  assert.match(runner, /Canonical Foremention artwork is stretched or squashed/);
+  assert.match(runner, /Visible legacy Foremention identity substitute detected/);
+  assert.match(runner, /\.source-eclipse/);
+  assert.match(runner, /\.wordmark__name/);
+});
+
 test("accessibility is blocking for serious regressions while Lighthouse starts audit-first", () => {
   assert.match(runner, /wcag2a/);
   assert.match(runner, /wcag2aa/);
