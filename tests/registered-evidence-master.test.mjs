@@ -44,7 +44,7 @@ test("homepage carries the locked category and Registered Evidence hero", () => 
   assert.match(hero, /Register\. Prove\.<br \/>Prepare\./);
   assert.match(hero, /Recommendation intelligence for B2B software\./);
   assert.match(hero, /See an example/);
-  assert.match(hero, /ILLUSTRATIVE RECORD/);
+  assert.match(hero, /LIVE RECORD \/ ILLUSTRATIVE/);
   assert.match(hero, /ANSWER/);
   assert.match(hero, /Observed/);
   assert.match(hero, /SOURCE/);
