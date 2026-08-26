@@ -40,7 +40,7 @@ export default function SourceXRayPage() {
           <p>
             Follow the evidence from what the provider returned to what could actually be retrieved,
             what was observed, what a human reviewed, and what the record can safely support.
-            A returned source is evidence of what came with the answer—not proof that the source caused the answer.
+            A returned source is evidence of what came with the answer—not causal proof of why the recommendation appeared.
           </p>
           <div className="page-hero__actions">
             <Link className="button" href="#source-xray">See the interaction <Arrow /></Link>
