@@ -26,7 +26,7 @@ test("canonical brand visual proof covers the app shell, social image, favicon, 
   assert.match(runner, /new URL\("\/og\.png", baseUrl\)/);
   assert.match(runner, /readUInt32BE\(16\)/);
   assert.match(runner, /readUInt32BE\(20\)/);
-  assert.match(runner, /width !== 1200 \|\| height !== 630/);
+  assert.match(runner, /dimensions\.width !== 1200 \|\| dimensions\.height !== 630/);
   assert.match(runner, /social-og\.png/);
 
   assert.match(runner, /new URL\("\/favicon\.ico", baseUrl\)/);
