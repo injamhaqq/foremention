@@ -35,9 +35,9 @@
 - Consumes: current source files on `feat/registered-evidence-master`.
 - Produces: source-level contract for tokens, hero language, public navigation, workspace navigation, canonical identity, responsive/reduced-motion rules, and epistemic restraint.
 
-- [ ] **Step 1: Write the failing source contract** asserting the final stylesheet import, locked palette/type tokens, `Register. Prove. Prepare.`, the B2B software descriptor, Request a demo / Product / Methodology / Research navigation, the six primary workspace labels, and no route-mechanics changes.
-- [ ] **Step 2: Run `pnpm test` in CI** and verify the new contract fails before implementation.
-- [ ] **Step 3: Keep every existing auth/onboarding/browser contract enabled.**
+- [x] **Step 1: Write the failing source contract** asserting the final stylesheet import, locked palette/type tokens, `Register. Prove. Prepare.`, the B2B software descriptor, Request a demo / Product / Methodology / Research navigation, the six primary workspace labels, and no route-mechanics changes.
+- [x] **Step 2: Run `pnpm test` in CI** and verify the new contract fails before implementation.
+- [x] **Step 3: Keep every existing auth/onboarding/browser contract enabled.**
 
 ### Task 2: Implement the public Registered Evidence system
 
@@ -52,11 +52,11 @@
 - Consumes: canonical `Wordmark`/`ForementionMark`, existing Source X-Ray interaction, existing public route tree.
 - Produces: dark conviction homepage aligned to Figma, responsive mobile header/hero/illustrative record, restyled Source X-Ray, and retained long-form evidence narrative.
 
-- [ ] **Step 1: Load `registered-evidence.css` last** so it can supersede legacy presentation without deleting proven legacy behavior.
-- [ ] **Step 2: Recompose the public header** to Product / Methodology / Research plus Request a demo; preserve login access in the mobile/full navigation and footer.
-- [ ] **Step 3: Recompose the hero** around the locked headline, descriptor, safe supporting copy, See an example CTA, and illustrative registered-record visualization.
-- [ ] **Step 4: Restyle existing downstream evidence sections and Source X-Ray** using the final palette/type/registration language while keeping the existing interaction and truth boundaries.
-- [ ] **Step 5: Add responsive 1024/768/375/320 and reduced-motion/reduced-transparency behavior.**
+- [x] **Step 1: Load `registered-evidence.css` last** so it can supersede legacy presentation without deleting proven legacy behavior.
+- [x] **Step 2: Recompose the public header** to Product / Methodology / Research plus Request a demo; preserve login access in the mobile/full navigation and footer.
+- [x] **Step 3: Recompose the hero** around the locked headline, descriptor, safe supporting copy, See an example CTA, and illustrative registered-record visualization.
+- [x] **Step 4: Restyle existing downstream evidence sections and Source X-Ray** using the final palette/type/registration language while keeping the existing interaction and truth boundaries.
+- [x] **Step 5: Add responsive 1024/768/375/320 and reduced-motion/reduced-transparency behavior.**
 
 ### Task 3: Implement the signed-in inspection environment
 
@@ -68,9 +68,9 @@
 - Consumes: existing signed-in route destinations and `WorkspaceSidebar`/`WorkspaceMobileNavigation` behavior.
 - Produces: minimal primary navigation labels and a warm inspection shell without route or security changes.
 
-- [ ] **Step 1: Map existing routes to Attention, Questions, Records, Source X-Ray, Comparisons, Settings.**
-- [ ] **Step 2: Move secondary/legacy operational destinations under Advanced rather than deleting routes.**
-- [ ] **Step 3: Style app sidebar/topbar/mobile navigation with Registered Evidence inspection tokens and preserve canonical mobile mark visibility.**
+- [x] **Step 1: Map existing routes to Attention, Questions, Records, Source X-Ray, Comparisons, Settings.**
+- [x] **Step 2: Move secondary/legacy operational destinations under Advanced rather than deleting routes.**
+- [x] **Step 3: Style app sidebar/topbar/mobile navigation with Registered Evidence inspection tokens and preserve canonical mobile mark visibility.**
 
 ### Task 4: Prove and release
 
