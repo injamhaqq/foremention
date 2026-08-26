@@ -39,10 +39,9 @@ test("Registered Evidence is the final presentation layer", () => {
 
 test("homepage carries the locked category and Registered Evidence hero", () => {
   const hero = read("components/goat-home-experience.tsx");
-  const page = read("app/page.tsx");
 
   assert.match(hero, /THE RECOMMENDATION STANDARD/);
-  assert.match(hero, /Register\. Prove\. Prepare\./);
+  assert.match(hero, /Register\. Prove\.<br \/>Prepare\./);
   assert.match(hero, /Recommendation intelligence for B2B software\./);
   assert.match(hero, /See an example/);
   assert.match(hero, /ILLUSTRATIVE RECORD/);
@@ -54,8 +53,8 @@ test("homepage carries the locked category and Registered Evidence hero", () => 
   assert.match(hero, /Pending/);
   assert.match(hero, /registered-record__rings/);
   assert.match(hero, /registered-record__beam/);
-  assert.match(page, /The recommendation is only the start\./);
-  assert.match(page, /returned references[^.]*distinct sources[^.]*retrievability[^.]*review state[^.]*later comparison eligibility/i);
+  assert.match(hero, /The recommendation is only the start\./);
+  assert.match(hero, /returned references[^.]*distinct sources[^.]*retrievability[^.]*review state[^.]*later comparison eligibility/i);
 });
 
 test("public navigation reflects the locked public information architecture", () => {
@@ -79,7 +78,7 @@ test("workspace primary navigation is simplified without deleting proven routes"
     ["/app/source-map", "Source X-Ray"],
     ["/app/analytics", "Comparisons"],
     ["/app/settings", "Settings"],
-  ]) assert.match(nav, new RegExp(`\\["${route.replaceAll("/", "\\/")}", "${label}"\\]`));
+  ]) assert.ok(nav.includes(`["${route}", "${label}"]`), `missing ${label} navigation route`);
 
   assert.match(nav, /\["\/app\/competitors", "Competitors"\]/);
   assert.match(nav, /\["\/app\/opportunities", "Opportunities"\]/);
