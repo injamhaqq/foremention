@@ -34,11 +34,11 @@ test("a nontechnical customer can follow website to question to collection to so
   assert.match(actions, /Every action keeps the source/);
 });
 
-test("core customer navigation contains product outcomes while internal systems remain advanced", async () => {
+test("core customer navigation uses Registered Evidence outcomes while proven secondary routes remain advanced", async () => {
   const navigation = await text("components/workspace-navigation.tsx");
-  for (const label of ["Overview", "Questions", "AI Results", "Sources", "Competitors", "Opportunities", "Actions", "Analytics"]) assert.match(navigation, new RegExp(label));
+  for (const label of ["Attention", "Questions", "Records", "Source X-Ray", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
+  for (const retained of ["Competitors", "Opportunities", "Actions", "Agent Control Plane"]) assert.match(navigation, new RegExp(retained));
   assert.match(navigation, /<details className="sidebar-advanced">/);
   assert.match(navigation, /<summary><span>Advanced<\/span><small>\{advancedNav\.length\} tools<\/small><\/summary>/);
-  assert.match(navigation, /Agent Control Plane/);
   assert.match(navigation, /aria-label="Advanced workspace tools"/);
 });
