@@ -332,6 +332,8 @@ async function verifyAnalyticsOverlayRegression(page, profileName) {
 
 async function verifySourceXRay(page, profileName) {
   await page.goto(new URL("/", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
+  await page.waitForTimeout(250);
   const xray = page.locator("#source-xray");
   const stage = page.locator("#source-xray-stage");
   if (!await visible(xray) || !await visible(stage)) {
