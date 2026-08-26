@@ -9,6 +9,7 @@ import "./evidence-standard-auth.css";
 import "./evidence-standard-auth-a11y.css";
 import "./canonical-brand.css";
 import "./registered-evidence.css";
+import "./registered-evidence-foundation.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
@@ -19,13 +20,13 @@ import { SITE_URL, SOCIAL_IMAGE } from "../lib/seo";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "Foremention - Recommendation Intelligence", template: "%s - Foremention" },
-  description: "Recommendation intelligence for B2B software: inspect observed AI recommendations, returned evidence, review state, and comparable change over time.",
+  description: "Recommendation intelligence for B2B software: record the AI answers buyers see, returned citation URLs when providers supply them, human review, and comparable change over time.",
   applicationName: "Foremention",
   authors: [{ name: "Foremention", url: SITE_URL }],
   creator: "Foremention",
   publisher: "Foremention",
   category: "Recommendation intelligence software",
-  openGraph: { title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect what AI-mediated buyers were shown, what evidence came back, and what can safely be acted on.", url: SITE_URL, type: "website", siteName: "Foremention", images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: "Foremention recommendation intelligence platform" }] },
+  openGraph: { title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect observed AI recommendations, returned-source records, review state, and comparable change over time.", url: SITE_URL, type: "website", siteName: "Foremention", images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: "Foremention recommendation intelligence platform" }] },
   twitter: { card: "summary_large_image", title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect observed recommendations, returned evidence, review state, and comparable change.", images: [SOCIAL_IMAGE] },
   verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
     ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
@@ -52,7 +53,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         url: "https://foremention.com/product",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
-        description: "Recommendation intelligence for B2B software: observed AI recommendations, returned evidence, human review, competitor context, and comparable later measurement.",
+        description: "Recommendation intelligence for B2B software: observed AI recommendations, returned-source records, human review, competitor context, and comparable later measurement.",
       },
     ],
   };
