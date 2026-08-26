@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { EvidenceReference, HonestyState, RunningLabel } from "@/components/evidence-standard-primitives";
-import { MissingAnswerExperience, SourceXRayExperience } from "@/components/goat-home-experience";
+import { MissingAnswerExperience } from "@/components/goat-home-experience";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 
@@ -47,14 +47,10 @@ export default function HomePage() {
       <MissingAnswerExperience />
     </section>
 
-    <section className="goat-xray-section" aria-label="02 / Source X-Ray">
-      <div className="shell"><SourceXRayExperience /></div>
-    </section>
-
     <section className="fm-section" aria-labelledby="honesty-title">
       <div className="shell">
         <div className="fm-section__intro">
-          <div><span className="goat-kicker">03 / Honesty as product</span></div>
+          <div><span className="goat-kicker">02 / Honesty as product</span></div>
           <div>
             <h2 id="honesty-title">Absence and uncertainty are part of the interface.</h2>
             <p>A serious evidence system must show when a record is missing, when two runs cannot be compared, and when the available evidence is not yet strong enough for a decision. These are product states, not error decoration.</p>
@@ -73,7 +69,7 @@ export default function HomePage() {
     <section className="fm-section fm-section--surface" aria-labelledby="competitor-title">
       <div className="shell">
         <div className="fm-section__intro">
-          <div><span className="goat-kicker">04 / Competitor evidence</span></div>
+          <div><span className="goat-kicker">03 / Competitor evidence</span></div>
           <div>
             <h2 id="competitor-title">Competitor presence stays attached to the exact answer record.</h2>
             <p>This illustrative product interface shows an observation, the evidence returned with it, and the review boundary. Competitors are presented as evidence in a specific answer record, not as a universal ranking, and a returned source is not treated as proof of causation.</p>
@@ -130,7 +126,7 @@ export default function HomePage() {
     <section className="fm-section" aria-labelledby="decision-title">
       <div className="shell">
         <div className="fm-section__intro">
-          <div><span className="goat-kicker">05 / Decision Gate</span></div>
+          <div><span className="goat-kicker">04 / Decision Gate</span></div>
           <div>
             <h2 id="decision-title">Readiness is a set of evidence checks, not a composite score.</h2>
             <p>The gate separates a record that is ready to support a decision from one that is only directional or still lacks enough evidence. No arbitrary composite readiness number is manufactured.</p>
@@ -158,7 +154,7 @@ export default function HomePage() {
     <section className="fm-section fm-section--surface" aria-labelledby="measurement-title">
       <div className="shell">
         <div className="fm-section__intro">
-          <div><span className="goat-kicker">06 / Later measurement</span></div>
+          <div><span className="goat-kicker">05 / Later measurement</span></div>
           <div>
             <h2 id="measurement-title">Compare later only when the measurement remains equivalent.</h2>
             <p>Equivalent buyer question, provider, collection configuration, and comparison rules make a later observation reviewable. When those conditions drift, Foremention should show <strong>≠ NOT COMPARABLE</strong> instead of a trend.</p>
@@ -190,14 +186,14 @@ export default function HomePage() {
     <section className="fm-workspace-entry" aria-labelledby="workspace-title">
       <div className="shell fm-workspace-entry__inner">
         <div>
-          <span className="goat-kicker">07 / Enter workspace</span>
-          <h2 id="workspace-title">Build your first evidence record.</h2>
-          <p>Start with the company, category, competitors, and buyer questions that matter. Then collect, review returned evidence, and make the first decision-relevant record.</p>
+          <span className="goat-kicker">06 / Enter workspace</span>
+          <h2 id="workspace-title">Build your first Recommendation Record.</h2>
+          <p>Start with the company, category, competitors, and buyer questions that matter. Then collect, inspect returned evidence inside the record, review uncertainty, and make the first decision-relevant observation.</p>
         </div>
         <div className="fm-workspace-entry__action">
-          <Link className="button button--ink button--large" href="/signup">Create workspace <Arrow /></Link>
-          <p>Recommendation intelligence for B2B SaaS. <Link href="/standards">Evidence standards</Link> · <Link href="/source-map">Source Map</Link>.</p>
-          <p>Private beta. Creating a workspace does not charge a card. Collection capacity is activated separately. No fake reviews. No hidden promotion. No ranking guarantees.</p>
+          <Link className="button button--ink button--large" href="/contact">Request a demo <Arrow /></Link>
+          <p>Recommendation intelligence for B2B software. <Link href="/methodology">Methodology</Link> · <Link href="/recommendation-record">Recommendation Record</Link>.</p>
+          <p>Private beta. No fake reviews. No hidden promotion. No ranking guarantees.</p>
         </div>
       </div>
     </section>
