@@ -36,7 +36,7 @@ test("browser tooling is pinned and production secrets are confined to trusted a
   assert.match(workflow, /"@axe-core\/playwright": "4\.12\.1"/);
   assert.match(workflow, /"@lhci\/cli": "0\.15\.1"/);
   const prStep = workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?\.ci-tools\/node_modules\/\.bin\/lhci assert/)?.[0] || "";
-  const trustedStep = workflow.match(/- name: Run trusted production browser and accessibility acceptance[\s\S]*?run: node scripts\/browser-acceptance\.mjs/)?.[0] || "";
+  const trustedStep = workflow.match(/- name: Run trusted production browser and accessibility acceptance[\s\S]*?node scripts\/canonical-brand-visual-proof\.mjs/)?.[0] || "";
   assert.doesNotMatch(prStep, /secrets\./);
   assert.match(trustedStep, /if: github\.event_name != 'pull_request'/);
   assert.match(trustedStep, /FOREMENTION_ACCEPTANCE_EMAIL: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_EMAIL \}\}/);
