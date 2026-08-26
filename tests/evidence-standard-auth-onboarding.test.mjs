@@ -35,14 +35,14 @@ test("auth routes enter the Evidence Standard workspace without changing auth me
   assert.match(form, /aria-live="polite"/);
 });
 
-test("auth status and onboarding continuation copy stays actionable", () => {
+test("auth status and onboarding continuation copy stays actionable and security-accurate", () => {
   const login = read("app/login/page.tsx");
   const signup = read("app/signup/page.tsx");
   const onboarding = read("app/app/onboarding/page.tsx");
 
   assert.match(login, /You have been signed out of all devices/);
+  assert.match(login, /Already-issued access tokens on another device can remain valid until their encoded expiry/);
   assert.match(login, /Sign in here to continue/);
-  assert.doesNotMatch(login, /refresh sessions|access tokens|encoded expiry/i);
   assert.match(signup, /Your public check results will carry into your workspace after you verify your account\./);
   assert.doesNotMatch(signup, /public result itself will not become verified workspace evidence/);
   assert.match(onboarding, />Start collection<\/Link>/);
