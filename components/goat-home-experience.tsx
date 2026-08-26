@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { EvidenceReference, HonestyState, RunningLabel } from "@/components/evidence-standard-primitives";
 
 const sourceCards = [
   { kind: "Returned reference", title: "[03] · Category comparison page", body: "Provider-returned URL preserved with the observed answer." },
@@ -10,48 +9,36 @@ const sourceCards = [
 ] as const;
 
 export function MissingAnswerExperience() {
-  return <div className="fm-home-hero shell">
-    <div className="fm-home-hero__copy goat-hero__copy">
-      <span className="goat-kicker">Recommendation intelligence for B2B SaaS</span>
-      <h1>See what AI recommends. Inspect the evidence behind the record.</h1>
-      <p className="fm-home-hero__lede">Run the buyer questions that matter, record which brands appear, preserve returned citation URLs when providers supply them, review the evidence, and compare equivalent runs over time.</p>
-      <div className="fm-home-hero__actions goat-hero__actions">
-        <a className="button button--ink button--large" href="/signup">Create workspace <span aria-hidden="true">→</span></a>
-        <a className="goat-text-link" href="#source-xray">Inspect the evidence</a>
+  return <div className="registered-hero shell">
+    <div className="registered-hero__copy">
+      <span className="registered-kicker">THE RECOMMENDATION STANDARD</span>
+      <h1>Register. Prove.<br />Prepare.</h1>
+      <p className="registered-hero__descriptor">Recommendation intelligence for B2B software.</p>
+      <p className="registered-hero__lede">See how AI-mediated buyers frame your category, which vendors are recommended, what evidence came back, and what you can safely act on.</p>
+      <div className="registered-hero__actions">
+        <a className="registered-button" href="#recommendation-record">See an example</a>
+        <a className="registered-text-link" href="/methodology">Methodology</a>
       </div>
-      <p className="fm-home-hero__disclosure">Private beta · Creating a workspace does not charge a card. Collection capacity is activated separately.</p>
     </div>
 
-    <section className="fm-record" aria-labelledby="monitor-title">
-      <div className="fm-record__topline"><strong id="monitor-title">Recommendation record</strong><span>Illustrative product interface</span></div>
-      <div className="fm-record__question" aria-label="01 / QUESTION">
-        <RunningLabel number="01" label="QUESTION" />
-        <p>Which reporting platform fits a growing B2B SaaS team?</p>
-      </div>
-      <div className="fm-record__row" aria-label="02 / ANSWER">
-        <RunningLabel number="02" label="ANSWER" />
-        <div><strong>Brand A, Brand B, and Brand C appear in the observed answer.</strong><p>Named brands stay attached to the exact provider response and collection time.</p></div>
-      </div>
-      <div className="fm-record__row fm-record__row--evidence">
-        <div><EvidenceReference>[03]</EvidenceReference></div>
-        <div><strong>Returned reference</strong><p>example.com/category-guide · provider-returned URL</p></div>
-      </div>
-      <div className="fm-record__row fm-record__row--evidence" aria-label="SOURCE / 03">
-        <RunningLabel number="SOURCE" label="03" />
-        <div><strong>Distinct source · retrievable</strong><p>The returned URL becomes a dated source record. Retrievability does not equal human review.</p></div>
-      </div>
-      <div className="fm-record__row" aria-label="04 / REVIEW">
-        <RunningLabel number="04" label="REVIEW" />
-        <div><strong>Human review pending</strong><p>Observation, later analysis, and human judgment remain visibly separate.</p></div>
-      </div>
-      <div className="fm-record__row" aria-label="06 / COMPARE">
-        <RunningLabel number="06" label="COMPARE" />
-        <div><strong>One run is a record, not a trend.</strong><p>A later run becomes comparable only when the measurement setup is equivalent.</p></div>
-      </div>
-      <div className="fm-record__footer" aria-label="— NOT OBSERVED · ≠ NOT COMPARABLE · ± INSUFFICIENT EVIDENCE">
-        <HonestyState tone="not-observed" />
-        <HonestyState tone="not-comparable" />
-        <HonestyState tone="insufficient" />
+    <section className="registered-record" id="recommendation-record" aria-labelledby="registered-record-title">
+      <div className="registered-record__header"><span>LIVE RECORD / ILLUSTRATIVE</span></div>
+      <h2 id="registered-record-title">“What is the best platform for enterprise product marketing?”</h2>
+      <div className="registered-record__body">
+        <dl className="registered-record__states">
+          <div><dt>ANSWER</dt><dd>Observed</dd></div>
+          <div><dt>REFERENCE</dt><dd>Returned</dd></div>
+          <div><dt>SOURCE</dt><dd>Retrievable</dd></div>
+          <div><dt>REVIEW</dt><dd className="is-pending">Pending</dd></div>
+        </dl>
+        <div className="registered-record__signal" aria-hidden="true">
+          <span className="registered-record__rings" />
+          <span className="registered-record__beam" />
+          <span className="registered-record__horizon registered-record__horizon--one" />
+          <span className="registered-record__horizon registered-record__horizon--two" />
+          <span className="registered-record__horizon registered-record__horizon--three" />
+          <span className="registered-record__point" />
+        </div>
       </div>
     </section>
   </div>;
@@ -119,7 +106,7 @@ export function SourceXRayExperience() {
         <span className="sr-only" id="xray-instructions">Move the pointer or use the arrow keys to inspect the evidence layer. Press Enter or Space to show or hide the full layer. The same evidence sequence is also summarized beside this interactive view.</span>
         <div className="xray-answer xray-answer--clean">
           <div className="xray-browser-bar"><span>Recommendation record</span><span>Observed answer</span></div>
-          <div className="xray-question">01 / QUESTION · Which reporting platform fits a growing B2B SaaS team?</div>
+          <div className="xray-question">01 / QUESTION · Which reporting platform fits a growing B2B software team?</div>
           <small>02 / ANSWER</small>
           <h3>Brand A, Brand B, and Brand C appear in the observed answer record.</h3>
           <div className="xray-answer-grid"><article><strong>Brand A</strong><span>Present in the answer record.</span><small>Observed</small></article><article><strong>Brand B</strong><span>Present in the answer record.</span><small>Observed</small></article><article><strong>Brand C</strong><span>Present in the answer record.</span><small>Observed</small></article></div>
