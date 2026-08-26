@@ -12,7 +12,6 @@ const primaryNav = [
   ["/app", "Attention"],
   ["/app/prompts", "Questions"],
   ["/app/runs", "Records"],
-  ["/app/source-map", "Source X-Ray"],
   ["/app/analytics", "Comparisons"],
   ["/app/settings", "Settings"],
 ] as const;
