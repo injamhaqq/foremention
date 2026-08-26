@@ -4,11 +4,13 @@ import test from "node:test";
 
 const read = (path) => readFileSync(path, "utf8");
 
-test("Evidence Standard tokens replace the legacy public visual grammar", () => {
+test("Evidence Standard foundation remains available beneath Registered Evidence", () => {
   const layout = read("app/layout.tsx");
   const css = read("app/evidence-standard.css");
 
   assert.match(layout, /import "\.\/evidence-standard\.css"/);
+  assert.match(layout, /import "\.\/registered-evidence\.css"/);
+  assert.ok(layout.indexOf("registered-evidence.css") > layout.indexOf("evidence-standard.css"));
   for (const token of [
     "--fm-paper: #F7F5EF",
     "--fm-surface: #FCFBF7",
@@ -25,7 +27,6 @@ test("Evidence Standard tokens replace the legacy public visual grammar", () => 
   assert.match(css, /--fm-font-sans:/);
   assert.match(css, /--fm-font-mono:/);
   assert.match(css, /\.button--ink[\s\S]*background:\s*var\(--fm-ink\)/);
-  assert.doesNotMatch(css, /\.public-nav[^}]*var\(--fm-evidence\)/);
 });
 
 test("public Evidence Standard accessibility refinements remain explicit", () => {
@@ -41,9 +42,10 @@ test("public Evidence Standard accessibility refinements remain explicit", () =>
   assert.match(home, /fm-compare__boundary[^>]*><Arrow \/><\/div>/);
 });
 
-test("public navigation reflects the Evidence Standard information architecture", () => {
+test("public navigation reflects the Registered Evidence information architecture", () => {
   const shell = read("components/public-shell.tsx");
-  for (const item of ["Product", "Evidence", "Method", "Insights"]) assert.ok(shell.includes(`"${item}"`));
+  for (const item of ["Product", "Methodology", "Research"]) assert.ok(shell.includes(`"${item}"`));
+  assert.match(shell, /Request a demo/);
   assert.match(shell, /Sign in/);
   assert.match(shell, /Create workspace/);
   assert.doesNotMatch(shell, /\["\/pricing", "Pricing"\]/);
@@ -57,25 +59,26 @@ test("public metadata keeps the returned-evidence boundary without causal overcl
   assert.doesNotMatch(layout, /webpages supporting them/i);
 });
 
-test("homepage hero and public record use the approved category and evidence language", () => {
+test("homepage hero uses Registered Evidence while commercial truth remains explicit", () => {
   const experience = read("components/goat-home-experience.tsx");
   const home = read("app/page.tsx");
   const combined = `${experience}\n${home}`;
 
-  assert.match(experience, /See what AI recommends\. Inspect the evidence behind the record\./);
-  assert.match(experience, /Private beta/);
-  assert.match(experience, /Creating a workspace does not charge a card/);
-  assert.match(combined, /Recommendation intelligence for B2B SaaS/);
-  assert.match(combined, /01 \/ QUESTION/);
-  assert.match(combined, /02 \/ ANSWER/);
-  assert.match(combined, /\[03\]/);
-  assert.match(combined, /SOURCE \/ 03/);
-  assert.match(combined, /— NOT OBSERVED/);
-  assert.match(combined, /≠ NOT COMPARABLE/);
-  assert.match(combined, /± INSUFFICIENT EVIDENCE/);
+  assert.match(experience, /Register\. Prove\./);
+  assert.match(experience, /Prepare\./);
+  assert.match(experience, /Recommendation intelligence for B2B software\./);
+  assert.match(experience, /LIVE RECORD \/ ILLUSTRATIVE/);
+  assert.match(home, /Private beta/);
+  assert.match(home, /Creating a workspace does not charge a card/);
+  assert.match(combined, /returned reference/i);
+  assert.match(combined, /retrievable/i);
+  assert.match(combined, /review/i);
+  assert.match(combined, /NOT OBSERVED/);
+  assert.match(combined, /NOT COMPARABLE/);
+  assert.match(combined, /INSUFFICIENT EVIDENCE/);
 });
 
-test("homepage implements the approved seven-scene Evidence Standard narrative", () => {
+test("homepage retains the proven seven-scene evidence narrative beneath the new conviction layer", () => {
   const home = read("app/page.tsx");
 
   for (const scene of [
