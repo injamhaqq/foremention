@@ -15,8 +15,10 @@ test("canonical brand visual proof covers the app shell, social image, favicon, 
     assert.match(runner, new RegExp(`width: ${width}`));
   }
 
+  assert.match(runner, /new URL\("\/login", baseUrl\)/);
   assert.match(runner, /Explore the fictional workspace/);
-  assert.match(runner, /new URL\("\/app", baseUrl\)/);
+  assert.match(runner, /page\.waitForURL\(\(url\) => url\.pathname === "\/app"/);
+  assert.match(runner, /final\.pathname !== "\/app"/);
   assert.match(runner, /verifyCanonicalBrandArtwork/);
   assert.match(runner, /Visible legacy Foremention identity substitute detected/);
   assert.match(runner, /fullPage: true/);
