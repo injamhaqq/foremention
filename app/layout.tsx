@@ -36,25 +36,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const structuredData = {
     "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        name: "Foremention",
-        url: "https://foremention.com",
-        email: "hello@foremention.com",
-        sameAs: [
-          "https://www.linkedin.com/company/foremention/",
-          "https://www.instagram.com/forementionhq/",
-        ],
-      },
-      {
-        "@type": "SoftwareApplication",
-        name: "Foremention",
-        url: "https://foremention.com/product",
-        applicationCategory: "BusinessApplication",
-        operatingSystem: "Web",
-        description: "Recommendation intelligence for B2B software: observed AI recommendations, returned-source records, human review, competitor context, and comparable later measurement.",
-      },
+    "@type": "Organization",
+    name: "Foremention",
+    url: "https://foremention.com",
+    email: "hello@foremention.com",
+    description: "Recommendation intelligence for B2B software.",
+    sameAs: [
+      "https://www.linkedin.com/company/foremention/",
+      "https://www.instagram.com/forementionhq/",
     ],
   };
   return <html lang="en" data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /></head><body><AuthHashRedirect /><SentryClient /><PostHogAnalytics /><PublicActivationAnalytics /><ContentsquareAnalytics />{children}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></body></html>;
