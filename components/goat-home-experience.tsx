@@ -41,6 +41,17 @@ export function MissingAnswerExperience() {
         </div>
       </div>
     </section>
+
+    <section className="registered-foundation" aria-labelledby="registered-foundation-title">
+      <span className="registered-kicker">FROM OBSERVATION TO INSPECTABLE RECORD</span>
+      <h2 id="registered-foundation-title">The recommendation is only the start.</h2>
+      <p>Foremention preserves the question, provider, answer, returned references, distinct sources, retrievability, review state and later comparison eligibility.</p>
+      <div className="registered-foundation__grid">
+        <article><span>01</span><h3>Recommendation Record</h3><p>A canonical, timestamped observation — not a generic score.</p></article>
+        <article><span>02</span><h3>Source X-Ray</h3><p>Inspect what came back, what was retrievable, and what remains uncertain.</p></article>
+        <article><span>03</span><h3>Comparable later measurement</h3><p>Track change only when the later observation is actually comparable.</p></article>
+      </div>
+    </section>
   </div>;
 }
 
