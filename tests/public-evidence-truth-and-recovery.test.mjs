@@ -9,8 +9,10 @@ const shell = await text("components/public-shell.tsx");
 const sourceMap = await text("app/source-map/page.tsx");
 const comparison = await text("app/monitoring-vs-execution/page.tsx");
 
-test("primary navigation distinguishes the public evidence audit from the customer Source Map", () => {
-  assert.match(shell, /\["\/source-map",\s*"Evidence"\]/);
+test("locked public navigation keeps research and methodology primary while public evidence remains reachable", () => {
+  assert.match(shell, /\["\/methodology",\s*"Methodology"\]/);
+  assert.match(shell, /\["\/insights",\s*"Research"\]/);
+  assert.match(shell, /href="\/source-map">Evidence<\/Link>/);
   assert.match(sourceMap, /Website evidence · Foremention\.com/i);
 });
 
