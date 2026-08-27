@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 Use this skill only when explicitly asked to verify, merge, or deploy a Foremention change.
 
+Operating discipline: RED -> GREEN -> VERIFY.
+
 ## Required order
 
 1. Confirm exact branch/head SHA and PR state.
