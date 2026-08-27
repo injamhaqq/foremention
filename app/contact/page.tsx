@@ -20,7 +20,7 @@ export default function ContactPage() {
           <h1>Bring the buyer questions that matter to your category.</h1>
           <p>
             We&apos;ll show how Foremention turns an observed AI software recommendation into a
-            Recommendation Record, inspects the returned evidence with Source X-Ray, and keeps
+            Recommendation Record, inspects the returned evidence inside that record, and keeps
             uncertainty and later-comparison boundaries visible.
           </p>
         </div>

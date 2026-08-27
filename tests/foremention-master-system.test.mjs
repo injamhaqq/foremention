@@ -9,8 +9,9 @@ test("public product positioning is Recommendation Intelligence, not legacy AI v
   const product = read("app/product/page.tsx");
   assert.match(product, /Recommendation Intelligence/);
   assert.match(product, /Recommendation Record/);
-  assert.match(product, /Source X-Ray/);
-  assert.match(product, /returned references[^.]*causal/i);
+  assert.match(product, /evidence inspection lives in the record/i);
+  assert.match(product, /returned source[^.]*causal|returned reference[^.]*causal/i);
+  assert.doesNotMatch(product, /Source X-Ray|source-xray/i);
   assert.doesNotMatch(product, /title:\s*"AI Visibility Platform/i);
   assert.doesNotMatch(product, /Start self-serve/i);
 });
@@ -19,13 +20,13 @@ test("core public knowledge architecture is explicit and crawlable", () => {
   for (const file of [
     "app/recommendation-intelligence/page.tsx",
     "app/recommendation-record/page.tsx",
-    "app/source-x-ray/page.tsx",
     "app/ai-mediated-buying/page.tsx",
   ]) assert.ok(fs.existsSync(path.join(process.cwd(), file)), `${file} must exist`);
 
+  assert.equal(fs.existsSync(path.join(process.cwd(), "app/source-x-ray/page.tsx")), false);
   assert.match(read("app/recommendation-intelligence/page.tsx"), /Recommendation intelligence for B2B software/);
   assert.match(read("app/recommendation-record/page.tsx"), /immutable|canonical record/i);
-  assert.match(read("app/source-x-ray/page.tsx"), /returned source[^.]*causal/i);
+  assert.match(read("app/recommendation-record/page.tsx"), /Returned[\s\S]*Retrieved[\s\S]*Observed[\s\S]*Reviewed[\s\S]*(?:Safe conclusion|conclusion)/i);
   assert.match(read("app/ai-mediated-buying/page.tsx"), /AI-mediated software buying/i);
 });
 
@@ -44,7 +45,8 @@ test("methodology, research, and contact reinforce the same category", () => {
 
   assert.match(contact, /Request a demo/);
   assert.match(contact, /Recommendation Record/);
-  assert.match(contact, /Source X-Ray/);
+  assert.match(contact, /inspects the returned evidence inside that record/i);
+  assert.doesNotMatch(contact, /Source X-Ray|source-xray/i);
   assert.doesNotMatch(contact, /AI visibility platform access/i);
 });
 
@@ -54,7 +56,8 @@ test("unvalidated pricing remains truthful and out of the search acquisition arc
   assert.match(pricing, /Commercial packaging is not final yet/);
   assert.match(pricing, /not validated commercial pricing/i);
   assert.match(pricing, /Recommendation Records/);
-  assert.match(pricing, /Source X-Ray/);
+  assert.match(pricing, /Evidence inspection inside each record/i);
+  assert.doesNotMatch(pricing, /Source X-Ray|source-xray/i);
 });
 
 test("sitemap promotes the canonical category and product objects instead of legacy thin SEO architecture", () => {
@@ -63,7 +66,6 @@ test("sitemap promotes the canonical category and product objects instead of leg
     "/product",
     "/recommendation-intelligence",
     "/recommendation-record",
-    "/source-x-ray",
     "/ai-mediated-buying",
     "/methodology",
     "/insights",
@@ -71,6 +73,7 @@ test("sitemap promotes the canonical category and product objects instead of leg
 
   for (const legacy of [
     "/pricing",
+    "/source-x-ray",
     "/source-map",
     "/source-gap",
     "/monitoring-vs-execution",
@@ -88,10 +91,10 @@ test("global structured data does not advertise unsupported SoftwareApplication 
 test("public shell routes people to the defining Foremention objects", () => {
   const shell = read("components/public-shell.tsx");
   assert.match(shell, /href="\/recommendation-record"/);
-  assert.match(shell, /href="\/source-x-ray"/);
   assert.match(shell, /href="\/recommendation-intelligence"/);
   assert.match(shell, /href="\/ai-mediated-buying"/);
   assert.match(shell, /Request a demo/);
+  assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
 });
 
 test("August 2026 search guidance is reflected without AI-search hacks", () => {

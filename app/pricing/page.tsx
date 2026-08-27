@@ -26,7 +26,7 @@ const plans = [
       "Up to 25 buyer questions",
       "Monthly collection capacity",
       "Recommendation Records and evidence history",
-      "Source X-Ray review",
+      "Evidence inspection inside each record",
       "CSV workspace exports",
     ],
     cta: "Join private beta",
@@ -84,7 +84,7 @@ const shared = [
   ],
   [
     "Customer-owned review workflow",
-    "Your team creates questions, reviews observations, inspects Source X-Ray evidence, and controls what becomes an action.",
+    "Your team creates questions, reviews observations, inspects evidence inside the Recommendation Record, and controls what becomes an action.",
   ],
 ];
 

@@ -11,7 +11,7 @@ export default function SourceGapPage() {
       <section className="page-hero page-hero--yellow">
         <div className="shell narrow-heading">
           <span className="eyebrow">Free Source Gap Check</span>
-          <h1>Put your category under the Source X-Ray.</h1>
+          <h1>Inspect the evidence around one buyer question.</h1>
           <p>Give us your website, category, and one buyer question. We’ll inspect the public evidence layer and show one useful source gap—where competitors have outside proof and your brand does not.</p>
         </div>
       </section>
