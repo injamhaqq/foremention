@@ -58,17 +58,21 @@ test("signed-in primary IA remains exactly five product objects", async () => {
   assert.doesNotMatch(primary, /Source X-Ray|Evidence Vault|Competitors|Actions/);
 });
 
-test("Recommendation Record evidence semantics remain distinct and no standalone Source X-Ray returns", async () => {
-  const [home, master] = await Promise.all([
+test("Recommendation Record evidence semantics stay distinct and standalone Source X-Ray is retired", async () => {
+  const [home, runDetail, retiredSourceRoute, activationAnalytics, reviewForm] = await Promise.all([
     text("components/goat-home-experience.tsx"),
-    text("tests/foremention-master-system.test.mjs"),
+    text("app/app/runs/[id]/page.tsx"),
+    text("app/app/sources/[id]/page.tsx"),
+    text("components/workspace-activation-analytics.tsx"),
+    text("components/source-review-form.tsx"),
   ]);
 
   for (const label of ["ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) assert.match(home, new RegExp(label));
-  assert.match(home, /RETURNED/);
-  assert.match(home, /RETRIEVED/);
-  assert.match(home, /OBSERVED/);
-  assert.match(home, /REVIEWED/);
-  assert.match(home, /SAFE CONCLUSION/);
-  assert.doesNotMatch(master, /\/source-x-ray/);
+  for (const label of ["RETURNED", "RETRIEVED", "OBSERVED", "REVIEWED", "SAFE CONCLUSION"]) assert.match(home, new RegExp(label));
+
+  assert.match(runDetail, /Recommendation Record/);
+  assert.doesNotMatch(runDetail, /Source X-Ray/);
+  assert.match(retiredSourceRoute, /redirect\("\/app\/source-map"\)/);
+  assert.doesNotMatch(activationAnalytics, /source_xray/);
+  assert.doesNotMatch(reviewForm, /source_xray/);
 });
