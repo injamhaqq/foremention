@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SourceCrawlerAccess, SourceInspectionResult } from "@/lib/source-inspection";
 import type { SourceSnapshotChangeState } from "@/lib/source-snapshots";
@@ -27,6 +27,7 @@ type MonitoredInspection = SourceInspectionResult & {
 
 export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: string; demo: boolean; canInspect: boolean }) {
   const router = useRouter();
+  const headingId = useId();
   const [busy, setBusy] = useState(false);
   const [inspection, setInspection] = useState<MonitoredInspection | null>(null);
   const [message, setMessage] = useState("");
@@ -53,10 +54,10 @@ export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: st
       ? "Viewer access is read-only."
       : "";
 
-  return <section className="panel source-inspector" aria-labelledby="source-inspector-title">
+  return <section className="panel source-inspector evidence-inspector" aria-labelledby={headingId}>
     <div>
       <span className="eyebrow">Live page check</span>
-      <h2 id="source-inspector-title">Inspect the cited page safely.</h2>
+      <h2 id={headingId}>Inspect the cited page safely.</h2>
       <p>This bounded check records reachability, response status, content type, redirects, title, and a text fingerprint. It does not execute scripts, store the page body, or claim that a person reviewed its claims.</p>
     </div>
     <div className="source-inspector__action">
