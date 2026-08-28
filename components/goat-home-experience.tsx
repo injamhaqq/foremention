@@ -62,10 +62,10 @@ export function MissingAnswerExperience() {
       </div>
 
       <dl className="canonical-record__states">
-        <div><dt>ANSWER</dt><dd>Observed</dd><small>Provider response preserved.</small></div>
-        <div><dt>REFERENCE</dt><dd>Returned</dd><small>Returned reference recorded.</small></div>
-        <div><dt>SOURCE</dt><dd>Retrievable</dd><small>Public source can be inspected.</small></div>
-        <div className="is-pending"><dt>REVIEW</dt><dd>Pending</dd><small>Human verification remains open.</small></div>
+        <div><dt>ANSWER</dt><dd><span>Observed</span><small>Provider response preserved.</small></dd></div>
+        <div><dt>REFERENCE</dt><dd><span>Returned</span><small>Returned reference recorded.</small></dd></div>
+        <div><dt>SOURCE</dt><dd><span>Retrievable</span><small>Public source can be inspected.</small></dd></div>
+        <div className="is-pending"><dt>REVIEW</dt><dd><span>Pending</span><small>Human verification remains open.</small></dd></div>
       </dl>
 
       <div className="canonical-record__chain" aria-label="Evidence chain: returned, retrieved, observed, reviewed, safe conclusion">
@@ -82,13 +82,17 @@ export function MissingAnswerExperience() {
         </div>)}
       </div>
 
+      <div className="canonical-record__actions">
+        <a className="canonical-record__inspect" href="/recommendation-record">Inspect evidence <span aria-hidden="true">→</span></a>
+      </div>
+
       <div className="canonical-record__boundary">
         <span>CAUSAL RESTRAINT</span>
         <p>A returned or reviewed source does not, by itself, prove that the source caused the recommendation.</p>
       </div>
     </section>
 
-    <section className="canonical-foundation" aria-labelledby="registered-foundation-title">
+    <section className="canonical-foundation registered-foundation" aria-labelledby="registered-foundation-title">
       <span className="canonical-kicker">FROM OBSERVATION TO INSPECTABLE RECORD</span>
       <h2 id="registered-foundation-title">The recommendation is only the start.</h2>
       <p>Foremention preserves the question, provider, answer, returned references, distinct sources, retrievability, review state and later comparison eligibility.</p>
