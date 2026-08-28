@@ -1,5 +1,5 @@
-import { SourceLiveInspector } from "@/components/source-live-inspector";
-import { SourceReviewForm } from "@/components/source-review-form";
+import { RecommendationSourceEvidence } from "@/components/recommendation-source-evidence";
+import type { Viewer } from "@/lib/auth";
 import type { WorkspaceRunAnswer } from "@/lib/data";
 import { extractBrandMentionContexts } from "@/lib/mention-context";
 import type { ProviderRunDiagnostics } from "@/lib/provider-run-diagnostics";
@@ -7,6 +7,7 @@ import { findSourceXrayTarget } from "@/lib/source-xray-link";
 import type { SourceMapEntry } from "@/lib/types";
 
 export function RecommendationAnswerRecord({
+  viewer,
   answer,
   diagnostics,
   sourceMap,
@@ -15,6 +16,7 @@ export function RecommendationAnswerRecord({
   demo,
   canInspectSources,
 }: {
+  viewer: Viewer;
   answer: WorkspaceRunAnswer;
   diagnostics?: ProviderRunDiagnostics;
   sourceMap: SourceMapEntry[];
@@ -67,13 +69,7 @@ export function RecommendationAnswerRecord({
               <small>Returned reference → mapped source record → bounded retrieval → human review</small>
             </summary>
             <div className="canonical-contained-evidence__body">
-              <dl className="canonical-contained-evidence__facts">
-                <div><dt>Returned</dt><dd>Yes</dd></div>
-                <div><dt>Retrievability</dt><dd>{sourceTarget.crawlerAccess}</dd></div>
-                <div><dt>Human review</dt><dd>{sourceTarget.reviewedAt ? "Reviewed" : "Pending"}</dd></div>
-              </dl>
-              <SourceLiveInspector entryId={sourceTarget.id} demo={demo} canInspect={canInspectSources} />
-              <section className="panel source-review-panel canonical-contained-review"><SourceReviewForm source={sourceTarget} demo={demo} canEdit={canInspectSources} /></section>
+              <RecommendationSourceEvidence viewer={viewer} source={sourceTarget} demo={demo} canInspectSources={canInspectSources} />
             </div>
           </details> : <small className="canonical-citation-record__boundary">No run-scoped mapped source record is available yet. The returned citation remains the evidence boundary.</small>}
         </div>;
