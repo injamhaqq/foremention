@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RecommendationAnswerRecord } from "@/components/recommendation-answer-record";
 import { RunReview } from "@/components/run-review";
 import { RunCancel } from "@/components/run-cancel";
 import { RunRerunButton } from "@/components/run-rerun-button";
 import { requireViewer } from "@/lib/auth";
-import { loadRunAnswers, loadRunConfiguration, loadRunCostEvents, loadRuns, loadWorkspaceContext } from "@/lib/data";
+import { getPrimaryWorkspaceRole, loadRunAnswers, loadRunConfiguration, loadRunCostEvents, loadRuns, loadWorkspaceContext } from "@/lib/data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
-import { extractBrandMentionContexts } from "@/lib/mention-context";
 import { loadProviderRunDiagnostics } from "@/lib/provider-run-diagnostics";
-import { findSourceXrayTarget } from "@/lib/source-xray-link";
 
 const usd = (value: number) => `$${value.toFixed(value < .01 ? 4 : 2)}`;
 
@@ -17,54 +16,75 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
   const { id } = await params;
   const { first_evidence: firstEvidenceParam = "" } = await searchParams;
   const firstEvidence = firstEvidenceParam === "1";
-  const [runs, answers, providerDiagnostics, costEvents, configuration, context] = await Promise.all([
+  const [runs, answers, providerDiagnostics, costEvents, configuration, context, role] = await Promise.all([
     loadRuns(viewer),
     loadRunAnswers(viewer, id),
     loadProviderRunDiagnostics(viewer, id),
     loadRunCostEvents(viewer, id),
     loadRunConfiguration(viewer, id),
     loadWorkspaceContext(viewer),
+    getPrimaryWorkspaceRole(viewer),
   ]);
   const run = runs.find((item) => item.id === id);
   if (!run) notFound();
-  const sourceMap = ["complete", "partial"].includes(run.status)
-    ? await loadTruthfulSourceMap(viewer, { runId: run.id })
-    : [];
+  const sourceMap = ["complete", "partial"].includes(run.status) ? await loadTruthfulSourceMap(viewer, { runId: run.id }) : [];
+  const canInspectSources = viewer.mode === "demo" || role === "owner" || role === "admin" || role === "analyst";
   const providerDiagnosticsByAnswer = new Map(providerDiagnostics.map((item) => [item.answerId, item]));
   const totalCost = costEvents.reduce((sum, event) => sum + event.costUsd, 0);
   const totalTokens = costEvents.some((event) => event.totalTokens !== null) ? costEvents.reduce((sum, event) => sum + Number(event.totalTokens || 0), 0) : null;
   const providerCosts = Array.from(costEvents.reduce((groups, event) => {
     const key = `${event.provider}\u0000${event.model}`;
     const current = groups.get(key) || { provider: event.provider, model: event.model, cost: 0, tokens: 0, events: 0, sources: new Set<string>() };
-    current.cost += event.costUsd; current.tokens += Number(event.totalTokens || 0); current.events += 1; current.sources.add(event.costSource); groups.set(key, current); return groups;
+    current.cost += event.costUsd;
+    current.tokens += Number(event.totalTokens || 0);
+    current.events += 1;
+    current.sources.add(event.costSource);
+    groups.set(key, current);
+    return groups;
   }, new Map<string, { provider: string; model: string; cost: number; tokens: number; events: number; sources: Set<string> }>()).values());
   const capacityFailure = run.status === "failed" && /capacity|ceiling|budget|quota|concurrent/i.test(run.errorSummary || "");
   const emptyState = run.status === "failed"
     ? { title: capacityFailure ? "This collection did not reach the AI system." : "The provider did not return evidence.", body: run.errorSummary || "This collection failed without creating answers or citations. Check the connected AI system and try again when it is available." }
-    : run.status === "cancelled" ? { title: "This collection was cancelled.", body: "No answers or citations were added to the evidence trail." }
-      : ["complete", "partial", "review"].includes(run.status) ? { title: "No usable answers were returned.", body: "The collection finished without evidence that can be reviewed or published." }
+    : run.status === "cancelled"
+      ? { title: "This collection was cancelled.", body: "No answers or citations were added to the evidence trail." }
+      : ["complete", "partial", "review"].includes(run.status)
+        ? { title: "No usable answers were returned.", body: "The collection finished without evidence that can be reviewed or published." }
         : { title: "Answers have not arrived yet.", body: "The collection is queued, running, or waiting for a provider retry." };
-  return <main className="workspace">
-    <div className="workspace-heading"><div><span className="eyebrow">Collection {run.id.slice(0, 8).toUpperCase()}</span><h1>{run.status === "review" ? "Review AI results" : "AI Results"}</h1><p>{run.date} · {run.answers} answer{run.answers === 1 ? "" : "s"} · {run.citations} citation observation{run.citations === 1 ? "" : "s"}. Every result and Source X-Ray link remains tied to this exact collection.</p></div><Link className="button button--outline" href="/app/runs">&larr; All AI Results</Link></div>
-    {firstEvidence && <section className="panel"><span className="eyebrow">Your first real evidence</span><h2>Read the exact AI answer, then follow the source.</h2><p>{run.status === "review" ? "Review the recorded answer and every returned citation below. Approve the run only when they match what the AI system actually returned; that publishes the Source Map so you can inspect a cited page in Source X-Ray." : sourceMap.length ? "This finalized collection has its own published Source Map. Open a mapped citation in Source X-Ray to compare the provider observation with the cited page, then complete the explicit source review before acting on an opportunity." : "This collection is recorded. If no run-scoped mapped source is available, keep the provider answer and citation as the evidence boundary rather than borrowing a source record from another collection."}</p><ol className="record-steps"><li>Read the exact buyer question and provider answer.</li><li>Check the provider-returned citation without changing it.</li><li>{run.status === "review" ? "Approve the run to publish its dated Source Map." : "Inspect a mapped citation in this collection's Source X-Ray when available."}</li><li>Keep automated crawler observations separate from human review before acting.</li></ol></section>}
+
+  return <main className="workspace canonical-record-page">
+    <div className="workspace-heading canonical-record-page__heading">
+      <div>
+        <span className="eyebrow">Recommendation Record · {run.id.slice(0, 8).toUpperCase()}</span>
+        <h1>{run.status === "review" ? "Review Recommendation Record" : "Recommendation Record"}</h1>
+        <p>{run.date} · {run.answers} answer{run.answers === 1 ? "" : "s"} · {run.citations} returned citation observation{run.citations === 1 ? "" : "s"}. Every answer, citation and review state remains tied to this exact collection.</p>
+      </div>
+      <Link className="button button--outline" href="/app/runs">&larr; All Records</Link>
+    </div>
+
+    {firstEvidence && <section className="panel canonical-first-evidence">
+      <span className="eyebrow">Your first real evidence</span>
+      <h2>Read the exact AI answer, then inspect its evidence here.</h2>
+      <p>{run.status === "review" ? "Review the recorded answer and every returned citation below. Approve the run only when they match what the AI system actually returned. Evidence inspection stays inside this Recommendation Record." : sourceMap.length ? "This finalized Recommendation Record has mapped source evidence attached to its returned citations. Expand Evidence inspection under a citation to check reachability and save explicit human review without leaving the record." : "This collection is recorded. When no run-scoped mapped source is available, keep the provider answer and returned citation as the evidence boundary rather than borrowing another collection's source record."}</p>
+      <ol className="record-steps"><li>Read the exact buyer question and provider answer.</li><li>Check the provider-returned citation without changing it.</li><li>Inspect mapped source evidence inside this Recommendation Record when available.</li><li>Keep automated retrieval observations separate from human review before acting.</li></ol>
+    </section>}
+
     {run.status === "review" && <RunReview runId={run.id} />}
     {(run.status === "queued" || run.status === "running") && <RunCancel runId={run.id} />}
     {["complete", "partial"].includes(run.status) && configuration && <RunRerunButton promptIds={configuration.promptIds} provider={configuration.provider} demo={viewer.mode === "demo"} />}
-    <div className="answer-stack">{answers.length ? answers.map((answer) => {
-      const mentionContexts = extractBrandMentionContexts(answer.answer, context?.organizationName || "");
-      const diagnostics = providerDiagnosticsByAnswer.get(answer.id);
-      const searchMetadataLabel = diagnostics?.searchUsed === true
-        ? diagnostics.searchResultCount === null
-          ? "Web search executed · structured search-result count was not recorded"
-          : `Web search executed · ${diagnostics.searchResultCount} structured search result${diagnostics.searchResultCount === 1 ? "" : "s"} returned`
-        : diagnostics?.searchUsed === false
-          ? "Web search was not observed in the provider tool metadata"
-          : "Web-search execution was not recorded for this answer";
-      return <article className="panel" key={answer.id}><header><div><span>AI system</span><strong>{answer.provider}</strong><small>{answer.model || "Recorded model"}</small></div><span className={`status-chip ${answer.status === "verified" ? "status-chip--active" : ""}`}>{answer.status}</span></header><h2>{answer.prompt}</h2><p>{answer.answer}</p>{diagnostics && <div className="answer-provider-metadata" data-provider-search-used={diagnostics.searchUsed === null ? "unknown" : String(diagnostics.searchUsed)} data-provider-search-result-count={diagnostics.searchResultCount === null ? "unknown" : String(diagnostics.searchResultCount)}><strong>Provider search metadata</strong><span>{searchMetadataLabel}</span><small>Provider search execution and returned citations are separate facts. A search does not prove that the provider returned a citable URL.</small></div>}{mentionContexts.length > 0 && <section className="brand-mention-context"><span className="eyebrow">Brand mention context</span><h3>{mentionContexts.length} exact mention{mentionContexts.length === 1 ? "" : "s"}</h3>{mentionContexts.map((mention, index) => <article key={`${answer.id}-mention-${index}`}><strong>{mention.sentence}</strong><p>{mention.paragraph}</p></article>)}<small>Sentence and surrounding paragraph are extracted verbatim from this persisted provider answer.</small></section>}<div className="answer-citations"><strong>Sources returned by the AI system</strong>{answer.citations.length ? answer.citations.map((citation, index) => {
-        const sourceTarget = run.status === "review" ? null : findSourceXrayTarget(citation.url, sourceMap);
-        return <div key={`${citation.url}-${index}`}><a href={citation.url} target="_blank" rel="noreferrer">{citation.title || citation.url} &nearr;</a>{sourceTarget && <Link href={`/app/sources/${sourceTarget.id}`}>Inspect this citation in Source X-Ray &rarr;</Link>}</div>;
-      }) : <span>No cited URLs returned</span>}</div><small>Collected {answer.collectedAt}</small></article>;
-    }) : <section className="panel empty-state"><h2>{emptyState.title}</h2><p>{emptyState.body}</p></section>}</div>
+
+    <div className="answer-stack canonical-record-stack">
+      {answers.length ? answers.map((answer) => <RecommendationAnswerRecord
+        key={answer.id}
+        answer={answer}
+        diagnostics={providerDiagnosticsByAnswer.get(answer.id)}
+        sourceMap={sourceMap}
+        organizationName={context?.organizationName || ""}
+        reviewMode={run.status === "review"}
+        demo={viewer.mode === "demo"}
+        canInspectSources={canInspectSources}
+      />) : <section className="panel empty-state"><h2>{emptyState.title}</h2><p>{emptyState.body}</p></section>}
+    </div>
+
     <section className="panel run-cost-breakdown">
       <details>
         <summary>Advanced run details</summary>
