@@ -1,0 +1,69 @@
+/* Exact release hardening for the canonical migration. Keep selectors narrow and evidence semantics explicit. */
+
+/* Fictional signed-in proof: retain dark workspace surfaces and AA reverse type. */
+.app-frame .app-sidebar__footer {
+  background: #090b0a !important;
+  color: #fffdf9 !important;
+}
+.app-frame .app-sidebar__footer .sidebar-company {
+  background: transparent !important;
+  color: #d7dbd5 !important;
+}
+.app-frame .app-sidebar__footer .sidebar-company strong { color: #d7dbd5 !important; }
+.app-frame .app-sidebar__footer form[action="/api/auth/demo/exit"] button {
+  border-color: #355f4b !important;
+  background: #111412 !important;
+  color: #e3e8e3 !important;
+}
+.app-frame .app-user > div > small { color: #aeb6af !important; }
+.app-frame .weekly-loop-teaser {
+  border-color: #2a352f !important;
+  background: #111412 !important;
+  color: #fffdf9 !important;
+}
+.app-frame .weekly-loop-teaser > div > p { color: #aeb6af !important; }
+
+/* Contained Recommendation Record evidence. */
+.canonical-source-evidence {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.canonical-observed-evidence,
+.canonical-source-credibility,
+.canonical-snapshot-history,
+.canonical-contained-comments {
+  border: 1px solid #28332d;
+  border-radius: 5px;
+  background: #111412;
+  color: #fffdf9;
+  padding: 18px;
+}
+.canonical-observed-evidence p,
+.canonical-source-credibility p,
+.canonical-snapshot-history p,
+.canonical-contained-comments p { color: #aeb6af; }
+.canonical-source-credibility {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+}
+.canonical-source-credibility ul { margin: 8px 0 0; padding-left: 18px; color: #c5ccc6; }
+.canonical-source-credibility li + li { margin-top: 5px; }
+.canonical-snapshot-history .table-wrap { margin-top: 12px; overflow-x: auto; }
+.canonical-snapshot-history table { width: 100%; min-width: 720px; border-collapse: collapse; }
+.canonical-snapshot-history th,
+.canonical-snapshot-history td { border-bottom: 1px solid #28332d; padding: 10px 12px; text-align: left; vertical-align: top; }
+.canonical-snapshot-history th { color: #8da196; font: 500 10px/1.3 var(--fm-font-mono, monospace); letter-spacing: .1em; text-transform: uppercase; }
+.canonical-snapshot-history td { color: #e4e8e4; font-size: 12px; }
+.canonical-snapshot-history .table-caption { margin-top: 4px; color: #98a49b; font-size: 10px; line-height: 1.45; }
+.canonical-snapshot-history a { color: #8dceb0; }
+.canonical-contained-comments .comment-thread > summary { color: #dfe5df; }
+
+@media (max-width: 780px) {
+  .canonical-source-credibility { grid-template-columns: 1fr; }
+  .canonical-observed-evidence,
+  .canonical-source-credibility,
+  .canonical-snapshot-history,
+  .canonical-contained-comments { padding: 15px; }
+}
