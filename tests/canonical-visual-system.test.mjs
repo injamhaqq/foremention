@@ -5,17 +5,20 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-test("canonical visual system is wired before the founder-reference homepage lock", async () => {
-  const [layout, css, homepageCss] = await Promise.all([
+test("canonical visual system is wired before the founder-reference and release layers", async () => {
+  const [layout, css, homepageCss, releaseCss] = await Promise.all([
     text("app/layout.tsx"),
     text("app/canonical-system.css"),
     text("app/homepage-reference.css"),
+    text("app/canonical-release.css"),
   ]);
 
   assert.match(layout, /import "\.\/canonical-system\.css";/);
   assert.match(layout, /import "\.\/homepage-reference\.css";/);
+  assert.match(layout, /import "\.\/canonical-release\.css";/);
   assert.ok(layout.indexOf('import "./canonical-system.css";') > layout.indexOf('import "./accessibility-hardening.css";'));
   assert.ok(layout.indexOf('import "./homepage-reference.css";') > layout.indexOf('import "./canonical-system.css";'));
+  assert.ok(layout.indexOf('import "./canonical-release.css";') > layout.indexOf('import "./homepage-reference.css";'));
 
   assert.match(css, /--fm-bg:\s*#0D0F0E/i);
   assert.match(css, /--fm-surface:\s*#151817/i);
@@ -23,24 +26,27 @@ test("canonical visual system is wired before the founder-reference homepage loc
   assert.match(css, /--fm-clean:\s*#FFFDF9/i);
   assert.match(css, /--fm-signal:\s*#176347/i);
   assert.match(css, /--fm-signal-light:\s*#65B58E/i);
-  assert.match(homepageCss, /prefers-reduced-motion:\s*reduce/i);
-  assert.doesNotMatch(`${css}\n${homepageCss}`, /source-x-ray/i);
+  assert.match(releaseCss, /prefers-reduced-motion:\s*reduce/i);
+  assert.doesNotMatch(`${css}\n${homepageCss}\n${releaseCss}`, /source-x-ray/i);
 });
 
-test("canonical identity uses approved production SVG assets", async () => {
+test("canonical identity uses approved production SVG assets with exact lockup ratio", async () => {
   const brand = await text("components/brand.tsx");
   assert.match(brand, /\/brand\/foremention-logo-white\.svg/);
   assert.match(brand, /\/brand\/foremention-logo\.svg/);
   assert.match(brand, /\/brand\/foremention-mark-white\.svg/);
   assert.match(brand, /\/brand\/foremention-mark\.svg/);
+  assert.match(brand, /width="264\.096"/);
+  assert.match(brand, /height="33\.24"/);
 });
 
-test("homepage follows the founder-supplied original reference rather than a schematic reinterpretation", async () => {
-  const [home, signal, layout, homepageCss] = await Promise.all([
+test("homepage follows the founder-supplied original reference with lightweight layered 5d depth", async () => {
+  const [home, signal, layout, homepageCss, releaseCss] = await Promise.all([
     text("components/goat-home-experience.tsx"),
     text("components/canonical-signal-field.tsx"),
     text("app/layout.tsx"),
     text("app/homepage-reference.css"),
+    text("app/canonical-release.css"),
   ]);
 
   assert.match(home, /THE FOREMENTION STANDARD/);
@@ -52,11 +58,15 @@ test("homepage follows the founder-supplied original reference rather than a sch
   assert.match(home, /canonical-home__dot/);
   assert.match(home, /canonical-button--overview/);
   assert.match(home, /CanonicalSignalField/);
-  assert.match(signal, /\/brand\/foremention-hero-signal\.jpg/);
-  assert.match(signal, /aria-hidden="true"/);
-  assert.doesNotMatch(signal, /circle|radialGradient|confidence|accuracy|score/i);
+  assert.match(signal, /canonical-signal--5d/);
+  assert.match(signal, /IntersectionObserver/);
+  assert.match(signal, /prefers-reduced-motion/);
+  assert.match(signal, /canonical-signal__horizon/);
+  assert.match(signal, /canonical-signal__beam/);
+  assert.doesNotMatch(signal, /foremention-hero-signal\.jpg/);
+  assert.doesNotMatch(signal, /three|webgl|canvas/i);
   assert.match(homepageCss, /canonical-home__pillars--reference/);
-  assert.match(homepageCss, /canonical-signal__reference-art/);
+  assert.match(releaseCss, /canonical-signal__depth--horizon/);
   assert.match(layout, /Recommendation intelligence for B2B software/);
 });
 
@@ -80,7 +90,8 @@ test("Recommendation Record evidence semantics stay distinct and standalone Sour
 
   for (const label of ["ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) assert.match(home, new RegExp(label));
   for (const label of ["RETURNED", "RETRIEVED", "OBSERVED", "REVIEWED", "SAFE CONCLUSION"]) assert.match(home, new RegExp(label));
-
+  assert.match(home, /registered-foundation/);
+  assert.match(home, /Inspect evidence/);
   assert.match(runDetail, /Recommendation Record/);
   assert.doesNotMatch(runDetail, /Source X-Ray/);
   assert.match(retiredSourceRoute, /redirect\("\/app\/source-map"\)/);
