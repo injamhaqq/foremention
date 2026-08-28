@@ -10,6 +10,7 @@ import "./canonical-brand.css";
 import "./registered-evidence.css";
 import "./registered-evidence-foundation.css";
 import "./accessibility-hardening.css";
+import "./canonical-evidence.css";
 import "./canonical-system.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
