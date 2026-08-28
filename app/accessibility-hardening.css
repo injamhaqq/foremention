@@ -92,9 +92,9 @@
 .app-frame .evidence-note > strong,
 .app-frame .evidence-note > p,
 .app-frame .evidence-note > p > a,
-.app-frame .getting-started li.is-next > a,
-.app-frame .getting-started li.is-next > a strong,
-.app-frame .getting-started li.is-next > a small {
+.app-frame .getting-started li > a:hover,
+.app-frame .getting-started li > a:hover > span:nth-child(2) > strong,
+.app-frame .getting-started li > a:hover > span:nth-child(2) > small {
   color: var(--re-surface);
 }
 
