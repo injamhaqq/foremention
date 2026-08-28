@@ -82,6 +82,22 @@
   color: #65B58E;
 }
 
+/* Signed-in controls that sit directly on deep registered green use the exact
+   light reverse foreground. The background signal remains unchanged. */
+.app-frame .app-sidebar__navigation > .sidebar-nav--primary[aria-label="Main workspace"] > a.is-current,
+.app-frame .workspace-global-search > button,
+.app-frame .product-truth > summary,
+.app-frame .product-truth > summary > strong,
+.app-frame .evidence-note,
+.app-frame .evidence-note > strong,
+.app-frame .evidence-note > p,
+.app-frame .evidence-note > p > a,
+.app-frame .getting-started li.is-next > a,
+.app-frame .getting-started li.is-next > a strong,
+.app-frame .getting-started li.is-next > a small {
+  color: var(--re-surface);
+}
+
 /* Every inspectable evidence state remains visible at mobile/narrow widths. */
 @media (max-width: 480px) {
   .registered-evidence-shell .registered-record__states > div:nth-child(2) {
