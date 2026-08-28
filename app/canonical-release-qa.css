@@ -10,6 +10,8 @@
   color: #d7dbd5 !important;
 }
 .app-frame .app-sidebar__footer .sidebar-company strong { color: #d7dbd5 !important; }
+.app-frame .app-sidebar__footer .sidebar-company > span,
+.app-frame .app-sidebar__footer .sidebar-company > small { color: #8f9a91 !important; }
 .app-frame .app-sidebar__footer form[action="/api/auth/demo/exit"] button {
   border-color: #355f4b !important;
   background: #111412 !important;
