@@ -5,10 +5,11 @@ import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "AI Visibility Platform Pricing",
+  title: "Recommendation Intelligence Pricing - Private Beta",
   description:
-    "See Foremention free private-beta access and the Core, Signal, and Intelligence package scopes being validated for evidence-backed AI visibility workflows.",
+    "Foremention commercial packaging is still being validated during private beta. Paid checkout is not active and final pricing has not been confirmed.",
   path: "/pricing",
+  noIndex: true,
 });
 
 const plans = [
@@ -16,16 +17,16 @@ const plans = [
     name: "Core",
     price: "Pricing to be confirmed",
     availability: "Private-beta package",
-    label: "Know your baseline",
+    label: "Establish the record",
     summary:
-      "For one team that needs a defensible baseline of how buyers see its brand and category in AI answers.",
+      "For one team that needs an inspectable baseline of how its category and vendors appear in observed AI recommendation answers.",
     includes: null,
     items: [
       "One brand and category",
       "Up to 25 buyer questions",
       "Monthly collection capacity",
-      "Source Map and evidence history",
-      "Decision Lab reliability checks",
+      "Recommendation Records and evidence history",
+      "Evidence inspection inside each record",
       "CSV workspace exports",
     ],
     cta: "Join private beta",
@@ -35,17 +36,17 @@ const plans = [
     name: "Signal",
     price: "Pricing to be confirmed",
     availability: "Private-beta package",
-    label: "Know what moved",
+    label: "Review what changed",
     lead: true,
     summary:
-      "For growth teams that need weekly evidence, competitive context, and a reviewable path from movement to action.",
+      "For growth teams that need more frequent recommendation evidence, competitive context, and a reviewable path from observation to action.",
     includes: "Everything in Core, plus:",
     items: [
       "Up to three brand workspaces",
       "Up to 100 buyer questions",
       "Weekly collection capacity",
-      "Cross-provider agreement analysis",
-      "Source movement and priority gaps",
+      "Cross-provider comparison context",
+      "Source movement and review queues",
       "Team review workflow and exports",
     ],
     cta: "Join private beta",
@@ -55,9 +56,9 @@ const plans = [
     name: "Intelligence",
     price: "Custom scope",
     availability: "Future commercial package",
-    label: "Operate across brands",
+    label: "Operate across coverage",
     summary:
-      "For multi-brand or high-volume teams that need a tailored evidence and data layer without losing the review trail.",
+      "For multi-brand or higher-coverage teams that need a tailored recommendation evidence layer without losing provenance or review state.",
     includes: "Everything in Signal, plus:",
     items: [
       "Multi-brand portfolio",
@@ -74,16 +75,16 @@ const plans = [
 
 const shared = [
   [
-    "Dated answer records",
-    "Keep the question, provider, model label, response, citations, and review state together.",
+    "Dated Recommendation Records",
+    "Keep the buyer question, provider/model context, observed answer, returned references, source retrieval and review state together.",
   ],
   [
     "No hidden composite score",
-    "See the evidence checks separately so missing coverage cannot be disguised by an average.",
+    "See evidence states separately so missing coverage, uncertainty or an invalid comparison cannot be disguised by an average.",
   ],
   [
-    "Customer-owned workflow",
-    "Your team creates questions, reviews runs, inspects sources, and controls actions inside the workspace.",
+    "Customer-owned review workflow",
+    "Your team creates questions, reviews observations, inspects evidence inside the Recommendation Record, and controls what becomes an action.",
   ],
 ];
 
@@ -93,13 +94,12 @@ export default function PricingPage() {
       <section className="page-hero">
         <div className="shell narrow-heading">
           <span className="eyebrow">Private beta · packaging under validation</span>
-          <h1>Know what AI says about your brand—and what changed.</h1>
+          <h1>Commercial packaging is not final yet.</h1>
           <p>
-            Foremention turns AI answers into dated, inspectable evidence your team can
-            review: what was said, which sources appeared, where the evidence is weak,
-            and what to investigate next. Self-serve signup currently creates a controlled
-            free-beta workspace. The package scopes below describe intended operating levels;
-            final paid pricing is still being validated before commercial launch.
+            Foremention is validating how recommendation-intelligence coverage should be packaged
+            across buyer questions, providers/models and measurement frequency. Self-serve signup
+            currently creates a controlled private-beta workspace. The scopes below are working
+            package hypotheses, not validated commercial pricing.
           </p>
         </div>
       </section>
@@ -107,27 +107,15 @@ export default function PricingPage() {
       <section className="section section--paper">
         <div className="shell pricing-grid">
           {plans.map((plan) => (
-            <article
-              className={`pricing-card${plan.lead ? " pricing-card--lead" : ""}`}
-              key={plan.name}
-            >
+            <article className={`pricing-card${plan.lead ? " pricing-card--lead" : ""}`} key={plan.name}>
               <span className="pricing-label">{plan.label}</span>
               <h2>{plan.name}</h2>
-              <div className="price">
-                <strong>{plan.price}</strong>
-              </div>
+              <div className="price"><strong>{plan.price}</strong></div>
               <p className="pricing-includes">{plan.availability}</p>
               <p className="pricing-summary">{plan.summary}</p>
               {plan.includes && <p className="pricing-includes">{plan.includes}</p>}
-              <ul>
-                {plan.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <Link
-                className={`button ${plan.lead ? "button--ink" : "button--outline"}`}
-                href={plan.href}
-              >
+              <ul>{plan.items.map((item) => <li key={item}>{item}</li>)}</ul>
+              <Link className={`button ${plan.lead ? "button--ink" : "button--outline"}`} href={plan.href}>
                 {plan.cta} <Arrow />
               </Link>
             </article>
@@ -138,8 +126,8 @@ export default function PricingPage() {
           <strong>Private beta is free today.</strong>
           <p>
             Creating a workspace does not charge a card or activate Core, Signal, or Intelligence.
-            Paid checkout is not active. Final paid pricing, billing terms, and paid entitlements
-            are being validated during private beta and will be confirmed before commercial launch.
+            Paid checkout is not active. Final paid pricing, billing terms, coverage units and
+            entitlements will be confirmed only after validation.
           </p>
         </div>
       </section>
@@ -149,9 +137,9 @@ export default function PricingPage() {
           <div className="platform-heading">
             <span className="eyebrow">Included by design</span>
             <h2>Evidence customers can challenge.</h2>
-            <p style={{ color: "var(--ink)" }}>
-              The product keeps the underlying answer, source, review state, and limits
-              visible so a team can inspect the record before acting on it.
+            <p>
+              The product keeps the underlying observation, returned references, distinct sources,
+              review state and limitations visible so a team can inspect the record before acting.
             </p>
           </div>
           <div className="pricing-shared">

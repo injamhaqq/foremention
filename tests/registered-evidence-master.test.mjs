@@ -66,32 +66,44 @@ test("public navigation reflects the locked public information architecture", ()
   assert.match(shell, />Request a demo/);
   assert.match(shell, /href="\/login">Sign in/);
   assert.match(shell, /Recommendation intelligence for B2B software/);
+  assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
 });
 
-test("workspace primary navigation is simplified without deleting proven routes", () => {
+test("workspace primary navigation is the five-object inspection architecture without deleting proven routes", () => {
   const nav = read("components/workspace-navigation.tsx");
 
   for (const [route, label] of [
     ["/app", "Attention"],
     ["/app/prompts", "Questions"],
     ["/app/runs", "Records"],
-    ["/app/source-map", "Source X-Ray"],
     ["/app/analytics", "Comparisons"],
     ["/app/settings", "Settings"],
   ]) assert.ok(nav.includes(`["${route}", "${label}"]`), `missing ${label} navigation route`);
 
+  assert.doesNotMatch(nav, /Source X-Ray/);
   assert.match(nav, /\["\/app\/competitors", "Competitors"\]/);
   assert.match(nav, /\["\/app\/opportunities", "Opportunities"\]/);
   assert.match(nav, /\["\/app\/placements", "Actions"\]/);
   assert.match(nav, /<ForementionMark \/>Workspace menu/);
 });
 
-test("Source X-Ray keeps its interaction and epistemic boundary", () => {
-  const source = read("components/goat-home-experience.tsx");
+test("Recommendation Record owns evidence inspection and Source X-Ray is retired as a standalone surface", () => {
+  const record = read("app/recommendation-record/page.tsx");
+  const homepage = read("app/page.tsx");
+  const product = read("app/product/page.tsx");
+  const sitemap = read("app/sitemap.ts");
 
-  assert.match(source, /id="source-xray-stage"/);
-  assert.match(source, /ArrowRight/);
-  assert.match(source, /event\.key === " " \|\| event\.key === "Enter"/);
-  assert.match(source, /A returned source is evidence of what came with the answer—not proof that the source caused the answer\./);
-  assert.match(source, /A provider may return no citations/);
+  assert.match(record, /Returned/i);
+  assert.match(record, /Retrieved/i);
+  assert.match(record, /Observed/i);
+  assert.match(record, /Reviewed/i);
+  assert.match(record, /Conclude|conclusion/i);
+  assert.match(record, /returned (?:reference|source)[^.]*causal|do not establish[^.]*caus/i);
+  assert.match(record, /comparison eligibility|later-comparison eligibility/i);
+
+  assert.doesNotMatch(record, /Source X-Ray|\/source-x-ray/);
+  assert.doesNotMatch(homepage, /Source X-Ray|source-xray/i);
+  assert.doesNotMatch(product, /Source X-Ray|source-xray/i);
+  assert.doesNotMatch(sitemap, /\/source-x-ray/);
+  assert.equal(fs.existsSync(path.join(process.cwd(), "app/source-x-ray/page.tsx")), false);
 });

@@ -242,9 +242,11 @@ test("workspace navigation and customer controls are complete on desktop and mob
     text("components/notification-center.tsx"),
     text("app/app/page.tsx"),
   ]);
-  for (const route of ["/app/prompts", "/app/runs", "/app/source-map", "/app/decision-lab", "/app/opportunities", "/app/placements", "/app/evidence", "/app/analytics", "/app/alerts", "/app/team", "/app/settings"]) {
+  for (const route of ["/app/prompts", "/app/runs", "/app/analytics", "/app/settings", "/app/decision-lab", "/app/opportunities", "/app/placements", "/app/evidence", "/app/alerts", "/app/team"]) {
     assert.match(navigation, new RegExp(route.replaceAll("/", "\\/")));
   }
+  assert.doesNotMatch(navigation, /\/app\/source-map|Source X-Ray|source-xray/i);
+  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
   assert.match(navigation, /aria-current/);
   assert.match(navigation, /mobileMenu\.current\.open = false/);
   assert.match(navigation, /Sign out/);
@@ -319,7 +321,9 @@ test("the weekly intelligence loop is tenant-scoped, review-only, cost-aware, an
   assert.match(api, /Unauthorized/);
   assert.match(navigation, /Intelligence Loop/);
   assert.match(dashboard, /Weekly Intelligence Loop/);
-  assert.match(product, /Eight connected systems/);
+  assert.match(product, /Recommendation Record/);
+  assert.match(product, /evidence inspection lives in the record/i);
+  assert.doesNotMatch(product, /Eight connected systems|Source X-Ray|source-xray/i);
 });
 
 test("the customer journey distinguishes collected citations from reviewed decisions", async () => {
@@ -340,7 +344,7 @@ test("the customer journey distinguishes collected citations from reviewed decis
   assert.match(questions, /not search-volume claims or collected evidence/);
   assert.match(launcher, /provider-state/);
   assert.match(decision, /Review sources/);
-  assert.match(home, /Illustrative product interface/);
+  assert.match(home, /LIVE RECORD \/ ILLUSTRATIVE/);
   assert.doesNotMatch(home, />24<|>87<|>6</);
   assert.match(review, /provider-returned citations/);
   assert.match(data, /Page-level review is still required/);
@@ -359,13 +363,17 @@ test("SEO, social preview, and accessibility states are bundled", async () => {
   await exists("public/og.png");
   await exists("app/sitemap.ts");
   await exists("app/robots.ts");
-  assert.match(layout, /SoftwareApplication/);
+  assert.match(layout, /"@type":\s*"Organization"/);
+  assert.doesNotMatch(layout, /"@type":\s*"SoftwareApplication"/);
   assert.match(layout, /SOCIAL_IMAGE/);
   assert.match(seo, /og\.png/);
   assert.match(seo, /https:\/\/foremention\.com/);
   assert.match(seo, /alternates: \{ canonical \}/);
   assert.doesNotMatch(sitemap, /localhost/);
-  assert.match(sitemap, /\/insights\/ai-visibility-measurement/);
+  assert.match(sitemap, /\/recommendation-intelligence/);
+  assert.match(sitemap, /\/recommendation-record/);
+  assert.match(sitemap, /\/insights/);
+  assert.doesNotMatch(sitemap, /\/source-x-ray/);
   assert.match(robots, /OAI-SearchBot/);
   assert.match(robots, /ChatGPT-User/);
   assert.match(robots, /Claude-SearchBot/);
@@ -387,12 +395,14 @@ test("public insight content is original, sourced, and avoids ranking guarantees
     text("app/insights/ai-visibility-measurement/page.tsx"),
     text("app/insights/seo-geo-technical-checklist/page.tsx"),
   ]);
-  assert.match(hub, /AI visibility measurement/);
+  assert.match(hub, /Recommendation Intelligence Research/);
   assert.match(measurement, /Five evidence layers/);
   assert.match(measurement, /developers\.google\.com/);
-  assert.match(checklist, /OAI-SearchBot/);
-  assert.match(checklist, /help\.openai\.com/);
-  assert.match(checklist, /ranking cannot be guaranteed/);
+  assert.match(checklist, /llms\.txt is not needed for Google Search/i);
+  assert.match(checklist, /no requirement to chunk content/i);
+  assert.match(checklist, /Generative AI performance report/i);
+  assert.match(checklist, /developers\.google\.com/);
+  assert.doesNotMatch(checklist, /Source X-Ray|source-xray/i);
 });
 
 test("the public Source Map uses inspectable real-company evidence without inventing AI citations", async () => {

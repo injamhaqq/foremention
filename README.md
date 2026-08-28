@@ -1,28 +1,36 @@
 # Foremention
 
-Foremention is self-serve recommendation-intelligence infrastructure for B2B SaaS teams. It tracks the buyer questions people ask AI systems, which brands those systems recommend, the outside pages supporting those answers, competitor presence, and how the evidence changes over time.
+Foremention is recommendation-intelligence infrastructure for B2B software teams. It records the buyer questions people ask AI systems, which brands those systems recommend, the evidence returned with those answers, competitor context, human review state, and how genuinely comparable observations change over time.
 
-The product is software, not an agency service. Customers configure categories and prompts, run supported AI providers, inspect URL-level evidence, prioritize source opportunities, and monitor later observations inside their own workspace.
+The product is software, not an agency service. Teams define priority buyer questions, run supported AI providers, inspect Recommendation Records, review source evidence and uncertainty inside those records, compare later observations only when the measurement remains equivalent, and decide what to do next.
 
-## Product chain
+## Product architecture
 
-`buyer question -> AI engine -> recommended brand -> cited URL -> source influence -> competitor presence -> opportunity -> action -> citation change -> referral -> revenue`
+The primary signed-in product is deliberately constrained to five objects:
 
-Observed evidence, product assessments, and customer-supplied outcomes remain visibly separate. Foremention does not guarantee rankings, citations, editorial acceptance, traffic, leads, or revenue.
+`Attention -> Questions -> Records -> Comparisons -> Settings`
+
+Recommendation Record is the canonical object. Evidence inspection is part of the record, not a separate product surface.
+
+## Product truth chain
+
+`buyer question -> provider/model -> answer -> named/recommended brand -> returned reference when available -> distinct source -> retrievability -> evidence -> human review -> competitor context -> decision -> action -> comparable later measurement`
+
+Observed evidence, inference, automated processing, human review, customer decisions, later outcomes, and causal claims remain visibly separate. A returned reference does not prove that the source caused a recommendation. Foremention does not guarantee rankings, citations, editorial acceptance, traffic, leads, or revenue.
 
 ## Included
 
-- Public product website, Source Map explainer, pricing, methodology, honesty clause, sample report, comparisons, legal templates, contact, and Source Gap Check
-- Interactive recommendation journey and Source X-Ray
+- Public product website, Recommendation Intelligence and Recommendation Record explainers, methodology, research, legal/trust pages, contact, and legacy Source Gap intake
+- Recommendation Records with integrated returned-reference, retrievability, observed-evidence, review, limitation, and comparison-eligibility inspection
 - Supabase email/password authentication and organization-scoped row-level security
 - Credential-free, isolated seeded demo
-- Customer workspace for onboarding, prompts, runs, Source Map, opportunities, evidence, analytics, and settings
+- Customer workspace centered on Attention, Questions, Records, Comparisons, and Settings, with proven advanced tools retained behind secondary navigation
 - Foremention Agent Control Plane with recorded, organization-scoped execution telemetry for collection, mapping, measurement, and human review
 - Foremention Intelligence Loop for reviewed-evidence search, comparable run changes, explicit confidence checks, recorded cost, and one deterministic next action
-- Provider adapters for OpenAI, Gemini, Anthropic, Perplexity, and deterministic mock runs
+- Provider adapters for OpenAI, Gemini, Anthropic, Perplexity, Groq, Cloudflare Workers AI, and configured gateways, with deterministic mock runs
 - Inngest background-run orchestration
 - D1-backed public Source Gap intake for Sites deployments
-- Sitemap, robots rules, structured data, social preview artwork, responsive layouts, keyboard support, and reduced-motion behavior
+- Sitemap, robots rules, truthful structured data, social preview artwork, responsive layouts, keyboard support, and reduced-motion behavior
 
 ## Plans represented in the product
 
@@ -70,7 +78,7 @@ pnpm start:next
 
 1. Configure at least one supported provider key and an explicit model ID on the server.
 2. Configure Inngest event and signing keys for hosted jobs.
-3. Run representative prompts and verify provider/model labels, timestamps, raw evidence, citations, refusals, partial failures, and cost controls before allowing live customer runs.
+3. Run representative buyer questions and verify provider/model labels, timestamps, raw evidence, returned references, refusals, partial failures, and cost controls before allowing live customer runs.
 
 ### Payments
 
@@ -91,8 +99,8 @@ Connect a payment provider only after prices, refund terms, taxes, and the legal
 | `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_MODEL_VERSION` | Optional Groq Compound adapter with structured web-search citations |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Optional Anthropic adapter |
 | `PERPLEXITY_API_KEY`, `PERPLEXITY_MODEL` | Optional Perplexity adapter |
-| `CLOUDFLARE_MODEL` and `CLOUDFLARE_*_COST_*` | Optional Workers AI binding adapter; answer comparison only because this model does not return web citations |
-| `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_*_COST_*` | Optional explicit-model OpenRouter adapter; GLM 5.2 is low-cost rather than free and remains answer-only without returned web citations |
+| `CLOUDFLARE_MODEL` and `CLOUDFLARE_*_COST_*` | Optional Workers AI binding adapter; answer comparison only when the configured model does not return web citations |
+| `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_*_COST_*` | Optional explicit-model OpenRouter adapter; availability and cost depend on configured model |
 | `ZENMUX_API_KEY`, `ZENMUX_MODEL`, and `ZENMUX_*_COST_*` | Optional fixed-endpoint ZenMux gateway; unavailable until an explicit model and current cost rates are configured |
 | `OMNIROUTERS_API_KEY`, `OMNIROUTERS_MODEL`, and `OMNIROUTERS_*_COST_*` | Optional fixed-endpoint OmniRouters gateway; unavailable until an explicit model and current cost rates are configured |
 
@@ -118,12 +126,17 @@ docs/                    architecture, security, deployment, and QA
 worker/                  Cloudflare/Vinext entry point
 ```
 
+## Agent / automation harness
+
+Repository-level Claude Code guidance lives in `CLAUDE.md`. Shared project MCP servers live in `.mcp.json`; project hooks, skills, and specialist subagents live under `.claude/`. The harness is intentionally conservative: it protects sensitive paths, re-injects Foremention product truth at session start, keeps design/browser integrations project-scoped, and validates its configuration in GitHub Actions.
+
 ## Verification
 
 ```bash
 pnpm test
 pnpm lint
+pnpm typecheck
 pnpm build
 ```
 
-Before a public launch, also complete the deployed browser journeys, production Supabase/RLS test, provider evaluation, Inngest run, verified billing-webhook test, legal review, backup/restore drill, error monitoring, accessibility review, and real-device QA described in `docs/PRODUCTION-READINESS.md`.
+Before a public launch, also complete deployed browser journeys, production Supabase/RLS testing, provider evaluation, Inngest verification, any billing-webhook test required by active paid flows, legal review, backup/restore drills, error monitoring, accessibility review, responsive QA at 1440/1024/768/375/320, reduced-motion review, canonical-logo audit, SEO review, and real-device QA described in `docs/PRODUCTION-READINESS.md`.

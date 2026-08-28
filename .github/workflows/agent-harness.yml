@@ -1,0 +1,38 @@
+name: Agent Harness
+
+on:
+  pull_request:
+    paths:
+      - "CLAUDE.md"
+      - ".mcp.json"
+      - ".claude/**"
+      - "tests/agent-harness-contract.test.mjs"
+      - ".github/workflows/agent-harness.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "CLAUDE.md"
+      - ".mcp.json"
+      - ".claude/**"
+      - "tests/agent-harness-contract.test.mjs"
+      - ".github/workflows/agent-harness.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-agent-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # current v6
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # current v6
+        with:
+          node-version: "22.13.0"
+      - name: Validate agent harness contracts
+        run: node --test tests/agent-harness-contract.test.mjs

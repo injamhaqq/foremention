@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./product-polish.css";
-import "./accessibility-hardening.css";
 import "./public-trust-funnel.css";
 import "./evidence-standard.css";
 import "./evidence-standard-home.css";
@@ -10,6 +9,7 @@ import "./evidence-standard-auth-a11y.css";
 import "./canonical-brand.css";
 import "./registered-evidence.css";
 import "./registered-evidence-foundation.css";
+import "./accessibility-hardening.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
@@ -36,25 +36,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const structuredData = {
     "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        name: "Foremention",
-        url: "https://foremention.com",
-        email: "hello@foremention.com",
-        sameAs: [
-          "https://www.linkedin.com/company/foremention/",
-          "https://www.instagram.com/forementionhq/",
-        ],
-      },
-      {
-        "@type": "SoftwareApplication",
-        name: "Foremention",
-        url: "https://foremention.com/product",
-        applicationCategory: "BusinessApplication",
-        operatingSystem: "Web",
-        description: "Recommendation intelligence for B2B software: observed AI recommendations, returned-source records, human review, competitor context, and comparable later measurement.",
-      },
+    "@type": "Organization",
+    name: "Foremention",
+    url: "https://foremention.com",
+    email: "hello@foremention.com",
+    description: "Recommendation intelligence for B2B software.",
+    sameAs: [
+      "https://www.linkedin.com/company/foremention/",
+      "https://www.instagram.com/forementionhq/",
     ],
   };
   return <html lang="en" data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /></head><body><AuthHashRedirect /><SentryClient /><PostHogAnalytics /><PublicActivationAnalytics /><ContentsquareAnalytics />{children}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></body></html>;

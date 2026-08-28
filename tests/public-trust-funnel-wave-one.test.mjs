@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-test("standards uses a canonical public route and preserves legacy honesty links", async () => {
+test("methodology is the canonical public trust route while legacy standards remain unpromoted", async () => {
   const [standards, honesty, shell, sitemap] = await Promise.all([
     text("app/standards/page.tsx"),
     text("app/honesty/page.tsx"),
@@ -16,9 +16,10 @@ test("standards uses a canonical public route and preserves legacy honesty links
   assert.match(standards, /path:\s*["']\/standards["']/);
   assert.match(standards, /AI Visibility Evidence and Ethics Standards/);
   assert.match(honesty, /permanentRedirect\(["']\/standards["']\)/);
-  assert.match(shell, /["']\/standards["']/);
-  assert.doesNotMatch(shell, /["']\/honesty["']/);
-  assert.match(sitemap, /["']\/standards["']/);
+  assert.match(shell, /["']\/methodology["']/);
+  assert.doesNotMatch(shell, /["']\/(?:standards|honesty)["']/);
+  assert.match(sitemap, /["']\/methodology["']/);
+  assert.doesNotMatch(sitemap, /["']\/(?:standards|honesty)["']/);
 });
 
 test("free-beta structured data does not advertise inactive paid offers", async () => {

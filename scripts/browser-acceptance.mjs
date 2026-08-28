@@ -330,33 +330,47 @@ async function verifyAnalyticsOverlayRegression(page, profileName) {
   }
 }
 
-async function verifySourceXRay(page, profileName) {
+async function verifyRecommendationRecordEvidence(page, profileName) {
   await page.goto(new URL("/", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
   await page.waitForTimeout(250);
-  const xray = page.locator("#source-xray");
-  const stage = page.locator("#source-xray-stage");
-  if (!await visible(xray) || !await visible(stage)) {
-    recordFailure("Source X-Ray is not visibly rendered on the homepage.", { profile: profileName });
+
+  const record = page.locator("#recommendation-record");
+  if (!await visible(record)) {
+    recordFailure("Recommendation Record is not visibly rendered on the homepage.", { profile: profileName });
     return;
   }
-  await stage.scrollIntoViewIfNeeded();
-  await stage.focus();
-  const before = await stage.evaluate((element) => getComputedStyle(element).getPropertyValue("--xray-x").trim());
-  await page.keyboard.press("ArrowRight");
-  await page.waitForTimeout(100);
-  const after = await stage.evaluate((element) => getComputedStyle(element).getPropertyValue("--xray-x").trim());
-  if (!before || !after || before === after) {
-    recordFailure("Source X-Ray keyboard slider did not respond to ArrowRight.", { profile: profileName, before, after });
-  }
-  const beforeToggle = await stage.evaluate((element) => element.classList.contains("is-all"));
-  await page.keyboard.press("Enter");
-  await page.waitForTimeout(100);
-  const afterToggle = await stage.evaluate((element) => element.classList.contains("is-all"));
-  if (beforeToggle === afterToggle) recordFailure("Source X-Ray keyboard reveal did not respond to Enter.", { profile: profileName });
-  await page.keyboard.press("Enter").catch(() => {});
-}
 
+  const recordText = await record.innerText();
+  for (const token of ["LIVE RECORD / ILLUSTRATIVE", "ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) {
+    if (!recordText.includes(token)) {
+      recordFailure("Recommendation Record is missing a required inspectable evidence state.", { profile: profileName, token });
+    }
+  }
+
+  const foundation = page.locator(".registered-foundation");
+  const evidenceInspection = foundation.getByText("Evidence inspection", { exact: true });
+  if (!await visible(foundation) || !await visible(evidenceInspection)) {
+    recordFailure("Integrated evidence inspection is not visibly represented inside the Recommendation Record narrative.", { profile: profileName });
+  }
+
+  const retiredLabelCount = await page.getByText("Source X-Ray", { exact: true }).count();
+  if (retiredLabelCount > 0) {
+    recordFailure("Retired standalone Source X-Ray label regressed onto the homepage.", { profile: profileName, retiredLabelCount });
+  }
+
+  const exampleLink = page.locator('a[href="#recommendation-record"]').first();
+  if (await visible(exampleLink)) {
+    await exampleLink.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(100);
+    if (new URL(page.url()).hash !== "#recommendation-record") {
+      recordFailure("Recommendation Record keyboard anchor did not navigate to the record.", { profile: profileName, url: page.url() });
+    }
+  } else {
+    recordFailure("Recommendation Record example link is not keyboard reachable.", { profile: profileName });
+  }
+}
 async function verifyUnauthenticatedBoundary() {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -466,7 +480,7 @@ async function runPublicProfiles() {
       const observers = attachRuntimeObservers(page);
       for (const path of publicPaths) await auditPage({ page, observers, path, profileName: profile.name });
       await verifyAnalyticsOverlayRegression(page, profile.name);
-      if (profile.name !== "firefox-desktop") await verifySourceXRay(page, profile.name);
+      if (profile.name !== "firefox-desktop") await verifyRecommendationRecordEvidence(page, profile.name);
       await context.close();
     } catch (error) {
       recordFailure("Browser profile crashed.", { profile: profile.name, error: error instanceof Error ? error.message : String(error) });

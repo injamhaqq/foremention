@@ -20,10 +20,11 @@ test("public brand surfaces only publish verified social destinations", async ()
   assert.match(shell, /instagram\.com\/forementionhq/i);
 });
 
-test("homepage trust links go directly to the canonical standards route", async () => {
+test("homepage trust links go directly to canonical methodology and Recommendation Record routes", async () => {
   const home = await text("app/page.tsx");
-  assert.doesNotMatch(home, /href="\/honesty"/);
-  assert.match(home, /href="\/standards"/);
+  assert.doesNotMatch(home, /href="\/honesty"|href="\/standards"/);
+  assert.match(home, /href="\/methodology"/);
+  assert.match(home, /href="\/recommendation-record"/);
 });
 
 test("about page speaks to customers instead of exposing internal product-brief taxonomy", async () => {

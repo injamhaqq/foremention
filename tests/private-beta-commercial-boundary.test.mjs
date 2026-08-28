@@ -13,7 +13,7 @@ const firstWaveMerge = await readFile(new URL("../docs/FIRST-WAVE-MERGE.md", imp
 test("self-serve production remains explicitly free beta", () => {
   assert.match(entitlement, /plan text not null default 'free_beta'/);
   assert.match(entitlement, /check\s*\(\s*plan\s+in\s*\(\s*'free_beta'\s*\)\s*\)/);
-  assert.match(pricing, /Self-serve signup currently creates a controlled\s+free-beta workspace/);
+  assert.match(pricing, /Self-serve signup\s+currently creates a controlled private-beta workspace/);
   assert.match(pricing, /packaging under validation/i);
   assert.match(pricing, /Pricing to be confirmed/i);
   assert.match(pricing, /Creating a workspace does not charge a card or activate Core, Signal, or Intelligence/);

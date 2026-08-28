@@ -5,36 +5,37 @@ import { articleMetadata, SITE_URL } from "@/lib/seo";
 
 const path = "/insights/seo-geo-technical-checklist";
 const publishedTime = "2026-07-27T00:00:00Z";
+const modifiedTime = "2026-08-26T00:00:00Z";
 
 export const metadata = articleMetadata({
-  title: "2026 SEO and GEO Technical Checklist for AI Discovery",
+  title: "2026 Technical Search Checklist for AI Discovery",
   description:
-    "A practical 2026 checklist for crawlability, canonicals, sitemaps, structured data, internal links, OAI-SearchBot, Bing AI visibility, and honest measurement.",
+    "An August 2026 checklist for crawlability, canonicals, sitemaps, structured data, internal links, generative AI search access, Search Console measurement, and honest limitations.",
   path,
   publishedTime,
-  modifiedTime: publishedTime,
+  modifiedTime,
 });
 
 const checks = [
-  ["Crawl access", "Public pages return 200, robots rules allow intended crawlers, and login-only product routes stay blocked."],
-  ["Index signals", "Every indexable page has one production canonical, a unique title, a useful description, and no accidental noindex."],
-  ["Discovery", "The XML sitemap contains only preferred production URLs and uses honest last-modified dates."],
-  ["Content structure", "Important information exists as readable text with descriptive headings, links, tables, and evidence—not only animation or canvas."],
-  ["Structured data", "Organization, SoftwareApplication, Article, or Dataset markup matches what visitors can actually see."],
-  ["Internal links", "Every strategic page is reachable through descriptive links from an indexable page."],
-  ["AI search access", "OAI-SearchBot and search-engine crawlers can reach public content without WAF, CAPTCHA, or authentication blocks."],
-  ["Measurement", "Search Console, Bing Webmaster Tools, analytics, and verified answer collection remain separate data sources."],
-];
+  ["Crawl access", "Public pages return useful status codes, intended search crawlers can reach them, and login-only product routes stay blocked."],
+  ["Index signals", "Every indexable page has one production canonical, a unique useful title and description, and no accidental noindex."],
+  ["Discovery", "The XML sitemap contains preferred production URLs rather than every legacy or low-value route."],
+  ["Content structure", "Important information exists as readable text with descriptive headings, links, examples, and evidence—not only animation or canvas."],
+  ["Structured data", "Organization, Breadcrumb, Article, or other supported markup is used only when it truthfully matches visible page content and the relevant search feature."],
+  ["Internal links", "Every strategic page is reachable through descriptive links from another useful, indexable page."],
+  ["Generative AI search", "Apply foundational SEO and publish unique, non-commodity content; do not rely on AEO/GEO hacks, chunking, or llms.txt for Google Search visibility."],
+  ["Measurement", "Use Search Console, including the Generative AI performance report when available to the property, alongside analytics and Foremention recommendation observations as separate evidence layers."],
+] as const;
 
 export default function SeoGeoChecklistPage() {
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: "2026 SEO and GEO Technical Checklist for AI Discovery",
+    headline: "2026 Technical Search Checklist for AI Discovery",
     description:
-      "A technical and content checklist for traditional search and AI-assisted discovery.",
+      "A technical and content checklist for traditional search and generative AI search discovery.",
     datePublished: publishedTime,
-    dateModified: publishedTime,
+    dateModified: modifiedTime,
     mainEntityOfPage: `${SITE_URL}${path}`,
     author: { "@type": "Organization", name: "Foremention", url: SITE_URL },
     publisher: { "@type": "Organization", name: "Foremention", url: SITE_URL },
@@ -46,18 +47,18 @@ export default function SeoGeoChecklistPage() {
         <header className="longform-hero">
           <div className="shell longform-hero__inner">
             <div>
-              <span className="eyebrow eyebrow--on-ink">Technical checklist</span>
-              <h1>The 2026 SEO and GEO checklist for an AI-discoverable website.</h1>
+              <span className="eyebrow eyebrow--on-ink">Technical search checklist</span>
+              <h1>The 2026 technical search checklist for an AI-discoverable website.</h1>
               <p>
-                Traditional search and AI-assisted discovery share the same
-                foundation: crawlable pages, clear intent, useful evidence, consistent
-                entities, and measurement that does not overstate what happened.
+                Google&apos;s current guidance keeps the foundation familiar: crawlable and indexable
+                pages, useful non-commodity content, clear technical structure, good page experience,
+                and measurement that does not overstate what happened.
               </p>
             </div>
             <dl>
               <div><dt>Published</dt><dd>July 27, 2026</dd></div>
+              <div><dt>Updated</dt><dd>August 26, 2026</dd></div>
               <div><dt>Author</dt><dd>Foremention product research</dd></div>
-              <div><dt>Reading time</dt><dd>12 minutes</dd></div>
             </dl>
           </div>
         </header>
@@ -68,7 +69,7 @@ export default function SeoGeoChecklistPage() {
             <a href="#foundation">Shared foundation</a>
             <a href="#checklist">Technical checklist</a>
             <a href="#content">Content standard</a>
-            <a href="#crawlers">AI crawlers</a>
+            <a href="#generative">Generative AI search</a>
             <a href="#measurement">Measurement</a>
             <a href="#promotion">Off-page work</a>
           </aside>
@@ -76,25 +77,22 @@ export default function SeoGeoChecklistPage() {
           <div className="longform-body">
             <section id="foundation">
               <span className="eyebrow">Start here</span>
-              <h2>GEO is not a replacement for technical SEO.</h2>
+              <h2>For Google Search, generative AI optimization is still SEO.</h2>
               <p>
-                Google’s current guidance states that there are no special technical
-                requirements or unique schema types for appearing in AI Overviews or
-                AI Mode. Pages must first be indexable, eligible to show in Search,
-                available as text, internally discoverable, and useful to people.
+                Google&apos;s 2026 guidance says the best practices for SEO continue to apply to
+                generative AI features in Search. These experiences use the core Search index and
+                ranking systems, including retrieval-augmented generation and query fan-out.
               </p>
               <p>
-                That makes the correct order straightforward: repair crawl and index
-                signals, publish content that answers a real question, support claims
-                with evidence, make entities consistent, then measure where the page
-                appears. “AI optimization” cannot rescue a page that advertises the
-                wrong canonical origin or cannot be crawled.
+                The practical order is still: make the page crawlable and indexable, answer a real
+                user need with unique material, keep the technical structure clear, use structured
+                data only where it is supported and truthful, and measure the resulting search behavior.
               </p>
               <div className="answer-block">
                 <strong>Practical rule</strong>
                 <p>
-                  Build one technically sound, genuinely useful page for one clear
-                  intent. Do not generate dozens of near-duplicate keyword pages.
+                  Build a strong page for a real audience and a real intent. Do not manufacture
+                  dozens of thin pages for every possible query variation or model fan-out.
                 </p>
               </div>
             </section>
@@ -115,69 +113,57 @@ export default function SeoGeoChecklistPage() {
 
             <section id="content">
               <span className="eyebrow">On-page content</span>
-              <h2>Write for a decision, not a keyword counter.</h2>
+              <h2>Publish non-commodity information people would still want without the search engine.</h2>
               <p>
-                A useful page gives a direct answer, explains the method, shows the
-                evidence, names limitations, and helps the reader take a next step.
-                Descriptive titles and headings make that purpose easier for both
-                people and retrieval systems to understand.
+                Google&apos;s current generative AI search guide emphasizes valuable, unique,
+                people-first material rather than recycled summaries. For Foremention, that means
+                original methodology, recommendation evidence, buyer-question research, source
+                quality analysis, provider variability, and comparable measurement—not generic
+                “ten AI visibility tips” content.
               </p>
-              <h3>Use answer-first structure</h3>
+              <h3>Use structure for people first</h3>
               <p>
-                Put a concise definition or conclusion near the beginning, then
-                provide the depth needed to verify it. Tables, ordered steps, examples,
-                and dated references make complex information easier to inspect.
-              </p>
-              <h3>Show who produced the information</h3>
-              <p>
-                Use a real person or organization, a publication date, an update date,
-                and a clear About or methodology link. Do not invent an expert byline
-                to create authority.
+                Descriptive headings, paragraphs, examples, tables and clear internal links help
+                readers navigate complex information. There is no required “AI chunk” size and no
+                ideal page length for generative AI search.
               </p>
               <h3>Keep each URL distinct</h3>
               <p>
-                A product page, comparison page, definition, research report, and
-                implementation guide serve different intents. If two pages repeat the
-                same explanation, consolidate them instead of making them compete.
+                Product, Recommendation Intelligence, Recommendation Record, methodology and research
+                serve different intents. If two pages become near-duplicates,
+                consolidate instead of creating internal competition.
               </p>
             </section>
 
-            <section id="crawlers">
-              <span className="eyebrow">AI search access</span>
-              <h2>Allow the crawlers that support discovery.</h2>
+            <section id="generative">
+              <span className="eyebrow">Generative AI search</span>
+              <h2>Ignore the hacks Google explicitly says you do not need.</h2>
               <p>
-                OpenAI’s publisher guidance says public content can appear in ChatGPT
-                search and recommends allowing OAI-SearchBot. It also notes that
-                ranking cannot be guaranteed. The crawler must be able to reach the
-                page through robots rules, hosting, and any bot-protection layer.
+                Google says llms.txt is not needed for Google Search and neither helps nor harms
+                Search visibility or rankings. It also says there is no requirement to chunk content
+                into tiny pieces, rewrite everything only for AI systems, chase inauthentic mentions,
+                or add special AI-specific structured data.
               </p>
               <p>
-                The search crawler and the training crawler are separate policy
-                choices. OAI-SearchBot supports search discovery; GPTBot controls
-                potential training access. Record those choices explicitly rather
-                than assuming an `llms.txt` file creates visibility.
-              </p>
-              <p>
-                Google likewise states that no special AI file or AI-specific schema
-                is required for its AI search features. Standard crawl, index,
-                content, and structured-data practices remain the foundation.
+                Standard crawl and index controls remain the foundation. If a separate service uses
+                an AI-specific file or protocol, support it only for that concrete purpose rather than
+                treating it as a ranking mechanism.
               </p>
             </section>
 
             <section id="measurement">
               <span className="eyebrow">Measurement stack</span>
-              <h2>Connect the systems that own the truth.</h2>
+              <h2>Keep search data and recommendation observations separate.</h2>
               <ul>
-                <li><strong>Google Search Console:</strong> index coverage, queries, impressions, clicks, and search diagnostics.</li>
-                <li><strong>Bing Webmaster Tools:</strong> crawl and index data, IndexNow reporting, and supported AI citation activity.</li>
-                <li><strong>Analytics or Tag Manager:</strong> referral visits and approved conversion events.</li>
-                <li><strong>Answer collection:</strong> dated prompts, providers, responses, brands, and cited sources.</li>
-                <li><strong>CRM or billing:</strong> qualified pipeline and revenue events.</li>
+                <li><strong>Google Search Console:</strong> index diagnostics, queries, impressions, clicks, and—when available to the property—the Generative AI performance report.</li>
+                <li><strong>Analytics:</strong> referral visits and approved conversion events.</li>
+                <li><strong>Foremention Recommendation Records:</strong> dated buyer questions, provider/model context, answers, named vendors, returned references, retrievability and review state.</li>
+                <li><strong>CRM or billing:</strong> qualified pipeline and revenue only when a real integration supplies those events.</li>
               </ul>
               <p>
-                Keep these layers connected by URL and date, but do not fill missing
-                integrations with estimated customer metrics. A blank state is more
-                trustworthy than an attractive number with no source.
+                These layers can be connected by URL, date and approved identifiers, but missing
+                data must remain missing. Search impressions do not prove a recommendation caused a
+                visit, and recommendation movement does not prove an optimization caused the change.
               </p>
             </section>
 
@@ -185,28 +171,22 @@ export default function SeoGeoChecklistPage() {
               <span className="eyebrow">Off-page work</span>
               <h2>Authority cannot be installed with code.</h2>
               <p>
-                Technical SEO helps systems reach and interpret a page. It does not
-                create reputation. Off-page authority comes from useful original
-                research, earned references, legitimate editorial coverage,
-                partnerships, community participation, and customer evidence.
-              </p>
-              <p>
-                Avoid paid link schemes, fabricated reviews, undisclosed promotion,
-                and mass-produced posts. They damage the same trust signals the
-                product is supposed to measure.
+                Useful original research, legitimate editorial references, partnerships, community
+                participation and real customer evidence can build reputation. Fabricated reviews,
+                paid link schemes, undisclosed promotion and inauthentic mention campaigns undermine it.
               </p>
             </section>
 
             <footer className="article-sources">
               <h2>Primary references</h2>
               <ul>
+                <li><a href="https://developers.google.com/search/docs/fundamentals/ai-optimization-guide">Google Search Central: optimizing for generative AI features</a></li>
                 <li><a href="https://developers.google.com/search/docs/appearance/ai-features">Google Search Central: AI features and your website</a></li>
                 <li><a href="https://developers.google.com/search/docs/fundamentals/creating-helpful-content">Google Search Central: helpful, reliable, people-first content</a></li>
-                <li><a href="https://help.openai.com/en/articles/12627856">OpenAI: Publishers and Developers FAQ</a></li>
-                <li><a href="https://www.bing.com/webmasters/help/indexnow-0z209wby">Bing Webmaster Tools: IndexNow</a></li>
+                <li><a href="https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports">Google Search Central: Generative AI performance reports</a></li>
               </ul>
-              <Link className="button button--ink" href="/source-map">
-                Inspect Foremention’s live audit <Arrow />
+              <Link className="button button--ink" href="/recommendation-intelligence">
+                Explore Recommendation Intelligence <Arrow />
               </Link>
             </footer>
           </div>
