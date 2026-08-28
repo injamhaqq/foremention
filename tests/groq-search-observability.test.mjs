@@ -6,10 +6,11 @@ const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
 test("Groq web-search execution remains distinct from returned citations", async () => {
-  const [adapter, diagnostics, page, canary, envExample, workerConfig] = await Promise.all([
+  const [adapter, diagnostics, page, record, canary, envExample, workerConfig] = await Promise.all([
     text("lib/providers/groq.ts"),
     text("lib/provider-run-diagnostics.ts"),
     text("app/app/runs/[id]/page.tsx"),
+    text("components/recommendation-answer-record.tsx"),
     text("scripts/first-evidence-production-canary.mjs"),
     text(".env.example"),
     text("wrangler.jsonc"),
@@ -20,8 +21,6 @@ test("Groq web-search execution remains distinct from returned citations", async
   assert.match(adapter, /searchUsed/);
   assert.doesNotMatch(adapter, /searchUsed:\s*citations\.length\s*>\s*0/);
 
-  // Production proved Compound + tool_choice=required is rejected with HTTP 400.
-  // Use Groq's documented GPT-OSS Browser Search contract instead.
   assert.match(adapter, /tools:\s*\[\{\s*type:\s*"browser_search"\s*\}\]/);
   assert.match(adapter, /tool_choice:\s*"required"/);
   assert.match(adapter, /reasoning_effort:\s*"low"/);
@@ -39,8 +38,6 @@ test("Groq web-search execution remains distinct from returned citations", async
   assert.match(workerConfig, /"GROQ_INPUT_COST_PER_MILLION_USD":\s*"0\.075"/);
   assert.match(workerConfig, /"GROQ_OUTPUT_COST_PER_MILLION_USD":\s*"0\.30"/);
   assert.match(workerConfig, /"GROQ_REQUEST_COST_USD":\s*"0\.05"/);
-  // Production must deploy a global ceiling high enough for the conservative
-  // browser-search reservation while remaining no higher than Groq's $0.10 cap.
   assert.match(workerConfig, /"FOREMENTION_MAX_RUN_COST_USD":\s*"0\.10"/);
 
   assert.match(diagnostics, /raw_json/);
@@ -56,11 +53,12 @@ test("Groq web-search execution remains distinct from returned citations", async
   assert.doesNotMatch(diagnostics, /arguments|content|reasoning|snippet/i);
 
   assert.match(page, /loadProviderRunDiagnostics/);
-  assert.match(page, /data-provider-search-used/);
-  assert.match(page, /data-provider-search-result-count/);
-  assert.match(page, /structured search-result count was not recorded/i);
-  assert.match(page, /search execution and returned citations are separate facts/i);
-  assert.doesNotMatch(page, /raw_json|raw_response/);
+  assert.match(page, /providerDiagnosticsByAnswer/);
+  assert.match(record, /data-provider-search-used/);
+  assert.match(record, /data-provider-search-result-count/);
+  assert.match(record, /structured search-result count was not recorded/i);
+  assert.match(record, /search execution and returned citations are separate facts/i);
+  assert.doesNotMatch(record, /raw_json|raw_response/);
 
   assert.match(canary, /providerSearchUsed/);
   assert.match(canary, /providerSearchResultCount/);
