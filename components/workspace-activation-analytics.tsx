@@ -20,7 +20,7 @@ function captureOncePerSession(key: string, event: ProductAnalyticsEventName, pr
 function entrySurface(pathname: string) {
   if (pathname === "/app/onboarding") return "onboarding";
   if (pathname.startsWith("/app/runs")) return "ai_results";
-  if (pathname.startsWith("/app/sources") || pathname === "/app/source-map") return "sources";
+  if (pathname === "/app/source-map") return "sources";
   return "workspace";
 }
 
@@ -53,10 +53,6 @@ export function WorkspaceActivationAnalytics({ demo }: { demo: boolean }) {
         window.cancelAnimationFrame(firstFrame);
         if (secondFrame) window.cancelAnimationFrame(secondFrame);
       };
-    }
-
-    if (/^\/app\/sources\/[^/]+$/.test(pathname)) {
-      captureOncePerSession(`source-xray:${pathname}`, "source_xray_viewed");
     }
   }, [demo, pathname]);
 
