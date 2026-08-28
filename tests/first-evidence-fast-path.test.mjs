@@ -24,16 +24,23 @@ test("completed onboarding collection opens the exact first-evidence run instead
   assert.doesNotMatch(onboarding, /window\.location\.assign\("\/app"\)/);
 });
 
-test("run detail keeps provider citations intact and links only its own finalized mapped pages into Source X-Ray", () => {
+test("run detail keeps provider citations intact and contains only its own finalized mapped evidence inside Recommendation Record", () => {
   const page = read("app/app/runs/[id]/page.tsx");
+  const record = read("components/recommendation-answer-record.tsx");
+  const evidence = read("components/recommendation-source-evidence.tsx");
   const matcher = read("lib/source-xray-link.ts");
 
   assert.match(page, /loadTruthfulSourceMap\(viewer, \{ runId: run\.id \}\)/);
   assert.match(page, /\["complete", "partial"\]\.includes\(run\.status\)/);
-  assert.match(page, /run\.status === "review" \? null : findSourceXrayTarget\(citation\.url, sourceMap\)/);
-  assert.match(page, /href=\{citation\.url\} target="_blank" rel="noreferrer"/);
-  assert.match(page, /href=\{`\/app\/sources\/\$\{sourceTarget\.id\}`\}/);
-  assert.match(page, /Inspect this citation in Source X-Ray/);
+  assert.match(page, /sourceMap=\{sourceMap\}/);
+  assert.match(record, /reviewMode \? null : findSourceXrayTarget\(citation\.url, sourceMap\)/);
+  assert.match(record, /href=\{citation\.url\} target="_blank" rel="noreferrer"/);
+  assert.match(record, /canonical-contained-evidence/);
+  assert.match(record, /Evidence inspection/);
+  assert.match(record, /RecommendationSourceEvidence/);
+  assert.match(evidence, /SourceLiveInspector/);
+  assert.match(evidence, /SourceReviewForm/);
+  assert.doesNotMatch(`${page}\n${record}\n${evidence}`, /href=\{`\/app\/sources|Source X-Ray/i);
   assert.match(page, /Approve the run only when they match what the AI system actually returned/);
 
   assert.match(matcher, /new URL\(value\)/);
@@ -59,7 +66,8 @@ test("first-evidence changes do not introduce a second data or orchestration sys
   const sources = [
     read("components/onboarding-wizard.tsx"),
     read("app/app/runs/[id]/page.tsx"),
-    read("lib/source-xray-link.ts"),
+    read("components/recommendation-answer-record.tsx"),
+    read("components/recommendation-source-evidence.tsx"),
     read("components/source-review-form.tsx"),
   ].join("\n");
 
