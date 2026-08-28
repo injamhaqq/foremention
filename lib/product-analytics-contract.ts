@@ -23,9 +23,12 @@ export const PRODUCT_ANALYTICS_EVENTS = [
   "workflow_failed",
   "ai_result_viewed",
   "citation_result_viewed",
+  "recommendation_record_viewed",
   "source_map_opened",
-  "source_xray_viewed",
-  "source_xray_reviewed",
+  "evidence_inspection_opened",
+  "evidence_review_completed",
+  "comparison_viewed",
+  "comparison_eligibility_observed",
   "decision_insight_reached",
   "performance_observed",
 ] as const;
@@ -165,6 +168,9 @@ function normalizeLegacyEvent(event: string, input: Record<string, unknown>): No
     event: "decision_insight_reached",
     input: { insight_type: "actionable_source_gap" },
   };
+  // Preserve telemetry continuity without emitting retired Source X-Ray event names.
+  if (event === "source_xray_viewed") return { event: "evidence_inspection_opened", input };
+  if (event === "source_xray_reviewed") return { event: "evidence_review_completed", input };
   return { event, input };
 }
 
@@ -186,8 +192,10 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
     case "buyer_question_updated":
     case "ai_result_viewed":
     case "citation_result_viewed":
+    case "recommendation_record_viewed":
     case "source_map_opened":
-    case "source_xray_viewed":
+    case "evidence_inspection_opened":
+    case "comparison_viewed":
       break;
     case "score_completed":
       addCountBucket(properties, "question_count_bucket", normalizedInput.question_count);
@@ -239,11 +247,14 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
       addEnum(properties, "workflow_stage", normalizedInput.workflow_stage, workflowStages);
       addEnum(properties, "provider", normalizedInput.provider, providers);
       break;
-    case "source_xray_reviewed":
+    case "evidence_review_completed":
       addBoolean(properties, "brand_present", normalizedInput.brand_present);
       addEnum(properties, "crawler_access", normalizedInput.crawler_access, crawlerAccess);
       addEnum(properties, "entry_route", normalizedInput.entry_route, entryRoutes);
       addBoolean(properties, "decision_ready", normalizedInput.decision_ready);
+      break;
+    case "comparison_eligibility_observed":
+      addBoolean(properties, "eligible", normalizedInput.eligible);
       break;
     case "decision_insight_reached":
       addEnum(properties, "insight_type", normalizedInput.insight_type, insightTypes);
