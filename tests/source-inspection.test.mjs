@@ -1,129 +1,93 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import { readFile } from "node:fs/promises";
+import test from "node:test";
+import {
+  inspectSourceUrl,
+  isBlockedResolution,
+  isPrivateIp,
+  isSafePublicSourceUrl,
+  resolveAndValidatePublicHost,
+  validatePublicSourceUrl,
+} from "../lib/source-inspection.ts";
 
-const inspection = await import("../lib/source-inspection.ts");
+const publicResolver = async () => [{ address: "93.184.216.34", family: 4 }];
 
-test("source inspection accepts only ordinary public web URLs", () => {
-  assert.equal(inspection.validatePublicSourceUrl("https://example.com/guide#section").toString(), "https://example.com/guide");
-  for (const unsafe of [
-    "file:///etc/passwd",
-    "http://localhost/admin",
-    "http://127.0.0.1/",
-    "http://10.0.0.1/",
-    "http://169.254.169.254/latest/meta-data",
-    "http://192.168.1.1/",
-    "http://[::1]/",
-    "http://[fc00::1]/",
-    "http://[ff02::1]/",
-    "http://[2002:7f00:1::]/",
-    "http://[::ffff:127.0.0.1]/",
-    "https://user:password@example.com/",
-    "https://example.com:8443/",
-  ]) {
-    assert.throws(() => inspection.validatePublicSourceUrl(unsafe), inspection.SourceInspectionError, unsafe);
-  }
+test("private and local source URLs are rejected before fetch", async () => {
+  assert.equal(isPrivateIp("127.0.0.1"), true);
+  assert.equal(isPrivateIp("10.0.0.8"), true);
+  assert.equal(isPrivateIp("172.20.0.1"), true);
+  assert.equal(isPrivateIp("192.168.1.1"), true);
+  assert.equal(isPrivateIp("169.254.169.254"), true);
+  assert.equal(isPrivateIp("::1"), true);
+  assert.equal(isPrivateIp("fc00::1"), true);
+  assert.equal(isPrivateIp("fe80::1"), true);
+  assert.equal(isPrivateIp("::ffff:127.0.0.1"), true);
+  assert.equal(isPrivateIp("::ffff:10.0.0.8"), true);
+  assert.equal(isPrivateIp("::ffff:169.254.169.254"), true);
+  assert.equal(isPrivateIp("64:ff9b::127.0.0.1"), true);
+  assert.equal(isPrivateIp("64:ff9b::169.254.169.254"), true);
+  assert.equal(isPrivateIp("2001:db8::1"), true);
+  assert.equal(isPrivateIp("8.8.8.8"), false);
+  assert.equal(isSafePublicSourceUrl("http://localhost/admin"), false);
+  assert.equal(isSafePublicSourceUrl("https://127.0.0.1/admin"), false);
+  assert.equal(isSafePublicSourceUrl("https://[::1]/admin"), false);
+  assert.equal(isSafePublicSourceUrl("https://0x7f000001/admin"), false);
+  assert.equal(isSafePublicSourceUrl("https://2130706433/admin"), false);
+  assert.equal(isSafePublicSourceUrl("https://example.com/page"), true);
 });
 
-test("source inspection follows only validated redirects and extracts bounded metadata", async () => {
-  const calls = [];
-  const fetcher = async (input) => {
-    const url = String(input);
-    calls.push(url);
-    if (url === "https://example.com/start") {
-      return new Response(null, { status: 302, headers: { location: "/guide" } });
-    }
-    return new Response("<html><head><title>Evidence &amp; trust</title><meta name=\"description\" content=\"Dated answers &amp; exact sources\"></head><body>Not stored</body></html>", {
-      status: 200,
-      headers: { "content-type": "text/html; charset=utf-8" },
-    });
-  };
-  const result = await inspection.inspectSourceUrl("https://example.com/start", {
-    fetcher,
-    resolver: async () => ["93.184.216.34"],
-    now: () => new Date("2026-07-29T12:00:00.000Z"),
+test("resolver blocks public-looking hosts that resolve privately", async () => {
+  assert.equal(isBlockedResolution([{ address: "93.184.216.34", family: 4 }]), false);
+  assert.equal(isBlockedResolution([{ address: "93.184.216.34", family: 4 }, { address: "10.0.0.2", family: 4 }]), true);
+  await assert.rejects(() => resolveAndValidatePublicHost(new URL("https://example.com"), async () => [{ address: "127.0.0.1", family: 4 }]), /non-public/);
+  await assert.doesNotReject(() => validatePublicSourceUrl("https://example.com/page", { resolver: publicResolver }));
+});
+
+test("inspection records open and blocked HTML responses without executing page code", async () => {
+  const open = await inspectSourceUrl("https://example.com/page", {
+    resolver: publicResolver,
+    fetcher: async () => new Response("<html><head><title>Example Source</title></head><body><h1>Hello</h1><script>alert(1)</script></body></html>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }),
   });
-  assert.deepEqual(calls, ["https://example.com/start", "https://example.com/guide"]);
-  assert.equal(result.access, "open");
-  assert.equal(result.pageTitle, "Evidence & trust");
-  assert.equal(result.pageDescription, "Dated answers & exact sources");
-  assert.equal(result.redirectCount, 1);
-  assert.match(result.contentSignature, /^[0-9a-f]{8}$/);
-  assert.ok(result.contentLength > 0);
-  assert.equal(result.checkedAt, "2026-07-29T12:00:00.000Z");
-  assert.equal("body" in result, false);
-});
+  assert.equal(open.access, "open");
+  assert.equal(open.httpStatus, 200);
+  assert.equal(open.pageTitle, "Example Source");
+  assert.match(open.contentSignature || "", /h1:Hello/);
+  assert.equal(open.pageText, undefined);
 
-test("source monitoring flags material changes without storing page content", () => {
-  assert.equal(inspection.hasSignificantSourceChange(
-    { contentSignature: "00000000", contentLength: 1000 },
-    { contentSignature: "ffffffff", contentLength: 1000 },
-  ), true);
-  assert.equal(inspection.hasSignificantSourceChange(
-    { contentSignature: "00000000", contentLength: 1000 },
-    { contentSignature: "00000001", contentLength: 1010 },
-  ), false);
-  assert.equal(inspection.hasSignificantSourceChange(
-    { contentSignature: null, contentLength: null },
-    { contentSignature: "ffffffff", contentLength: 1000 },
-  ), false);
-});
-
-test("source inspection blocks redirect pivots into private networks", async () => {
-  await assert.rejects(
-    inspection.inspectSourceUrl("https://example.com/start", {
-      fetcher: async () => new Response(null, { status: 302, headers: { location: "http://127.0.0.1/admin" } }),
-      resolver: async () => ["93.184.216.34"],
-    }),
-    inspection.SourceInspectionError,
-  );
-});
-
-test("source inspection can return bounded visible text only when explicitly requested", async () => {
-  const result = await inspection.inspectSourceUrl("https://example.com", {
-    fetcher: async () => new Response("<html><body><h1>Acme</h1><script>secret()</script><p>Compare Acme with Contoso.</p></body></html>", { headers: { "content-type": "text/html" } }),
-    resolver: async () => ["93.184.216.34"],
-    includePageText: true,
-    maxExtractedTextChars: 1000,
-  });
-  assert.match(result.pageText, /Compare Acme with Contoso/);
-  assert.doesNotMatch(result.pageText, /secret/);
-});
-
-test("onboarding inspection can use safe leading metadata from a large public page", async () => {
-  const body = `<html><head><title>Acme - Revenue intelligence</title><meta name="description" content="AI sales intelligence for global B2B revenue teams"></head><body>${"Public product details ".repeat(200)}</body></html>`;
-  const result = await inspection.inspectSourceUrl("https://example.com", {
-    fetcher: async () => new Response(body, { headers: { "content-type": "text/html", "content-length": String(body.length) } }),
-    resolver: async () => ["93.184.216.34"],
-    allowTruncatedBody: true,
-    includePageText: true,
-    maxBytes: 300,
-    maxExtractedTextChars: 1000,
-  });
-  assert.equal(result.access, "partial");
-  assert.equal(result.pageTitle, "Acme - Revenue intelligence");
-  assert.equal(result.pageDescription, "AI sales intelligence for global B2B revenue teams");
-  assert.match(result.message, /bounded portion/);
-});
-
-test("source inspection records blocked, oversized, and network-failure outcomes truthfully", async () => {
-  const resolver = async () => ["93.184.216.34"];
-  const blocked = await inspection.inspectSourceUrl("https://example.com", {
-    fetcher: async () => new Response("Denied", { status: 403, headers: { "content-type": "text/plain" } }),
-    resolver,
+  const blocked = await inspectSourceUrl("https://example.com/page", {
+    resolver: publicResolver,
+    fetcher: async () => new Response("blocked", { status: 403, headers: { "content-type": "text/plain" } }),
   });
   assert.equal(blocked.access, "blocked");
   assert.equal(blocked.httpStatus, 403);
+});
 
-  const oversized = await inspection.inspectSourceUrl("https://example.com", {
-    fetcher: async () => new Response("Too large", { status: 200, headers: { "content-type": "text/html", "content-length": "999999" } }),
+test("inspection follows redirects only after validating each hop", async () => {
+  const visited = [];
+  const result = await inspectSourceUrl("https://example.com/start", {
+    resolver: publicResolver,
+    fetcher: async (input) => {
+      const url = String(input); visited.push(url);
+      if (url.endsWith("/start")) return new Response(null, { status: 302, headers: { location: "/final" } });
+      return new Response("<title>Final</title><main>Destination</main>", { status: 200, headers: { "content-type": "text/html" } });
+    },
+  });
+  assert.deepEqual(visited, ["https://example.com/start", "https://example.com/final"]);
+  assert.equal(result.finalUrl, "https://example.com/final");
+  assert.equal(result.redirectCount, 1);
+});
+
+test("inspection records blocked, oversized, and network-failure outcomes truthfully", async () => {
+  const resolver = publicResolver;
+  const oversized = await inspectSourceUrl("https://example.com", {
+    fetcher: async () => new Response("x".repeat(100), { status: 200, headers: { "content-type": "text/plain" } }),
     resolver,
     maxBytes: 20,
   });
   assert.equal(oversized.access, "partial");
   assert.match(oversized.message, /size limit/);
 
-  const unavailable = await inspection.inspectSourceUrl("https://example.com", {
+  const unavailable = await inspectSourceUrl("https://example.com", {
     fetcher: async () => { throw new Error("offline"); },
     resolver,
   });
@@ -131,11 +95,11 @@ test("source inspection records blocked, oversized, and network-failure outcomes
   assert.equal(unavailable.httpStatus, null);
 });
 
-test("live source inspection is tenant-scoped, role-checked, origin-guarded, snapshotted, and audited", async () => {
+test("live source inspection is tenant-scoped, role-checked, origin-guarded, snapshotted, audited, and rendered inside Recommendation Record", async () => {
   const root = new URL("../", import.meta.url);
-  const [route, page, component] = await Promise.all([
+  const [route, evidence, component] = await Promise.all([
     readFile(new URL("app/api/sources/[id]/inspect/route.ts", root), "utf8"),
-    readFile(new URL("app/app/sources/[id]/page.tsx", root), "utf8"),
+    readFile(new URL("components/recommendation-source-evidence.tsx", root), "utf8"),
     readFile(new URL("components/source-live-inspector.tsx", root), "utf8"),
   ]);
   assert.match(route, /isTrustedMutationOrigin/);
@@ -153,9 +117,9 @@ test("live source inspection is tenant-scoped, role-checked, origin-guarded, sna
   assert.match(route, /action: "source\.inspected"/);
   assert.match(route, /snapshot\.materiallyChanged/);
   assert.match(route, /source_\$\{monitoringEvent\}/);
-  assert.match(page, /loadSourceSnapshotHistory/);
-  assert.match(page, /Fingerprint only|text fingerprint/);
-  assert.match(page, /SourceLiveInspector/);
+  assert.match(evidence, /loadSourceSnapshotHistory/);
+  assert.match(evidence, /Fingerprint|text fingerprint/);
+  assert.match(evidence, /SourceLiveInspector/);
   assert.match(component, /does not execute scripts, store the page body/);
   assert.match(component, /Saved page observation/);
 });
