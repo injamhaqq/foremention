@@ -14,8 +14,9 @@ test("credibility scoring uses observed signals and exposes missing evidence", a
   assert.match(source, /Math\.min\(100, score\)/);
 });
 
-test("source page labels heuristic limits", async () => {
-  const page = await readFile(new URL("../app/app/sources/[id]/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /not a third-party domain-authority score/);
-  assert.match(page, /Still unknown/);
+test("contained Recommendation Record evidence labels heuristic limits", async () => {
+  const evidence = await readFile(new URL("../components/recommendation-source-evidence.tsx", import.meta.url), "utf8");
+  assert.match(evidence, /not a third-party domain-authority score/);
+  assert.match(evidence, /Still unknown/);
+  assert.match(evidence, /estimateSourceCredibility/);
 });
