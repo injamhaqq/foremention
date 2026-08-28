@@ -12,7 +12,6 @@ function captureOncePerSession(key: string, event: ProductAnalyticsEventName, pr
     captureProductEvent(event, properties);
     window.sessionStorage.setItem(storageKey, "1");
   } catch {
-    // Product analytics must never break the workspace when browser storage is unavailable.
     captureProductEvent(event, properties);
   }
 }
@@ -40,6 +39,7 @@ export function WorkspaceActivationAnalytics({ demo }: { demo: boolean }) {
 
     const runDetail = /^\/app\/runs\/(?!compare(?:\/|$))[^/]+$/.test(pathname);
     if (runDetail) {
+      captureOncePerSession(`recommendation-record:${pathname}`, "recommendation_record_viewed");
       let secondFrame = 0;
       const firstFrame = window.requestAnimationFrame(() => {
         secondFrame = window.requestAnimationFrame(() => {
