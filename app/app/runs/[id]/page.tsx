@@ -64,7 +64,7 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
     {firstEvidence && <section className="panel canonical-first-evidence">
       <span className="eyebrow">Your first real evidence</span>
       <h2>Read the exact AI answer, then inspect its evidence here.</h2>
-      <p>{run.status === "review" ? "Review the recorded answer and every returned citation below. Approve the run only when they match what the AI system actually returned. Evidence inspection stays inside this Recommendation Record." : sourceMap.length ? "This finalized Recommendation Record has mapped source evidence attached to its returned citations. Expand Evidence inspection under a citation to check reachability and save explicit human review without leaving the record." : "This collection is recorded. When no run-scoped mapped source is available, keep the provider answer and returned citation as the evidence boundary rather than borrowing another collection's source record."}</p>
+      <p>{run.status === "review" ? "Review the recorded answer and every returned citation below. Approve the run only when they match what the AI system actually returned. Evidence inspection stays inside this Recommendation Record." : sourceMap.length ? "This finalized Recommendation Record has mapped source evidence attached to its returned citations. Expand Evidence inspection under a citation to check reachability, saved page observations, credibility limits, comments, and explicit human review without leaving the record." : "This collection is recorded. When no run-scoped mapped source is available, keep the provider answer and returned citation as the evidence boundary rather than borrowing another collection's source record."}</p>
       <ol className="record-steps"><li>Read the exact buyer question and provider answer.</li><li>Check the provider-returned citation without changing it.</li><li>Inspect mapped source evidence inside this Recommendation Record when available.</li><li>Keep automated retrieval observations separate from human review before acting.</li></ol>
     </section>}
 
@@ -75,6 +75,7 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
     <div className="answer-stack canonical-record-stack">
       {answers.length ? answers.map((answer) => <RecommendationAnswerRecord
         key={answer.id}
+        viewer={viewer}
         answer={answer}
         diagnostics={providerDiagnosticsByAnswer.get(answer.id)}
         sourceMap={sourceMap}
