@@ -2,31 +2,46 @@
 
 import { CanonicalSignalField } from "@/components/canonical-signal-field";
 
+type PillarIcon = "register" | "prove" | "prepare";
+
 const pillars = [
-  ["01", "Register", "Capture signals as inspectable records."],
-  ["02", "Prove", "Verify provenance, retrieval and review."],
-  ["03", "Prepare", "Make decisions with visible uncertainty."],
-] as const;
+  ["register", "Register", "Capture signals as immutable records."],
+  ["prove", "Prove", "Verify provenance with integrity at every step."],
+  ["prepare", "Prepare", "Make confident decisions with real evidence."],
+] as const satisfies ReadonlyArray<readonly [PillarIcon, string, string]>;
+
+function PillarIcon({ type }: { type: PillarIcon }) {
+  if (type === "register") {
+    return <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12" /><circle cx="16" cy="16" r="7" /><circle className="is-fill" cx="16" cy="16" r="2" /><path d="M22.5 9.5 28 4M24 4h4v4" /></svg>;
+  }
+  if (type === "prove") {
+    return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5 25 7v7.2c0 6.4-3.8 11.2-9 14.3-5.2-3.1-9-7.9-9-14.3V7l9-3.5Z" /><path d="m11.5 16 3 3 6-7" /></svg>;
+  }
+  return <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12.5" /><path d="m10.5 16.2 3.7 3.8 7.7-8.1" /></svg>;
+}
 
 export function MissingAnswerExperience() {
   return <div className="canonical-home shell">
-    <div className="canonical-home__hero">
+    <div className="canonical-home__hero canonical-home__hero--reference">
       <div className="canonical-home__copy">
         <span className="canonical-kicker">THE FOREMENTION STANDARD</span>
-        <h1>Register. Prove. Prepare.</h1>
-        <p className="canonical-home__descriptor">Recommendation intelligence for B2B software.</p>
-        <p className="canonical-home__lede">Record the AI answers buyers see, preserve returned evidence, inspect what is actually retrievable and reviewed, then compare later only when the measurement remains equivalent.</p>
+        <h1 aria-label="Register. Prove. Prepare.">
+          <span>Register<span className="canonical-home__dot">.</span></span>{" "}
+          <span>Prove<span className="canonical-home__dot">.</span></span>{" "}
+          <span>Prepare<span className="canonical-home__dot">.</span></span>
+        </h1>
+        <p className="canonical-home__descriptor canonical-home__descriptor--reference">The trusted foundation for recommendation intelligence<br className="canonical-home__descriptor-break" /> in B2B software.</p>
 
-        <div className="canonical-home__pillars" aria-label="Register, Prove, Prepare">
-          {pillars.map(([number, title, body]) => <article key={title}>
-            <span>{number}</span>
+        <div className="canonical-home__pillars canonical-home__pillars--reference" aria-label="Register, Prove, Prepare">
+          {pillars.map(([icon, title, body]) => <article key={title}>
+            <PillarIcon type={icon} />
             <div><strong>{title}</strong><p>{body}</p></div>
           </article>)}
         </div>
 
-        <div className="canonical-home__actions">
+        <div className="canonical-home__actions canonical-home__actions--reference">
           <a className="canonical-button canonical-button--primary" href="/contact">Request a demo <span aria-hidden="true">→</span></a>
-          <a className="canonical-button canonical-button--secondary" href="#recommendation-record">View overview</a>
+          <a className="canonical-button canonical-button--secondary canonical-button--overview" href="#recommendation-record"><span aria-hidden="true">▷</span> View overview</a>
         </div>
       </div>
 
