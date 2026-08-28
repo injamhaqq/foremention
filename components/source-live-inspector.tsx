@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
+import { captureProductEvent } from "@/lib/product-analytics";
 import type { SourceCrawlerAccess, SourceInspectionResult } from "@/lib/source-inspection";
 import type { SourceSnapshotChangeState } from "@/lib/source-snapshots";
 
@@ -35,6 +36,7 @@ export function SourceLiveInspector({ entryId, demo, canInspect }: { entryId: st
   async function inspect() {
     setBusy(true);
     setMessage("");
+    if (!demo) captureProductEvent("evidence_inspection_opened");
     try {
       const response = await fetch(`/api/sources/${entryId}/inspect`, { method: "POST" });
       const result = await response.json() as { data?: MonitoredInspection; error?: string };
