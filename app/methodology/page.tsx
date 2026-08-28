@@ -16,7 +16,7 @@ const steps = [
   ["02", "Record the provider observation", "Store the provider/model context, collection timestamp, observed answer, named or recommended brands, and returned references when the provider supplies them."],
   ["03", "Separate returned references from distinct sources", "Preserve what the provider returned, normalize source destinations carefully, deduplicate distinct sources without collapsing genuinely different pages, and keep missing references missing."],
   ["04", "Test retrievability", "Record whether each returned destination can actually be retrieved. Retrieval is an observed state; it is not the same as relevance, human review, or causal influence."],
-  ["05", "Inspect the evidence", "Source X-Ray distinguishes what was returned, what was retrieved, what evidence was observed, what a human reviewed, and what remains uncertain."],
+  ["05", "Inspect the evidence", "Evidence inspection inside the Recommendation Record distinguishes what was returned, what was retrieved, what evidence was observed, what a human reviewed, and what remains uncertain."],
   ["06", "Keep causal restraint explicit", "A returned source can accompany an answer without Foremention claiming that the source caused the recommendation. The product preserves that boundary in the record and the interface."],
   ["07", "Review before stronger conclusions", "Human review can accept, reject, or leave evidence pending. Insufficient, contradictory, unavailable, and unknown states remain visible instead of becoming a reassuring composite score."],
   ["08", "Compare only equivalent later observations", "A later observation is aligned only when the question version, provider context, collection protocol and other material measurement conditions are equivalent. Otherwise it is marked not comparable."],
@@ -35,7 +35,7 @@ export default function MethodologyPage() {
           cannot quietly impersonate another.
         </p>
         <div className="page-hero__actions">
-          <Link className="button" href="/source-x-ray">Explore Source X-Ray <Arrow /></Link>
+          <Link className="button" href="/recommendation-record">Explore evidence inspection <Arrow /></Link>
           <Link className="text-link text-link--inverse" href="/recommendation-record">Recommendation Record <Arrow /></Link>
         </div>
       </div>

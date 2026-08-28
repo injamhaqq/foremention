@@ -45,14 +45,14 @@ test("browser tooling is pinned and production secrets are confined to trusted a
 
 test("public acceptance covers the core conversion surfaces and product regressions", () => {
   for (const path of ["/", "/product", "/pricing", "/score", "/prompt-check", "/login", "/signup"]) {
-    assert.match(runner, new RegExp(`"${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
+    assert.ok(runner.includes('"' + path + '"'));
   }
   assert.match(runner, /\.analytics-consent/);
   assert.match(runner, /Help improve Foremention/);
-  assert.match(runner, /#source-xray/);
-  assert.match(runner, /#source-xray-stage/);
-  assert.match(runner, /ArrowRight/);
-  assert.match(runner, /keyboard reveal did not respond to Enter/);
+  assert.match(runner, /verifyRecommendationRecordEvidence/);
+  assert.match(runner, /#recommendation-record/);
+  assert.match(runner, /Recommendation Record keyboard anchor did not navigate to the record/);
+  assert.doesNotMatch(runner, /#source-xray|#source-xray-stage|verifySourceXRay/);
   assert.match(runner, /Horizontal viewport overflow detected/);
   assert.match(runner, /Uncaught browser page error detected/);
   assert.match(runner, /Browser console error detected/);

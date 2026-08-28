@@ -119,8 +119,8 @@ export default function InsightsPage() {
             <Link className="button button--ink" href="/methodology">
               Read the methodology <Arrow />
             </Link>
-            <Link className="text-link" href="/source-x-ray">
-              Explore Source X-Ray <Arrow />
+            <Link className="text-link" href="/recommendation-record">
+              Explore the Recommendation Record <Arrow />
             </Link>
           </div>
         </div>

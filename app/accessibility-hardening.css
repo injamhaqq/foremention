@@ -32,3 +32,53 @@
     padding: 14px;
   }
 }
+
+/* Registered Evidence final contrast guardrails.
+   This stylesheet is intentionally imported last so later theme aliases cannot
+   leak dark-surface foregrounds onto warm/light inspection surfaces. */
+.registered-evidence-shell .page-hero:not(.page-hero--ink) h1,
+.registered-evidence-shell .section--paper .section-heading h2,
+.registered-evidence-shell .section--paper .system-grid h2,
+.registered-evidence-shell .pricing-card:not(.pricing-card--lead) h2,
+.registered-evidence-shell .pricing-card:not(.pricing-card--lead) .price strong,
+.registered-evidence-shell .pricing-activation > strong,
+.registered-evidence-shell .pricing-shared > article > h3 {
+  color: var(--re-ink);
+}
+
+.registered-evidence-shell .page-hero:not(.page-hero--ink) .narrow-heading > p,
+.registered-evidence-shell .section--paper .section-heading > p,
+.registered-evidence-shell .section--paper .system-grid > article > span,
+.registered-evidence-shell .section--paper .system-grid > article > p,
+.registered-evidence-shell .pricing-card:not(.pricing-card--lead) .pricing-summary,
+.registered-evidence-shell .pricing-card:not(.pricing-card--lead) li,
+.registered-evidence-shell .pricing-activation > p,
+.registered-evidence-shell .pricing-shared > article > p,
+.registered-evidence-shell .form-fineprint {
+  color: var(--re-muted-light);
+}
+
+.registered-evidence-shell :where(input, textarea) {
+  color: var(--re-ink);
+}
+
+/* Deep registered green requires a light foreground at text sizes. */
+.registered-evidence-shell .section--yellow .metric-layers > div:first-child > .eyebrow,
+.registered-evidence-shell .section--yellow .platform-heading > .eyebrow,
+.registered-evidence-shell .section--yellow .platform-heading > p,
+.registered-evidence-shell .cta-band .eyebrow {
+  color: var(--re-surface);
+}
+
+/* The lighter intelligence cards use ink for AA contrast. */
+.registered-evidence-shell .section--yellow .metric-layers > div:not(:first-child) > h3,
+.registered-evidence-shell .section--yellow .metric-layers > div:not(:first-child) > p {
+  color: var(--re-ink);
+}
+
+/* Registered green remains the signal; lighter green is the readable dark-surface text treatment. */
+.registered-evidence-shell .section--ink .truth-list > div > span,
+.registered-evidence-shell .fm-workspace-entry .goat-kicker {
+  color: #65B58E;
+}
+

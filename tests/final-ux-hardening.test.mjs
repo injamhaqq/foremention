@@ -52,7 +52,10 @@ test("getting-started helper text stays readable on the mint hover state", () =>
   assert.ok(ratio >= 4.5, `getting-started hover helper contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
 });
 
-test("public ROI scenario tool is discoverable in the sitemap", () => {
-  assert.match(sitemap, /path: "\/roi"/);
+test("canonical Recommendation Intelligence objects are discoverable in the sitemap", () => {
+  assert.match(sitemap, /path: "\/recommendation-intelligence"/);
+  assert.match(sitemap, /path: "\/recommendation-record"/);
+  assert.doesNotMatch(sitemap, /path: "\/roi"/);
   assert.match(sitemap, /const updated = new Date\("\d{4}-\d{2}-\d{2}T00:00:00Z"\)/);
 });
+

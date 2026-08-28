@@ -36,9 +36,11 @@ test("a nontechnical customer can follow website to question to collection to so
 
 test("core customer navigation uses Registered Evidence outcomes while proven secondary routes remain advanced", async () => {
   const navigation = await text("components/workspace-navigation.tsx");
-  for (const label of ["Attention", "Questions", "Records", "Source X-Ray", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
+  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
+  assert.doesNotMatch(navigation, /Source X-Ray|source-xray/i);
   for (const retained of ["Competitors", "Opportunities", "Actions", "Agent Control Plane"]) assert.match(navigation, new RegExp(retained));
   assert.match(navigation, /<details className="sidebar-advanced">/);
   assert.match(navigation, /<summary><span>Advanced<\/span><small>\{advancedNav\.length\} tools<\/small><\/summary>/);
   assert.match(navigation, /aria-label="Advanced workspace tools"/);
 });
+

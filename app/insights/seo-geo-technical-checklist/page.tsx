@@ -129,8 +129,8 @@ export default function SeoGeoChecklistPage() {
               </p>
               <h3>Keep each URL distinct</h3>
               <p>
-                Product, Recommendation Intelligence, Recommendation Record, Source X-Ray,
-                methodology and research serve different intents. If two pages become near-duplicates,
+                Product, Recommendation Intelligence, Recommendation Record, methodology and research
+                serve different intents. If two pages become near-duplicates,
                 consolidate instead of creating internal competition.
               </p>
             </section>

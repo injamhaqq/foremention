@@ -21,7 +21,7 @@ const sitemap = await text("app/sitemap.ts");
 const compare = await optionalText("app/compare/page.tsx");
 
 test("pricing sells the outcome without publishing unvalidated paid anchors during free beta", () => {
-  assert.match(pricing, /Know what AI says about your brand/i);
+  assert.match(pricing, /Commercial packaging is not final yet/i);
   assert.match(pricing, /Core/);
   assert.match(pricing, /Signal/);
   assert.match(pricing, /Intelligence/);
@@ -29,6 +29,8 @@ test("pricing sells the outcome without publishing unvalidated paid anchors duri
   assert.match(pricing, /Join private beta/);
   assert.match(pricing, /does not charge a card/i);
   assert.match(pricing, /paid checkout is not active/i);
+  assert.match(pricing, /Recommendation Records/);
+  assert.match(pricing, /Evidence inspection inside each record/i);
   assert.doesNotMatch(pricing, /\$149|\$499/);
   assert.doesNotMatch(homepage, /\$149|\$499/);
   assert.doesNotMatch(pricing, /pricingComparison/);
@@ -43,14 +45,14 @@ test("Source Map is a clearly dated self-audit instead of a mixed competitor des
   assert.match(sourceMap, /href="\/compare"/);
 });
 
-test("market evidence has a dedicated comparison hub with explicit evidence boundaries", () => {
+test("market evidence keeps a dedicated comparison hub without promoting it into the canonical search sitemap", () => {
   assert.match(compare, /marketEvidenceRecords/);
   assert.match(compare, /not that an AI engine cited the page/i);
   assert.match(compare, /not that a vendor claim is independently true/i);
   assert.match(compare, /\/compare\/monitoring-tools/);
   assert.match(compare, /\/compare\/geo-agencies/);
   assert.match(compare, /\/compare\/pr-agencies/);
-  assert.match(sitemap, /path:\s*"\/compare"/);
+  assert.doesNotMatch(sitemap, /path:\s*"\/compare"/);
 });
 
 test("Recommendation Monitor compacts intentionally on narrow phones", () => {

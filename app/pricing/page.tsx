@@ -137,7 +137,7 @@ export default function PricingPage() {
           <div className="platform-heading">
             <span className="eyebrow">Included by design</span>
             <h2>Evidence customers can challenge.</h2>
-            <p style={{ color: "var(--ink)" }}>
+            <p>
               The product keeps the underlying observation, returned references, distinct sources,
               review state and limitations visible so a team can inspect the record before acting.
             </p>

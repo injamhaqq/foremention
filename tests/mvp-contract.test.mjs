@@ -6,10 +6,18 @@ const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
 test("commercial platform positioning and brand contract are encoded", async () => {
-  const [home, pricing, css] = await Promise.all([text("app/page.tsx"), text("app/pricing/page.tsx"), text("app/globals.css")]);
-  assert.match(home, /SourceXRayExperience/);
-  assert.match(home, /Source Map/);
-  assert.match(home, /Recommendation intelligence for B2B SaaS/);
+  const [home, experience, pricing, css] = await Promise.all([
+    text("app/page.tsx"),
+    text("components/goat-home-experience.tsx"),
+    text("app/pricing/page.tsx"),
+    text("app/globals.css"),
+  ]);
+  assert.match(home, /MissingAnswerExperience/);
+  assert.match(home, /Recommendation Intelligence for B2B Software/);
+  assert.match(experience, /Recommendation intelligence for B2B software/);
+  assert.match(experience, /Recommendation Record/);
+  assert.match(experience, /Evidence inspection/);
+  assert.doesNotMatch(home, /SourceXRayExperience|Source X-Ray|source-xray/i);
   assert.match(pricing, /Core/);
   assert.match(pricing, /Signal/);
   assert.match(pricing, /Intelligence/);

@@ -9,11 +9,15 @@ const shell = await text("components/public-shell.tsx");
 const sourceMap = await text("app/source-map/page.tsx");
 const comparison = await text("app/monitoring-vs-execution/page.tsx");
 
-test("locked public navigation keeps research and methodology primary while public evidence remains reachable", () => {
+test("locked public navigation keeps research and methodology primary while canonical evidence objects remain reachable", () => {
   assert.match(shell, /\["\/methodology",\s*"Methodology"\]/);
   assert.match(shell, /\["\/insights",\s*"Research"\]/);
-  assert.match(shell, /href="\/source-map">Evidence<\/Link>/);
-  assert.match(sourceMap, /Website evidence · Foremention\.com/i);
+  assert.match(shell, /href="\/recommendation-record">Recommendation Record<\/Link>/);
+  assert.match(shell, /href="\/recommendation-intelligence">Recommendation Intelligence<\/Link>/);
+  assert.doesNotMatch(shell, /href="\/source-map">Evidence<\/Link>|Source X-Ray|source-xray/i);
+  assert.match(sourceMap, /Website evidence/);
+  assert.match(sourceMap, /Foremention\.com/i);
+  assert.match(sourceMap, /Foremention\.com/i);
 });
 
 test("monitoring comparison qualifies citation-dependent source intelligence", () => {

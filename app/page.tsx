@@ -7,7 +7,7 @@ import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Recommendation Intelligence for B2B SaaS",
+  title: "Recommendation Intelligence for B2B Software",
   description:
     "Record the AI answers buyers see, preserve returned source evidence, review competitor presence, and compare equivalent runs over time.",
   path: "/",
