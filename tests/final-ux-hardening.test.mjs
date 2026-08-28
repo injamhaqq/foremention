@@ -58,4 +58,3 @@ test("canonical Recommendation Intelligence objects are discoverable in the site
   assert.doesNotMatch(sitemap, /path: "\/roi"/);
   assert.match(sitemap, /const updated = new Date\("\d{4}-\d{2}-\d{2}T00:00:00Z"\)/);
 });
-

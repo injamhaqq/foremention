@@ -43,4 +43,3 @@ test("core customer navigation uses Registered Evidence outcomes while proven se
   assert.match(navigation, /<summary><span>Advanced<\/span><small>\{advancedNav\.length\} tools<\/small><\/summary>/);
   assert.match(navigation, /aria-label="Advanced workspace tools"/);
 });
-

@@ -82,3 +82,9 @@
   color: #65B58E;
 }
 
+/* Every inspectable evidence state remains visible at mobile/narrow widths. */
+@media (max-width: 480px) {
+  .registered-evidence-shell .registered-record__states > div:nth-child(2) {
+    display: grid;
+  }
+}
