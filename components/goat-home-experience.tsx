@@ -30,7 +30,7 @@ export function MissingAnswerExperience() {
           <span>Prove<span className="canonical-home__dot">.</span></span>{" "}
           <span>Prepare<span className="canonical-home__dot">.</span></span>
         </h1>
-        <p className="canonical-home__descriptor canonical-home__descriptor--reference">The trusted foundation for recommendation intelligence<br className="canonical-home__descriptor-break" /> in B2B software.</p>
+        <p className="canonical-home__descriptor canonical-home__descriptor--reference">Recommendation intelligence for B2B software.</p>
 
         <div className="canonical-home__pillars canonical-home__pillars--reference" aria-label="Register, Prove, Prepare">
           {pillars.map(([icon, title, body]) => <article key={title}>
