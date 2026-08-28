@@ -178,7 +178,6 @@
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.35) 7%, #000 23%, #000 100%);
 }
 
-/* Keep the original hero free from the later technical grid treatment. */
 .canonical-home__hero--reference::before,
 .canonical-home__hero--reference::after {
   content: none;
