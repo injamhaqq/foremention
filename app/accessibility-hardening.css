@@ -104,6 +104,15 @@
   color: #65B58E;
 }
 
+/* Retention question-intelligence chips are part of the dark workspace, not a
+   paper inspection surface. Keep them graphite with the readable registered
+   green treatment so their small labels remain comfortably above WCAG AA. */
+.app-frame .chip-row > .status-chip {
+  border-color: #3A433D;
+  background: #151817;
+  color: #65B58E;
+}
+
 /* Prompt action controls are intentionally light inspection surfaces, so their
    foreground must stay ink rather than inheriting the dark-shell reverse text. */
 .app-frame .prompt-row-actions > button[type="button"] {
