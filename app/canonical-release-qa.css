@@ -180,6 +180,24 @@
   color: #fffdf9 !important;
 }
 
+/* Exact dark-surface foreground overrides for the release gate.
+ * Match the older !important selector specificity instead of changing any
+ * background, spacing, typography, or evidence semantics.
+ */
+.fm-public-shell section[aria-labelledby="honesty-title"] .goat-kicker,
+.fm-public-shell section[aria-labelledby="decision-title"] .goat-kicker,
+.fm-public-shell section[aria-labelledby="competitor-title"] .goat-kicker,
+.fm-public-shell section[aria-labelledby="measurement-title"] .goat-kicker {
+  color: #65b58e !important;
+}
+.fm-public-shell section[aria-labelledby="measurement-title"] .fm-running-label > span:nth-child(3) {
+  color: #aeb6af !important;
+}
+.registered-evidence-shell .section--yellow .pricing-shared > article > span,
+.canonical-public-shell .section--yellow .pricing-shared > article > span {
+  color: #65b58e !important;
+}
+
 /* Former yellow/light scenes are graphite + green, never light cards. */
 .registered-evidence-shell .section--yellow,
 .canonical-public-shell .section--yellow,
