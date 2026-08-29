@@ -1,17 +1,6 @@
-/* Final canonical release layer: exact homepage composition, 5D depth, accessibility, and responsive hardening. */
+/* Final canonical release layer: homepage composition, 5D depth, accessibility, and responsive hardening. */
 
-/* Identity: preserve the exact canonical 264.096 × 33.24 lockup ratio at every breakpoint. */
-.wordmark__art {
-  width: 190.66px !important;
-  height: auto !important;
-  max-width: 100%;
-  aspect-ratio: 264.096 / 33.24;
-  object-fit: contain;
-}
-.app-sidebar .wordmark__art { width: 174.8px !important; }
-.app-topbar .mobile-wordmark .wordmark__art { width: 158.9px !important; }
-
-/* Homepage: contain the locked composition without hiding real layout defects at document level. */
+/* Homepage: contain the approved composition without hiding real layout defects at document level. */
 .goat-hero { overflow: clip; }
 .canonical-home__hero--reference {
   max-width: 100%;
@@ -213,7 +202,6 @@
 }
 
 @media (max-width: 620px) {
-  .wordmark__art { width: 150.94px !important; height: auto !important; }
   .canonical-home__hero--reference h1 { width: 100%; max-width: 100%; }
   .canonical-home__pillars--reference { width: 100%; }
   .canonical-signal--5d {
@@ -226,7 +214,6 @@
 }
 
 @media (max-width: 340px) {
-  .wordmark__art { width: 142px !important; }
   .canonical-signal--5d { height: 350px; }
 }
 
