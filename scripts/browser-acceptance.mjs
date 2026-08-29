@@ -19,12 +19,6 @@ const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-ac
 
 const publicPaths = ["/", "/product", "/pricing", "/score", "/prompt-check", "/login", "/signup"];
 const authenticatedPaths = ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"];
-const canonicalBrandPaths = new Set([
-  "/brand/foremention-logo.svg",
-  "/brand/foremention-logo-white.svg",
-  "/brand/foremention-mark.svg",
-  "/brand/foremention-mark-white.svg",
-]);
 const profiles = [
   { name: "chromium-desktop", browserType: chromium, viewport: { width: 1440, height: 1200 } },
   { name: "chromium-laptop", browserType: chromium, viewport: { width: 1024, height: 900 } },
@@ -156,83 +150,39 @@ async function visible(locator) {
 }
 
 async function verifyCanonicalBrandArtwork(page, profileName, path) {
-  const artwork = await page.locator("img.wordmark__art, img.foremention-mark").evaluateAll((images) => images.map((image) => {
-    const rect = image.getBoundingClientRect();
-    const style = getComputedStyle(image);
-    const link = image.closest(".wordmark");
-    return {
-      src: image.getAttribute("src") || "",
-      visible: rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0,
-      width: rect.width,
-      height: rect.height,
-      naturalWidth: image.naturalWidth,
-      naturalHeight: image.naturalHeight,
-      isMark: image.classList.contains("foremention-mark"),
-      inverseWordmark: Boolean(link?.classList.contains("wordmark--inverse")),
-      filter: style.filter,
-      boxShadow: style.boxShadow,
-      transform: style.transform,
-    };
-  }));
-  const visibleArtwork = artwork.filter((item) => item.visible);
-
-  if (!visibleArtwork.length) {
-    recordFailure("Canonical Foremention artwork is not visibly rendered.", { profile: profileName, path });
-    return;
-  }
-
-  for (const item of visibleArtwork) {
-    let sourcePath = "";
-    try {
-      sourcePath = new URL(item.src, baseUrl).pathname;
-    } catch {
-      sourcePath = item.src;
-    }
-    if (!canonicalBrandPaths.has(sourcePath)) {
-      recordFailure("Visible Foremention artwork uses an unapproved asset source.", { profile: profileName, path, sourcePath });
-      continue;
-    }
-    if (item.isMark) {
-      if (item.width < 16 || item.height < 16) {
-        recordFailure("Canonical Foremention mark rendered below its 16px minimum.", { profile: profileName, path, sourcePath, width: item.width, height: item.height });
-      }
-    } else if (item.width < 100) {
-      recordFailure("Canonical Foremention lockup rendered below its 100px minimum.", { profile: profileName, path, sourcePath, width: item.width });
-    }
-    if (item.naturalWidth > 0 && item.naturalHeight > 0 && item.width > 0 && item.height > 0) {
-      const naturalRatio = item.naturalWidth / item.naturalHeight;
-      const renderedRatio = item.width / item.height;
-      const ratioDrift = Math.abs(renderedRatio - naturalRatio) / naturalRatio;
-      if (ratioDrift > 0.01) {
-        recordFailure("Canonical Foremention artwork is stretched or squashed.", { profile: profileName, path, sourcePath, ratioDrift });
-      }
-    }
-    if (item.filter !== "none" || item.boxShadow !== "none" || item.transform !== "none") {
-      recordFailure("Canonical Foremention artwork has an unapproved visual effect or transform.", {
-        profile: profileName,
-        path,
-        sourcePath,
-        filter: item.filter,
-        boxShadow: item.boxShadow,
-        transform: item.transform,
-      });
-    }
-    if (!item.isMark) {
-      const expectsWhite = item.inverseWordmark;
-      const isWhite = sourcePath.endsWith("-white.svg");
-      if (expectsWhite !== isWhite) {
-        recordFailure("Canonical Foremention wordmark variant does not match its inverse treatment.", { profile: profileName, path, sourcePath, inverse: expectsWhite });
-      }
-    }
-  }
-
-  const visibleLegacy = await page.locator(".source-eclipse, .source-eclipse__orbit, .source-eclipse__point, .wordmark__name").evaluateAll((elements) => elements.filter((element) => {
+  const visibleRetiredArtwork = await page.locator([
+    'img[src*="/brand/foremention-"]',
+    'img[src*="/foremention-wordmark.png"]',
+    'img[src*="/source-eclipse.svg"]',
+    "img.wordmark__art",
+    "img.foremention-mark",
+    ".source-eclipse",
+    ".source-eclipse__orbit",
+    ".source-eclipse__point",
+    ".wordmark__name",
+  ].join(", ")).evaluateAll((elements) => elements.filter((element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
   }).length);
-  if (visibleLegacy > 0) {
-    recordFailure("Visible legacy Foremention identity substitute detected.", { profile: profileName, path, visibleLegacy });
+
+  if (visibleRetiredArtwork > 0) {
+    recordFailure("Retired Foremention visual identity artwork is visibly rendered.", { profile: profileName, path, visibleRetiredArtwork });
+  }
+
+  const inverseIdentity = await page.locator(".wordmark--inverse").count();
+  if (inverseIdentity > 0) {
+    recordFailure("Retired inverse/white identity treatment is still present.", { profile: profileName, path, inverseIdentity });
+  }
+
+  const neutralLabels = await page.locator(".wordmark--text-only .wordmark__text").evaluateAll((elements) => elements.filter((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
+  }).length);
+
+  if (!neutralLabels) {
+    recordFailure("Neutral text-only Foremention product label is not visibly rendered.", { profile: profileName, path });
   }
 }
 
@@ -371,6 +321,7 @@ async function verifyRecommendationRecordEvidence(page, profileName) {
     recordFailure("Recommendation Record example link is not keyboard reachable.", { profile: profileName });
   }
 }
+
 async function verifyUnauthenticatedBoundary() {
   const browser = await chromium.launch({ headless: true });
   try {

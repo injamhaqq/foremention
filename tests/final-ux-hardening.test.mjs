@@ -4,6 +4,7 @@ import test from "node:test";
 
 const appShell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
 const productPolish = await readFile(new URL("../app/product-polish.css", import.meta.url), "utf8");
+const canonicalBrand = await readFile(new URL("../app/canonical-brand.css", import.meta.url), "utf8");
 const sitemap = await readFile(new URL("../app/sitemap.ts", import.meta.url), "utf8");
 
 function relativeLuminance(hex) {
@@ -40,10 +41,12 @@ test("desktop workspace navigation arrows retain WCAG AA text contrast", () => {
   assert.ok(ratio >= 4.5, `workspace navigation arrow contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
 });
 
-test("inverse workspace wordmark text owns its dark contrast backdrop", () => {
-  assert.match(productPolish, /\.app-sidebar > \.wordmark > \.wordmark__name \{ background: var\(--ink\); \}/);
-  const ratio = contrastRatio("#f3fff9", "#041514");
-  assert.ok(ratio >= 4.5, `inverse workspace wordmark contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
+test("neutral text-only Foremention label stays readable without the retired visual identity", () => {
+  assert.match(canonicalBrand, /\.wordmark--text-only \{\s*color: #65B58E;/);
+  assert.match(canonicalBrand, /\.wordmark__text/);
+  assert.doesNotMatch(canonicalBrand, /wordmark__art|foremention-mark/);
+  const ratio = contrastRatio("#65B58E", "#041514");
+  assert.ok(ratio >= 4.5, `neutral product label contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
 });
 
 test("getting-started helper text stays readable on the mint hover state", () => {

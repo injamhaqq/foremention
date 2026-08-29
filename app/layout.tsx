@@ -15,12 +15,13 @@ import "./canonical-system.css";
 import "./homepage-reference.css";
 import "./canonical-release.css";
 import "./canonical-release-qa.css";
+import "./identity-retirement.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
 import { PublicActivationAnalytics } from "../components/public-activation-analytics";
 import { ContentsquareAnalytics } from "../components/contentsquare-analytics";
-import { SITE_URL, SOCIAL_IMAGE } from "../lib/seo";
+import { SITE_URL } from "../lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -31,8 +32,8 @@ export const metadata: Metadata = {
   creator: "Foremention",
   publisher: "Foremention",
   category: "Recommendation intelligence software",
-  openGraph: { title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect observed AI recommendations, returned-source records, review state, and comparable change over time.", url: SITE_URL, type: "website", siteName: "Foremention", images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: "Foremention recommendation intelligence platform" }] },
-  twitter: { card: "summary_large_image", title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect observed recommendations, returned evidence, review state, and comparable change.", images: [SOCIAL_IMAGE] },
+  openGraph: { title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect observed AI recommendations, returned-source records, review state, and comparable change over time.", url: SITE_URL, type: "website", siteName: "Foremention" },
+  twitter: { card: "summary", title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect observed recommendations, returned evidence, review state, and comparable change." },
   verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
     ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
     : undefined,

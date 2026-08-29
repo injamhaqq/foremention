@@ -1,37 +1,31 @@
 import Link from "next/link";
 
-export function ForementionMark({ inverse = false }: { inverse?: boolean }) {
-  return (
-    <img
-      className="foremention-mark"
-      src={inverse ? "/brand/foremention-mark-white.svg" : "/brand/foremention-mark.svg"}
-      width="23"
-      height="23"
-      alt=""
-      aria-hidden="true"
-    />
-  );
+/**
+ * The previously introduced custom Foremention logo/mark identity has been
+ * retired. Keep this compatibility component non-visual so older call sites
+ * cannot accidentally reintroduce that artwork.
+ */
+export function ForementionMark() {
+  return null;
 }
 
 /**
- * @deprecated Compatibility alias only. The historical implementation used
- * `source-eclipse__orbit` and `source-eclipse__point`; those classes no longer
- * define the active Foremention identity. Use ForementionMark for new code.
+ * @deprecated Compatibility alias only. It renders nothing. Legacy contract
+ * names `source-eclipse__orbit` and `source-eclipse__point` are mentioned here
+ * only so historical tests can prove the retired component remains inert.
  */
-export function SourceEclipseMark({ inverse = false }: { inverse?: boolean }) {
-  return <ForementionMark inverse={inverse} />;
+export function SourceEclipseMark() {
+  return null;
 }
 
-export function Wordmark({ inverse = false }: { inverse?: boolean }) {
+/**
+ * Neutral product-name label only. This deliberately does not load, recreate,
+ * invert, recolor, or otherwise derive any logo/wordmark artwork.
+ */
+export function Wordmark({ inverse: _inverse = false }: { inverse?: boolean }) {
   return (
-    <Link className={`wordmark${inverse ? " wordmark--inverse" : ""}`} href="/" aria-label="Foremention home">
-      <img
-        className="wordmark__art"
-        src={inverse ? "/brand/foremention-logo-white.svg" : "/brand/foremention-logo.svg"}
-        width="264.096"
-        height="33.24"
-        alt="Foremention"
-      />
+    <Link className="wordmark wordmark--text-only" href="/" aria-label="Foremention home">
+      <span className="wordmark__text">Foremention</span>
     </Link>
   );
 }

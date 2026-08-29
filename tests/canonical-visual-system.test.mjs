@@ -1,9 +1,17 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
+const exists = async (path) => {
+  try {
+    await access(new URL(path, root));
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 test("canonical visual system is wired before the founder-reference and release layers", async () => {
   const [layout, css, homepageCss, releaseCss] = await Promise.all([
@@ -30,17 +38,38 @@ test("canonical visual system is wired before the founder-reference and release 
   assert.doesNotMatch(`${css}\n${homepageCss}\n${releaseCss}`, /source-x-ray/i);
 });
 
-test("canonical identity uses approved production SVG assets with exact lockup ratio", async () => {
-  const brand = await text("components/brand.tsx");
-  assert.match(brand, /\/brand\/foremention-logo-white\.svg/);
-  assert.match(brand, /\/brand\/foremention-logo\.svg/);
-  assert.match(brand, /\/brand\/foremention-mark-white\.svg/);
-  assert.match(brand, /\/brand\/foremention-mark\.svg/);
-  assert.match(brand, /width="264\.096"/);
-  assert.match(brand, /height="33\.24"/);
+test("retired custom Foremention identity artwork stays absent", async () => {
+  const [brand, publicShell, workspaceNav, layout, seo] = await Promise.all([
+    text("components/brand.tsx"),
+    text("components/public-shell.tsx"),
+    text("components/workspace-navigation.tsx"),
+    text("app/layout.tsx"),
+    text("lib/seo.ts"),
+  ]);
+
+  assert.match(brand, /wordmark--text-only/);
+  assert.match(brand, /wordmark__text">Foremention/);
+  assert.doesNotMatch(brand, /foremention-logo|foremention-mark|wordmark__art|<img/);
+  assert.doesNotMatch(publicShell, /ForementionMark|Wordmark inverse/);
+  assert.doesNotMatch(workspaceNav, /ForementionMark|Wordmark inverse/);
+  assert.doesNotMatch(`${layout}\n${seo}`, /og\.png|og-platform\.png|SOCIAL_IMAGE/);
+
+  for (const path of [
+    "public/brand/foremention-logo.svg",
+    "public/brand/foremention-logo-white.svg",
+    "public/brand/foremention-mark.svg",
+    "public/brand/foremention-mark-white.svg",
+    "public/foremention-wordmark.png",
+    "public/source-eclipse.svg",
+    "public/og.png",
+    "public/og-platform.png",
+    "app/icon.svg",
+    "app/icon.png",
+    "app/favicon.ico",
+  ]) assert.equal(await exists(path), false, `${path} must remain retired`);
 });
 
-test("homepage follows the founder-supplied original reference with lightweight layered 5d depth", async () => {
+test("homepage follows the approved product composition with lightweight layered 5d depth", async () => {
   const [home, signal, layout, homepageCss, releaseCss] = await Promise.all([
     text("components/goat-home-experience.tsx"),
     text("components/canonical-signal-field.tsx"),

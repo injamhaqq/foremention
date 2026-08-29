@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Arrow, ForementionMark, Wordmark } from "@/components/brand";
+import { Arrow, Wordmark } from "@/components/brand";
 import { ExperienceAnalyticsPreferences } from "@/components/contentsquare-analytics";
 import { SiteMotion } from "@/components/site-motion";
 
@@ -12,8 +12,7 @@ const links = [
 export function PublicHeader() {
   return <header className="public-header registered-public-header canonical-public-header">
     <div className="shell public-header__inner">
-      <span className="registered-header__wordmark"><Wordmark inverse /></span>
-      <span className="registered-header__mark"><ForementionMark inverse /></span>
+      <span className="registered-header__wordmark"><Wordmark /></span>
       <nav className="public-nav" aria-label="Primary navigation">
         {links.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
         <Link className="canonical-header__signin" href="/login">Sign in</Link>
@@ -32,7 +31,7 @@ export function PublicHeader() {
 }
 
 export function PublicFooter() {
-  return <footer className="public-footer canonical-public-footer"><div className="shell footer-grid"><div><Wordmark inverse /><p className="footer-note">Recommendation intelligence for B2B software. Inspect what AI-mediated buyers were shown, what evidence came back, and what can safely be acted on.</p><a className="footer-email" href="mailto:hello@foremention.com">hello@foremention.com</a></div><div className="footer-links"><div><span>Product</span><Link href="/product">Product</Link><Link href="/recommendation-intelligence">Recommendation Intelligence</Link><Link href="/recommendation-record">Recommendation Record</Link><Link href="/methodology">Methodology</Link></div><div><span>Company</span><Link href="/ai-mediated-buying">AI-mediated buying</Link><Link href="/insights">Research</Link><Link href="/about">About</Link><Link href="/contact">Request a demo</Link></div><div><span>Legal / Trust</span><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/subprocessors">Subprocessors</Link><ExperienceAnalyticsPreferences /></div><div><span>Access</span><Link href="/login">Sign in</Link><Link href="/signup">Private beta workspace</Link><a href="https://www.linkedin.com/company/foremention/" target="_blank" rel="noreferrer">LinkedIn</a><a href="https://www.instagram.com/forementionhq/" target="_blank" rel="noreferrer">Instagram</a></div></div></div><div className="shell footer-bottom"><span>&copy; {new Date().getFullYear()} Foremention</span><span>Register. Prove. Prepare.</span></div></footer>;
+  return <footer className="public-footer canonical-public-footer"><div className="shell footer-grid"><div><Wordmark /><p className="footer-note">Recommendation intelligence for B2B software. Inspect what AI-mediated buyers were shown, what evidence came back, and what can safely be acted on.</p><a className="footer-email" href="mailto:hello@foremention.com">hello@foremention.com</a></div><div className="footer-links"><div><span>Product</span><Link href="/product">Product</Link><Link href="/recommendation-intelligence">Recommendation Intelligence</Link><Link href="/recommendation-record">Recommendation Record</Link><Link href="/methodology">Methodology</Link></div><div><span>Company</span><Link href="/ai-mediated-buying">AI-mediated buying</Link><Link href="/insights">Research</Link><Link href="/about">About</Link><Link href="/contact">Request a demo</Link></div><div><span>Legal / Trust</span><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/subprocessors">Subprocessors</Link><ExperienceAnalyticsPreferences /></div><div><span>Access</span><Link href="/login">Sign in</Link><Link href="/signup">Private beta workspace</Link><a href="https://www.linkedin.com/company/foremention/" target="_blank" rel="noreferrer">LinkedIn</a><a href="https://www.instagram.com/forementionhq/" target="_blank" rel="noreferrer">Instagram</a></div></div></div><div className="shell footer-bottom"><span>&copy; {new Date().getFullYear()} Foremention</span><span>Register. Prove. Prepare.</span></div></footer>;
 }
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
