@@ -16,10 +16,11 @@ user-invocable: false
 
 ## Visual system
 
-- Exact canonical logo and wordmark only. Never type or redraw the wordmark.
-- Dark conviction mode: near black / graphite, reverse white logo.
-- Light inspection mode: warm ground / clean surface, ink logo.
-- Registered green is the distinctive registration signal, not a universal success color.
+- The previously introduced custom Foremention logo/mark/wordmark identity is retired. Do not use, restore, recreate, trace, recolor, invert, derive, or ship those assets or white/reverse variants.
+- Do not invent a replacement logo or mark. Until the founder explicitly approves a new identity, use only a neutral text label `Foremention` where a product/site label is required.
+- Dark conviction mode: near black / graphite.
+- Light inspection mode: warm ground / clean surface.
+- Registered green is the distinctive registration signal, not a universal success color and not a replacement logo.
 - Signature behavior: registration, alignment, resolution, state, provenance, time, comparability.
 - Hero meaning: recommendation evidence resolves into an inspectable record. Avoid planet imagery, cyber grids, purple/blue generic AI styling, random particles, decorative 3D, and meaningless glow.
 
@@ -63,4 +64,4 @@ Do not overclaim causality. `Prove` means inspect what can actually be substanti
 
 ## Execution protocol
 
-Before material UI/product/brand/SEO changes, show the founder a visual first, explain what will change and what remains locked, then implement. After implementation, return with visual proof plus exact verification status.
+Before material UI/product/brand/SEO changes, show the founder a visual first only when proposing a new visual direction, explain what will change and what remains locked, then implement. Do not create visual-identity work unless the founder explicitly requests and approves it. After implementation, return with visual proof plus exact verification status.
