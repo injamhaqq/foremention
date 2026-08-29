@@ -31,6 +31,12 @@ export const PRODUCT_ANALYTICS_EVENTS = [
   "comparison_eligibility_observed",
   "decision_insight_reached",
   "performance_observed",
+  "first_record_reviewed",
+  "action_created",
+  "second_comparable_cycle_completed",
+  "measurement_schedule_enabled",
+  "record_share_created",
+  "team_invite_sent",
 ] as const;
 
 export type ProductAnalyticsEventName = (typeof PRODUCT_ANALYTICS_EVENTS)[number];
@@ -67,6 +73,10 @@ const performanceOperations = new Set(["page_load", "api_request"]);
 const performanceOutcomes = new Set(["success", "failure"]);
 const statusClasses = new Set(["2xx", "3xx", "4xx", "5xx", "network_error", "unknown"]);
 const latencyBuckets = new Set(["under_250ms", "250_500ms", "500_1000ms", "1_2_5s", "2_5_5s", "5_10s", "10s_plus", "unknown"]);
+const scheduleCadences = new Set(["weekly", "biweekly", "monthly"]);
+const scheduleStates = new Set(["enabled", "paused", "resumed"]);
+const actionPriorities = new Set(["low", "normal", "high", "critical"]);
+const invitationRoles = new Set(["admin", "analyst", "viewer", "reviewer", "stakeholder"]);
 
 function enumValue(value: unknown, allowed: Set<string>) {
   return typeof value === "string" && allowed.has(value) ? value : null;
@@ -264,6 +274,26 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
       addEnum(properties, "latency_bucket", normalizedInput.latency_bucket, latencyBuckets);
       addEnum(properties, "outcome", normalizedInput.outcome, performanceOutcomes);
       addEnum(properties, "status_class", normalizedInput.status_class, statusClasses);
+      break;
+    case "first_record_reviewed":
+      addCountBucket(properties, "evidence_count_bucket", normalizedInput.evidence_count);
+      break;
+    case "action_created":
+      addEnum(properties, "priority", normalizedInput.priority, actionPriorities);
+      addBoolean(properties, "remeasurement_planned", normalizedInput.remeasurement_planned);
+      break;
+    case "second_comparable_cycle_completed":
+      addBoolean(properties, "change_detected", normalizedInput.change_detected);
+      break;
+    case "measurement_schedule_enabled":
+      addEnum(properties, "cadence", normalizedInput.cadence, scheduleCadences);
+      addEnum(properties, "schedule_state", normalizedInput.schedule_state, scheduleStates);
+      break;
+    case "record_share_created":
+      addBoolean(properties, "include_evidence", normalizedInput.include_evidence);
+      break;
+    case "team_invite_sent":
+      addEnum(properties, "role", normalizedInput.role, invitationRoles);
       break;
   }
 
