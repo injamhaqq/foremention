@@ -8,12 +8,14 @@ async function text(path) {
   catch { return ""; }
 }
 
-test("retention migration adds schedules shares billing entitlements roles and market-aware action linkage", async () => {
+test("retention migration adds schedules shares billing roles and market-aware action linkage without duplicating entitlements", async () => {
   const sql = await text("supabase/migrations/20260829000100_retention_loop_v1.sql");
-  for (const table of ["measurement_schedules", "record_shares", "billing_accounts", "organization_entitlements"]) {
+  for (const table of ["measurement_schedules", "record_shares", "billing_accounts"]) {
     assert.match(sql, new RegExp(`create table if not exists public\\.${table}`, "i"));
     assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`, "i"));
   }
+  assert.match(sql, /alter table public\.organization_entitlements/i);
+  assert.doesNotMatch(sql, /create table if not exists public\.organization_entitlements/i);
   assert.match(sql, /weekly.*biweekly.*monthly/is);
   assert.match(sql, /timezone/i);
   assert.match(sql, /question_ids/i);
@@ -26,8 +28,9 @@ test("retention migration adds schedules shares billing entitlements roles and m
   assert.match(sql, /expires_at/i);
   assert.match(sql, /revoked_at/i);
   assert.match(sql, /verified_webhook_at/i);
-  assert.match(sql, /entitlement_key/i);
-  assert.match(sql, /owner_user_id/i);
+  assert.match(sql, /package_key/i);
+  assert.match(sql, /feature_keys/i);
+  assert.match(sql, /owner_id/i);
   assert.match(sql, /due_at/i);
   assert.match(sql, /priority/i);
   assert.match(sql, /remeasurement/i);
