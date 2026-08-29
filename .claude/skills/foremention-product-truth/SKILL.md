@@ -16,10 +16,11 @@ user-invocable: false
 
 ## Visual system
 
-- The previously introduced custom Foremention logo/mark/wordmark identity is retired. Do not use, restore, recreate, trace, recolor, invert, derive, or ship those assets or white/reverse variants.
-- Do not invent a replacement logo or mark. Until the founder explicitly approves a new identity, use only a neutral text label `Foremention` where a product/site label is required.
+- The approved canonical Foremention logo/mark/wordmark identity is locked. Preserve and use the already-approved repository artwork where the product/site requires identity.
+- Do not redraw, trace, recolor, derive, replace, or invent logo/mark/wordmark variants. Do not create a new identity direction without explicit founder approval.
+- The approved reverse artwork belongs on the canonical black/graphite system. Legacy, rejected, or unrelated identity assets must remain retired.
 - Dark conviction mode: near black / graphite.
-- Light inspection mode: warm ground / clean surface.
+- Light inspection mode: warm ground / clean surface only where the approved evidence-review system requires it.
 - Registered green is the distinctive registration signal, not a universal success color and not a replacement logo.
 - Signature behavior: registration, alignment, resolution, state, provenance, time, comparability.
 - Hero meaning: recommendation evidence resolves into an inspectable record. Avoid planet imagery, cyber grids, purple/blue generic AI styling, random particles, decorative 3D, and meaningless glow.
@@ -64,4 +65,4 @@ Do not overclaim causality. `Prove` means inspect what can actually be substanti
 
 ## Execution protocol
 
-Before material UI/product/brand/SEO changes, show the founder a visual first only when proposing a new visual direction, explain what will change and what remains locked, then implement. Do not create visual-identity work unless the founder explicitly requests and approves it. After implementation, return with visual proof plus exact verification status.
+Before material UI/product/brand/SEO changes, show the founder a visual first only when proposing a new visual direction, explain what will change and what remains locked, then implement. Do not create visual-identity work unless the founder explicitly requests and approves it. Preserve approved canonical identity assets during implementation and release cleanup. After implementation, return with visual proof plus exact verification status.
