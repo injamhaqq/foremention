@@ -72,19 +72,7 @@ jobs:
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-company-migrations.sql
 
       - name: Run tests
-        shell: bash
-        run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-output.txt
-
-      - name: Archive failed test output
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ci-test-output-${{ github.sha }}
-          path: test-output.txt
-          if-no-files-found: ignore
-          retention-days: 1
+        run: pnpm test
 
       - name: Lint
         run: pnpm lint
