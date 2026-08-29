@@ -87,13 +87,16 @@ test("the dedicated synthetic canary maintains a freshness-dependent web-evidenc
   assert.match(canary, /fresh-web-evidence-question-verified/);
 });
 
-test("the release canary proves persisted answer, model, review publication and exact Source X-Ray navigation when citations exist", () => {
+test("the release canary proves persisted answer, model, review publication and contained Recommendation Record evidence inspection when citations exist", () => {
   assert.match(canary, /The real provider run persisted no answer observations/);
   assert.match(canary, /Recorded model/);
   assert.match(canary, /human-review-publication-gate-exercised/);
-  assert.match(canary, /a\[href\^="\/app\/sources\/"\]/);
-  assert.match(canary, /source-xray-opened-from-exact-run-citation/);
+  assert.match(canary, /details\.canonical-contained-evidence/);
+  assert.match(canary, /Evidence inspection/i);
+  assert.match(canary, /contained-evidence-inspection-opened-from-exact-run-citation/);
   assert.match(canary, /form\.source-review-form/);
+  assert.doesNotMatch(canary, /a\[href\^="\/app\/sources\/"\]/);
+  assert.doesNotMatch(canary, /source-xray-opened-from-exact-run-citation/);
 });
 
 test("the canary refuses to manufacture analyst source facts or opportunity evidence", () => {
