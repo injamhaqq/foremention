@@ -146,3 +146,12 @@ test("browser acceptance blocks 200 and 400 percent zoom reflow failures", () =>
   assert.match(hardening, /Nested content clipping detected/);
   assert.match(hardening, /chromium-authenticated-low-height/);
 });
+
+test("browser acceptance blocks 200 percent text-resize and forced-colors regressions", () => {
+  assert.match(hardening, /verifyTextResize/);
+  assert.match(hardening, /document\.documentElement\.style\.fontSize = "200%"/);
+  assert.match(hardening, /200 percent text resize overflow detected/);
+  assert.match(hardening, /verifyForcedColorsSmoke/);
+  assert.match(hardening, /emulateMedia\(\{ forcedColors: "active" \}\)/);
+  assert.match(hardening, /Forced-colors accessibility smoke did not expose a usable document/);
+});
