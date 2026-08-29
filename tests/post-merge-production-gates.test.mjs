@@ -15,19 +15,23 @@ test("production canary verifies evidence inspection inside the Recommendation R
   assert.doesNotMatch(canary, /a\[href\^="\/app\/sources\/"\]/);
 });
 
-test("authenticated warm inspection surfaces pin accessible foreground colors", async () => {
+test("Foremention keeps the approved logo instead of a text-only compatibility fallback", async () => {
+  const brand = await text("components/brand.tsx");
+
+  assert.match(brand, /foremention-logo-white\.svg/);
+  assert.match(brand, /foremention-logo-green\.svg/);
+  assert.match(brand, /foremention-monogram\.svg/);
+  assert.match(brand, /next\/image/);
+  assert.doesNotMatch(brand, /export function ForementionMark\(\)\s*\{\s*return null;/);
+  assert.doesNotMatch(brand, /wordmark--text-only/);
+});
+
+test("authenticated release hardening stays black and green without white inspection sheets", async () => {
   const css = await text("app/canonical-release-qa.css");
 
-  assert.match(css, /\.app-frame \.question-planner/);
-  assert.match(css, /\.app-frame \.prompt-create/);
-  assert.match(css, /\.app-frame \.inline-notice/);
-  assert.match(css, /\.app-frame \.data-quality-grid/);
-  assert.match(css, /\.app-frame \.review-queue-callout/);
-  assert.match(css, /\.app-frame \.settings-grid input/);
-  assert.match(css, /\.app-frame \.latest-answer > p/);
-  assert.match(css, /\.app-frame \.review-action > div > p/);
-  assert.match(css, /color:\s*#0d0f0e\s*!important/i);
-  assert.match(css, /color:\s*#4f5952\s*!important/i);
-  assert.match(css, /color:\s*#d7dbd5\s*!important/i);
-}
-);
+  assert.match(css, /\.app-frame \.weekly-loop-teaser/);
+  assert.match(css, /background:\s*#(?:090b0a|0d0f0e|111412|151817)\s*!important/i);
+  assert.match(css, /border-color:\s*#176347\s*!important/i);
+  assert.doesNotMatch(css, /background:\s*#fffdf9\s*!important/i);
+  assert.doesNotMatch(css, /warm inspection sheet/i);
+});
