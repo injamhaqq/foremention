@@ -1,16 +1,29 @@
 import { NextResponse } from "next/server";
-import { normalizeDesignPartnerApplication } from "@/lib/design-partner";
+import { designPartnerSubmissionKey, normalizeDesignPartnerApplication } from "@/lib/design-partner";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
-function responseFor(request: Request, status: number, message: string) {
+function wantsFormResponse(request: Request) {
   const contentType = request.headers.get("content-type") || "";
-  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+  return contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+}
+
+function responseFor(request: Request, status: number, message: string) {
+  if (wantsFormResponse(request)) {
     const target = new URL("/contact", request.url);
-    target.searchParams.set(status < 300 ? "submitted" : "error", status < 300 ? "1" : message);
+    target.searchParams.set(status < 300 ? "submitted" : "error", "1");
     return NextResponse.redirect(target, 303);
   }
   return NextResponse.json(status < 300 ? { received: true } : { error: message }, { status });
+}
+
+function limitedResponse(request: Request) {
+  if (wantsFormResponse(request)) {
+    const target = new URL("/contact", request.url);
+    target.searchParams.set("error", "rate-limit");
+    return NextResponse.redirect(target, 303);
+  }
+  return NextResponse.json({ error: "Too many recent applications. Please try again later." }, { status: 429 });
 }
 
 export async function POST(request: Request) {
@@ -37,6 +50,16 @@ export async function POST(request: Request) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return responseFor(request, 503, "Applications are temporarily unavailable. Email hello@foremention.com instead.");
 
   try {
+    const keyHash = await designPartnerSubmissionKey(normalized.value);
+    const claim = await supabaseRest<string>("rpc/claim_design_partner_submission", {
+      method: "POST",
+      serviceRole: true,
+      body: { p_key_hash: keyHash },
+    });
+    if (claim === "duplicate") return responseFor(request, 201, "Application received.");
+    if (claim === "limited") return limitedResponse(request);
+    if (claim !== "accepted") throw new Error("Unexpected submission claim state.");
+
     await supabaseRest("design_partner_applications", {
       method: "POST",
       serviceRole: true,
