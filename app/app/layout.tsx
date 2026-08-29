@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { requireViewer } from "@/lib/auth";
 import { loadNotifications, loadWorkspaceSummary } from "@/lib/data";
 import { PostHogIdentity } from "@/components/posthog-analytics";
+import { RetentionSurfaceBridge } from "@/components/retention-surface-bridge";
 import { WorkspaceActivationAnalytics } from "@/components/workspace-activation-analytics";
 import "./workspace-accessibility.css";
 
@@ -22,5 +23,5 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     }),
     loadNotifications(viewer).catch(() => []),
   ]);
-  return <AppShell viewer={viewer} workspaceName={workspace?.organizationName} notifications={notifications}><PostHogIdentity viewerId={viewer.id} organizationId={workspace?.organizationId} demo={viewer.mode === "demo"} /><WorkspaceActivationAnalytics demo={viewer.mode === "demo"} />{children}</AppShell>;
+  return <AppShell viewer={viewer} workspaceName={workspace?.organizationName} notifications={notifications}><PostHogIdentity viewerId={viewer.id} organizationId={workspace?.organizationId} demo={viewer.mode === "demo"} /><WorkspaceActivationAnalytics demo={viewer.mode === "demo"} />{children}<RetentionSurfaceBridge /></AppShell>;
 }
