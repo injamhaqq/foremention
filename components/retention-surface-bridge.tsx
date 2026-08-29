@@ -47,8 +47,8 @@ function AttentionSurface() {
     <AttentionInbox items={items} />
     <ContextLinks
       title="Move from signal to owned follow-through."
-      body="Alerts, opportunities, and actions remain available when you need the underlying workflow, without competing with the five core workspace objects."
-      links={[["/app/alerts", "Alerts"], ["/app/opportunities", "Opportunities"], ["/app/placements", "Actions"]]}
+      body="Alerts, opportunities, actions, and resolution work remain available when you need the underlying workflow, without competing with the five core workspace objects."
+      links={[["/app/alerts", "Alerts"], ["/app/opportunities", "Opportunities"], ["/app/placements", "Actions"], ["/app/resolutions", "Resolution Center"]]}
     />
   </>;
 }
@@ -65,11 +65,14 @@ function RecordControls({ runId }: { runId: string }) {
     else setSharePath(payload.data.path);
     setPending(false);
   }
-  return <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
-    <div className="panel-heading"><div><span className="eyebrow">Recommendation Record</span><h2>Share or export this exact evidence boundary.</h2><p>Evidence inspection remains contained in this Recommendation Record. Shared views are read-only, expiring and revocable.</p></div></div>
-    <div className="settings-actions"><button className="button button--ink" disabled={pending} onClick={() => void share()}>{pending ? "Creating…" : "Share read-only Record"}</button><a className="button button--outline" href={`/api/export/record/${encodeURIComponent(runId)}`}>Export CSV</a><Link className="button button--outline" href={`/app/runs/${encodeURIComponent(runId)}/print`}>Print / PDF</Link><Link className="button button--outline" href="/app/evidence">Evidence Vault</Link></div>
-    {sharePath && <p className="table-caption">Share created: <Link href={sharePath}>{sharePath}</Link>. Copy it now; Foremention stores only its hash.</p>}{error && <p className="inline-error" role="alert">{error}</p>}
-  </section>;
+  return <>
+    <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
+      <div className="panel-heading"><div><span className="eyebrow">Recommendation Record</span><h2>Share or export this exact evidence boundary.</h2><p>Evidence inspection remains contained in this Recommendation Record. Shared views are read-only, expiring and revocable.</p></div></div>
+      <div className="settings-actions"><button className="button button--ink" disabled={pending} onClick={() => void share()}>{pending ? "Creating…" : "Share read-only Record"}</button><a className="button button--outline" href={`/api/export/record/${encodeURIComponent(runId)}`}>Export CSV</a><Link className="button button--outline" href={`/app/runs/${encodeURIComponent(runId)}/print`}>Print / PDF</Link></div>
+      {sharePath && <p className="table-caption">Share created: <Link href={sharePath}>{sharePath}</Link>. Copy it now; Foremention stores only its hash.</p>}{error && <p className="inline-error" role="alert">{error}</p>}
+    </section>
+    <ContextLinks title="Inspect or publish only from the persisted Record." body="Evidence, vendor-passport output, and the agent execution trace are supporting Record tools. None creates replacement evidence or a second recommendation object." links={[["/app/evidence", "Evidence Vault"], ["/app/passport", "Vendor Passport"], ["/app/agents", "Agent Control Plane"]]} />
+  </>;
 }
 
 function SettingsExtensions() {
@@ -85,7 +88,7 @@ function SettingsExtensions() {
 function AnalyticsExtensions() {
   return <>
     <section className="panel retention-benchmark-boundary"><span className="eyebrow">Category context</span><h2>Benchmark unavailable</h2><p>Foremention will not manufacture a category benchmark from one workspace. Cross-workspace benchmarks require an eligible privacy-safe cohort and minimum sample threshold. Current comparisons remain bound to the same locale and market as the exact reviewed baseline.</p></section>
-    <ContextLinks title="Use deeper analysis only when the comparison is valid." body="Outcome and decision-analysis tools remain available behind Comparisons, after the exact comparability boundary is satisfied." links={[["/app/outcomes", "Outcomes"], ["/app/decision-lab", "Decision Lab"]]} />
+    <ContextLinks title="Use deeper analysis only when the comparison is valid." body="Outcome, weekly-intelligence, and decision-analysis tools remain available behind Comparisons, after the exact comparability boundary is satisfied." links={[["/app/outcomes", "Outcome Ledger"], ["/app/intelligence", "Intelligence Loop"], ["/app/decision-lab", "Decision Lab"]]} />
   </>;
 }
 
