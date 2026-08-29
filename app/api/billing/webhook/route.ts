@@ -19,18 +19,6 @@ async function claimBillingEvent(event: VerifiedBillingEvent, provider: string) 
   return rows.length > 0;
 }
 
-async function completeBillingEvent(event: VerifiedBillingEvent, provider: string) {
-  await supabaseRest(
-    `billing_webhook_events?provider=eq.${encodeURIComponent(provider)}&event_id=eq.${encodeURIComponent(event.eventId)}`,
-    {
-      method: "PATCH",
-      serviceRole: true,
-      prefer: "return=minimal",
-      body: { processed_at: new Date().toISOString() },
-    },
-  );
-}
-
 async function releaseBillingEvent(event: VerifiedBillingEvent, provider: string) {
   await supabaseRest(
     `billing_webhook_events?provider=eq.${encodeURIComponent(provider)}&event_id=eq.${encodeURIComponent(event.eventId)}&processed_at=is.null`,
@@ -38,48 +26,35 @@ async function releaseBillingEvent(event: VerifiedBillingEvent, provider: string
   );
 }
 
-async function applyBillingEvent(event: VerifiedBillingEvent, provider: string) {
-  const now = new Date().toISOString();
-  const featureKeys = entitlementsForBillingEvent(event);
-  await supabaseRest("billing_accounts?on_conflict=organization_id", {
+async function applyBillingEventAtomic(event: VerifiedBillingEvent, provider: string) {
+  const applied = await supabaseRest<boolean>("rpc/apply_billing_event_atomic", {
     method: "POST",
     serviceRole: true,
-    prefer: "resolution=merge-duplicates,return=minimal",
     body: {
-      organization_id: event.organizationId,
-      provider,
-      external_customer_id: event.externalCustomerId || null,
-      external_subscription_id: event.externalSubscriptionId || null,
-      state: event.state,
-      verified_webhook_at: now,
+      p_provider: provider,
+      p_event_id: event.eventId,
+      p_organization_id: event.organizationId,
+      p_package_key: event.packageKey,
+      p_state: event.state,
+      p_legacy_status: legacyEntitlementStatus(event.state),
+      p_feature_keys: entitlementsForBillingEvent(event),
+      p_external_customer_id: event.externalCustomerId || null,
+      p_external_subscription_id: event.externalSubscriptionId || null,
+      p_effective_at: new Date().toISOString(),
     },
   });
-  await supabaseRest("organization_entitlements?on_conflict=organization_id", {
-    method: "POST",
-    serviceRole: true,
-    prefer: "resolution=merge-duplicates,return=minimal",
-    body: {
-      organization_id: event.organizationId,
-      plan: "free_beta",
-      status: legacyEntitlementStatus(event.state),
-      package_key: event.packageKey,
-      feature_keys: featureKeys,
-      billing_source: provider,
-      effective_at: now,
-    },
-  });
+  if (!applied) throw new Error("Verified billing event receipt was not available for atomic application.");
 }
 
 async function processBillingEvent(event: VerifiedBillingEvent, provider: string) {
   const claimed = await claimBillingEvent(event, provider);
   if (!claimed) return { duplicate: true } as const;
   try {
-    await applyBillingEvent(event, provider);
-    await completeBillingEvent(event, provider);
+    await applyBillingEventAtomic(event, provider);
     return { duplicate: false } as const;
   } catch (error) {
-    // A failed mutation must remain retryable. Best-effort release avoids
-    // permanently consuming the provider event id when no billing state landed.
+    // The atomic RPC either commits all billing state + receipt completion or
+    // rolls back. A failed mutation therefore remains safe to release/retry.
     await releaseBillingEvent(event, provider).catch(() => undefined);
     throw error;
   }
