@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AttentionInbox } from "@/components/attention-inbox";
+import { BillingControl } from "@/components/billing-control";
+import { EnterpriseReadiness } from "@/components/enterprise-readiness";
 import { MeasurementScheduleControl } from "@/components/measurement-schedule-control";
 import type { AttentionItem } from "@/lib/retention-loop";
 
@@ -62,8 +64,9 @@ function RecordControls({ runId }: { runId: string }) {
 function SettingsExtensions() {
   return <div className="retention-extension-stack">
     <MeasurementScheduleControl />
+    <BillingControl />
     <section className="panel"><span className="eyebrow">Enterprise access</span><h2>SSO / SAML</h2><p>Enterprise SSO is available only for a genuinely configured workspace connection. Foremention fails closed instead of pretending SSO is active.</p><a className="button button--outline" href="/api/auth/sso?next=/app">Check SSO configuration</a></section>
-    <section className="panel"><span className="eyebrow">Billing</span><h2>Verified entitlement boundary</h2><p>Billing remains inactive until a signed provider webhook is verified. No card or paid package is implied by this interface.</p></section>
+    <EnterpriseReadiness />
     <ContextLinks title="Workspace administration lives here." body="Team and integration setup are supporting configuration, not separate product destinations." links={[["/app/team", "Team"], ["/app/settings#integrations", "Integrations"]]} />
   </div>;
 }
