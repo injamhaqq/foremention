@@ -1,0 +1,175 @@
+/* Final responsive/accessibility hardening layer.
+ * This file intentionally comes last. It corrects shared presentation
+ * constraints without changing the approved homepage content, product IA,
+ * evidence semantics, or canonical artwork.
+ */
+
+:root {
+  --fm-shell-gutter: clamp(20px, 4vw, 56px);
+  --fm-touch-target: 44px;
+}
+
+.shell {
+  width: min(var(--fm-shell), calc(100% - var(--fm-shell-gutter) - var(--fm-shell-gutter)));
+}
+
+/* Readability floor: historical 8-11px product labels became illegible under
+ * zoom-out, Android font substitution, and low-density screens. */
+:where(
+  .canonical-kicker,
+  .canonical-home__pillars article > span,
+  .canonical-home__pillars p,
+  .canonical-signal__caption,
+  .canonical-record__eyebrow,
+  .canonical-record__states dt,
+  .canonical-record__states small,
+  .canonical-record__chain strong,
+  .canonical-record__boundary span,
+  .canonical-foundation__grid span,
+  .footer-links span,
+  .footer-analytics-preferences > summary small,
+  .footer-analytics-preferences__panel p,
+  .footer-analytics-preferences__actions .button,
+  .app-frame .eyebrow,
+  .app-frame .goat-kicker,
+  .app-frame .running-label,
+  .app-frame .metric-label,
+  .app-frame th,
+  .app-frame .table-head,
+  .app-frame small
+) {
+  font-size: max(12px, .75rem);
+  line-height: 1.45;
+}
+
+.canonical-signal__caption { color: #8da196; }
+
+/* Controls that behave as buttons or form fields share one reliable touch
+ * target. Inline prose links are intentionally excluded. */
+:where(.app-frame, .fm-public-shell, .canonical-public-shell, .registered-evidence-shell)
+  :where(button, input:not([type="hidden"]), select, summary, .button, .sidebar-nav a) {
+  min-height: var(--fm-touch-target);
+}
+
+:where(.app-frame, .fm-public-shell, .canonical-public-shell, .registered-evidence-shell) textarea {
+  min-height: 96px;
+}
+
+/* Let flex/grid children shrink instead of forcing document overflow. */
+.app-main,
+.app-topbar,
+.app-topbar > *,
+.workspace-global-search,
+.app-topbar__account,
+.app-user,
+.app-user > div,
+.canonical-record,
+.canonical-record__heading,
+.canonical-record__meta,
+.canonical-source-evidence,
+.panel,
+.table-wrap {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-topbar {
+  gap: clamp(8px, 1.5vw, 24px);
+}
+
+.app-user > div {
+  min-width: 0;
+}
+
+.app-user :where(strong, small) {
+  display: block;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-wrap,
+.canonical-snapshot-history .table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrap table,
+.canonical-snapshot-history table {
+  max-width: none;
+}
+
+/* Avoid a clipped visual masquerading as successful reflow. */
+:where(.app-main, .workspace-page, .workspace-content, .panel, .canonical-record) {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  .app-user > div { display: none; }
+  .app-topbar__brand-label { display: none; }
+  .workspace-global-search { flex: 1 1 18rem; min-width: 10rem; }
+  .app-topbar__account { flex: 0 0 auto; }
+}
+
+@media (max-width: 900px) {
+  .canonical-home__hero { grid-template-columns: 1fr; }
+  .canonical-home__copy,
+  .canonical-home__hero > * { min-width: 0; }
+  .canonical-record__heading,
+  .canonical-record__meta { grid-template-columns: 1fr; min-width: 0; }
+  .canonical-record__states { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .canonical-source-credibility { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 820px) {
+  .app-topbar {
+    padding-left: max(18px, env(safe-area-inset-left));
+    padding-right: max(18px, env(safe-area-inset-right));
+  }
+  .app-mobile-nav__panel {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .public-header__inner {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .workspace-global-search { min-width: 0; }
+}
+
+@media (max-width: 620px) {
+  .canonical-home__copy h1,
+  .canonical-record__heading h2,
+  .fm-section__intro h2 {
+    letter-spacing: -.03em;
+  }
+  .canonical-record__states { grid-template-columns: 1fr; }
+  .canonical-record__boundary { grid-template-columns: 1fr; }
+  .canonical-record__meta { min-width: 0; }
+}
+
+@media (max-width: 520px) {
+  .app-topbar__account .app-user { display: none; }
+  .app-topbar { gap: 10px; }
+  .footer-analytics-preferences__actions .button { min-height: var(--fm-touch-target); }
+}
+
+@media (forced-colors: active) {
+  :where(a, button, input, select, textarea, summary):focus-visible {
+    outline: 2px solid CanvasText;
+  }
+  :where(.app-frame, .fm-public-shell, .canonical-public-shell, .registered-evidence-shell)
+    :where(button, .button, input, select, textarea, summary) {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :where(.app-frame, .fm-public-shell, .canonical-public-shell, .registered-evidence-shell) {
+    --fm-border: #66756c;
+    --fm-border-strong: #8aa094;
+    --fm-muted: #c5ccc6;
+  }
+}
