@@ -51,7 +51,7 @@ test("homepage follows the founder-supplied original reference with lightweight 
 
   assert.match(home, /THE FOREMENTION STANDARD/);
   assert.match(home, /Register\. Prove\. Prepare\./);
-  assert.match(home, /The trusted foundation for recommendation intelligence/);
+  assert.match(home, /Recommendation intelligence for B2B software\./);
   assert.match(home, /Capture signals as immutable records\./);
   assert.match(home, /Verify provenance with integrity at every step\./);
   assert.match(home, /Make confident decisions with real evidence\./);
@@ -73,9 +73,7 @@ test("homepage follows the founder-supplied original reference with lightweight 
 test("signed-in primary IA remains exactly five product objects", async () => {
   const nav = await text("components/workspace-navigation.tsx");
   const primary = nav.slice(nav.indexOf("const primaryNav"), nav.indexOf("const workspaceNav"));
-  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) {
-    assert.match(primary, new RegExp(`"${label}"`));
-  }
+  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(primary, new RegExp(`"${label}"`));
   assert.doesNotMatch(primary, /Source X-Ray|Evidence Vault|Competitors|Actions/);
 });
 
@@ -87,7 +85,6 @@ test("Recommendation Record evidence semantics stay distinct and standalone Sour
     text("components/workspace-activation-analytics.tsx"),
     text("components/source-review-form.tsx"),
   ]);
-
   for (const label of ["ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) assert.match(home, new RegExp(label));
   for (const label of ["RETURNED", "RETRIEVED", "OBSERVED", "REVIEWED", "SAFE CONCLUSION"]) assert.match(home, new RegExp(label));
   assert.match(home, /registered-foundation/);
