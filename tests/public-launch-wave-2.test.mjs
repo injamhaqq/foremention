@@ -20,17 +20,15 @@ const homepageStyles = await text("components/homepage-readiness.module.css");
 const sitemap = await text("app/sitemap.ts");
 const compare = await optionalText("app/compare/page.tsx");
 
-test("pricing sells the outcome without publishing unvalidated paid anchors during free beta", () => {
-  assert.match(pricing, /Commercial packaging is not final yet/i);
+test("pricing sells the outcome without publishing unvalidated paid anchors", () => {
+  assert.match(pricing, /Founder-led design-partner pricing is being validated with real teams/i);
   assert.match(pricing, /Core/);
   assert.match(pricing, /Signal/);
   assert.match(pricing, /Intelligence/);
-  assert.match(pricing, /Pricing to be confirmed/i);
-  assert.match(pricing, /Join private beta/);
-  assert.match(pricing, /does not charge a card/i);
-  assert.match(pricing, /paid checkout is not active/i);
+  assert.match(pricing, /Self-serve paid checkout is shown[\s\S]*only when billing is configured/i);
+  assert.match(pricing, /does[\s\S]*not charge a card/i);
   assert.match(pricing, /Recommendation Records/);
-  assert.match(pricing, /Evidence inspection inside each record/i);
+  assert.match(pricing, /contained evidence inspection/i);
   assert.doesNotMatch(pricing, /\$149|\$499/);
   assert.doesNotMatch(homepage, /\$149|\$499/);
   assert.doesNotMatch(pricing, /pricingComparison/);
