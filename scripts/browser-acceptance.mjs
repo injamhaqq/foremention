@@ -19,6 +19,17 @@ const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-ac
 
 const publicPaths = ["/", "/product", "/pricing", "/score", "/prompt-check", "/login", "/signup"];
 const authenticatedPaths = ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"];
+const approvedIdentityPaths = [
+  "/brand/foremention-logo-white.svg",
+  "/brand/foremention-mark-white.svg",
+];
+const forbiddenLightBackgrounds = new Set([
+  "rgb(255, 255, 255)",
+  "rgb(255, 253, 249)",
+  "rgb(244, 240, 232)",
+  "rgb(243, 255, 249)",
+  "rgb(238, 247, 255)",
+]);
 const profiles = [
   { name: "chromium-desktop", browserType: chromium, viewport: { width: 1440, height: 1200 } },
   { name: "chromium-laptop", browserType: chromium, viewport: { width: 1024, height: 900 } },
@@ -150,39 +161,68 @@ async function visible(locator) {
 }
 
 async function verifyCanonicalBrandArtwork(page, profileName, path) {
-  const visibleRetiredArtwork = await page.locator([
-    'img[src*="/brand/foremention-"]',
+  const visibleApprovedWordmarks = await page.locator('img.wordmark__art[src="/brand/foremention-logo-white.svg"]').evaluateAll((elements) => elements.filter((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
+  }).length);
+  if (!visibleApprovedWordmarks) {
+    recordFailure("Approved Foremention logo artwork is not visibly rendered.", { profile: profileName, path });
+  }
+
+  const textOnlyFallbacks = await page.locator(".wordmark--text-only, .wordmark__text").count();
+  if (textOnlyFallbacks > 0) {
+    recordFailure("Text-only Foremention fallback is still rendered instead of the approved logo.", { profile: profileName, path, textOnlyFallbacks });
+  }
+
+  const legacyArtwork = await page.locator([
     'img[src*="/foremention-wordmark.png"]',
     'img[src*="/source-eclipse.svg"]',
-    "img.wordmark__art",
-    "img.foremention-mark",
+    'img[src="/brand/foremention-logo.svg"]',
+    'img[src="/brand/foremention-mark.svg"]',
     ".source-eclipse",
     ".source-eclipse__orbit",
     ".source-eclipse__point",
     ".wordmark__name",
-  ].join(", ")).evaluateAll((elements) => elements.filter((element) => {
-    const rect = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
-  }).length);
-
-  if (visibleRetiredArtwork > 0) {
-    recordFailure("Retired Foremention visual identity artwork is visibly rendered.", { profile: profileName, path, visibleRetiredArtwork });
+  ].join(", ")).count();
+  if (legacyArtwork > 0) {
+    recordFailure("A non-approved legacy Foremention identity asset is still rendered.", { profile: profileName, path, legacyArtwork });
   }
 
-  const inverseIdentity = await page.locator(".wordmark--inverse").count();
-  if (inverseIdentity > 0) {
-    recordFailure("Retired inverse/white identity treatment is still present.", { profile: profileName, path, inverseIdentity });
-  }
-
-  const neutralLabels = await page.locator(".wordmark--text-only .wordmark__text").evaluateAll((elements) => elements.filter((element) => {
+  const lightSurfaces = await page.locator([
+    "body",
+    "main",
+    "header",
+    "footer",
+    "section",
+    "article",
+    "form",
+    '.app-frame',
+    '.app-main',
+    '.app-topbar',
+    '.app-sidebar',
+    '.weekly-loop-teaser',
+    '.question-planner',
+    '.prompt-create',
+    '.review-queue-callout',
+    '.data-quality-grid',
+    '.inline-notice',
+    '.pricing-activation',
+    '.pricing-shared > article',
+  ].join(", ")).evaluateAll((elements, forbidden) => elements.flatMap((element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
-    return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
-  }).length);
+    if (rect.width <= 0 || rect.height <= 0 || style.display === "none" || style.visibility === "hidden") return [];
+    return forbidden.includes(style.backgroundColor)
+      ? [{ tag: element.tagName, className: typeof element.className === "string" ? element.className : "", backgroundColor: style.backgroundColor }]
+      : [];
+  }), [...forbiddenLightBackgrounds]);
+  if (lightSurfaces.length) {
+    recordFailure("Visible website surface still uses a white/warm-light background.", { profile: profileName, path, lightSurfaces: lightSurfaces.slice(0, 20) });
+  }
 
-  if (!neutralLabels) {
-    recordFailure("Neutral text-only Foremention product label is not visibly rendered.", { profile: profileName, path });
+  for (const approvedPath of approvedIdentityPaths) {
+    if (approvedPath.endsWith("logo-white.svg") && !visibleApprovedWordmarks) continue;
   }
 }
 
@@ -390,6 +430,8 @@ async function verifyAuthenticatedRoutes() {
         if (final.pathname === "/login" || (response?.status() ?? 500) >= 400) recordFailure("Authenticated critical path did not render under the acceptance session.", row);
         if (widths.documentWidth > widths.innerWidth + 1) recordFailure("Authenticated critical path has horizontal overflow.", row);
         if (runtime.pageErrors.length || runtime.consoleErrors.length) recordFailure("Authenticated critical path emitted browser runtime errors.", row);
+
+        await verifyCanonicalBrandArtwork(page, profile.name, path);
 
         try {
           const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();

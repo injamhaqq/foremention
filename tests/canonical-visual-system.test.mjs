@@ -38,7 +38,7 @@ test("canonical visual system is wired before the founder-reference and release 
   assert.doesNotMatch(`${css}\n${homepageCss}\n${releaseCss}`, /source-x-ray/i);
 });
 
-test("retired custom Foremention identity artwork stays absent", async () => {
+test("approved canonical Foremention identity artwork stays locked while legacy artwork stays retired", async () => {
   const [brand, publicShell, workspaceNav, layout, seo] = await Promise.all([
     text("components/brand.tsx"),
     text("components/public-shell.tsx"),
@@ -47,18 +47,24 @@ test("retired custom Foremention identity artwork stays absent", async () => {
     text("lib/seo.ts"),
   ]);
 
-  assert.match(brand, /wordmark--text-only/);
-  assert.match(brand, /wordmark__text">Foremention/);
-  assert.doesNotMatch(brand, /foremention-logo|foremention-mark|wordmark__art|<img/);
-  assert.doesNotMatch(publicShell, /ForementionMark|Wordmark inverse/);
-  assert.doesNotMatch(workspaceNav, /ForementionMark|Wordmark inverse/);
+  assert.match(brand, /ForementionMark/);
+  assert.match(brand, /wordmark__art/);
+  assert.match(brand, /foremention-logo-white\.svg/);
+  assert.match(brand, /foremention-mark-white\.svg/);
+  assert.match(brand, /<img/);
+  assert.doesNotMatch(brand, /wordmark--text-only|wordmark__text|source-eclipse\.svg/);
+  assert.match(publicShell, /Wordmark/);
+  assert.match(workspaceNav, /Wordmark|ForementionMark/);
   assert.doesNotMatch(`${layout}\n${seo}`, /og\.png|og-platform\.png|SOCIAL_IMAGE/);
 
   for (const path of [
-    "public/brand/foremention-logo.svg",
     "public/brand/foremention-logo-white.svg",
-    "public/brand/foremention-mark.svg",
     "public/brand/foremention-mark-white.svg",
+  ]) assert.equal(await exists(path), true, `${path} must remain present`);
+
+  for (const path of [
+    "public/brand/foremention-logo.svg",
+    "public/brand/foremention-mark.svg",
     "public/foremention-wordmark.png",
     "public/source-eclipse.svg",
     "public/og.png",

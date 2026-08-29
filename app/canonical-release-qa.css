@@ -1,6 +1,17 @@
-/* Exact release hardening for the canonical migration. Keep selectors narrow and evidence semantics explicit. */
+/* Exact release hardening for the canonical migration.
+ * Foremention is a black + registered-green system. Light/off-white values are
+ * reserved for readable type and artwork, never for page, panel, card, form,
+ * navigation, or inspection-surface backgrounds.
+ */
 
-/* Fictional signed-in proof: use explicit foreground/background pairs measured by axe. */
+/* Signed-in shell. */
+.app-frame,
+.app-frame .app-main,
+.app-frame .app-topbar,
+.app-frame .app-sidebar {
+  background: #0d0f0e !important;
+  color: #fffdf9 !important;
+}
 .app-frame .app-sidebar__footer {
   background: #090b0a !important;
   color: #fffdf9 !important;
@@ -9,30 +20,249 @@
   background: #0d0f0e !important;
   color: #fffdf9 !important;
 }
-.app-frame .app-sidebar__footer > .sidebar-company > strong {
-  color: #fffdf9 !important;
-}
+.app-frame .app-sidebar__footer > .sidebar-company > strong { color: #fffdf9 !important; }
 .app-frame .app-sidebar__footer > .sidebar-company > span,
-.app-frame .app-sidebar__footer > .sidebar-company > small {
-  color: #aeb6af !important;
-}
+.app-frame .app-sidebar__footer > .sidebar-company > small { color: #aeb6af !important; }
 .app-frame .app-sidebar__footer > form[action="/api/auth/demo/exit"][method="post"] > button {
   border-color: #355f4b !important;
   background: #0d0f0e !important;
   color: #fffdf9 !important;
 }
-.app-frame .app-user > div > small {
-  color: #c5ccc6 !important;
+.app-frame .app-user > div > small { color: #c5ccc6 !important; }
+
+/* No warm/white inspection sheets inside the workspace. */
+.app-frame :where(
+  .weekly-loop-teaser,
+  .question-planner,
+  .prompt-create,
+  .review-queue-callout,
+  .data-quality-grid,
+  .inline-notice
+) {
+  border-color: #176347 !important;
+  background: #111412 !important;
+  color: #fffdf9 !important;
+}
+.app-frame :where(
+  .weekly-loop-teaser,
+  .question-planner,
+  .prompt-create,
+  .review-queue-callout,
+  .data-quality-grid,
+  .inline-notice
+) :where(h1, h2, h3, strong, label, a, button) {
+  color: #fffdf9 !important;
+}
+.app-frame :where(
+  .weekly-loop-teaser,
+  .question-planner,
+  .prompt-create,
+  .review-queue-callout,
+  .data-quality-grid,
+  .inline-notice
+) :where(p, small) {
+  color: #aeb6af !important;
+}
+.app-frame :where(
+  .question-planner,
+  .prompt-create,
+  .review-queue-callout,
+  .data-quality-grid,
+  .inline-notice
+) .eyebrow {
+  color: #65b58e !important;
+}
+.app-frame :where(
+  .prompt-create input,
+  .prompt-create select,
+  .prompt-create textarea,
+  .prompt-tools select,
+  .settings-grid input,
+  .settings-grid select,
+  .settings-grid textarea
+) {
+  border-color: #355f4b !important;
+  background: #090b0a !important;
+  color: #fffdf9 !important;
+}
+.app-frame :where(.prompt-create input, .prompt-create textarea, .settings-grid input, .settings-grid textarea)::placeholder {
+  color: #7f8981 !important;
+}
+.app-frame .prompt-create .button--ink,
+.app-frame .review-action .provider-state--available {
+  border-color: #65b58e !important;
+  background: #176347 !important;
+  color: #fffdf9 !important;
+}
+.app-frame .latest-answer > p,
+.app-frame .review-action > div > p { color: #d7dbd5 !important; }
+
+/* Public pages remain black/graphite with green structure from hero to footer. */
+.fm-public-shell,
+.canonical-public-shell,
+.registered-evidence-shell {
+  background: #0d0f0e !important;
+  color: #fffdf9 !important;
+}
+.fm-public-shell :where(.fm-section, .fm-workspace-entry, .section--paper),
+.registered-evidence-shell :where(.section--paper, .page-hero),
+.canonical-public-shell :where(.section--paper, .page-hero) {
+  border-color: #28332d !important;
+  background: #0d0f0e !important;
+  color: #fffdf9 !important;
+}
+.fm-public-shell .fm-section--surface,
+.registered-evidence-shell :where(.pricing-card, .about-ledger, .source-preview),
+.canonical-public-shell :where(.pricing-card, .about-ledger, .source-preview) {
+  border-color: #28332d !important;
+  background: #111412 !important;
+  color: #fffdf9 !important;
+}
+.fm-public-shell :where(.fm-section, .fm-workspace-entry) :where(h1, h2, h3, strong),
+.registered-evidence-shell :where(.section--paper, .page-hero, .pricing-card, .about-ledger, .source-preview) :where(h1, h2, h3, strong),
+.canonical-public-shell :where(.section--paper, .page-hero, .pricing-card, .about-ledger, .source-preview) :where(h1, h2, h3, strong) {
+  color: #fffdf9 !important;
+}
+.fm-public-shell :where(.fm-section, .fm-workspace-entry) p,
+.registered-evidence-shell :where(.section--paper, .page-hero, .pricing-card, .about-ledger, .source-preview) p,
+.canonical-public-shell :where(.section--paper, .page-hero, .pricing-card, .about-ledger, .source-preview) p {
+  color: #aeb6af !important;
+}
+.fm-public-shell :where(.goat-kicker, .running-label, .eyebrow),
+.registered-evidence-shell :where(.eyebrow, .pricing-label),
+.canonical-public-shell :where(.eyebrow, .pricing-label) {
+  color: #65b58e !important;
+}
+.fm-public-shell :where(.fm-honesty-grid article, .fm-competitor-record, .fm-decision-gate, .fm-compare__run, .fm-measurement-note > div) {
+  border-color: #28332d !important;
+  background: #111412 !important;
+  color: #fffdf9 !important;
+}
+.fm-public-shell :where(.fm-competitor-presence > span, .fm-readiness-states > span) {
+  border-color: #355f4b !important;
+  background: #101712 !important;
+  color: #d7dbd5 !important;
 }
 
-/* This evidence teaser intentionally uses a warm inspection sheet inside the dark workspace. */
-.app-frame .weekly-loop-teaser {
-  border-color: #d0ccc4 !important;
-  background: #fffdf9 !important;
-  color: #0d0f0e !important;
+/* Dark-surface contrast contract: later light-mode aliases must not leak through. */
+.fm-public-shell .fm-section .goat-kicker,
+.fm-public-shell .fm-workspace-entry .goat-kicker,
+.registered-evidence-shell .section .eyebrow,
+.registered-evidence-shell .page-hero .eyebrow,
+.canonical-public-shell .section .eyebrow,
+.canonical-public-shell .page-hero .eyebrow {
+  color: #65b58e !important;
 }
-.app-frame .weekly-loop-teaser > div > p {
-  color: #4f5952 !important;
+.fm-public-shell .fm-section :where(h2, h3),
+.fm-public-shell .fm-honesty-grid article h3,
+.fm-public-shell .fm-competitor-record :where(h2, h3),
+.fm-public-shell .fm-decision-gate :where(h2, h3),
+.fm-public-shell .fm-compare__run :where(h2, h3) {
+  color: #fffdf9 !important;
+}
+.fm-public-shell .fm-running-label b,
+.fm-public-shell .fm-decision-gate__summary .fm-running-label b,
+.fm-public-shell .fm-compare__run .fm-running-label b,
+.fm-public-shell .fm-measurement-note .fm-running-label b {
+  color: #65b58e !important;
+}
+.fm-public-shell .fm-running-label > span,
+.fm-public-shell .fm-record-meta > span,
+.fm-public-shell .fm-competitor-presence > span,
+.fm-public-shell .fm-readiness-states > span,
+.fm-public-shell .fm-decision-check > span:nth-child(2),
+.fm-public-shell .fm-honesty-state {
+  color: #aeb6af !important;
+}
+.fm-public-shell .fm-decision-check > strong,
+.fm-public-shell .fm-competitor-record strong,
+.fm-public-shell .fm-measurement-note strong {
+  color: #fffdf9 !important;
+}
+
+/* Exact dark-surface foreground overrides for the release gate.
+ * Match the older !important selector specificity instead of changing any
+ * background, spacing, typography, or evidence semantics.
+ */
+.fm-public-shell section[aria-labelledby="honesty-title"] .goat-kicker,
+.fm-public-shell section[aria-labelledby="decision-title"] .goat-kicker,
+.fm-public-shell section[aria-labelledby="competitor-title"] .goat-kicker,
+.fm-public-shell section[aria-labelledby="measurement-title"] .goat-kicker {
+  color: #65b58e !important;
+}
+.fm-public-shell section[aria-labelledby="measurement-title"] .fm-running-label > span:nth-child(3) {
+  color: #aeb6af !important;
+}
+.registered-evidence-shell .section--yellow .pricing-shared > article > span,
+.canonical-public-shell .section--yellow .pricing-shared > article > span {
+  color: #65b58e !important;
+}
+
+/* Former yellow/light scenes are graphite + green, never light cards. */
+.registered-evidence-shell .section--yellow,
+.canonical-public-shell .section--yellow,
+.fm-public-shell .section--yellow {
+  border-color: #28332d !important;
+  background: #0d0f0e !important;
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .section--yellow .metric-layers > div,
+.canonical-public-shell .section--yellow .metric-layers > div,
+.registered-evidence-shell .pricing-shared > article,
+.canonical-public-shell .pricing-shared > article {
+  border-color: #28332d !important;
+  background: #111412 !important;
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .section--yellow .metric-layers > div :where(h2, h3, strong),
+.canonical-public-shell .section--yellow .metric-layers > div :where(h2, h3, strong),
+.registered-evidence-shell .pricing-shared > article > h3,
+.canonical-public-shell .pricing-shared > article > h3 {
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .section--yellow .metric-layers > div p,
+.canonical-public-shell .section--yellow .metric-layers > div p,
+.registered-evidence-shell .pricing-shared > article > p,
+.canonical-public-shell .pricing-shared > article > p {
+  color: #aeb6af !important;
+}
+
+/* Pricing activation and free-tool forms stay dark. */
+.registered-evidence-shell .pricing-activation,
+.canonical-public-shell .pricing-activation,
+.registered-evidence-shell .intake-form,
+.canonical-public-shell .intake-form,
+.registered-evidence-shell .panel,
+.canonical-public-shell .panel {
+  border-color: #355f4b !important;
+  background: #111412 !important;
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .pricing-activation > strong,
+.canonical-public-shell .pricing-activation > strong,
+.registered-evidence-shell .intake-form label,
+.canonical-public-shell .intake-form label,
+.registered-evidence-shell .panel :where(h2, h3, strong),
+.canonical-public-shell .panel :where(h2, h3, strong) {
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .pricing-activation > p,
+.canonical-public-shell .pricing-activation > p,
+.registered-evidence-shell .form-fineprint,
+.canonical-public-shell .form-fineprint,
+.registered-evidence-shell .panel :where(p, small),
+.canonical-public-shell .panel :where(p, small) {
+  color: #aeb6af !important;
+}
+.registered-evidence-shell .intake-form :where(input, select, textarea),
+.canonical-public-shell .intake-form :where(input, select, textarea) {
+  border-color: #355f4b !important;
+  background: #090b0a !important;
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .intake-form :where(input, textarea)::placeholder,
+.canonical-public-shell .intake-form :where(input, textarea)::placeholder {
+  color: #8b958d !important;
 }
 
 /* Contained Recommendation Record evidence. */
@@ -54,9 +284,7 @@
 .canonical-observed-evidence p,
 .canonical-source-credibility p,
 .canonical-snapshot-history p,
-.canonical-contained-comments p {
-  color: #aeb6af;
-}
+.canonical-contained-comments p { color: #aeb6af; }
 .canonical-source-credibility {
   display: grid;
   gap: 14px;
@@ -68,15 +296,8 @@
   color: #c5ccc6;
 }
 .canonical-source-credibility li + li { margin-top: 5px; }
-.canonical-snapshot-history .table-wrap {
-  margin-top: 12px;
-  overflow-x: auto;
-}
-.canonical-snapshot-history table {
-  width: 100%;
-  min-width: 720px;
-  border-collapse: collapse;
-}
+.canonical-snapshot-history .table-wrap { margin-top: 12px; overflow-x: auto; }
+.canonical-snapshot-history table { width: 100%; min-width: 720px; border-collapse: collapse; }
 .canonical-snapshot-history th,
 .canonical-snapshot-history td {
   border-bottom: 1px solid #28332d;
@@ -90,16 +311,8 @@
   letter-spacing: .1em;
   text-transform: uppercase;
 }
-.canonical-snapshot-history td {
-  color: #e4e8e4;
-  font-size: 12px;
-}
-.canonical-snapshot-history .table-caption {
-  margin-top: 4px;
-  color: #98a49b;
-  font-size: 10px;
-  line-height: 1.45;
-}
+.canonical-snapshot-history td { color: #e4e8e4; font-size: 12px; }
+.canonical-snapshot-history .table-caption { margin-top: 4px; color: #98a49b; font-size: 10px; line-height: 1.45; }
 .canonical-snapshot-history a { color: #8dceb0; }
 .canonical-contained-comments .comment-thread > summary { color: #dfe5df; }
 

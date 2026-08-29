@@ -1,31 +1,37 @@
 import Link from "next/link";
 
 /**
- * The previously introduced custom Foremention logo/mark identity has been
- * retired. Keep this compatibility component non-visual so older call sites
- * cannot accidentally reintroduce that artwork.
+ * Canonical Foremention identity. The approved reverse artwork is used across
+ * the black/green system so the mark is never replaced by a text fallback.
  */
-export function ForementionMark() {
-  return null;
-}
-
-/**
- * @deprecated Compatibility alias only. It renders nothing. Legacy contract
- * names `source-eclipse__orbit` and `source-eclipse__point` are mentioned here
- * only so historical tests can prove the retired component remains inert.
- */
-export function SourceEclipseMark() {
-  return null;
-}
-
-/**
- * Neutral product-name label only. This deliberately does not load, recreate,
- * invert, recolor, or otherwise derive any logo/wordmark artwork.
- */
-export function Wordmark({ inverse: _inverse = false }: { inverse?: boolean }) {
+export function ForementionMark({ inverse: _inverse = true }: { inverse?: boolean }) {
   return (
-    <Link className="wordmark wordmark--text-only" href="/" aria-label="Foremention home">
-      <span className="wordmark__text">Foremention</span>
+    <img
+      className="foremention-mark"
+      src="/brand/foremention-mark-white.svg"
+      width="23"
+      height="23"
+      alt=""
+      aria-hidden="true"
+    />
+  );
+}
+
+/** @deprecated Compatibility alias. Use ForementionMark for new code. */
+export function SourceEclipseMark({ inverse = true }: { inverse?: boolean }) {
+  return <ForementionMark inverse={inverse} />;
+}
+
+export function Wordmark({ inverse: _inverse = true }: { inverse?: boolean }) {
+  return (
+    <Link className="wordmark wordmark--inverse" href="/" aria-label="Foremention home">
+      <img
+        className="wordmark__art"
+        src="/brand/foremention-logo-white.svg"
+        width="264.096"
+        height="33.24"
+        alt="Foremention"
+      />
     </Link>
   );
 }

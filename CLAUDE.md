@@ -16,9 +16,10 @@ Before any material UI, product, brand, SEO, investor, accelerator, or design-sy
 - Company name: Foremention.
 - Category: Recommendation Intelligence.
 - Descriptor: Recommendation intelligence for B2B software.
-- The previously introduced custom Foremention logo/mark/wordmark identity is retired. Do not use, restore, recreate, trace, recolor, invert, derive, or ship those assets or any white/reverse variant.
-- Do not invent a replacement logo or mark. Until the founder explicitly approves a new identity, use only a neutral text label `Foremention` where a product/site label is required.
-- Brand system may continue to use the approved product environment (near-black conviction mode, warm-light inspection mode, deep registered green, registration/alignment/resolution behavior) without treating it as a new logo identity.
+- The approved canonical Foremention logo/mark/wordmark identity is locked. Preserve and use the already-approved repository artwork where identity is required.
+- Do not redraw, trace, recolor, derive, replace, or invent logo/mark/wordmark variants. Do not create a new visual identity direction without explicit founder approval.
+- The approved reverse artwork belongs on the canonical black/graphite system. Legacy, rejected, and unrelated identity assets remain retired.
+- Brand system uses near-black/graphite conviction mode, controlled registered green, and warm/light inspection surfaces only where the approved evidence-review system requires them.
 - The hero must read as recommendation evidence resolving into an inspectable record, not a planet, cyber-grid, or generic AI network.
 
 ## Foremention 5 — locked product architecture
@@ -70,7 +71,7 @@ Node.js >= 22.13.0 and pnpm 10.25.0 are required.
 
 ## Release gate
 
-Use RED -> GREEN -> VERIFY. Before merge, require fresh evidence for tests, lint, typecheck, production build, configured security checks, browser acceptance, accessibility, responsive QA (1440 / 1024 / 768 / 375 / 320), reduced motion, retired-identity absence, SEO audit, and performance review. Merge/deploy only the exact verified SHA, then prove production on that exact SHA.
+Use RED -> GREEN -> VERIFY. Before merge, require fresh evidence for tests, lint, typecheck, production build, configured security checks, browser acceptance, accessibility, responsive QA (1440 / 1024 / 768 / 375 / 320), reduced motion, approved canonical identity presence/integrity, absence of unapproved legacy identity variants, SEO audit, and performance review. Merge/deploy only the exact verified SHA, then prove production on that exact SHA.
 
 ## References
 

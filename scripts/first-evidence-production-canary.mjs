@@ -45,7 +45,7 @@ const summary = {
     providerSearchResultCount: null,
     duplicateRequestConfirmed: false,
     runReviewPublished: false,
-    sourceXrayOpened: false,
+    evidenceInspectionOpened: false,
     sourceReviewFormVisible: false,
     opportunityMutationAttempted: false,
   },
@@ -261,23 +261,26 @@ async function verifyRunEvidenceAndPublish(page, run) {
   }
 
   if (Number(run.citations || 0) < 1) {
-    stage("source-xray-not-required-no-provider-citations");
+    stage("contained-evidence-not-required-no-provider-citations");
     return;
   }
 
-  const xrayLink = page.locator('a[href^="/app/sources/"]').first();
-  if (await xrayLink.count() === 0) fail("The reviewed run has provider citations but no exact published Source X-Ray mapping link.");
-  const href = await xrayLink.getAttribute("href");
-  if (!href || !/^\/app\/sources\/[0-9a-f-]{36}$/i.test(href)) fail("The run exposed an invalid Source X-Ray target.");
-  await xrayLink.click();
-  await page.waitForURL((url) => url.pathname.startsWith("/app/sources/"), { timeout: 20_000 });
-  summary.evidence.sourceXrayOpened = true;
-  stage("source-xray-opened-from-exact-run-citation");
+  const evidenceDetails = page.locator("details.canonical-contained-evidence").first();
+  if (await evidenceDetails.count() === 0) fail("The reviewed Recommendation Record has provider citations but no contained mapped-source evidence inspection.");
+  const evidenceSummary = evidenceDetails.locator("summary").first();
+  if ((await evidenceSummary.count()) === 0 || !/Evidence inspection/i.test(await evidenceSummary.innerText())) {
+    fail("The contained Recommendation Record evidence inspector did not expose its inspection boundary.");
+  }
+  await evidenceSummary.click();
+  summary.evidence.evidenceInspectionOpened = true;
+  stage("contained-evidence-inspection-opened-from-exact-run-citation");
 
-  const reviewForm = page.locator("form.source-review-form");
-  if (await reviewForm.count() === 0 || !await reviewForm.first().isVisible().catch(() => false)) fail("Source X-Ray did not render the analyst review boundary.");
+  const reviewForm = evidenceDetails.locator("form.source-review-form").first();
+  if ((await reviewForm.count()) === 0 || !await reviewForm.isVisible().catch(() => false)) {
+    fail("Contained Recommendation Record evidence did not render the analyst review boundary.");
+  }
   summary.evidence.sourceReviewFormVisible = true;
-  stage("source-review-boundary-visible");
+  stage("contained-source-review-boundary-visible");
   stage("opportunity-mutation-withheld-without-human-source-facts");
 }
 

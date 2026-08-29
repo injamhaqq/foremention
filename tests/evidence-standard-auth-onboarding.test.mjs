@@ -105,21 +105,30 @@ test("Evidence Standard auth and onboarding CSS is restrained, responsive, and s
   assert.doesNotMatch(css, /radial-gradient|linear-gradient|filter:\s*blur|box-shadow:\s*0 0 [^;]*rgba/i);
 });
 
-test("retired Foremention vector artwork stays absent and the brand label remains neutral", () => {
+test("approved canonical Foremention artwork stays present while legacy vector artwork stays absent", () => {
   const brand = read("components/brand.tsx");
+  const approvedAssets = [
+    "public/brand/foremention-logo-white.svg",
+    "public/brand/foremention-mark-white.svg",
+  ];
   const retiredAssets = [
     "public/brand/foremention-logo.svg",
-    "public/brand/foremention-logo-white.svg",
     "public/brand/foremention-mark.svg",
-    "public/brand/foremention-mark-white.svg",
+    "public/source-eclipse.svg",
     "app/favicon.ico",
   ];
 
+  for (const asset of approvedAssets) {
+    assert.equal(fs.existsSync(path.join(process.cwd(), asset)), true, `${asset} must remain present`);
+  }
   for (const asset of retiredAssets) {
     assert.equal(fs.existsSync(path.join(process.cwd(), asset)), false, `${asset} must remain retired`);
   }
 
-  assert.match(brand, /wordmark--text-only/);
-  assert.match(brand, /wordmark__text">Foremention/);
-  assert.doesNotMatch(brand, /foremention-logo|foremention-mark|wordmark__art|<img/);
+  assert.match(brand, /ForementionMark/);
+  assert.match(brand, /wordmark__art/);
+  assert.match(brand, /foremention-logo-white\.svg/);
+  assert.match(brand, /foremention-mark-white\.svg/);
+  assert.match(brand, /<img/);
+  assert.doesNotMatch(brand, /wordmark--text-only|wordmark__text|source-eclipse\.svg/);
 });
