@@ -7,7 +7,7 @@ import { AttentionInbox } from "@/components/attention-inbox";
 import { BillingControl } from "@/components/billing-control";
 import { EnterpriseReadiness } from "@/components/enterprise-readiness";
 import { MeasurementScheduleControl } from "@/components/measurement-schedule-control";
-import type { AttentionItem } from "@/lib/retention-loop";
+import type { ActivationStage, AttentionItem } from "@/lib/retention-loop";
 
 function ContextLinks({ title, body, links }: { title: string; body: string; links: Array<[string, string]> }) {
   return <section className="panel retention-context-tools">
@@ -20,19 +20,30 @@ function ContextLinks({ title, body, links }: { title: string; body: string; lin
   </section>;
 }
 
+function NextBestStep({ activation }: { activation: ActivationStage }) {
+  return <section className="panel retention-next-step" data-activation-stage={activation.key}>
+    <span className="eyebrow">Next best step</span>
+    <h2>{activation.title}</h2>
+    <p>{activation.detail}</p>
+    <div className="settings-actions"><Link className={`button ${activation.complete ? "button--outline" : "button--ink"}`} href={activation.href}>{activation.complete ? "Review comparable change" : "Continue the loop"}</Link></div>
+  </section>;
+}
+
 function AttentionSurface() {
   const [items, setItems] = useState<AttentionItem[]>([]);
+  const [activation, setActivation] = useState<ActivationStage | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     let live = true;
     void fetch("/api/retention/attention", { cache: "no-store" })
       .then(async (response) => response.ok ? response.json() : { data: [] })
-      .then((payload: { data?: AttentionItem[] }) => { if (live) { setItems(payload.data || []); setLoaded(true); } })
+      .then((payload: { data?: AttentionItem[]; activation?: ActivationStage }) => { if (live) { setItems(payload.data || []); setActivation(payload.activation || null); setLoaded(true); } })
       .catch(() => { if (live) setLoaded(true); });
     return () => { live = false; };
   }, []);
   if (!loaded) return <section className="panel"><span className="eyebrow">Attention</span><h2>Checking what needs you now.</h2><p className="table-caption">Only persisted workspace state can create an Attention item.</p></section>;
   return <>
+    {activation && <NextBestStep activation={activation} />}
     <AttentionInbox items={items} />
     <ContextLinks
       title="Move from signal to owned follow-through."
