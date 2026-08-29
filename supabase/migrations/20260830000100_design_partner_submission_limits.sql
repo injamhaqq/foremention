@@ -9,7 +9,7 @@ create table if not exists public.design_partner_submission_claims (
 alter table public.design_partner_submission_claims enable row level security;
 
 comment on table public.design_partner_submission_claims is
-  'Privacy-minimized server-only counters for public design-partner form abuse control. No raw email or company values are stored here.';
+  'Privacy-minimized server-only counters for public design-partner form abuse control. Raw applicant identifiers are not stored here.';
 
 create or replace function public.claim_design_partner_submission(p_key_hash text)
 returns text
