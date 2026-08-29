@@ -89,7 +89,8 @@ test("workspace primary navigation is the five-object inspection architecture wi
   assert.match(nav, /\["\/app\/competitors", "Competitors"\]/);
   assert.match(nav, /\["\/app\/opportunities", "Opportunities"\]/);
   assert.match(nav, /\["\/app\/placements", "Actions"\]/);
-  assert.match(nav, /<summary>Workspace menu<\/summary>/);
+  assert.match(nav, /<summary ref=\{summaryRef\}>Workspace menu<\/summary>/);
+  assert.match(nav, /event\.key === "Escape"/);
   assert.doesNotMatch(nav, /ForementionMark|Wordmark inverse/);
 });
 
