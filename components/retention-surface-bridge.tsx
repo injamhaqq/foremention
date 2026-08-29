@@ -10,14 +10,17 @@ import { MeasurementScheduleControl } from "@/components/measurement-schedule-co
 import type { ActivationStage, AttentionItem } from "@/lib/retention-loop";
 
 function ContextLinks({ title, body, links }: { title: string; body: string; links: Array<[string, string]> }) {
-  return <section className="panel retention-context-tools">
-    <span className="eyebrow">Supporting tools</span>
-    <h2>{title}</h2>
-    <p>{body}</p>
-    <div className="settings-actions">
-      {links.map(([href, label]) => <Link className="button button--outline" href={href} key={href}>{label}</Link>)}
+  return <details className="panel retention-context-tools">
+    <summary>Supporting tools</summary>
+    <div className="retention-context-tools__body">
+      <span className="eyebrow">Contextual workspace tools</span>
+      <h2>{title}</h2>
+      <p>{body}</p>
+      <div className="settings-actions">
+        {links.map(([href, label]) => <Link className="button button--outline" href={href} key={href}>{label}</Link>)}
+      </div>
     </div>
-  </section>;
+  </details>;
 }
 
 function NextBestStep({ activation }: { activation: ActivationStage }) {
@@ -76,7 +79,7 @@ function RecordControls({ runId }: { runId: string }) {
 }
 
 function SettingsExtensions() {
-  return <div className="retention-extension-stack">
+  return <div className="retention-extension-stack retention-settings-groups" aria-label="Workspace settings extensions">
     <MeasurementScheduleControl />
     <BillingControl />
     <section className="panel"><span className="eyebrow">Enterprise access</span><h2>SSO / SAML</h2><p>Enterprise SSO is available only for a genuinely configured workspace connection. Foremention fails closed instead of pretending SSO is active.</p><a className="button button--outline" href="/api/auth/sso?next=/app">Check SSO configuration</a></section>
@@ -87,14 +90,14 @@ function SettingsExtensions() {
 
 function AnalyticsExtensions() {
   return <>
-    <section className="panel retention-benchmark-boundary"><span className="eyebrow">Category context</span><h2>Benchmark unavailable</h2><p>Foremention will not manufacture a category benchmark from one workspace. Cross-workspace benchmarks require an eligible privacy-safe cohort and minimum sample threshold. Current comparisons remain bound to the same locale and market as the exact reviewed baseline.</p></section>
+    <section className="panel retention-benchmark-boundary" data-benchmark-state="withheld"><span className="eyebrow">Category context</span><h2>Benchmark held until the cohort is eligible.</h2><p>Foremention does not manufacture a category benchmark from one workspace. Cross-workspace context appears only after an eligible privacy-safe cohort meets the minimum sample threshold. Until then, Comparisons stays bound to your exact reviewed baseline, locale, market, provider and methodology.</p></section>
     <ContextLinks title="Use deeper analysis only when the comparison is valid." body="Outcome, weekly-intelligence, and decision-analysis tools remain available behind Comparisons, after the exact comparability boundary is satisfied." links={[["/app/outcomes", "Outcome Ledger"], ["/app/intelligence", "Intelligence Loop"], ["/app/decision-lab", "Decision Lab"]]} />
   </>;
 }
 
 function QuestionExtensions() {
   const clusters = ["Discovery", "Comparison", "Alternative", "Use case", "Trust", "Constraint"];
-  return <section className="panel"><span className="eyebrow">Question intelligence</span><h2>Keep buyer questions organized by decision intent.</h2><p>Suggested questions never become measurements until a workspace reviewer approves them.</p><div className="chip-row">{clusters.map((cluster) => <span className="status-chip" key={cluster}>{cluster}</span>)}</div><div className="settings-actions"><Link className="button button--outline" href="/app/competitors">Review competitors</Link></div></section>;
+  return <section className="panel"><span className="eyebrow">Question intelligence</span><h2>Keep buyer questions organized by decision intent.</h2><p>These are intent labels, not filters or measurements. Suggested questions never become measurements until a workspace reviewer approves them.</p><div className="retention-intent-legend" aria-label="Question intent categories">{clusters.map((cluster) => <span className="intent-label" key={cluster}>{cluster}</span>)}</div><div className="settings-actions"><Link className="button button--outline" href="/app/competitors">Review competitors</Link></div></section>;
 }
 
 function CompetitorExtensions() {
