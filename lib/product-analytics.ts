@@ -32,6 +32,12 @@ const IDENTIFIED_WORKSPACE_EVENTS = new Set([
   "source_xray_viewed",
   "source_xray_reviewed",
   "decision_insight_reached",
+  "first_record_reviewed",
+  "action_created",
+  "second_comparable_cycle_completed",
+  "measurement_schedule_enabled",
+  "record_share_created",
+  "team_invite_sent",
 ]);
 
 type PostHogCapturePayload = {
