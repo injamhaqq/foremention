@@ -8,7 +8,8 @@ test("competitor tracking uses organization-scoped answer and reviewed-source ob
   assert.match(data, /loadCompetitorTracking/); assert.match(data, /organization_id=eq\.\$\{context\.organizationId\}/); assert.match(data, /answer_text\.toLocaleLowerCase/); assert.match(data, /sourceOverlap/);
   assert.match(route, /getPrimaryWorkspaceRole/); assert.match(route, /role === "viewer"/); assert.match(route, /organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(page, /CompetitorTracker/); assert.match(component, /This does not estimate market share/);
-  assert.doesNotMatch(nav, /\/app\/competitors/);
+  assert.match(nav, /CONTEXTUAL_WORKSPACE_ROUTES[\s\S]*\/app\/competitors[\s\S]*Competitors/);
+  assert.doesNotMatch(nav, /sidebar-advanced|sidebar-nav--advanced/);
   assert.match(bridge, /href="\/app\/competitors"/);
   assert.match(bridge, /Review competitors/);
 });
