@@ -32,13 +32,14 @@ export function CanonicalSignalField({ compact = false }: { compact?: boolean })
     let pointerX = 0;
     let pointerY = 0;
     let scrollDepth = 0;
+    const setCustomProperty = root.style.setProperty.bind(root.style) as (name: string, value: string) => void;
 
     const commit = () => {
       frame = 0;
       if (!active) return;
-      root.style.setProperty("--fm-depth-x", pointerX.toFixed(4));
-      root.style.setProperty("--fm-depth-y", pointerY.toFixed(4));
-      root.style.setProperty("--fm-depth-scroll", scrollDepth.toFixed(4));
+      setCustomProperty("--fm-depth-x", pointerX.toFixed(4));
+      setCustomProperty("--fm-depth-y", pointerY.toFixed(4));
+      setCustomProperty("--fm-depth-scroll", scrollDepth.toFixed(4));
     };
 
     const schedule = () => {
@@ -79,6 +80,7 @@ export function CanonicalSignalField({ compact = false }: { compact?: boolean })
     onScroll();
 
     return () => {
+      active = false;
       observer.disconnect();
       root.removeEventListener("pointermove", onPointerMove);
       root.removeEventListener("pointerleave", onPointerLeave);
@@ -90,77 +92,67 @@ export function CanonicalSignalField({ compact = false }: { compact?: boolean })
   return (
     <div
       ref={rootRef}
-      className={`canonical-signal canonical-signal--reference canonical-signal--5d${compact ? " canonical-signal--compact" : ""}`}
-      aria-hidden="true"
+      className={`canonical-signal-field${compact ? " canonical-signal-field--compact" : ""}`}
       data-motion="active"
+      aria-hidden="true"
     >
-      <div className="canonical-signal__ambient canonical-signal__ambient--far" />
-      <svg className="canonical-signal__svg canonical-signal__svg--5d" viewBox="0 0 760 720" role="presentation">
+      <svg className="canonical-signal-field__svg" viewBox="0 0 760 620" role="presentation" focusable="false">
         <defs>
-          <radialGradient id="fm-signal-halo" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FFFDF9" stopOpacity="0.98" />
-            <stop offset="18%" stopColor="#BFFFD8" stopOpacity="0.84" />
-            <stop offset="55%" stopColor="#65B58E" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#176347" stopOpacity="0" />
+          <radialGradient id="fm-core" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="1" />
+            <stop offset="0.14" stopColor="#cffff0" stopOpacity="0.98" />
+            <stop offset="0.42" stopColor="#65b58e" stopOpacity="0.56" />
+            <stop offset="1" stopColor="#176347" stopOpacity="0" />
           </radialGradient>
-          <linearGradient id="fm-signal-beam" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#65B58E" stopOpacity="0.03" />
-            <stop offset="34%" stopColor="#FFFDF9" stopOpacity="0.92" />
-            <stop offset="100%" stopColor="#BFFFD8" stopOpacity="0.96" />
+          <radialGradient id="fm-horizon" cx="50%" cy="0%" r="76%">
+            <stop offset="0" stopColor="#dfffee" stopOpacity="0.95" />
+            <stop offset="0.2" stopColor="#65b58e" stopOpacity="0.5" />
+            <stop offset="0.62" stopColor="#176347" stopOpacity="0.14" />
+            <stop offset="1" stopColor="#176347" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="fm-beam" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="#65b58e" stopOpacity="0" />
+            <stop offset="0.42" stopColor="#65b58e" stopOpacity="0.16" />
+            <stop offset="0.73" stopColor="#eafff4" stopOpacity="0.78" />
+            <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
-          <linearGradient id="fm-horizon-line" x1="0" x2="1">
-            <stop offset="0%" stopColor="#176347" stopOpacity="0" />
-            <stop offset="42%" stopColor="#65B58E" stopOpacity="0.62" />
-            <stop offset="55%" stopColor="#FFFDF9" stopOpacity="0.96" />
-            <stop offset="100%" stopColor="#176347" stopOpacity="0.18" />
-          </linearGradient>
-          <filter id="fm-soft-glow" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="8" />
-          </filter>
-          <filter id="fm-core-glow" x="-300%" y="-300%" width="700%" height="700%">
-            <feGaussianBlur stdDeviation="3.2" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
+          <filter id="fm-blur-18"><feGaussianBlur stdDeviation="18" /></filter>
+          <filter id="fm-blur-7"><feGaussianBlur stdDeviation="7" /></filter>
         </defs>
 
-        <g className="canonical-signal__depth canonical-signal__depth--far">
-          {farPoints.map(([cx, cy, r], index) => <circle key={`far-${index}`} cx={cx} cy={cy} r={r} className="canonical-signal__particle canonical-signal__particle--far" />)}
+        <g className="canonical-signal-field__far">
+          {farPoints.map(([cx, cy, r], index) => <circle key={`far-${index}`} cx={cx} cy={cy} r={r} />)}
         </g>
 
-        <g className="canonical-signal__depth canonical-signal__depth--rings">
-          <line className="canonical-signal__axis" x1="44" x2="742" y1="302" y2="302" />
-          <line className="canonical-signal__axis canonical-signal__axis--vertical" x1="456" x2="456" y1="20" y2="633" />
-          {[64, 104, 148, 196, 250, 308].map((radius, index) => (
-            <circle key={radius} className={`canonical-signal__ring canonical-signal__ring--${index + 1}`} cx="456" cy="302" r={radius} />
-          ))}
-          {[92, 174, 262, 350, 438, 526, 614, 702].map((x, index) => (
-            <circle key={x} className="canonical-signal__node" cx={x} cy="302" r={index === 4 ? 3.1 : 2.4} />
-          ))}
+        <g className="canonical-signal-field__ring-plane">
+          <ellipse cx="520" cy="350" rx="258" ry="136" className="canonical-signal-field__ring canonical-signal-field__ring--outer" />
+          <ellipse cx="520" cy="350" rx="208" ry="110" className="canonical-signal-field__ring canonical-signal-field__ring--mid" />
+          <ellipse cx="520" cy="350" rx="154" ry="82" className="canonical-signal-field__ring canonical-signal-field__ring--inner" />
+          <path d="M270 350H742" className="canonical-signal-field__axis" />
+          <path d="M520 194V486" className="canonical-signal-field__axis canonical-signal-field__axis--vertical" />
         </g>
 
-        <g className="canonical-signal__depth canonical-signal__depth--core">
-          <rect className="canonical-signal__beam-glow" x="448" y="296" width="16" height="352" rx="8" filter="url(#fm-soft-glow)" />
-          <rect className="canonical-signal__beam" x="454.7" y="47" width="2.6" height="600" fill="url(#fm-signal-beam)" />
-          <circle className="canonical-signal__halo" cx="456" cy="302" r="72" fill="url(#fm-signal-halo)" />
-          <circle className="canonical-signal__core" cx="456" cy="302" r="4.8" filter="url(#fm-core-glow)" />
+        <g className="canonical-signal-field__horizon-plane">
+          <path d="M220 488C314 426 424 400 520 400C616 400 710 426 790 482L790 620H220Z" fill="url(#fm-horizon)" filter="url(#fm-blur-18)" />
+          <path d="M226 486C322 428 424 405 520 405C620 405 710 430 786 482" className="canonical-signal-field__horizon-line" />
         </g>
 
-        <g className="canonical-signal__depth canonical-signal__depth--horizon">
-          <path className="canonical-signal__horizon canonical-signal__horizon--glow" d="M -70 650 Q 380 493 830 650" />
-          <path className="canonical-signal__horizon canonical-signal__horizon--front" d="M -70 650 Q 380 493 830 650" stroke="url(#fm-horizon-line)" />
-          {[80, 146, 212, 278, 344, 410, 476, 542, 608, 674].map((x) => (
-            <path key={x} className="canonical-signal__horizon-ray" d={`M ${x} 720 L 456 544`} />
-          ))}
-          {[574, 596, 618, 640, 662, 684].map((y, index) => (
-            <path key={y} className="canonical-signal__horizon-arc" d={`M ${32 - index * 16} ${y} Q 380 ${y - 82 - index * 5} ${728 + index * 16} ${y}`} />
-          ))}
+        <g className="canonical-signal-field__beam-plane">
+          <rect x="498" y="64" width="44" height="354" rx="22" fill="url(#fm-beam)" filter="url(#fm-blur-7)" />
+          <path d="M520 70V414" className="canonical-signal-field__beam-line" />
         </g>
 
-        <g className="canonical-signal__depth canonical-signal__depth--near">
-          {nearPoints.map(([cx, cy, r], index) => <circle key={`near-${index}`} cx={cx} cy={cy} r={r} className="canonical-signal__particle canonical-signal__particle--near" />)}
+        <g className="canonical-signal-field__core-plane">
+          <circle cx="520" cy="350" r="96" fill="url(#fm-core)" filter="url(#fm-blur-18)" className="canonical-signal-field__core-halo" />
+          <circle cx="520" cy="350" r="34" fill="url(#fm-core)" className="canonical-signal-field__core" />
+          <circle cx="520" cy="350" r="5" className="canonical-signal-field__core-point" />
+        </g>
+
+        <g className="canonical-signal-field__near">
+          {nearPoints.map(([cx, cy, r], index) => <circle key={`near-${index}`} cx={cx} cy={cy} r={r} />)}
         </g>
       </svg>
-      <div className="canonical-signal__ambient canonical-signal__ambient--near" />
+      <span className="canonical-signal-field__caption">REGISTERED SIGNAL / EVIDENCE CONVERGENCE</span>
     </div>
   );
 }
