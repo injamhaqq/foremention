@@ -42,15 +42,15 @@ test("public Evidence Standard accessibility refinements remain explicit", () =>
   assert.match(home, /fm-compare__boundary[^>]*><Arrow \/><\/div>/);
 });
 
-test("public navigation reflects the Registered Evidence information architecture", () => {
+test("public navigation reflects the compressed Registered Evidence information architecture", () => {
   const shell = read("components/public-shell.tsx");
   for (const item of ["Product", "Methodology", "Research"]) assert.ok(shell.includes('\"' + item + '\"'));
   assert.match(shell, /Request a demo/);
   assert.match(shell, /Sign in/);
-  assert.match(shell, /Private beta workspace/);
+  assert.match(shell, /Design-partner workspace/);
   assert.match(shell, /href="\/recommendation-record"/);
-  assert.match(shell, /href="\/recommendation-intelligence"/);
-  assert.match(shell, /href="\/ai-mediated-buying"/);
+  assert.match(shell, /href="\/privacy"/);
+  assert.match(shell, /href="\/subprocessors"/);
   assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
   assert.doesNotMatch(shell, /\["\/pricing", "Pricing"\]/);
 });
@@ -77,8 +77,8 @@ test("homepage hero uses Registered Evidence while commercial truth remains expl
   assert.match(experience, /Recommendation Record/);
   assert.match(experience, /Evidence inspection/);
   assert.match(home, /Private beta/);
-  assert.match(pricing, /Creating a workspace does not charge a card/);
-  assert.match(pricing, /Paid checkout is not active/);
+  assert.match(pricing, /does\s+not charge a card/i);
+  assert.match(pricing, /Self-serve paid checkout is shown\s+only when billing is configured/i);
   assert.match(combined, /returned reference/i);
   assert.match(combined, /retrievable/i);
   assert.match(combined, /review/i);
