@@ -41,12 +41,14 @@ test("a nontechnical customer can follow website to question to collection to Re
   assert.match(actions, /Every action keeps the source/);
 });
 
-test("core customer navigation uses canonical outcomes while proven secondary routes remain advanced", async () => {
-  const navigation = await text("components/workspace-navigation.tsx");
+test("core customer navigation exposes five objects while proven secondary routes stay contextually reachable", async () => {
+  const [navigation, bridge] = await Promise.all([
+    text("components/workspace-navigation.tsx"),
+    text("components/retention-surface-bridge.tsx"),
+  ]);
   for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
-  assert.doesNotMatch(navigation, /Source X-Ray|source-xray/i);
-  for (const retained of ["Competitors", "Opportunities", "Actions", "Agent Control Plane"]) assert.match(navigation, new RegExp(retained));
-  assert.match(navigation, /<details className="sidebar-advanced">/);
-  assert.match(navigation, /<summary><span>Advanced<\/span><small>\{advancedNav\.length\} tools<\/small><\/summary>/);
-  assert.match(navigation, /aria-label="Advanced workspace tools"/);
+  assert.doesNotMatch(navigation, /Source X-Ray|source-xray|sidebar-advanced|advancedNav|workspaceNav/i);
+  for (const retained of ["Competitors", "Opportunities", "Actions", "Resolution Center", "Outcome Ledger", "Vendor Passport", "Intelligence Loop", "Agent Control Plane", "Decision Lab", "Evidence Vault", "Alerts", "Team", "Integrations"]) {
+    assert.match(bridge, new RegExp(retained));
+  }
 });
