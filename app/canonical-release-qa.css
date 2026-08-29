@@ -97,6 +97,21 @@
 .app-frame .latest-answer > p,
 .app-frame .review-action > div > p { color: #d7dbd5 !important; }
 
+/* Authenticated release-gate contrast.
+ * Preserve the existing dark workspace and control fills; correct only the
+ * low-contrast foregrounds reported by exact-production axe acceptance.
+ */
+.app-frame .question-planner.question-planner--observed .question-planner__grid > article > span,
+.app-frame section[aria-labelledby="question-planner-title"] > .question-planner__grid > article > span {
+  color: #65b58e !important;
+}
+.app-frame .prompt-row-actions > button[type="button"] {
+  color: #0d0f0e !important;
+}
+.app-frame .data-row[data-workspace-item="true"] .pill.pill--blocked {
+  color: #5b1d16 !important;
+}
+
 /* Public pages remain black/graphite with green structure from hero to footer. */
 .fm-public-shell,
 .canonical-public-shell,
