@@ -16,6 +16,25 @@ const primaryNav = [
   ["/app/settings", "Settings"],
 ] as const;
 
+// These proven capabilities remain part of the product contract, but they are
+// intentionally not rendered as global navigation. RetentionSurfaceBridge
+// exposes them contextually from the five canonical objects instead.
+export const CONTEXTUAL_WORKSPACE_ROUTES = [
+  ["/app/alerts", "Alerts"],
+  ["/app/team", "Team"],
+  ["/app/settings#integrations", "Integrations"],
+  ["/app/competitors", "Competitors"],
+  ["/app/opportunities", "Opportunities"],
+  ["/app/placements", "Actions"],
+  ["/app/resolutions", "Resolution Center"],
+  ["/app/outcomes", "Outcome Ledger"],
+  ["/app/passport", "Vendor Passport"],
+  ["/app/intelligence", "Intelligence Loop"],
+  ["/app/agents", "Agent Control Plane"],
+  ["/app/decision-lab", "Decision Lab"],
+  ["/app/evidence", "Evidence Vault"],
+] as const;
+
 function isCurrent(pathname: string, href: string) {
   return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
