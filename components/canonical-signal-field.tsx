@@ -92,11 +92,11 @@ export function CanonicalSignalField({ compact = false }: { compact?: boolean })
   return (
     <div
       ref={rootRef}
-      className={`canonical-signal-field${compact ? " canonical-signal-field--compact" : ""}`}
+      className={`canonical-signal-field canonical-signal canonical-signal--5d${compact ? " canonical-signal-field--compact" : ""}`}
       data-motion="active"
       aria-hidden="true"
     >
-      <svg className="canonical-signal-field__svg" viewBox="0 0 760 620" role="presentation" focusable="false">
+      <svg className="canonical-signal-field__svg canonical-signal__svg--5d" viewBox="0 0 760 620" role="presentation" focusable="false">
         <defs>
           <radialGradient id="fm-core" cx="50%" cy="50%" r="50%">
             <stop offset="0" stopColor="#ffffff" stopOpacity="1" />
@@ -120,36 +120,36 @@ export function CanonicalSignalField({ compact = false }: { compact?: boolean })
           <filter id="fm-blur-7"><feGaussianBlur stdDeviation="7" /></filter>
         </defs>
 
-        <g className="canonical-signal-field__far">
-          {farPoints.map(([cx, cy, r], index) => <circle key={`far-${index}`} cx={cx} cy={cy} r={r} />)}
+        <g className="canonical-signal-field__far canonical-signal__depth canonical-signal__depth--far">
+          {farPoints.map(([cx, cy, r], index) => <circle key={`far-${index}`} cx={cx} cy={cy} r={r} className="canonical-signal__particle--far" />)}
         </g>
 
-        <g className="canonical-signal-field__ring-plane">
-          <ellipse cx="520" cy="350" rx="258" ry="136" className="canonical-signal-field__ring canonical-signal-field__ring--outer" />
-          <ellipse cx="520" cy="350" rx="208" ry="110" className="canonical-signal-field__ring canonical-signal-field__ring--mid" />
-          <ellipse cx="520" cy="350" rx="154" ry="82" className="canonical-signal-field__ring canonical-signal-field__ring--inner" />
-          <path d="M270 350H742" className="canonical-signal-field__axis" />
-          <path d="M520 194V486" className="canonical-signal-field__axis canonical-signal-field__axis--vertical" />
+        <g className="canonical-signal-field__ring-plane canonical-signal__depth canonical-signal__depth--rings">
+          <ellipse cx="520" cy="350" rx="258" ry="136" className="canonical-signal-field__ring canonical-signal-field__ring--outer canonical-signal__ring canonical-signal__ring--1" />
+          <ellipse cx="520" cy="350" rx="208" ry="110" className="canonical-signal-field__ring canonical-signal-field__ring--mid canonical-signal__ring canonical-signal__ring--2" />
+          <ellipse cx="520" cy="350" rx="154" ry="82" className="canonical-signal-field__ring canonical-signal-field__ring--inner canonical-signal__ring canonical-signal__ring--3" />
+          <path d="M270 350H742" className="canonical-signal-field__axis canonical-signal__axis" />
+          <path d="M520 194V486" className="canonical-signal-field__axis canonical-signal-field__axis--vertical canonical-signal__axis" />
         </g>
 
-        <g className="canonical-signal-field__horizon-plane">
+        <g className="canonical-signal-field__horizon-plane canonical-signal__depth canonical-signal__depth--horizon">
           <path d="M220 488C314 426 424 400 520 400C616 400 710 426 790 482L790 620H220Z" fill="url(#fm-horizon)" filter="url(#fm-blur-18)" />
-          <path d="M226 486C322 428 424 405 520 405C620 405 710 430 786 482" className="canonical-signal-field__horizon-line" />
+          <path d="M226 486C322 428 424 405 520 405C620 405 710 430 786 482" className="canonical-signal-field__horizon-line canonical-signal__horizon canonical-signal__horizon--front" />
         </g>
 
-        <g className="canonical-signal-field__beam-plane">
-          <rect x="498" y="64" width="44" height="354" rx="22" fill="url(#fm-beam)" filter="url(#fm-blur-7)" />
-          <path d="M520 70V414" className="canonical-signal-field__beam-line" />
+        <g className="canonical-signal-field__beam-plane canonical-signal__depth canonical-signal__depth--core">
+          <rect x="498" y="64" width="44" height="354" rx="22" fill="url(#fm-beam)" filter="url(#fm-blur-7)" className="canonical-signal__beam" />
+          <path d="M520 70V414" className="canonical-signal-field__beam-line canonical-signal__beam" />
         </g>
 
-        <g className="canonical-signal-field__core-plane">
-          <circle cx="520" cy="350" r="96" fill="url(#fm-core)" filter="url(#fm-blur-18)" className="canonical-signal-field__core-halo" />
-          <circle cx="520" cy="350" r="34" fill="url(#fm-core)" className="canonical-signal-field__core" />
-          <circle cx="520" cy="350" r="5" className="canonical-signal-field__core-point" />
+        <g className="canonical-signal-field__core-plane canonical-signal__depth canonical-signal__depth--core">
+          <circle cx="520" cy="350" r="96" fill="url(#fm-core)" filter="url(#fm-blur-18)" className="canonical-signal-field__core-halo canonical-signal__halo" />
+          <circle cx="520" cy="350" r="34" fill="url(#fm-core)" className="canonical-signal-field__core canonical-signal__core" />
+          <circle cx="520" cy="350" r="5" className="canonical-signal-field__core-point canonical-signal__core" />
         </g>
 
-        <g className="canonical-signal-field__near">
-          {nearPoints.map(([cx, cy, r], index) => <circle key={`near-${index}`} cx={cx} cy={cy} r={r} />)}
+        <g className="canonical-signal-field__near canonical-signal__depth canonical-signal__depth--near">
+          {nearPoints.map(([cx, cy, r], index) => <circle key={`near-${index}`} cx={cx} cy={cy} r={r} className="canonical-signal__particle--near" />)}
         </g>
       </svg>
       <span className="canonical-signal-field__caption">REGISTERED SIGNAL / EVIDENCE CONVERGENCE</span>
