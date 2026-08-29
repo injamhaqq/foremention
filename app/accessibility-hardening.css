@@ -98,6 +98,24 @@
   color: var(--re-surface);
 }
 
+/* Signed-in buyer-question labels use the readable registered-green text
+   treatment on the graphite planner cards. */
+.app-frame .question-planner__grid > article > span {
+  color: #65B58E;
+}
+
+/* Prompt action controls are intentionally light inspection surfaces, so their
+   foreground must stay ink rather than inheriting the dark-shell reverse text. */
+.app-frame .prompt-row-actions > button[type="button"] {
+  color: var(--re-ink);
+}
+
+/* Blocked evidence pills use a light warning surface. Keep the state legible
+   without changing its semantic background. */
+.app-frame .pill.pill--blocked {
+  color: #5f2f2a;
+}
+
 /* Every inspectable evidence state remains visible at mobile/narrow widths. */
 @media (max-width: 480px) {
   .registered-evidence-shell .registered-record__states > div:nth-child(2) {
