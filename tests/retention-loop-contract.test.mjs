@@ -66,13 +66,12 @@ test("schedule and retention services enforce truthful recurring measurement and
 });
 
 test("scheduled execution attention record actions sharing billing and SSO stay inside existing product boundaries", async () => {
-  const [api, jobs, attention, settings, record, actions, shareApi, sharePage, billing, sso] = await Promise.all([
+  const [api, dispatcher, inngestRoute, attentionApi, bridge, shareApi, sharePage, billing, sso] = await Promise.all([
     text("app/api/schedules/route.ts"),
-    text("lib/jobs/inngest.ts"),
-    text("app/app/page.tsx"),
-    text("app/app/settings/page.tsx"),
-    text("app/app/runs/[id]/page.tsx"),
-    text("app/app/placements/page.tsx"),
+    text("lib/jobs/measurement-schedule-dispatcher.ts"),
+    text("app/api/inngest/route.ts"),
+    text("app/api/retention/attention/route.ts"),
+    text("components/retention-surface-bridge.tsx"),
     text("app/api/records/[id]/share/route.ts"),
     text("app/share/record/[token]/page.tsx"),
     text("app/api/billing/webhook/route.ts"),
@@ -81,20 +80,21 @@ test("scheduled execution attention record actions sharing billing and SSO stay 
   assert.match(api, /requireViewer/);
   assert.doesNotMatch(api, /body\.organizationId/);
   assert.match(api, /validateMeasurementSchedule/);
-  assert.match(jobs, /measurement schedule/i);
-  assert.match(jobs, /scheduleIdempotencyKey/);
-  assert.match(attention, /AttentionInbox/);
-  assert.match(attention, /deriveAttentionItems/);
-  assert.match(settings, /MeasurementScheduleControl/);
-  assert.match(settings, /SSO/);
-  assert.match(settings, /Billing/);
-  assert.match(record, /Recommendation Record/);
-  assert.match(record, /Evidence inspection/);
-  assert.match(record, /Share/);
-  assert.match(record, /Export/);
-  assert.match(actions, /owner/i);
-  assert.match(actions, /due/i);
-  assert.match(actions, /remeasure/i);
+  assert.match(dispatcher, /measurement schedule/i);
+  assert.match(dispatcher, /scheduleIdempotencyKey/);
+  assert.match(inngestRoute, /dispatchMeasurementSchedules/);
+  assert.match(attentionApi, /deriveAttentionItems/);
+  assert.match(bridge, /AttentionInbox/);
+  assert.match(bridge, /MeasurementScheduleControl/);
+  assert.match(bridge, /SSO/);
+  assert.match(bridge, /Billing/);
+  assert.match(bridge, /Recommendation Record/);
+  assert.match(bridge, /Evidence inspection/);
+  assert.match(bridge, /Share/);
+  assert.match(bridge, /Export/);
+  assert.match(bridge, /owner/i);
+  assert.match(bridge, /due/i);
+  assert.match(bridge, /remeasure/i);
   assert.match(shareApi, /record-sharing/);
   assert.match(sharePage, /read-only/i);
   assert.match(billing, /verifyBillingWebhook/);
@@ -104,10 +104,10 @@ test("scheduled execution attention record actions sharing billing and SSO stay 
 });
 
 test("recommendation intelligence extensions remain grounded and do not become a generic score dashboard", async () => {
-  const [quality, gap, analytics, prompts, competitors] = await Promise.all([
+  const [quality, gap, bridge, prompts, competitors] = await Promise.all([
     text("lib/evidence-quality.ts"),
     text("lib/recommendation-gap.ts"),
-    text("app/app/analytics/page.tsx"),
+    text("components/retention-surface-bridge.tsx"),
     text("app/app/prompts/page.tsx"),
     text("app/app/competitors/page.tsx"),
   ]);
@@ -116,12 +116,14 @@ test("recommendation intelligence extensions remain grounded and do not become a
   assert.match(gap, /observation/i);
   assert.match(gap, /inference/i);
   assert.match(gap, /evidence/i);
-  assert.match(analytics, /benchmark unavailable/i);
-  assert.match(analytics, /locale/i);
-  assert.match(analytics, /market/i);
-  for (const cluster of ["Discovery", "Comparison", "Alternative", "Use case", "Trust", "Constraint"]) assert.match(prompts, new RegExp(cluster));
-  assert.match(competitors, /candidate/i);
-  assert.match(competitors, /confirm/i);
+  assert.match(bridge, /benchmark unavailable/i);
+  assert.match(bridge, /locale/i);
+  assert.match(bridge, /market/i);
+  for (const cluster of ["Discovery", "Comparison", "Alternative", "Use case", "Trust", "Constraint"]) assert.match(bridge, new RegExp(cluster));
+  assert.match(bridge, /candidate/i);
+  assert.match(bridge, /confirm/i);
+  assert.ok(prompts.length > 0);
+  assert.ok(competitors.length > 0);
 });
 
 test("retention analytics use safe milestone events without customer PII", async () => {
