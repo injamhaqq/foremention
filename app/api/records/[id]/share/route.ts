@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadRuns, loadWorkspaceContext } from "@/lib/data";
-import { captureProductEvent } from "@/lib/product-analytics";
 import { createRecordShareToken, hashRecordShareToken, recordShareExpiry, safeRecordSharePath } from "@/lib/record-sharing";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
