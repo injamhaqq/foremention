@@ -7,6 +7,21 @@ import { supabaseRest } from "@/lib/supabase-rest";
 
 type BillingAccountRow = { external_customer_id: string | null };
 
+function canonicalBillingOrigin() {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!configuredSiteUrl) throw new Error("Self-serve billing requires a canonical public site origin.");
+  let origin: string;
+  try {
+    origin = new URL(configuredSiteUrl).origin;
+  } catch {
+    throw new Error("Self-serve billing requires a valid canonical public site origin.");
+  }
+  const parsed = new URL(origin);
+  const local = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  if (parsed.protocol !== "https:" && !local) throw new Error("Self-serve billing requires an HTTPS canonical public site origin.");
+  return origin;
+}
+
 export async function POST(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   if (!stripeBillingConfigured()) return NextResponse.json({ error: "Self-serve billing is not configured." }, { status: 503 });
@@ -35,7 +50,14 @@ export async function POST(request: Request) {
     `billing_accounts?select=external_customer_id&organization_id=eq.${context.organizationId}&limit=1`,
     { token: viewer.accessToken },
   ).catch(() => []);
-  const origin = new URL(request.url).origin;
+
+  let origin: string;
+  try {
+    origin = canonicalBillingOrigin();
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Canonical billing origin is not configured." }, { status: 503 });
+  }
+
   try {
     const session = await createStripeCheckoutSession({
       packageKey: packageKey as StripeCheckoutPackage,
