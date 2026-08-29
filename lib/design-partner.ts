@@ -24,7 +24,17 @@ function clean(value: unknown, limit: number) {
 }
 
 function cleanQuestion(value: string) {
-  return value.replace(/\s+/g, " ").trim().slice(0, MAX_QUESTION);
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function bytesToHex(bytes: Uint8Array) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function designPartnerSubmissionKey(application: Pick<DesignPartnerApplication, "email" | "company">) {
+  const canonical = `${application.email.trim().toLowerCase()}\n${application.company.replace(/\s+/g, " ").trim().toLowerCase()}`;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
+  return bytesToHex(new Uint8Array(digest));
 }
 
 export function normalizeDesignPartnerApplication(input: Record<string, unknown>): Result {
@@ -33,11 +43,8 @@ export function normalizeDesignPartnerApplication(input: Record<string, unknown>
   const role = clean(input.role, MAX_ROLE);
   const category = clean(input.category, MAX_CATEGORY);
   const rawQuestions = typeof input.buyerQuestions === "string" ? input.buyerQuestions : "";
-  const buyerQuestions = rawQuestions
-    .split(/\r?\n/)
-    .map(cleanQuestion)
-    .filter(Boolean)
-    .slice(0, MAX_QUESTIONS);
+  const questionLines = rawQuestions.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+  const buyerQuestions = questionLines.map(cleanQuestion).slice(0, MAX_QUESTIONS);
   const currentProblem = clean(input.currentProblem, MAX_PROBLEM) || null;
   const plan = clean(input.planInterest, 20).toLowerCase();
   const planInterest = (["core", "signal", "intelligence"] as const).find((value) => value === plan) || null;
@@ -46,8 +53,11 @@ export function normalizeDesignPartnerApplication(input: Record<string, unknown>
   if (company.length < 2) return { ok: false, error: "Enter your company name." };
   if (role.length < 2) return { ok: false, error: "Enter your role." };
   if (category.length < 2) return { ok: false, error: "Enter the software category you want to measure." };
-  if (rawQuestions.split(/\r?\n/).map((value) => value.trim()).filter(Boolean).length > MAX_QUESTIONS) {
+  if (questionLines.length > MAX_QUESTIONS) {
     return { ok: false, error: `Keep the application to ${MAX_QUESTIONS} priority buyer questions.` };
+  }
+  if (questionLines.some((question) => question.length > MAX_QUESTION)) {
+    return { ok: false, error: "Keep each buyer question to 500 characters or fewer." };
   }
 
   return { ok: true, value: { email, company, role, category, buyerQuestions, currentProblem, planInterest } };
