@@ -20,7 +20,7 @@ Operating discipline: RED -> GREEN -> VERIFY.
 6. Run configured security / CodeQL / quality workflows without weakening them.
 7. Run browser acceptance and accessibility checks.
 8. Visually verify 1440, 1024, 768, 375, and 320 layouts for affected public/product surfaces.
-9. Verify reduced-motion behavior, retired visual identity absence (including no white/reverse/inverse variants or old assets), SEO metadata/crawlability, and performance.
+9. Verify reduced-motion behavior, approved canonical identity presence and asset integrity, absence of unapproved/legacy identity variants, SEO metadata/crawlability, and performance.
 10. Merge only the exact SHA that passed the gate.
 11. Verify the exact `main` merge SHA and production deployment.
 12. Run production smoke/canary acceptance and report evidence.
@@ -28,7 +28,7 @@ Operating discipline: RED -> GREEN -> VERIFY.
 ## Non-negotiable boundaries
 
 - Do not delete or weaken tests simply to make a gate green.
-- Do not restore or invent visual identity assets as part of release cleanup.
+- Preserve the approved canonical Foremention logo/mark/wordmark assets during release cleanup. Do not redraw, recolor, derive, replace, or invent identity variants.
 - Do not alter auth, Supabase RLS, organization isolation, secret boundaries, provider boundaries, billing/webhook semantics, or evidence integrity unless the change explicitly requires it and has dedicated review.
 - Do not claim production success from a build alone.
 - Do not claim a workflow passed unless the exact-head run proves it.
@@ -36,4 +36,4 @@ Operating discipline: RED -> GREEN -> VERIFY.
 
 ## Reporting
 
-Report: exact SHA, each required gate, production deployment identity, browser acceptance, accessibility/responsive result, retired-identity absence, remaining risks, and whether the release is GREEN / YELLOW / RED.
+Report: exact SHA, each required gate, production deployment identity, browser acceptance, accessibility/responsive result, approved canonical identity presence/integrity, absence of unapproved legacy variants, remaining risks, and whether the release is GREEN / YELLOW / RED.
