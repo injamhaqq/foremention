@@ -89,7 +89,8 @@ test("workspace primary navigation is the five-object inspection architecture wi
   assert.match(nav, /\["\/app\/competitors", "Competitors"\]/);
   assert.match(nav, /\["\/app\/opportunities", "Opportunities"\]/);
   assert.match(nav, /\["\/app\/placements", "Actions"\]/);
-  assert.match(nav, /<ForementionMark \/>Workspace menu/);
+  assert.match(nav, /<summary>Workspace menu<\/summary>/);
+  assert.doesNotMatch(nav, /ForementionMark|Wordmark inverse/);
 });
 
 test("Recommendation Record owns evidence inspection and Source X-Ray is retired as a standalone surface", () => {
