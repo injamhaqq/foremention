@@ -127,3 +127,19 @@ test("failed browser responses persist privacy-safe status and pathname diagnost
   assert.match(runner, /return parsed\.pathname/);
   assert.doesNotMatch(runner, /failedResponses[\s\S]{0,220}(search|searchParams|hash):/);
 });
+
+test("browser acceptance covers WebKit, low-height laptop, and mobile landscape", () => {
+  assert.match(workflow, /playwright install --with-deps chromium firefox webkit/);
+  assert.match(runner, /const \{ chromium, firefox, webkit \}/);
+  assert.match(runner, /name: "chromium-low-height"[\s\S]{0,140}width: 1366[\s\S]{0,80}height: 768/);
+  assert.match(runner, /name: "chromium-mobile-landscape"[\s\S]{0,160}width: 844[\s\S]{0,80}height: 390/);
+  assert.match(runner, /name: "webkit-mobile"[\s\S]{0,160}browserType: webkit[\s\S]{0,100}width: 390/);
+});
+
+test("browser acceptance blocks 200 and 400 percent zoom reflow failures", () => {
+  assert.match(runner, /const zoomFactors = \[2, 4\]/);
+  assert.match(runner, /verifyZoomReflow/);
+  assert.match(runner, /document\.documentElement\.style\.zoom/);
+  assert.match(runner, /Zoom reflow overflow detected/);
+  assert.match(runner, /Nested content clipping detected/);
+});
