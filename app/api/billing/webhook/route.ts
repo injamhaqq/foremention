@@ -1,21 +1,10 @@
 import { NextResponse } from "next/server";
-import { billingConfigured, entitlementsForBillingEvent, legacyEntitlementStatus, parseVerifiedBillingEvent, verifyBillingWebhook } from "@/lib/billing";
+import { billingConfigured, entitlementsForBillingEvent, legacyEntitlementStatus, parseVerifiedBillingEvent, verifyBillingWebhook, type VerifiedBillingEvent } from "@/lib/billing";
+import { parseStripeBillingEvent, stripeBillingConfigured, verifyStripeWebhook } from "@/lib/stripe-billing";
 import { supabaseRest } from "@/lib/supabase-rest";
 
-export async function POST(request: Request) {
-  if (!billingConfigured()) return NextResponse.json({ error: "Billing is not configured." }, { status: 503 });
-  const rawBody = await request.text();
-  try {
-    await verifyBillingWebhook(rawBody, request.headers.get("x-foremention-signature"));
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Billing signature is invalid." }, { status: 401 });
-  }
-  let event;
-  try { event = parseVerifiedBillingEvent(rawBody); }
-  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Billing event is invalid." }, { status: 400 }); }
-
+async function applyBillingEvent(event: VerifiedBillingEvent, provider: string) {
   const now = new Date().toISOString();
-  const provider = process.env.BILLING_PROVIDER_ID as string;
   const featureKeys = entitlementsForBillingEvent(event);
   await supabaseRest("billing_accounts?on_conflict=organization_id", {
     method: "POST",
@@ -44,5 +33,36 @@ export async function POST(request: Request) {
       effective_at: now,
     },
   });
+}
+
+export async function POST(request: Request) {
+  const provider = process.env.BILLING_PROVIDER_ID?.trim() || "";
+  const rawBody = await request.text();
+
+  if (provider === "stripe") {
+    if (!stripeBillingConfigured()) return NextResponse.json({ error: "Stripe billing is not configured." }, { status: 503 });
+    try {
+      await verifyStripeWebhook(rawBody, request.headers.get("stripe-signature"));
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Stripe signature is invalid." }, { status: 401 });
+    }
+    let event: VerifiedBillingEvent | null;
+    try { event = parseStripeBillingEvent(rawBody); }
+    catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Stripe event is invalid." }, { status: 400 }); }
+    if (!event) return NextResponse.json({ received: true, ignored: true });
+    await applyBillingEvent(event, "stripe");
+    return NextResponse.json({ received: true, eventId: event.eventId });
+  }
+
+  if (!billingConfigured()) return NextResponse.json({ error: "Billing is not configured." }, { status: 503 });
+  try {
+    await verifyBillingWebhook(rawBody, request.headers.get("x-foremention-signature"));
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Billing signature is invalid." }, { status: 401 });
+  }
+  let event: VerifiedBillingEvent;
+  try { event = parseVerifiedBillingEvent(rawBody); }
+  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Billing event is invalid." }, { status: 400 }); }
+  await applyBillingEvent(event, provider);
   return NextResponse.json({ received: true, eventId: event.eventId });
 }
