@@ -46,9 +46,11 @@ test("core customer navigation exposes five objects while proven secondary route
     text("components/workspace-navigation.tsx"),
     text("components/retention-surface-bridge.tsx"),
   ]);
-  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
-  assert.doesNotMatch(navigation, /Source X-Ray|source-xray|sidebar-advanced|advancedNav|workspaceNav/i);
-  for (const retained of ["Competitors", "Opportunities", "Actions", "Resolution Center", "Outcome Ledger", "Vendor Passport", "Intelligence Loop", "Agent Control Plane", "Decision Lab", "Evidence Vault", "Alerts", "Team", "Integrations"]) {
-    assert.match(bridge, new RegExp(retained));
+  const primary = navigation.slice(navigation.indexOf("const primaryNav"), navigation.indexOf("export const CONTEXTUAL_WORKSPACE_ROUTES"));
+  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(primary, new RegExp(label));
+  assert.doesNotMatch(primary, /Source X-Ray|Competitors|Opportunities|Actions|Evidence Vault|Agent Control Plane/);
+  assert.doesNotMatch(navigation, /sidebar-advanced|advancedNav|workspaceNav/);
+  for (const route of ["/app/competitors", "/app/opportunities", "/app/placements", "/app/resolutions", "/app/outcomes", "/app/passport", "/app/intelligence", "/app/agents", "/app/decision-lab", "/app/evidence", "/app/alerts", "/app/team", "/app/settings#integrations"]) {
+    assert.match(bridge, new RegExp(route.replaceAll("/", "\\/")));
   }
 });
