@@ -23,5 +23,5 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     }),
     loadNotifications(viewer).catch(() => []),
   ]);
-  return <AppShell viewer={viewer} workspaceName={workspace?.organizationName} notifications={notifications}><PostHogIdentity viewerId={viewer.id} organizationId={workspace?.organizationId} demo={viewer.mode === "demo"} /><WorkspaceActivationAnalytics demo={viewer.mode === "demo"} />{children}<RetentionSurfaceBridge /></AppShell>;
+  return <AppShell viewer={viewer} workspaceName={workspace?.organizationName} notifications={notifications}><PostHogIdentity viewerId={viewer.id} organizationId={workspace?.organizationId} demo={viewer.mode === "demo"} /><WorkspaceActivationAnalytics demo={viewer.mode === "demo"} /><RetentionSurfaceBridge />{children}</AppShell>;
 }
