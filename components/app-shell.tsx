@@ -15,7 +15,7 @@ export function AppShell({ viewer, workspaceName, notifications, children }: { v
       <header className="app-topbar">
         <WorkspaceMobileNavigation viewer={viewer} workspaceName={workspaceName} />
         <div>
-          <span className="mobile-wordmark"><Wordmark /></span>
+          <span className="app-topbar__brand-label"><Wordmark /></span>
           <span className="demo-badge">{viewer.mode === "demo" ? "Fictional demo" : workspaceName ? "Customer data" : "Setup required"}</span>
         </div>
         <WorkspaceGlobalSearch />
