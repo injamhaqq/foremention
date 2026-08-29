@@ -186,13 +186,14 @@ test("the paying workspace keeps customer data truthful and server-scoped", asyn
 });
 
 test("source review converts citation candidates into audited customer decisions", async () => {
-  const [record, form, route, map] = await Promise.all([
-    text("app/app/sources/[id]/page.tsx"),
+  const [recordEvidence, form, route, map] = await Promise.all([
+    text("components/recommendation-source-evidence.tsx"),
     text("components/source-review-form.tsx"),
     text("app/api/sources/[id]/review/route.ts"),
     text("app/app/source-map/page.tsx"),
   ]);
-  assert.match(record, /SourceReviewForm/);
+  assert.match(recordEvidence, /SourceReviewForm/);
+  assert.match(recordEvidence, /Observed evidence chain/);
   assert.match(form, /Crawler access/);
   assert.match(form, /Select after inspection/);
   assert.match(form, /Observed influence/);
@@ -271,7 +272,7 @@ test("customer insight pages use real evidence without pseudo-priority scores or
     text("app/app/opportunities/page.tsx"),
     text("components/opportunity-list.tsx"),
     text("app/app/page.tsx"),
-    text("app/app/sources/[id]/page.tsx"),
+    text("components/recommendation-source-evidence.tsx"),
     text("app/app/analytics/page.tsx"),
     text("components/notification-center.tsx"),
   ]);
@@ -484,7 +485,8 @@ test("product analytics is production-only, privacy-limited, and fail-closed", a
   assert.match(milestone, /workflow_completed/);
   assert.match(milestone, /workflow_failed/);
   assert.match(sourceMapPage, /source_map_opened/);
-  assert.match(sourceReview, /source_xray_reviewed/);
+  assert.match(sourceReview, /evidence_review_completed/);
+  assert.doesNotMatch(sourceReview, /source_xray_reviewed|source_xray/i);
   assert.match(sourceReview, /decision_insight_reached/);
 });
 
