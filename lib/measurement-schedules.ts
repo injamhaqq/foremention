@@ -34,7 +34,7 @@ export function validateMeasurementSchedule(input: MeasurementScheduleInput): Va
   const timezone = String(input.timezone || "").trim();
   assertTimeZone(timezone);
   const questionIds = Array.from(new Set(input.questionIds || []));
-  const providerIds = Array.from(new Set(input.providerIds || []).map((value) => String(value).trim().toLowerCase()));
+  const providerIds = Array.from(new Set((input.providerIds || []).map((value) => String(value).trim().toLowerCase())));
   if (!questionIds.length || questionIds.length > 100 || questionIds.some((id) => !UUID.test(id))) throw new Error("Choose between 1 and 100 workspace buyer questions.");
   if (!providerIds.length || providerIds.length > 8 || providerIds.some((id) => !PROVIDER.test(id))) throw new Error("Choose between 1 and 8 supported providers.");
   const methodologySnapshot = String(input.methodologySnapshot || "").trim();
