@@ -8,11 +8,13 @@ This record is an internal product/operations decision. It is not a legal opinio
 
 Foremention is approved for a controlled private beta on the evidence-backed production stack.
 
-- New self-serve workspaces use the enforced `free_beta` entitlement.
+- New workspaces begin on the enforced `free_beta` / founder-granted entitlement unless a verified billing event later activates an approved package.
 - Creating a workspace does not activate a paid subscription or charge a payment method.
-- Public Core, Signal, and Intelligence prices describe planned commercial packaging, not a working checkout or an entitlement granted by signup.
-- Paid activation stays off until payment processing, tax/entity details, order-form terms, billing state transitions, cancellation/refund handling, and webhook/reconciliation behavior are separately implemented and production-tested.
-- No product copy, sales process, or support response may imply that an unavailable paid control is already active.
+- Core, Signal, and Intelligence describe software package scopes. The repository does not fabricate public dollar pricing.
+- Hosted Core/Signal Stripe Checkout and Customer Portal code may exist in production while remaining unavailable. Self-serve billing stays fail-closed unless the real Stripe secret, webhook secret, approved package Price ID, customer billing state, and production configuration are present.
+- A browser success redirect never grants a paid entitlement. Paid state is written only after a verified asynchronous billing-provider event passes replay/idempotency controls.
+- Enabling actual paid checkout for customers still requires approved tax/entity details, order-form/terms language, cancellation/refund handling, and production validation for the target contracting setup.
+- No product copy, sales process, or support response may imply that an unavailable paid control, certification, contract, or legal fact is already active.
 
 ## Data retention and deletion posture
 
@@ -69,12 +71,13 @@ The current public Privacy and Terms pages are operating notices for the beta. T
 
 For the controlled private beta, the safe default is therefore:
 
-- no automatic paid checkout;
+- no automatic paid checkout as a consequence of signup, onboarding, or a browser redirect;
+- self-serve Core/Signal checkout remains hidden unless its real billing configuration and commercial gate are satisfied;
 - no invented legal-entity or jurisdiction statement;
 - no promise of an enterprise DPA until one is reviewed for the actual contracting entity and customer;
 - no ranking, citation, traffic, lead, pipeline, or revenue guarantee;
 - provider and model claims must come from captured production evidence;
-- any future paid/general-availability launch must reopen the commercial/legal gate for the actual entity and target jurisdictions.
+- any paid/general-availability launch must reopen the commercial/legal gate for the actual entity and target jurisdictions.
 
 ## Sign-off interpretation
 
