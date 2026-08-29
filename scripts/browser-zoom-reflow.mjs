@@ -65,22 +65,57 @@ async function measureReflow(page) {
   });
 }
 
+function assertReflow(measurement, message, details) {
+  if (measurement.documentWidth > measurement.viewportWidth + 2) {
+    fail(message, { ...details, measurement });
+  }
+  if (measurement.clipped.length) {
+    fail("Nested content clipping detected.", { ...details, clipped: measurement.clipped });
+  }
+}
+
 async function verifyZoomReflow(page, profileName, path) {
   for (const zoomFactor of zoomFactors) {
     await page.evaluate((factor) => {
       document.documentElement.style.zoom = String(factor);
     }, zoomFactor);
     await page.waitForTimeout(80);
-    const measurement = await measureReflow(page);
-    if (measurement.documentWidth > measurement.viewportWidth + 2) {
-      fail("Zoom reflow overflow detected.", { profile: profileName, path, zoomFactor, measurement });
-    }
-    if (measurement.clipped.length) {
-      fail("Nested content clipping detected.", { profile: profileName, path, zoomFactor, clipped: measurement.clipped });
-    }
+    assertReflow(await measureReflow(page), "Zoom reflow overflow detected.", { profile: profileName, path, zoomFactor });
     await page.evaluate(() => { document.documentElement.style.zoom = ""; });
     await page.waitForTimeout(40);
   }
+}
+
+async function verifyTextResize(page, profileName, path) {
+  await page.evaluate(() => {
+    document.documentElement.dataset.acceptanceTextResize = "200";
+    document.documentElement.style.fontSize = "200%";
+  });
+  await page.waitForTimeout(80);
+  assertReflow(await measureReflow(page), "200 percent text resize overflow detected.", { profile: profileName, path, textResize: 200 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "";
+    delete document.documentElement.dataset.acceptanceTextResize;
+  });
+  await page.waitForTimeout(40);
+}
+
+async function verifyForcedColorsSmoke(page, profileName, path) {
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.waitForTimeout(60);
+  const evidence = await page.evaluate(() => ({
+    bodyVisible: document.body.getBoundingClientRect().width > 0 && document.body.getBoundingClientRect().height > 0,
+    interactiveCount: Array.from(document.querySelectorAll("a,button,input,select,textarea,summary")).filter((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+    }).length,
+  }));
+  if (!evidence.bodyVisible || evidence.interactiveCount === 0) {
+    fail("Forced-colors accessibility smoke did not expose a usable document.", { profile: profileName, path, evidence });
+  }
+  assertReflow(await measureReflow(page), "Forced-colors responsive overflow detected.", { profile: profileName, path, forcedColors: true });
+  await page.emulateMedia({ forcedColors: "none" });
 }
 
 async function runPublicProfiles() {
@@ -94,9 +129,14 @@ async function runPublicProfiles() {
         await waitForStablePage(page, path);
         const normal = await measureReflow(page);
         observations.push({ path, normal });
-        if (normal.documentWidth > normal.viewportWidth + 2) fail("Responsive overflow detected before zoom.", { profile: profile.name, path, normal });
-        if (normal.clipped.length) fail("Nested content clipping detected.", { profile: profile.name, path, zoomFactor: 1, clipped: normal.clipped });
-        if (profile.browserType === chromium) await verifyZoomReflow(page, profile.name, path);
+        assertReflow(normal, "Responsive overflow detected before zoom.", { profile: profile.name, path, zoomFactor: 1 });
+        if (profile.browserType === chromium) {
+          await verifyZoomReflow(page, profile.name, path);
+          await verifyTextResize(page, profile.name, path);
+          if (profile.name === "chromium-low-height" && ["/", "/pricing", "/login"].includes(path)) {
+            await verifyForcedColorsSmoke(page, profile.name, path);
+          }
+        }
       }
       await context.close();
     } catch (error) {
@@ -122,6 +162,7 @@ async function runAuthenticatedZoom() {
     for (const path of authenticatedPaths) {
       await waitForStablePage(page, path);
       await verifyZoomReflow(page, "chromium-authenticated-low-height", path);
+      await verifyTextResize(page, "chromium-authenticated-low-height", path);
     }
     await context.close();
   } catch (error) {
@@ -138,7 +179,7 @@ async function main() {
   summary.checkedAt = new Date().toISOString();
   await writeFile(resolve(outputRoot, "zoom-reflow-summary.json"), JSON.stringify(summary, null, 2));
   if (summary.failures.length) process.exitCode = 1;
-  else console.log(`[zoom-reflow] PASS — ${profiles.length} responsive engines/profiles with 200% and 400% Chromium reflow coverage.`);
+  else console.log(`[zoom-reflow] PASS — WebKit/mobile landscape/low-height profiles plus 200%/400% zoom, 200% text resize and forced-colors smoke.`);
 }
 
 main().catch(async (error) => {
