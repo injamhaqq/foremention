@@ -66,20 +66,20 @@ test("browser acceptance captures every approved Foremention QA width", () => {
   assert.match(runner, /name: "chromium-narrow"[\s\S]{0,120}width: 320/);
 });
 
-test("browser acceptance blocks the retired visual identity and white/inverse treatment", () => {
+test("browser acceptance requires the approved reverse identity and rejects white/warm surfaces", () => {
   assert.match(runner, /verifyCanonicalBrandArtwork/);
-  assert.match(runner, /Retired Foremention visual identity artwork is visibly rendered/);
-  assert.match(runner, /Retired inverse\/white identity treatment is still present/);
-  assert.match(runner, /Neutral text-only Foremention product label is not visibly rendered/);
-  assert.match(runner, /wordmark--text-only/);
-  assert.match(runner, /wordmark__text/);
-  assert.match(runner, /\/brand\/foremention-/);
+  assert.match(runner, /Approved Foremention logo artwork is not visibly rendered/);
+  assert.match(runner, /Text-only Foremention fallback is still rendered/);
+  assert.match(runner, /foremention-logo-white\.svg/);
+  assert.match(runner, /foremention-mark-white\.svg/);
+  assert.match(runner, /forbiddenLightBackgrounds/);
+  assert.match(runner, /Visible website surface still uses a white\/warm-light background/);
   assert.match(runner, /\/foremention-wordmark\.png/);
   assert.match(runner, /\/source-eclipse\.svg/);
   assert.match(runner, /\.source-eclipse/);
   assert.match(runner, /\.wordmark__name/);
-  assert.doesNotMatch(runner, /canonicalBrandPaths/);
-  assert.doesNotMatch(runner, /Canonical Foremention artwork is not visibly rendered/);
+  assert.doesNotMatch(runner, /Retired inverse\/white identity treatment is still present/);
+  assert.doesNotMatch(runner, /Neutral text-only Foremention product label is not visibly rendered/);
 });
 
 test("accessibility is blocking for serious regressions while Lighthouse starts audit-first", () => {
