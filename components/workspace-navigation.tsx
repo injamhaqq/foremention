@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef } from "react";
+import { useRef, type KeyboardEvent } from "react";
 import { Arrow, Wordmark } from "@/components/brand";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
@@ -79,11 +79,22 @@ export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; wo
 export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
   const pathname = usePathname();
   const mobileMenu = useRef<HTMLDetailsElement>(null);
-  const closeMenu = () => { if (mobileMenu.current) mobileMenu.current.open = false; };
-  return <details className="app-mobile-nav registered-workspace-mobile" ref={mobileMenu}>
-      <summary>Workspace menu</summary>
+  const summaryRef = useRef<HTMLElement>(null);
+  const closeMenu = (restoreFocus = false) => {
+    if (mobileMenu.current) mobileMenu.current.open = false;
+    if (restoreFocus) summaryRef.current?.focus();
+  };
+  const handleKeyDown = (event: KeyboardEvent<HTMLDetailsElement>) => {
+    if (event.key === "Escape" && mobileMenu.current?.open) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+    }
+  };
+  return <details className="app-mobile-nav registered-workspace-mobile" ref={mobileMenu} onKeyDown={handleKeyDown}>
+      <summary ref={summaryRef}>Workspace menu</summary>
       <div className="app-mobile-nav__panel">
-        <NavigationLinks pathname={pathname} onNavigate={closeMenu} />
+        <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>
