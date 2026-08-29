@@ -35,6 +35,66 @@
   color: #4f5952 !important;
 }
 
+/* Warm authenticated inspection surfaces explicitly opt back into dark foregrounds after the canonical dark root tokens are installed. */
+.app-frame .question-planner {
+  color: #0d0f0e !important;
+}
+.app-frame .question-planner .eyebrow {
+  color: #176347 !important;
+}
+.app-frame .question-planner :where(.question-planner__intro p, .question-planner__grid p) {
+  color: #4f5952 !important;
+}
+.app-frame .question-planner :where(h2, strong, button) {
+  color: #0d0f0e !important;
+}
+.app-frame .prompt-create {
+  color: #0d0f0e !important;
+}
+.app-frame .prompt-create .eyebrow {
+  color: #176347 !important;
+}
+.app-frame .prompt-create :where(h2, label, input, select, textarea),
+.app-frame .prompt-tools select,
+.app-frame .prompt-row-actions button {
+  color: #0d0f0e !important;
+}
+.app-frame .prompt-create .button--ink {
+  background: #0d0f0e !important;
+  color: #fffdf9 !important;
+}
+.app-frame .review-queue-callout {
+  color: #0d0f0e !important;
+}
+.app-frame .review-queue-callout .eyebrow {
+  color: #176347 !important;
+}
+.app-frame .review-queue-callout :where(h2, a) {
+  color: #0d0f0e !important;
+}
+.app-frame .data-quality-grid {
+  color: #0d0f0e !important;
+}
+.app-frame .data-quality-grid small {
+  color: #4f5952 !important;
+}
+.app-frame .inline-notice {
+  color: #0d0f0e !important;
+}
+.app-frame .inline-notice :where(strong, p, a) {
+  color: #0d0f0e !important;
+}
+.app-frame .settings-grid input {
+  color: #0d0f0e !important;
+}
+.app-frame .latest-answer > p,
+.app-frame .review-action > div > p {
+  color: #d7dbd5 !important;
+}
+.app-frame .review-action .provider-state--available {
+  color: #0d0f0e !important;
+}
+
 /* Contained Recommendation Record evidence. */
 .canonical-source-evidence {
   display: grid;
