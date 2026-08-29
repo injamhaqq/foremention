@@ -5,9 +5,10 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-const [workflow, runner, lighthouse] = await Promise.all([
+const [workflow, runner, hardening, lighthouse] = await Promise.all([
   text(".github/workflows/browser-acceptance.yml"),
   text("scripts/browser-acceptance.mjs"),
+  text("scripts/browser-zoom-reflow.mjs"),
   text("lighthouserc.cjs"),
 ]);
 
@@ -130,16 +131,18 @@ test("failed browser responses persist privacy-safe status and pathname diagnost
 
 test("browser acceptance covers WebKit, low-height laptop, and mobile landscape", () => {
   assert.match(workflow, /playwright install --with-deps chromium firefox webkit/);
-  assert.match(runner, /const \{ chromium, firefox, webkit \}/);
-  assert.match(runner, /name: "chromium-low-height"[\s\S]{0,140}width: 1366[\s\S]{0,80}height: 768/);
-  assert.match(runner, /name: "chromium-mobile-landscape"[\s\S]{0,160}width: 844[\s\S]{0,80}height: 390/);
-  assert.match(runner, /name: "webkit-mobile"[\s\S]{0,160}browserType: webkit[\s\S]{0,100}width: 390/);
+  assert.match(workflow, /node scripts\/browser-zoom-reflow\.mjs/);
+  assert.match(hardening, /const \{ chromium, webkit \}/);
+  assert.match(hardening, /name: "chromium-low-height"[\s\S]{0,140}width: 1366[\s\S]{0,80}height: 768/);
+  assert.match(hardening, /name: "chromium-mobile-landscape"[\s\S]{0,160}width: 844[\s\S]{0,80}height: 390/);
+  assert.match(hardening, /name: "webkit-mobile"[\s\S]{0,160}browserType: webkit[\s\S]{0,100}width: 390/);
 });
 
 test("browser acceptance blocks 200 and 400 percent zoom reflow failures", () => {
-  assert.match(runner, /const zoomFactors = \[2, 4\]/);
-  assert.match(runner, /verifyZoomReflow/);
-  assert.match(runner, /document\.documentElement\.style\.zoom/);
-  assert.match(runner, /Zoom reflow overflow detected/);
-  assert.match(runner, /Nested content clipping detected/);
+  assert.match(hardening, /const zoomFactors = \[2, 4\]/);
+  assert.match(hardening, /verifyZoomReflow/);
+  assert.match(hardening, /document\.documentElement\.style\.zoom/);
+  assert.match(hardening, /Zoom reflow overflow detected/);
+  assert.match(hardening, /Nested content clipping detected/);
+  assert.match(hardening, /chromium-authenticated-low-height/);
 });
