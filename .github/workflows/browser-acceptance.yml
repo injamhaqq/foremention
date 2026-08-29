@@ -17,7 +17,7 @@ concurrency:
 jobs:
   browser-acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - name: Harden runner
@@ -81,7 +81,7 @@ jobs:
           }
           JSON
           npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
-          .ci-tools/node_modules/.bin/playwright install --with-deps chromium firefox
+          .ci-tools/node_modules/.bin/playwright install --with-deps chromium firefox webkit
 
       - name: Run pull request browser, accessibility and performance acceptance
         if: github.event_name == 'pull_request'
@@ -135,6 +135,7 @@ jobs:
 
           start_worker
           node scripts/browser-acceptance.mjs
+          node scripts/browser-zoom-reflow.mjs
           node scripts/canonical-brand-visual-proof.mjs
           stop_worker
 
@@ -162,6 +163,7 @@ jobs:
           FOREMENTION_REQUIRE_AUTHENTICATED_ACCEPTANCE: 'true'
         run: |
           node scripts/browser-acceptance.mjs
+          node scripts/browser-zoom-reflow.mjs
           node scripts/canonical-brand-visual-proof.mjs
 
       - name: Collect trusted production Lighthouse audit baseline
