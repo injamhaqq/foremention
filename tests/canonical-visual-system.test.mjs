@@ -39,10 +39,12 @@ test("canonical visual system is wired before the founder-reference and release 
 });
 
 test("retired custom Foremention identity artwork stays absent", async () => {
-  const [brand, publicShell, workspaceNav] = await Promise.all([
+  const [brand, publicShell, workspaceNav, layout, seo] = await Promise.all([
     text("components/brand.tsx"),
     text("components/public-shell.tsx"),
     text("components/workspace-navigation.tsx"),
+    text("app/layout.tsx"),
+    text("lib/seo.ts"),
   ]);
 
   assert.match(brand, /wordmark--text-only/);
@@ -50,6 +52,7 @@ test("retired custom Foremention identity artwork stays absent", async () => {
   assert.doesNotMatch(brand, /foremention-logo|foremention-mark|wordmark__art|<img/);
   assert.doesNotMatch(publicShell, /ForementionMark|Wordmark inverse/);
   assert.doesNotMatch(workspaceNav, /ForementionMark|Wordmark inverse/);
+  assert.doesNotMatch(`${layout}\n${seo}`, /og\.png|og-platform\.png|SOCIAL_IMAGE/);
 
   for (const path of [
     "public/brand/foremention-logo.svg",
@@ -58,10 +61,15 @@ test("retired custom Foremention identity artwork stays absent", async () => {
     "public/brand/foremention-mark-white.svg",
     "public/foremention-wordmark.png",
     "public/source-eclipse.svg",
+    "public/og.png",
+    "public/og-platform.png",
+    "app/icon.svg",
+    "app/icon.png",
+    "app/favicon.ico",
   ]) assert.equal(await exists(path), false, `${path} must remain retired`);
 });
 
-test("homepage follows the founder-supplied original reference with lightweight layered 5d depth", async () => {
+test("homepage follows the approved product composition with lightweight layered 5d depth", async () => {
   const [home, signal, layout, homepageCss, releaseCss] = await Promise.all([
     text("components/goat-home-experience.tsx"),
     text("components/canonical-signal-field.tsx"),
