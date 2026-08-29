@@ -40,13 +40,14 @@ test("Claude hooks re-inject project context and guard sensitive agent writes", 
   assert.equal(allowed.status, 0);
 });
 
-test("Foremention product skill locks the five-object architecture and retires standalone Source X-Ray", () => {
+test("Foremention product skill locks the five-object architecture, retires Source X-Ray, and retires the custom identity", () => {
   const skill = read(".claude/skills/foremention-product-truth/SKILL.md");
   assert.match(skill, /Attention[\s\S]*Questions[\s\S]*Records[\s\S]*Comparisons[\s\S]*Settings/);
   assert.match(skill, /Source X-Ray is retired as a standalone feature/i);
   assert.match(skill, /evidence inspection/i);
-  assert.match(skill, /exact canonical logo and wordmark/i);
-  assert.match(skill, /visual first/i);
+  assert.match(skill, /custom Foremention logo\/mark\/wordmark identity is retired/i);
+  assert.match(skill, /white\/reverse variants/i);
+  assert.match(skill, /neutral text label `Foremention`/i);
 });
 
 test("release and specialist review primitives are present", () => {
@@ -56,18 +57,21 @@ test("release and specialist review primitives are present", () => {
 
   assert.match(release, /RED -> GREEN -> VERIFY/);
   assert.match(release, /exact SHA/i);
+  assert.match(release, /retired visual identity absence/i);
   assert.match(security, /Supabase RLS/);
   assert.match(security, /organization\/workspace isolation/);
   assert.match(experience, /Foremention 5/);
   assert.match(experience, /320px/);
   assert.match(experience, /no standalone Source X-Ray/i);
+  assert.match(experience, /no white\/reverse\/inverse variants/i);
 });
 
-test("CLAUDE.md carries the founder workflow and product constitution", () => {
+test("CLAUDE.md carries the founder workflow and retired-identity constitution", () => {
   const constitution = read("CLAUDE.md");
   assert.match(constitution, /Show the intended visual first/i);
   assert.match(constitution, /Foremention 5/);
   assert.match(constitution, /Attention[\s\S]*Questions[\s\S]*Records[\s\S]*Comparisons[\s\S]*Settings/);
   assert.match(constitution, /Source X-Ray is retired as a standalone feature/i);
-  assert.match(constitution, /Never retype, redraw, approximate/i);
+  assert.match(constitution, /custom Foremention logo\/mark\/wordmark identity is retired/i);
+  assert.match(constitution, /neutral text label `Foremention`/i);
 });
