@@ -16,6 +16,7 @@ import "./homepage-reference.css";
 import "./canonical-release.css";
 import "./canonical-release-qa.css";
 import "./identity-retirement.css";
+import "./canonical-responsive-hardening.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
