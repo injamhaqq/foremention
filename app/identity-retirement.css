@@ -1,0 +1,78 @@
+/* Founder-approved identity retirement guardrail.
+ * No logo, mark, inverse/reverse artwork, or derived identity asset may be
+ * recreated here. This layer only keeps the neutral product-name label
+ * readable wherever the shell needs a textual product identifier.
+ */
+.wordmark--text-only {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.wordmark--text-only .wordmark__text {
+  display: inline-block;
+  color: inherit;
+  font-family: var(--fm-font-sans, Inter, ui-sans-serif, system-ui, sans-serif);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -.03em;
+  white-space: nowrap;
+}
+
+.app-sidebar > .wordmark--text-only {
+  color: var(--fm-fg, #fffdf9);
+}
+
+.app-topbar__brand-label {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  color: var(--fm-fg, #fffdf9);
+}
+
+.app-topbar__brand-label .wordmark__text {
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  /* globals.css historically hid child 2 because it used to contain a
+   * redundant mobile artwork lockup. Child 2 now contains the required
+   * neutral text-only product label, so keep it visible and give every
+   * existing topbar control its own responsive grid column.
+   */
+  .app-topbar {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+  }
+
+  .app-topbar > div:nth-child(2) {
+    display: flex !important;
+    min-width: 0;
+    align-items: center;
+  }
+
+  .app-topbar__brand-label {
+    grid-column: 2;
+  }
+
+  .app-topbar__brand-label .wordmark__text {
+    font-size: 12px;
+  }
+
+  .app-topbar .workspace-global-search {
+    grid-column: 3;
+    min-width: 0;
+  }
+
+  .app-topbar .app-topbar__account {
+    grid-column: 4;
+  }
+}
+
+@media (max-width: 340px) {
+  .app-topbar__brand-label .wordmark__text {
+    font-size: 11px;
+  }
+}
