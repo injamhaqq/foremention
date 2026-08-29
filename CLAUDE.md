@@ -6,7 +6,7 @@ Foremention is a recommendation-intelligence product for B2B software. The compa
 
 Before any material UI, product, brand, SEO, investor, accelerator, or design-system change:
 
-1. Show the intended visual first.
+1. Show the intended visual first when a new visual is actually being proposed.
 2. Explain what will change, what remains locked, and why.
 3. Only then implement.
 4. Return with visual proof and exact verification status.
@@ -16,9 +16,9 @@ Before any material UI, product, brand, SEO, investor, accelerator, or design-sy
 - Company name: Foremention.
 - Category: Recommendation Intelligence.
 - Descriptor: Recommendation intelligence for B2B software.
-- Use the exact founder-supplied canonical logo and wordmark assets. Never retype, redraw, approximate, stretch, recolor arbitrarily, add glow, bevel, shadow, or reconstruct the mark in CSS.
-- Use the exact white/reverse lockup on dark surfaces and the exact black/ink lockup on light surfaces. Use the standalone canonical mark only when the full lockup cannot fit.
-- Brand system: near-black conviction mode, warm-light inspection mode, deep registered green, registration/alignment/resolution as signature behavior.
+- The previously introduced custom Foremention logo/mark/wordmark identity is retired. Do not use, restore, recreate, trace, recolor, invert, derive, or ship those assets or any white/reverse variant.
+- Do not invent a replacement logo or mark. Until the founder explicitly approves a new identity, use only a neutral text label `Foremention` where a product/site label is required.
+- Brand system may continue to use the approved product environment (near-black conviction mode, warm-light inspection mode, deep registered green, registration/alignment/resolution behavior) without treating it as a new logo identity.
 - The hero must read as recommendation evidence resolving into an inspectable record, not a planet, cyber-grid, or generic AI network.
 
 ## Foremention 5 — locked product architecture
@@ -70,7 +70,7 @@ Node.js >= 22.13.0 and pnpm 10.25.0 are required.
 
 ## Release gate
 
-Use RED -> GREEN -> VERIFY. Before merge, require fresh evidence for tests, lint, typecheck, production build, configured security checks, browser acceptance, accessibility, responsive QA (1440 / 1024 / 768 / 375 / 320), reduced motion, canonical-logo audit, SEO audit, and performance review. Merge/deploy only the exact verified SHA, then prove production on that exact SHA.
+Use RED -> GREEN -> VERIFY. Before merge, require fresh evidence for tests, lint, typecheck, production build, configured security checks, browser acceptance, accessibility, responsive QA (1440 / 1024 / 768 / 375 / 320), reduced motion, retired-identity absence, SEO audit, and performance review. Merge/deploy only the exact verified SHA, then prove production on that exact SHA.
 
 ## References
 
