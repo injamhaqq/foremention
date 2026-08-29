@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
-import { Arrow, ForementionMark, Wordmark } from "@/components/brand";
+import { Arrow, Wordmark } from "@/components/brand";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
 import { resetProductAnalytics } from "@/lib/product-analytics";
@@ -83,7 +83,7 @@ function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigat
 export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
   const pathname = usePathname();
   return <aside className="app-sidebar registered-workspace-sidebar">
-    <Wordmark inverse />
+    <Wordmark />
     <div className="app-sidebar__navigation">
       <NavigationLinks pathname={pathname} />
     </div>
@@ -99,7 +99,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
   const mobileMenu = useRef<HTMLDetailsElement>(null);
   const closeMenu = () => { if (mobileMenu.current) mobileMenu.current.open = false; };
   return <details className="app-mobile-nav registered-workspace-mobile" ref={mobileMenu}>
-      <summary><ForementionMark />Workspace menu</summary>
+      <summary>Workspace menu</summary>
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={closeMenu} />
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
