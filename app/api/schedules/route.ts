@@ -41,8 +41,6 @@ export async function GET() {
 
 export async function POST(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
-  // requireViewer is the canonical signed-in boundary; getViewer remains used by GET
-  // so API callers receive JSON instead of a page redirect for unauthenticated reads.
   const viewer = await requireViewer("/app/settings");
   const role = await getPrimaryWorkspaceRole(viewer);
   if (!canManage(role)) return NextResponse.json({ error: "Your workspace role cannot manage measurement schedules." }, { status: 403 });
@@ -58,12 +56,14 @@ export async function POST(request: Request) {
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Complete onboarding before enabling recurring measurement." }, { status: 409 });
   const [questions, providers] = await Promise.all([loadPrompts(viewer), loadProviderStatuses(viewer)]);
-  const approved = new Set(questions.filter((question) => question.approved).map((question) => question.id));
-  const configured = new Set(providers.filter((provider) => viewer.mode === "demo" || provider.configured).map((provider) => provider.id));
-  const questionIds = Array.isArray(body.questionIds) ? body.questionIds : [];
-  const providerIds = Array.isArray(body.providerIds) ? body.providerIds : [];
+  const approvedQuestions = questions.filter((question) => question.approved);
+  const configuredProviders = providers.filter((provider) => viewer.mode === "demo" || provider.configured);
+  const approved = new Set(approvedQuestions.map((question) => question.id));
+  const configured = new Set<string>(configuredProviders.map((provider) => provider.id));
+  const questionIds = Array.isArray(body.questionIds) && body.questionIds.length ? body.questionIds : approvedQuestions.slice(0, 5).map((question) => question.id);
+  const providerIds = Array.isArray(body.providerIds) && body.providerIds.length ? body.providerIds : configuredProviders.slice(0, 1).map((provider) => provider.id);
   if (questionIds.some((id) => !approved.has(id))) return NextResponse.json({ error: "Schedules can use only approved workspace buyer questions." }, { status: 400 });
-  if (providerIds.some((id) => !configured.has(id as never))) return NextResponse.json({ error: "Schedules can use only connected workspace providers." }, { status: 400 });
+  if (providerIds.length !== 1 || providerIds.some((id) => !configured.has(id))) return NextResponse.json({ error: "Choose exactly one connected provider so repeat measurements stay interpretable." }, { status: 400 });
   let schedule;
   try {
     schedule = validateMeasurementSchedule({
@@ -80,8 +80,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid measurement schedule." }, { status: 400 });
   }
-  const now = new Date();
-  const nextRunAt = nextScheduleAt(now, schedule.cadence, schedule.timezone).toISOString();
+  const nextRunAt = nextScheduleAt(new Date(), schedule.cadence, schedule.timezone).toISOString();
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: "demo-measurement-schedule", ...schedule, next_run_at: nextRunAt }, mode: "demo" });
   const rows = await supabaseRest<ScheduleRow[]>("measurement_schedules", {
     method: "POST",
