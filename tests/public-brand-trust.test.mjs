@@ -33,8 +33,11 @@ test("about page speaks to customers instead of exposing internal product-brief 
     "Current operating truth",
     "Lead product",
     "Core system",
-    "Customer-facing outcome",
-    "Operating model",
-  ]) assert.doesNotMatch(about, new RegExp(internalLabel, "i"));
-  assert.match(about, /Foremention/);
+    "Primary buyer",
+  ]) {
+    assert.doesNotMatch(about, new RegExp(internalLabel, "i"));
+  }
+
+  assert.match(about, /recommendation intelligence/i);
+  assert.match(about, /evidence/i);
 });
