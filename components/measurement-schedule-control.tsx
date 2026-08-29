@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { trackProductEvent } from "@/lib/product-analytics";
+import { captureProductEvent } from "@/lib/product-analytics";
 
 type Schedule = {
   id: string;
@@ -41,7 +41,7 @@ export function MeasurementScheduleControl() {
     const payload = await response.json().catch(() => ({})) as { error?: string };
     if (!response.ok) setError(payload.error || "The schedule could not be enabled.");
     else {
-      trackProductEvent("measurement_schedule_enabled", { cadence: "weekly", schedule_state: "enabled" });
+      captureProductEvent("measurement_schedule_enabled", { cadence: "weekly", schedule_state: "enabled" });
       await refresh();
     }
     setPending(false);
@@ -52,7 +52,10 @@ export function MeasurementScheduleControl() {
     const response = await fetch("/api/schedules", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: schedule.id, enabled }) });
     const payload = await response.json().catch(() => ({})) as { error?: string };
     if (!response.ok) setError(payload.error || "The schedule could not be updated.");
-    else await refresh();
+    else {
+      captureProductEvent("measurement_schedule_enabled", { cadence: schedule.cadence, schedule_state: enabled ? "resumed" : "paused" });
+      await refresh();
+    }
     setPending(false);
   }
 
