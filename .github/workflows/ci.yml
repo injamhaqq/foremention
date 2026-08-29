@@ -78,7 +78,12 @@ jobs:
         run: pnpm lint
 
       - name: Typecheck
+        id: typecheck
         run: pnpm typecheck
+
+      - name: Repeat concise typecheck diagnostics on failure
+        if: failure() && steps.typecheck.outcome == 'failure'
+        run: pnpm typecheck 2>&1 | tail -80
 
       - name: Build
         run: pnpm build
@@ -88,7 +93,7 @@ jobs:
 
       - name: Stop isolated Supabase stack
         if: always()
-        run: supabase stop --no-backup || true
+        run: supabase stop --no-backup >/dev/null 2>&1 || true
 
       - name: Generate release SBOM
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
