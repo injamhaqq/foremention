@@ -100,15 +100,15 @@ test("verified authentication uses a deterministic cookie handoff and sends new 
   assert.match(navigation, /\/api\/auth\/demo\/exit/);
 });
 
-test("the selected Meridian OS Source Eclipse identity is preserved", async () => {
-  const [brand, css, mergeRecord] = await Promise.all([text("components/brand.tsx"), text("app/globals.css"), text("docs/FIRST-WAVE-MERGE.md")]);
+test("the retired Source Eclipse identity stays inert while the product palette remains available", async () => {
+  const [brand, css] = await Promise.all([text("components/brand.tsx"), text("app/globals.css")]);
   assert.match(brand, /SourceEclipseMark/);
-  assert.match(brand, /source-eclipse__orbit/);
-  assert.match(brand, /source-eclipse__point/);
+  assert.match(brand, /return null/);
+  assert.doesNotMatch(brand, /source-eclipse\.svg|foremention-logo|foremention-mark|wordmark__art|<img/);
+  assert.match(brand, /wordmark--text-only/);
   assert.match(css, /--ink: #041514/);
   assert.match(css, /--marker: #70f0c6/);
   assert.match(css, /--copper: #0f9f91/);
-  assert.match(mergeRecord, /Source Eclipse/);
 });
 
 test("interactive demo and factual disclosure are present", async () => {
@@ -351,7 +351,7 @@ test("the customer journey distinguishes collected citations from reviewed decis
   assert.match(data, /Page-level review is still required/);
 });
 
-test("SEO, social preview, and accessibility states are bundled", async () => {
+test("SEO, neutral social metadata, and accessibility states are bundled", async () => {
   const [layout, css, seo, sitemap, robots, sourceMap, sample] = await Promise.all([
     text("app/layout.tsx"),
     text("app/globals.css"),
@@ -361,13 +361,14 @@ test("SEO, social preview, and accessibility states are bundled", async () => {
     text("app/source-map/page.tsx"),
     text("app/sample-report/page.tsx"),
   ]);
-  await exists("public/og.png");
+  await assert.rejects(exists("public/og.png"), { code: "ENOENT" });
   await exists("app/sitemap.ts");
   await exists("app/robots.ts");
   assert.match(layout, /"@type":\s*"Organization"/);
   assert.doesNotMatch(layout, /"@type":\s*"SoftwareApplication"/);
-  assert.match(layout, /SOCIAL_IMAGE/);
-  assert.match(seo, /og\.png/);
+  assert.doesNotMatch(layout, /SOCIAL_IMAGE/);
+  assert.doesNotMatch(seo, /og\.png|SOCIAL_IMAGE/);
+  assert.match(seo, /card: "summary"/);
   assert.match(seo, /https:\/\/foremention\.com/);
   assert.match(seo, /alternates: \{ canonical \}/);
   assert.doesNotMatch(sitemap, /localhost/);
