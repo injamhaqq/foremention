@@ -90,7 +90,19 @@ jobs:
         run: pnpm lint
 
       - name: Typecheck
-        run: pnpm typecheck
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm typecheck 2>&1 | tee typecheck-output.txt
+
+      - name: Upload typecheck failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: typecheck-failure-${{ github.sha }}
+          path: typecheck-output.txt
+          if-no-files-found: ignore
+          retention-days: 1
 
       - name: Build
         run: pnpm build
