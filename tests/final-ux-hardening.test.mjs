@@ -4,6 +4,7 @@ import test from "node:test";
 
 const appShell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
 const productPolish = await readFile(new URL("../app/product-polish.css", import.meta.url), "utf8");
+const canonicalSystem = await readFile(new URL("../app/canonical-system.css", import.meta.url), "utf8");
 const identityRetirement = await readFile(new URL("../app/identity-retirement.css", import.meta.url), "utf8");
 const sitemap = await readFile(new URL("../app/sitemap.ts", import.meta.url), "utf8");
 
@@ -50,9 +51,10 @@ test("approved canonical Foremention artwork remains readable on the black works
   assert.ok(ratio >= 4.5, `canonical reverse identity contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
 });
 
-test("getting-started helper text stays readable on the mint hover state", () => {
-  assert.match(productPolish, /\.getting-started li a:hover small \{ color: var\(--ink\); \}/);
-  const ratio = contrastRatio("#041514", "#70f0c6");
+test("getting-started helper text stays readable on the canonical dark hover state", () => {
+  assert.match(canonicalSystem, /\.app-frame \.getting-started li:hover > a[\s\S]{0,180}background:\s*#173327/);
+  assert.match(canonicalSystem, /\.app-frame \.getting-started li:hover > a :where\(strong, small\)[\s\S]{0,80}color:\s*var\(--fm-clean\)/);
+  const ratio = contrastRatio("#FFFDF9", "#173327");
   assert.ok(ratio >= 4.5, `getting-started hover helper contrast ${ratio.toFixed(2)}:1 must be at least 4.5:1`);
 });
 
