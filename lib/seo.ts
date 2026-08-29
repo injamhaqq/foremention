@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 export const SITE_URL = "https://foremention.com";
 export const SITE_NAME = "Foremention";
-export const SOCIAL_IMAGE = `${SITE_URL}/og.png`;
 
 type PageMetadataInput = {
   title: string;
@@ -41,20 +40,11 @@ export function pageMetadata({
       url: canonical,
       type: "website",
       siteName: SITE_NAME,
-      images: [
-        {
-          url: SOCIAL_IMAGE,
-          width: 1200,
-          height: 630,
-          alt: "Foremention recommendation intelligence platform",
-        },
-      ],
     },
     twitter: {
-      card: "summary_large_image",
+      card: "summary",
       title: `${title} | ${SITE_NAME}`,
       description,
-      images: [SOCIAL_IMAGE],
     },
   };
 }
