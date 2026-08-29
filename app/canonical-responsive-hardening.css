@@ -107,6 +107,59 @@
   overflow-wrap: anywhere;
 }
 
+/* Advanced capabilities stay visually subordinate until deliberately opened. */
+.retention-context-tools {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.retention-context-tools > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  color: var(--fm-fg-soft);
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+.retention-context-tools > summary::-webkit-details-marker { display: none; }
+.retention-context-tools > summary::after {
+  content: "+";
+  color: var(--fm-signal-light);
+  font: 500 16px/1 var(--fm-font-mono);
+}
+.retention-context-tools[open] > summary {
+  border-bottom: 1px solid var(--fm-border);
+  color: var(--fm-clean);
+}
+.retention-context-tools[open] > summary::after { content: "−"; }
+.retention-context-tools__body { padding: 18px; }
+
+.retention-intent-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.intent-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid var(--fm-border);
+  border-radius: 999px;
+  background: #111412;
+  color: #c5ccc6;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.retention-benchmark-boundary[data-benchmark-state="withheld"] {
+  border-style: dashed;
+  border-color: #59606a;
+}
+
 @media (max-width: 1100px) {
   .app-user > div { display: none; }
   .app-topbar__brand-label { display: none; }
