@@ -11,14 +11,22 @@ const AxeBuilder = axeModule.default || axeModule.AxeBuilder || axeModule;
 
 const baseUrl = new URL((process.env.FOREMENTION_BROWSER_BASE_URL || process.env.FOREMENTION_BASE_URL || "https://foremention.com").replace(/\/$/, ""));
 const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-acceptance", "brand-proof");
+const approvedIdentityPaths = [
+  "/brand/foremention-logo-white.svg",
+  "/brand/foremention-mark-white.svg",
+];
 const retiredIdentityPaths = [
   "/brand/foremention-logo.svg",
-  "/brand/foremention-logo-white.svg",
   "/brand/foremention-mark.svg",
-  "/brand/foremention-mark-white.svg",
   "/foremention-wordmark.png",
   "/source-eclipse.svg",
 ];
+const forbiddenLightBackgrounds = new Set([
+  "rgb(255, 255, 255)",
+  "rgb(255, 253, 249)",
+  "rgb(244, 240, 232)",
+  "rgb(243, 255, 249)",
+]);
 const profiles = [
   { name: "desktop-1440", viewport: { width: 1440, height: 1200 } },
   { name: "laptop-1024", viewport: { width: 1024, height: 900 } },
@@ -31,6 +39,7 @@ const summary = {
   baseUrl: baseUrl.origin,
   checkedAt: new Date().toISOString(),
   appShell: [],
+  approvedAssets: [],
   retiredAssets: [],
   failures: [],
 };
@@ -46,40 +55,44 @@ async function ensureOutput() {
   await mkdir(resolve(outputRoot, "axe"), { recursive: true });
 }
 
-async function verifyRetiredIdentityIsAbsent(page, profileName) {
-  const visibleRetiredArtwork = await page.locator([
-    'img[src*="/brand/foremention-"]',
-    'img[src*="/foremention-wordmark.png"]',
-    'img[src*="/source-eclipse.svg"]',
-    "img.wordmark__art",
-    "img.foremention-mark",
-    ".source-eclipse",
-    ".source-eclipse__orbit",
-    ".source-eclipse__point",
-    ".wordmark__name",
-  ].join(", ")).evaluateAll((elements) => elements.filter((element) => {
+async function verifyApprovedIdentity(page, profileName) {
+  const visibleWordmarks = await page.locator('img.wordmark__art[src="/brand/foremention-logo-white.svg"]').evaluateAll((elements) => elements.filter((element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
   }).length);
 
-  if (visibleRetiredArtwork > 0) {
-    fail("Retired Foremention visual identity artwork is visibly rendered.", { profile: profileName, visibleRetiredArtwork });
+  if (!visibleWordmarks) {
+    fail("Approved Foremention logo artwork is not visibly rendered.", { profile: profileName });
   }
 
-  const inverseIdentity = await page.locator(".wordmark--inverse").count();
-  if (inverseIdentity > 0) {
-    fail("Retired inverse/white identity treatment is still present.", { profile: profileName, inverseIdentity });
+  const textOnlyFallbacks = await page.locator(".wordmark--text-only, .wordmark__text").count();
+  if (textOnlyFallbacks > 0) {
+    fail("Text-only Foremention fallback is still rendered instead of the approved logo.", { profile: profileName, textOnlyFallbacks });
   }
 
-  const neutralLabels = await page.locator(".wordmark--text-only .wordmark__text").evaluateAll((elements) => elements.filter((element) => {
+  const lightPanels = await page.locator([
+    ".app-frame",
+    ".app-main",
+    ".app-topbar",
+    ".app-sidebar",
+    ".weekly-loop-teaser",
+    ".question-planner",
+    ".prompt-create",
+    ".review-queue-callout",
+    ".data-quality-grid",
+    ".inline-notice",
+  ].join(", ")).evaluateAll((elements, forbidden) => elements.flatMap((element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
-    return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
-  }).length);
+    if (rect.width <= 0 || rect.height <= 0 || style.display === "none" || style.visibility === "hidden") return [];
+    return forbidden.includes(style.backgroundColor)
+      ? [{ className: element.className, backgroundColor: style.backgroundColor }]
+      : [];
+  }), [...forbiddenLightBackgrounds]);
 
-  if (!neutralLabels) {
-    fail("Neutral text-only Foremention product label is not visibly rendered.", { profile: profileName });
+  if (lightPanels.length) {
+    fail("A visible app surface still uses a white/warm-light background.", { profile: profileName, lightPanels });
   }
 }
 
@@ -95,7 +108,7 @@ async function verifyDemoAppShell(profile) {
 
     const loginResponse = await page.goto(new URL("/login", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
     if (!loginResponse?.ok()) {
-      fail("Demo identity-retirement proof could not load the login entry.", { profile: profile.name, status: loginResponse?.status() ?? null });
+      fail("Brand proof could not load the login entry.", { profile: profile.name, status: loginResponse?.status() ?? null });
       await context.close();
       return;
     }
@@ -126,7 +139,7 @@ async function verifyDemoAppShell(profile) {
       fail("Fictional demo app shell emitted browser runtime errors.", { profile: profile.name, consoleErrors, pageErrors });
     }
 
-    await verifyRetiredIdentityIsAbsent(page, profile.name);
+    await verifyApprovedIdentity(page, profile.name);
 
     try {
       const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
@@ -147,22 +160,35 @@ async function verifyDemoAppShell(profile) {
   }
 }
 
-async function verifyRetiredStaticAssets() {
+async function verifyStaticAssets() {
+  for (const path of approvedIdentityPaths) {
+    try {
+      const response = await fetch(new URL(path, baseUrl), { cache: "no-store", redirect: "manual" });
+      const result = { path, status: response.status, contentType: response.headers.get("content-type") };
+      summary.approvedAssets.push(result);
+      if (!response.ok || !String(result.contentType || "").includes("image/svg+xml")) {
+        fail("Approved Foremention identity asset is not publicly available as SVG.", result);
+      }
+    } catch (error) {
+      fail("Could not verify approved identity asset availability.", { path, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
   for (const path of retiredIdentityPaths) {
     try {
       const response = await fetch(new URL(path, baseUrl), { cache: "no-store", redirect: "manual" });
       const result = { path, status: response.status };
       summary.retiredAssets.push(result);
-      if (response.ok) fail("Retired Foremention identity asset is still publicly available.", result);
+      if (response.ok) fail("A non-approved legacy identity asset is still publicly available.", result);
     } catch (error) {
-      fail("Could not verify retired identity asset absence.", { path, error: error instanceof Error ? error.message : String(error) });
+      fail("Could not verify legacy identity asset absence.", { path, error: error instanceof Error ? error.message : String(error) });
     }
   }
 }
 
 async function main() {
   await ensureOutput();
-  await verifyRetiredStaticAssets();
+  await verifyStaticAssets();
   for (const profile of profiles) await verifyDemoAppShell(profile);
   summary.checkedAt = new Date().toISOString();
   await writeFile(resolve(outputRoot, "summary.json"), JSON.stringify(summary, null, 2));
@@ -171,11 +197,11 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  console.log(`[canonical-brand-proof] PASS — retired visual identity absent across ${summary.appShell.length} app-shell widths.`);
+  console.log(`[canonical-brand-proof] PASS — approved logo present and black/green app surfaces verified across ${summary.appShell.length} widths.`);
 }
 
 main().catch(async (error) => {
-  fail("Identity-retirement visual proof crashed.", { error: error instanceof Error ? error.message : String(error) });
+  fail("Canonical brand visual proof crashed.", { error: error instanceof Error ? error.message : String(error) });
   await mkdir(outputRoot, { recursive: true }).catch(() => {});
   await writeFile(resolve(outputRoot, "summary.json"), JSON.stringify(summary, null, 2)).catch(() => {});
   process.exitCode = 1;
