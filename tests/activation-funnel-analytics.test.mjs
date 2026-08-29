@@ -13,6 +13,7 @@ test("activation funnel exposes every canonical decision-grade milestone without
     read("components/workspace-activation-analytics.tsx"),
     read("components/onboarding-wizard.tsx"),
     read("components/product-event.tsx"),
+    read("components/source-live-inspector.tsx"),
     read("components/source-review-form.tsx"),
     contract,
   ].join("\n");
@@ -32,13 +33,16 @@ test("activation funnel exposes every canonical decision-grade milestone without
     "workflow_failed",
     "ai_result_viewed",
     "citation_result_viewed",
-    "source_xray_viewed",
-    "source_xray_reviewed",
+    "recommendation_record_viewed",
+    "evidence_inspection_opened",
+    "evidence_review_completed",
     "decision_insight_reached",
   ]) {
     assert.match(contract, new RegExp(`"${event}"`), `missing canonical activation milestone ${event}`);
   }
 
+  const declaredEvents = contract.slice(contract.indexOf("PRODUCT_ANALYTICS_EVENTS"), contract.indexOf("] as const"));
+  assert.doesNotMatch(declaredEvents, /source_xray/);
   assert.doesNotMatch(sources, /segment|mixpanel|amplitude/i);
 });
 
@@ -70,19 +74,24 @@ test("production PostHog persistence stays first-party and does not probe parent
   assert.match(source, /secure_cookie: window\.location\.protocol === "https:"/);
 });
 
-test("workspace milestones exclude demo data and require real evidence surfaces", () => {
-  const source = read("components/workspace-activation-analytics.tsx");
-  assert.match(source, /if \(demo\) return/);
-  assert.match(source, /\.answer-stack > article\.panel/);
-  assert.match(source, /\.answer-citations a/);
-  assert.match(source, /source_xray_viewed/);
-  assert.match(source, /sessionStorage/);
+test("workspace milestones exclude demo data and require real Recommendation Record evidence surfaces", () => {
+  const workspace = read("components/workspace-activation-analytics.tsx");
+  const inspector = read("components/source-live-inspector.tsx");
+  assert.match(workspace, /if \(demo\) return/);
+  assert.match(workspace, /recommendation_record_viewed/);
+  assert.match(workspace, /\.answer-stack > article\.panel/);
+  assert.match(workspace, /\.answer-citations a/);
+  assert.match(inspector, /evidence_inspection_opened/);
+  assert.doesNotMatch(workspace, /source_xray/);
+  assert.match(workspace, /sessionStorage/);
 });
 
 test("decision insight is emitted only when the review API creates a new actionable opportunity", () => {
   const source = read("components/source-review-form.tsx");
   assert.match(source, /if \(result\.opportunity\?\.action === "created"\) \{[\s\S]*?captureProductEvent\("decision_insight_reached", \{ insight_type: "actionable_source_gap" \}\);[\s\S]*?\}/);
   assert.equal((source.match(/captureProductEvent\("decision_insight_reached"/g) || []).length, 1);
+  assert.match(source, /captureProductEvent\("evidence_review_completed"/);
+  assert.doesNotMatch(source, /captureProductEvent\("source_xray/);
   assert.doesNotMatch(source, /captureProductEvent\("activation_completed"/);
   assert.doesNotMatch(source, /captureProductEvent\("reviewed_opportunity_created"/);
 });

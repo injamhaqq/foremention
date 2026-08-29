@@ -6,12 +6,12 @@ const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
 test("human source review is persisted separately from automated crawler checks", async () => {
-  const [migration, integrity, reviewRoute, sourceMapPage, sourceDetail, sourceTable, safeIntelligence] = await Promise.all([
+  const [migration, integrity, reviewRoute, sourceMapPage, containedEvidence, sourceTable, safeIntelligence] = await Promise.all([
     text("supabase/migrations/20260818000300_source_review_truth.sql"),
     text("lib/evidence-integrity-data.ts"),
     text("app/api/sources/[id]/review/route.ts"),
     text("app/app/source-map/page.tsx"),
-    text("app/app/sources/[id]/page.tsx"),
+    text("components/recommendation-source-evidence.tsx"),
     text("components/source-map-table.tsx"),
     text("lib/safe-intelligence.ts"),
   ]);
@@ -26,7 +26,7 @@ test("human source review is persisted separately from automated crawler checks"
   assert.match(reviewRoute, /reviewed_by:\s*viewer\.id/);
   assert.match(sourceMapPage, /!entry\.reviewedAt/);
   assert.match(sourceMapPage, /Boolean\(entry\.reviewedAt\)\s*&&\s*!entry\.clientPresent/);
-  assert.match(sourceDetail, /const reviewed = Boolean\(source\.reviewedAt\)/);
+  assert.match(containedEvidence, /const reviewed = Boolean\(source\.reviewedAt\)/);
   assert.match(sourceTable, /Boolean\(entry\.reviewedAt\)\s*&&\s*!entry\.clientPresent/);
   assert.match(sourceTable, /entry\.reviewedAt\s*\?\s*entry\.clientPresent/);
   assert.match(safeIntelligence, /Automated crawler checks do not count/);

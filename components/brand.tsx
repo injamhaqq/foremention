@@ -28,8 +28,8 @@ export function Wordmark({ inverse = false }: { inverse?: boolean }) {
       <img
         className="wordmark__art"
         src={inverse ? "/brand/foremention-logo-white.svg" : "/brand/foremention-logo.svg"}
-        width="264"
-        height="33"
+        width="264.096"
+        height="33.24"
         alt="Foremention"
       />
     </Link>

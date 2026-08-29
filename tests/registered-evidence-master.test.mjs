@@ -37,22 +37,27 @@ test("Registered Evidence is the final presentation layer", () => {
   assert.doesNotMatch(css, /linear-gradient|radial-gradient|filter:\s*blur/i);
 });
 
-test("homepage carries the locked category and Registered Evidence hero", () => {
+test("homepage carries the locked Foremention category and original-reference hero", () => {
   const hero = read("components/goat-home-experience.tsx");
+  const signal = read("components/canonical-signal-field.tsx");
 
-  assert.match(hero, /THE RECOMMENDATION STANDARD/);
-  assert.match(hero, /Register\. Prove\.<br \/>Prepare\./);
+  assert.match(hero, /THE FOREMENTION STANDARD/);
+  assert.match(hero, /aria-label="Register\. Prove\. Prepare\."/);
   assert.match(hero, /Recommendation intelligence for B2B software\./);
-  assert.match(hero, /See an example/);
+  assert.match(hero, /Request a demo/);
+  assert.match(hero, /View overview/);
   assert.match(hero, /LIVE RECORD \/ ILLUSTRATIVE/);
   assert.match(hero, /ANSWER/);
   assert.match(hero, /Observed/);
+  assert.match(hero, /REFERENCE/);
+  assert.match(hero, /Returned/);
   assert.match(hero, /SOURCE/);
   assert.match(hero, /Retrievable/);
   assert.match(hero, /REVIEW/);
   assert.match(hero, /Pending/);
-  assert.match(hero, /registered-record__rings/);
-  assert.match(hero, /registered-record__beam/);
+  assert.match(signal, /canonical-signal__depth--rings/);
+  assert.match(signal, /canonical-signal__beam/);
+  assert.match(signal, /canonical-signal__horizon/);
   assert.match(hero, /The recommendation is only the start\./);
   assert.match(hero, /returned references[^.]*distinct sources[^.]*retrievability[^.]*review state[^.]*later comparison eligibility/i);
 });
@@ -89,6 +94,9 @@ test("workspace primary navigation is the five-object inspection architecture wi
 
 test("Recommendation Record owns evidence inspection and Source X-Ray is retired as a standalone surface", () => {
   const record = read("app/recommendation-record/page.tsx");
+  const recordComponent = read("components/recommendation-answer-record.tsx");
+  const evidenceComponent = read("components/recommendation-source-evidence.tsx");
+  const retiredRoute = read("app/app/sources/[id]/page.tsx");
   const homepage = read("app/page.tsx");
   const product = read("app/product/page.tsx");
   const sitemap = read("app/sitemap.ts");
@@ -100,6 +108,10 @@ test("Recommendation Record owns evidence inspection and Source X-Ray is retired
   assert.match(record, /Conclude|conclusion/i);
   assert.match(record, /returned (?:reference|source)[^.]*causal|do not establish[^.]*caus/i);
   assert.match(record, /comparison eligibility|later-comparison eligibility/i);
+  assert.match(recordComponent, /Evidence inspection/);
+  assert.match(evidenceComponent, /SourceLiveInspector/);
+  assert.match(evidenceComponent, /SourceReviewForm/);
+  assert.match(retiredRoute, /redirect\("\/app\/source-map"\)/);
 
   assert.doesNotMatch(record, /Source X-Ray|\/source-x-ray/);
   assert.doesNotMatch(homepage, /Source X-Ray|source-xray/i);

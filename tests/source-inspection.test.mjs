@@ -30,9 +30,7 @@ test("source inspection follows only validated redirects and extracts bounded me
   const fetcher = async (input) => {
     const url = String(input);
     calls.push(url);
-    if (url === "https://example.com/start") {
-      return new Response(null, { status: 302, headers: { location: "/guide" } });
-    }
+    if (url === "https://example.com/start") return new Response(null, { status: 302, headers: { location: "/guide" } });
     return new Response("<html><head><title>Evidence &amp; trust</title><meta name=\"description\" content=\"Dated answers &amp; exact sources\"></head><body>Not stored</body></html>", {
       status: 200,
       headers: { "content-type": "text/html; charset=utf-8" },
@@ -131,11 +129,11 @@ test("source inspection records blocked, oversized, and network-failure outcomes
   assert.equal(unavailable.httpStatus, null);
 });
 
-test("live source inspection is tenant-scoped, role-checked, origin-guarded, snapshotted, and audited", async () => {
+test("live source inspection remains tenant-scoped, role-checked, origin-guarded, snapshotted and audited inside Recommendation Record", async () => {
   const root = new URL("../", import.meta.url);
-  const [route, page, component] = await Promise.all([
+  const [route, evidence, component] = await Promise.all([
     readFile(new URL("app/api/sources/[id]/inspect/route.ts", root), "utf8"),
-    readFile(new URL("app/app/sources/[id]/page.tsx", root), "utf8"),
+    readFile(new URL("components/recommendation-source-evidence.tsx", root), "utf8"),
     readFile(new URL("components/source-live-inspector.tsx", root), "utf8"),
   ]);
   assert.match(route, /isTrustedMutationOrigin/);
@@ -153,9 +151,9 @@ test("live source inspection is tenant-scoped, role-checked, origin-guarded, sna
   assert.match(route, /action: "source\.inspected"/);
   assert.match(route, /snapshot\.materiallyChanged/);
   assert.match(route, /source_\$\{monitoringEvent\}/);
-  assert.match(page, /loadSourceSnapshotHistory/);
-  assert.match(page, /Fingerprint only|text fingerprint/);
-  assert.match(page, /SourceLiveInspector/);
+  assert.match(evidence, /loadSourceSnapshotHistory/);
+  assert.match(evidence, /Fingerprint|text fingerprint/);
+  assert.match(evidence, /SourceLiveInspector/);
   assert.match(component, /does not execute scripts, store the page body/);
   assert.match(component, /Saved page observation/);
 });

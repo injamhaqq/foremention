@@ -12,7 +12,6 @@ function captureOncePerSession(key: string, event: ProductAnalyticsEventName, pr
     captureProductEvent(event, properties);
     window.sessionStorage.setItem(storageKey, "1");
   } catch {
-    // Product analytics must never break the workspace when browser storage is unavailable.
     captureProductEvent(event, properties);
   }
 }
@@ -20,7 +19,7 @@ function captureOncePerSession(key: string, event: ProductAnalyticsEventName, pr
 function entrySurface(pathname: string) {
   if (pathname === "/app/onboarding") return "onboarding";
   if (pathname.startsWith("/app/runs")) return "ai_results";
-  if (pathname.startsWith("/app/sources") || pathname === "/app/source-map") return "sources";
+  if (pathname === "/app/source-map") return "sources";
   return "workspace";
 }
 
@@ -40,6 +39,7 @@ export function WorkspaceActivationAnalytics({ demo }: { demo: boolean }) {
 
     const runDetail = /^\/app\/runs\/(?!compare(?:\/|$))[^/]+$/.test(pathname);
     if (runDetail) {
+      captureOncePerSession(`recommendation-record:${pathname}`, "recommendation_record_viewed");
       let secondFrame = 0;
       const firstFrame = window.requestAnimationFrame(() => {
         secondFrame = window.requestAnimationFrame(() => {
@@ -53,10 +53,6 @@ export function WorkspaceActivationAnalytics({ demo }: { demo: boolean }) {
         window.cancelAnimationFrame(firstFrame);
         if (secondFrame) window.cancelAnimationFrame(secondFrame);
       };
-    }
-
-    if (/^\/app\/sources\/[^/]+$/.test(pathname)) {
-      captureOncePerSession(`source-xray:${pathname}`, "source_xray_viewed");
     }
   }, [demo, pathname]);
 

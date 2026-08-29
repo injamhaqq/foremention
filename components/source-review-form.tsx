@@ -57,7 +57,7 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
       }
       if (!demo) {
         const decisionReady = result.opportunity?.action === "created" || result.opportunity?.action === "refreshed";
-        captureProductEvent("source_xray_reviewed", {
+        captureProductEvent("evidence_review_completed", {
           brand_present: clientPresent,
           crawler_access: crawlerAccess,
           entry_route: route,

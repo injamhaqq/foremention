@@ -11,7 +11,7 @@ function comparablePageUrl(value: string) {
   }
 }
 
-export function findSourceXrayTarget(citationUrl: string, sources: SourceXrayTarget[]) {
+export function findSourceXrayTarget<T extends SourceXrayTarget>(citationUrl: string, sources: T[]): T | null {
   const citationKey = comparablePageUrl(citationUrl);
   if (!citationKey) return null;
   return sources.find((source) => comparablePageUrl(source.url) === citationKey) || null;

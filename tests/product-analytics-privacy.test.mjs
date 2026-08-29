@@ -51,8 +51,8 @@ test("analytics rejects customer content even when hidden behind an allowed prop
   });
 });
 
-test("analytics never forwards sensitive keys, nested values, URLs, messages, or secrets", () => {
-  const sanitized = sanitizeProductAnalyticsEvent("source_xray_reviewed", {
+test("evidence review analytics never forwards sensitive keys, nested values, URLs, messages, or secrets", () => {
+  const sanitized = sanitizeProductAnalyticsEvent("evidence_review_completed", {
     brand_present: true,
     crawler_access: "open",
     entry_route: "editorial outreach",
@@ -67,12 +67,33 @@ test("analytics never forwards sensitive keys, nested values, URLs, messages, or
   });
 
   assert.deepEqual(sanitized, {
-    event: "source_xray_reviewed",
+    event: "evidence_review_completed",
     properties: {
       brand_present: true,
       crawler_access: "open",
       entry_route: "editorial outreach",
       decision_ready: true,
+    },
+  });
+});
+
+test("retired Source X-Ray analytics names normalize to canonical evidence events", () => {
+  assert.deepEqual(sanitizeProductAnalyticsEvent("source_xray_viewed"), {
+    event: "evidence_inspection_opened",
+    properties: {},
+  });
+  assert.deepEqual(sanitizeProductAnalyticsEvent("source_xray_reviewed", {
+    brand_present: false,
+    crawler_access: "partial",
+    entry_route: "expert contribution",
+    decision_ready: false,
+  }), {
+    event: "evidence_review_completed",
+    properties: {
+      brand_present: false,
+      crawler_access: "partial",
+      entry_route: "expert contribution",
+      decision_ready: false,
     },
   });
 });
