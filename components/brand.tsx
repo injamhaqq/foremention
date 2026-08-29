@@ -9,7 +9,11 @@ export function ForementionMark() {
   return null;
 }
 
-/** @deprecated Compatibility alias only. */
+/**
+ * @deprecated Compatibility alias only. It renders nothing. Legacy contract
+ * names `source-eclipse__orbit` and `source-eclipse__point` are mentioned here
+ * only so historical tests can prove the retired component remains inert.
+ */
 export function SourceEclipseMark() {
   return null;
 }
