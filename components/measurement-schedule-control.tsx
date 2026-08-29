@@ -32,7 +32,23 @@ export function MeasurementScheduleControl() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    let live = true;
+    void fetch("/api/schedules", { cache: "no-store" })
+      .then(async (response) => ({ response, payload: await response.json().catch(() => ({})) as { data?: Schedule[]; error?: string } }))
+      .then(({ response, payload }) => {
+        if (!live) return;
+        if (response.ok) { setItems(payload.data || []); setError(null); }
+        else setError(payload.error || "Measurement schedules are unavailable.");
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!live) return;
+        setError("Measurement schedules are unavailable.");
+        setLoading(false);
+      });
+    return () => { live = false; };
+  }, []);
 
   async function createSchedule() {
     setPending(true); setError(null);
