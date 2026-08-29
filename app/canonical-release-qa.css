@@ -144,6 +144,109 @@
   color: #d7dbd5 !important;
 }
 
+/* Dark-surface contrast contract: later light-mode aliases must not leak through. */
+.fm-public-shell .fm-section .goat-kicker,
+.fm-public-shell .fm-workspace-entry .goat-kicker,
+.registered-evidence-shell .section .eyebrow,
+.registered-evidence-shell .page-hero .eyebrow,
+.canonical-public-shell .section .eyebrow,
+.canonical-public-shell .page-hero .eyebrow {
+  color: #65b58e !important;
+}
+.fm-public-shell .fm-section :where(h2, h3),
+.fm-public-shell .fm-honesty-grid article h3,
+.fm-public-shell .fm-competitor-record :where(h2, h3),
+.fm-public-shell .fm-decision-gate :where(h2, h3),
+.fm-public-shell .fm-compare__run :where(h2, h3) {
+  color: #fffdf9 !important;
+}
+.fm-public-shell .fm-running-label b,
+.fm-public-shell .fm-decision-gate__summary .fm-running-label b,
+.fm-public-shell .fm-compare__run .fm-running-label b,
+.fm-public-shell .fm-measurement-note .fm-running-label b {
+  color: #65b58e !important;
+}
+.fm-public-shell .fm-running-label > span,
+.fm-public-shell .fm-record-meta > span,
+.fm-public-shell .fm-competitor-presence > span,
+.fm-public-shell .fm-readiness-states > span,
+.fm-public-shell .fm-decision-check > span:nth-child(2),
+.fm-public-shell .fm-honesty-state {
+  color: #aeb6af !important;
+}
+.fm-public-shell .fm-decision-check > strong,
+.fm-public-shell .fm-competitor-record strong,
+.fm-public-shell .fm-measurement-note strong {
+  color: #fffdf9 !important;
+}
+
+/* Former yellow/light scenes are graphite + green, never light cards. */
+.registered-evidence-shell .section--yellow,
+.canonical-public-shell .section--yellow,
+.fm-public-shell .section--yellow {
+  border-color: #28332d !important;
+  background: #0d0f0e !important;
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .section--yellow .metric-layers > div,
+.canonical-public-shell .section--yellow .metric-layers > div,
+.registered-evidence-shell .pricing-shared > article,
+.canonical-public-shell .pricing-shared > article {
+  border-color: #28332d !important;
+  background: #111412 !important;
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .section--yellow .metric-layers > div :where(h2, h3, strong),
+.canonical-public-shell .section--yellow .metric-layers > div :where(h2, h3, strong),
+.registered-evidence-shell .pricing-shared > article > h3,
+.canonical-public-shell .pricing-shared > article > h3 {
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .section--yellow .metric-layers > div p,
+.canonical-public-shell .section--yellow .metric-layers > div p,
+.registered-evidence-shell .pricing-shared > article > p,
+.canonical-public-shell .pricing-shared > article > p {
+  color: #aeb6af !important;
+}
+
+/* Pricing activation and free-tool forms stay dark. */
+.registered-evidence-shell .pricing-activation,
+.canonical-public-shell .pricing-activation,
+.registered-evidence-shell .intake-form,
+.canonical-public-shell .intake-form,
+.registered-evidence-shell .panel,
+.canonical-public-shell .panel {
+  border-color: #355f4b !important;
+  background: #111412 !important;
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .pricing-activation > strong,
+.canonical-public-shell .pricing-activation > strong,
+.registered-evidence-shell .intake-form label,
+.canonical-public-shell .intake-form label,
+.registered-evidence-shell .panel :where(h2, h3, strong),
+.canonical-public-shell .panel :where(h2, h3, strong) {
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .pricing-activation > p,
+.canonical-public-shell .pricing-activation > p,
+.registered-evidence-shell .form-fineprint,
+.canonical-public-shell .form-fineprint,
+.registered-evidence-shell .panel :where(p, small),
+.canonical-public-shell .panel :where(p, small) {
+  color: #aeb6af !important;
+}
+.registered-evidence-shell .intake-form :where(input, select, textarea),
+.canonical-public-shell .intake-form :where(input, select, textarea) {
+  border-color: #355f4b !important;
+  background: #090b0a !important;
+  color: #fffdf9 !important;
+}
+.registered-evidence-shell .intake-form :where(input, textarea)::placeholder,
+.canonical-public-shell .intake-form :where(input, textarea)::placeholder {
+  color: #8b958d !important;
+}
+
 /* Contained Recommendation Record evidence. */
 .canonical-source-evidence {
   display: grid;
