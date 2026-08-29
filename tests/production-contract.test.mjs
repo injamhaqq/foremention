@@ -100,12 +100,31 @@ test("verified authentication uses a deterministic cookie handoff and sends new 
   assert.match(navigation, /\/api\/auth\/demo\/exit/);
 });
 
-test("the retired Source Eclipse identity stays inert while the product palette remains available", async () => {
+test("approved canonical Foremention identity stays active while Source Eclipse and other legacy assets stay retired", async () => {
   const [brand, css] = await Promise.all([text("components/brand.tsx"), text("app/globals.css")]);
+  for (const path of [
+    "public/brand/foremention-logo-white.svg",
+    "public/brand/foremention-mark-white.svg",
+  ]) {
+    await exists(path);
+  }
+  for (const path of [
+    "public/brand/foremention-logo.svg",
+    "public/brand/foremention-mark.svg",
+    "public/foremention-wordmark.png",
+    "public/source-eclipse.svg",
+    "app/icon.svg",
+    "app/favicon.ico",
+  ]) {
+    await assert.rejects(exists(path), { code: "ENOENT" });
+  }
   assert.match(brand, /SourceEclipseMark/);
-  assert.match(brand, /return null/);
-  assert.doesNotMatch(brand, /source-eclipse\.svg|foremention-logo|foremention-mark|wordmark__art|<img/);
-  assert.match(brand, /wordmark--text-only/);
+  assert.match(brand, /ForementionMark/);
+  assert.match(brand, /wordmark__art/);
+  assert.match(brand, /foremention-logo-white\.svg/);
+  assert.match(brand, /foremention-mark-white\.svg/);
+  assert.match(brand, /<img/);
+  assert.doesNotMatch(brand, /wordmark--text-only|wordmark__text|source-eclipse\.svg/);
   assert.match(css, /--ink: #041514/);
   assert.match(css, /--marker: #70f0c6/);
   assert.match(css, /--copper: #0f9f91/);
