@@ -25,7 +25,6 @@ export function MeasurementScheduleControl() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
     const response = await fetch("/api/schedules", { cache: "no-store" });
     const payload = await response.json().catch(() => ({})) as { data?: Schedule[]; error?: string };
     if (response.ok) { setItems(payload.data || []); setError(null); }
