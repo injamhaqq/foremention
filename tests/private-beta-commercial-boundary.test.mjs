@@ -34,7 +34,9 @@ test("repository documentation matches the configuration-gated commercial bounda
     assert.match(document, /fail-closed/i);
     assert.doesNotMatch(document, /\$149|\$499|149\/month|499\/month/);
   }
-  assert.doesNotMatch(firstWaveMerge, /Meridian OS|Source Eclipse|Copper `#CF8B5C`/i);
+  assert.match(firstWaveMerge, /old Meridian OS \/ Source Eclipse \/ copper-cobalt directions are superseded and must not be revived/i);
+  assert.match(firstWaveMerge, /Superseded Meridian OS \/ Source Eclipse \/ copper-cobalt identity directions/i);
+  assert.doesNotMatch(firstWaveMerge, /Product identity:\s*\*\*Meridian OS|Logo:\s*\*\*Source Eclipse|Copper `#CF8B5C`/i);
   assert.match(firstWaveMerge, /Register\. Prove\. Prepare\./);
 });
 
