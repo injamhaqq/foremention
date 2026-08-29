@@ -24,7 +24,8 @@ test("shell gutters are fluid and tiny product microcopy has a readable floor", 
 });
 
 test("interactive product controls meet the shared 44px target", () => {
-  assert.match(css, /min-height:\s*44px/);
+  assert.match(css, /--fm-touch-target:\s*44px/);
+  assert.match(css, /min-height:\s*var\(--fm-touch-target\)/);
   assert.match(css, /sidebar-nav a/);
   assert.match(css, /button/);
   assert.match(css, /input/);
