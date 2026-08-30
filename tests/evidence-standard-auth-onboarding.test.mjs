@@ -21,7 +21,7 @@ test("auth routes enter the Evidence Standard workspace without changing auth me
   assert.match(signup, /Evidence before theatre/);
   assert.doesNotMatch(login, />EVIDENCE BEFORE THEATRE</);
   assert.doesNotMatch(signup, />EVIDENCE BEFORE THEATRE</);
-  assert.match(signup, /Private beta/);
+  assert.match(signup, /Design-partner \/ private-beta workspace/i);
   assert.match(signup, /Creating a workspace does not charge a card/);
   assert.match(form, /data-evidence-record="auth"/);
 

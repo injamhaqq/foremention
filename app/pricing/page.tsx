@@ -5,9 +5,9 @@ import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Recommendation Intelligence Pricing - Private Beta",
+  title: "Recommendation Intelligence Plans",
   description:
-    "Foremention commercial packaging is still being validated during private beta. Paid checkout is not active and final pricing has not been confirmed.",
+    "Choose Foremention coverage by buyer questions, measurement frequency, brands, collaboration, and enterprise controls. Design-partner commercial terms remain founder-led while self-serve billing is being validated.",
   path: "/pricing",
   noIndex: true,
 });
@@ -15,61 +15,52 @@ export const metadata: Metadata = pageMetadata({
 const plans = [
   {
     name: "Core",
-    price: "Pricing to be confirmed",
-    availability: "Private-beta package",
-    label: "Establish the record",
+    availability: "Establish the record",
     summary:
-      "For one team that needs an inspectable baseline of how its category and vendors appear in observed AI recommendation answers.",
-    includes: null,
+      "For one B2B software team that needs an inspectable baseline of how AI-mediated buyers are shown its category, brand, and evidence.",
     items: [
       "One brand and category",
-      "Up to 25 buyer questions",
-      "Monthly collection capacity",
-      "Recommendation Records and evidence history",
-      "Evidence inspection inside each record",
-      "CSV workspace exports",
+      "Up to 25 approved buyer questions",
+      "Monthly measurement cadence",
+      "Recommendation Records with contained evidence inspection",
+      "Human review and evidence-state history",
+      "CSV and stakeholder-ready Record exports",
     ],
-    cta: "Join private beta",
-    href: "/signup",
+    cta: "Discuss Core",
+    href: "/contact?plan=core",
   },
   {
     name: "Signal",
-    price: "Pricing to be confirmed",
-    availability: "Private-beta package",
-    label: "Review what changed",
+    availability: "Review what changed",
     lead: true,
     summary:
-      "For growth teams that need more frequent recommendation evidence, competitive context, and a reviewable path from observation to action.",
-    includes: "Everything in Core, plus:",
+      "For growth and product-marketing teams that need more frequent comparable measurement, competitive context, review, and owned follow-through.",
     items: [
       "Up to three brand workspaces",
-      "Up to 100 buyer questions",
-      "Weekly collection capacity",
-      "Cross-provider comparison context",
-      "Source movement and review queues",
-      "Team review workflow and exports",
+      "Up to 100 approved buyer questions",
+      "Weekly measurement cadence",
+      "Exact-comparison change context",
+      "Team review, Attention, alerts, and actions",
+      "Shareable Recommendation Records and exports",
     ],
-    cta: "Join private beta",
-    href: "/signup",
+    cta: "Discuss Signal",
+    href: "/contact?plan=signal",
   },
   {
     name: "Intelligence",
-    price: "Custom scope",
-    availability: "Future commercial package",
-    label: "Operate across coverage",
+    availability: "Operate across coverage",
     summary:
-      "For multi-brand or higher-coverage teams that need a tailored recommendation evidence layer without losing provenance or review state.",
-    includes: "Everything in Signal, plus:",
+      "For multi-brand or enterprise teams that need custom measurement coverage, governance, integrations, and a recommendation-intelligence operating layer.",
     items: [
-      "Multi-brand portfolio",
-      "Custom question and run capacity",
-      "Longer evidence retention",
-      "Confirmed API, webhook, and export scope",
-      "Role-based access and configuration controls",
-      "Custom measurement design",
+      "Multi-brand and multi-market scope",
+      "Custom buyer-question and run capacity",
+      "API, signed webhooks, and integration scope",
+      "SSO when an enterprise connection is configured",
+      "Role-based governance and audit-oriented controls",
+      "Custom measurement and reporting design",
     ],
     cta: "Discuss Intelligence",
-    href: "/contact",
+    href: "/contact?plan=intelligence",
   },
 ];
 
@@ -80,11 +71,11 @@ const shared = [
   ],
   [
     "No hidden composite score",
-    "See evidence states separately so missing coverage, uncertainty or an invalid comparison cannot be disguised by an average.",
+    "See evidence states separately so missing coverage, uncertainty, or an invalid comparison cannot be disguised by an average.",
   ],
   [
     "Customer-owned review workflow",
-    "Your team creates questions, reviews observations, inspects evidence inside the Recommendation Record, and controls what becomes an action.",
+    "Your team approves questions, reviews observations, inspects evidence inside the Recommendation Record, and controls what becomes an action.",
   ],
 ];
 
@@ -93,13 +84,12 @@ export default function PricingPage() {
     <PublicShell>
       <section className="page-hero">
         <div className="shell narrow-heading">
-          <span className="eyebrow">Private beta · packaging under validation</span>
-          <h1>Commercial packaging is not final yet.</h1>
+          <span className="eyebrow">Recommendation Intelligence plans</span>
+          <h1>Choose the evidence coverage your team needs.</h1>
           <p>
-            Foremention is validating how recommendation-intelligence coverage should be packaged
-            across buyer questions, providers/models and measurement frequency. Self-serve signup
-            currently creates a controlled private-beta workspace. The scopes below are working
-            package hypotheses, not validated commercial pricing.
+            Foremention packages the workflow around the things that actually change operating cost and value:
+            buyer-question coverage, measurement frequency, brands, collaboration, integrations, and governance.
+            Every plan keeps the same inspectable evidence standard.
           </p>
         </div>
       </section>
@@ -108,12 +98,9 @@ export default function PricingPage() {
         <div className="shell pricing-grid">
           {plans.map((plan) => (
             <article className={`pricing-card${plan.lead ? " pricing-card--lead" : ""}`} key={plan.name}>
-              <span className="pricing-label">{plan.label}</span>
+              <span className="pricing-label">{plan.availability}</span>
               <h2>{plan.name}</h2>
-              <div className="price"><strong>{plan.price}</strong></div>
-              <p className="pricing-includes">{plan.availability}</p>
               <p className="pricing-summary">{plan.summary}</p>
-              {plan.includes && <p className="pricing-includes">{plan.includes}</p>}
               <ul>{plan.items.map((item) => <li key={item}>{item}</li>)}</ul>
               <Link className={`button ${plan.lead ? "button--ink" : "button--outline"}`} href={plan.href}>
                 {plan.cta} <Arrow />
@@ -123,11 +110,11 @@ export default function PricingPage() {
         </div>
 
         <div className="shell pricing-activation">
-          <strong>Private beta is free today.</strong>
+          <strong>Commercial status</strong>
           <p>
-            Creating a workspace does not charge a card or activate Core, Signal, or Intelligence.
-            Paid checkout is not active. Final paid pricing, billing terms, coverage units and
-            entitlements will be confirmed only after validation.
+            Founder-led design-partner pricing is being validated with real teams. Self-serve paid checkout is shown
+            only when billing is configured for the workspace; creating a design-partner/private-beta workspace does
+            not charge a card. Intelligence remains sales-led and custom-scoped.
           </p>
         </div>
       </section>
@@ -139,7 +126,7 @@ export default function PricingPage() {
             <h2>Evidence customers can challenge.</h2>
             <p>
               The product keeps the underlying observation, returned references, distinct sources,
-              review state and limitations visible so a team can inspect the record before acting.
+              review state, and limitations visible so a team can inspect the record before acting.
             </p>
           </div>
           <div className="pricing-shared">

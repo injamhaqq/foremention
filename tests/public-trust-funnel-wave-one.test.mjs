@@ -22,7 +22,7 @@ test("methodology is the canonical public trust route while legacy standards rem
   assert.doesNotMatch(sitemap, /["']\/(?:standards|honesty)["']/);
 });
 
-test("free-beta structured data does not advertise inactive paid offers", async () => {
+test("commercial structured data does not advertise unvalidated paid offers", async () => {
   const layout = await text("app/layout.tsx");
 
   assert.doesNotMatch(layout, /Foremention Core[\s\S]{0,160}price:\s*["']149["']/);
@@ -34,9 +34,11 @@ test("global footer is concise and exposes trust destinations by their real name
   const shell = await text("components/public-shell.tsx");
 
   assert.match(shell, />Product</);
-  assert.match(shell, />Company</);
-  assert.match(shell, />Legal \/ Trust</);
+  assert.match(shell, />Research \/ Company</);
+  assert.match(shell, />Trust</);
   assert.match(shell, /href=["']\/subprocessors["'][^>]*>Subprocessors</);
+  assert.match(shell, /href=["']\/privacy["'][^>]*>Privacy</);
+  assert.match(shell, /href=["']\/terms["'][^>]*>Terms</);
   assert.doesNotMatch(shell, />Service providers</);
   assert.doesNotMatch(shell, /Live Source Map/);
   assert.doesNotMatch(shell, /ROI scenario/);

@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-test("public brand surfaces only publish verified social destinations", async () => {
+test("public brand surfaces publish only intentionally retained verified social destinations", async () => {
   const [shell, layout] = await Promise.all([
     text("components/public-shell.tsx"),
     text("app/layout.tsx"),
@@ -17,7 +17,7 @@ test("public brand surfaces only publish verified social destinations", async ()
   }
 
   assert.match(shell, /linkedin\.com\/company\/foremention/i);
-  assert.match(shell, /instagram\.com\/forementionhq/i);
+  assert.doesNotMatch(shell, /instagram\.com\/forementionhq/i);
 });
 
 test("homepage trust links go directly to canonical methodology and Recommendation Record routes", async () => {

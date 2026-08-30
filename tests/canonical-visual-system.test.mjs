@@ -107,9 +107,10 @@ test("homepage follows the approved product composition with lightweight layered
 
 test("signed-in primary IA remains exactly five product objects", async () => {
   const nav = await text("components/workspace-navigation.tsx");
-  const primary = nav.slice(nav.indexOf("const primaryNav"), nav.indexOf("const workspaceNav"));
+  const primary = nav.slice(nav.indexOf("const primaryNav"), nav.indexOf("export const CONTEXTUAL_WORKSPACE_ROUTES"));
   for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(primary, new RegExp(`"${label}"`));
   assert.doesNotMatch(primary, /Source X-Ray|Evidence Vault|Competitors|Actions/);
+  assert.match(nav, /CONTEXTUAL_WORKSPACE_ROUTES/);
 });
 
 test("Recommendation Record evidence semantics stay distinct and standalone Source X-Ray is retired", async () => {

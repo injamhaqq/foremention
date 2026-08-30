@@ -5,9 +5,10 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-const [workflow, runner, lighthouse] = await Promise.all([
+const [workflow, runner, hardening, lighthouse] = await Promise.all([
   text(".github/workflows/browser-acceptance.yml"),
   text("scripts/browser-acceptance.mjs"),
+  text("scripts/browser-zoom-reflow.mjs"),
   text("lighthouserc.cjs"),
 ]);
 
@@ -126,4 +127,34 @@ test("failed browser responses persist privacy-safe status and pathname diagnost
   assert.match(runner, /parsed\.origin !== baseOrigin/);
   assert.match(runner, /return parsed\.pathname/);
   assert.doesNotMatch(runner, /failedResponses[\s\S]{0,220}(search|searchParams|hash):/);
+});
+
+test("browser acceptance covers WebKit, low-height laptop, and mobile landscape", () => {
+  assert.match(workflow, /playwright install --with-deps chromium firefox webkit/);
+  assert.match(workflow, /node scripts\/browser-zoom-reflow\.mjs/);
+  assert.match(hardening, /const \{ chromium, webkit \}/);
+  assert.match(hardening, /name: "chromium-low-height"[\s\S]{0,140}width: 1366[\s\S]{0,80}height: 768/);
+  assert.match(hardening, /name: "chromium-mobile-landscape"[\s\S]{0,160}width: 844[\s\S]{0,80}height: 390/);
+  assert.match(hardening, /name: "webkit-mobile"[\s\S]{0,160}browserType: webkit[\s\S]{0,100}width: 390/);
+});
+
+test("browser acceptance models 200 and 400 percent zoom through the effective CSS viewport", () => {
+  assert.match(hardening, /const zoomFactors = \[2, 4\]/);
+  assert.match(hardening, /function effectiveViewport/);
+  assert.match(hardening, /baseViewport\.width \/ zoomFactor/);
+  assert.match(hardening, /page\.setViewportSize\(viewport\)/);
+  assert.match(hardening, /page\.setViewportSize\(baseViewport\)/);
+  assert.doesNotMatch(hardening, /document\.documentElement\.style\.zoom/);
+  assert.match(hardening, /Zoom reflow overflow detected/);
+  assert.match(hardening, /Nested content clipping detected/);
+  assert.match(hardening, /chromium-authenticated-low-height/);
+});
+
+test("browser acceptance blocks 200 percent text-resize and forced-colors regressions", () => {
+  assert.match(hardening, /verifyTextResize/);
+  assert.match(hardening, /document\.documentElement\.style\.fontSize = "200%"/);
+  assert.match(hardening, /200 percent text resize overflow detected/);
+  assert.match(hardening, /verifyForcedColorsSmoke/);
+  assert.match(hardening, /emulateMedia\(\{ forcedColors: "active" \}\)/);
+  assert.match(hardening, /Forced-colors accessibility smoke did not expose a usable document/);
 });

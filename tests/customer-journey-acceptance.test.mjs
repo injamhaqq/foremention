@@ -41,12 +41,16 @@ test("a nontechnical customer can follow website to question to collection to Re
   assert.match(actions, /Every action keeps the source/);
 });
 
-test("core customer navigation uses canonical outcomes while proven secondary routes remain advanced", async () => {
-  const navigation = await text("components/workspace-navigation.tsx");
-  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
-  assert.doesNotMatch(navigation, /Source X-Ray|source-xray/i);
-  for (const retained of ["Competitors", "Opportunities", "Actions", "Agent Control Plane"]) assert.match(navigation, new RegExp(retained));
-  assert.match(navigation, /<details className="sidebar-advanced">/);
-  assert.match(navigation, /<summary><span>Advanced<\/span><small>\{advancedNav\.length\} tools<\/small><\/summary>/);
-  assert.match(navigation, /aria-label="Advanced workspace tools"/);
+test("core customer navigation exposes five objects while proven secondary routes stay contextually reachable", async () => {
+  const [navigation, bridge] = await Promise.all([
+    text("components/workspace-navigation.tsx"),
+    text("components/retention-surface-bridge.tsx"),
+  ]);
+  const primary = navigation.slice(navigation.indexOf("const primaryNav"), navigation.indexOf("export const CONTEXTUAL_WORKSPACE_ROUTES"));
+  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(primary, new RegExp(label));
+  assert.doesNotMatch(primary, /Source X-Ray|Competitors|Opportunities|Actions|Evidence Vault|Agent Control Plane/);
+  assert.doesNotMatch(navigation, /sidebar-advanced|advancedNav|workspaceNav/);
+  for (const route of ["/app/competitors", "/app/opportunities", "/app/placements", "/app/resolutions", "/app/outcomes", "/app/passport", "/app/intelligence", "/app/agents", "/app/decision-lab", "/app/evidence", "/app/alerts", "/app/team", "/app/settings#integrations"]) {
+    assert.match(bridge, new RegExp(route.replaceAll("/", "\\/")));
+  }
 });

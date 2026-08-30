@@ -21,10 +21,9 @@ test("commercial platform positioning and brand contract are encoded", async () 
   assert.match(pricing, /Core/);
   assert.match(pricing, /Signal/);
   assert.match(pricing, /Intelligence/);
-  assert.match(pricing, /Pricing to be confirmed/);
-  assert.match(pricing, /Private-beta package/);
-  assert.match(pricing, /Private beta is free today/);
-  assert.match(pricing, /Paid checkout is not active/);
+  assert.match(pricing, /Founder-led design-partner pricing is being validated with real teams/i);
+  assert.match(pricing, /Self-serve paid checkout is shown[\s\S]*only when billing is configured/i);
+  assert.match(pricing, /does[\s\S]*not charge a card/i);
   assert.match(pricing, /Evidence customers can challenge/);
   assert.doesNotMatch(pricing, /\$149|\$499/);
   assert.match(css, /--ink: #041514/);

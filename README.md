@@ -10,7 +10,7 @@ The primary signed-in product is deliberately constrained to five objects:
 
 `Attention -> Questions -> Records -> Comparisons -> Settings`
 
-Recommendation Record is the canonical object. Evidence inspection is part of the record, not a separate product surface.
+Recommendation Record is the canonical object. Evidence inspection is part of the record, not a separate product surface. Proven specialist capabilities such as competitor tracking, opportunities/actions, the Resolution Center, Outcome Ledger, Vendor Passport, Intelligence Loop, Agent Control Plane, Decision Lab, Evidence Vault, alerts, team controls, and integrations remain available contextually from those five objects rather than competing as global navigation destinations.
 
 ## Product truth chain
 
@@ -20,11 +20,11 @@ Observed evidence, inference, automated processing, human review, customer decis
 
 ## Included
 
-- Public product website, Recommendation Intelligence and Recommendation Record explainers, methodology, research, legal/trust pages, contact, and legacy Source Gap intake
+- Public product website, Recommendation Intelligence and Recommendation Record explainers, methodology, research, legal/trust pages, contact/design-partner intake, and legacy Source Gap intake
 - Recommendation Records with integrated returned-reference, retrievability, observed-evidence, review, limitation, and comparison-eligibility inspection
 - Supabase email/password authentication and organization-scoped row-level security
 - Credential-free, isolated seeded demo
-- Customer workspace centered on Attention, Questions, Records, Comparisons, and Settings, with proven advanced tools retained behind secondary navigation
+- Customer workspace centered on Attention, Questions, Records, Comparisons, and Settings, with proven specialist tools retained contextually
 - Foremention Agent Control Plane with recorded, organization-scoped execution telemetry for collection, mapping, measurement, and human review
 - Foremention Intelligence Loop for reviewed-evidence search, comparable run changes, explicit confidence checks, recorded cost, and one deterministic next action
 - Provider adapters for OpenAI, Gemini, Anthropic, Perplexity, Groq, Cloudflare Workers AI, and configured gateways, with deterministic mock runs
@@ -34,11 +34,11 @@ Observed evidence, inference, automated processing, human review, customer decis
 
 ## Plans represented in the product
 
-- Core: Pricing to be confirmed — private-beta package
-- Signal: Pricing to be confirmed — private-beta package
-- Intelligence: custom scope — future commercial package
+- Core: one brand/category, bounded buyer-question coverage, monthly measurement, Recommendation Records, human review, and exports
+- Signal: broader question coverage, up to three brand workspaces, weekly measurement, exact-comparison context, collaboration, alerts/actions, and shareable Records
+- Intelligence: custom multi-brand/multi-market scope, governance, integrations, API/webhook scope, and enterprise access controls when configured
 
-Foremention is a free private beta today. Paid checkout is not active. Creating a workspace does not charge a card or silently activate Core, Signal, or Intelligence. Final paid pricing, billing terms, and paid entitlements remain under validation before commercial launch.
+Founder-led design-partner terms are being validated with real teams. Creating a design-partner/private-beta workspace does not charge a card or silently activate a paid entitlement. Self-serve Core/Signal subscription checkout exists only when Stripe, a webhook secret, and real package Price IDs are configured; otherwise billing stays fail-closed and the product keeps the founder-led contact path. Intelligence remains sales-led/custom-scoped. No public dollar price is fabricated by the repository.
 
 ## Quick start
 
@@ -82,7 +82,9 @@ pnpm start:next
 
 ### Payments
 
-Connect a payment provider only after prices, refund terms, taxes, and the legal entity are approved. Paid entitlements must be granted by a verified webhook event, not by a browser redirect.
+Foremention uses Stripe Checkout Sessions for recurring Core/Signal subscriptions and the Stripe Customer Portal for self-service billing management when Stripe is configured. Browser success redirects never grant entitlements. Package state becomes active only from a verified, replay-bounded Stripe webhook mapped into the existing `billing_accounts` and `organization_entitlements` records.
+
+Before enabling paid checkout in production, approve real Stripe Prices, refund/cancellation terms, tax handling, the contracting legal entity/jurisdiction, and customer-facing billing copy. Leave the Stripe variables unset until those facts are real; the product then remains founder-led and fail-closed.
 
 ## Environment variables
 
@@ -103,6 +105,10 @@ Connect a payment provider only after prices, refund terms, taxes, and the legal
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_*_COST_*` | Optional explicit-model OpenRouter adapter; availability and cost depend on configured model |
 | `ZENMUX_API_KEY`, `ZENMUX_MODEL`, and `ZENMUX_*_COST_*` | Optional fixed-endpoint ZenMux gateway; unavailable until an explicit model and current cost rates are configured |
 | `OMNIROUTERS_API_KEY`, `OMNIROUTERS_MODEL`, and `OMNIROUTERS_*_COST_*` | Optional fixed-endpoint OmniRouters gateway; unavailable until an explicit model and current cost rates are configured |
+| `STRIPE_SECRET_KEY` | Optional server-only Stripe API key; required for hosted subscription checkout/portal |
+| `STRIPE_WEBHOOK_SECRET` | Optional Stripe endpoint secret used to verify and replay-bound billing webhooks |
+| `STRIPE_CORE_PRICE_ID` | Real Stripe recurring Price ID for Core; leave unset until approved |
+| `STRIPE_SIGNAL_PRICE_ID` | Real Stripe recurring Price ID for Signal; leave unset until approved |
 
 Never commit `.env.local` or expose server secrets to browser code.
 
@@ -139,4 +145,4 @@ pnpm typecheck
 pnpm build
 ```
 
-Before a public launch, also complete deployed browser journeys, production Supabase/RLS testing, provider evaluation, Inngest verification, any billing-webhook test required by active paid flows, legal review, backup/restore drills, error monitoring, accessibility review, responsive QA at 1440/1024/768/375/320, reduced-motion review, canonical-logo audit, SEO review, and real-device QA described in `docs/PRODUCTION-READINESS.md`.
+Before a paid public launch, also complete deployed browser journeys, production Supabase/RLS testing, provider evaluation, Inngest verification, Stripe webhook/Checkout/Portal testing for every active package, legal review, backup/restore drills, error monitoring, accessibility review, responsive QA at 1440/1024/768/375/320, reduced-motion review, canonical-logo audit, SEO review, and real-device QA described in `docs/PRODUCTION-READINESS.md`.

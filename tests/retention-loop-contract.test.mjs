@@ -116,7 +116,9 @@ test("recommendation intelligence extensions remain grounded and do not become a
   assert.match(gap, /observation/i);
   assert.match(gap, /inference/i);
   assert.match(gap, /evidence/i);
-  assert.match(bridge, /benchmark unavailable/i);
+  assert.match(bridge, /benchmark held until the cohort is eligible/i);
+  assert.match(bridge, /privacy-safe cohort/i);
+  assert.match(bridge, /minimum sample threshold/i);
   assert.match(bridge, /locale/i);
   assert.match(bridge, /market/i);
   for (const cluster of ["Discovery", "Comparison", "Alternative", "Use case", "Trust", "Constraint"]) assert.match(bridge, new RegExp(cluster));

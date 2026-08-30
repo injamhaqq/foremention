@@ -30,7 +30,7 @@ test("core public knowledge architecture is explicit and crawlable", () => {
   assert.match(read("app/ai-mediated-buying/page.tsx"), /AI-mediated software buying/i);
 });
 
-test("methodology, research, and contact reinforce the same category", () => {
+test("methodology, research, and design-partner intake reinforce the same category", () => {
   const methodology = read("app/methodology/page.tsx");
   const research = read("app/insights/page.tsx");
   const contact = read("app/contact/page.tsx");
@@ -43,43 +43,45 @@ test("methodology, research, and contact reinforce the same category", () => {
   assert.match(research, /AI-mediated software buying/);
   assert.doesNotMatch(research, /live Source Map/i);
 
-  assert.match(contact, /Request a demo/);
+  assert.match(contact, /Design partner \/ working session/i);
   assert.match(contact, /Recommendation Record/);
-  assert.match(contact, /inspects the returned evidence inside that record/i);
+  assert.match(contact, /returned evidence inspectable/i);
+  assert.match(contact, /comparable remeasurement/i);
   assert.doesNotMatch(contact, /Source X-Ray|source-xray/i);
   assert.doesNotMatch(contact, /AI visibility platform access/i);
 });
 
-test("unvalidated pricing remains truthful and out of the search acquisition architecture", () => {
+test("commercial packaging remains truthful and out of the search acquisition architecture", () => {
   const pricing = read("app/pricing/page.tsx");
   assert.match(pricing, /noIndex:\s*true/);
-  assert.match(pricing, /Commercial packaging is not final yet/);
-  assert.match(pricing, /not validated commercial pricing/i);
+  assert.match(pricing, /Founder-led design-partner pricing is being validated with real teams/i);
+  assert.match(pricing, /Self-serve paid checkout is shown[\s\S]*only when billing is configured/i);
   assert.match(pricing, /Recommendation Records/);
-  assert.match(pricing, /Evidence inspection inside each record/i);
+  assert.match(pricing, /contained evidence inspection/i);
+  assert.doesNotMatch(pricing, /\$149|\$499/);
   assert.doesNotMatch(pricing, /Source X-Ray|source-xray/i);
 });
 
-test("sitemap promotes the canonical category and product objects instead of legacy thin SEO architecture", () => {
+test("sitemap promotes the canonical category and product objects instead of secondary educational sprawl", () => {
   const sitemap = read("app/sitemap.ts");
   for (const route of [
     "/product",
     "/recommendation-intelligence",
     "/recommendation-record",
-    "/ai-mediated-buying",
     "/methodology",
     "/insights",
   ]) assert.match(sitemap, new RegExp(route.replaceAll("/", "\\/")));
 
-  for (const legacy of [
+  for (const secondary of [
     "/pricing",
+    "/ai-mediated-buying",
     "/source-x-ray",
     "/source-map",
     "/source-gap",
     "/monitoring-vs-execution",
     "/compare/geo-agencies",
     "/compare/pr-agencies",
-  ]) assert.doesNotMatch(sitemap, new RegExp(legacy.replaceAll("/", "\\/")));
+  ]) assert.doesNotMatch(sitemap, new RegExp(secondary.replaceAll("/", "\\/")));
 });
 
 test("global structured data does not advertise unsupported SoftwareApplication rich-result data", () => {
@@ -88,12 +90,15 @@ test("global structured data does not advertise unsupported SoftwareApplication 
   assert.doesNotMatch(layout, /"@type":\s*"SoftwareApplication"/);
 });
 
-test("public shell routes people to the defining Foremention objects", () => {
+test("public shell keeps the defining Record, trust, and conversion paths concise", () => {
   const shell = read("components/public-shell.tsx");
+  assert.match(shell, /href="\/product"/);
   assert.match(shell, /href="\/recommendation-record"/);
-  assert.match(shell, /href="\/recommendation-intelligence"/);
-  assert.match(shell, /href="\/ai-mediated-buying"/);
-  assert.match(shell, /Request a demo/);
+  assert.match(shell, /href="\/methodology"/);
+  assert.match(shell, /href="\/insights"/);
+  assert.match(shell, /href="\/contact"/);
+  assert.match(shell, /Design-partner workspace/);
+  assert.doesNotMatch(shell, /href="\/ai-mediated-buying"/);
   assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
 });
 

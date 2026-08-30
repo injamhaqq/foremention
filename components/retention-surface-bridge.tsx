@@ -4,22 +4,56 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AttentionInbox } from "@/components/attention-inbox";
+import { BillingControl } from "@/components/billing-control";
+import { EnterpriseReadiness } from "@/components/enterprise-readiness";
 import { MeasurementScheduleControl } from "@/components/measurement-schedule-control";
-import type { AttentionItem } from "@/lib/retention-loop";
+import type { ActivationStage, AttentionItem } from "@/lib/retention-loop";
+
+function ContextLinks({ title, body, links }: { title: string; body: string; links: Array<[string, string]> }) {
+  return <details className="panel retention-context-tools">
+    <summary>Supporting tools</summary>
+    <div className="retention-context-tools__body">
+      <span className="eyebrow">Contextual workspace tools</span>
+      <h2>{title}</h2>
+      <p>{body}</p>
+      <div className="settings-actions">
+        {links.map(([href, label]) => <Link className="button button--outline" href={href} key={href}>{label}</Link>)}
+      </div>
+    </div>
+  </details>;
+}
+
+function NextBestStep({ activation }: { activation: ActivationStage }) {
+  return <section className="panel retention-next-step" data-activation-stage={activation.key}>
+    <span className="eyebrow">Next best step</span>
+    <h2>{activation.title}</h2>
+    <p>{activation.detail}</p>
+    <div className="settings-actions"><Link className={`button ${activation.complete ? "button--outline" : "button--ink"}`} href={activation.href}>{activation.complete ? "Review comparable change" : "Continue the loop"}</Link></div>
+  </section>;
+}
 
 function AttentionSurface() {
   const [items, setItems] = useState<AttentionItem[]>([]);
+  const [activation, setActivation] = useState<ActivationStage | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     let live = true;
     void fetch("/api/retention/attention", { cache: "no-store" })
       .then(async (response) => response.ok ? response.json() : { data: [] })
-      .then((payload: { data?: AttentionItem[] }) => { if (live) { setItems(payload.data || []); setLoaded(true); } })
+      .then((payload: { data?: AttentionItem[]; activation?: ActivationStage }) => { if (live) { setItems(payload.data || []); setActivation(payload.activation || null); setLoaded(true); } })
       .catch(() => { if (live) setLoaded(true); });
     return () => { live = false; };
   }, []);
   if (!loaded) return <section className="panel"><span className="eyebrow">Attention</span><h2>Checking what needs you now.</h2><p className="table-caption">Only persisted workspace state can create an Attention item.</p></section>;
-  return <AttentionInbox items={items} />;
+  return <>
+    {activation && <NextBestStep activation={activation} />}
+    <AttentionInbox items={items} />
+    <ContextLinks
+      title="Move from signal to owned follow-through."
+      body="Alerts, opportunities, actions, and resolution work remain available when you need the underlying workflow, without competing with the five core workspace objects."
+      links={[["/app/alerts", "Alerts"], ["/app/opportunities", "Opportunities"], ["/app/placements", "Actions"], ["/app/resolutions", "Resolution Center"]]}
+    />
+  </>;
 }
 
 function RecordControls({ runId }: { runId: string }) {
@@ -34,24 +68,36 @@ function RecordControls({ runId }: { runId: string }) {
     else setSharePath(payload.data.path);
     setPending(false);
   }
-  return <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
-    <div className="panel-heading"><div><span className="eyebrow">Recommendation Record</span><h2>Share or export this exact evidence boundary.</h2><p>Evidence inspection remains contained in this Recommendation Record. Shared views are read-only, expiring and revocable.</p></div></div>
-    <div className="settings-actions"><button className="button button--ink" disabled={pending} onClick={() => void share()}>{pending ? "Creating…" : "Share read-only Record"}</button><a className="button button--outline" href={`/api/export/record/${encodeURIComponent(runId)}`}>Export CSV</a><Link className="button button--outline" href={`/app/runs/${encodeURIComponent(runId)}/print`}>Print / PDF</Link></div>
-    {sharePath && <p className="table-caption">Share created: <Link href={sharePath}>{sharePath}</Link>. Copy it now; Foremention stores only its hash.</p>}{error && <p className="inline-error" role="alert">{error}</p>}
-  </section>;
+  return <>
+    <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
+      <div className="panel-heading"><div><span className="eyebrow">Recommendation Record</span><h2>Share or export this exact evidence boundary.</h2><p>Evidence inspection remains contained in this Recommendation Record. Shared views are read-only, expiring and revocable.</p></div></div>
+      <div className="settings-actions"><button className="button button--ink" disabled={pending} onClick={() => void share()}>{pending ? "Creating…" : "Share read-only Record"}</button><a className="button button--outline" href={`/api/export/record/${encodeURIComponent(runId)}`}>Export CSV</a><Link className="button button--outline" href={`/app/runs/${encodeURIComponent(runId)}/print`}>Print / PDF</Link></div>
+      {sharePath && <p className="table-caption">Share created: <Link href={sharePath}>{sharePath}</Link>. Copy it now; Foremention stores only its hash.</p>}{error && <p className="inline-error" role="alert">{error}</p>}
+    </section>
+    <ContextLinks title="Inspect or publish only from the persisted Record." body="Evidence, vendor-passport output, and the agent execution trace are supporting Record tools. None creates replacement evidence or a second recommendation object." links={[["/app/evidence", "Evidence Vault"], ["/app/passport", "Vendor Passport"], ["/app/agents", "Agent Control Plane"]]} />
+  </>;
 }
 
 function SettingsExtensions() {
-  return <div className="retention-extension-stack"><MeasurementScheduleControl /><section className="panel"><span className="eyebrow">Enterprise access</span><h2>SSO / SAML</h2><p>Enterprise SSO is available only for a genuinely configured workspace connection. Foremention fails closed instead of pretending SSO is active.</p><a className="button button--outline" href="/api/auth/sso?next=/app">Check SSO configuration</a></section><section className="panel"><span className="eyebrow">Billing</span><h2>Verified entitlement boundary</h2><p>Billing remains inactive until a signed provider webhook is verified. No card or paid package is implied by this interface.</p></section></div>;
+  return <div className="retention-extension-stack retention-settings-groups" aria-label="Workspace settings extensions">
+    <MeasurementScheduleControl />
+    <BillingControl />
+    <section className="panel"><span className="eyebrow">Enterprise access</span><h2>SSO / SAML</h2><p>Enterprise SSO is available only for a genuinely configured workspace connection. Foremention fails closed instead of pretending SSO is active.</p><a className="button button--outline" href="/api/auth/sso?next=/app">Check SSO configuration</a></section>
+    <EnterpriseReadiness />
+    <ContextLinks title="Workspace administration lives here." body="Team and integration setup are supporting configuration, not separate product destinations." links={[["/app/team", "Team"], ["/app/settings#integrations", "Integrations"]]} />
+  </div>;
 }
 
 function AnalyticsExtensions() {
-  return <section className="panel retention-benchmark-boundary"><span className="eyebrow">Category context</span><h2>Benchmark unavailable</h2><p>Foremention will not manufacture a category benchmark from one workspace. Cross-workspace benchmarks require an eligible privacy-safe cohort and minimum sample threshold. Current comparisons remain bound to the same locale and market as the exact reviewed baseline.</p></section>;
+  return <>
+    <section className="panel retention-benchmark-boundary" data-benchmark-state="withheld"><span className="eyebrow">Category context</span><h2>Benchmark held until the cohort is eligible.</h2><p>Foremention does not manufacture a category benchmark from one workspace. Cross-workspace context appears only after an eligible privacy-safe cohort meets the minimum sample threshold. Until then, Comparisons stays bound to your exact reviewed baseline, locale, market, provider and methodology.</p></section>
+    <ContextLinks title="Use deeper analysis only when the comparison is valid." body="Outcome, weekly-intelligence, and decision-analysis tools remain available behind Comparisons, after the exact comparability boundary is satisfied." links={[["/app/outcomes", "Outcome Ledger"], ["/app/intelligence", "Intelligence Loop"], ["/app/decision-lab", "Decision Lab"]]} />
+  </>;
 }
 
 function QuestionExtensions() {
   const clusters = ["Discovery", "Comparison", "Alternative", "Use case", "Trust", "Constraint"];
-  return <section className="panel"><span className="eyebrow">Question intelligence</span><h2>Keep buyer questions organized by decision intent.</h2><p>Suggested questions never become measurements until a workspace reviewer approves them.</p><div className="chip-row">{clusters.map((cluster) => <span className="status-chip" key={cluster}>{cluster}</span>)}</div></section>;
+  return <section className="panel"><span className="eyebrow">Question intelligence</span><h2>Keep buyer questions organized by decision intent.</h2><p>These are intent labels, not filters or measurements. Suggested questions never become measurements until a workspace reviewer approves them.</p><div className="retention-intent-legend" aria-label="Question intent categories">{clusters.map((cluster) => <span className="intent-label" key={cluster}>{cluster}</span>)}</div><div className="settings-actions"><Link className="button button--outline" href="/app/competitors">Review competitors</Link></div></section>;
 }
 
 function CompetitorExtensions() {

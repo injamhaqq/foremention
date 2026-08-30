@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef } from "react";
-import { Arrow, Wordmark } from "@/components/brand";
+import { useRef, type KeyboardEvent } from "react";
+import { Arrow, ForementionMark, Wordmark } from "@/components/brand";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
 import { resetProductAnalytics } from "@/lib/product-analytics";
@@ -16,13 +16,13 @@ const primaryNav = [
   ["/app/settings", "Settings"],
 ] as const;
 
-const workspaceNav = [
+// These proven capabilities remain part of the product contract, but they are
+// intentionally not rendered as global navigation. RetentionSurfaceBridge
+// exposes them contextually from the five canonical objects instead.
+export const CONTEXTUAL_WORKSPACE_ROUTES = [
   ["/app/alerts", "Alerts"],
   ["/app/team", "Team"],
   ["/app/settings#integrations", "Integrations"],
-] as const;
-
-const advancedNav = [
   ["/app/competitors", "Competitors"],
   ["/app/opportunities", "Opportunities"],
   ["/app/placements", "Actions"],
@@ -36,7 +36,6 @@ const advancedNav = [
 ] as const;
 
 function isCurrent(pathname: string, href: string) {
-  if (href.includes("#")) return false;
   return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -55,29 +54,12 @@ function SignOutButton({ demo }: { demo: boolean }) {
 }
 
 function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  return <>
-    <nav className="sidebar-nav sidebar-nav--primary" aria-label="Main workspace">
-      {primaryNav.map(([href, label]) => {
-        const current = isCurrent(pathname, href);
-        return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
-      })}
-    </nav>
-    <nav className="sidebar-nav sidebar-nav--workspace" aria-label="Workspace tools">
-      {workspaceNav.map(([href, label]) => {
-        const current = isCurrent(pathname, href);
-        return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
-      })}
-    </nav>
-    <details className="sidebar-advanced">
-      <summary><span>Advanced</span><small>{advancedNav.length} tools</small></summary>
-      <nav className="sidebar-nav sidebar-nav--advanced" aria-label="Advanced workspace tools">
-        {advancedNav.map(([href, label]) => {
-          const current = isCurrent(pathname, href);
-          return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
-        })}
-      </nav>
-    </details>
-  </>;
+  return <nav className="sidebar-nav sidebar-nav--primary" aria-label="Main workspace">
+    {primaryNav.map(([href, label]) => {
+      const current = isCurrent(pathname, href);
+      return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
+    })}
+  </nav>;
 }
 
 export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
@@ -97,11 +79,22 @@ export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; wo
 export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
   const pathname = usePathname();
   const mobileMenu = useRef<HTMLDetailsElement>(null);
-  const closeMenu = () => { if (mobileMenu.current) mobileMenu.current.open = false; };
-  return <details className="app-mobile-nav registered-workspace-mobile" ref={mobileMenu}>
-      <summary>Workspace menu</summary>
+  const summaryRef = useRef<HTMLElement>(null);
+  const closeMenu = (restoreFocus = false) => {
+    if (mobileMenu.current) mobileMenu.current.open = false;
+    if (restoreFocus) summaryRef.current?.focus();
+  };
+  const handleKeyDown = (event: KeyboardEvent<HTMLDetailsElement>) => {
+    if (event.key === "Escape" && mobileMenu.current?.open) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+    }
+  };
+  return <details className="app-mobile-nav registered-workspace-mobile" ref={mobileMenu} onKeyDown={handleKeyDown}>
+      <summary ref={summaryRef}><ForementionMark /><span>Workspace menu</span></summary>
       <div className="app-mobile-nav__panel">
-        <NavigationLinks pathname={pathname} onNavigate={closeMenu} />
+        <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>

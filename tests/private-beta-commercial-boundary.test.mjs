@@ -9,29 +9,35 @@ const privacy = await readFile(new URL("../app/privacy/page.tsx", import.meta.ur
 const policy = await readFile(new URL("../docs/PRIVATE-BETA-OPERATING-POLICY.md", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
 const firstWaveMerge = await readFile(new URL("../docs/FIRST-WAVE-MERGE.md", import.meta.url), "utf8");
+const stripe = await readFile(new URL("../lib/stripe-billing.ts", import.meta.url), "utf8");
 
-test("self-serve production remains explicitly free beta", () => {
+test("design-partner access stays free while self-serve billing is configuration-gated", () => {
   assert.match(entitlement, /plan text not null default 'free_beta'/);
   assert.match(entitlement, /check\s*\(\s*plan\s+in\s*\(\s*'free_beta'\s*\)\s*\)/);
-  assert.match(pricing, /Self-serve signup\s+currently creates a controlled private-beta workspace/);
-  assert.match(pricing, /packaging under validation/i);
-  assert.match(pricing, /Pricing to be confirmed/i);
-  assert.match(pricing, /Creating a workspace does not charge a card or activate Core, Signal, or Intelligence/);
-  assert.match(pricing, /Paid checkout is not active/);
-  assert.match(pricing, /Join private beta/);
+  assert.match(pricing, /Founder-led design-partner pricing is being validated with real teams/i);
+  assert.match(pricing, /Self-serve paid checkout is shown[\s\S]*only when billing is configured/i);
+  assert.match(pricing, /does[\s\S]*not charge a card/i);
+  assert.match(pricing, /Intelligence remains sales-led and custom-scoped/i);
   assert.doesNotMatch(pricing, /\$149|\$499/);
+  for (const key of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_CORE_PRICE_ID", "STRIPE_SIGNAL_PRICE_ID"]) assert.match(stripe, new RegExp(key));
+  assert.match(stripe, /mode:\s*"subscription"/);
+  assert.match(stripe, /billing_portal\/sessions/);
 });
 
-test("current repository documentation matches the private-beta commercial boundary", () => {
+test("repository documentation matches the configuration-gated commercial boundary", () => {
   for (const document of [readme, firstWaveMerge]) {
     assert.match(document, /Core/);
     assert.match(document, /Signal/);
     assert.match(document, /Intelligence/);
-    assert.match(document, /Pricing to be confirmed/);
-    assert.match(document, /free private beta/i);
-    assert.match(document, /paid checkout is not active/i);
+    assert.match(document, /design-partner/i);
+    assert.match(document, /Stripe/i);
+    assert.match(document, /fail-closed/i);
     assert.doesNotMatch(document, /\$149|\$499|149\/month|499\/month/);
   }
+  assert.match(firstWaveMerge, /old Meridian OS \/ Source Eclipse \/ copper-cobalt directions are superseded and must not be revived/i);
+  assert.match(firstWaveMerge, /Superseded Meridian OS \/ Source Eclipse \/ copper-cobalt identity directions/i);
+  assert.doesNotMatch(firstWaveMerge, /Product identity:\s*\*\*Meridian OS|Logo:\s*\*\*Source Eclipse|Copper `#CF8B5C`/i);
+  assert.match(firstWaveMerge, /Register\. Prove\. Prepare\./);
 });
 
 test("provider transparency does not overclaim activation or contracts", () => {

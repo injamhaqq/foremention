@@ -7,13 +7,15 @@ const polish = await readFile(new URL("../app/product-polish.css", import.meta.u
 const analytics = await readFile(new URL("../components/contentsquare-analytics.tsx", import.meta.url), "utf8");
 const publicShell = await readFile(new URL("../components/public-shell.tsx", import.meta.url), "utf8");
 
-test("desktop workspace navigation keeps the long tool list in its own scroll region", () => {
+test("desktop workspace navigation keeps only the five canonical objects in the rendered sidebar", () => {
   assert.match(navigation, /className="app-sidebar__navigation"/);
   assert.match(navigation, /className="app-sidebar__footer"/);
   assert.match(navigation, /className="sidebar-nav sidebar-nav--primary"/);
-  assert.match(navigation, /className="sidebar-nav sidebar-nav--workspace"/);
-  assert.match(navigation, /className="sidebar-nav sidebar-nav--advanced"/);
-  assert.match(navigation, /<small>\{advancedNav\.length\} tools<\/small>/);
+  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
+  assert.doesNotMatch(navigation, /className="sidebar-nav sidebar-nav--workspace"/);
+  assert.doesNotMatch(navigation, /className="sidebar-nav sidebar-nav--advanced"/);
+  assert.doesNotMatch(navigation, /<details className="sidebar-advanced">/);
+  assert.match(navigation, /CONTEXTUAL_WORKSPACE_ROUTES/);
   assert.match(polish, /\.app-sidebar\s*\{\s*overflow:\s*hidden;/);
   assert.match(polish, /\.app-sidebar__navigation\s*\{[^}]*overflow-y:\s*auto;/s);
   assert.match(polish, /\.app-sidebar__footer\s*\{[^}]*flex:\s*0 0 auto;/s);

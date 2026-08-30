@@ -150,3 +150,24 @@ export function actionRemeasurementDue(action: { id: string; remeasurementDueAt?
   if (!Number.isFinite(due.getTime()) || due > now) return null;
   return { kind: "action_remeasurement_due", actionId: action.id, dueAt: due.toISOString(), baselineRunId: action.baselineRunId || null };
 }
+
+export type ActivationStageKey = "workspace_configured" | "five_questions" | "first_record" | "first_review" | "first_action" | "second_comparable_cycle" | "retained_loop";
+export type ActivationStageInput = {
+  workspaceConfigured: boolean;
+  approvedQuestions: number;
+  firstCollectionCompleted: boolean;
+  firstRecordReviewed: boolean;
+  firstActionCreated: boolean;
+  comparableReviewedCycles: number;
+};
+export type ActivationStage = { key: ActivationStageKey; title: string; detail: string; href: string; complete: boolean };
+
+export function deriveActivationStage(input: ActivationStageInput): ActivationStage {
+  if (!input.workspaceConfigured) return { key: "workspace_configured", title: "Configure the workspace", detail: "Set the company, category, and comparison context before measuring anything.", href: "/app/onboarding", complete: false };
+  if (input.approvedQuestions < 5) return { key: "five_questions", title: "Approve 5 priority buyer questions", detail: `You have ${Math.max(0, input.approvedQuestions)} of 5 priority questions approved. Keep the first baseline deliberately small.`, href: "/app/prompts", complete: false };
+  if (!input.firstCollectionCompleted) return { key: "first_record", title: "Create the first Recommendation Record", detail: "Run the approved baseline so the exact question, provider/model context, answer, and returned evidence are recorded together.", href: "/app/prompts", complete: false };
+  if (!input.firstRecordReviewed) return { key: "first_review", title: "Review the first Recommendation Record", detail: "Human review is required before returned evidence can support a safe conclusion or later comparison.", href: "/app/runs", complete: false };
+  if (!input.firstActionCreated) return { key: "first_action", title: "Turn one reviewed finding into an owned action", detail: "Choose one evidence-backed next step, assign ownership, and preserve a remeasurement boundary without claiming causality.", href: "/app/placements", complete: false };
+  if (input.comparableReviewedCycles < 2) return { key: "second_comparable_cycle", title: "Complete the second comparable cycle", detail: "Repeat the approved measurement only when question, provider, model, methodology, locale, and market remain comparable.", href: "/app/settings#measurement-schedule", complete: false };
+  return { key: "retained_loop", title: "The retention loop is established", detail: "You have a reviewed baseline, an owned action, and a second comparable cycle. Attention can now focus on material changes instead of setup.", href: "/app/analytics", complete: true };
+}
