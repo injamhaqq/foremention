@@ -1,33 +1,27 @@
 # Foremention International Readiness
 
-**Status:** International-expansion operating and architecture readiness record.
+**Status:** international expansion operating and architecture readiness record  
+**Recovered `main`:** `08d7f398ae89d0d69af4530af5ecc6c752f1a6c6` on 2026-08-30  
+**Scope:** market-entry gates, localization architecture, multilingual buyer-question provenance, regional measurement, data governance/residency, international billing, regional benchmarks, and expansion sequencing  
+**Legal boundary:** this is an engineering and operating framework, not legal, tax, accounting, privacy-law, payments-regulatory, or incorporation advice.
 
-**Initial audit base:** `main` at `df92e0eb78edda5c8c621bb1388c5b519b8da1e8` on 2026-08-30.
-
-**Branch sync base:** `main` at `08d7f398ae89d0d69af4530af5ecc6c752f1a6c6` before PR creation.
-
-**Scope:** Market-entry gates, localization architecture, multilingual buyer-question provenance, regional measurement, data governance/residency, international billing, regional benchmarks, and expansion sequencing.
-
-**Product constitution:** `CLAUDE.md` remains authoritative for locked product, evidence, security, and release boundaries.
-
-**Legal boundary:** This is an engineering and operating readiness framework, not legal, tax, accounting, payment-regulatory, or privacy-law advice.
-
-This document intentionally does **not** translate the product, name a second country, claim international demand, claim GDPR/UK GDPR/other compliance, promise regional data residency, invent tax treatment, or turn a future market hypothesis into a launch commitment.
+This document intentionally does **not** translate the product, select a second country, claim international demand, claim GDPR/UK GDPR/other regulatory compliance, promise data residency, invent tax treatment, or treat vendor availability as proof Foremention can sell or operate in a jurisdiction.
 
 ---
 
 ## 0. Truth vocabulary
 
-Use these labels throughout international planning:
+International planning must distinguish:
 
-- **VERIFIED CURRENT** — directly supported by the current repository, product, or named operating source of truth.
-- **UNKNOWN** — there is not enough verified evidence to make the claim.
-- **OPERATING POLICY** — a rule adopted to govern future decisions; not evidence that an outcome already exists.
-- **TARGET** — a desired future state or threshold; never report it as an actual.
-- **FUTURE-GATED** — architecture that may be needed later but should remain unbuilt or disabled until a named trigger is met.
-- **LEGAL REVIEW REQUIRED** — a question that must be resolved for the actual contracting entity, customer, processor configuration, and target jurisdiction before a customer-facing promise is made.
+- **VERIFIED CURRENT** — directly supported by the recovered repository state.
+- **UNKNOWN** — the repository does not contain enough evidence to make the claim.
+- **OPERATING POLICY** — a rule adopted for future decisions; not evidence that an outcome exists.
+- **EXPERIMENT** — bounded work designed to create evidence.
+- **TARGET** — a desired future threshold or state; never an actual.
+- **FUTURE-GATED** — architecture that should remain unbuilt or disabled until a stated trigger is satisfied.
+- **LEGAL REVIEW REQUIRED** — a conclusion that must be checked for the real company, customer, processor configuration, contract, and jurisdiction before a customer-facing promise is made.
 
-The default rule is simple: **unknown stays unknown**.
+**Default rule:** unknown stays unknown.
 
 ---
 
@@ -35,241 +29,285 @@ The default rule is simple: **unknown stays unknown**.
 
 ## 1. Executive conclusion
 
-**UNKNOWN — verified international customer demand is not established by the current repository.**
+**UNKNOWN — the recovered repository does not establish verified customer demand for a second country, market, or product language.**
 
-The current codebase proves meaningful technical preparation for measurement across locale and market contexts, but it does not prove that customers in any second country or language are asking Foremention to localize, contract, invoice, support, or host data regionally.
+That is not the same as saying international demand does not exist. Demand may live in conversations, CRM records, customer calls, procurement requests, or opportunities outside this repository. The repository alone cannot prove it.
 
-Therefore the correct present strategy is:
+The correct present strategy is therefore:
 
-1. preserve the English-first product focus;
-2. retain locale and market in measurement identity;
-3. collect real market and language demand evidence through customer-research and commercial systems;
-4. remove architecture traps that would make later expansion dangerous;
-5. do **not** build broad UI translation, multi-region storage, local payment rails, or market-specific legal copy until a market passes the gates in this document.
+1. preserve the existing English-first product focus;
+2. keep locale, market, and timezone provenance where the product already records it;
+3. make market/language demand measurable in customer-research and commercial systems;
+4. fail closed on cross-market and cross-language comparisons until comparison identity explicitly includes every material regional dimension;
+5. evaluate provider/model quality in a target language/market before calling it supported;
+6. do not build broad UI translation, multi-region storage, country-specific tax code, local payment rails, or benchmark products before a real market passes the gates in this document.
 
-## 2. Current evidence inventory
+## 2. Verified current-state inventory
 
-| Area | Verified state on recovered `main` | Readiness judgment |
+| Area | Recovered repository state | Readiness judgment |
 | --- | --- | --- |
-| Public/product language | `app/layout.tsx` fixes the current document language to `lang="en"`; current product copy is English-first | **VERIFIED CURRENT / intentionally focused** |
-| Design-partner demand capture | `design_partner_applications` stores email, company, role, category, buyer questions, problem, plan interest, status, and source; it does not capture country, target market, preferred language, residency requirement, tax jurisdiction, or local-payment need | **VERIFIED CURRENT / insufficient to rank international demand** |
-| Buyer-question locale | Prompt locale exists and later measurement records preserve locale | **VERIFIED CURRENT / useful foundation** |
-| Measurement market | `market` exists on recurring measurement and relevant prompt/run snapshots | **VERIFIED CURRENT / useful foundation** |
-| Recurring measurement timezone | An IANA timezone is stored and runtime-validated | **VERIFIED CURRENT / partial** |
-| Comparable measurement | Exact comparison withholds movement unless question fingerprint, provider, model, methodology, locale, and market match | **VERIFIED CURRENT / strong foundation** |
-| Provider request shape | `ProviderPrompt` has optional `locale` | **VERIFIED CURRENT / interface-ready** |
-| Provider language/market capability registry | No canonical per-provider language, country, search-geography, regional-availability, or quality registry is established | **UNKNOWN / not ready to promise** |
-| UI localization framework | No canonical translation catalog, locale router, or locale negotiation architecture is established | **FUTURE-GATED** |
-| Date display | Some UI formatting is explicitly `en-US`; measurement schedule labels render in UTC rather than the schedule timezone | **VERIFIED CURRENT / partial international readiness** |
-| Currency presentation | No canonical product-wide currency or price-book abstraction is established | **FUTURE-GATED** |
-| Billing | Self-serve billing uses configured Stripe recurring Price IDs for Core/Signal and fails closed when configuration is absent | **VERIFIED CURRENT / single-contracting-setup posture** |
-| Tax/VAT/GST | Private-beta policy requires real tax/entity/order-form facts before paid activation; no broad international tax engine is claimed | **UNKNOWN / LEGAL REVIEW REQUIRED** |
-| Processor transparency | `/subprocessors` names operational providers while explicitly refusing to claim unverified DPAs, transfer mechanisms, data locations, certifications, or contractual terms | **VERIFIED CURRENT / correct truth boundary** |
-| Regional storage/residency | No customer-selectable regional residency commitment or organization `home_region` contract is established | **FUTURE-GATED** |
-| International benchmarks | No verified privacy-safe cross-customer regional benchmark product is established | **FUTURE-GATED** |
+| Product language | Root HTML is `lang="en"`; current product and public experience are English-first | **VERIFIED CURRENT / focused** |
+| Design-partner demand capture | Intake stores company, role, category, buyer questions, problem, plan interest, status, and source; it does not capture target country/market, preferred language, billing currency need, residency requirement, or local-payment blocker | **VERIFIED CURRENT / insufficient to rank international demand** |
+| Measurement locale | Recurring measurement input supports `locale`; provider prompt contracts can carry optional `locale` | **VERIFIED CURRENT / useful provenance seam** |
+| Measurement market | Recurring measurement input supports `market`; scheduled run prompt selections persist locale/market values | **VERIFIED CURRENT / useful provenance seam** |
+| Timezone | Recurring measurement stores and validates an IANA timezone | **VERIFIED CURRENT / partial** |
+| Recurrence semantics | `nextScheduleAt` validates a timezone but advances weekly/biweekly/monthly recurrence using UTC date arithmetic | **VERIFIED CURRENT / do not promise preserved local wall-clock semantics across DST yet** |
+| Exact comparison | Exact slot identity currently uses prompt key, normalized persisted question text, provider, and exact model; callers separately enforce review/methodology boundaries | **VERIFIED CURRENT / strong baseline, but not yet region-safe** |
+| Locale/market comparison gate | Locale and market are **not currently part of the exact comparator identity** | **VERIFIED CURRENT GAP / must be hardened before regional or multilingual trend claims** |
+| Provider regional/language certification | No canonical evidence-backed registry proves provider/model quality by language/market/geography | **UNKNOWN / not ready to promise** |
+| UI localization framework | No canonical translation catalog/locale-routing architecture is required by current demand | **FUTURE-GATED** |
+| Multi-currency price book | Current Stripe self-serve mapping is package → configured recurring Price ID for Core/Signal | **VERIFIED CURRENT / no general multi-currency architecture claimed** |
+| International tax | No broad VAT/GST/tax engine is established by this audit | **UNKNOWN / LEGAL + TAX REVIEW REQUIRED** |
+| Customer-selectable residency | No verified customer-selectable regional storage/residency commitment is established by this audit | **FUTURE-GATED** |
+| Regional benchmarks | No defensible cross-customer regional benchmark product is established by this audit | **FUTURE-GATED** |
 
-### Evidence sources reviewed
+### Evidence reviewed
+
+Primary implementation seams reviewed for this pass:
 
 - `app/layout.tsx`
 - `supabase/migrations/20260829000200_design_partner_applications.sql`
-- `supabase/migrations/20260829000100_retention_loop_v1.sql`
 - `lib/measurement-schedules.ts`
 - `lib/jobs/measurement-schedule-dispatcher.ts`
-- `lib/retention-loop.ts`
 - `lib/providers/types.ts`
-- `lib/providers/index.ts`
-- `components/measurement-schedule-control.tsx`
+- `lib/intelligence-comparability.ts`
+- `lib/run-pair-comparability.ts`
+- `lib/safe-intelligence.ts`
+- `tests/exact-question-comparability.test.mjs`
+- `lib/billing.ts`
 - `lib/stripe-billing.ts`
-- `app/privacy/page.tsx`
-- `app/subprocessors/page.tsx`
-- `docs/PRIVATE-BETA-OPERATING-POLICY.md`
-- `README.md`
+- relevant Supabase migrations and existing privacy/trust documentation
 
-## 3. Important current limitations
+## 3. Critical truth gap: provenance exists, comparison protection is incomplete
 
-### 3.1 International-demand observability is incomplete
+Foremention already has a useful foundation: locale and market can be carried by recurring measurement and persisted into scheduled run prompt selections.
 
-**VERIFIED CURRENT:** current design-partner intake cannot answer:
+However, the current exact question comparator identifies a slot using:
 
-- which countries prospects operate in;
-- which markets they want measured;
-- which languages their buyer questions use;
-- whether they need translated UI or only multilingual measurement;
-- whether local invoicing, tax, or payment requirements are blockers;
-- whether data residency is a contractual blocker;
-- whether support hours or local-language support are required.
+```text
+prompt_key
+normalized prompt_text
+provider
+model
+```
 
-**OPERATING POLICY:** do not infer those attributes from email domain, IP address, company website, names, browser locale, or another weak proxy. Ask explicitly when the customer-research or commercial workflow needs the information.
+The comparison caller separately requires reviewed terminal runs and matching methodology. It does **not** currently include locale or market in the final exact slot identity.
 
-### 3.2 Timezone is stored, but wall-clock semantics are incomplete
+Therefore:
 
-`lib/measurement-schedules.ts` validates the supplied IANA timezone but advances weekly, biweekly, and monthly recurrences using UTC date arithmetic. `components/measurement-schedule-control.tsx` formats displayed schedule dates with hard-coded `en-US` and `UTC`.
+**OPERATING POLICY:** until locale/market/geography are incorporated into the canonical comparison identity and covered by tests, Foremention must not claim that a change in market or language is automatically blocked by the existing comparator.
 
-Foremention therefore should **not** claim that a recurring schedule preserves a specified local wall-clock time across daylight-saving transitions. Fix this only when local-time execution semantics are explicitly required and testable.
+Before Market #2 or any multilingual longitudinal report, upgrade the comparison contract so any material change in language, market, country targeting, provider geography, retrieval mode, or equivalent environment dimension causes a clear `not comparable` result.
 
-### 3.3 Locale metadata is not proven multilingual quality
+## 4. International-demand observability gap
 
-`ProviderPrompt.locale` and measurement `locale`/`market` fields are provenance. They do not prove that:
+The current design-partner intake cannot answer:
 
-- every configured provider supports that language equally;
-- search or retrieval uses the intended country;
-- returned sources are language-appropriate;
-- the selected model is stable or available in that jurisdiction;
-- extraction performs equally across scripts and languages;
-- regional provider restrictions are equivalent;
-- a translated question is semantically equivalent to its original.
+- which markets prospects need measured;
+- which buyer languages matter;
+- whether translated UI is required or only multilingual measurement;
+- whether local-language support is required;
+- whether billing currency/payment method is a blocker;
+- whether invoice/tax treatment is a blocker;
+- whether regional storage/residency is preferred or contractual;
+- whether a processor location is disallowed;
+- whether timezone/SLA coverage changes delivery cost.
 
-Those claims require evaluation evidence.
+**OPERATING POLICY:** do not infer these facts from IP, browser locale, email domain, personal name, or company-domain heuristics. Capture them explicitly when they matter to a real opportunity.
 
 ---
 
 # B. Market Expansion Framework
 
-## 4. Market-entry rule
+## 5. What counts as a market
 
-**OPERATING POLICY:** Foremention enters a new market because verified customer value justifies the complexity, not because a country is large, fashionable, nearby, English-speaking, or easy to add to a dropdown.
+For Foremention, a market is not automatically one country.
 
-For Foremention, a market may be a combination of:
+A practical market definition may combine:
 
-`commercial geography × buyer language × provider environment × contracting/tax environment × residency/support expectations`
+```text
+commercial geography
+× buyer language
+× provider/model environment
+× retrieval/search geography
+× contracting/tax requirements
+× residency/processor requirements
+× support expectations
+```
 
-A market is therefore not automatically identical to a country.
+Two countries may share one operating configuration. Two customers in the same country may require materially different privacy, procurement, language, or residency treatment.
 
-## 5. 100-point market scorecard
+## 6. Market-entry principle
 
-Score each candidate from 0–5 on every dimension, attach dated evidence, and convert the score to weighted points. A score without a source is **UNKNOWN**, not zero and not five.
+**OPERATING POLICY:** enter a market because verified customer value justifies the complexity, not because a country is large, fashionable, English-speaking, nearby, or easy to add to a dropdown.
 
-| Criterion | Weight | What counts as evidence |
+No market becomes "supported" from one vendor capability page, one successful API request, one translated screen, or one prospect comment.
+
+## 7. 100-point market scorecard
+
+Score each candidate 0–5 per dimension and attach dated evidence. Convert each score into weighted points. An unsupported score is **UNKNOWN**, not an optimistic number.
+
+| Criterion | Weight | Evidence that can support the score |
 | --- | ---: | --- |
-| Customer demand | 25 | Qualified discovery, accepted pilot request, existing-customer expansion request, lost-deal reason, signed or contracted demand |
-| Revenue potential | 15 | Verified budget conversations, accepted commercial terms, reachable-account evidence, expansion value; not TAM theater alone |
-| Provider coverage | 12 | Real provider/model availability, retrieval/search behavior, country/language support, stable configuration, cost and rate-limit viability |
-| Language/evaluation quality | 10 | Golden-set results, extraction accuracy, citation/evidence quality, semantic consistency, reviewer confidence |
-| Legal/privacy complexity | 10 | Counsel-reviewed contracting, privacy, transfer, and tax requirements for the actual company setup |
-| Support burden | 7 | Timezone coverage, language need, onboarding burden, SLA/procurement expectations, customer-success complexity |
-| Competitive landscape | 5 | Existing alternatives, differentiation, switching friction, local incumbents, adjacent categories |
-| Payment/billing | 6 | Payment availability, invoicing expectations, billing currency, tax handling, payment-method blockers |
-| Data residency/processor constraints | 7 | Storage/processing-region requirements, cross-border restrictions, procurement requirements, processor availability |
-| Localization cost | 3 | UI/content/legal/support translation, QA, RTL/text expansion, local documentation, maintenance burden |
+| Customer demand | 25 | contracted requirement, accepted pilot, existing-customer expansion request, qualified opportunity blocker, repeated ICP-fit discovery signal |
+| Revenue potential | 15 | verified budget, accepted commercial range, reachable account set, expansion value, credible ACV/margin—not top-down TAM alone |
+| Provider coverage | 12 | provider/model availability, retrieval/search behavior, geo controls, stability, rate limits, cost, observed citations |
+| Language quality | 10 | golden-set results, evidence accuracy, extraction accuracy, reviewer agreement, failure/refusal behavior |
+| Legal/privacy complexity | 10 | counsel-reviewed requirements for the real contracting entity/customer/data flow |
+| Support burden | 7 | timezone overlap, language requirement, implementation load, SLA/escalation expectations |
+| Competitive landscape | 5 | local alternatives, switching friction, category maturity, Foremention differentiation |
+| Payment/billing | 6 | invoicing path, currency, payment method, settlement/refund constraints, provider support |
+| Data residency/processors | 7 | storage/processing restrictions, processor limits, regional availability, procurement requirements |
+| Localization cost | 3 | product/content/legal/support translation, QA, RTL/text expansion, maintenance burden |
 | **Total** | **100** | |
 
 ### Score interpretation
 
 These bands are **OPERATING POLICY**, not forecasts:
 
-- **80–100:** candidate may proceed to formal launch-readiness review if all hard gates pass.
-- **65–79:** run targeted discovery and evaluation; do not market the market as broadly supported.
-- **Below 65:** remain opportunistic/founder-served or defer.
+- **80–100:** eligible for formal launch-readiness review only if every hard gate passes.
+- **65–79:** continue focused discovery/evaluation or pilot-only support; do not market broad support.
+- **Below 65:** defer or serve only as an explicit exception if strategically justified.
 - **UNKNOWN-heavy:** gather evidence; do not manufacture precision.
 
-## 6. Hard gates that override the score
+## 8. Hard gates that override the score
 
-A market does not launch, even with a high aggregate score, when a required hard gate is unresolved.
+### 8.1 Demand gate
 
-### Demand gate
+A candidate must have meaningful real demand, for example:
 
-At least one evidence-backed demand condition chosen by leadership must be true, for example:
+- a contracted/contract-ready anchor account requiring it; or
+- multiple qualified ICP-fit accounts independently requesting the same capability; or
+- a retained customer expansion requirement with credible commercial value.
 
-- a contracted or contract-ready anchor customer has a real requirement for the market; or
-- multiple qualified accounts independently request the same capability and the commercial owner judges the opportunity repeatable.
+Do not hard-code one universal logo count. One enterprise anchor can justify work that would require many low-value requests in another segment.
 
-Do not hard-code a universal logo count into application code. Enterprise expansion can be justified by one valuable anchor; lower-value motions may require many independent signals.
+### 8.2 Product-quality gate
 
-### Product-quality gate
+Before launch:
 
-- a representative buyer-question evaluation set exists;
-- the selected provider/model can execute it reliably;
-- citation and evidence extraction have been tested in the target language and market;
-- qualified human reviewers can assess output quality;
-- refusal, error, and partial-result behavior are understood;
-- cross-language movement is not marketed as directly comparable without a validated methodology.
+- a representative market/language buyer-question evaluation set exists;
+- selected provider/model configurations execute reliably;
+- citations/retrieval/evidence are assessed for the target environment;
+- entity/recommendation extraction is evaluated;
+- human reviewers can judge output quality in the target language;
+- failure, refusal, timeout, unsupported, and partial-result behavior is understood;
+- comparison rules fail closed for non-equivalent environments.
 
-### Commercial gate
+### 8.3 Commercial gate
 
-- the contracting entity is known;
-- supported billing currency and invoice treatment are known;
-- tax/VAT/GST handling has been reviewed for the actual sale;
-- payment collection is operationally verified;
-- refund, cancellation, and order-form terms are appropriate.
+Before paid launch:
+
+- contracting entity is known;
+- quote/order-form path is known;
+- billing currency is intentionally supported;
+- invoice requirements are known;
+- payment collection path is operationally verified;
+- refund/cancellation treatment is defined;
+- tax/VAT/GST handling is reviewed for the actual transaction.
+
+**LEGAL/TAX REVIEW REQUIRED.**
+
+### 8.4 Privacy/data-governance gate
+
+Before promising the market:
+
+- actual customer-data storage locations are documented;
+- actual processor/subprocessor paths are documented;
+- material processing locations are understood where required;
+- cross-border restrictions are reviewed;
+- any DPA/transfer/residency commitment is reviewed and technically enforceable;
+- export/delete/retention obligations remain achievable.
 
 **LEGAL REVIEW REQUIRED.**
 
-### Privacy/data-governance gate
+### 8.5 Support gate
 
-- actual storage and processing locations are documented from real configuration/provider evidence;
-- subprocessors for that customer are known;
-- required DPA/transfer terms are reviewed;
-- any residency promise is technically enforceable and contractually accurate;
-- deletion and export obligations remain satisfiable.
+Before launch:
 
-**LEGAL REVIEW REQUIRED.**
-
-### Support gate
-
-- onboarding/customer-success ownership is explicit;
+- onboarding owner exists;
+- support language expectation is explicit;
 - required working-hour overlap is acceptable;
-- language expectations are explicit;
-- escalation is documented;
-- support cost does not silently destroy contribution margin.
+- incident/escalation path is documented;
+- implementation/support cost does not silently destroy gross margin.
 
 ---
 
 # C. Demand Evidence System
 
-## 7. What to capture before translating anything
+## 9. Future demand fields
 
-**FUTURE-GATED instrumentation, not a mandate to lengthen the public form immediately.**
+Do not overload the public form now. Add these to the customer-research/commercial source of truth only when the research workflow needs them:
 
-The customer-research/commercial source of truth should eventually be able to record:
+```text
+operating_country
+requested_measurement_markets[]
+buyer_question_languages[]
+ui_language_requirement        # none | nice_to_have | required
+support_language_requirement
+billing_currency_requirement
+local_payment_requirement
+invoice_or_tax_blocker
+data_residency_requirement     # none | preferred | contractual | unknown
+required_storage_region
+processor_constraints[]
+support_timezone_requirement
+market_blocker_type
+evidence_source
+evidence_reference
+observed_at
+owner
+```
 
-- `operating_country` — where the account operates, when relevant;
-- `target_measurement_markets[]` — markets the customer wants measured;
-- `buyer_question_languages[]` — languages used by buyers;
-- `ui_language_requirement` — none / nice-to-have / required;
-- `support_language_requirement`;
-- `billing_currency_requirement`;
-- `invoice_tax_requirement` or structured blocker notes;
-- `data_residency_requirement` — none / preferred / contractual / unknown;
-- `required_storage_region` when contractually specified;
-- `required_processor_constraints`;
-- `market_blocker_type` — product quality / provider / billing / legal / privacy / support / localization / other;
-- `evidence_source` — interview / opportunity / customer request / lost deal / renewal / procurement / support;
-- `observed_at` and owner.
+These are account/opportunity facts, not browser telemetry.
 
-**OPERATING POLICY:** these are customer/company demand fields, not attributes to infer silently from a browser.
+## 10. Demand-signal hierarchy
 
-## 8. Demand signal hierarchy
+Strongest to weakest:
 
-Rank signals by evidence strength:
+1. **Contracted requirement** — signed or approved commercial scope.
+2. **Accepted paid pilot requirement** — budget/terms committed contingent on capability.
+3. **Retained-customer expansion request** — active customer asks for new market/language.
+4. **Qualified opportunity blocker** — real deal cannot progress without capability.
+5. **Repeated ICP-fit discovery signal** — independent prospects report the same need.
+6. **Unqualified inbound request** — directional only.
+7. **Competitor presence/search volume/social chatter** — context, not customer demand.
 
-1. **Contracted requirement** — signed customer requirement or approved order-form scope.
-2. **Paid/accepted pilot requirement** — budget or terms are committed contingent on the capability.
-3. **Existing-customer expansion request** — a retained customer asks for the market/language.
-4. **Qualified-opportunity blocker** — a real opportunity cannot advance without the capability.
-5. **Repeated discovery request** — multiple ICP-fit prospects independently report the same need.
-6. **Unqualified inbound interest** — directional only.
-7. **Search volume, social chatter, or competitor presence** — contextual only, not customer demand by itself.
+Market entry should be led by levels 1–5.
 
-Market entry should be led by levels 1–5, not level 7.
+## 11. Required evidence record
+
+Every market-candidate decision should retain:
+
+- source of demand;
+- date observed;
+- opportunity/customer owner;
+- requested market and buyer language;
+- capability required;
+- commercial value or `UNKNOWN`;
+- blocker severity;
+- proposed experiment;
+- result;
+- decision and reviewer.
+
+This prevents "we heard Europe wants this" from becoming company fact.
 
 ---
 
 # D. Localization Architecture
 
-## 9. Current posture
+## 12. Internationalization is not localization
 
-**VERIFIED CURRENT:** Foremention is English-first. Keep it that way until demand says otherwise.
+- **Internationalization readiness** means code/data can represent multiple locales correctly without corrupting product truth.
+- **Localization** means adapting product UI, content, support, legal text, emails, and commercial experience for a real target market.
 
-Internationalization readiness and localization are different:
+Foremention should improve readiness only where inexpensive and truth-preserving; localization remains demand-gated.
 
-- **Internationalization readiness:** structure code and data so future locales do not corrupt product or measurement truth.
-- **Localization:** translate/adapt UI, content, support, legal copy, emails, and commercial experience for a specific market.
+## 13. Separate the contexts
 
-Improve the first gradually. Trigger the second only for an evidence-backed market.
+Do not compress every global concern into one `locale` field.
 
-## 10. Future locale context
-
-When a second UI locale becomes real, use one explicit request/user context instead of scattered browser defaults:
+Future context should distinguish:
 
 ```text
 ui_locale
@@ -277,85 +315,118 @@ content_language
 timezone
 measurement_market
 measurement_language
-currency_display
-numbering_system
+provider_geography
+billing_currency
+numbering_system          # only if needed
 text_direction
 ```
 
-Keep these concepts separate. A German-speaking user may measure the US market, report internally in EUR, and work in `Europe/Berlin`. A single `locale` field cannot safely represent all of that.
+Example: a German-speaking operator may use an English UI, work in `Europe/Berlin`, measure US English buyer questions, and report company finance in EUR. Those are independent dimensions.
 
-## 11. Date and time rules
+## 14. Locale and language standards
+
+When the second locale is justified:
+
+- use BCP 47 language tags for language/locale where appropriate;
+- keep user-interface locale separate from measurement language;
+- define an explicit fallback chain;
+- never silently convert an unsupported measurement language to English;
+- persist source language for translated buyer questions;
+- make locale fallback visible to QA/diagnostics.
+
+## 15. Date and time rules
 
 - Store durable timestamps as UTC instants.
-- Store schedule timezone separately using an IANA identifier.
-- Render customer-facing dates/times through a centralized formatter using the relevant locale and timezone.
-- Do not render customer-visible schedule dates in hard-coded UTC unless the UI explicitly labels them as UTC.
-- When recurrence means a local wall-clock time, compute it in that timezone and test DST transitions.
-- Keep observation time distinct from user display timezone.
+- Store schedule timezone separately as an IANA timezone.
+- Render customer-visible dates/times through one centralized formatter.
+- Use the viewer/workspace locale for display only; do not let display formatting change stored truth.
+- Label UTC explicitly when a view is intentionally UTC.
+- If a schedule promises "10:00 local time", compute recurrence in the named timezone and test daylight-saving transitions.
+- Do not claim preserved local wall-clock recurrence from the current UTC date-arithmetic implementation.
 
-## 12. Number and currency formatting
+## 16. Number formatting
 
-- Store numeric values as numeric values, never localized strings.
-- Render separators and percentages through `Intl.NumberFormat` or a centralized equivalent.
-- Store monetary amount together with ISO 4217 currency code.
-- Never infer billing currency from browser locale or IP.
-- Preserve the original billed/contracted amount and currency.
-- If financial reporting converts currencies, retain the FX source, effective date, and conversion method separately.
+- Store numeric values numerically, never as locale-formatted strings.
+- Render decimal/grouping/percentage formats through `Intl.NumberFormat` or a centralized equivalent.
+- Keep measurement math independent from display locale.
+- Do not parse localized display strings back into authoritative measurement values.
 
-## 13. Text expansion
+## 17. Currency formatting
 
-Before adding a second UI language:
+- Store monetary amount with ISO 4217 currency code.
+- Separate billing currency from UI locale.
+- Never infer billing currency from IP or browser locale.
+- Keep original contracted/invoiced currency immutable.
+- If management reporting converts currencies, retain original amount/currency plus separately sourced FX rate, source, and effective date.
 
-- remove fixed-width controls that assume short English labels;
-- let buttons, navigation, and tables tolerate roughly 30–50% expansion where practical;
-- avoid embedding translatable copy in raster images;
-- preserve responsive behavior when labels wrap;
-- test long organization, category, competitor, and buyer-question names separately from translated UI expansion.
+## 18. Text expansion
 
-This is a design stress test, not a commitment to a language.
+Before a translated UI ships:
 
-## 14. RTL
+- remove critical fixed-width assumptions;
+- allow navigation, buttons, tabs, and tables to wrap where appropriate;
+- stress-test roughly 30–50% text expansion where practical;
+- avoid copy embedded in images;
+- test long organization/category/question names separately from translation expansion;
+- validate mobile/reflow layouts.
 
-**FUTURE-GATED:** do not build or claim RTL support until a validated market requires it.
+The percentage is a layout stress-test, not a claim about any specific language.
+
+## 19. RTL
+
+**FUTURE-GATED:** do not build or advertise RTL before a validated market requires it.
 
 When required:
 
 - derive `dir` from locale context;
-- prefer logical CSS properties such as `margin-inline`, `padding-inline`, and `inset-inline`;
-- mirror directional icons only when semantically correct;
-- test charts, tables, source relationships, and flows deliberately rather than blindly flipping layouts;
-- include target-script, keyboard, screen-reader, and responsive QA.
+- prefer logical CSS properties;
+- mirror icons only when semantic direction requires it;
+- deliberately test diagrams, timelines, tables, charts, breadcrumbs, and source relationships;
+- test target-script font fallback, keyboard use, focus order, and accessibility;
+- use real target-language QA.
 
-## 15. Translation architecture when the gate is met
+## 20. Translation architecture when justified
 
-Use stable message keys/catalogs rather than translating source files ad hoc.
+Use message catalogs, not ad hoc copied components.
 
 Required properties:
 
-- source locale and catalog version;
 - stable message keys;
-- parameterized and pluralized messages;
-- no concatenated English fragments that translators cannot reorder;
-- visible fallback behavior for QA;
-- translation provenance and review ownership;
-- legal/contract copy isolated from ordinary product-copy translation;
-- no machine-translated contractual commitment published without appropriate review.
+- source locale and catalog version;
+- parameter/plural handling;
+- no concatenated English fragments;
+- explicit fallback behavior;
+- translation provenance/owner outside runtime bundles where appropriate;
+- product copy separated from legal/contract copy;
+- system email and export localization treated as product surfaces, not afterthoughts;
+- machine-assisted translations reviewed before production where meaning matters.
 
-AI may assist draft translation. It does not make production localization automatically correct.
+Do not machine-translate legal commitments and publish them as authoritative without appropriate review.
 
 ---
 
 # E. Multilingual Buyer Questions
 
-## 16. Principle
+## 21. Principle
 
-A buyer question is measurement input, not merely UI text. Translation can alter intent, category terminology, geography, product terminology, and therefore model behavior.
+A buyer question is measurement input, not decorative copy.
 
-Preserve the original question and every derived localized version. Do not overwrite one canonical string with its translation.
+Translation can change:
 
-## 17. Future question-language provenance
+- commercial intent;
+- local category terminology;
+- product references;
+- geography;
+- ambiguity;
+- model behavior;
+- retrieval behavior;
+- cited-source distribution.
 
-The current locale/run snapshot model is a useful base. When multilingual demand is validated, extend the domain with a versioned concept similar to:
+Never overwrite an original buyer question with a translated string.
+
+## 22. Future multilingual question model
+
+When demand requires it, introduce a versioned relationship such as:
 
 ```text
 question_family_id
@@ -365,148 +436,169 @@ original_language
 localized_text
 localized_language
 measurement_market
-translation_method
+translation_method          # original | customer | human | machine_assisted
 translation_provider
 translation_model
 translation_prompt_version
 translated_at
 translated_by
 approved_by
-semantic_equivalence
+semantic_equivalence        # unreviewed | equivalent | materially_changed | rejected
 review_notes
 ```
 
-Suggested `translation_method` values:
+Not every field needs to be built immediately. The non-negotiable properties are:
 
-- `original`
-- `customer_supplied`
-- `human`
-- `machine_assisted`
+1. original text remains recoverable;
+2. localized text is a distinct version;
+3. translation method/provenance is knowable;
+4. semantic-equivalence status is explicit;
+5. measurement records identify which exact version was executed.
 
-Suggested `semantic_equivalence` states:
+## 23. Translation provenance
 
-- `unreviewed`
-- `equivalent`
-- `materially_changed`
-- `rejected`
+For a translated question, retain:
 
-Do not add every field before demand exists. The non-negotiable future property is provenance: the original input must remain recoverable and a localized derivative must be distinguishable from it.
+- source language;
+- target language;
+- source version/fingerprint;
+- translated text/version/fingerprint;
+- translator/method;
+- machine model/prompt version if applicable;
+- approval status;
+- review notes;
+- effective time.
 
-## 18. Semantic comparability rules
+Changing a translation creates a new measurement input version. Do not rewrite historical runs.
 
-Default to **not comparable** when any material measurement identity changes, including:
+## 24. Semantic comparability
+
+Default to **not comparable** when a material measurement identity changes, including:
 
 - question text/version/fingerprint;
 - buyer-question language;
-- measurement market/geographic targeting;
+- market/geographic targeting;
 - provider;
 - exact model/version when material;
 - methodology;
 - retrieval/search configuration;
+- provider geography;
 - locale when it changes provider behavior;
 - other environment fields identified by evaluation.
 
-The existing exact-comparison rule already protects question fingerprint, provider, model, methodology, locale, and market. Future multilingual work should strengthen that contract, not bypass it.
+### Current implementation boundary
 
-Even when a reviewer marks two translations semantically equivalent, do **not** automatically place different-language observations on one longitudinal trend line. Cross-language equivalence is a separate analytical claim that requires its own evaluation method.
+Current exact comparison already protects persisted question text, provider, and exact model, with review/methodology gates enforced by callers. It does **not yet** prove equality of locale or market.
 
-## 19. Cross-language research reporting
+Therefore the Market #2 readiness backlog must extend the canonical comparison identity to include the regional/language dimensions that can affect output, with explicit reason codes for withheld comparisons.
 
-Cross-language observations may be compared descriptively only when the report identifies:
+### Cross-language equivalence
 
-- language;
-- market;
-- provider and model;
-- methodology;
-- question set;
-- observation window;
-- evidence/review status;
-- relevant limitations.
+Even if a bilingual reviewer marks two translations semantically equivalent, do not automatically place different-language observations on one longitudinal trend line.
 
-Do not label such analysis as exact before/after movement unless the methodology actually supports that interpretation.
+"Semantically equivalent questions" and "measurement environments that produce directly comparable observations" are different claims.
 
-## 20. Multilingual evaluation set
+## 25. Language-specific evidence
 
-Before a language becomes supported, create a privacy-safe golden set covering:
+A multilingual observation should preserve enough context to answer:
+
+- what language was asked;
+- what market/geography was intended;
+- what provider/model ran;
+- what retrieval/search mode was used;
+- what language the answer used;
+- what language/market the cited evidence came from;
+- whether evidence was retrievable and human-reviewable;
+- what limitations were observed.
+
+Do not discard non-target-language sources automatically; classify them. A useful answer in one market may legitimately cite global English documentation. The report should make that visible rather than pretending all evidence is local.
+
+## 26. Multilingual evaluation set
+
+Before declaring a buyer-question language supported, build a privacy-safe golden set covering:
 
 - category discovery;
-- direct comparisons;
-- alternatives/replacements;
+- direct comparison;
+- alternatives/replacement;
 - feature/use-case questions;
 - pricing/value questions where relevant;
-- ambiguous questions;
+- ambiguous wording;
 - branded and unbranded questions;
-- locally natural terminology, not literal translation alone;
-- diacritics, script, and punctuation edge cases;
-- mixed-language/code-switched cases only when real customer use requires them.
+- locally natural terminology, not literal translation only;
+- diacritics/script/punctuation edge cases;
+- code-switching only where real customer behavior requires it.
 
-Evaluate at minimum:
+Measure by **language × market × provider × model**:
 
-- provider request success;
+- request success;
 - output-language adherence;
 - recommendation/entity extraction accuracy;
-- competitor-name normalization;
-- citation URL extraction;
+- competitor normalization;
+- citation extraction;
 - source-language appropriateness;
 - evidence retrievability;
-- evidence-state classification;
+- evidence-state accuracy;
 - recommendation/action quality;
 - reviewer agreement;
+- failure/refusal behavior;
 - false-comparability risk.
 
-Quality is measured by language × market × provider × model. "Supports language X" on a vendor page is not Foremention quality evidence.
+"The model knows French" is not an evaluation result.
 
 ---
 
 # F. Regional Measurement
 
-## 21. Canonical measurement context
+## 27. Canonical measurement context
 
-When geography or language can affect output, a Recommendation Record/observation should be interpretable from an immutable context tuple such as:
+When geography/language can affect output, a Recommendation Record/observation should be interpretable from a context tuple such as:
 
 ```text
 organization
-workspace_or_brand
-question_version_or_fingerprint
+workspace/brand
+question_version/fingerprint
 question_language
 locale
 market
-country_or_region_targeting
+country/region targeting        # when real
 provider
-provider_mode_or_retrieval_mode
-model_and_version
-methodology_version
-relevant_search_or_tool_configuration
-observation_timestamp
+provider mode/retrieval mode
+provider geography              # when controlled/observable
+model + version/snapshot
+methodology version
+relevant tool/search configuration
+observation timestamp
+review state
 ```
 
-The current product already preserves several of these dimensions. Add missing dimensions only when provider/evaluation evidence shows that they materially affect the observation.
+Do not add dimensions merely for architectural elegance. Add them when provider behavior, evaluation, customer requirements, or comparison truth makes them material.
 
-## 22. Market versus country versus region
+## 28. Market vs country vs region
 
-Do not overload one free-text `market` indefinitely.
+Do not overload one free-text `market` forever.
 
-When real multi-market use appears, distinguish:
+When real multi-market demand appears, separate:
 
-- `market_key` — a Foremention/customer business concept;
-- `country_code` — ISO 3166-1 alpha-2 when a country is explicitly relevant;
-- `region_code` — only when subnational targeting matters and a stable scheme is selected;
+- `market_key` — Foremention/customer business concept;
+- `country_code` — ISO 3166-1 alpha-2 when country is relevant;
+- `region_code` — only when subnational targeting matters and a stable scheme is chosen;
 - `language_tag` — BCP 47;
-- `provider_geo` — the actual provider/search geographic parameter or observed environment, when supported.
+- `provider_geo` — actual provider/search geography parameter or observed environment when supported.
 
-**FUTURE-GATED:** do not migrate historical `market = global` rows merely to make the schema look international. Historical defaults must remain truthfully interpretable.
+Do not rewrite historical `global` values to look more international. Historical provenance must remain interpretable.
 
-## 23. Provider availability and quality registry
+## 29. Provider capability registry
 
-Before Market #2 launches, create a versioned capability registry only for providers, models, languages, and markets actually under evaluation.
+Before Market #2 launches, create a versioned capability registry only for provider/model/market combinations under real evaluation.
 
 Suggested fields:
 
 ```text
 provider
 model
-market_or_country
-language
+market_key
+country_code
+language_tag
 api_available
 search_or_retrieval_available
 geo_targeting_mode
@@ -515,8 +607,9 @@ citation_behavior
 evaluated_at
 evaluation_set_version
 quality_status
-cost_and_rate_limit_notes
-evidence_links
+cost_notes
+rate_limit_notes
+evidence_reference
 ```
 
 Suggested evidence states:
@@ -528,53 +621,81 @@ Suggested evidence states:
 - `degraded`
 - `unsupported`
 
-Never map "the API call succeeded once" to `supported`.
+A single successful call cannot produce `supported`.
 
-## 24. Comparison boundary
+## 30. Regional comparison contract
 
-**OPERATING POLICY:** comparison identity is fail-closed.
+**OPERATING POLICY:** regional comparability is fail-closed.
 
-If Foremention cannot prove that two regional measurements are genuinely comparable, show separate observations and explain the mismatch instead of manufacturing a delta.
+Before regional/multilingual trend reporting is enabled, the exact comparison layer must reject a pair when any required identity field differs or is missing.
 
-Machine-readable withholding reasons should eventually include:
+Minimum reason codes should include:
 
-- `language_changed`
-- `market_changed`
-- `provider_changed`
-- `model_changed`
-- `retrieval_geography_changed`
-- `methodology_changed`
-- `question_version_changed`
-- `review_missing`
-- `provider_capability_unknown`
-- `provider_capability_degraded`
+```text
+question_changed
+language_changed
+market_changed
+provider_changed
+model_changed
+methodology_changed
+retrieval_mode_changed
+provider_geo_changed
+review_missing
+regional_provenance_missing
+provider_capability_unknown
+```
+
+Individual observations may remain valid evidence even when a cross-run delta is withheld.
+
+## 31. Required implementation hardening before regional trend claims
+
+**FUTURE-GATED / Market #2 hard gate:** extend the canonical exact-comparison path, not a new parallel comparator.
+
+Required work:
+
+1. define canonical language/market fields used for comparison;
+2. persist them on the immutable run/answer measurement snapshot used by customer-facing comparisons;
+3. include them in exact slot identity;
+4. include provider geography/retrieval mode when materially controllable;
+5. make missing provenance fail closed;
+6. add unit tests for language change, market change, missing regional provenance, and unchanged regional identity;
+7. ensure every customer-facing comparison surface uses the same final gate;
+8. update UI copy to explain why a comparison was withheld.
+
+Do this when a real market candidate exists, so the schema reflects actual provider behavior rather than guessed abstractions.
 
 ---
 
-# G. Global Data Governance + Residency
+# G. Global Data Governance + Data Residency
 
-## 25. Current truth boundary
+## 32. Separate four concepts
 
-**VERIFIED CURRENT:** the public subprocessor page correctly treats its list as operational transparency, not proof that a DPA, transfer mechanism, data location, certification, or enterprise contract exists for every customer.
+Never use "data residency" as an undifferentiated sales phrase.
 
-**VERIFIED CURRENT:** no canonical customer-selectable regional residency promise exists.
+Track separately:
 
-Preserve both boundaries.
+1. **Storage location** — where durable customer data/backups are stored.
+2. **Processing location** — where application/provider processing may occur.
+3. **Edge/transit location** — where requests may traverse or be served.
+4. **Contractual residency commitment** — exactly what Foremention promises to a customer.
 
-## 26. Separate four concepts
+A regional database does not prove every processor stays in-region. An edge network does not by itself establish the legal effect of a cross-border transfer. Actual architecture and reviewed contractual requirements govern the answer.
 
-Never use "data residency" as vague sales language. Track separately:
+## 33. Current claim boundary
 
-1. **Storage location** — where durable customer records and backups are stored.
-2. **Processing location** — where application/provider processing occurs.
-3. **Edge/transit location** — where requests may transit or be served.
-4. **Contractual residency commitment** — the exact locations and conditions Foremention promises to a customer.
+**OPERATING POLICY:** until verified otherwise for a real customer configuration:
 
-A regional database does not automatically make every processor regional. An edge network does not by itself answer a contractual residency question. Real architecture plus contract language determines the truth.
+- do not claim customer-selectable residency;
+- do not claim data stays within a named country/region;
+- do not claim a transfer mechanism exists solely because a vendor offers one;
+- do not claim GDPR, UK GDPR, or other regulatory compliance from implementation artifacts alone;
+- do not translate privacy/legal language into a guarantee not reviewed for the relevant jurisdiction.
 
-## 27. Future customer data-governance profile
+A migration or internal feature named after a regulation is not proof of legal compliance.
 
-When enterprise demand requires it, maintain an organization/customer governance profile similar to:
+## 34. Future customer data-governance profile
+
+When enterprise demand requires it, maintain a reviewed profile such as:
 
 ```text
 data_governance_profile_id
@@ -584,8 +705,8 @@ home_storage_region
 allowed_processing_regions
 residency_requirement
 cross_border_transfer_restrictions
-restricted_processors
-approved_processors
+restricted_processors[]
+approved_processors[]
 retention_policy_reference
 delete_export_requirements
 dpa_status
@@ -594,63 +715,82 @@ legal_review_reference
 effective_at
 ```
 
-Do not convert legal conclusions into application booleans inferred by software. The profile should reference reviewed customer and contract decisions.
+Do not encode legal conclusions as application-generated booleans. Reference reviewed customer/contract decisions.
 
-## 28. Internal processor register
+## 35. Processor register
 
-The public `/subprocessors` page can remain concise. Regional contracting eventually needs a richer internal processor register containing:
+For regional contracting, maintain an internal evidence-backed register including:
 
 - provider/service;
 - purpose;
 - data categories;
 - customer-data path;
-- active/configuration-dependent status;
-- storage locations when verified;
-- processing locations when verified;
-- subprocessor-chain source of truth;
-- DPA status;
-- transfer mechanism/status when legally relevant;
-- customer notice or authorization requirements;
+- always-on vs configuration-dependent status;
+- verified storage locations where known;
+- verified processing locations where known;
+- subprocessor-chain source;
+- contract/DPA status;
+- transfer-mechanism status when legally relevant;
+- customer notice/approval requirement;
 - last verification date;
 - owner;
-- evidence/document reference.
+- evidence document/link.
 
-**LEGAL REVIEW REQUIRED** for legal-transfer conclusions and customer contractual language.
+**LEGAL REVIEW REQUIRED** for legal-mechanism conclusions.
 
-## 29. Regional storage trigger
+## 36. Regional storage trigger
 
-Do **not** build multi-region tenant routing merely because enterprise buyers sometimes ask about residency.
+Do **not** build multi-region tenant routing because enterprise buyers sometimes ask about residency.
 
-Build it when all are true:
+Build it only when:
 
-- a qualified or contracted customer requires it;
-- the opportunity is commercially meaningful;
-- provider architecture can satisfy the requirement end-to-end;
-- backup, restore, deletion, export, and audit operations work per region;
-- cross-region support/admin access is defined;
-- engineering understands failure, recovery, and tenant-migration behavior;
-- operational and gross-margin costs are acceptable.
+- a qualified/contracted customer actually requires it;
+- opportunity value justifies the engineering/operating cost;
+- database/storage/providers can satisfy the requirement end to end;
+- backup/restore/delete/export behavior works per region;
+- observability/logging boundaries are understood;
+- admin/support access is defined;
+- disaster recovery is defined;
+- tenant migration behavior is understood;
+- gross-margin impact is acceptable;
+- customer-facing wording can be made technically and contractually exact.
 
-When triggered, prefer explicit placement:
+## 37. Future regional placement model
 
-`organization -> home_region -> regional control/data plane`
+If triggered, prefer explicit placement:
 
-and fail closed against accidental cross-region writes.
+```text
+organization
+  -> data_governance_profile
+  -> home_region
+  -> regional data/control plane
+```
 
-## 30. Residency acceptance tests
+Required principles:
 
-Before claiming a residency option:
+- tenant placement is server-authoritative;
+- cross-region writes fail closed;
+- background jobs respect tenant region;
+- region is included in audit/diagnostic context;
+- migration between regions is explicit, reviewed, and auditable;
+- exports/deletions operate against the correct region;
+- no hidden "best effort" residency routing.
 
-- create a tenant in the target region;
+## 38. Residency acceptance test
+
+Before making any customer-facing residency claim:
+
+- create test tenant in target region;
 - prove durable database/storage placement;
-- prove application writes stay in the intended region;
-- inventory provider calls that leave the region;
-- verify backup and restore location;
-- verify export and deletion behavior;
-- verify logs, analytics, and error-monitoring boundaries;
-- verify support/admin access controls;
+- prove normal application writes stay on the intended data plane;
+- inventory provider calls that can leave the region;
+- verify backups and restore location;
+- verify logs, analytics, error monitoring, email, and integration paths;
+- verify export/delete/retention behavior;
+- verify admin/support access;
 - verify disaster-recovery behavior;
-- verify the exact customer-facing statement against counsel-reviewed contract language.
+- verify failure does not silently route data elsewhere;
+- compare the exact marketing/order-form statement with reviewed contract language.
 
 Marketing is the final step, not the first.
 
@@ -658,24 +798,22 @@ Marketing is the final step, not the first.
 
 # H. International Billing
 
-## 31. Current state
+## 39. Current billing posture
 
-**VERIFIED CURRENT:** Core/Signal checkout is configuration-driven through Stripe recurring Price IDs. Browser success redirects do not grant entitlements; verified asynchronous billing events control lifecycle state. Billing stays unavailable when configuration is incomplete.
+**VERIFIED CURRENT:** self-serve Core/Signal checkout is driven by server-side configured Stripe recurring Price IDs and fails closed when required Stripe configuration is missing. Verified asynchronous billing events drive lifecycle state rather than trusting a browser success redirect.
 
-**VERIFIED CURRENT:** private-beta policy requires approved entity, tax, order-form/terms, refund/cancellation, and production validation before real paid activation.
+This is a useful truth boundary.
 
-This is the correct foundation for international expansion: fail closed rather than guess.
+It is **not** yet a general international price-book/tax architecture.
 
-## 32. Future price-book model
+## 40. Future price-book model
 
-Do not retain one `package -> price_id` mapping after multiple currencies, entities, or market terms become real.
-
-When demand requires it, move to a server-authoritative price-book concept such as:
+When more than one real currency/term combination exists, replace one package → one Price ID assumptions with a server-authoritative price book:
 
 ```text
 package_key
 billing_provider
-price_external_id
+external_price_id
 currency
 interval
 market_scope
@@ -686,60 +824,66 @@ active_until
 status
 ```
 
-The browser may select from server-approved offers. It must never author arbitrary amounts, currencies, tax treatment, Price IDs, organization IDs, or billing-customer IDs.
+The browser may select from server-approved offers. It must never authoritatively submit arbitrary amount, currency, tax behavior, organization ID, external customer ID, or Price ID.
 
-## 33. Billing currency rules
+## 41. Currency rules
 
-- Preserve original invoice and contract currency.
-- Do not convert historical financial truth without retaining the original amount/currency and a separately sourced FX rate/date/method.
-- Do not infer currency from IP or browser locale.
-- A localized currency display does not prove Foremention can legally invoice/collect in that market.
-- A payment provider supporting a currency does not prove Foremention's contracting entity and tax setup are ready to sell there.
+- Retain original contract/invoice amount and currency.
+- Do not rewrite historical amounts when display/reporting currency changes.
+- Do not infer currency from IP/browser locale.
+- Do not treat a displayed currency as proof Foremention can legally invoice in it.
+- Do not treat a payment provider supporting a currency as proof the contracting entity is ready to sell there.
+- If finance uses FX conversion, retain the source/method/date separately.
 
-## 34. Tax, VAT, and GST readiness
+## 42. Tax, VAT, GST, invoices
 
 **LEGAL/TAX REVIEW REQUIRED.**
 
-Before a market-specific paid launch, determine for the actual contracting entity and customer type:
+For the real contracting entity/customer/market, determine before paid launch:
 
-- registration and collection obligations;
-- tax-inclusive versus tax-exclusive pricing requirements;
+- registration/collection obligations;
+- B2B/B2C differences if relevant;
+- tax-inclusive vs tax-exclusive pricing requirements;
 - customer tax-ID handling;
-- invoice fields and numbering requirements;
-- applicable reverse-charge, self-assessment, or similar treatment;
-- evidence needed for customer/business location;
-- refund and credit-note handling;
-- accounting and reconciliation ownership.
+- invoice fields and numbering;
+- place-of-supply/location evidence requirements;
+- reverse-charge/self-assessment treatment where applicable;
+- exemptions where applicable;
+- credit note/refund handling;
+- accounting/reconciliation ownership;
+- record-retention requirements.
 
-Do not build speculative country logic into product code before the actual requirement is known.
+Do not implement speculative country tax rules before the actual requirements are known.
 
-## 35. Local payment methods
+## 43. Local payment limitations
 
-Treat local payment support as a commercial conversion capability with ongoing operations cost.
+Treat local payment methods as a conversion feature with financial/operational cost.
 
-Build only when:
+Build one only when:
 
-- qualified opportunities are blocked by the payment method;
-- the provider supports the method for the actual business/entity;
-- settlement, refunds, disputes, and reconciliation are understood;
-- fraud and chargeback risk are acceptable;
-- finance can reconcile it.
+- qualified opportunities are blocked without it;
+- the payment provider supports it for the actual business setup;
+- settlement timing/currency is acceptable;
+- refunds/disputes/chargebacks are understood;
+- fraud risk is acceptable;
+- finance can reconcile it;
+- support can handle failures.
 
-Enterprise invoicing/manual contracts may remain the correct path long before self-serve local methods are justified.
+Enterprise invoicing/manual contracts may remain the correct path long before local self-serve payment methods are justified.
 
 ---
 
 # I. Regional Benchmarks
 
-## 36. Benchmark principle
+## 44. Principle
 
-A regional benchmark is a statistical product, not a filtered dashboard.
+A regional benchmark is a statistical product, not a dashboard filter.
 
-**FUTURE-GATED:** do not publish or expose cross-customer regional benchmarks until sample size, contractual/consent basis, privacy, anonymization, methodology, language, market, provider environment, and interpretation are defensible.
+**FUTURE-GATED:** do not expose cross-customer regional benchmarks until sample size, permission, anonymization, methodology, language, market, provider environment, and statistical interpretation are defensible.
 
-## 37. Benchmark eligibility contract
+## 45. Benchmark eligibility contract
 
-A cohort should define at least:
+Every benchmark version must define at least:
 
 ```text
 benchmark_version
@@ -749,23 +893,25 @@ language
 provider
 model_or_model_family_policy
 methodology_version
+question_family_or_intent_policy
 observation_window
-customer_and_cohort_eligibility
+customer_cohort_eligibility
 sample_n
 minimum_publishable_n
+permission_or_contract_rule
 anonymization_rule
-consent_or_contract_rule
+small_cell_suppression_rule
 outlier_policy
 missing_data_policy
 uncertainty_method
 created_at
 ```
 
-`minimum_publishable_n` must be deliberately approved for the specific data, metric, and privacy risk. Do not hard-code an arbitrary universal sample threshold and label it statistically safe.
+`minimum_publishable_n` must be deliberately approved for the metric and privacy risk. Do not choose one universal number and call every cohort safe.
 
-## 38. Required comparison conditions
+## 46. Required benchmark comparability
 
-Only compare benchmark records when the methodology says the following are compatible:
+Only compare cohorts when the benchmark methodology says these are compatible:
 
 - sample definition;
 - market;
@@ -777,195 +923,233 @@ Only compare benchmark records when the methodology says the following are compa
 - evidence/review status;
 - metric definition.
 
-If compatibility is partial, label the result exploratory and withhold ranks/percentiles that imply unsupported precision.
+If compatibility is partial, label the analysis exploratory and withhold rank/percentile claims that imply unsupported precision.
 
-## 39. Privacy rules
+## 47. Permission, anonymization, and privacy
 
-Before cross-customer benchmarking:
+Before any cross-customer benchmark:
 
-- establish an appropriate contractual or consent basis;
+- establish the appropriate contractual/consent basis;
+- define whether data can be used only internally, for aggregate research, or in customer-visible benchmarks;
 - exclude directly identifying customer content unless explicitly permitted;
-- suppress small or uniquely identifying cells;
-- prevent reverse identification through filters and dimensions;
-- distinguish internal aggregate research from customer-visible benchmark rights;
-- version cohort membership and deletion behavior;
-- ensure customer deletion/contract changes can be handled under the agreed policy.
+- suppress small/uniquely identifying cells;
+- prevent reverse identification through filters/combinations;
+- version cohort membership;
+- define deletion/recomputation behavior;
+- ensure a customer contract change or deletion request can be honored under the agreed policy.
 
-**LEGAL REVIEW REQUIRED** for the applicable basis and customer contract wording.
+**LEGAL REVIEW REQUIRED** for the applicable basis and customer wording.
 
-## 40. Statistical QA
+## 48. Statistical QA
 
-Every published benchmark should expose enough context to prevent false certainty:
+Every published benchmark should expose enough context to avoid false certainty:
 
-- `n`;
+- sample `n`;
 - observation window;
 - cohort definition;
 - provider/model/methodology constraints;
-- exclusions and missingness;
-- uncertainty interval or distribution when meaningful;
-- whether the metric is descriptive or causal.
+- missingness/exclusions;
+- uncertainty interval or distribution where meaningful;
+- descriptive vs causal interpretation.
 
-Foremention should normally remain descriptive. Never turn a sparse benchmark into a market-leader claim.
+Foremention should normally treat these metrics as descriptive unless a stronger causal design genuinely supports more.
+
+Never turn a sparse cohort into a market-leader claim.
 
 ---
 
 # J. Expansion Sequence — Market #2, #3, #4
 
-## 41. Slots, not countries
+## 49. Rule: decision slots, not predetermined countries
 
-There is not enough verified demand in the recovered repository to name country #2, #3, or #4 responsibly.
+There is not enough verified demand in the recovered repository to responsibly name country/market #2, #3, or #4.
 
-**Market #2, #3, and #4 are decision slots, not predetermined countries.** Each is selected only after the scorecard and hard gates are populated with real evidence.
+Therefore:
 
-## 42. Before Market #2
+- **Market #2 = UNKNOWN**
+- **Market #3 = UNKNOWN**
+- **Market #4 = UNKNOWN**
 
-Goal: prove Foremention can support one adjacent market without losing primary-market PMF focus.
+They are decision slots chosen from evidence, not roadmap promises.
 
-Required before launch:
+## 50. Before Market #2
 
-- market-demand fields/reporting exist in the customer-research or commercial source of truth;
-- candidate market has evidence-backed demand and an accountable commercial owner;
-- provider/model evaluation is completed for the actual market and language requested;
-- locale/market provenance remains part of Recommendation Records and comparison identity;
-- schedule timezone/display semantics are hardened if local-time execution is part of the promise;
-- contracting, tax, invoice, and billing path are reviewed;
-- processor locations and data-governance requirements are reviewed;
-- support ownership and working-hour expectations are documented;
-- launch scope explicitly says what is **not** localized or supported.
+**Goal:** prove Foremention can support one adjacent market without distracting from the primary beachhead.
 
-**Preferred complexity profile — OPERATING POLICY:** among otherwise attractive opportunities, prefer the highest-demand market that can reuse the existing English UI and operating model. This does not preselect an English-speaking country; verified demand still wins.
+Required before broad launch:
 
-Do not build before Market #2 unless the winning opportunity requires it:
+- market-demand fields are captured in the customer-research/commercial source of truth;
+- candidate has evidence-backed demand and accountable commercial owner;
+- scorecard is populated with sources;
+- provider/model evaluation passes for the actual requested language/market;
+- locale/market/language provenance is preserved in immutable measurement snapshots;
+- canonical comparison identity is hardened to fail closed on regional/language mismatch;
+- regional comparison tests pass;
+- schedule semantics are hardened if local wall-clock execution is promised;
+- billing/invoice/tax path is reviewed;
+- processor/data-governance requirements are reviewed;
+- residency claims are either explicitly unsupported or fully verified;
+- support owner/hours/language are explicit;
+- launch scope states both supported and unsupported capabilities.
+
+**Preferred complexity profile:** when demand is otherwise comparable, prefer a Market #2 that can reuse the English UI and existing operating model. This is a complexity preference, not a predetermined country choice; stronger real demand overrides it.
+
+Do **not** prebuild for Market #2 unless the winning opportunity requires it:
 
 - broad UI translation;
 - multi-region storage;
 - many local payment methods;
-- regional benchmarks;
-- country-specific product forks.
+- regional benchmark product;
+- country-specific product fork.
 
-## 43. Before Market #3
+## 51. Before Market #3
 
-Goal: prove expansion is repeatable rather than founder exception-handling.
+**Goal:** prove expansion is repeatable rather than founder exception-handling.
 
 In addition to Market #2 gates:
 
-- Market #2 has real activation, retention, and commercial evidence, not signup volume alone;
-- market onboarding/support playbook is reusable;
-- provider evaluation can add a market without bespoke one-off scripts;
-- capability registry exists and is versioned;
-- customer-data processor/governance review is repeatable;
-- finance can report original-currency revenue and costs without mixing currencies;
-- market-specific terms/invoicing work has clear ownership;
-- expansion has not degraded primary-market support or reliability.
+- Market #2 has real activation/retention/commercial evidence, not signup volume alone;
+- support/onboarding playbook is reusable;
+- provider evaluation harness can add a market without bespoke one-off analysis;
+- provider capability registry is versioned;
+- comparison gate has one canonical implementation across customer surfaces;
+- data-governance/processor review is repeatable;
+- finance can report original-currency revenue/cost correctly;
+- market-specific invoice/terms owners are defined;
+- market-level support and provider cost are measurable;
+- primary-market reliability/support has not materially degraded.
 
-Prefer adding **one major new complexity dimension at a time**. For example, add a new contracting/tax environment, materially different provider geography, or new billing currency rather than adding all of those plus a new UI language and residency commitment in one step unless the commercial case is exceptional.
+**OPERATING POLICY:** Market #3 should ideally introduce one major new complexity dimension at a time—new tax/contracting environment, materially different provider geography, or new billing currency—rather than combining every new complexity unless a high-value contract justifies it.
 
-## 44. Before Market #4
+## 52. Before Market #4
 
-Goal: earn the right to enter a structurally different market.
+**Goal:** earn the right to enter a structurally different market.
 
-Market #4 may be the first justified localization or residency leap, but only if demand dictates it.
+Market #4 may justify the first major language/localization or residency leap, but only if demand makes it the correct choice.
 
-If a new product language is required:
+### If Market #4 requires translated UI
 
-- translation catalogs/runtime exist;
-- locale routing and fallback are tested;
-- text expansion and accessibility QA pass;
-- multilingual golden sets meet approved quality thresholds;
-- question translation provenance is implemented;
-- cross-language comparability remains fail-closed;
-- local-language support ownership is defined;
-- legal/product/support translation review process exists.
+Require:
 
-If residency is required:
+- locale resolver/catalog runtime;
+- centralized date/number/currency formatters;
+- text-expansion/reflow/accessibility QA;
+- multilingual golden-set thresholds;
+- buyer-question translation provenance;
+- language-specific evidence QA;
+- cross-language comparison remains fail closed;
+- local-language support ownership;
+- product/support/legal translation review process.
 
-- regional tenant placement exists;
-- end-to-end location tests pass;
-- backup/restore/delete/export/audit semantics are verified;
-- processor and support access paths are documented;
-- customer-facing residency language exactly matches architecture and contract.
+### If Market #4 requires regional residency
 
-If one market requires both a language leap and a residency leap, require explicit executive review of opportunity value, implementation cost, support cost, gross-margin impact, and strategic focus before commitment.
+Require:
+
+- explicit tenant placement architecture;
+- regional database/storage behavior;
+- cross-region write protections;
+- backup/restore/export/delete verification;
+- regional job/observability/admin paths;
+- residency acceptance test;
+- processor register for the target configuration;
+- reviewed customer-facing contractual wording.
+
+### If it requires both
+
+Require executive review of:
+
+- opportunity value;
+- implementation cost;
+- support cost;
+- provider cost;
+- gross-margin impact;
+- security/reliability complexity;
+- opportunity cost against primary-market PMF.
 
 ---
 
 # K. International Readiness Backlog
 
-## 45. Do now — no speculative market build
+## 53. Do now
 
-These actions improve truth without pretending demand exists:
+No speculative international runtime build is required today.
 
-1. Keep `locale` and `market` in exact measurement/comparison identity.
-2. Keep UI/product English-first.
-3. Route international-demand discovery into customer-research/commercial systems rather than infer geography.
-4. Treat provider multilingual/regional quality as unevaluated until a versioned test proves it.
-5. Preserve public processor and data-location truth boundaries.
-6. Keep billing fail-closed until real entity, tax, and price configuration exists.
-7. Record the timezone wall-clock/display limitation as a scheduling correctness item.
-8. Keep benchmark capability future-gated.
+Do now:
 
-## 46. Build when a Market #2 candidate emerges
+1. keep the UI English-first;
+2. preserve locale/market/timezone provenance already captured;
+3. document that current exact comparison does not include locale/market;
+4. route international-demand evidence into customer-research/commercial truth systems;
+5. treat provider regional/language quality as `not_evaluated` until tested;
+6. keep billing server-authoritative and fail closed;
+7. keep tax/residency/legal claims unknown until verified;
+8. keep regional benchmarks disabled/future-gated;
+9. retain the local-wall-clock recurrence limitation as a correctness item before that behavior is promised.
 
-- demand fields and market report;
-- market scorecard decision record;
+## 54. Build when a real Market #2 candidate appears
+
+- demand scorecard/decision record;
 - target-market provider capability evaluation;
 - golden buyer-question/evidence set;
-- regional measurement-context normalization where materially required;
-- schedule timezone semantics fix if local-time execution is promised;
+- immutable regional/language measurement context;
+- exact comparator hardening for locale/market and any material geo/retrieval dimension;
+- comparison reason codes/tests;
+- schedule timezone hardening if locally scheduled execution is part of scope;
 - contracting/privacy/tax/residency checklist;
-- support and cost model.
+- market-level support/cost model.
 
-## 47. Build when the first translated UI is justified
+## 55. Build when the first translated UI is justified
 
-- locale resolver and translation catalogs;
-- centralized date, time, number, and currency formatters;
-- locale-aware metadata/SEO only for real localized public pages;
-- translated product/system email workflow;
-- translation QA and provenance;
-- text-expansion and target-script accessibility suite;
-- RTL only if the target language needs it.
+- locale resolver;
+- message catalogs;
+- centralized formatters;
+- translated system-email/export workflow;
+- localized metadata/SEO only for real localized public routes;
+- translation provenance/QA;
+- text-expansion/reflow/accessibility suite;
+- RTL only if required.
 
-## 48. Build when the first residency commitment is justified
+## 56. Build when the first residency commitment is justified
 
-- tenant `home_region`/regional placement model;
-- regional database/storage/control-plane strategy;
-- cross-region write protection;
-- region-aware backup, restore, deletion, and export;
-- regional observability and admin/support controls;
-- residency acceptance tests;
-- contract language reviewed against verified architecture.
+- tenant home-region/data-governance profile;
+- regional data/control-plane strategy;
+- cross-region write guardrails;
+- region-aware background jobs;
+- region-aware backup/restore/delete/export;
+- regional observability/admin/support controls;
+- residency acceptance suite;
+- contract wording checked against verified architecture.
 
-## 49. Build when cross-customer benchmarks are justified
+## 57. Build when regional benchmarks are justified
 
-- consent/contract policy;
+- permission/contract policy;
 - anonymized cohort builder;
-- minimum-cell suppression;
+- small-cell suppression;
 - versioned benchmark definitions;
-- statistical QA and uncertainty reporting;
 - market/language/provider/methodology comparability gates;
-- deletion and recomputation policy.
+- statistical uncertainty reporting;
+- deletion/recomputation policy.
 
 ---
 
 # L. Decision Records
 
-## 50. International market decision template
-
-Create one record per candidate market:
+## 58. Market-decision template
 
 ```markdown
 # Market decision — <market key>
 
-Status: researching | pilot-only | approved | deferred | retired
+Status: researching | pilot_only | approved | deferred | retired
 Decision date:
 Owner:
 
 ## Demand evidence
-- sources:
-- qualified accounts:
 - contracted requirement:
-- expansion requests:
-- lost-deal evidence:
+- paid pilot requirement:
+- retained-customer expansion requests:
+- qualified opportunity blockers:
+- repeated discovery signals:
+- evidence references:
 
 ## Scorecard
 - customer demand:
@@ -976,14 +1160,15 @@ Owner:
 - support burden:
 - competitive landscape:
 - payment/billing:
-- data residency:
+- data residency/processors:
 - localization cost:
 - total:
 
 ## Hard gates
 - product quality:
+- regional comparability:
 - billing/tax:
-- legal/privacy:
+- privacy/legal:
 - residency/processors:
 - support:
 
@@ -1000,130 +1185,146 @@ Not supported:
 - support:
 
 ## Economics
-Known direct costs:
+Known direct cost:
+Known support cost:
 Unknowns:
 
 ## Decision
-Proceed / pilot only / defer.
+Proceed | pilot only | defer
 Reason:
 Review date:
 ```
 
-## 51. International capability truth table
+## 59. Capability truth table
 
-Maintain a living table only after more than one market exists:
+Maintain only when multiple markets are real:
 
 | Capability | Primary market | Market #2 | Market #3 | Market #4 |
 | --- | --- | --- | --- | --- |
 | UI language | English | UNKNOWN | UNKNOWN | UNKNOWN |
-| Buyer-question language | English-first / locale metadata supported | UNKNOWN | UNKNOWN | UNKNOWN |
-| Provider/model quality | Evaluate per configured provider/model | UNKNOWN | UNKNOWN | UNKNOWN |
-| Search/retrieval geography | Provider-specific / not globally promised | UNKNOWN | UNKNOWN | UNKNOWN |
-| Billing currency | Configured billing-provider price truth only | UNKNOWN | UNKNOWN | UNKNOWN |
-| Tax treatment | Requires actual setup | UNKNOWN | UNKNOWN | UNKNOWN |
-| Data residency | No customer-selectable promise | UNKNOWN | UNKNOWN | UNKNOWN |
-| Support language/hours | Current operating setup | UNKNOWN | UNKNOWN | UNKNOWN |
-| Benchmark eligibility | Not launched | UNKNOWN | UNKNOWN | UNKNOWN |
+| Buyer-question language | English-first; locale provenance seam exists | UNKNOWN | UNKNOWN | UNKNOWN |
+| Exact regional trend protection | Not yet locale/market-aware | REQUIRED BEFORE #2 | UNKNOWN | UNKNOWN |
+| Provider/model quality | evaluate per configured provider/model | UNKNOWN | UNKNOWN | UNKNOWN |
+| Retrieval geography | provider-specific; no broad promise | UNKNOWN | UNKNOWN | UNKNOWN |
+| Billing currency | configured Stripe Price truth only | UNKNOWN | UNKNOWN | UNKNOWN |
+| Tax treatment | requires actual setup/review | UNKNOWN | UNKNOWN | UNKNOWN |
+| Data residency | no customer-selectable promise established | UNKNOWN | UNKNOWN | UNKNOWN |
+| Support language/hours | current operating setup | UNKNOWN | UNKNOWN | UNKNOWN |
+| Benchmark eligibility | not launched | UNKNOWN | UNKNOWN | UNKNOWN |
 
-Never replace `UNKNOWN` with a flag icon or green check because a vendor marketing page says it supports a country.
+Never replace `UNKNOWN` with a flag icon or green check because a vendor page says it supports a country.
 
 ---
 
 # M. QA + Release Gates
 
-## 52. Internationalization regression tests when relevant
+## 60. Automated tests when a market/language feature is built
 
-A market/language feature should add focused automated tests for:
+Add focused tests for relevant behavior:
 
-- locale parsing and fallback;
+- locale parsing/fallback;
+- language-tag validation;
 - timezone validation;
-- DST/local-wall-clock scheduling when promised;
-- date, number, and currency formatting;
-- long-string/text-expansion layout;
-- language-tag and market validation;
-- buyer-question provenance persistence;
-- run snapshot preservation;
-- comparison withholding when language/market differs;
-- provider capability status gating;
-- tenant/region isolation if residency exists;
+- DST/local-wall-clock recurrence when promised;
+- date/number/currency formatting;
+- long-string/text-expansion layout contracts;
+- question translation provenance;
+- immutable run snapshot preservation;
+- comparison withheld when language changes;
+- comparison withheld when market changes;
+- comparison withheld when regional provenance is missing;
+- comparison allowed when all required regional dimensions match;
+- provider capability-status gating;
+- region/tenant isolation if residency exists;
 - billing price-book server authority;
-- benchmark cohort suppression and privacy rules.
+- benchmark small-cell/privacy rules.
 
-## 53. Manual acceptance
+## 61. Manual acceptance for every launched market
 
-For every launched locale or market:
+- real target-market buyer-question set;
+- target-language reviewer when relevant;
+- provider answer/citation/evidence inspection;
+- locally natural terminology review;
+- refusal/error/partial-result handling;
+- local timezone display/scheduling verification when promised;
+- desktop/mobile/reflow/accessibility checks;
+- invoice/payment journey when enabled;
+- privacy/subprocessor/data-location statement review;
+- support escalation rehearsal;
+- exact customer-facing capability statement review.
 
-- use a qualified target-language reviewer when a new language is involved;
-- use a real target-market buyer-question set;
-- test desktop, mobile, reflow, keyboard, and accessibility behavior;
-- inspect provider answers, citations, evidence, and limitations;
-- test refusal, error, and partial-result handling;
-- verify local-time display when promised;
-- verify invoice/payment journey when enabled;
-- review privacy and subprocessor statements;
-- rehearse support escalation;
-- review the exact customer-facing capability statement.
+## 62. Release claim rule
 
-## 54. Release claim rule
+A market is not "supported" merely because:
 
-No market is "supported" merely because:
-
-- the website is reachable there;
-- a payment provider accepts a card there;
-- a model can answer in the language;
-- a database vendor offers a region there;
-- a translation was generated;
-- one provider call succeeded;
+- the website loads there;
+- a card can be charged there;
+- a provider can emit the language;
+- a database vendor offers a region;
+- an AI translation looks fluent;
+- one API call succeeded;
 - one prospect asked for it.
 
-A supported market has an explicit launch decision, product-quality evidence, commercial/legal path, data-governance answer, support owner, and truthful published scope.
+A supported market has an explicit launch decision, evidence-backed product quality, a truthful comparison boundary, commercial/legal path, data-governance answer, support ownership, and documented scope.
 
 ---
 
 # N. Recommended Current Decision
 
-## 55. Decision as of recovered `main`
+## 63. Decision as of recovered `main`
 
-**OPERATING POLICY — stay focused on the existing English-first beachhead while improving evidence collection for future market selection.**
+**OPERATING POLICY — preserve the existing English-first beachhead and make future international expansion evidence-driven.**
 
-- **UNKNOWN:** Market #2.
-- **UNKNOWN:** Market #3.
-- **UNKNOWN:** Market #4.
-- **UNKNOWN:** first translated UI language.
-- **UNKNOWN:** first additional billing currency.
-- **UNKNOWN:** first customer-selectable data-residency region.
+Current decisions:
 
-The product is **partially international-ready at the measurement-provenance layer** because locale, market, and timezone context exist and exact comparisons already fail closed across locale/market changes. It is **not internationally commercialized** because market demand, provider quality by region/language, legal/tax setup, residency, support, and localization are not proven.
+- Market #2: **UNKNOWN**
+- Market #3: **UNKNOWN**
+- Market #4: **UNKNOWN**
+- First translated UI language: **UNKNOWN**
+- First additional billing currency: **UNKNOWN**
+- First customer-selectable residency region: **UNKNOWN**
 
-That is the correct state for the present company stage.
+Foremention is **partially international-ready at the provenance layer** because recurring measurement can preserve locale/market context, an IANA timezone is validated, and provider prompts can carry locale metadata.
 
-## 56. No runtime changes in this Chat 18 pass
+Foremention is **not yet region-safe for longitudinal comparison** because the canonical exact comparator does not currently include locale/market in slot identity.
 
-This branch intentionally adds the readiness operating document only.
+Foremention is **not internationally commercialized by evidence in this repository** because demand, regional provider quality, legal/tax setup, local billing requirements, residency, support burden, and localization requirements are not proven for a second market.
 
-Reasons:
+That is the correct present state.
 
+## 64. Why this Chat 18 pass is documentation-only
+
+No runtime/schema changes are introduced by this pass because:
+
+- verified second-market demand is not established here;
 - broad localization would be premature;
-- international demand is not yet measurable enough to select a market;
-- multi-currency and residency work depend on real commercial/legal requirements;
-- concurrent customer-research/commercial work is the appropriate place to capture demand evidence rather than duplicating schemas here;
-- existing locale/market comparability foundations are already useful and should not be rewritten without a concrete failing requirement.
+- comparison hardening should be implemented against the concrete Market #2 measurement model rather than guessed provider geography fields;
+- multi-currency/tax/residency implementations depend on actual commercial/legal requirements;
+- regional benchmark infrastructure has no defensible current cohort requirement;
+- parallel customer-research/commercial work is the correct source for demand evidence.
 
-The only implementation issue elevated by this audit is the timezone wall-clock/display limitation described above. Fix it as a focused scheduling correctness change when local-time semantics are specified and tested; do not hide it behind an "international" marketing claim.
+The two technical issues explicitly elevated for a future Market #2 candidate are:
 
-## 57. Definition of ready for the next international decision
+1. **regional comparison identity:** add locale/market and any material provider geography/retrieval context to the canonical exact comparison gate and its tests;
+2. **local scheduling semantics:** replace UTC-only recurrence arithmetic if Foremention promises preserved local wall-clock execution across timezone/DST changes.
 
-Foremention is ready to choose Market #2 when it can answer, with cited evidence rather than intuition:
+Neither should be hidden behind an international marketing claim before it is implemented and verified.
 
-1. Which qualified customers are asking for this market?
-2. What revenue or retention opportunity is attached to the request?
-3. Which exact providers/models work there and how well?
-4. Which buyer-question language and retrieval geography are required?
-5. Can Foremention preserve comparison integrity?
-6. What must change in product and support?
-7. What are the real contracting, tax, invoice, payment, privacy, processor, and residency requirements?
-8. Can those requirements be satisfied without unsafe claims or tenant/data leakage?
-9. What does the market cost to launch and support?
-10. What evidence would cause Foremention to defer or exit?
+## 65. Definition of ready to choose Market #2
+
+Foremention is ready to choose Market #2 only when it can answer, with evidence:
+
+1. Which qualified customers are asking for it?
+2. What contracted, expansion, or credible pipeline value is attached?
+3. Which exact buyer-question language(s) matter?
+4. Which providers/models work there, and what do evaluations show?
+5. What retrieval/search geography is actually controllable?
+6. Can Foremention preserve regional provenance and fail closed on non-comparable runs?
+7. What product/localization work is truly required?
+8. What contracting, tax, invoice, currency, and payment constraints are real?
+9. What storage, processing, processor, transfer, and residency constraints are real?
+10. What support language/timezone/SLA burden exists?
+11. What does the market cost to launch and support?
+12. What evidence would cause Foremention to defer or exit?
 
 Until those answers exist, the strategically correct international feature is **discipline**.
