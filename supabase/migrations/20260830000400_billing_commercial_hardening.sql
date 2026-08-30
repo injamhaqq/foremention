@@ -21,6 +21,8 @@ create table if not exists public.billing_state_history (
   external_customer_id text,
   external_subscription_id text,
   effective_at timestamptz not null,
+  applied boolean not null default true,
+  reason text check (reason is null or reason in ('stale_event')),
   created_at timestamptz not null default now(),
   unique (provider, event_id)
 );
@@ -70,6 +72,7 @@ declare
   v_receipt_exists boolean := false;
   v_previous_state text := null;
   v_existing_grace timestamptz := null;
+  v_existing_verified_at timestamptz := null;
   v_grace_end timestamptz := null;
   v_entitlement_expiry timestamptz := null;
   v_entitlement_status text := p_legacy_status;
@@ -109,11 +112,34 @@ begin
     return false;
   end if;
 
-  select state, grace_period_ends_at
-    into v_previous_state, v_existing_grace
+  select state, grace_period_ends_at, verified_webhook_at
+    into v_previous_state, v_existing_grace, v_existing_verified_at
     from public.billing_accounts
    where organization_id = p_organization_id
    for update;
+
+  -- Stripe does not guarantee webhook delivery order. A verified but older event
+  -- is audited and consumed, but must never roll entitlement state backward.
+  if v_existing_verified_at is not null and p_effective_at < v_existing_verified_at then
+    insert into public.billing_state_history (
+      organization_id, provider, event_id, previous_state, state, package_key,
+      entitlement_status, entitlement_expires_at, grace_period_ends_at,
+      external_customer_id, external_subscription_id, effective_at, applied, reason
+    ) values (
+      p_organization_id, p_provider, p_event_id, v_previous_state, p_state, p_package_key,
+      p_legacy_status, p_entitlement_expires_at, p_grace_period_ends_at,
+      nullif(p_external_customer_id, ''), nullif(p_external_subscription_id, ''),
+      p_effective_at, false, 'stale_event'
+    );
+
+    update public.billing_webhook_events
+       set processed_at = now()
+     where provider = p_provider
+       and event_id = p_event_id
+       and organization_id = p_organization_id
+       and processed_at is null;
+    return true;
+  end if;
 
   if p_state = 'past_due' and p_grace_period_ends_at is not null then
     if v_previous_state = 'past_due' and v_existing_grace is not null then
@@ -196,7 +222,9 @@ begin
     grace_period_ends_at,
     external_customer_id,
     external_subscription_id,
-    effective_at
+    effective_at,
+    applied,
+    reason
   ) values (
     p_organization_id,
     p_provider,
@@ -209,11 +237,13 @@ begin
     v_grace_end,
     nullif(p_external_customer_id, ''),
     nullif(p_external_subscription_id, ''),
-    p_effective_at
+    p_effective_at,
+    true,
+    null
   );
 
   update public.billing_webhook_events
-     set processed_at = p_effective_at
+     set processed_at = now()
    where provider = p_provider
      and event_id = p_event_id
      and organization_id = p_organization_id
@@ -228,8 +258,8 @@ revoke all on function public.apply_billing_event_atomic_v2(text,text,uuid,text,
 grant execute on function public.apply_billing_event_atomic_v2(text,text,uuid,text,text,text,text[],text,text,timestamptz,timestamptz,timestamptz) to service_role;
 
 comment on table public.billing_state_history is
-  'Immutable audit history derived only from verified billing events.';
+  'Immutable audit history derived only from verified billing events, including stale events that were safely ignored.';
 comment on function public.apply_billing_event_atomic_v2(text,text,uuid,text,text,text,text[],text,text,timestamptz,timestamptz,timestamptz) is
-  'Service-only atomic billing application with fail-closed entitlement expiry, grace preservation, and immutable audit history.';
+  'Service-only atomic billing application with fail-closed entitlement expiry, grace preservation, stale-event rejection, and immutable audit history.';
 
 commit;
