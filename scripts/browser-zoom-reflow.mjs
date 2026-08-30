@@ -74,15 +74,33 @@ function assertReflow(measurement, message, details) {
   }
 }
 
-async function verifyZoomReflow(page, profileName, path) {
-  for (const zoomFactor of zoomFactors) {
-    await page.evaluate((factor) => {
-      document.documentElement.style.zoom = String(factor);
-    }, zoomFactor);
-    await page.waitForTimeout(80);
-    assertReflow(await measureReflow(page), "Zoom reflow overflow detected.", { profile: profileName, path, zoomFactor });
-    await page.evaluate(() => { document.documentElement.style.zoom = ""; });
-    await page.waitForTimeout(40);
+function effectiveViewport(baseViewport, zoomFactor) {
+  return {
+    width: Math.max(1, Math.round(baseViewport.width / zoomFactor)),
+    height: Math.max(1, Math.round(baseViewport.height / zoomFactor)),
+  };
+}
+
+async function verifyZoomReflow(page, profileName, path, baseViewport) {
+  try {
+    for (const zoomFactor of zoomFactors) {
+      const viewport = effectiveViewport(baseViewport, zoomFactor);
+      // Browser page zoom reduces the effective CSS viewport. Resizing the
+      // Playwright viewport models that reflow behavior and, crucially, lets
+      // responsive media queries activate. CSS `zoom` does not and creates a
+      // false desktop-layout overflow at 400%.
+      await page.setViewportSize(viewport);
+      await page.waitForTimeout(100);
+      assertReflow(await measureReflow(page), "Zoom reflow overflow detected.", {
+        profile: profileName,
+        path,
+        zoomFactor,
+        effectiveViewport: viewport,
+      });
+    }
+  } finally {
+    await page.setViewportSize(baseViewport);
+    await page.waitForTimeout(60);
   }
 }
 
@@ -131,7 +149,7 @@ async function runPublicProfiles() {
         observations.push({ path, normal });
         assertReflow(normal, "Responsive overflow detected before zoom.", { profile: profile.name, path, zoomFactor: 1 });
         if (profile.browserType === chromium) {
-          await verifyZoomReflow(page, profile.name, path);
+          await verifyZoomReflow(page, profile.name, path, profile.viewport);
           await verifyTextResize(page, profile.name, path);
           if (profile.name === "chromium-low-height" && ["/", "/pricing", "/login"].includes(path)) {
             await verifyForcedColorsSmoke(page, profile.name, path);
@@ -151,8 +169,9 @@ async function runPublicProfiles() {
 async function runAuthenticatedZoom() {
   if (!acceptanceEmail || !acceptancePassword) return;
   const browser = await chromium.launch({ headless: true });
+  const baseViewport = { width: 1366, height: 768 };
   try {
-    const context = await browser.newContext({ viewport: { width: 1366, height: 768 } });
+    const context = await browser.newContext({ viewport: baseViewport });
     const page = await context.newPage();
     await waitForStablePage(page, "/login");
     await page.getByLabel("Email").fill(acceptanceEmail);
@@ -161,7 +180,7 @@ async function runAuthenticatedZoom() {
     await page.waitForURL((url) => url.pathname.startsWith("/app"), { timeout: 20_000 });
     for (const path of authenticatedPaths) {
       await waitForStablePage(page, path);
-      await verifyZoomReflow(page, "chromium-authenticated-low-height", path);
+      await verifyZoomReflow(page, "chromium-authenticated-low-height", path, baseViewport);
       await verifyTextResize(page, "chromium-authenticated-low-height", path);
     }
     await context.close();
@@ -179,7 +198,7 @@ async function main() {
   summary.checkedAt = new Date().toISOString();
   await writeFile(resolve(outputRoot, "zoom-reflow-summary.json"), JSON.stringify(summary, null, 2));
   if (summary.failures.length) process.exitCode = 1;
-  else console.log(`[zoom-reflow] PASS — WebKit/mobile landscape/low-height profiles plus 200%/400% zoom, 200% text resize and forced-colors smoke.`);
+  else console.log(`[zoom-reflow] PASS — WebKit/mobile landscape/low-height profiles plus 200%/400% browser reflow, 200% text resize and forced-colors smoke.`);
 }
 
 main().catch(async (error) => {
