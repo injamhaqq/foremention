@@ -1,6 +1,10 @@
 -- Enterprise security/governance control plane.
 -- This migration adds auditable, tenant-scoped primitives without enabling
 -- external SAML/SCIM, service accounts, contractual SLAs, or residency claims.
+-- The existing Team surface and retention policies already reference `admin`,
+-- so make that role real before it is used inside the transaction.
+alter type public.organization_role add value if not exists 'admin';
+
 begin;
 
 create table if not exists public.organization_security_settings (
@@ -30,7 +34,8 @@ create table if not exists public.organization_domains (
   updated_at timestamptz not null default now(),
   unique (organization_id, domain)
 );
-create unique index if not exists organization_domains_global_domain_idx on public.organization_domains(lower(domain)) where verification_status = 'verified';
+create unique index if not exists organization_domains_global_domain_idx
+  on public.organization_domains(lower(domain)) where verification_status = 'verified';
 
 create table if not exists public.organization_permission_overrides (
   organization_id uuid not null,
@@ -44,7 +49,8 @@ create table if not exists public.organization_permission_overrides (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (organization_id, user_id, permission),
-  foreign key (organization_id, user_id) references public.organization_members(organization_id, user_id) on delete cascade
+  foreign key (organization_id, user_id)
+    references public.organization_members(organization_id, user_id) on delete cascade
 );
 
 create table if not exists public.service_accounts (
@@ -97,8 +103,10 @@ create table if not exists public.audit_events (
       or (actor_type = 'service_account' and actor_service_account_id is not null and actor_user_id is null)
       or (actor_type = 'system' and actor_user_id is null and actor_service_account_id is null))
 );
-create index if not exists audit_events_org_occurred_idx on public.audit_events(organization_id, occurred_at desc);
-create index if not exists audit_events_org_action_idx on public.audit_events(organization_id, action, occurred_at desc);
+create index if not exists audit_events_org_occurred_idx
+  on public.audit_events(organization_id, occurred_at desc);
+create index if not exists audit_events_org_action_idx
+  on public.audit_events(organization_id, action, occurred_at desc);
 
 create table if not exists public.data_governance_settings (
   organization_id uuid primary key references public.organizations(id) on delete cascade,
@@ -131,7 +139,8 @@ create table if not exists public.data_governance_requests (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index if not exists data_governance_requests_org_requested_idx on public.data_governance_requests(organization_id, requested_at desc);
+create index if not exists data_governance_requests_org_requested_idx
+  on public.data_governance_requests(organization_id, requested_at desc);
 
 create or replace function public.default_org_permission(
   member_role public.organization_role,
@@ -148,9 +157,14 @@ as $$
       'org.read','org.admin','members.manage','security.read','security.manage',
       'audit.read','data.export','data.delete','records.publish','evidence.review'
     ) then false
-    when member_role = 'owner' then true
-    when member_role = 'analyst' then requested_permission in ('org.read','security.read','records.publish','evidence.review')
-    when member_role = 'viewer' then requested_permission = 'org.read'
+    when member_role::text = 'owner' then true
+    when member_role::text = 'admin' then requested_permission in (
+      'org.read','org.admin','members.manage','security.read','security.manage',
+      'audit.read','data.export','records.publish','evidence.review'
+    )
+    when member_role::text = 'analyst' then requested_permission in ('org.read','records.publish','evidence.review')
+    when member_role::text = 'reviewer' then requested_permission in ('org.read','evidence.review')
+    when member_role::text in ('viewer','stakeholder') then requested_permission = 'org.read'
     else false
   end;
 $$;
@@ -177,9 +191,14 @@ begin
   where m.organization_id = check_org_id and m.user_id = auth.uid();
   if member_role is null then return false; end if;
 
+  -- Workspace deletion remains owner-only even if an override row is malformed.
+  if requested_permission = 'data.delete' and member_role::text <> 'owner' then return false; end if;
+
   select p.effect into override_effect
   from public.organization_permission_overrides p
-  where p.organization_id = check_org_id and p.user_id = auth.uid() and p.permission = requested_permission;
+  where p.organization_id = check_org_id
+    and p.user_id = auth.uid()
+    and p.permission = requested_permission;
 
   if override_effect = 'deny' then return false; end if;
   if override_effect = 'allow' then return true; end if;
@@ -215,7 +234,8 @@ begin
     target_type, target_id, request_id, ip_hash, user_agent_hash, metadata, occurred_at
   ) values (
     p_organization_id, p_category, p_action, p_actor_type, p_actor_user_id, p_actor_service_account_id,
-    p_target_type, p_target_id, p_request_id, p_ip_hash, p_user_agent_hash, coalesce(p_metadata, '{}'::jsonb), p_occurred_at
+    p_target_type, p_target_id, p_request_id, p_ip_hash, p_user_agent_hash,
+    coalesce(p_metadata, '{}'::jsonb), p_occurred_at
   ) returning id into event_id;
   return event_id;
 end;
@@ -233,9 +253,13 @@ end;
 $$;
 
 drop trigger if exists audit_events_immutable_update on public.audit_events;
-create trigger audit_events_immutable_update before update on public.audit_events for each row execute function public.prevent_audit_event_mutation();
+create trigger audit_events_immutable_update
+  before update on public.audit_events
+  for each row execute function public.prevent_audit_event_mutation();
 drop trigger if exists audit_events_immutable_delete on public.audit_events;
-create trigger audit_events_immutable_delete before delete on public.audit_events for each row execute function public.prevent_audit_event_mutation();
+create trigger audit_events_immutable_delete
+  before delete on public.audit_events
+  for each row execute function public.prevent_audit_event_mutation();
 
 create trigger organization_security_settings_updated_at before update on public.organization_security_settings for each row execute function public.set_updated_at();
 create trigger organization_domains_updated_at before update on public.organization_domains for each row execute function public.set_updated_at();
@@ -254,20 +278,39 @@ alter table public.audit_events enable row level security;
 alter table public.data_governance_settings enable row level security;
 alter table public.data_governance_requests enable row level security;
 
-create policy "org_security_select" on public.organization_security_settings for select using (public.has_org_permission(organization_id, 'security.read'));
-create policy "org_security_owner_write" on public.organization_security_settings for all using (public.has_org_permission(organization_id, 'security.manage')) with check (public.has_org_permission(organization_id, 'security.manage'));
-create policy "org_domains_select" on public.organization_domains for select using (public.has_org_permission(organization_id, 'security.read'));
-create policy "org_domains_owner_write" on public.organization_domains for all using (public.has_org_permission(organization_id, 'security.manage')) with check (public.has_org_permission(organization_id, 'security.manage'));
-create policy "permission_overrides_select" on public.organization_permission_overrides for select using (public.has_org_permission(organization_id, 'members.manage'));
-create policy "permission_overrides_owner_write" on public.organization_permission_overrides for all using (public.has_org_role(organization_id, array['owner']::public.organization_role[])) with check (public.has_org_role(organization_id, array['owner']::public.organization_role[]));
-create policy "service_accounts_owner_select" on public.service_accounts for select using (public.has_org_permission(organization_id, 'security.manage'));
-create policy "scim_connections_owner_select" on public.scim_connections for select using (public.has_org_permission(organization_id, 'security.manage'));
-create policy "audit_events_owner_select" on public.audit_events for select using (public.has_org_permission(organization_id, 'audit.read'));
-create policy "data_governance_select" on public.data_governance_settings for select using (public.has_org_permission(organization_id, 'security.read'));
-create policy "data_governance_owner_write" on public.data_governance_settings for all using (public.has_org_permission(organization_id, 'security.manage')) with check (public.has_org_permission(organization_id, 'security.manage'));
-create policy "data_requests_select" on public.data_governance_requests for select using (public.has_org_permission(organization_id, 'security.read') or requested_by = auth.uid());
-create policy "data_requests_insert" on public.data_governance_requests for insert with check (requested_by = auth.uid() and public.is_org_member(organization_id));
-create policy "data_requests_owner_update" on public.data_governance_requests for update using (public.has_org_permission(organization_id, 'data.delete') or public.has_org_permission(organization_id, 'data.export')) with check (public.is_org_member(organization_id));
+create policy "org_security_select" on public.organization_security_settings
+  for select using (public.has_org_permission(organization_id, 'security.read'));
+create policy "org_security_owner_write" on public.organization_security_settings
+  for all using (public.has_org_permission(organization_id, 'security.manage'))
+  with check (public.has_org_permission(organization_id, 'security.manage'));
+create policy "org_domains_select" on public.organization_domains
+  for select using (public.has_org_permission(organization_id, 'security.read'));
+create policy "org_domains_owner_write" on public.organization_domains
+  for all using (public.has_org_permission(organization_id, 'security.manage'))
+  with check (public.has_org_permission(organization_id, 'security.manage'));
+create policy "permission_overrides_select" on public.organization_permission_overrides
+  for select using (public.has_org_permission(organization_id, 'members.manage'));
+create policy "permission_overrides_owner_write" on public.organization_permission_overrides
+  for all using (public.has_org_role(organization_id, array['owner']::public.organization_role[]))
+  with check (public.has_org_role(organization_id, array['owner']::public.organization_role[]));
+create policy "service_accounts_owner_select" on public.service_accounts
+  for select using (public.has_org_permission(organization_id, 'security.manage'));
+create policy "scim_connections_owner_select" on public.scim_connections
+  for select using (public.has_org_permission(organization_id, 'security.manage'));
+create policy "audit_events_owner_select" on public.audit_events
+  for select using (public.has_org_permission(organization_id, 'audit.read'));
+create policy "data_governance_select" on public.data_governance_settings
+  for select using (public.has_org_permission(organization_id, 'security.read'));
+create policy "data_governance_owner_write" on public.data_governance_settings
+  for all using (public.has_org_permission(organization_id, 'security.manage'))
+  with check (public.has_org_permission(organization_id, 'security.manage'));
+create policy "data_requests_select" on public.data_governance_requests
+  for select using (public.has_org_permission(organization_id, 'security.read') or requested_by = auth.uid());
+create policy "data_requests_insert" on public.data_governance_requests
+  for insert with check (requested_by = auth.uid() and public.is_org_member(organization_id));
+create policy "data_requests_owner_update" on public.data_governance_requests
+  for update using (public.has_org_permission(organization_id, 'data.delete') or public.has_org_permission(organization_id, 'data.export'))
+  with check (public.is_org_member(organization_id));
 
 revoke all on public.organization_security_settings from anon;
 revoke all on public.organization_domains from anon;
