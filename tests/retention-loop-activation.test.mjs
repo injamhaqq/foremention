@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deriveActivationStage } from "../lib/retention-loop.ts";
+import { deriveActivationStage, deriveRetentionHealth } from "../lib/retention-loop.ts";
 
 const base = {
   workspaceConfigured: false,
@@ -33,4 +33,12 @@ test("a created but unassigned action cannot skip the ownership boundary", () =>
   const stage = deriveActivationStage({ ...base, workspaceConfigured: true, approvedQuestions: 5, firstCollectionCompleted: true, firstRecordReviewed: true, firstActionCreated: true, comparableReviewedCycles: 2 });
   assert.equal(stage.key, "action_assigned");
   assert.match(stage.detail, /owner/i);
+});
+
+test("retention health is transparent and prioritizes overdue actions", () => {
+  assert.equal(deriveRetentionHealth({ activated: false, secondComparableCycleCompleted: false, scheduleEnabled: false, overdueActionCount: 0 }).status, "not_activated");
+  assert.equal(deriveRetentionHealth({ activated: true, secondComparableCycleCompleted: false, scheduleEnabled: true, overdueActionCount: 0 }).status, "waiting_for_second_cycle");
+  assert.equal(deriveRetentionHealth({ activated: true, secondComparableCycleCompleted: true, scheduleEnabled: false, overdueActionCount: 0 }).status, "needs_schedule");
+  assert.equal(deriveRetentionHealth({ activated: true, secondComparableCycleCompleted: true, scheduleEnabled: true, overdueActionCount: 1 }).status, "at_risk");
+  assert.equal(deriveRetentionHealth({ activated: true, secondComparableCycleCompleted: true, scheduleEnabled: true, overdueActionCount: 0 }).status, "healthy");
 });
