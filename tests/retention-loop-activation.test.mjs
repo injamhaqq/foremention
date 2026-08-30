@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deriveActivationStage, deriveRetentionHealth } from "../lib/retention-loop.ts";
+import { deriveActivationStage } from "../lib/retention-loop.ts";
+import { deriveRetentionHealth } from "../lib/retention-health.ts";
 
 const base = {
   workspaceConfigured: false,
