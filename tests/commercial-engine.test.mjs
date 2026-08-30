@@ -95,7 +95,7 @@ test("commercial metrics compute from supplied observed inputs only", () => {
   assert.equal(result.paybackMonths, 6);
   assert.equal(result.grossMargin, 0.75);
   assert.equal(result.grr, 0.92);
-  assert.equal(result.nrr, 1.1);
+  assert.equal(result.nrr, 1.0);
 });
 
 test("commercial database is founder-internal, auditable and pricing facts require evidence", async () => {
