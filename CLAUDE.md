@@ -50,6 +50,7 @@ Never imply that a returned source caused a recommendation. Never manufacture fa
 - Label prototype information as demo data, illustrative example, or placeholder.
 - Current conversion posture is founder-led; prefer `Request a demo` / `See an example` over invented self-serve scale.
 - Pricing remains a hypothesis until validated.
+- `docs/billion-dollar-build/09-company-operating-system.md` is the canonical company-OS layer for strategy, metric hierarchy, operating cadence, finance-model assumptions, hiring gates, international-readiness policy, and strategy-document precedence. Dated plans and experiments do not silently override it.
 
 ## Security and data boundaries
 
@@ -76,6 +77,7 @@ Use RED -> GREEN -> VERIFY. Before merge, require fresh evidence for tests, lint
 ## References
 
 - `README.md` — product/setup context.
+- `docs/billion-dollar-build/09-company-operating-system.md` — canonical company strategy, metrics hierarchy, cadence, finance, hiring, international readiness, and documentation authority.
 - `docs/ARCHITECTURE.md` — runtime and data boundaries.
 - `docs/TESTING.md` — standard quality gate.
 - `docs/SECURITY.md` and `SECURITY.md` — security requirements.
