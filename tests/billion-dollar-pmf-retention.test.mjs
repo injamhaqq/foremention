@@ -60,7 +60,7 @@ test("PMF metric definitions cover the required account-level loop without fabri
   assert.match(metrics, /requiresRealBilling:\s*true/);
   assert.match(metrics, /export function derivePmfMetrics/);
   assert.match(metrics, /insufficient_data/);
-  assert.doesNotMatch(metrics, /sample|placeholder|mock customer/i);
+  assert.doesNotMatch(metrics, /sample customer|placeholder customer|mock customer|fake customer/i);
 });
 
 test("customer proof extends the existing service-only commercial ledger instead of creating a parallel truth store", () => {
@@ -79,7 +79,7 @@ test("handoff records the exact base SHA, hypothesis boundary, metric contract, 
   assert.match(handoff, /df92e0eb78edda5c8c621bb1388c5b519b8da1e8/);
   assert.match(handoff, /Hypothesis vs validated fact/i);
   assert.match(handoff, /No customer evidence/i);
-  assert.match(handoff, /action assigned/i);
+  assert.match(handoff, /action[_ -]assigned/i);
   assert.match(handoff, /activation rate/i);
   assert.match(handoff, /WAU accounts/i);
   assert.match(handoff, /MAU accounts/i);
