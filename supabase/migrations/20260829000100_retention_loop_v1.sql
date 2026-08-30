@@ -1,8 +1,10 @@
 -- Foremention Retention Loop v1
 -- Additive only: preserve the existing collection, evidence, action and entitlement models.
 
--- New collaboration roles are additive. Application/RLS logic continues to derive the
--- organization from the authenticated membership rather than trusting browser input.
+-- Collaboration roles are additive. Application/RLS logic continues to derive the
+-- organization from authenticated membership rather than trusting browser input.
+-- `admin` is included here because this migration's policies already reference it.
+alter type public.organization_role add value if not exists 'admin';
 alter type public.organization_role add value if not exists 'reviewer';
 alter type public.organization_role add value if not exists 'stakeholder';
 
