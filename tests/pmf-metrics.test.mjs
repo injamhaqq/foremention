@@ -8,6 +8,8 @@ function account(overrides = {}) {
     organizationId: "org-1",
     includedInCompanyKpis: true,
     createdAt: "2026-06-01T00:00:00.000Z",
+    workspaceConfiguredAt: "2026-06-01T01:00:00.000Z",
+    fiveQuestionsApprovedAt: "2026-06-01T02:00:00.000Z",
     firstMeasurementAt: "2026-06-02T00:00:00.000Z",
     firstRecordReviewedAt: "2026-06-02T02:00:00.000Z",
     firstActionCreatedAt: "2026-06-02T03:00:00.000Z",
@@ -28,10 +30,16 @@ test("PMF metrics fail closed when there is no real KPI-eligible cohort", () => 
   assert.equal(metrics.paid_conversion.status, "insufficient_data");
 });
 
-test("activation requires the ownership boundary and paid conversion requires verified billing", () => {
-  const unowned = account({ firstActionAssignedAt: null });
-  const noBilling = derivePmfMetrics([unowned], new Date("2026-08-30T00:00:00.000Z"));
-  assert.equal(noBilling.activation_rate.value, 0);
+test("activation requires setup, five approved questions, review, action, and ownership", () => {
+  for (const missing of ["workspaceConfiguredAt", "fiveQuestionsApprovedAt", "firstMeasurementAt", "firstRecordReviewedAt", "firstActionCreatedAt", "firstActionAssignedAt"]) {
+    const metrics = derivePmfMetrics([account({ [missing]: null })], new Date("2026-08-30T00:00:00.000Z"));
+    assert.equal(metrics.activation_rate.value, 0, `${missing} must remain an activation boundary`);
+  }
+});
+
+test("paid conversion requires verified real billing", () => {
+  const noBilling = derivePmfMetrics([account()], new Date("2026-08-30T00:00:00.000Z"));
+  assert.equal(noBilling.activation_rate.value, 100);
   assert.equal(noBilling.paid_conversion.status, "insufficient_data");
 
   const paid = account({ payingStartedAt: "2026-06-20T00:00:00.000Z", billingVerified: true });
@@ -46,6 +54,8 @@ test("monthly activation cohorts report next-month retention only after the obse
   const immature = account({
     organizationId: "org-august",
     createdAt: "2026-08-02T00:00:00.000Z",
+    workspaceConfiguredAt: "2026-08-02T01:00:00.000Z",
+    fiveQuestionsApprovedAt: "2026-08-02T02:00:00.000Z",
     firstMeasurementAt: "2026-08-03T00:00:00.000Z",
     firstRecordReviewedAt: "2026-08-03T01:00:00.000Z",
     firstActionCreatedAt: "2026-08-03T02:00:00.000Z",
