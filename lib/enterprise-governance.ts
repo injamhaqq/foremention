@@ -14,13 +14,16 @@ export const ENTERPRISE_PERMISSIONS = [
 ] as const;
 
 export type EnterprisePermission = typeof ENTERPRISE_PERMISSIONS[number];
-export type OrganizationRole = "owner" | "analyst" | "viewer";
+export type OrganizationRole = "owner" | "admin" | "analyst" | "reviewer" | "viewer" | "stakeholder";
 export type PermissionEffect = "allow" | "deny" | null;
 
 const rolePermissions: Record<OrganizationRole, readonly EnterprisePermission[]> = {
   owner: ENTERPRISE_PERMISSIONS,
-  analyst: ["org.read", "security.read", "records.publish", "evidence.review"],
+  admin: ["org.read", "org.admin", "members.manage", "security.read", "security.manage", "audit.read", "data.export", "records.publish", "evidence.review"],
+  analyst: ["org.read", "records.publish", "evidence.review"],
+  reviewer: ["org.read", "evidence.review"],
   viewer: ["org.read"],
+  stakeholder: ["org.read"],
 };
 
 export function isEnterprisePermission(value: string): value is EnterprisePermission {
@@ -43,6 +46,7 @@ export function resolveOrganizationPermission(input: {
   override?: PermissionEffect;
 }) {
   if (!isEnterprisePermission(input.permission)) return false;
+  if (input.permission === "data.delete" && input.role !== "owner") return false;
   if (input.override === "deny") return false;
   if (input.override === "allow") return true;
   return roleHasPermission(input.role, input.permission);
@@ -122,7 +126,7 @@ export type EnterpriseAuditEvent = {
 export async function appendEnterpriseAuditEvent(event: EnterpriseAuditEvent) {
   const actorUserId = event.actor.type === "user" ? event.actor.userId : null;
   const actorServiceAccountId = event.actor.type === "service_account" ? event.actor.serviceAccountId : null;
-  const rows = await supabaseRest<string[]>("rpc/append_audit_event", {
+  const rows = await supabaseRest<string[] | string>("rpc/append_audit_event", {
     method: "POST",
     serviceRole: true,
     body: {
