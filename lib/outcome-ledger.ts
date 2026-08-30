@@ -10,12 +10,18 @@ export type OutcomeLedgerAssetRow = {
   asset_type: ResolutionAssetType;
   title: string;
   problem_statement: string;
+  limitations?: string[];
   status: "draft" | "in_review" | "approved" | "applied";
   review_decision: "pending" | "approved" | "changes_requested" | "rejected";
+  created_by?: string | null;
+  submitted_by?: string | null;
   submitted_at: string | null;
+  approved_by?: string | null;
   approved_at: string | null;
+  decision_by?: string | null;
   decision_at: string | null;
   approval_note: string | null;
+  applied_by?: string | null;
   applied_at: string | null;
   application_reference: string | null;
   application_note: string | null;
@@ -23,13 +29,31 @@ export type OutcomeLedgerAssetRow = {
   updated_at: string;
 };
 
+export type OutcomeLedgerEvidenceRow = {
+  id: string;
+  resolution_asset_id: string;
+  evidence_snapshot: Record<string, unknown>;
+  created_at: string;
+};
+
+export type OutcomeLedgerOpportunityRow = {
+  id: string;
+  owner_id: string | null;
+  due_at: string | null;
+  next_action: string | null;
+  status: string;
+  updated_at: string | null;
+};
+
 export type OutcomeLedgerFollowUpRow = {
   id: string;
   resolution_asset_id: string;
   baseline_run_id: string;
   rerun_id: string | null;
-  status: "requested" | "queued" | "complete" | "failed" | "cancelled";
+  status: "requested" | "queued" | "complete" | "incomparable" | "failed" | "cancelled";
+  requested_by?: string | null;
   requested_at: string;
+  recorded_by?: string | null;
   completed_at: string | null;
   outcome: Record<string, unknown>;
   limitation: string;
@@ -45,25 +69,50 @@ export type OutcomeLedgerRunRow = {
   completed_at: string | null;
 };
 
+export type OutcomeLedgerStepKey =
+  | "observation"
+  | "evidence"
+  | "recommendation"
+  | "decision"
+  | "action"
+  | "owner"
+  | "completion"
+  | "measurement"
+  | "outcome";
+
 export type OutcomeLedgerStep = {
-  key: "measured" | "drafted" | "approved" | "applied" | "remeasured";
+  key: OutcomeLedgerStepKey;
   label: string;
   done: boolean;
   at: string | null;
+  actorId: string | null;
   detail: string;
 };
 
+export type OutcomeState = "improved" | "regressed" | "mixed" | "no_material_change" | "incomparable" | "pending";
+
 export type OutcomeLedgerRecord = {
   id: string;
+  recommendationRecordRunId: string | null;
+  opportunityId: string;
+  sourceId: string;
   title: string;
   problemStatement: string;
   assetType: ResolutionAssetType;
   status: OutcomeLedgerAssetRow["status"];
   steps: OutcomeLedgerStep[];
+  ownerId: string | null;
+  dueAt: string | null;
+  nextAction: string | null;
   applicationReference: string | null;
   applicationNote: string | null;
   comparison: ReturnType<typeof compareResolutionRuns> | null;
-  measurementStatus: "not_requested" | "requested" | "queued" | "complete" | "failed" | "cancelled";
+  comparisonEligible: boolean | null;
+  measurementStatus: "not_requested" | OutcomeLedgerFollowUpRow["status"];
+  outcomeState: OutcomeState;
+  confidence: "reviewed" | "limited" | "not_assessed";
+  confidenceBasis: string;
+  limitations: string[];
   limitation: string;
 };
 
@@ -134,18 +183,47 @@ const readStoredComparison = (
   };
 };
 
+function classifyOutcome(
+  comparison: ReturnType<typeof compareResolutionRuns> | null,
+  followUp: OutcomeLedgerFollowUpRow | null,
+): OutcomeState {
+  if (followUp?.status === "incomparable") return "incomparable";
+  if (!comparison) return "pending";
+  // Presence and first-mention movement are directional recommendation metrics.
+  // Citation/source counts are reported as context, but more citations or new
+  // sources are not automatically labelled a business improvement.
+  const directional = [comparison.brandPresencePct.delta, comparison.firstMentionPct.delta];
+  const positive = directional.some((delta) => delta > 0);
+  const negative = directional.some((delta) => delta < 0);
+  if (positive && negative) return "mixed";
+  if (positive) return "improved";
+  if (negative) return "regressed";
+  return "no_material_change";
+}
+
+const uniqueLimitations = (...groups: Array<Array<string | null | undefined>>) =>
+  Array.from(new Set(groups.flat().map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
+
 /**
- * Assemble one inspectable record per resolution asset: finalized baseline
- * measurement, drafted asset, customer approval, recorded application, and a
- * finalized comparable remeasurement. Reads persisted rows only; never calls a
- * provider and never upgrades an observed association into a causal claim.
+ * Assemble one inspectable record per reviewed resolution. The chain remains
+ * anchored to the baseline Recommendation Record run and verified evidence,
+ * then records human decision/action/ownership/completion before any later
+ * measurement. Reads persisted rows only; never calls a provider and never
+ * upgrades chronology or association into a causal claim.
  */
 export function buildOutcomeLedger(input: {
   assets: OutcomeLedgerAssetRow[];
+  evidence?: OutcomeLedgerEvidenceRow[];
+  opportunities?: OutcomeLedgerOpportunityRow[];
   followUps: OutcomeLedgerFollowUpRow[];
   runs: OutcomeLedgerRunRow[];
 }): OutcomeLedgerRecord[] {
+  const evidence = input.evidence || [];
+  const opportunities = input.opportunities || [];
   const runById = new Map(input.runs.map((run) => [run.id, run]));
+  const opportunityById = new Map(opportunities.map((row) => [row.id, row]));
+  const evidenceByAsset = new Map<string, OutcomeLedgerEvidenceRow[]>();
+  for (const row of evidence) evidenceByAsset.set(row.resolution_asset_id, [...(evidenceByAsset.get(row.resolution_asset_id) || []), row]);
   const followUpsByAsset = new Map<string, OutcomeLedgerFollowUpRow[]>();
   for (const followUp of input.followUps) {
     followUpsByAsset.set(followUp.resolution_asset_id, [...(followUpsByAsset.get(followUp.resolution_asset_id) || []), followUp]);
@@ -155,6 +233,8 @@ export function buildOutcomeLedger(input: {
     const followUp = (followUpsByAsset.get(asset.id) || []).slice().sort((a, b) =>
       b.requested_at.localeCompare(a.requested_at) || b.id.localeCompare(a.id)
     )[0] || null;
+    const linkedEvidence = (evidenceByAsset.get(asset.id) || []).filter((row) => row.evidence_snapshot?.verification === "verified");
+    const opportunity = opportunityById.get(asset.opportunity_id) || null;
     const baseline = asset.baseline_run_id ? runById.get(asset.baseline_run_id) : undefined;
     const rerun = followUp?.rerun_id ? runById.get(followUp.rerun_id) : undefined;
     const storedCandidate = followUp?.status === "complete"
@@ -170,6 +250,10 @@ export function buildOutcomeLedger(input: {
         ? compareResolutionRuns(toMeasurement(baseline as OutcomeLedgerRunRow), toMeasurement(rerun as OutcomeLedgerRunRow))
         : null);
     const baselineMeasured = isComparableBaselineRun(baseline) || Boolean(storedComparison);
+    const evidenceReviewed = linkedEvidence.length > 0;
+    const comparisonEligible = comparison ? true : followUp?.status === "incomparable" ? false : null;
+    const measurementComplete = Boolean(followUp && ["complete", "incomparable"].includes(followUp.status));
+    const outcomeState = classifyOutcome(comparison, followUp);
     const decisionDetail = asset.review_decision === "changes_requested"
       ? "Reviewer requested changes."
       : asset.review_decision === "rejected"
@@ -179,24 +263,55 @@ export function buildOutcomeLedger(input: {
           : asset.submitted_at
             ? "Waiting for a reviewer decision."
             : "Not submitted for review yet.";
+    const latestEvidenceAt = linkedEvidence.map((row) => row.created_at).filter(Boolean).sort().at(-1) || null;
+    const limitations = uniqueLimitations(asset.limitations || [], [followUp?.limitation, DEFAULT_LIMITATION]);
+    const confidence: OutcomeLedgerRecord["confidence"] = comparison && evidenceReviewed
+      ? "reviewed"
+      : baselineMeasured || evidenceReviewed
+        ? "limited"
+        : "not_assessed";
+    const confidenceBasis = comparison && evidenceReviewed
+      ? "Verified linked evidence and an eligible exact-protocol remeasurement are present. This supports an observed association, not causation."
+      : baselineMeasured && evidenceReviewed
+        ? "The baseline Recommendation Record and linked evidence are reviewed, but no eligible observed outcome is available yet."
+        : baselineMeasured
+          ? "A reviewed baseline exists, but this read does not contain a verified linked evidence record."
+          : "No readable finalized reviewed baseline is available for this record.";
+
     const steps: OutcomeLedgerStep[] = [
-      { key: "measured", label: "Problem measured", done: baselineMeasured, at: baseline?.completed_at || (baselineMeasured ? asset.created_at : null), detail: baselineMeasured ? "A finalized reviewed baseline run recorded the observed gap." : "No readable finalized reviewed baseline run is attached." },
-      { key: "drafted", label: "Solution asset drafted", done: true, at: asset.created_at, detail: asset.title },
-      { key: "approved", label: "Customer approval", done: Boolean(asset.approved_at), at: asset.approved_at || asset.decision_at, detail: decisionDetail },
-      { key: "applied", label: "Applied in customer tools", done: Boolean(asset.applied_at), at: asset.applied_at, detail: asset.application_reference || "Not recorded as applied yet." },
-      { key: "remeasured", label: "Comparable remeasurement", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, detail: followUp ? (comparison ? "The same buyer questions and providers were measured again in finalized runs." : followUp.status === "complete" ? "The follow-up finished, but its stored comparison could not be validated against finalized runs." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
+      { key: "observation", label: "Observation", done: baselineMeasured, at: baseline?.completed_at || (baselineMeasured ? asset.created_at : null), actorId: null, detail: baselineMeasured ? `Recommendation Record ${asset.baseline_run_id || "baseline"} preserves the observed AI answer set.` : "No readable finalized reviewed Recommendation Record baseline is attached." },
+      { key: "evidence", label: "Evidence", done: evidenceReviewed, at: latestEvidenceAt, actorId: null, detail: evidenceReviewed ? `${linkedEvidence.length} verified evidence link${linkedEvidence.length === 1 ? "" : "s"} preserved from the reviewed record.` : "No verified linked evidence is readable for this resolution." },
+      { key: "recommendation", label: "Recommendation", done: true, at: asset.created_at, actorId: asset.created_by || null, detail: `${asset.asset_type.replaceAll("_", " ")}: ${asset.title}` },
+      { key: "decision", label: "Decision", done: Boolean(asset.decision_at), at: asset.decision_at, actorId: asset.decision_by || null, detail: decisionDetail },
+      { key: "action", label: "Action", done: Boolean(asset.approved_at), at: asset.approved_at, actorId: asset.approved_by || null, detail: asset.approved_at ? "The reviewed recommendation was approved as an action." : "No approved action is recorded yet." },
+      { key: "owner", label: "Owner", done: Boolean(opportunity?.owner_id), at: opportunity?.updated_at || null, actorId: opportunity?.owner_id || null, detail: opportunity?.owner_id ? `Assigned owner${opportunity.due_at ? ` · due ${opportunity.due_at}` : ""}${opportunity.next_action ? ` · ${opportunity.next_action}` : ""}` : "No action owner is assigned." },
+      { key: "completion", label: "Completion", done: Boolean(asset.applied_at), at: asset.applied_at, actorId: asset.applied_by || null, detail: asset.application_reference || "Not recorded as applied yet." },
+      { key: "measurement", label: "Later measurement", done: measurementComplete, at: measurementComplete ? followUp?.completed_at || null : followUp?.requested_at || null, actorId: followUp?.recorded_by || followUp?.requested_by || null, detail: followUp ? (measurementComplete ? followUp.status === "incomparable" ? "A later measurement finished, but exact comparison eligibility failed closed." : "The same eligible measurement protocol was completed again." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
+      { key: "outcome", label: "Observed outcome", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, actorId: followUp?.recorded_by || null, detail: comparison ? `${outcomeState.replaceAll("_", " ")}. ${comparison.interpretation}` : followUp?.status === "incomparable" ? "Outcome comparison withheld because the later observation was not eligible for exact comparison." : "No eligible observed outcome is available yet." },
     ];
+
     return {
       id: asset.id,
+      recommendationRecordRunId: asset.baseline_run_id,
+      opportunityId: asset.opportunity_id,
+      sourceId: asset.source_id,
       title: asset.title,
       problemStatement: asset.problem_statement,
       assetType: asset.asset_type,
       status: asset.status,
       steps,
+      ownerId: opportunity?.owner_id || null,
+      dueAt: opportunity?.due_at || null,
+      nextAction: opportunity?.next_action || null,
       applicationReference: asset.application_reference,
       applicationNote: asset.application_note,
       comparison,
+      comparisonEligible,
       measurementStatus: followUp?.status || "not_requested",
+      outcomeState,
+      confidence,
+      confidenceBasis,
+      limitations,
       limitation: followUp?.limitation || DEFAULT_LIMITATION,
     };
   });
