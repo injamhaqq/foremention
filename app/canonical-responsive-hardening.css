@@ -55,6 +55,16 @@
   min-height: 96px;
 }
 
+/* The signed-in shell must use border-box sizing consistently. Without this,
+ * 100%-width descendants plus padding/borders can spill a few pixels at 200%
+ * text resize and 400% browser reflow. */
+.app-frame,
+.app-frame *,
+.app-frame *::before,
+.app-frame *::after {
+  box-sizing: border-box;
+}
+
 /* Let flex/grid children shrink instead of forcing document overflow. */
 .app-main,
 .app-topbar,
@@ -68,7 +78,15 @@
 .canonical-record__meta,
 .canonical-source-evidence,
 .panel,
-.table-wrap {
+.panel--wide,
+.panel--wide > *,
+.table-wrap,
+.app-mobile-nav__panel,
+.app-mobile-nav__panel > *,
+.app-mobile-nav__panel form,
+.app-mobile-nav__panel nav,
+.email-alert-preferences,
+.email-alert-preferences > * {
   min-width: 0;
   max-width: 100%;
 }
@@ -194,6 +212,8 @@
     padding-right: max(18px, env(safe-area-inset-right));
   }
   .app-mobile-nav__panel {
+    width: auto;
+    max-width: calc(100vw - 32px);
     padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
   .public-header__inner {
@@ -212,6 +232,12 @@
   .canonical-record__states { grid-template-columns: 1fr; }
   .canonical-record__boundary { grid-template-columns: 1fr; }
   .canonical-record__meta { min-width: 0; }
+  .panel--wide,
+  .panel--wide > *,
+  .email-alert-preferences,
+  .email-alert-preferences > * {
+    width: 100%;
+  }
 }
 
 @media (max-width: 520px) {
