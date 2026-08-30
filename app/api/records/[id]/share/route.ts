@@ -6,8 +6,8 @@ import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 const canShare = (role: string | null) => ["owner", "admin", "analyst"].includes(role || "");
-
 type ShareRow = { id: string; expires_at: string; revoked_at: string | null; include_evidence: boolean };
+type ShareVisibility = "private" | "public";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
@@ -15,7 +15,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const role = await getPrimaryWorkspaceRole(viewer);
   if (!canShare(role)) return NextResponse.json({ error: "Your workspace role cannot share Recommendation Records." }, { status: 403 });
   const { id } = await params;
-  const body = await request.json().catch(() => ({})) as { includeEvidence?: boolean; expiresInDays?: number };
+  const body = await request.json().catch(() => ({})) as { includeEvidence?: boolean; expiresInDays?: number; visibility?: ShareVisibility };
+  const visibility = body.visibility || "private";
+  if (visibility !== "private") return NextResponse.json({ error: "Public Record publishing is not enabled. Create a private expiring link instead." }, { status: 400 });
   const run = (await loadRuns(viewer)).find((item) => item.id === id);
   if (!run) return NextResponse.json({ error: "Recommendation Record not found." }, { status: 404 });
   if (!["complete", "partial", "review"].includes(run.status)) return NextResponse.json({ error: "Only an observed or reviewed Recommendation Record can be shared." }, { status: 409 });
@@ -29,18 +31,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       method: "POST",
       token: viewer.accessToken,
       prefer: "return=minimal",
-      body: {
-        organization_id: context.organizationId,
-        run_id: run.id,
-        token_hash: tokenHash,
-        include_evidence: body.includeEvidence !== false,
-        created_by: viewer.id,
-        expires_at: expiresAt,
-      },
+      body: { organization_id: context.organizationId, run_id: run.id, token_hash: tokenHash, include_evidence: body.includeEvidence !== false, created_by: viewer.id, expires_at: expiresAt },
     });
   }
   // Never persist or log the raw token. It is returned exactly once to the creator.
-  return NextResponse.json({ data: { path: safeRecordSharePath(token), expiresAt, includeEvidence: body.includeEvidence !== false }, mode: viewer.mode }, { status: 201 });
+  return NextResponse.json({ data: { path: safeRecordSharePath(token), expiresAt, includeEvidence: body.includeEvidence !== false, visibility: "private" }, mode: viewer.mode }, { status: 201 });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -54,12 +49,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   if (viewer.mode !== "demo") {
-    const rows = await supabaseRest<ShareRow[]>(`record_shares?id=eq.${encodeURIComponent(body.shareId)}&run_id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}`, {
-      method: "PATCH",
-      token: viewer.accessToken,
-      prefer: "return=representation",
-      body: { revoked_at: new Date().toISOString() },
-    });
+    const rows = await supabaseRest<ShareRow[]>(`record_shares?id=eq.${encodeURIComponent(body.shareId)}&run_id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=representation", body: { revoked_at: new Date().toISOString() } });
     if (!rows.length) return NextResponse.json({ error: "Share not found." }, { status: 404 });
   }
   return NextResponse.json({ data: { revoked: true }, mode: viewer.mode });
