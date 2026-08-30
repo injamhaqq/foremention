@@ -125,6 +125,16 @@
   color: #5f2f2a;
 }
 
+/* Provider states live inside the authenticated graphite workspace. The
+   neutral untested state must not inherit reverse text while retaining the
+   legacy light badge background: that combination measured only 1.19:1 in
+   exact-main Browser Acceptance. Keep the neutral state dark and readable. */
+.app-frame .review-action .provider-state--untested {
+  border-color: #355f4b !important;
+  background: #111412 !important;
+  color: #aeb6af !important;
+}
+
 /* Every inspectable evidence state remains visible at mobile/narrow widths. */
 @media (max-width: 480px) {
   .registered-evidence-shell .registered-record__states > div:nth-child(2) {
