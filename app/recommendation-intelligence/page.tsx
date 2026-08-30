@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
-import { pageMetadata, webPageJsonLd } from "@/lib/seo";
+import { pageMetadata, SITE_URL, webPageJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
   title: "What Is Recommendation Intelligence?",
@@ -43,9 +43,18 @@ export default function RecommendationIntelligencePage() {
     description: "A category definition and operating model for evidence-backed measurement of AI-mediated buyer recommendations.",
     path: "/recommendation-intelligence",
   });
+  const breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Foremention", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Recommendation Intelligence", item: `${SITE_URL}/recommendation-intelligence` },
+    ],
+  };
 
   return <PublicShell>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
     <section className="page-hero page-hero--ink">
       <div className="shell narrow-heading">
         <span className="eyebrow eyebrow--on-ink">Category definition</span>
