@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
-  const privatePaths = ["/app/", "/api/"];
+  const privatePaths = ["/app/", "/share/", "/api/", "/auth/", "/login", "/signup"];
   return {
     rules: [
       { userAgent: "*", allow: "/", disallow: privatePaths },

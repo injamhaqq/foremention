@@ -10,6 +10,19 @@ export function PublicActivationAnalytics() {
   const scoreOutcomeCaptured = useRef(false);
 
   useEffect(() => {
+    if (pathname === "/recommendation-intelligence") {
+      captureProductEvent("category_page_viewed");
+      return;
+    }
+    if (pathname === "/insights" || pathname.startsWith("/insights/")) {
+      captureProductEvent("research_page_viewed");
+      return;
+    }
+    if (pathname === "/partners") {
+      captureProductEvent("partner_page_viewed");
+      return;
+    }
+
     if (pathname === "/score") {
       const sharedResult = Boolean(new URLSearchParams(window.location.search).get("id"));
       captureProductEvent("score_viewed", { shared_result: sharedResult });
