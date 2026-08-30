@@ -18,6 +18,20 @@ test("maximum run cost is deterministic and bounded", () => {
   assert.equal(policy.estimateMaximumRunCost(999, { inputPerMillionUsd: 1, outputPerMillionUsd: 2, requestUsd: 0 }), 0.02912);
 });
 
+test("Groq reserves cost per prompt independently from the whole-run ceiling", () => {
+  const rates = { inputPerMillionUsd: 0.075, outputPerMillionUsd: 0.30, requestUsd: 0.05 };
+  assert.equal(policy.GROQ_SPEND_LIMITS.reservedCostPerPromptUsd, 0.10);
+  assert.equal(policy.GROQ_SPEND_LIMITS.maxRunCostUsd, 0.10);
+  assert.equal(policy.estimateReservedRunCost("groq", 1, rates), 0.10);
+  assert.equal(policy.estimateReservedRunCost("groq", 2, rates), 0.20);
+});
+
+test("live collection capacity boundaries remain explicit", () => {
+  assert.equal(policy.LIVE_COLLECTION_LIMITS.maxPromptsPerRun, 10);
+  assert.equal(policy.LIVE_COLLECTION_LIMITS.maxProvidersPerRun, 1);
+  assert.equal(policy.LIVE_COLLECTION_LIMITS.providerTimeoutMs, 45_000);
+});
+
 test("operational errors redact credential-shaped values", () => {
   const safe = policy.safeOperationalError(new Error("token=secret-value Bearer another-secret key=AIzaSyExampleCredentialValue123456"));
   assert.doesNotMatch(safe, /secret-value|another-secret/);
