@@ -33,11 +33,13 @@ test("activation is the exact eight-stage PMF loop, including action assignment"
   assert.ok(retention.indexOf('key: "action_assigned"') < retention.indexOf('key: "second_comparable_cycle"'));
 });
 
-test("Attention derives action assignment from persisted owner state instead of assuming created means owned", () => {
+test("Attention derives action assignment and transparent retention health from persisted state", () => {
   assert.match(attentionRoute, /owner_id/);
   assert.match(attentionRoute, /firstActionAssigned/);
   assert.match(attentionRoute, /firstAction\.some\([\s\S]{0,100}owner_id/);
   assert.match(attentionRoute, /firstActionAssigned,/);
+  assert.match(attentionRoute, /deriveRetentionHealth/);
+  assert.match(attentionRoute, /retentionHealth/);
 });
 
 test("PMF metric definitions cover the required account-level loop without fabricated values", () => {
