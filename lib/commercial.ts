@@ -1,8 +1,10 @@
 export const COMMERCIAL_STAGES = [
-  "prospect",
+  "identified",
   "discovery",
   "qualified",
   "demo",
+  "pilot_proposed",
+  "pilot_active",
   "proposal",
   "security_review",
   "procurement",
@@ -44,7 +46,7 @@ export function canTransitionCommercialStage(current: CommercialStage, next: Com
   if (current === next) return true;
   if (CLOSED_STAGES.has(current)) return false;
   if (next === "lost") return true;
-  if (next === "won") return ["proposal", "security_review", "procurement", "negotiation"].includes(current);
+  if (next === "won") return ["pilot_active", "proposal", "security_review", "procurement", "negotiation"].includes(current);
   return (STAGE_ORDER.get(next) || 0) >= (STAGE_ORDER.get(current) || 0);
 }
 
