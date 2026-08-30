@@ -68,7 +68,7 @@ export function deriveComparableChanges(baseline: ComparableSnapshot, current: C
   const beforeCitations = normalized(baseline.citations);
   const afterCitations = normalized(current.citations);
   const added = afterCitations.filter((url) => !beforeCitations.includes(url));
-  const removed = beforeCitations.filter((url) => !currentSources.includes(url));
+  const removed = beforeCitations.filter((url) => !afterCitations.includes(url));
   if (added.length || removed.length) changes.push({ kind: "citation_set_changed", added, removed, baselineRunId: baseline.runId, currentRunId: current.runId });
   return changes;
 }
