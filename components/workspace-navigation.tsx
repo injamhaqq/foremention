@@ -21,6 +21,7 @@ const primaryNav = [
 // exposes them contextually from the five canonical objects instead.
 export const CONTEXTUAL_WORKSPACE_ROUTES = [
   ["/app/alerts", "Alerts"],
+  ["/app/reports", "Reports"],
   ["/app/team", "Team"],
   ["/app/settings#integrations", "Integrations"],
   ["/app/competitors", "Competitors"],
