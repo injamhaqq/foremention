@@ -91,6 +91,38 @@
   max-width: 100%;
 }
 
+/* Notification controls previously shared one inline formatting context. Native
+ * checkbox margins could extend the form scroll box by seven pixels under 200%
+ * text resize and 400% browser reflow. Give this form an explicit shrinkable
+ * vertical layout instead of hiding the overflow. */
+.app-frame .email-alert-preferences {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+
+.app-frame .email-alert-preferences > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-frame .email-alert-preferences input[type="checkbox"] {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.app-frame .email-alert-preferences .button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
 .app-topbar {
   gap: clamp(8px, 1.5vw, 24px);
 }
