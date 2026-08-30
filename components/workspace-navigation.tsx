@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, type KeyboardEvent } from "react";
-import { Arrow, Wordmark } from "@/components/brand";
+import { Arrow, ForementionMark, Wordmark } from "@/components/brand";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
 import { resetProductAnalytics } from "@/lib/product-analytics";
@@ -92,7 +92,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
     }
   };
   return <details className="app-mobile-nav registered-workspace-mobile" ref={mobileMenu} onKeyDown={handleKeyDown}>
-      <summary ref={summaryRef}>Workspace menu</summary>
+      <summary ref={summaryRef}><ForementionMark /><span>Workspace menu</span></summary>
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
