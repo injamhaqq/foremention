@@ -6,7 +6,7 @@ import { hashRecordShareToken, recordShareIsActive } from "@/lib/record-sharing"
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Shared Recommendation Record | Foremention", robots: { index: false, follow: false, nocache: true } };
+export const metadata: Metadata = { title: "Shared Recommendation Record | Foremention", robots: { index: false, follow: false, nocache: true }, referrer: "no-referrer" };
 
 type ShareRow = { organization_id: string; run_id: string; include_evidence: boolean; expires_at: string; revoked_at: string | null };
 type RunRow = { id: string; status: string; provider_ids: string[]; prompt_count: number; answer_count: number; citation_count: number; brand_presence_pct: number | string; methodology_version: string; created_at: string; completed_at: string | null };
