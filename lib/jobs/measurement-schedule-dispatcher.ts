@@ -24,6 +24,7 @@ type DueSchedule = {
   created_by: string | null;
 };
 type PromptRow = { id: string; prompt_key: string; prompt_text: string; locale: string; market?: string | null };
+type EntitlementRow = { monthly_run_units: number; monthly_ai_spend_cap_usd: number | string; status: string; expires_at: string | null };
 
 type PreparedRun = { runId: string; organizationId: string; scheduleId: string; nextRunAt: string };
 
@@ -41,13 +42,20 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   const monthStart = `${month}T00:00:00.000Z`;
   const [prompts, entitlementRows, activeRuns, monthlyUsage, monthlyRuns] = await Promise.all([
     supabaseRest<PromptRow[]>(`prompts?select=id,prompt_key,prompt_text,locale,market&organization_id=eq.${schedule.organization_id}&active=eq.true&id=in.(${encodeURIComponent(promptFilter)})`, { serviceRole: true }),
-    supabaseRest<Array<{ monthly_run_units: number; monthly_ai_spend_cap_usd: number | string; status: string }>>(`organization_entitlements?select=monthly_run_units,monthly_ai_spend_cap_usd,status&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
+    supabaseRest<EntitlementRow[]>(`organization_entitlements?select=monthly_run_units,monthly_ai_spend_cap_usd,status,expires_at&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
     supabaseRest<Array<{ id: string }>>(`runs?select=id&organization_id=eq.${schedule.organization_id}&status=in.(queued,running)&limit=1`, { serviceRole: true }),
     supabaseRest<Array<{ units: number }>>(`usage_events?select=units&organization_id=eq.${schedule.organization_id}&period_start=eq.${month}`, { serviceRole: true }),
     supabaseRest<Array<{ actual_cost_usd: number | string; estimated_max_cost_usd: number | string; status: string; started_at: string | null }>>(`runs?select=actual_cost_usd,estimated_max_cost_usd,status,started_at&organization_id=eq.${schedule.organization_id}&created_at=gte.${encodeURIComponent(monthStart)}`, { serviceRole: true }),
   ]);
   const entitlement = entitlementRows[0];
-  if (!entitlement || entitlement.status !== "active" || activeRuns.length || prompts.length !== schedule.question_ids.length) return null;
+  const entitlementExpiry = entitlement?.expires_at ? new Date(entitlement.expires_at) : null;
+  if (
+    !entitlement
+    || entitlement.status !== "active"
+    || (entitlementExpiry && (!Number.isFinite(entitlementExpiry.getTime()) || entitlementExpiry <= new Date()))
+    || activeRuns.length
+    || prompts.length !== schedule.question_ids.length
+  ) return null;
   const requestedUnits = prompts.length;
   const usedUnits = monthlyUsage.reduce((sum, row) => sum + Number(row.units || 0), 0);
   const reservedCost = estimateReservedRunCost(providerId, requestedUnits, rates);

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
-import { createStripeCheckoutSession, stripeBillingConfigured, type StripeCheckoutPackage } from "@/lib/stripe-billing";
+import { createStripeCheckoutSession, stripeBillingConfigured, stripePriceIdFor, type StripeBillingInterval, type StripeCheckoutPackage } from "@/lib/stripe-billing";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type BillingAccountRow = { external_customer_id: string | null };
@@ -33,18 +33,25 @@ export async function POST(request: Request) {
 
   const contentType = request.headers.get("content-type") || "";
   let packageKey = "";
+  let billingInterval = "monthly";
   try {
     if (contentType.includes("application/json")) {
-      const body = await request.json() as { packageKey?: string };
+      const body = await request.json() as { packageKey?: string; billingInterval?: string };
       packageKey = String(body.packageKey || "").toLowerCase();
+      billingInterval = String(body.billingInterval || "monthly").toLowerCase();
     } else {
       const form = await request.formData();
       packageKey = String(form.get("packageKey") || "").toLowerCase();
+      billingInterval = String(form.get("billingInterval") || "monthly").toLowerCase();
     }
   } catch {
     return NextResponse.json({ error: "Checkout request is invalid." }, { status: 400 });
   }
   if (!(["core", "signal"] as string[]).includes(packageKey)) return NextResponse.json({ error: "Choose Core or Signal for self-serve checkout." }, { status: 400 });
+  if (!(["monthly", "annual"] as string[]).includes(billingInterval)) return NextResponse.json({ error: "Choose monthly or annual billing." }, { status: 400 });
+  if (!stripePriceIdFor(packageKey, billingInterval as StripeBillingInterval)) {
+    return NextResponse.json({ error: "That package and billing interval are not configured for self-serve checkout." }, { status: 503 });
+  }
 
   const billingRows = await supabaseRest<BillingAccountRow[]>(
     `billing_accounts?select=external_customer_id&organization_id=eq.${context.organizationId}&limit=1`,
@@ -61,6 +68,7 @@ export async function POST(request: Request) {
   try {
     const session = await createStripeCheckoutSession({
       packageKey: packageKey as StripeCheckoutPackage,
+      billingInterval: billingInterval as StripeBillingInterval,
       organizationId: context.organizationId,
       customerEmail: viewer.email,
       customerId: billingRows[0]?.external_customer_id || null,

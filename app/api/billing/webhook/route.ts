@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { billingConfigured, entitlementsForBillingEvent, legacyEntitlementStatus, parseVerifiedBillingEvent, verifyBillingWebhook, type VerifiedBillingEvent } from "@/lib/billing";
+import { billingConfigured, entitlementGrantForBillingEvent, entitlementsForBillingEvent, parseVerifiedBillingEvent, verifyBillingWebhook, type VerifiedBillingEvent } from "@/lib/billing";
 import { parseStripeBillingEvent, stripeBillingConfigured, verifyStripeWebhook } from "@/lib/stripe-billing";
 import { supabaseRest } from "@/lib/supabase-rest";
 
@@ -27,7 +27,8 @@ async function releaseBillingEvent(event: VerifiedBillingEvent, provider: string
 }
 
 async function applyBillingEventAtomic(event: VerifiedBillingEvent, provider: string) {
-  const applied = await supabaseRest<boolean>("rpc/apply_billing_event_atomic", {
+  const grant = entitlementGrantForBillingEvent(event);
+  const applied = await supabaseRest<boolean>("rpc/apply_billing_event_atomic_v2", {
     method: "POST",
     serviceRole: true,
     body: {
@@ -36,11 +37,13 @@ async function applyBillingEventAtomic(event: VerifiedBillingEvent, provider: st
       p_organization_id: event.organizationId,
       p_package_key: event.packageKey,
       p_state: event.state,
-      p_legacy_status: legacyEntitlementStatus(event.state),
+      p_legacy_status: grant.status,
       p_feature_keys: entitlementsForBillingEvent(event),
       p_external_customer_id: event.externalCustomerId || null,
       p_external_subscription_id: event.externalSubscriptionId || null,
-      p_effective_at: new Date().toISOString(),
+      p_entitlement_expires_at: grant.expiresAt,
+      p_grace_period_ends_at: grant.gracePeriodEndsAt,
+      p_effective_at: event.occurredAt || new Date().toISOString(),
     },
   });
   if (!applied) throw new Error("Verified billing event receipt was not available for atomic application.");
@@ -53,7 +56,7 @@ async function processBillingEvent(event: VerifiedBillingEvent, provider: string
     await applyBillingEventAtomic(event, provider);
     return { duplicate: false } as const;
   } catch (error) {
-    // The atomic RPC either commits all billing state + receipt completion or
+    // The atomic RPC either commits all billing state + audit + receipt completion or
     // rolls back. A failed mutation therefore remains safe to release/retry.
     await releaseBillingEvent(event, provider).catch(() => undefined);
     throw error;
