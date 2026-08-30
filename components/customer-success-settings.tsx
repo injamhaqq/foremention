@@ -58,7 +58,6 @@ export function CustomerSuccessSettings({ demo }: { demo: boolean }) {
 
   const load = async () => {
     if (demo) return;
-    setLoading(true);
     try {
       const response = await fetch("/api/customer-success", { cache: "no-store" });
       const body = await response.json();
