@@ -1,298 +1,258 @@
 # Foremention — Billion-Dollar Build 01: PMF + Wedge + Activation + Retention
 
-Status: implementation candidate on `build/billion-dollar-01-pmf-retention` / PR #171. This document distinguishes code/repository facts from market hypotheses. It does not claim customer traction that is not present in first-party evidence.
+Status: implementation candidate on `build/billion-dollar-01-pmf-retention` / PR #171. This handoff separates repository facts from market hypotheses and does not invent customer proof.
 
-## 1. Exact starting state
+## Exact starting state
 
 - Repository: `injamhaqq/foremention`
 - Exact starting `main` SHA: `df92e0eb78edda5c8c621bb1388c5b519b8da1e8`
 - Scoped branch: `build/billion-dollar-01-pmf-retention`
 - Pull request: #171, **Build PMF activation + customer proof contract**
-- Recent merged work inspected before implementation included PR #166 (Retention Loop v1), PR #169 (product compression/commercial readiness), and PR #170 (responsive canonical-brand acceptance proof).
-- Open PRs were inspected before this branch was created; this work intentionally does not absorb or rewrite unrelated open dependency/release/hardening PRs.
+- Recent merged work inspected before implementation: #166 Retention Loop v1, #169 product compression/commercial readiness, #170 responsive canonical-brand acceptance proof.
+- Open PRs were inspected before branching; this work does not absorb unrelated dependency/release/hardening work.
 
-## 2. Locked constitution preserved
+## Locked constitution preserved
 
-This branch does not change the company category, brand, homepage, canonical logo, primary signed-in information architecture, Recommendation Record model, evidence lifecycle, or core platform boundaries.
-
-The next chats must preserve:
-
-- Category: **Recommendation Intelligence**.
-- Primary signed-in IA: **Attention, Questions, Records, Comparisons, Settings**.
+- Category remains **Recommendation Intelligence**.
+- Primary signed-in IA remains **Attention, Questions, Records, Comparisons, Settings**.
 - Recommendation Record remains the canonical inspectable object.
-- Evidence inspection belongs to Recommendation Records; do not resurrect standalone Source X-Ray.
+- Evidence inspection stays inside Recommendation Records; do not resurrect standalone Source X-Ray.
 - Evidence semantics remain **Returned → Retrieved → Observed → Reviewed → Safe Conclusion**.
-- Human review remains a real boundary before a safe decision or movement claim.
-- Exact comparability remains strict across the buyer question fingerprint, provider, exact model, methodology, locale, and market.
-- Authentication, authorization, Supabase RLS, tenant isolation, provider boundaries, Inngest orchestration, spend/cost controls, and analytics privacy remain intact.
-- Canonical black/graphite + registered-green Foremention identity remains intact.
-- No customer, usage, benchmark, price, ROI, certification, revenue, or traction data is fabricated.
+- Human review remains a real decision boundary.
+- Exact comparability remains strict across buyer-question fingerprint, provider, exact model, methodology, locale, and market.
+- Auth/authz, Supabase RLS, tenant isolation, provider boundaries, Inngest orchestration, cost controls, and analytics privacy remain intact.
+- Canonical Foremention logo and black/graphite + registered-green identity remain intact.
+- Homepage/brand were not redesigned.
+- No customers, usage, benchmarks, prices, ROI, certifications, revenue, or traction were fabricated.
 
-## 3. What already existed at the starting SHA
-
-The live repository was already materially ahead of a blank PMF build. The correct move was to extend the existing architecture rather than create parallel systems.
+## What already existed at the starting SHA
 
 ### Product and journey
 
-- The workspace had already been compressed to the five canonical signed-in objects.
+- Five canonical signed-in workspace objects were already in place.
 - Recommendation Records already carried inspectable evidence and the human-review boundary.
-- Questions, measurement runs, comparisons, actions/placements, settings, schedules, sharing, and team mechanics already existed.
-- Design-partner application intake already existed and was server/service-role controlled.
+- Questions, collection runs, comparisons, actions/placements, settings, schedules, sharing, and team mechanics already existed.
+- Design-partner application intake already existed and was trusted-server/service-role controlled.
 
 ### Retention engine
 
-- `lib/retention-loop.ts` already derived Attention items, comparable changes, due-action reminders, and a next-step activation state.
-- Measurement scheduling already supported recurring cycles through the existing schedule/Inngest architecture.
-- Safe comparison logic already withheld movement when exact-comparability or terminal human-review requirements were not met.
-- Reviewed-change notifications already used event-level idempotency/deduplication and avoided causal claims.
-- Workspace email alerts already respected opt-in preference/unsubscribe behavior and delivery deduplication.
+- `lib/retention-loop.ts` already derived Attention items, comparable changes, due-action reminders, and activation guidance.
+- Recurring measurement already used the schedule/Inngest architecture.
+- Safe comparison already withheld movement when terminal human review or exact comparability was missing.
+- Reviewed-change notifications already used event-level idempotency/dedupe and avoided causal claims.
+- Workspace email alerts already honored opt-in/unsubscribe and duplicate-delivery suppression.
 - Safe weekly intelligence already surfaced reviewed longitudinal movement when an eligible comparison existed.
 
 ### Analytics and privacy
 
-- Product analytics already had a privacy-safe event contract and milestone events.
-- Raw commercial/contact PII was already kept out of customer analytics surfaces.
-- This branch does **not** change the meaning of the historical `activation_completed` analytics event. Changing historical semantics in-place would make existing event series incomparable. The canonical PMF activation definition introduced here is a separate account-level metric contract and requires all stages through action ownership.
+- Product analytics already had a privacy-safe event contract and safe milestone events.
+- Raw commercial/contact PII was already outside the product analytics contract.
+- Historical `activation_completed` event semantics are deliberately not redefined here, because silently changing an existing event would make its time series incomparable. The canonical PMF activation metric below is an account-level contract requiring all six activation boundaries.
 
 ### Customer proof
 
-`20260818000100_company_customer_proof.sql` already provided a strong founder/operator proof foundation:
+`20260818000100_company_customer_proof.sql` already supplied the correct foundation:
 
-- explicit organization classifications separate `internal`, `synthetic`, `benchmark`, `design_partner`, and `customer` organizations;
+- organization classifications distinguish `unknown`, `internal`, `synthetic`, `benchmark`, `design_partner`, and `customer`;
 - only explicitly eligible real external organizations may enter company KPIs;
-- commercial accounts, protected contacts, opportunities, verified payment/renewal/expansion/churn events, lost-reason taxonomy, and real-zero scorecards already existed;
-- RLS is enabled and browser roles have no direct access; the system is service-role only;
-- no customer/revenue rows are seeded;
-- aggregate time-to-value was already withheld below a minimum real sample threshold.
+- commercial accounts, protected contacts, opportunities, verified payment/renewal/expansion/churn events, lost reasons, and real-zero scorecards existed;
+- RLS was enabled and browser roles had no direct access; service role remained the operator boundary;
+- no customer/revenue rows were seeded;
+- aggregate time-to-value was already withheld below the real minimum sample threshold.
 
-The separate design-partner application table already existed, with no public table policy and trusted-server insertion only.
+The separate design-partner application table also already existed with trusted-server insertion and no public table policy.
 
-## 4. Gap analysis found before implementation
+## What was missing
 
-The main product gap was precise and measurable:
-
-1. The visible activation journey had seven states, not the required eight.
-2. `first_action` jumped directly to the second comparable cycle. It did not prove an accountable owner existed.
-3. Attention queried whether an action existed, but did not derive ownership from persisted action state.
-4. There was no single canonical account-level definition module for the required PMF metrics.
-5. Cohort retention rules were not encoded in a reusable, fail-closed derivation.
-6. Retention health existed implicitly in many product signals but not as one transparent, explainable customer state.
-7. The customer-proof ledger already handled commercial lifecycle evidence, but did not yet classify customer interviews, objections, feature requests, validated use cases, referrals, and explicit lost-deal research events.
+1. The visible activation journey had seven states rather than the required eight.
+2. `first_action` jumped directly to the second comparable cycle instead of proving an action owner.
+3. Attention checked action existence but not persisted `owner_id`.
+4. There was no single canonical account-level definition/derivation module for the required PMF metrics.
+5. Activation-cohort retention rules were not encoded in a reusable fail-closed derivation.
+6. Retention health existed implicitly in product signals but not as a transparent customer-visible state.
+7. The existing customer-proof ledger did not classify interviews, objections, feature requests, validated use cases, referrals, and explicit lost-deal research events.
 8. Design-partner applications had no optional first-party link into the existing commercial account ledger.
 
-## 5. Exact wedge — Hypothesis vs validated fact
+## Exact wedge — Hypothesis vs validated fact
 
 ### Validated product/repository facts
 
-- Foremention can preserve an exact buyer-question/provider/model/methodology context for measurement.
-- Recommendation Records can keep inspectable returned/retrieved/observed/reviewed evidence together with safe conclusions.
-- Human review and exact-comparability gates exist in code.
-- Actions can have owners and remeasurement timing.
-- Recurring measurement, Attention, comparison, notifications, and longitudinal product primitives exist.
-- First-party commercial/customer-proof tables exist with service-role-only access and real-zero behavior.
+Foremention can preserve exact buyer-question/provider/model/methodology measurement context; keep Recommendation Records with inspectable returned/retrieved/observed/reviewed evidence; enforce human review and exact-comparability gates; store action owners and remeasurement timing; schedule recurring measurements; and retain first-party commercial/customer-proof records behind service-role boundaries.
 
 ### No customer evidence yet
 
-**No customer evidence was found in the repository that is sufficient to validate the ICP, economic buyer, willingness-to-pay, retention, conversion, ROI, or category-demand hypotheses below.** The schemas and product capabilities above are implementation facts. The market claims below remain hypotheses until first-party interviews, opportunities, payments, renewals, expansions, referrals, churn, and cohort behavior are recorded.
-
-### Wedge hypotheses to test with real design partners
+**No customer evidence was found in the repository that is sufficient to validate the ICP, economic buyer, willingness-to-pay, retention, conversion, ROI, or category-demand hypotheses below.** Product/schema capabilities are implementation facts. Market claims remain hypotheses until first-party interviews, opportunities, payments, renewals, expansions, referrals, churn, and cohort behavior prove them.
 
 | Element | Current hypothesis | Validation required |
 | --- | --- | --- |
-| Primary ICP | English-language growth-stage B2B software companies where AI-mediated buyer recommendations can materially affect category discovery or shortlisting, and where a marketing team can act on evidence. | Interview and pipeline evidence by company size/stage/use case; activation and second-cycle cohorts. |
-| Economic buyer | VP/Head of Marketing or CMO, varying with company size. | Opportunity contact role plus verified buying authority and won/lost reason. |
-| Champion | Product Marketing, Growth, SEO/Organic, or another marketing operator responsible for category/buyer visibility and competitive response. | Interview usage, role, activation behavior, and continued ownership of the workflow. |
-| Urgent problem | Teams cannot reliably know what AI-mediated buyers are being shown for priority buying questions, what inspected evidence supports it, what changed, and what owned action should be remeasured. | Repeated pain in interviews, fast activation, action creation/ownership, repeat cycles. |
-| Trigger event | Category/repositioning launch, competitor movement, executive request for AI recommendation evidence, new-market launch, or a need to prioritize visibility work. | Interview timestamps/reasons and source attribution in first-party commercial events. |
-| First use case | Configure → approve five priority buyer questions → real measurement → review one Recommendation Record → create and assign one action. | Time to first value, activation rate, stage-level drop-off. |
-| Recurring use case | Exact-comparable remeasurement after owned actions; inspect what improved, worsened, changed in competitors/evidence, then make the next decision. | Second-cycle rate, time to second cycle, WAU/MAU accounts, retained-account and cohort retention. |
-| Why now | AI-mediated buyer discovery is hypothesized to be important enough that growth teams need a repeatable evidence workflow rather than occasional manual checks. | Direct customer urgency, budget, alternatives considered, and sales-cycle evidence. |
-| Why Foremention | The differentiating workflow hypothesis is the combination of inspectable Recommendation Records, human review, exact comparability, ownership, scheduling, and longitudinal remeasurement. | Win/loss reasons against alternatives and continued use after cycle two. |
-| Why pay | Buyers may pay to reduce uncertainty and turn recommendation evidence into an accountable operating workflow. | Verified payment and accepted contract/pilot evidence only. |
-| Why continue paying | Ongoing change detection, owned action follow-through, remeasurement, longitudinal history, and team decision support may create recurring value. | Renewals, expansions, retained cohorts, referrals, and churn reasons. |
-| Primary competitive alternative | Manual ChatGPT/other assistant checks plus spreadsheets/docs; secondarily generic AI-visibility dashboards or ad-hoc PMM/SEO research. | Interviewed alternative-used fields and opportunity lost reasons. |
-| Why ChatGPT + spreadsheets may be insufficient | Manual workflows do not inherently guarantee stable question/provider/model/methodology snapshots, inspected evidence provenance, a human-review boundary, exact-comparability gating, accountable action owners, schedule orchestration, deduped alerting, tenant isolation, or an audit-ready longitudinal record. | Confirm which shortcomings real customers actually care enough about to pay to solve. |
+| Primary ICP | English-language growth-stage B2B software companies where AI-mediated buyer recommendations may affect category discovery/shortlisting and a marketing team can act on evidence. | Real interviews, pipeline evidence, activation, and second-cycle cohorts. |
+| Economic buyer | VP/Head of Marketing or CMO depending on company size. | Opportunity role + verified authority + won/lost reason. |
+| Champion | Product Marketing, Growth, SEO/Organic, or another marketing operator responsible for buyer visibility and competitive response. | Usage/interview evidence and sustained workflow ownership. |
+| Urgent problem | Teams cannot reliably know what AI-mediated buyers are shown for priority buying questions, what inspected evidence supports it, what changed, or what owned action should be remeasured. | Repeated interview pain + fast activation + repeat cycles. |
+| Trigger event | Category/repositioning launch, competitor movement, executive request for recommendation evidence, new-market launch, or visibility-prioritization need. | First-party event/reason evidence. |
+| First use case | Configure → five approved buyer questions → real measurement → reviewed Recommendation Record → one evidence-backed action → owner. | Activation and time to first value. |
+| Recurring use case | Exact-comparable remeasurement after owned actions; inspect what changed, improved/worsened where evidence permits, competitor/evidence movement, then decide again. | Second-cycle rate, time to second cycle, WAU/MAU accounts, retention. |
+| Why now | AI-mediated buyer discovery may be important enough that growth teams need a repeatable evidence workflow rather than occasional manual checks. | Customer urgency and budget evidence. |
+| Why Foremention | Hypothesized differentiation: inspectable Recommendation Records + human review + exact comparability + owner + schedule + longitudinal remeasurement. | Win/loss and continued-use evidence. |
+| Why pay | Buyers may pay to reduce uncertainty and turn recommendation evidence into accountable follow-through. | Verified payment/pilot evidence only. |
+| Why continue paying | Change detection, owned follow-through, remeasurement, longitudinal history, and team decision support may create recurring value. | Renewals, expansions, retained cohorts, referrals, churn reasons. |
+| Primary competitive alternative | Manual ChatGPT/assistant checks plus spreadsheets/docs; secondarily generic AI-visibility dashboards or ad-hoc PMM/SEO research. | Alternative-used and win/loss evidence. |
+| Why ChatGPT + spreadsheets may be insufficient | Manual work does not inherently guarantee stable question/provider/model/methodology snapshots, inspected evidence provenance, review boundaries, exact comparability, owner/reminder orchestration, deduped alerts, tenant isolation, or an audit-ready longitudinal record. | Confirm which differences customers value enough to pay for. |
 
-## 6. Canonical customer journey
-
-The product loop is now explicitly modeled as:
+## Canonical customer journey
 
 **Configure → 5 approved buyer questions → live run → Recommendation Record → evidence review → action → owner → comparable remeasurement → decision**
 
-The activation/retention state machine is:
+The eight-stage state machine is:
 
 1. `workspace_configured`
 2. `five_questions`
-3. `first_record` — first real measurement/Recommendation Record
+3. `first_record` — first real measurement / Recommendation Record
 4. `first_review` — human-review boundary
 5. `first_action`
 6. `action_assigned` — persisted owner required
 7. `second_comparable_cycle`
 8. `retained_loop`
 
-Stages 1–6 define activation for the canonical PMF metric. Stages 7–8 are retention outcomes.
+Stages 1–6 define canonical activation. Stages 7–8 are retention outcomes.
 
-## 7. What this branch built
+## What this branch built
 
-### A. Explicit action-ownership boundary
+### Activation + customer-facing next step
 
-`lib/retention-loop.ts` now contains the eight-stage journey. A created action cannot advance to the second comparable cycle until an owner exists.
+- `lib/retention-loop.ts` now contains the exact eight-stage path.
+- A created action cannot advance past the ownership boundary until `firstActionAssigned` is true.
+- `app/api/retention/attention/route.ts` reads organization-scoped `placements.owner_id`, derives action ownership, and returns the next activation stage.
+- `components/retention-surface-bridge.tsx` keeps the existing visible **Next best step** and now renders the transparent **Retention health** state on Attention rather than discarding it.
 
-`app/api/retention/attention/route.ts` now reads persisted `placements.owner_id`, derives `firstActionAssigned`, and returns the correct customer-facing next activation step. Existing organization scoping and viewer access-token boundaries are retained.
+### Transparent retention health
 
-### B. Transparent retention health
-
-`lib/retention-health.ts` introduces a rule-based state machine rather than an opaque score:
+`lib/retention-health.ts` implements a rule-based state machine rather than an opaque score:
 
 - `not_activated`
 - `waiting_for_second_cycle`
 - `needs_schedule`
 - `at_risk` when owned work is overdue
-- `healthy` when activation, second comparable cycle, schedule, and due-action conditions are satisfied
+- `healthy` when activation, second comparable cycle, recurring schedule, and overdue-action conditions are satisfied
 
-Attention now returns this explainable `retentionHealth` state together with the next activation step.
+The Attention surface renders the label/reason and exposes the inspectable `data-retention-health` state. No proprietary numerical health score is invented.
 
-### C. Canonical PMF metric contract
+### Canonical PMF metric contract
 
-`lib/pmf-metrics.ts` defines and derives the required account-level metrics from caller-supplied first-party facts only. It has no synthetic fallback.
+`lib/pmf-metrics.ts` defines/derives the required metrics from caller-supplied first-party account facts only. Missing evidence/denominators return `insufficient_data`.
 
-- **Activation rate** — KPI-eligible accounts completing all six activation boundaries / all KPI-eligible accounts in the measured cohort.
-- **First-record-review rate** — accounts with first reviewed Recommendation Record / accounts with first real measurement.
-- **Action creation rate** — accounts creating an action after first review / accounts with first review.
+- **Activation rate** — KPI-eligible accounts completing all six activation boundaries / all KPI-eligible accounts in the cohort.
+- **First-record-review rate** — first reviewed Recommendation Record / first real measurement.
+- **Action creation rate** — action created after first review / first review.
 - **Second-cycle rate** — activated accounts with second exact-comparable reviewed cycle / activated accounts.
-- **WAU accounts** — distinct KPI-eligible accounts with meaningful product activity in the trailing seven days.
-- **MAU accounts** — distinct KPI-eligible accounts with meaningful product activity in the trailing 30 days.
-- **Retained account rate** — prior-30-day active accounts also active in the current trailing 30-day window / prior-30-day active accounts.
-- **Time to first value** — median account-created → first human-reviewed Recommendation Record; withheld until at least five real observations.
-- **Time to second cycle** — median first real measurement → second exact-comparable reviewed cycle; withheld until at least five real observations.
+- **WAU accounts** — distinct KPI-eligible accounts with meaningful product activity in trailing 7 days.
+- **MAU accounts** — distinct KPI-eligible accounts with meaningful product activity in trailing 30 days.
+- **Retained account rate** — prior-30-day active accounts also active in current trailing 30 days / prior-30-day active accounts.
+- **Time to first value** — median account creation → first human-reviewed Recommendation Record, withheld until at least five real observations.
+- **Time to second cycle** — median first real measurement → second exact-comparable reviewed cycle, withheld until at least five real observations.
 - **Design-partner conversion** — accepted design partners becoming verified paying accounts / accepted design partners.
-- **Paid conversion** — activated accounts with verified real billing/payment evidence / activated accounts, but only once real billing evidence exists.
+- **Paid conversion** — activated accounts with verified billing/payment / activated accounts, only after real billing evidence exists.
 
-Any missing denominator or evidence boundary returns `insufficient_data`. A checkout button, pricing configuration, or application submission never counts as payment.
+A checkout button, price configuration, or application submission never counts as payment.
 
-### D. Cohort retention
+### Cohort retention
 
-`lib/pmf-cohorts.ts` groups only explicitly KPI-eligible accounts by the calendar month in which they complete all six activation boundaries. Next-month retention remains `null` until the full next calendar month has closed. Immature cohorts are never misreported as zero retention.
+`lib/pmf-cohorts.ts` groups only KPI-eligible accounts by the month they complete all six activation boundaries. Next-month retention remains `null` until the full next calendar month closes; immature cohorts are never mislabeled as zero retention.
 
-### E. Customer-proof research extension
+### Customer-proof research extension
 
-`20260830000300_customer_proof_research_events.sql` extends the existing commercial truth store instead of creating another one.
+`supabase/migrations/20260830000300_customer_proof_research_events.sql` extends the existing truth store rather than creating a parallel one.
 
-It adds an optional unique `design_partner_application_id` link from a commercial account to a real design-partner application, with no automatic conversion.
+It adds an optional unique `design_partner_application_id` link to `commercial_accounts` and expands `commercial_events` to cover:
 
-The existing `commercial_events` taxonomy is extended to include:
+- `customer_interview`
+- `objection_recorded`
+- `lost_deal_recorded`
+- `feature_request_recorded`
+- `use_case_validated`
+- `referral_verified`
+- existing verified payment, renewal, expansion, and churn event types remain preserved
 
-- customer interview;
-- objection recorded;
-- lost deal recorded;
-- feature request recorded;
-- validated use case;
-- verified referral;
-- existing verified payment, renewal, expansion, and churn states remain preserved.
+The tables remain service-role-only/RLS-protected and the migration seeds no customer proof.
 
-The commercial tables remain RLS-enabled/service-role-only. No customer-proof rows are inserted by the migration.
-
-## 8. Retention engine coverage after this branch
+## Retention coverage
 
 | Requirement | State |
 | --- | --- |
-| Next-cycle scheduling | Existing schedule + Inngest architecture preserved. |
-| Meaningful-change alerts | Existing reviewed/exact-comparable notification path preserved. |
-| What changed | Existing presence/citation/competitor comparison primitives preserved. |
-| What worsened / improved | Presence delta can express reviewed direction; Foremention still does not claim causality. Broader semantic “better/worse” labels must remain evidence-backed. |
-| Competitor movement | Existing exact-comparable competitor appearance/disappearance logic preserved. |
-| Evidence changes | Existing returned-citation set change logic preserved. |
-| Overdue action reminders | Existing due-action Attention path preserved and now contributes to retention health. |
-| Weekly/monthly return triggers | Existing schedule and weekly intelligence/email preference paths preserved. |
-| Longitudinal timeline | Existing comparison/run/Recommendation Record history preserved. |
-| Retention health | **Built here** as transparent rule-based state. |
-| Comparison eligibility | Existing exact-comparability + human-review gate preserved. |
-| Alert-fatigue controls | Existing event-key dedupe, exact-comparability eligibility, opt-in preferences/unsubscribe, and duplicate delivery suppression preserved. |
+| Next-cycle scheduling | Existing schedule + Inngest path preserved. |
+| Meaningful-change alerts | Existing reviewed/exact-comparable path preserved. |
+| What changed | Existing recommendation-presence, competitor-set, and citation-set changes preserved. |
+| What worsened / improved | Reviewed direction can be shown when evidence supports it; no causal claim is added. |
+| Competitor movement | Existing exact-comparable appearance/disappearance logic preserved. |
+| Evidence changes | Existing citation-set change logic preserved. |
+| Overdue reminders | Existing due-action Attention path preserved and included in retention health. |
+| Weekly/monthly return triggers | Existing recurring schedules + weekly intelligence/email preferences preserved. |
+| Longitudinal timeline | Existing run/comparison/Recommendation Record history preserved. |
+| Retention health | Built and rendered on Attention. |
+| Comparison eligibility | Existing human-review + exact-comparability gate preserved. |
+| Alert-fatigue controls | Event-key dedupe, eligibility gate, opt-in preferences/unsubscribe, duplicate-delivery suppression preserved. |
 
-## 9. Customer-proof coverage after this branch
+## Customer-proof coverage
 
-The internal data model can now represent, without inventing values:
+The internal model can represent, without fabricating values: design partners, activated KPI-eligible organizations, verified paying accounts, renewals, expansions, referrals, churn, interviews, objections, lost deals, feature requests, validated use cases, time to first value, time to second cycle, rolling retention, and activation-cohort retention.
 
-- design-partner applications and accepted partners;
-- activated KPI-eligible organizations;
-- verified paying accounts;
-- verified renewals;
-- verified expansions;
-- verified referrals;
-- verified churn;
-- customer interviews;
-- objections;
-- lost deals and loss reasons;
-- feature requests;
-- validated use cases;
-- time to first value;
-- time to second comparable cycle;
-- rolling and activation-cohort retention.
+If no real records exist, the correct output is no data / `insufficient_data`.
 
-If there are no real records, the correct output is no data / `insufficient_data`, not a benchmark or synthetic number.
-
-## 10. Files changed
+## Files changed
 
 - `lib/retention-loop.ts`
 - `lib/retention-health.ts`
 - `lib/pmf-metrics.ts`
 - `lib/pmf-cohorts.ts`
 - `app/api/retention/attention/route.ts`
+- `components/retention-surface-bridge.tsx`
 - `supabase/migrations/20260830000300_customer_proof_research_events.sql`
 - `tests/retention-loop-activation.test.mjs`
+- `tests/retention-loop-contract.test.mjs`
 - `tests/pmf-metrics.test.mjs`
 - `tests/billion-dollar-pmf-retention.test.mjs`
 - `docs/billion-dollar-build/01-pmf-retention.md`
 
-## 11. TDD and QA contract
+## TDD + QA contract
 
-Material behavioral changes were driven by tests before implementation, including:
+Material behavioral tests were written/extended before the matching implementation for the missing action-assigned boundary, ownership/human-review non-skipping, retention-health states, customer-visible retention health, fail-closed PMF metrics, all six activation boundaries, verified-billing paid conversion, cohort maturity, and customer-proof extension.
 
-- the missing `action_assigned` activation stage;
-- prevention of human-review and ownership boundary skipping;
-- transparent retention-health states;
-- fail-closed metric behavior;
-- all six activation boundaries in PMF metrics;
-- real-billing requirement for paid conversion;
-- mature-vs-immature activation cohort retention;
-- extension of the existing customer-proof ledger without a parallel truth store or seeded proof.
+Repository-native PR verification must cover:
 
-Repository-native PR verification is expected to execute:
-
-- isolated Supabase migration replay and `scripts/verify-company-migrations.sql`;
+- isolated Supabase migration replay + `scripts/verify-company-migrations.sql`;
 - `pnpm test`;
 - `pnpm lint`;
 - `pnpm typecheck`;
 - `pnpm build`;
-- Cloudflare Worker dry-run;
-- Browser Acceptance across local PR build;
-- browser zoom/reflow acceptance;
+- Cloudflare Worker dry run;
+- Browser Acceptance;
+- zoom/reflow checks;
 - canonical-brand visual proof;
-- accessibility checks through the browser acceptance stack;
+- accessibility checks;
 - Lighthouse assertions;
-- security and CodeQL workflows.
+- Security;
+- CodeQL;
+- exact candidate SHA verification against unchanged starting `main`.
 
-### Verification result
+Do not treat queued/in-progress workflows as passing.
 
-Final workflow results and exact candidate head SHA must be recorded only from current GitHub Actions evidence. Do not treat a queued run as a passing run.
+## Remaining blockers / intentional boundaries
 
-## 12. Remaining blockers / intentional boundaries
+1. **No production customer counts are asserted.** The repository audit did not inspect a production customer database, so activated customers, paying customers, retention, churn, and conversion values remain unknown here.
+2. **No customer-facing founder/operator commercial back office was added.** Commercial/customer-discovery records remain service-role-only because exposing them through normal customer browser auth would weaken the privacy boundary.
+3. **Metric definitions and pure derivations are implemented, but a trusted production aggregation job/API is not fabricated.** A service-only mapping can later feed verified organization facts into the metric contract.
+4. **Paid conversion remains unavailable until verified billing/payment evidence exists.**
+5. **The wedge remains a hypothesis until first-party design-partner/customer proof validates it.**
+6. **Observed before/after movement is observational, not causal proof.**
 
-1. **No production customer counts are asserted here.** This repository audit did not query or expose a production customer database, so it cannot legitimately claim activated customers, paying customers, retention, churn, or conversion values.
-2. **No founder/operator back-office UI was added.** Commercial/customer-discovery records contain protected first-party data and remain service-role-only. Exposing them through a normal customer browser surface would weaken the existing privacy boundary.
-3. **Metric definitions and pure derivations are implemented, but a trusted production aggregation job/API is intentionally not fabricated.** A later implementation may map verified first-party organization facts into the metric contract from a service-only context.
-4. **Paid conversion stays unavailable until real payment/billing evidence exists.**
-5. **Market positioning remains a hypothesis until first-party design-partner/customer proof validates it.**
-6. **Observed change remains observational.** A before/after movement after an action is not proof that the action caused the movement.
+## Decisions next chats must preserve
 
-## 13. Decisions the next chats must preserve
-
-- Do not restart the product architecture or re-open the five-object IA unless new evidence justifies it.
-- Do not create a second customer-proof database or analytics truth source.
-- Do not silently redefine historical analytics events; add explicit new contracts when semantics materially change.
+- Do not restart architecture or re-open the five-object IA without new evidence.
+- Do not create a second customer-proof or analytics truth store.
+- Do not silently redefine historical analytics events.
 - Keep activation account-level and privacy-safe.
-- Keep the first customer workflow deliberately narrow: five approved buyer questions, one real baseline, one reviewed Recommendation Record, one owned action, one exact-comparable remeasurement.
+- Keep the first workflow narrow: five approved questions, one real baseline, one reviewed Recommendation Record, one owned action, one exact-comparable remeasurement.
 - Treat second-cycle completion and retained workflow as the early PMF retention test.
-- Keep customer-discovery evidence first-party and service-only; do not send raw interview/contact/commercial text to PostHog.
-- Keep `insufficient_data` as a valid, honest state.
+- Keep customer-discovery data first-party/service-only; do not send raw interview/contact/commercial text to PostHog.
+- Keep `insufficient_data` as an honest state.
 - Do not report paid conversion, ROI, retention, or traction without verified evidence.
