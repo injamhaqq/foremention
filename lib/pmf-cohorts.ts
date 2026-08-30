@@ -1,4 +1,14 @@
-import type { PmfAccountFacts } from "@/lib/pmf-metrics";
+export type CohortAccountFacts = {
+  organizationId: string;
+  includedInCompanyKpis: boolean;
+  workspaceConfiguredAt: string | null;
+  fiveQuestionsApprovedAt: string | null;
+  firstMeasurementAt: string | null;
+  firstRecordReviewedAt: string | null;
+  firstActionCreatedAt: string | null;
+  firstActionAssignedAt: string | null;
+  activityAt: string[];
+};
 
 export type MonthlyActivationCohort = {
   cohortMonth: string;
@@ -14,9 +24,11 @@ function timestamp(value: string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function activationTimestamp(account: PmfAccountFacts) {
+function activationTimestamp(account: CohortAccountFacts) {
   if (
-    timestamp(account.firstMeasurementAt) === null
+    timestamp(account.workspaceConfiguredAt) === null
+    || timestamp(account.fiveQuestionsApprovedAt) === null
+    || timestamp(account.firstMeasurementAt) === null
     || timestamp(account.firstRecordReviewedAt) === null
     || timestamp(account.firstActionCreatedAt) === null
   ) return null;
@@ -37,7 +49,7 @@ function cohortKey(value: number) {
   return new Date(value).toISOString().slice(0, 7);
 }
 
-function hasActivityBetween(account: PmfAccountFacts, start: number, end: number) {
+function hasActivityBetween(account: CohortAccountFacts, start: number, end: number) {
   return account.activityAt.some((value) => {
     const at = timestamp(value);
     return at !== null && at >= start && at < end;
@@ -45,13 +57,13 @@ function hasActivityBetween(account: PmfAccountFacts, start: number, end: number
 }
 
 /**
- * Groups real KPI-eligible accounts by the month they cross the activation
- * boundary (first action assigned). Next-month retention is emitted only after
- * that entire calendar observation month has closed, so immature cohorts remain
- * explicitly unavailable instead of being reported as zero retention.
+ * Groups real KPI-eligible accounts by the month they cross every activation
+ * boundary through first action ownership. Next-month retention is emitted only
+ * after that entire calendar observation month has closed, so immature cohorts
+ * remain explicitly unavailable instead of being reported as zero retention.
  */
-export function deriveMonthlyActivationCohorts(accounts: PmfAccountFacts[], now = new Date()): MonthlyActivationCohort[] {
-  const groups = new Map<number, PmfAccountFacts[]>();
+export function deriveMonthlyActivationCohorts(accounts: CohortAccountFacts[], now = new Date()): MonthlyActivationCohort[] {
+  const groups = new Map<number, CohortAccountFacts[]>();
   for (const account of accounts) {
     if (!account.includedInCompanyKpis) continue;
     const activatedAt = activationTimestamp(account);
