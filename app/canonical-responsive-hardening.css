@@ -89,6 +89,17 @@
   white-space: nowrap;
 }
 
+.app-mobile-nav > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-mobile-nav > summary .foremention-mark {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+
 .table-wrap,
 .canonical-snapshot-history .table-wrap {
   max-width: 100%;
