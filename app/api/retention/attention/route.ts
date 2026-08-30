@@ -21,16 +21,18 @@ export async function GET() {
   const sources = latestReviewed ? await loadTruthfulSourceMap(viewer, { runId: latestReviewed.id }).catch(() => []) : [];
   let scheduleEnabled = false;
   let firstActionCreated = false;
+  let firstActionAssigned = false;
   let dueActions: Array<{ id: string; title: string; dueAt: string; overdue: boolean }> = [];
   if (viewer.mode !== "demo" && context) {
     try {
       const [schedules, actions, firstAction] = await Promise.all([
         supabaseRest<Array<{ id: string }>>(`measurement_schedules?select=id&organization_id=eq.${context.organizationId}&enabled=eq.true&limit=1`, { token: viewer.accessToken }),
         supabaseRest<Array<{ id: string; page_title: string | null; source_url: string; due_at: string | null; remeasurement_due_at: string | null }>>(`placements?select=id,page_title,source_url,due_at,remeasurement_due_at&organization_id=eq.${context.organizationId}&or=(due_at.not.is.null,remeasurement_due_at.not.is.null)&order=updated_at.desc&limit=50`, { token: viewer.accessToken }),
-        supabaseRest<Array<{ id: string }>>(`placements?select=id&organization_id=eq.${context.organizationId}&limit=1`, { token: viewer.accessToken }),
+        supabaseRest<Array<{ id: string; owner_id: string | null }>>(`placements?select=id,owner_id&organization_id=eq.${context.organizationId}&order=created_at.asc&limit=50`, { token: viewer.accessToken }),
       ]);
       scheduleEnabled = schedules.length > 0;
       firstActionCreated = firstAction.length > 0;
+      firstActionAssigned = firstAction.some((action) => Boolean(action.owner_id));
       const now = Date.now();
       dueActions = actions.flatMap((action) => {
         const dueAt = action.remeasurement_due_at || action.due_at;
@@ -62,6 +64,7 @@ export async function GET() {
     firstCollectionCompleted,
     firstRecordReviewed,
     firstActionCreated,
+    firstActionAssigned,
     comparableReviewedCycles,
   });
   const onboardingComplete = Boolean(context && approvedQuestions > 0 && runs.length && firstRecordReviewed);
