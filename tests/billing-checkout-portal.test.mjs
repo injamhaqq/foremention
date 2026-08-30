@@ -20,6 +20,10 @@ test("Stripe billing stays fail-closed until provider, secret, webhook secret, a
   delete process.env.STRIPE_WEBHOOK_SECRET;
   delete process.env.STRIPE_CORE_PRICE_ID;
   delete process.env.STRIPE_SIGNAL_PRICE_ID;
+  delete process.env.STRIPE_CORE_MONTHLY_PRICE_ID;
+  delete process.env.STRIPE_SIGNAL_MONTHLY_PRICE_ID;
+  delete process.env.STRIPE_CORE_ANNUAL_PRICE_ID;
+  delete process.env.STRIPE_SIGNAL_ANNUAL_PRICE_ID;
   assert.equal(billing.stripeBillingConfigured(), false);
   process.env.BILLING_PROVIDER_ID = "stripe";
   process.env.STRIPE_SECRET_KEY = "sk_test_example";
@@ -61,6 +65,7 @@ test("Stripe subscription events map into the existing verified billing event mo
     externalCustomerId: "cus_123",
     externalSubscriptionId: "sub_123",
     eventId: "evt_subscription",
+    occurredAt: null,
   });
   assert.equal(parseStripeBillingEvent(JSON.stringify({ id: "evt_other", type: "customer.created", data: { object: {} } })), null);
 });
