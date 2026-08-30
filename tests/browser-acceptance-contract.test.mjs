@@ -69,7 +69,7 @@ test("browser acceptance captures every approved Foremention QA width", () => {
 
 test("browser acceptance requires the approved reverse identity and rejects white/warm surfaces", () => {
   assert.match(runner, /verifyCanonicalBrandArtwork/);
-  assert.match(runner, /Approved Foremention logo artwork is not visibly rendered/);
+  assert.match(runner, /Approved Foremention identity artwork is not visibly rendered/);
   assert.match(runner, /Text-only Foremention fallback is still rendered/);
   assert.match(runner, /foremention-logo-white\.svg/);
   assert.match(runner, /foremention-mark-white\.svg/);
