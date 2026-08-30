@@ -11,6 +11,8 @@ export type ReportDeliveryReadiness = {
   reason: "ready" | "disabled" | "provider_unconfigured" | "sender_unconfigured" | "provider_unsupported";
 };
 
+export const REPORT_DELIVERY_MAX_ATTEMPTS = 5;
+const RETRY_DELAYS_MINUTES = [5, 30, 120, 720] as const;
 const SUPPORTED_EMAIL_PROVIDERS = new Set(["resend", "postmark", "sendgrid", "ses"]);
 
 export function reportDeliveryReadiness(config: ReportDeliveryConfig): ReportDeliveryReadiness {
@@ -43,6 +45,14 @@ export function computeNextReportRun(cadence: ReportCadence, from = new Date()) 
   if (cadence === "quarterly") return addClampedMonths(from, 3);
   const exhaustive: never = cadence;
   throw new Error(`Unsupported report cadence: ${exhaustive}`);
+}
+
+export function computeReportDeliveryRetry(attemptNumber: number, from = new Date()) {
+  if (!Number.isInteger(attemptNumber) || attemptNumber < 1) throw new Error("Delivery attempt number must start at 1.");
+  if (!Number.isFinite(from.getTime())) throw new Error("A valid retry anchor is required.");
+  if (attemptNumber >= REPORT_DELIVERY_MAX_ATTEMPTS) return null;
+  const delayMinutes = RETRY_DELAYS_MINUTES[Math.min(attemptNumber - 1, RETRY_DELAYS_MINUTES.length - 1)];
+  return new Date(from.getTime() + delayMinutes * 60_000);
 }
 
 export function reportDeliveryConfigFromEnv(env: Record<string, string | undefined> = process.env) {
