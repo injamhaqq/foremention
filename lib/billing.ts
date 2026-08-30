@@ -1,4 +1,4 @@
-import { packageCapabilities, type ForementionPackage } from "@/lib/entitlements";
+import { packageCapabilities, type ForementionPackage } from "./entitlements.ts";
 
 export type BillingLifecycleState = "trialing" | "active" | "past_due" | "paused" | "cancelled";
 export type VerifiedBillingEvent = {
@@ -8,6 +8,13 @@ export type VerifiedBillingEvent = {
   externalCustomerId?: string | null;
   externalSubscriptionId?: string | null;
   eventId: string;
+  occurredAt?: string | null;
+};
+
+export type BillingEntitlementGrant = {
+  status: "active" | "paused" | "cancelled";
+  expiresAt: string | null;
+  gracePeriodEndsAt: string | null;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -16,6 +23,13 @@ const STATES = new Set<BillingLifecycleState>(["trialing", "active", "past_due",
 
 export function billingConfigured() {
   return Boolean(process.env.BILLING_WEBHOOK_SECRET && process.env.BILLING_PROVIDER_ID);
+}
+
+export function billingGracePeriodDays() {
+  const raw = process.env.BILLING_GRACE_PERIOD_DAYS?.trim();
+  if (!raw) return 0;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 0 && value <= 30 ? value : 0;
 }
 
 function bytesToHex(bytes: Uint8Array) {
@@ -53,6 +67,9 @@ export function parseVerifiedBillingEvent(rawBody: string): VerifiedBillingEvent
   if (!PACKAGES.has(packageKey)) throw new Error("Billing package is invalid.");
   if (!STATES.has(state)) throw new Error("Billing state is invalid.");
   if (!eventId || eventId.length > 160) throw new Error("Billing event id is invalid.");
+  const occurredAt = typeof data.occurredAt === "string" && Number.isFinite(new Date(data.occurredAt).getTime())
+    ? new Date(data.occurredAt).toISOString()
+    : null;
   return {
     organizationId,
     packageKey: packageKey as VerifiedBillingEvent["packageKey"],
@@ -60,11 +77,25 @@ export function parseVerifiedBillingEvent(rawBody: string): VerifiedBillingEvent
     externalCustomerId: typeof data.externalCustomerId === "string" ? data.externalCustomerId.slice(0, 255) : null,
     externalSubscriptionId: typeof data.externalSubscriptionId === "string" ? data.externalSubscriptionId.slice(0, 255) : null,
     eventId,
+    occurredAt,
   };
 }
 
 export function entitlementsForBillingEvent(event: VerifiedBillingEvent) {
   return packageCapabilities(event.packageKey);
+}
+
+export function entitlementGrantForBillingEvent(event: VerifiedBillingEvent, now?: Date): BillingEntitlementGrant {
+  if (event.state === "cancelled") return { status: "cancelled", expiresAt: null, gracePeriodEndsAt: null };
+  if (event.state === "paused") return { status: "paused", expiresAt: null, gracePeriodEndsAt: null };
+  if (event.state !== "past_due") return { status: "active", expiresAt: null, gracePeriodEndsAt: null };
+
+  const graceDays = billingGracePeriodDays();
+  if (graceDays <= 0) return { status: "paused", expiresAt: null, gracePeriodEndsAt: null };
+  const base = now || (event.occurredAt ? new Date(event.occurredAt) : new Date());
+  if (!Number.isFinite(base.getTime())) return { status: "paused", expiresAt: null, gracePeriodEndsAt: null };
+  const graceEnd = new Date(base.getTime() + graceDays * 24 * 60 * 60 * 1000).toISOString();
+  return { status: "active", expiresAt: graceEnd, gracePeriodEndsAt: graceEnd };
 }
 
 export function legacyEntitlementStatus(state: BillingLifecycleState): "active" | "paused" | "cancelled" {
