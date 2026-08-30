@@ -138,10 +138,13 @@ test("browser acceptance covers WebKit, low-height laptop, and mobile landscape"
   assert.match(hardening, /name: "webkit-mobile"[\s\S]{0,160}browserType: webkit[\s\S]{0,100}width: 390/);
 });
 
-test("browser acceptance blocks 200 and 400 percent zoom reflow failures", () => {
+test("browser acceptance models 200 and 400 percent zoom through the effective CSS viewport", () => {
   assert.match(hardening, /const zoomFactors = \[2, 4\]/);
-  assert.match(hardening, /verifyZoomReflow/);
-  assert.match(hardening, /document\.documentElement\.style\.zoom/);
+  assert.match(hardening, /function effectiveViewport/);
+  assert.match(hardening, /baseViewport\.width \/ zoomFactor/);
+  assert.match(hardening, /page\.setViewportSize\(viewport\)/);
+  assert.match(hardening, /page\.setViewportSize\(baseViewport\)/);
+  assert.doesNotMatch(hardening, /document\.documentElement\.style\.zoom/);
   assert.match(hardening, /Zoom reflow overflow detected/);
   assert.match(hardening, /Nested content clipping detected/);
   assert.match(hardening, /chromium-authenticated-low-height/);
