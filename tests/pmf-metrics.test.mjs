@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deriveMonthlyActivationCohorts, derivePmfMetrics } from "../lib/pmf-metrics.ts";
+import { deriveMonthlyActivationCohorts } from "../lib/pmf-cohorts.ts";
+import { derivePmfMetrics } from "../lib/pmf-metrics.ts";
 
 function account(overrides = {}) {
   return {
