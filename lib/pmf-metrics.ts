@@ -39,7 +39,7 @@ export const PMF_METRIC_DEFINITIONS: Record<PmfMetricKey, PmfMetricDefinition> =
   first_record_review_rate: {
     label: "First-record-review rate",
     unit: "percent",
-    numerator: "KPI-eligible accounts with a first human-reviewed Recommendation Record.",
+    numerator: "KPI-eligible accounts with a first human-reviewed Recommendation Record after a first real measurement.",
     denominator: "KPI-eligible accounts that completed a first real measurement.",
     interpretation: "Measures whether a measurement reaches the human-review boundary instead of stopping at collection output.",
   },
@@ -113,6 +113,8 @@ export type PmfAccountFacts = {
   organizationId: string;
   includedInCompanyKpis: boolean;
   createdAt: string | null;
+  workspaceConfiguredAt: string | null;
+  fiveQuestionsApprovedAt: string | null;
   firstMeasurementAt: string | null;
   firstRecordReviewedAt: string | null;
   firstActionCreatedAt: string | null;
@@ -177,7 +179,9 @@ function hasActivityBetween(account: PmfAccountFacts, start: number, end: number
 
 function activated(account: PmfAccountFacts) {
   return Boolean(
-    timestamp(account.firstMeasurementAt) !== null
+    timestamp(account.workspaceConfiguredAt) !== null
+    && timestamp(account.fiveQuestionsApprovedAt) !== null
+    && timestamp(account.firstMeasurementAt) !== null
     && timestamp(account.firstRecordReviewedAt) !== null
     && timestamp(account.firstActionCreatedAt) !== null
     && timestamp(account.firstActionAssignedAt) !== null,
@@ -198,8 +202,8 @@ export function derivePmfMetrics(accounts: PmfAccountFacts[], now = new Date()):
 
   const activatedAccounts = eligible.filter(activated);
   const firstMeasured = eligible.filter((account) => timestamp(account.firstMeasurementAt) !== null);
-  const firstReviewed = eligible.filter((account) => timestamp(account.firstRecordReviewedAt) !== null);
-  const actionCreated = eligible.filter((account) => timestamp(account.firstActionCreatedAt) !== null);
+  const firstReviewed = firstMeasured.filter((account) => timestamp(account.firstRecordReviewedAt) !== null);
+  const actionCreated = firstReviewed.filter((account) => timestamp(account.firstActionCreatedAt) !== null);
   const secondCycle = activatedAccounts.filter((account) => timestamp(account.secondComparableCycleAt) !== null);
 
   const current30 = eligible.filter((account) => hasActivityBetween(account, current30Start, nowMs + 1));
