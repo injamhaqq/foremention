@@ -1,116 +1,132 @@
 -- Foremention Commercial Engine v1
--- Founder-internal revenue operations and pricing research truth store.
--- No customer/browser write policies are granted. Public pricing is not encoded here.
+-- Extends the existing first-party company/customer-proof commercial foundation.
+-- It does not create a parallel CRM and does not seed synthetic commercial facts.
 
 begin;
 
-create table if not exists public.commercial_accounts (
-  id uuid primary key default gen_random_uuid(),
-  organization_id uuid references public.organizations(id) on delete set null,
-  company_name text not null check (char_length(company_name) between 2 and 180),
-  domain text check (domain is null or char_length(domain) between 3 and 255),
-  source text not null check (char_length(source) between 2 and 120),
-  lifecycle text not null default 'prospect' check (lifecycle in ('prospect','design_partner','customer','former_customer','disqualified')),
-  market text,
-  employee_band text,
-  arr_band text,
-  owner_user_id uuid references auth.users(id) on delete set null,
-  notes text check (notes is null or char_length(notes) <= 8000),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+-- Preserve the existing commercial account object and extend only the fields
+-- needed for repeatable qualification and account context.
+alter table public.commercial_accounts
+  add column if not exists market text,
+  add column if not exists employee_band text,
+  add column if not exists arr_band text,
+  add column if not exists notes text;
 
-create index if not exists commercial_accounts_lifecycle_idx
-  on public.commercial_accounts (lifecycle, created_at desc);
-create index if not exists commercial_accounts_organization_idx
-  on public.commercial_accounts (organization_id) where organization_id is not null;
+alter table public.commercial_accounts
+  drop constraint if exists commercial_account_lifecycle_check;
+alter table public.commercial_accounts
+  add constraint commercial_account_lifecycle_check
+  check (lifecycle_stage in ('target','prospect','qualified','contacted','conversation','design_partner','customer','churned','disqualified'));
 
-create table if not exists public.commercial_contacts (
-  id uuid primary key default gen_random_uuid(),
-  account_id uuid not null references public.commercial_accounts(id) on delete cascade,
-  full_name text not null check (char_length(full_name) between 2 and 180),
-  email text check (email is null or char_length(email) between 3 and 320),
-  title text check (title is null or char_length(title) <= 180),
-  buying_role text not null default 'other' check (buying_role in ('champion','economic_buyer','technical_evaluator','security','procurement','legal','other')),
-  relationship_state text not null default 'unknown' check (relationship_state in ('unknown','cold','engaged','supportive','neutral','blocked')),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+create index if not exists commercial_accounts_market_idx
+  on public.commercial_accounts (market) where market is not null;
 
-create index if not exists commercial_contacts_account_idx
-  on public.commercial_contacts (account_id, buying_role);
+-- Preserve the existing protected commercial contact object/PII boundary while
+-- making buying roles explicit enough for champion/economic-buyer workflows.
+alter table public.commercial_contacts
+  add column if not exists relationship_state text not null default 'unknown';
 
-create table if not exists public.commercial_opportunities (
-  id uuid primary key default gen_random_uuid(),
-  account_id uuid not null references public.commercial_accounts(id) on delete cascade,
-  design_partner_application_id uuid references public.design_partner_applications(id) on delete set null,
-  opportunity_type text not null default 'new_business' check (opportunity_type in ('new_business','design_partner','renewal','expansion')),
-  source text not null check (char_length(source) between 2 and 120),
-  trigger text check (trigger is null or char_length(trigger) <= 2000),
-  stage text not null default 'prospect' check (stage in ('prospect','discovery','qualified','demo','proposal','security_review','procurement','negotiation','won','lost')),
-  package_key text check (package_key is null or package_key in ('core','signal','intelligence','custom')),
-  qualification jsonb not null default '{}'::jsonb check (jsonb_typeof(qualification) = 'object'),
-  champion_contact_id uuid references public.commercial_contacts(id) on delete set null,
-  economic_buyer_contact_id uuid references public.commercial_contacts(id) on delete set null,
-  discovery_at timestamptz,
-  qualified_at timestamptz,
-  demo_at timestamptz,
-  proposal_at timestamptz,
-  security_review_at timestamptz,
-  procurement_at timestamptz,
-  negotiation_at timestamptz,
-  forecast_close_at date,
-  contract_term text check (contract_term is null or contract_term in ('monthly','annual','multi_year','custom')),
-  proposed_acv_cents bigint check (proposed_acv_cents is null or proposed_acv_cents >= 0),
-  closed_acv_cents bigint check (closed_acv_cents is null or closed_acv_cents >= 0),
-  currency text not null default 'USD' check (currency ~ '^[A-Z]{3}$'),
-  closed_at timestamptz,
-  lost_reason text check (lost_reason is null or char_length(lost_reason) <= 2000),
-  renewal_at date,
-  owner_user_id uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  check ((stage = 'lost' and lost_reason is not null and closed_at is not null) or stage <> 'lost'),
-  check ((stage = 'won' and closed_at is not null) or stage <> 'won')
-);
+alter table public.commercial_contacts
+  drop constraint if exists commercial_contact_buyer_role_check;
+alter table public.commercial_contacts
+  add constraint commercial_contact_buyer_role_check
+  check (buyer_role is null or buyer_role in ('champion','daily_user','economic_buyer','influencer','technical_evaluator','security','procurement','legal','other'));
+
+alter table public.commercial_contacts
+  add constraint commercial_contact_relationship_state_check
+  check (relationship_state in ('unknown','cold','engaged','supportive','neutral','blocked'));
+
+create index if not exists commercial_contacts_role_idx
+  on public.commercial_contacts (account_id, buyer_role);
+
+-- Preserve current opportunity/revenue evidence fields and extend the pipeline
+-- rather than replacing the existing identified/demo/pilot flow.
+alter table public.commercial_opportunities
+  add column if not exists design_partner_application_id uuid references public.design_partner_applications(id) on delete set null,
+  add column if not exists source text,
+  add column if not exists trigger_context text,
+  add column if not exists qualification jsonb not null default '{}'::jsonb,
+  add column if not exists champion_contact_id uuid references public.commercial_contacts(id) on delete set null,
+  add column if not exists economic_buyer_contact_id uuid references public.commercial_contacts(id) on delete set null,
+  add column if not exists package_key text,
+  add column if not exists discovery_at timestamptz,
+  add column if not exists qualified_at timestamptz,
+  add column if not exists demo_at timestamptz,
+  add column if not exists proposal_at timestamptz,
+  add column if not exists security_review_at timestamptz,
+  add column if not exists procurement_at timestamptz,
+  add column if not exists negotiation_at timestamptz,
+  add column if not exists forecast_close_at date,
+  add column if not exists contract_term text,
+  add column if not exists renewal_at date;
+
+alter table public.commercial_opportunities
+  drop constraint if exists commercial_opportunity_stage_check;
+alter table public.commercial_opportunities
+  add constraint commercial_opportunity_stage_check
+  check (stage in ('identified','discovery','qualified','demo','pilot_proposed','pilot_active','proposal','security_review','procurement','negotiation','won','lost'));
+
+alter table public.commercial_opportunities
+  drop constraint if exists commercial_opportunity_model_check;
+alter table public.commercial_opportunities
+  add constraint commercial_opportunity_model_check
+  check (commercial_model in ('pilot','monthly','annual','multi_year','renewal','expansion','custom'));
+
+alter table public.commercial_opportunities
+  add constraint commercial_opportunity_qualification_json_check
+  check (jsonb_typeof(qualification) = 'object');
+alter table public.commercial_opportunities
+  add constraint commercial_opportunity_package_key_check
+  check (package_key is null or package_key in ('core','signal','intelligence','custom'));
+alter table public.commercial_opportunities
+  add constraint commercial_opportunity_contract_term_check
+  check (contract_term is null or contract_term in ('monthly','annual','multi_year','custom'));
 
 create index if not exists commercial_opportunities_pipeline_idx
   on public.commercial_opportunities (stage, forecast_close_at, created_at desc);
-create index if not exists commercial_opportunities_account_idx
-  on public.commercial_opportunities (account_id, created_at desc);
 create index if not exists commercial_opportunities_renewal_idx
   on public.commercial_opportunities (renewal_at) where renewal_at is not null;
+create index if not exists commercial_opportunities_champion_idx
+  on public.commercial_opportunities (champion_contact_id) where champion_contact_id is not null;
+create index if not exists commercial_opportunities_economic_buyer_idx
+  on public.commercial_opportunities (economic_buyer_contact_id) where economic_buyer_contact_id is not null;
 
+-- Existing commercial_events remains the activity ledger. Expand its enum for
+-- the new sales/procurement/renewal stages instead of creating a duplicate log.
+alter table public.commercial_events
+  drop constraint if exists commercial_event_type_check;
+alter table public.commercial_events
+  add constraint commercial_event_type_check
+  check (event_type in (
+    'outreach_sent','reply_received','conversation_held','discovery_held',
+    'qualification_completed','demo_held','pilot_proposal_sent','pilot_started','pilot_completed',
+    'proposal_sent','security_review_started','security_review_completed',
+    'procurement_started','procurement_completed','negotiation_updated',
+    'payment_verified','renewal_review','renewal_verified','expansion_review','expansion_verified',
+    'churn_verified','win_loss_review','customer_success_checkpoint'
+  ));
+
+-- Immutable opportunity stage history. Existing commercial_events remains the
+-- human activity log; this table exists specifically for stage-transition audit.
 create table if not exists public.commercial_stage_events (
   id uuid primary key default gen_random_uuid(),
   opportunity_id uuid not null references public.commercial_opportunities(id) on delete cascade,
-  from_stage text check (from_stage is null or from_stage in ('prospect','discovery','qualified','demo','proposal','security_review','procurement','negotiation','won','lost')),
-  to_stage text not null check (to_stage in ('prospect','discovery','qualified','demo','proposal','security_review','procurement','negotiation','won','lost')),
+  from_stage text check (from_stage is null or from_stage in ('identified','discovery','qualified','demo','pilot_proposed','pilot_active','proposal','security_review','procurement','negotiation','won','lost')),
+  to_stage text not null check (to_stage in ('identified','discovery','qualified','demo','pilot_proposed','pilot_active','proposal','security_review','procurement','negotiation','won','lost')),
   reason text check (reason is null or char_length(reason) <= 2000),
-  changed_by uuid references auth.users(id) on delete set null,
+  changed_by uuid,
   changed_at timestamptz not null default now()
 );
 
 create index if not exists commercial_stage_events_opportunity_idx
   on public.commercial_stage_events (opportunity_id, changed_at asc);
 
-create table if not exists public.commercial_activities (
-  id uuid primary key default gen_random_uuid(),
-  opportunity_id uuid not null references public.commercial_opportunities(id) on delete cascade,
-  contact_id uuid references public.commercial_contacts(id) on delete set null,
-  activity_type text not null check (activity_type in ('discovery','qualification','demo','proposal','follow_up','security_review','procurement','negotiation','renewal_review','expansion_review','win_loss_review')),
-  outcome text check (outcome is null or char_length(outcome) <= 4000),
-  next_step text check (next_step is null or char_length(next_step) <= 2000),
-  occurred_at timestamptz not null default now(),
-  created_by uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists commercial_activities_opportunity_idx
-  on public.commercial_activities (opportunity_id, occurred_at desc);
-
+-- Pricing-validation truth store. current_fact requires explicit evidence and
+-- observation time; experiments/hypotheses/targets cannot masquerade as facts.
 create table if not exists public.pricing_research_records (
   id uuid primary key default gen_random_uuid(),
+  account_id uuid references public.commercial_accounts(id) on delete set null,
+  opportunity_id uuid references public.commercial_opportunities(id) on delete set null,
   evidence_state text not null check (evidence_state in ('current_fact','experiment','hypothesis','future_target')),
   dimension text not null check (dimension in ('willingness_to_pay','value_metric','package_boundary','question_limit','brand_workspace_limit','measurement_frequency','users','integrations','api','enterprise_controls','minimum_acv','annual_contract','overage','gross_margin')),
   package_key text check (package_key is null or package_key in ('core','signal','intelligence','custom')),
@@ -121,7 +137,7 @@ create table if not exists public.pricing_research_records (
   evidence_source text check (evidence_source is null or char_length(evidence_source) <= 1000),
   observed_at timestamptz,
   experiment_status text check (experiment_status is null or experiment_status in ('planned','running','completed','invalidated')),
-  created_by uuid references auth.users(id) on delete set null,
+  created_by uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (evidence_state <> 'current_fact' or (evidence_source is not null and observed_at is not null))
@@ -129,7 +145,10 @@ create table if not exists public.pricing_research_records (
 
 create index if not exists pricing_research_records_dimension_idx
   on public.pricing_research_records (dimension, evidence_state, observed_at desc nulls last);
+create index if not exists pricing_research_records_opportunity_idx
+  on public.pricing_research_records (opportunity_id) where opportunity_id is not null;
 
+-- Period inputs are deliberately nullable: unknown commercial data is not zero.
 create table if not exists public.commercial_metric_periods (
   id uuid primary key default gen_random_uuid(),
   period_start date not null,
@@ -152,7 +171,7 @@ create table if not exists public.commercial_metric_periods (
   churned_mrr_cents bigint check (churned_mrr_cents is null or churned_mrr_cents >= 0),
   ending_mrr_cents bigint check (ending_mrr_cents is null or ending_mrr_cents >= 0),
   notes text check (notes is null or char_length(notes) <= 8000),
-  created_by uuid references auth.users(id) on delete set null,
+  created_by uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (period_end >= period_start)
@@ -161,14 +180,21 @@ create table if not exists public.commercial_metric_periods (
 create unique index if not exists commercial_metric_periods_range_source_unique
   on public.commercial_metric_periods (period_start, period_end, source);
 
+-- The original commercial tables already carry updated_at fields but no update
+-- triggers. Add them without changing their customer-proof semantics.
+drop trigger if exists commercial_accounts_updated_at on public.commercial_accounts;
 create trigger commercial_accounts_updated_at before update on public.commercial_accounts
   for each row execute function public.set_updated_at();
+drop trigger if exists commercial_contacts_updated_at on public.commercial_contacts;
 create trigger commercial_contacts_updated_at before update on public.commercial_contacts
   for each row execute function public.set_updated_at();
+drop trigger if exists commercial_opportunities_updated_at on public.commercial_opportunities;
 create trigger commercial_opportunities_updated_at before update on public.commercial_opportunities
   for each row execute function public.set_updated_at();
+drop trigger if exists pricing_research_records_updated_at on public.pricing_research_records;
 create trigger pricing_research_records_updated_at before update on public.pricing_research_records
   for each row execute function public.set_updated_at();
+drop trigger if exists commercial_metric_periods_updated_at on public.commercial_metric_periods;
 create trigger commercial_metric_periods_updated_at before update on public.commercial_metric_periods
   for each row execute function public.set_updated_at();
 
@@ -181,15 +207,16 @@ as $$
 begin
   if tg_op = 'INSERT' then
     insert into public.commercial_stage_events (opportunity_id, from_stage, to_stage, changed_by)
-    values (new.id, null, new.stage, new.owner_user_id);
+    values (new.id, null, new.stage, new.owner_id);
   elsif new.stage is distinct from old.stage then
     insert into public.commercial_stage_events (opportunity_id, from_stage, to_stage, changed_by)
-    values (new.id, old.stage, new.stage, new.owner_user_id);
+    values (new.id, old.stage, new.stage, new.owner_id);
   end if;
   return new;
 end;
 $$;
 
+drop trigger if exists commercial_opportunity_stage_audit on public.commercial_opportunities;
 create trigger commercial_opportunity_stage_audit
   after insert or update of stage on public.commercial_opportunities
   for each row execute function public.capture_commercial_stage_event();
@@ -204,6 +231,7 @@ begin
 end;
 $$;
 
+drop trigger if exists commercial_stage_events_immutable on public.commercial_stage_events;
 create trigger commercial_stage_events_immutable
   before update or delete on public.commercial_stage_events
   for each row execute function public.prevent_commercial_audit_mutation();
@@ -211,23 +239,32 @@ create trigger commercial_stage_events_immutable
 alter table public.commercial_accounts enable row level security;
 alter table public.commercial_contacts enable row level security;
 alter table public.commercial_opportunities enable row level security;
+alter table public.commercial_events enable row level security;
 alter table public.commercial_stage_events enable row level security;
-alter table public.commercial_activities enable row level security;
 alter table public.pricing_research_records enable row level security;
 alter table public.commercial_metric_periods enable row level security;
 
--- No authenticated policies are intentionally created. These tables contain
--- founder/internal CRM, pricing research and revenue data and are accessed only
--- through trusted service-role operations until an explicit internal admin surface exists.
+-- Keep all company/commercial records out of browser/customer data surfaces.
 revoke all on public.commercial_accounts from anon, authenticated;
 revoke all on public.commercial_contacts from anon, authenticated;
 revoke all on public.commercial_opportunities from anon, authenticated;
-revoke all on public.commercial_stage_events from anon, authenticated;
-revoke all on public.commercial_activities from anon, authenticated;
-revoke all on public.pricing_research_records from anon, authenticated;
-revoke all on public.commercial_metric_periods from anon, authenticated;
+revoke all on public.commercial_events from anon, authenticated;
+revoke all on public.commercial_stage_events from public, anon, authenticated;
+revoke all on public.pricing_research_records from public, anon, authenticated;
+revoke all on public.commercial_metric_periods from public, anon, authenticated;
+
+grant select, insert, update, delete on public.commercial_stage_events to service_role;
+grant select, insert, update, delete on public.pricing_research_records to service_role;
+grant select, insert, update, delete on public.commercial_metric_periods to service_role;
 
 revoke all on function public.capture_commercial_stage_event() from public, anon, authenticated;
 revoke all on function public.prevent_commercial_audit_mutation() from public, anon, authenticated;
+
+comment on table public.pricing_research_records is
+  'Founder-internal pricing evidence; current facts require explicit evidence source and observation time.';
+comment on table public.commercial_metric_periods is
+  'Founder-internal observed commercial metric inputs. Nullable values distinguish unknown from zero.';
+comment on table public.commercial_stage_events is
+  'Immutable opportunity stage-transition audit layered on the existing first-party commercial system.';
 
 commit;
