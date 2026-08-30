@@ -56,7 +56,10 @@ async function ensureOutput() {
 }
 
 async function verifyApprovedIdentity(page, profileName) {
-  const visibleWordmarks = await page.locator('img.wordmark__art[src="/brand/foremention-logo-white.svg"]').evaluateAll((elements) => elements.filter((element) => {
+  const visibleWordmarks = await page.locator([
+    'img.wordmark__art[src="/brand/foremention-logo-white.svg"]',
+    'img.foremention-mark[src="/brand/foremention-mark-white.svg"]',
+  ].join(", ")).evaluateAll((elements) => elements.filter((element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
@@ -197,7 +200,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  console.log(`[canonical-brand-proof] PASS — approved logo present and black/green app surfaces verified across ${summary.appShell.length} widths.`);
+  console.log(`[canonical-brand-proof] PASS — approved logo or mark present and black/green app surfaces verified across ${summary.appShell.length} widths.`);
 }
 
 main().catch(async (error) => {
