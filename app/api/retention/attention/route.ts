@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { loadNotifications, loadPrompts, loadRuns, loadWorkspaceContext } from "@/lib/data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
+import { deriveRetentionHealth } from "@/lib/retention-health";
 import { deriveActivationStage, deriveAttentionItems, type ComparableChange } from "@/lib/retention-loop";
 import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
 import { isMissingRelationError, supabaseRest } from "@/lib/supabase-rest";
@@ -58,6 +59,7 @@ export async function GET() {
   const firstCollectionCompleted = runs.some((run) => ["complete", "partial", "review"].includes(run.status));
   const firstRecordReviewed = sources.some((source) => Boolean(source.reviewedAt));
   const comparableReviewedCycles = intelligence?.latest && intelligence.previous ? 2 : firstRecordReviewed ? 1 : 0;
+  const activated = Boolean(context && approvedQuestions >= 5 && firstCollectionCompleted && firstRecordReviewed && firstActionCreated && firstActionAssigned);
   const activation = deriveActivationStage({
     workspaceConfigured: Boolean(context),
     approvedQuestions,
@@ -66,6 +68,12 @@ export async function GET() {
     firstActionCreated,
     firstActionAssigned,
     comparableReviewedCycles,
+  });
+  const retentionHealth = deriveRetentionHealth({
+    activated,
+    secondComparableCycleCompleted: comparableReviewedCycles >= 2,
+    scheduleEnabled,
+    overdueActionCount: dueActions.filter((action) => action.overdue).length,
   });
   const onboardingComplete = Boolean(context && approvedQuestions > 0 && runs.length && firstRecordReviewed);
   const activeRun = newest && ["queued", "running", "failed"].includes(newest.status)
@@ -80,5 +88,5 @@ export async function GET() {
     comparison: comparable,
     scheduleEnabled,
   });
-  return NextResponse.json({ data: items, activation, scheduleEnabled, onboardingComplete, mode: viewer.mode });
+  return NextResponse.json({ data: items, activation, retentionHealth, scheduleEnabled, onboardingComplete, mode: viewer.mode });
 }
