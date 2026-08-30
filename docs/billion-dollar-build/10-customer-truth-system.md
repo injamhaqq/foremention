@@ -1,12 +1,12 @@
 # Foremention — Customer Truth System
 
-**Status:** operating contract for customer research, product discovery, win/loss, PMF evidence, feature-request evidence, and customer-advisory learning.  
-**Scoped branch:** `build/billion-dollar-10-customer-truth`  
-**Recovered base:** `main` at `df92e0eb78edda5c8c621bb1388c5b519b8da1e8` on 2026-08-30.  
-**Repository constitution:** `CLAUDE.md`.  
-**Current metric companion:** `docs/CEO-COMPANY-COMMAND-CENTER.md`.  
-**Current founder proof companion:** `docs/FOUNDER-CUSTOMER-PROOF-PLAYBOOK.md`.  
-**Historical validation context:** `docs/VALIDATION-SPRINT.md`.  
+**Status:** operating contract for customer research, product discovery, win/loss, PMF evidence, feature-request evidence, and customer-advisory learning.
+**Scoped branch:** `build/billion-dollar-10-customer-truth`
+**Recovered base:** `main` at `df92e0eb78edda5c8c621bb1388c5b519b8da1e8` on 2026-08-30.
+**Repository constitution:** `CLAUDE.md`.
+**Current metric companion:** `docs/CEO-COMPANY-COMMAND-CENTER.md`.
+**Current founder proof companion:** `docs/FOUNDER-CUSTOMER-PROOF-PLAYBOOK.md`.
+**Historical validation context:** `docs/VALIDATION-SPRINT.md`.
 
 This document makes customer learning durable without manufacturing customer proof. It is a research and decision system, not a claim that Foremention has interviewed, won, retained, expanded, or lost any specific number of customers.
 
@@ -44,6 +44,7 @@ Every statement about a customer, prospect, market, buying behavior, pain, willi
 ## 1. Authoritative state inspected before this build
 
 - **VERIFIED FACT:** `main` was `df92e0eb78edda5c8c621bb1388c5b519b8da1e8` immediately before this branch was created.
+- **VERIFIED FACT:** after branch creation, `main` advanced to `08d7f398ae89d0d69af4530af5ecc6c752f1a6c6` through an unrelated docs-only talent/organization addition; that delta did not modify the customer-proof, analytics, ICP, pricing, or research artifacts used by this system.
 - **VERIFIED FACT:** `CLAUDE.md` defines Foremention as Recommendation Intelligence for B2B software, locks the five signed-in objects, requires human-review/evidence integrity, forbids fabricated customers/ARR/testimonials/case studies, keeps conversion founder-led, and says pricing remains a hypothesis until validated.
 - **VERIFIED FACT:** `docs/CEO-COMPANY-COMMAND-CENTER.md` separates PostHog product behavior from protected commercial/customer records and defines retained customer value around verified decision insight rather than logins/page views.
 - **VERIFIED FACT:** `docs/ACTIVATION-FUNNEL-EVENTS-2026-08-14.md` defines privacy-minimized activation events and explicitly says those events do not prove customer outcomes, revenue, recommendation lift, or causation.
@@ -72,7 +73,7 @@ Every statement about a customer, prospect, market, buying behavior, pain, willi
 | Core / Signal / Intelligence is the current package architecture in adjacent commercial work. | **VERIFIED FACT** | Repository/branch implementation fact; package-market fit remains unproven. |
 | Foremention has PMF. | **INTERNAL HYPOTHESIS** | Must remain unproven until the PMF gates in this system are supported by real cohorts and commercial evidence. |
 | Foremention has a customer advisory council. | **FUTURE TARGET** | No council is claimed to exist by this build. |
-| Foremention has validated customer quotes/testimonials/case studies. | **INTERNAL HYPOTHESIS** | Do not claim; no qualifying evidence was identified in the inspected repository artifacts. |
+| Availability of validated customer quotes/testimonials/case studies. | **INTERNAL HYPOTHESIS** | Treat as unverified; no qualifying proof was identified in the inspected repository artifacts. |
 
 ### Reconciliation rule
 
@@ -86,7 +87,7 @@ The older 5–50 employee / $49–$199 validation plan remains historical contex
 
 Do not create a second customer database merely for research notes. Use the existing protected commercial/customer-proof system as the identity and commercial backbone. Where structured research-event fields from an adjacent branch later merge, extend them; do not fork them.
 
-The research repository is a logical model with these objects:
+The research repository is a logical model with these objects.
 
 ### 3.1 Research account
 
@@ -243,19 +244,23 @@ Each JTBD record must include:
 Do not ask only “would you use this?” Reconstruct a real decision or attempted decision.
 
 **Push**
+
 - What made the old/current situation unacceptable now?
 - What happened the last time the problem became visible?
 - What consequence followed?
 
 **Pull**
+
 - What outcome made a new approach attractive?
 - What did the buyer hope would become easier, faster, safer, or more defensible?
 
 **Anxiety**
+
 - What could go wrong by switching?
 - What evidence/security/procurement/integration concern creates risk?
 
 **Habit**
+
 - What existing tool, spreadsheet, agency, meeting, or manual ritual is “good enough” today?
 - Who is invested in keeping that process?
 
