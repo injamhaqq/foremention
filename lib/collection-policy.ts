@@ -14,6 +14,11 @@ export const LIVE_COLLECTION_LIMITS = {
 } as const;
 
 export const GROQ_SPEND_LIMITS = {
+  // Keep the conservative browser-search reservation independent from the
+  // whole-run ceiling. Defaults intentionally preserve today's $0.10 Groq
+  // run cap; separating the dimensions prevents a future run-cap increase
+  // from also inflating every prompt's reservation estimate.
+  reservedCostPerPromptUsd: 0.10,
   maxRunCostUsd: 0.10,
   maxMonthlyOrgSpendUsd: 5.00,
 } as const;
@@ -81,7 +86,7 @@ export function estimateReservedRunCost(
 ) {
   const safePromptCount = Math.max(0, Math.min(limits.maxPromptsPerRun, Math.trunc(promptCount)));
   if (provider === "groq") {
-    return roundUsd(safePromptCount * GROQ_SPEND_LIMITS.maxRunCostUsd);
+    return roundUsd(safePromptCount * GROQ_SPEND_LIMITS.reservedCostPerPromptUsd);
   }
   return estimateMaximumRunCost(safePromptCount, rates, limits);
 }
