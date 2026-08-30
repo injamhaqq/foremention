@@ -85,10 +85,10 @@ async function verifyZoomReflow(page, profileName, path, baseViewport) {
   try {
     for (const zoomFactor of zoomFactors) {
       const viewport = effectiveViewport(baseViewport, zoomFactor);
-      // Browser page zoom reduces the effective CSS viewport. Resizing the
-      // Playwright viewport models that reflow behavior and, crucially, lets
-      // responsive media queries activate. CSS `zoom` does not and creates a
-      // false desktop-layout overflow at 400%.
+      // WCAG 1.4.10 reflow is evaluated at 320 CSS px, equivalent to a
+      // 1280px desktop viewport at 400% page zoom. Resizing the Playwright
+      // viewport models that effective CSS viewport and activates the same
+      // responsive breakpoints a real desktop browser uses.
       await page.setViewportSize(viewport);
       await page.waitForTimeout(100);
       assertReflow(await measureReflow(page), "Zoom reflow overflow detected.", {
@@ -149,7 +149,14 @@ async function runPublicProfiles() {
         observations.push({ path, normal });
         assertReflow(normal, "Responsive overflow detected before zoom.", { profile: profile.name, path, zoomFactor: 1 });
         if (profile.browserType === chromium) {
-          await verifyZoomReflow(page, profile.name, path, profile.viewport);
+          // Page-zoom reflow is a desktop WCAG check. Applying 400% desktop
+          // page zoom to an already-mobile viewport creates a sub-320px test
+          // that is outside the 1.4.10 target and unlike mobile pinch zoom.
+          if (profile.name === "chromium-low-height") {
+            await verifyZoomReflow(page, profile.name, path, profile.viewport);
+          }
+          // Mobile landscape still receives independent normal-width reflow,
+          // 200% text resize, and WebKit coverage through the profile matrix.
           await verifyTextResize(page, profile.name, path);
           if (profile.name === "chromium-low-height" && ["/", "/pricing", "/login"].includes(path)) {
             await verifyForcedColorsSmoke(page, profile.name, path);
@@ -198,7 +205,7 @@ async function main() {
   summary.checkedAt = new Date().toISOString();
   await writeFile(resolve(outputRoot, "zoom-reflow-summary.json"), JSON.stringify(summary, null, 2));
   if (summary.failures.length) process.exitCode = 1;
-  else console.log(`[zoom-reflow] PASS — WebKit/mobile landscape/low-height profiles plus 200%/400% browser reflow, 200% text resize and forced-colors smoke.`);
+  else console.log(`[zoom-reflow] PASS — WebKit/mobile landscape/low-height profiles plus standards-scoped 200%/400% desktop reflow, 200% text resize and forced-colors smoke.`);
 }
 
 main().catch(async (error) => {
