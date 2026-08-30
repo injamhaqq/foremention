@@ -50,6 +50,54 @@ comment on view public.provider_attempt_operational_facts is
 revoke all on public.provider_attempt_operational_facts from public, anon, authenticated;
 grant select on public.provider_attempt_operational_facts to service_role;
 
+-- Non-AI infrastructure COGS must come from a real meter or invoice. This
+-- service-only ledger stores the amount and a non-reversible source reference
+-- hash, not invoice/customer contents. organization_id may be null for shared
+-- platform cost that has not yet been allocated to a workspace.
+create table if not exists public.infrastructure_cost_allocations (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid references public.organizations(id) on delete cascade,
+  period_start timestamptz not null,
+  period_end timestamptz not null,
+  cost_category text not null check (cost_category in (
+    'edge',
+    'database',
+    'storage',
+    'background_processing',
+    'observability',
+    'egress',
+    'other_cogs'
+  )),
+  vendor text not null check (char_length(vendor) between 1 and 120),
+  amount_usd numeric(14,6) not null check (amount_usd >= 0),
+  allocation_method text not null check (allocation_method in ('direct_meter', 'provider_invoice', 'allocated')),
+  source_ref_hash text not null check (source_ref_hash ~ '^[0-9a-f]{64}$'),
+  created_at timestamptz not null default now(),
+  check (period_end > period_start)
+);
+
+create unique index if not exists infrastructure_cost_allocations_dedupe_idx
+  on public.infrastructure_cost_allocations (
+    vendor,
+    cost_category,
+    period_start,
+    period_end,
+    coalesce(organization_id, '00000000-0000-0000-0000-000000000000'::uuid),
+    source_ref_hash
+  );
+create index if not exists infrastructure_cost_allocations_period_idx
+  on public.infrastructure_cost_allocations (period_start, period_end, cost_category);
+create index if not exists infrastructure_cost_allocations_org_period_idx
+  on public.infrastructure_cost_allocations (organization_id, period_start desc)
+  where organization_id is not null;
+
+alter table public.infrastructure_cost_allocations enable row level security;
+revoke all on public.infrastructure_cost_allocations from public, anon, authenticated;
+grant select, insert, update, delete on public.infrastructure_cost_allocations to service_role;
+
+comment on table public.infrastructure_cost_allocations is
+  'Service-only verified infrastructure COGS inputs. Populate only from a real meter or vendor invoice; never synthesize costs or revenue.';
+
 -- Existing tenant/run indexes remain the primary request-path indexes. These
 -- two additive indexes support operator-wide provider reliability/cost windows
 -- without forcing scans across unrelated provider attempts or cost events.
