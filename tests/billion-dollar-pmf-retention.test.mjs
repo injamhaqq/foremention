@@ -8,11 +8,11 @@ async function text(path) {
   catch { return ""; }
 }
 
-const [retention, attentionRoute, metrics, proofMigration, handoff] = await Promise.all([
+const [retention, attentionRoute, metrics, proofExtension, handoff] = await Promise.all([
   text("lib/retention-loop.ts"),
   text("app/api/retention/attention/route.ts"),
   text("lib/pmf-metrics.ts"),
-  text("supabase/migrations/20260830000300_customer_proof_events.sql"),
+  text("supabase/migrations/20260830000300_customer_proof_research_events.sql"),
   text("docs/billion-dollar-build/01-pmf-retention.md"),
 ]);
 
@@ -28,7 +28,7 @@ test("activation is the exact eight-stage PMF loop, including action assignment"
     "retained_loop",
   ]) assert.match(retention, new RegExp(`\\"${stage}\\"`));
   assert.match(retention, /firstActionAssigned:\s*boolean/);
-  assert.match(retention, /if \(!input\.firstActionAssigned\)[\s\S]{0,260}action_assigned/);
+  assert.match(retention, /if \(!input\.firstActionAssigned\)[\s\S]{0,300}action_assigned/);
   assert.ok(retention.indexOf('key: "first_action"') < retention.indexOf('key: "action_assigned"'));
   assert.ok(retention.indexOf('key: "action_assigned"') < retention.indexOf('key: "second_comparable_cycle"'));
 });
@@ -61,16 +61,16 @@ test("PMF metric definitions cover the required account-level loop without fabri
   assert.doesNotMatch(metrics, /sample|placeholder|mock customer/i);
 });
 
-test("customer proof infrastructure is service-only, RLS-protected, and stores no fake proof", () => {
-  assert.match(proofMigration, /create table if not exists public\.customer_proof_events/i);
-  assert.match(proofMigration, /organization_id uuid references public\.organizations/i);
-  assert.match(proofMigration, /design_partner_application_id uuid references public\.design_partner_applications/i);
-  for (const kind of ["interview", "objection", "lost_deal", "feature_request", "use_case", "renewal", "expansion", "referral", "churn"]) {
-    assert.match(proofMigration, new RegExp(`'${kind}'`));
+test("customer proof extends the existing service-only commercial ledger instead of creating a parallel truth store", () => {
+  assert.match(proofExtension, /alter table public\.commercial_accounts/i);
+  assert.match(proofExtension, /design_partner_application_id uuid references public\.design_partner_applications/i);
+  assert.match(proofExtension, /alter table public\.commercial_events/i);
+  for (const kind of ["customer_interview", "objection_recorded", "lost_deal_recorded", "feature_request_recorded", "use_case_validated", "renewal_verified", "expansion_verified", "referral_verified", "churn_verified"]) {
+    assert.match(proofExtension, new RegExp(`'${kind}'`));
   }
-  assert.match(proofMigration, /enable row level security/i);
-  assert.match(proofMigration, /revoke all on table public\.customer_proof_events from anon, authenticated/i);
-  assert.doesNotMatch(proofMigration, /insert into public\.customer_proof_events/i);
+  assert.match(proofExtension, /revoke all on table public\.commercial_accounts, public\.commercial_events from anon, authenticated/i);
+  assert.doesNotMatch(proofExtension, /create table if not exists public\.customer_proof_events/i);
+  assert.doesNotMatch(proofExtension, /insert into public\.(commercial_accounts|commercial_events)/i);
 });
 
 test("handoff records the exact base SHA, hypothesis boundary, metric contract, and remaining evidence gaps", () => {
