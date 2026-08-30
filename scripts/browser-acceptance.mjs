@@ -166,8 +166,13 @@ async function verifyCanonicalBrandArtwork(page, profileName, path) {
     const style = getComputedStyle(element);
     return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
   }).length);
-  if (!visibleApprovedWordmarks) {
-    recordFailure("Approved Foremention logo artwork is not visibly rendered.", { profile: profileName, path });
+  const visibleApprovedMarks = await page.locator('img.foremention-mark[src="/brand/foremention-mark-white.svg"]').evaluateAll((elements) => elements.filter((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
+  }).length);
+  if (visibleApprovedWordmarks + visibleApprovedMarks === 0) {
+    recordFailure("Approved Foremention identity artwork is not visibly rendered.", { profile: profileName, path });
   }
 
   const textOnlyFallbacks = await page.locator(".wordmark--text-only, .wordmark__text").count();
