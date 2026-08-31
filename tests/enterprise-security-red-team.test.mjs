@@ -27,7 +27,7 @@ test("enterprise audit storage is append-only for application actors without blo
 test("legacy audit_logs loses analyst mutation rights but keeps member read and trusted append", async () => {
   const sql = await read(auditHardeningMigration);
   assert.match(sql, /drop policy if exists "audit_logs_write_analyst" on public\.audit_logs/i);
-  assert.match(sql, /revoke insert, update, delete on public\.audit_logs from authenticated/i);
+  assert.match(sql, /revoke insert, update, delete on public\.audit_logs from anon, authenticated/i);
   assert.match(sql, /grant select on public\.audit_logs to authenticated/i);
   assert.match(sql, /grant select, insert on public\.audit_logs to service_role/i);
   assert.doesNotMatch(sql, /grant (?:update|delete)[^;]*public\.audit_logs to service_role/i);
@@ -47,10 +47,14 @@ test("role migration order makes admin valid before retention policies can use i
   assert.match(retention, /'owner','admin'/i);
 });
 
-test("workspace deletion remains owner-controlled and enterprise audit hardening does not replace it", async () => {
-  const deletion = await read("supabase/migrations/20260802001000_gdpr_data_deletion.sql");
+test("workspace deletion remains owner-controlled and uses the existing seven-day safety window", async () => {
+  const [deletion, route] = await Promise.all([
+    read("supabase/migrations/20260802001000_gdpr_data_deletion.sql"),
+    read("app/api/account/deletion/route.ts"),
+  ]);
   assert.match(deletion, /role = 'owner'/i);
-  assert.match(deletion, /interval '7 days'/i);
+  assert.match(route, /Date\.now\(\) \+ 7 \* 24 \* 60 \* 60 \* 1000/i);
+  assert.match(route, /seven-day safety window/i);
   assert.match(deletion, /execute_foremention_account_deletion/i);
   assert.match(deletion, /revoke all on function public\.execute_foremention_account_deletion/i);
   assert.match(deletion, /grant execute on function public\.execute_foremention_account_deletion[\s\S]*to service_role/i);
@@ -70,7 +74,7 @@ test("SSO remains fail-closed until configuration and domain allowlisting are re
   assert.match(sso, /SSO is not configured\./);
   assert.match(sso, /configuredSsoDomains\(\)\.length > 0/);
   assert.match(sso, /FOREMENTION_SSO_DOMAINS/);
-  assert.match(sso, /Domain is not configured for enterprise SSO/i);
+  assert.match(sso, /SSO is not configured for this email domain/i);
 });
 
 test("data governance fails closed on benchmark use, training, residency and enterprise automation", async () => {

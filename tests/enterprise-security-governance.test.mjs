@@ -42,7 +42,7 @@ test("enterprise database control plane is tenant-scoped, fail-closed, RLS prote
   assert.match(sql, /raise exception 'audit events are immutable'/i);
   assert.match(sql, /revoke all on public\.audit_events from anon, authenticated/i);
   assert.match(sql, /grant select on public\.audit_events to authenticated/i);
-  assert.match(sql, /grant insert on public\.audit_events to service_role/i);
+  assert.match(sql, /grant [^;]*insert[^;]* on public\.audit_events to service_role/i);
   assert.doesNotMatch(sql, /grant (?:insert|update|delete)[^;]*audit_events to authenticated/i);
 });
 
