@@ -6,7 +6,10 @@ const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
 test("settings email preferences remain contained under zoom and text resize", async () => {
-  const css = await text("app/canonical-responsive-hardening.css");
+  const [css, component] = await Promise.all([
+    text("app/canonical-responsive-hardening.css"),
+    text("components/email-alert-preferences.tsx"),
+  ]);
 
   assert.match(
     css,
@@ -24,4 +27,6 @@ test("settings email preferences remain contained under zoom and text resize", a
     css,
     /\.app-frame \.email-alert-preferences \.button\s*\{[^}]*max-width:\s*100%;[^}]*white-space:\s*normal;[^}]*\}/s,
   );
+  assert.equal((component.match(/<label style=\{\{ width: "100%" \}\}>/g) || []).length, 2);
+  assert.equal((component.match(/<span style=\{\{ flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere" \}\}>/g) || []).length, 2);
 });
