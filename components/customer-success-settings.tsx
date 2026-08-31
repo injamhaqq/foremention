@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type Profile = {
   id: string;
@@ -56,7 +56,7 @@ export function CustomerSuccessSettings({ demo }: { demo: boolean }) {
   const [reviewSummary, setReviewSummary] = useState("");
   const profileReady = useMemo(() => Boolean(form.accountGoal || form.championName || form.onboardingNotes || form.successNotes), [form]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (demo) return;
     try {
       const response = await fetch("/api/customer-success", { cache: "no-store" });
@@ -70,8 +70,11 @@ export function CustomerSuccessSettings({ demo }: { demo: boolean }) {
     } finally {
       setLoading(false);
     }
-  };
-  useEffect(() => { void load(); }, [demo]);
+  }, [demo]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [load]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
   const save = async (event: FormEvent) => {
