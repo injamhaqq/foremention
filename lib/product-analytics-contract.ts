@@ -36,7 +36,12 @@ export const PRODUCT_ANALYTICS_EVENTS = [
   "second_comparable_cycle_completed",
   "measurement_schedule_enabled",
   "record_share_created",
+  "record_share_viewed",
+  "record_share_workspace_cta_clicked",
   "team_invite_sent",
+  "category_page_viewed",
+  "research_page_viewed",
+  "partner_page_viewed",
 ] as const;
 
 export type ProductAnalyticsEventName = (typeof PRODUCT_ANALYTICS_EVENTS)[number];
@@ -77,6 +82,7 @@ const scheduleCadences = new Set(["weekly", "biweekly", "monthly"]);
 const scheduleStates = new Set(["enabled", "paused", "resumed"]);
 const actionPriorities = new Set(["low", "normal", "high", "critical"]);
 const invitationRoles = new Set(["admin", "analyst", "viewer", "reviewer", "stakeholder"]);
+const shareViewModes = new Set(["stakeholder", "executive"]);
 
 function enumValue(value: unknown, allowed: Set<string>) {
   return typeof value === "string" && allowed.has(value) ? value : null;
@@ -206,6 +212,9 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
     case "source_map_opened":
     case "evidence_inspection_opened":
     case "comparison_viewed":
+    case "category_page_viewed":
+    case "research_page_viewed":
+    case "partner_page_viewed":
       break;
     case "score_completed":
       addCountBucket(properties, "question_count_bucket", normalizedInput.question_count);
@@ -291,6 +300,13 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
       break;
     case "record_share_created":
       addBoolean(properties, "include_evidence", normalizedInput.include_evidence);
+      break;
+    case "record_share_viewed":
+      addEnum(properties, "view_mode", normalizedInput.view_mode, shareViewModes);
+      addBoolean(properties, "include_evidence", normalizedInput.include_evidence);
+      break;
+    case "record_share_workspace_cta_clicked":
+      addEnum(properties, "view_mode", normalizedInput.view_mode, shareViewModes);
       break;
     case "team_invite_sent":
       addEnum(properties, "role", normalizedInput.role, invitationRoles);
