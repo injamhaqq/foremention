@@ -15,13 +15,13 @@ test("Groq Browser Search reserves the full provider run envelope before queuein
 
   assert.match(policy, /export function estimateReservedRunCost/);
   assert.match(policy, /provider === "groq"/);
-  assert.match(policy, /safePromptCount \* GROQ_SPEND_LIMITS\.maxRunCostUsd/);
+  assert.match(policy, /safePromptCount \* GROQ_SPEND_LIMITS\.reservedCostPerPromptUsd/);
 
   assert.match(route, /estimateReservedRunCost\(providerId, prompts\.length, rates\)/);
   assert.match(job, /estimateReservedRunCost\(providerId, prompts\.length, rates\)/);
 
   // Browser Search can expand provider-side context far beyond the buyer prompt.
   // Do not use the generic 512-token prompt estimate as Groq's pre-call reservation.
-  assert.match(adapter, /estimatedPromptCost = GROQ_SPEND_LIMITS\.maxRunCostUsd/);
+  assert.match(adapter, /estimatedPromptCost = GROQ_SPEND_LIMITS\.reservedCostPerPromptUsd/);
   assert.doesNotMatch(adapter, /estimatedPromptCost = estimateMaximumRunCost\(1, rates\)/);
 });

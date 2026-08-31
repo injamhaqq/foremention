@@ -6,9 +6,11 @@ const WEBHOOK_TOLERANCE_SECONDS = 300;
 const CHECKOUT_PACKAGES = new Set(["core", "signal"]);
 
 export type StripeCheckoutPackage = "core" | "signal";
+export type StripeBillingInterval = "monthly" | "annual";
 
 type CheckoutInput = {
   packageKey: StripeCheckoutPackage;
+  billingInterval?: StripeBillingInterval;
   organizationId: string;
   customerEmail: string;
   customerId?: string | null;
@@ -17,7 +19,6 @@ type CheckoutInput = {
 };
 
 type PortalInput = { customerId: string; returnUrl: string };
-
 type StripeObject = Record<string, unknown>;
 
 function envValue(name: string) {
@@ -25,9 +26,11 @@ function envValue(name: string) {
   return value || null;
 }
 
-export function stripePriceIdFor(packageKey: string) {
-  if (packageKey === "core") return envValue("STRIPE_CORE_PRICE_ID");
-  if (packageKey === "signal") return envValue("STRIPE_SIGNAL_PRICE_ID");
+export function stripePriceIdFor(packageKey: string, billingInterval: StripeBillingInterval = "monthly") {
+  if (packageKey === "core" && billingInterval === "annual") return envValue("STRIPE_CORE_ANNUAL_PRICE_ID");
+  if (packageKey === "signal" && billingInterval === "annual") return envValue("STRIPE_SIGNAL_ANNUAL_PRICE_ID");
+  if (packageKey === "core") return envValue("STRIPE_CORE_MONTHLY_PRICE_ID") || envValue("STRIPE_CORE_PRICE_ID");
+  if (packageKey === "signal") return envValue("STRIPE_SIGNAL_MONTHLY_PRICE_ID") || envValue("STRIPE_SIGNAL_PRICE_ID");
   return null;
 }
 
@@ -35,7 +38,12 @@ export function stripeBillingConfigured() {
   return process.env.BILLING_PROVIDER_ID === "stripe"
     && Boolean(envValue("STRIPE_SECRET_KEY"))
     && Boolean(envValue("STRIPE_WEBHOOK_SECRET"))
-    && Boolean(stripePriceIdFor("core") || stripePriceIdFor("signal"));
+    && Boolean(
+      stripePriceIdFor("core", "monthly")
+      || stripePriceIdFor("signal", "monthly")
+      || stripePriceIdFor("core", "annual")
+      || stripePriceIdFor("signal", "annual"),
+    );
 }
 
 async function stripePost(path: string, params: URLSearchParams) {
@@ -62,8 +70,9 @@ async function stripePost(path: string, params: URLSearchParams) {
 
 export async function createStripeCheckoutSession(input: CheckoutInput) {
   if (!CHECKOUT_PACKAGES.has(input.packageKey)) throw new Error("This package is not available for self-serve checkout.");
-  const priceId = stripePriceIdFor(input.packageKey);
-  if (!priceId || !stripeBillingConfigured()) throw new Error("Stripe billing is not configured for this package.");
+  const billingInterval = input.billingInterval || "monthly";
+  const priceId = stripePriceIdFor(input.packageKey, billingInterval);
+  if (!priceId || !stripeBillingConfigured()) throw new Error("Stripe billing is not configured for this package and interval.");
 
   const params = new URLSearchParams({
     mode: "subscription",
@@ -74,8 +83,10 @@ export async function createStripeCheckoutSession(input: CheckoutInput) {
     cancel_url: input.cancelUrl,
     "metadata[organizationId]": input.organizationId,
     "metadata[packageKey]": input.packageKey,
+    "metadata[billingInterval]": billingInterval,
     "subscription_data[metadata][organizationId]": input.organizationId,
     "subscription_data[metadata][packageKey]": input.packageKey,
+    "subscription_data[metadata][billingInterval]": billingInterval,
   });
   if (input.customerId) params.set("customer", input.customerId);
   else params.set("customer_email", input.customerEmail);
@@ -140,20 +151,28 @@ function nestedObject(value: unknown): StripeObject | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as StripeObject : null;
 }
 
+function usableMetadata(value: unknown) {
+  const metadata = nestedObject(value);
+  if (!metadata) return null;
+  return typeof metadata.organizationId === "string" || typeof metadata.packageKey === "string" ? metadata : null;
+}
+
 function eventMetadata(object: StripeObject) {
-  const direct = nestedObject(object.metadata);
+  const direct = usableMetadata(object.metadata);
   if (direct) return direct;
   const subscriptionDetails = nestedObject(object.subscription_details);
-  const directSubscriptionMetadata = subscriptionDetails && nestedObject(subscriptionDetails.metadata);
+  const directSubscriptionMetadata = usableMetadata(subscriptionDetails?.metadata);
   if (directSubscriptionMetadata) return directSubscriptionMetadata;
   const parent = nestedObject(object.parent);
   const parentSubscription = parent && nestedObject(parent.subscription_details);
-  return parentSubscription && nestedObject(parentSubscription.metadata);
+  return usableMetadata(parentSubscription?.metadata);
 }
 
 function subscriptionIdFrom(object: StripeObject) {
+  const parent = nestedObject(object.parent);
+  const parentSubscriptionDetails = parent && nestedObject(parent.subscription_details);
   return objectId(object.subscription)
-    || objectId(nestedObject(object.parent)?.subscription_details && nestedObject(nestedObject(object.parent)?.subscription_details)?.subscription)
+    || objectId(parentSubscriptionDetails?.subscription)
     || (typeof object.id === "string" && object.id.startsWith("sub_") ? object.id : null);
 }
 
@@ -196,14 +215,20 @@ export function parseStripeBillingEvent(rawBody: string): VerifiedBillingEvent |
   if (!["core", "signal", "intelligence", "custom"].includes(packageKey)) return null;
 
   let state: BillingLifecycleState | null = null;
-  if (eventType === "checkout.session.completed") state = object.payment_status === "paid" ? "active" : "trialing";
-  else if (eventType === "invoice.paid") state = "active";
+  if (eventType === "checkout.session.completed") {
+    if (object.payment_status === "paid") state = "active";
+    else if (object.payment_status === "no_payment_required" && subscriptionIdFrom(object)) state = "trialing";
+    else return null;
+  } else if (eventType === "invoice.paid") state = "active";
   else if (eventType === "invoice.payment_failed") state = "past_due";
   else state = lifecycleFromSubscriptionStatus(object.status, eventType);
   if (!state) return null;
 
   const externalCustomerId = objectId(object.customer);
   const externalSubscriptionId = subscriptionIdFrom(object);
+  const occurredAt = typeof event.created === "number" && Number.isFinite(event.created)
+    ? new Date(event.created * 1000).toISOString()
+    : null;
   return {
     organizationId,
     packageKey: packageKey as VerifiedBillingEvent["packageKey"],
@@ -211,5 +236,6 @@ export function parseStripeBillingEvent(rawBody: string): VerifiedBillingEvent |
     externalCustomerId,
     externalSubscriptionId,
     eventId,
+    occurredAt,
   };
 }

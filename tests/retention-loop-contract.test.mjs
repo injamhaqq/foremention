@@ -84,7 +84,10 @@ test("scheduled execution attention record actions sharing billing and SSO stay 
   assert.match(dispatcher, /scheduleIdempotencyKey/);
   assert.match(inngestRoute, /dispatchMeasurementSchedules/);
   assert.match(attentionApi, /deriveAttentionItems/);
+  assert.match(attentionApi, /retentionHealth/);
   assert.match(bridge, /AttentionInbox/);
+  assert.match(bridge, /Retention health/i);
+  assert.match(bridge, /data-retention-health/);
   assert.match(bridge, /MeasurementScheduleControl/);
   assert.match(bridge, /SSO/);
   assert.match(bridge, /Billing/);

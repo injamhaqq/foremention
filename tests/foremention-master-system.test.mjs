@@ -24,7 +24,7 @@ test("core public knowledge architecture is explicit and crawlable", () => {
   ]) assert.ok(fs.existsSync(path.join(process.cwd(), file)), `${file} must exist`);
 
   assert.equal(fs.existsSync(path.join(process.cwd(), "app/source-x-ray/page.tsx")), false);
-  assert.match(read("app/recommendation-intelligence/page.tsx"), /Recommendation intelligence for B2B software/);
+  assert.match(read("app/recommendation-intelligence/page.tsx"), /Recommendation Intelligence is the discipline of observing, preserving, reviewing, and comparing/i);
   assert.match(read("app/recommendation-record/page.tsx"), /immutable|canonical record/i);
   assert.match(read("app/recommendation-record/page.tsx"), /Returned[\s\S]*Retrieved[\s\S]*Observed[\s\S]*Reviewed[\s\S]*(?:Safe conclusion|conclusion)/i);
   assert.match(read("app/ai-mediated-buying/page.tsx"), /AI-mediated software buying/i);

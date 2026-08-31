@@ -59,7 +59,7 @@ export const groqAdapter: AnswerProviderAdapter = {
     if (rates.requestUsd < GROQ_BROWSER_SEARCH_RESERVED_USD) {
       throw new ProviderRequestError("Groq", 503, `Groq fixed request cost must reserve at least $${GROQ_BROWSER_SEARCH_RESERVED_USD.toFixed(2)} for mandatory browser search.`);
     }
-    const estimatedPromptCost = GROQ_SPEND_LIMITS.maxRunCostUsd;
+    const estimatedPromptCost = GROQ_SPEND_LIMITS.reservedCostPerPromptUsd;
     if (options.budget) {
       const nextRunSpend = roundUsd(options.budget.runSpendSoFarUsd + estimatedPromptCost);
       const nextMonthlySpend = roundUsd(options.budget.monthlySpendSoFarUsd + estimatedPromptCost);
