@@ -80,5 +80,7 @@ Use RED -> GREEN -> VERIFY. Before merge, require fresh evidence for tests, lint
 - `docs/TESTING.md` — standard quality gate.
 - `docs/SECURITY.md` and `SECURITY.md` — security requirements.
 - `docs/BUILD-VERIFICATION.md` — expected production build outcome.
+- `docs/billion-dollar-build/09-company-operating-system.md` — canonical operating policy and documentation precedence.
+- `docs/billion-dollar-build/EXECUTION-STATUS.md` — canonical integration provenance and current build status.
 - `.claude/skills/foremention-product-truth/SKILL.md` — reusable product/brand truth.
 - `.claude/skills/foremention-release-gate/SKILL.md` — explicit release workflow.

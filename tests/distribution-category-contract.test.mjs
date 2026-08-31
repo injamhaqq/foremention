@@ -92,3 +92,16 @@ test("distribution analytics remain allowlisted and PII-safe", async () => {
   assert.doesNotMatch(contract, /raw_question|raw_answer|customer_name|share_token/);
   assert.doesNotMatch(analytics, /share_token/);
 });
+
+test("distribution operating system is documented without fake prospects partnerships or benchmarks", async () => {
+  const doc = await text("docs/billion-dollar-build/04-distribution-category.md");
+  assert.match(doc, /ICP target account/i);
+  assert.match(doc, /trigger event/i);
+  assert.match(doc, /LinkedIn/i);
+  assert.match(doc, /design partner/i);
+  assert.match(doc, /CRM schema/i);
+  assert.match(doc, /research/i);
+  assert.match(doc, /partner/i);
+  assert.match(doc, /benchmark/i);
+  assert.match(doc, /no synthetic|never fabricate|do not fabricate/i);
+});
