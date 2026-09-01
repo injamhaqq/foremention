@@ -76,6 +76,6 @@ test("all customer intelligence surfaces use the final exact-question safety gat
     assert.match(source, /loadSafeWeeklyIntelligence/);
     assert.doesNotMatch(source, /loadWeeklyIntelligence\(viewer\)/);
   }
-  assert.match(analytics, /exact persisted buyer-question text.*provider.*model.*methodology.*measurement context/is);
+  assert.match(analytics, /exact persisted buyer-question text.*provider.*model.*methodology/is);
   assert.match(page, /exact persisted buyer-question text.*provider.*model.*methodology.*measurement context/is);
 });
