@@ -4,18 +4,38 @@ on:
   pull_request:
     paths:
       - "CLAUDE.md"
+      - "FOREMENTION_STATE.md"
       - ".mcp.json"
       - ".claude/**"
+      - ".github/actionlint.yaml"
+      - ".github/copilot-instructions.md"
+      - ".github/agents/**"
+      - ".github/autopilot/**"
+      - ".github/ISSUE_TEMPLATE/autopilot-task.yml"
+      - ".github/workflows/autopilot-control.yml"
+      - "docs/AUTOPILOT.md"
+      - "scripts/validate-autopilot-diff.mjs"
       - "tests/agent-harness-contract.test.mjs"
+      - "tests/autopilot-control-plane.test.mjs"
       - ".github/workflows/agent-harness.yml"
   push:
     branches:
       - main
     paths:
       - "CLAUDE.md"
+      - "FOREMENTION_STATE.md"
       - ".mcp.json"
       - ".claude/**"
+      - ".github/actionlint.yaml"
+      - ".github/copilot-instructions.md"
+      - ".github/agents/**"
+      - ".github/autopilot/**"
+      - ".github/ISSUE_TEMPLATE/autopilot-task.yml"
+      - ".github/workflows/autopilot-control.yml"
+      - "docs/AUTOPILOT.md"
+      - "scripts/validate-autopilot-diff.mjs"
       - "tests/agent-harness-contract.test.mjs"
+      - "tests/autopilot-control-plane.test.mjs"
       - ".github/workflows/agent-harness.yml"
 
 permissions:
@@ -35,4 +55,4 @@ jobs:
         with:
           node-version: "22.13.0"
       - name: Validate agent harness contracts
-        run: node --test tests/agent-harness-contract.test.mjs
+        run: node --test tests/agent-harness-contract.test.mjs tests/autopilot-control-plane.test.mjs
