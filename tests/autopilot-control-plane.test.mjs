@@ -53,7 +53,8 @@ test("keyless online controller is bounded, serialized, privilege-separated, and
   assert.match(workflow, /--agent foremention-autopilot/);
   assert.match(workflow, /--autopilot/);
   assert.match(workflow, /--max-autopilot-continues 8/);
-  assert.match(workflow, /--max-ai-credits 10/);
+  assert.match(workflow, /--max-ai-credits 30/);
+  assert.doesNotMatch(workflow, /--max-ai-credits\s+(?:[0-9]|1[0-9]|2[0-9])\b/);
   assert.match(workflow, /persist-credentials:\s*false/);
   assert.match(workflow, /validate-autopilot-diff\.mjs/);
   assert.match(workflow, /autopilot\/run-/);

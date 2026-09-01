@@ -68,7 +68,7 @@ The preflight refuses to start a second autonomous product branch while an open 
 Each run is intentionally bounded:
 
 - maximum Copilot autopilot continuations: `8`;
-- soft maximum GitHub AI Credits per agent objective: `10`;
+- soft maximum GitHub AI Credits per agent objective: `30` — the minimum currently accepted by Copilot CLI for `--max-ai-credits`;
 - controller concurrency: `1`;
 - AI job timeout: `45 minutes`;
 - no auto-merge.
@@ -135,6 +135,7 @@ No laptop, browser tab, Codex session, OpenAI API key, or model API server needs
 ## Failure modes
 
 - **Copilot AI credits exhausted:** the Copilot step stops; no partial patch is published because the publisher requires a zero agent exit code.
+- **Unsupported AI-credit cap:** Copilot CLI currently requires `--max-ai-credits` to be at least `30`; the repository contract test locks that minimum.
 - **`main` changes during an agent run:** the publisher refuses the stale patch; a later `main` push or scheduled run retries from fresh reality.
 - **Agent produces no justified change:** no empty PR is opened.
 - **Founder decision required:** a founder-decision issue is opened instead of speculative code.

@@ -122,7 +122,7 @@ jobs:
             --autopilot \
             --yolo \
             --max-autopilot-continues 8 \
-            --max-ai-credits 10 \
+            --max-ai-credits 30 \
             -p "$prompt" \
             2>&1 | tee .autopilot-run/copilot-output.txt
           exit_code="${PIPESTATUS[0]}"
