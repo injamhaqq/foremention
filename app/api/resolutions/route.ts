@@ -4,7 +4,9 @@ import { getPrimaryWorkspaceRole, loadWorkspaceContext, type WorkspaceContext, t
 import {
   buildResolutionProposal,
   RESOLUTION_ASSET_TYPES,
+  RESOLUTION_CONTROL_SURFACES,
   type ResolutionAssetType,
+  type ResolutionControlSurface,
   type ResolutionProblem,
   type VerifiedResolutionEvidence,
 } from "@/lib/resolution-engine";
@@ -53,6 +55,10 @@ async function resolveWorkspace(viewer: Viewer) {
 const inFilter = (ids: string[]) => ids.join(",");
 const uiAssetType = (value: ResolutionAssetType) => value === "comparison_brief" ? "comparison_page" : value === "faq_evidence_brief" ? "faq" : "content_brief";
 const internalAssetType = (value: string): ResolutionAssetType => value === "comparison_page" ? "comparison_brief" : ["faq", "proof_page"].includes(value) ? "faq_evidence_brief" : "source_page_brief";
+const parseControlSurface = (value: unknown): ResolutionControlSurface | null => {
+  const candidate = clean(value, 40);
+  return RESOLUTION_CONTROL_SURFACES.includes(candidate as ResolutionControlSurface) ? candidate as ResolutionControlSurface : null;
+};
 const uiEvidence = (entry: VerifiedResolutionEvidence) => ({
   id: entry.id,
   kind: entry.kind,
@@ -112,6 +118,7 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
     const objective = clean(asset.proposal.objective, 1200);
     const content = proposalContent(asset.proposal);
     const outcomeSummary = followUp ? clean(followUp.outcome.interpretation, 1000) || null : null;
+    const controlSurface = parseControlSurface(asset.proposal.controlSurface);
     return {
       id: asset.id,
       status: asset.status,
@@ -124,7 +131,7 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
         observedAt: latestDate(evidence, asset.created_at),
       },
       evidence: evidence.map(uiEvidence),
-      proposal: { assetType: uiAssetType(asset.asset_type), title: asset.title, summary: objective || asset.problem_statement, content, limitations: asset.limitations.join("\n"), version: asset.customer_edited_at ? 2 : 1, updatedAt: asset.updated_at },
+      proposal: { assetType: uiAssetType(asset.asset_type), controlLevel: controlSurface ? "controllable" : undefined, controlSurface: controlSurface || undefined, title: asset.title, summary: objective || asset.problem_statement, content, limitations: asset.limitations.join("\n"), version: asset.customer_edited_at ? 2 : 1, updatedAt: asset.updated_at },
       approval: { status: asset.review_decision, note: asset.approval_note || "", decidedAt: asset.decision_at, decidedBy: asset.decision_by },
       application: { status: asset.status === "applied" ? "applied" : "not_applied", targetUrl: asset.application_reference || "", appliedAt: asset.applied_at, error: null },
       followUp: followUp ? { status: followUp.status, baselineRunId: followUp.baseline_run_id, followUpRunId: followUp.rerun_id, requestedAt: followUp.requested_at, completedAt: followUp.completed_at, summary: outcomeSummary } : { status: "not_requested", baselineRunId: asset.baseline_run_id, followUpRunId: null, requestedAt: null, completedAt: null, summary: null },
@@ -250,7 +257,8 @@ async function handleCreate(request: Request) {
   if (action === "generate") {
     const problemId = clean(body.problemId, 36);
     const assetType = clean(body.assetType, 40) || "source_page_brief";
-    if (!uuid.test(problemId) || !RESOLUTION_ASSET_TYPES.includes(assetType as ResolutionAssetType)) return NextResponse.json({ error: "Choose a valid observed problem and resolution type." }, { status: 400 });
+    const controlSurface = parseControlSurface(body.controlSurface || "website");
+    if (!uuid.test(problemId) || !RESOLUTION_ASSET_TYPES.includes(assetType as ResolutionAssetType) || !controlSurface) return NextResponse.json({ error: "Choose a valid observed problem, resolution type, and controllable surface." }, { status: 400 });
     const problem = await findProblem(viewer, context, problemId);
     if (!problem) return NextResponse.json({ error: "Observed problem not found in this workspace." }, { status: 404 });
     const existingAssets = await supabaseRest<Array<{ id: string }>>(
@@ -263,7 +271,7 @@ async function handleCreate(request: Request) {
     }
     const { evidence, baselineRunId } = await loadVerifiedEvidence({ viewer, context, problem, evidenceItemIds: uniqueIds(body.evidenceItemIds), sourceObservationIds: uniqueIds(body.sourceObservationIds) });
     if (!evidence.length || !baselineRunId) return NextResponse.json({ error: "Review at least one observation for this source before generating a solution asset." }, { status: 409 });
-    const generated = buildResolutionProposal({ type: assetType as ResolutionAssetType, problem, evidence });
+    const generated = buildResolutionProposal({ type: assetType as ResolutionAssetType, problem, evidence, controlSurface });
     let rows: AssetRow[];
     try {
       rows = await supabaseRest<AssetRow[]>("resolution_assets", {
@@ -287,7 +295,7 @@ async function handleCreate(request: Request) {
       await supabaseRest(`resolution_assets?id=eq.${asset.id}&organization_id=eq.${context.organizationId}`, { method: "DELETE", token: viewer.accessToken }).catch(() => undefined);
       throw error;
     }
-    await supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "resolution.generated", entity_type: "resolution_asset", entity_id: asset.id, after_state: { asset_type: assetType, opportunity_id: problem.id, evidence_count: evidence.length, baseline_run_id: baselineRunId } } }).catch(() => undefined);
+    await supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "resolution.generated", entity_type: "resolution_asset", entity_id: asset.id, after_state: { asset_type: assetType, control_surface: controlSurface, opportunity_id: problem.id, evidence_count: evidence.length, baseline_run_id: baselineRunId } } }).catch(() => undefined);
     const resolutions = await loadResolutionRecords(viewer, context);
     return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } }, { status: 201 });
   }
@@ -378,23 +386,25 @@ async function handleChange(request: Request) {
 
   if (action === "update_draft") {
     if (!(asset.status === "draft" || (asset.status === "in_review" && asset.review_decision === "changes_requested"))) return NextResponse.json({ error: "Only a draft or requested revision can be edited." }, { status: 409 });
+    const controlSurface = parseControlSurface(body.controlSurface || asset.proposal.controlSurface || "website");
+    if (!controlSurface) return NextResponse.json({ error: "Choose a valid controllable change surface." }, { status: 400 });
     let proposal: Record<string, unknown>;
     let title = asset.title;
     let limitations = asset.limitations;
     let assetType = asset.asset_type;
     if (body.proposal && typeof body.proposal === "object" && !Array.isArray(body.proposal)) {
-      proposal = body.proposal as Record<string, unknown>;
+      proposal = { ...(body.proposal as Record<string, unknown>), controlLevel: "controllable", controlSurface };
     } else {
       title = clean(body.title, 200);
       const summary = clean(body.summary, 1200); const content = cleanMultiline(body.content, 20_000); const limitationText = cleanMultiline(body.limitations, 2000);
       assetType = internalAssetType(clean(body.assetType, 40));
       if (!title || !summary || !content || !limitationText) return NextResponse.json({ error: "Complete the title, summary, asset content, and limitations before saving." }, { status: 400 });
       const evidenceIds = Array.from(new Set((Array.isArray(asset.proposal.draftSections) ? asset.proposal.draftSections as Array<Record<string, unknown>> : []).flatMap((section) => Array.isArray(section.evidenceIds) ? section.evidenceIds.filter((id): id is string => typeof id === "string") : [])));
-      proposal = { schemaVersion: "1.0", assetType, headline: title, objective: summary, draftSections: [{ heading: "Customer-edited resolution asset", guidance: content, evidenceIds }], evidenceBoundary: clean(asset.proposal.evidenceBoundary, 2000) || "Use only the linked verified evidence; unsupported claims must be removed or marked unknown.", nextStep: clean(asset.proposal.nextStep, 2000) || "Submit this revision for customer approval before applying it.", customerEdited: true };
+      proposal = { schemaVersion: "1.0", assetType, headline: title, objective: summary, draftSections: [{ heading: "Customer-edited resolution asset", guidance: content, evidenceIds }], evidenceBoundary: clean(asset.proposal.evidenceBoundary, 2000) || "Use only the linked verified evidence; unsupported claims must be removed or marked unknown.", nextStep: clean(asset.proposal.nextStep, 2000) || "Submit this revision for customer approval before applying it.", customerEdited: true, controlSurface, controlLevel: "controllable" };
       limitations = [limitationText];
     }
     if (JSON.stringify(proposal).length > 30_000) return NextResponse.json({ error: "Provide a valid resolution proposal under 30 KB." }, { status: 400 });
-    update = { asset_type: assetType, title, proposal: { ...proposal, customerEdited: true }, limitations, customer_edited_by: viewer.id, customer_edited_at: now, ...(asset.status === "in_review" ? { review_decision: "pending", decision_by: null, decision_at: null, approval_note: null } : {}) };
+    update = { asset_type: assetType, title, proposal: { ...proposal, customerEdited: true, controlSurface, controlLevel: "controllable" }, limitations, customer_edited_by: viewer.id, customer_edited_at: now, ...(asset.status === "in_review" ? { review_decision: "pending", decision_by: null, decision_at: null, approval_note: null } : {}) };
   } else if (action === "decision") {
     const decision = clean(body.decision, 30); const note = clean(body.note, 2000) || null;
     if (!["submit", "approved", "changes_requested", "rejected"].includes(decision)) return NextResponse.json({ error: "Choose submit, approved, changes_requested, or rejected." }, { status: 400 });

@@ -38,6 +38,45 @@ test("resolution proposals are deterministic and keep an explicit evidence bound
   assert.match(first.limitations.join(" "), /not proof.*caused/i);
 });
 
+test("controllable resolution plans separate the customer change surface from the output asset", () => {
+  const plan = buildResolutionProposal({
+    type: "source_page_brief",
+    problem: { ...problem, title: "The customer loses a high-value recommendation because a required product capability is absent" },
+    evidence,
+    controlSurface: "product",
+  });
+  assert.equal(plan.proposal.assetType, "source_page_brief");
+  assert.equal(plan.proposal.controlLevel, "controllable");
+  assert.equal(plan.proposal.controlSurface, "product");
+  assert.match(plan.proposal.objective, /product/i);
+  assert.match(plan.proposal.nextStep, /owner|team|roadmap|implement/i);
+  assert.match(plan.limitations.join(" "), /does not guarantee.*recommend/i);
+});
+
+test("the controllable layer supports the eight explicit customer-owned change surfaces", async () => {
+  const engine = await text("lib/resolution-engine.ts");
+  for (const surface of ["product", "pricing_offer", "positioning", "documentation", "product_feed", "website", "case_study", "policy"]) {
+    assert.match(engine, new RegExp(`\\"${surface}\\"`));
+  }
+  assert.match(engine, /controlLevel:\s*"controllable"/);
+  assert.doesNotMatch(engine, /guarantee(?:s|d)?[^\n]{0,80}(?:rank|recommend|#1)/i);
+});
+
+test("Resolution Center sends and preserves a selected controllable change surface", async () => {
+  const [ui, route] = await Promise.all([
+    text("components/resolution-center.tsx"),
+    text("app/api/resolutions/route.ts"),
+  ]);
+  assert.match(ui, /controlSurface/);
+  assert.match(ui, /Product/);
+  assert.match(ui, /Pricing \/ offer/);
+  assert.match(ui, /Case study \/ proof/);
+  assert.match(ui, /action: "generate"[^\n]+controlSurface/);
+  assert.match(route, /controlSurface/);
+  assert.match(route, /buildResolutionProposal\(\{[^}]*controlSurface/s);
+  assert.match(route, /customerEdited:\s*true[^}]*controlSurface/s);
+});
+
 test("automatic resolution generation refuses missing or unverified evidence", () => {
   assert.throws(() => buildResolutionProposal({ type: "faq_evidence_brief", problem, evidence: [] }), /requires reviewed workspace evidence/);
   assert.throws(() => buildResolutionProposal({ type: "source_page_brief", problem, evidence: [{ ...evidence[0], verification: "unverified" }] }), /requires reviewed workspace evidence/);

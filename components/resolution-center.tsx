@@ -8,6 +8,7 @@ type ApprovalStatus = "pending" | "approved" | "changes_requested" | "rejected";
 type ApplicationStatus = "not_applied" | "applied" | "failed";
 type FollowUpStatus = "not_requested" | "requested" | "queued" | "running" | "complete" | "incomparable" | "failed" | "cancelled";
 type WorkspaceRole = "owner" | "admin" | "analyst" | "viewer";
+type ControlSurface = "product" | "pricing_offer" | "positioning" | "documentation" | "product_feed" | "website" | "case_study" | "policy";
 
 export type ResolutionEvidence = {
   id: string;
@@ -21,6 +22,8 @@ export type ResolutionEvidence = {
 
 export type ResolutionProposal = {
   assetType: string;
+  controlLevel?: "controllable";
+  controlSurface?: ControlSurface;
   title: string;
   summary: string;
   content: string;
@@ -64,10 +67,11 @@ export type ResolutionRecord = {
   };
 };
 
-type Draft = Pick<ResolutionProposal, "assetType" | "title" | "summary" | "content" | "limitations">;
+type Draft = Pick<ResolutionProposal, "assetType" | "controlSurface" | "title" | "summary" | "content" | "limitations">;
 
 const blankDraft: Draft = {
   assetType: "comparison_page",
+  controlSurface: "website",
   title: "",
   summary: "",
   content: "",
@@ -79,6 +83,17 @@ const assetTypes = [
   ["faq", "FAQ evidence brief"],
   ["content_brief", "Source-page brief"],
 ] as const;
+
+const controlSurfaces: ReadonlyArray<readonly [ControlSurface, string]> = [
+  ["product", "Product"],
+  ["pricing_offer", "Pricing / offer"],
+  ["positioning", "Positioning"],
+  ["documentation", "Documentation"],
+  ["product_feed", "Product feed / structured data"],
+  ["website", "Website"],
+  ["case_study", "Case study / proof"],
+  ["policy", "Policy"],
+];
 
 const loopSteps = ["Problem", "Evidence", "Proposed fix", "Approval", "Applied location", "Follow-up measurement"] as const;
 
@@ -197,6 +212,7 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
     setSelectedId(record.id);
     setDraft(record.proposal ? {
       assetType: record.proposal.assetType,
+      controlSurface: record.proposal.controlSurface || "website",
       title: record.proposal.title,
       summary: record.proposal.summary,
       content: record.proposal.content,
@@ -264,7 +280,7 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
 
   async function generateProposal() {
     if (!active) return;
-    await mutate("POST", { action: "generate", problemId: active.problem.id }, "generate", "A draft was created from the recorded problem and evidence. Review every statement before approval.");
+    await mutate("POST", { action: "generate", problemId: active.problem.id, controlSurface: draft.controlSurface }, "generate", "A controllable change draft was created from the recorded problem and evidence. Review every statement before approval.");
   }
 
   async function saveDraft() {
@@ -291,11 +307,11 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
 
   async function markApplied() {
     if (!canManage) return;
-    if (!active || !isExternalHttpUrl(targetUrl)) {
-      setError("Enter the full http:// or https:// URL where your team applied the approved asset.");
+    if (!active || !targetUrl.trim()) {
+      setError("Record the customer-controlled page, pull request, document, ticket, release, or other reference where the approved change was applied.");
       return;
     }
-    await mutate("PATCH", { action: "mark_applied", resolutionId: active.id, targetUrl }, "apply", "Applied location recorded. This records customer action; it does not claim publication caused an AI result.");
+    await mutate("PATCH", { action: "mark_applied", resolutionId: active.id, reference: targetUrl.trim() }, "apply", "Applied reference recorded. This records customer action; it does not claim the change caused an AI result.");
   }
 
   async function requestRemeasurement() {
@@ -420,12 +436,12 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
 
         <section className={styles.sectionPanel}>
           <div className={styles.sectionHeading}>
-            <div><span>03 · Proposed fix</span><h3>Create a solution asset your team controls.</h3></div>
+            <div><span>03 · Proposed fix</span><h3>Create a controllable change plan your team owns.</h3></div>
             {active.proposal && <small>Version {active.proposal.version} · {formatDate(active.proposal.updatedAt)}</small>}
           </div>
 
           {!proposalSaved && <div className={styles.generateRow}>
-            <div><strong>No solution asset has been created.</strong><p>Generation must use only the attached evidence and must preserve explicit limitations for customer review.</p></div>
+            <div><strong>No controllable change plan has been created.</strong><p>Choose the customer-owned surface to change. Generation must use only attached evidence and preserve explicit limitations for review.</p></div>
             <button className="button button--ink" type="button" disabled={!canWrite || busy !== "" || !active.evidence.length} onClick={() => void generateProposal()}>{busy === "generate" ? "Creating draft…" : "Create evidence-based draft"}</button>
           </div>}
 
@@ -436,13 +452,14 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
 
           {tab === "edit" ? <form className={styles.editor} onSubmit={(event) => { event.preventDefault(); void saveDraft(); }}>
             <label>Asset type<select value={draft.assetType} onChange={(event) => setDraft((current) => ({ ...current, assetType: event.target.value }))}>{assetTypes.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+            <label>Controllable surface<select value={draft.controlSurface || "website"} onChange={(event) => setDraft((current) => ({ ...current, controlSurface: event.target.value as ControlSurface }))}>{controlSurfaces.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
             <label>Asset title<input required maxLength={160} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="A specific, customer-owned change" /></label>
             <label className={styles.fullField}>Why this asset<textarea required maxLength={1200} rows={3} value={draft.summary} onChange={(event) => setDraft((current) => ({ ...current, summary: event.target.value }))} placeholder="Explain how the asset addresses the measured problem." /></label>
             <label className={styles.fullField}>Draft content<textarea required maxLength={20_000} rows={12} value={draft.content} onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))} placeholder="The reviewable asset, brief, or implementation instructions." /></label>
             <label className={styles.fullField}>Limitations<textarea required maxLength={2_000} rows={4} value={draft.limitations} onChange={(event) => setDraft((current) => ({ ...current, limitations: event.target.value }))} placeholder="What this asset cannot establish, promise, or control." /></label>
             <div className={`${styles.buttonRow} ${styles.fullField}`}><button className="button button--ink" type="submit" disabled={!canWrite || busy !== ""}>{busy === "save" ? "Saving draft…" : proposalSaved ? "Save new revision" : "Save draft"}</button><span>Saving a draft does not approve or publish it.</span></div>
           </form> : <article className={styles.preview}>
-            <div><span>{readable(draft.assetType)}</span><strong>{draft.title || "Untitled solution asset"}</strong></div>
+            <div><span>{readable(draft.assetType)} · {readable(draft.controlSurface || "website")}</span><strong>{draft.title || "Untitled solution asset"}</strong></div>
             <p className={styles.previewSummary}>{draft.summary || "No rationale has been written."}</p>
             <pre>{draft.content || "No solution content has been written."}</pre>
             <aside><strong>Limitations</strong><p>{draft.limitations || "Limitations must be recorded before approval."}</p></aside>
@@ -464,10 +481,10 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
           </div>
 
           <div className={styles.sectionPanel}>
-            <div className={styles.sectionHeading}><div><span>05 · Applied location</span><h3>Record where your team applied it.</h3></div><small>{readable(active.application.status)}</small></div>
-            <label className={styles.stackLabel}>Target URL<input type="url" inputMode="url" value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} placeholder="https://yourcompany.com/page" /></label>
-            <button className="button button--ink" type="button" disabled={!canManage || busy !== "" || !approved} onClick={() => void markApplied()}>{busy === "apply" ? "Recording…" : applied ? "Update applied location" : "Record applied location"}</button>
-            <p className={styles.auditLine}>{approved ? "Foremention records the customer-controlled destination. It does not publish to the website from this action." : "Customer approval is required before an applied location can be recorded."}</p>
+            <div className={styles.sectionHeading}><div><span>05 · Applied reference</span><h3>Record where your team applied it.</h3></div><small>{readable(active.application.status)}</small></div>
+            <label className={styles.stackLabel}>Applied reference<input value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} placeholder="URL, pull request, document, ticket, release, or policy reference" /></label>
+            <button className="button button--ink" type="button" disabled={!canManage || busy !== "" || !approved} onClick={() => void markApplied()}>{busy === "apply" ? "Recording…" : applied ? "Update applied reference" : "Record applied reference"}</button>
+            <p className={styles.auditLine}>{approved ? "Foremention records the customer-controlled destination or implementation reference. It does not apply the product, pricing, policy, or content change itself." : "Customer approval is required before an applied reference can be recorded."}</p>
             {active.application.appliedAt && <p className={styles.auditLine}>Applied {formatDate(active.application.appliedAt)}.</p>}
             {active.application.error && <p className={styles.inlineError}>{active.application.error}</p>}
           </div>
