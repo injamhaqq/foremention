@@ -16,6 +16,6 @@ export default async function IntelligencePage({ searchParams }: { searchParams:
       </div>
     </div>
     <LazyIntelligenceLoop intelligence={intelligence} initialQuery={q?.slice(0, 160) || ""} />
-    <div className="evidence-note"><strong>Measurement boundary</strong><p>This brief uses persisted, human-reviewed records. Cross-run movement also requires the exact persisted buyer-question text, provider, exact model, and methodology to match. It does not claim search volume, causal influence, buyer behavior, revenue impact, or guaranteed AI placement.</p></div>
+    <div className="evidence-note"><strong>Measurement boundary</strong><p>This brief uses persisted, human-reviewed records. Cross-run movement also requires the exact persisted buyer-question text, provider, exact model, methodology, locale, market, buyer stage, and measurement context to match. Missing historical provenance is not backfilled or guessed. It does not claim search volume, causal influence, buyer behavior, revenue impact, or guaranteed AI placement.</p></div>
   </main>;
 }
