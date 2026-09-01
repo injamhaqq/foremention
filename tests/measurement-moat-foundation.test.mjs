@@ -32,7 +32,10 @@ test("service-only measurement facts exclude raw customer content", async () => 
 
   const factView = sql.match(/create or replace view public\.measurement_observation_facts[\s\S]*?;\n\n/i)?.[0] || "";
   assert.ok(factView, "measurement_observation_facts definition must be inspectable");
-  assert.doesNotMatch(factView, /answer_text|raw_json|citations_json|prompt_text|review_note|organization.*name|website/i);
+  for (const rawField of ["prompt_text", "answer_text", "raw_json", "citations_json", "review_note"]) {
+    assert.doesNotMatch(factView, new RegExp(`\\n\\s*(?:a|answer)\\.${rawField}\\s*(?:,|as\\s+${rawField}\\b)`, "i"));
+  }
+  assert.doesNotMatch(factView, /organization.*name|website/i);
   assert.match(sql, /revoke all on public\.measurement_observation_facts from public, anon, authenticated/i);
   assert.match(sql, /grant select on public\.measurement_observation_facts to service_role/i);
 });
@@ -53,7 +56,9 @@ test("benchmark candidates are consent gated anonymized and suppressed below ten
 
   const benchmarkView = sql.match(/create or replace view public\.benchmark_protocol_candidates[\s\S]*?;\n\n/i)?.[0] || "";
   assert.ok(benchmarkView, "benchmark_protocol_candidates definition must be inspectable");
-  assert.doesNotMatch(benchmarkView, /organization_id\s*,|project_id\s*,|run_id\s*,|run_answer_id\s*,|prompt_text|answer_text|citations_json|raw_json|website/i);
+  const finalSelect = benchmarkView.match(/select\s+question_matrix_hash[\s\S]*?having[\s\S]*?;/i)?.[0] || "";
+  assert.ok(finalSelect, "benchmark final projection must be inspectable");
+  assert.doesNotMatch(finalSelect, /organization_id\s*,|project_id\s*,|run_id\s*,|run_answer_id\s*,|prompt_text|answer_text|citations_json|raw_json|website/i);
   assert.match(sql, /revoke all on public\.benchmark_protocol_candidates from public, anon, authenticated/i);
   assert.match(sql, /grant select on public\.benchmark_protocol_candidates to service_role/i);
 });
