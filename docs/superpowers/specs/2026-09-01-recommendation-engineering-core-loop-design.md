@@ -126,7 +126,7 @@ Possible execution artifacts underneath that decision may include:
 
 The business/product decision remains one first-class Change Specification even when it has many execution artifacts.
 
-### Required Change Specification fields
+### Required Change Specification capabilities
 
 Every material Change Specification must support:
 
@@ -154,16 +154,18 @@ Every material Change Specification must support:
 - execution state;
 - timestamps and immutable identity.
 
+A draft may legitimately be incomplete. Foremention must not invent an exact change, owner, effort estimate, priority, dependency, scope, or controllable surface simply to satisfy a schema. The database must enforce completeness when the draft is submitted for review, not when an evidence-bounded draft row is first created.
+
 No automatic generator may promote a material company action to `DO_NOW` + `HIGH` merely because an AI answer or source observation exists. Stronger decisions require stronger evidence.
 
-For a generated draft with only reviewed Recommendation Intelligence evidence and no stronger cross-business evidence, the safe default is:
+For a generated draft with only reviewed Recommendation Intelligence evidence and no stronger cross-business evidence, the safe semantic defaults are:
 
 - Eligibility: `UNKNOWN`
 - Decision: `INSUFFICIENT_EVIDENCE`
 - Truth: `HYPOTHESIS`
 - Confidence: `INSUFFICIENT`
 
-A human reviewer can refine these states based on inspectable evidence. Later engines can automate more only when their decision rules are independently validated.
+These defaults explicitly represent uncertainty; they are not positive claims. A human reviewer can refine them based on inspectable evidence. Later engines can automate more only when their decision rules are independently validated.
 
 ---
 
@@ -187,8 +189,8 @@ PR #197 must therefore be reconciled so that:
 
 - `controlSurface` belongs to the Change Specification, not the canonical `ResolutionProposal` model;
 - Resolution Assets remain typed execution artifacts such as comparison briefs, FAQ evidence briefs, and source-page briefs;
-- generated Resolution Assets inherit the approved/reviewed Change Specification context rather than becoming the decision themselves;
-- a Change Specification may exist with no content asset at all (for example product, pricing, policy, security, or engineering changes).
+- generated Resolution Assets inherit the reviewed Change Specification context rather than becoming the decision themselves;
+- a Change Specification may exist with no content asset at all, for example product, pricing, policy, security, or engineering changes.
 
 ---
 
@@ -198,33 +200,33 @@ Create forward-only schema; never rewrite historical migrations.
 
 ### `change_specifications`
 
-Core relational fields:
+Core fields:
 
 - `id uuid primary key`
 - `organization_id uuid not null`
 - `project_id uuid not null`
 - `primary_opportunity_id uuid not null`
 - `baseline_run_id uuid`
-- `control_class text not null`
-- `control_surface text`
-- `eligibility_state text not null`
-- `decision_state text not null`
-- `truth_state text not null`
-- `confidence_state text not null`
+- `control_class text null while draft`
+- `control_surface text null unless applicable`
+- `eligibility_state text not null default 'UNKNOWN'`
+- `decision_state text not null default 'INSUFFICIENT_EVIDENCE'`
+- `truth_state text not null default 'HYPOTHESIS'`
+- `confidence_state text not null default 'INSUFFICIENT'`
 - `title text not null`
 - `problem_statement text not null`
-- `exact_change text not null`
-- `scope_json jsonb not null`
-- `owner_role text not null`
+- `exact_change text null while draft`
+- `scope_json jsonb not null default '{}'`
+- `owner_role text null while draft`
 - `owner_id uuid null`
 - `priority_rank integer null`
-- `effort text not null`
-- `dependencies_json jsonb not null`
-- `commercial_relevance_json jsonb not null`
-- `recommendation_relevance_json jsonb not null`
-- `acceptance_criteria_json jsonb not null`
-- `verification_plan_json jsonb not null`
-- `status text not null`
+- `effort text null while draft`
+- `dependencies_json jsonb not null default '[]'`
+- `commercial_relevance_json jsonb not null default '{}'`
+- `recommendation_relevance_json jsonb not null default '{}'`
+- `acceptance_criteria_json jsonb not null default '[]'`
+- `verification_plan_json jsonb not null default '{}'`
+- `status text not null default 'draft'`
 - submit/decision/approval actor + timestamp fields following existing forward-only review patterns
 - `created_by`, `created_at`, `updated_at`
 
@@ -236,6 +238,19 @@ V1 `status`:
 - `in_execution`
 - `completed`
 - `rejected`
+
+A transition from `draft` to `in_review` must fail closed unless all submission requirements are true:
+
+1. at least one verified evidence link exists;
+2. `control_class` is classified;
+3. `control_surface` is present when `control_class = CONTROLLABLE`;
+4. `exact_change` is non-empty;
+5. `owner_role` is non-empty;
+6. `effort` is one of `LOW | MEDIUM | HIGH`;
+7. `acceptance_criteria_json` is a non-empty array;
+8. `verification_plan_json` is a non-empty object and identifies the baseline/comparable remeasurement intent;
+9. the submitter is the authenticated actor;
+10. the baseline, opportunity, organization, and project identities are internally consistent.
 
 A completed Change Specification means the company-side execution has been recorded. It does not mean a later recommendation result improved.
 
