@@ -1,0 +1,139 @@
+name: Foremention Autopilot Controller
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: foremention-autopilot-controller
+  cancel-in-progress: false
+
+jobs:
+  maintain-autopilot-queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      COPILOT_ASSIGNMENT_TOKEN: ${{ secrets.COPILOT_ASSIGNMENT_TOKEN }}
+    steps:
+      - name: Find or create one bounded autopilot cycle
+        id: queue
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          open_issues="$(gh issue list \
+            --repo "$REPO" \
+            --state open \
+            --limit 100 \
+            --json number,title,assignees,url)"
+
+          issue_number="$(jq -r '[.[] | select(.title | startswith("[AUTOPILOT]"))][0].number // empty' <<<"$open_issues")"
+
+          if [[ -z "$issue_number" ]]; then
+            body="$(cat <<'BODY'
+          Queue marker: `autopilot:ready`
+
+          Complete **one bounded execution cycle** using the repository's `Foremention Autopilot` instructions.
+
+          Required operating loop:
+          1. Recover reality from current `main`, exact SHA, open PRs/issues, relevant implementation, tests/migrations/CI, and canonical docs.
+          2. Identify the single highest-value unresolved problem that is justified by current evidence and is not already being solved by another active PR.
+          3. Define acceptance criteria and non-goals before implementation.
+          4. Implement the smallest complete solution using RED -> GREEN -> VERIFY.
+          5. Run and report only checks actually observed.
+          6. Open a pull request. The PR body must close this issue when merged and must include starting SHA, evidence, acceptance criteria, verification, risks/unknowns, and the next recommended bounded task.
+
+          Do not auto-merge. Do not perform destructive production/database operations, weaken authentication/RLS/security, change secrets, publish unverified claims, change pricing/ICP/category/business model, send customer communications, or make legal/financial commitments without founder approval.
+
+          If a founder decision is required, stop that branch of work and document the decision request instead of guessing.
+          BODY
+            )"
+
+            issue_url="$(gh issue create \
+              --repo "$REPO" \
+              --title "[AUTOPILOT] One bounded execution cycle" \
+              --body "$body")"
+            issue_number="${issue_url##*/}"
+            echo "Created autopilot issue #$issue_number"
+          else
+            echo "Reusing open autopilot issue #$issue_number"
+          fi
+
+          echo "issue_number=$issue_number" >> "$GITHUB_OUTPUT"
+
+      - name: Assign queued cycle to GitHub Copilot cloud agent
+        if: env.COPILOT_ASSIGNMENT_TOKEN != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          issue_number="${{ steps.queue.outputs.issue_number }}"
+          current_assignees="$(GH_TOKEN="$COPILOT_ASSIGNMENT_TOKEN" gh api "/repos/$REPO/issues/$issue_number" --jq '[.assignees[].login]')"
+
+          if jq -e 'any(. == "copilot-swe-agent[bot]" or . == "copilot-swe-agent")' <<<"$current_assignees" >/dev/null; then
+            echo "Issue #$issue_number is already assigned to Copilot."
+            exit 0
+          fi
+
+          instructions="Use the repository custom agent 'foremention-autopilot' if available. Complete exactly one bounded execution cycle. Read CLAUDE.md, .github/copilot-instructions.md, FOREMENTION_STATE.md, and docs/AUTOPILOT.md. Avoid duplicate work. The pull request body must include 'Closes #$issue_number'. Do not auto-merge or cross founder-approval boundaries."
+
+          jq -n \
+            --arg repo "$REPO" \
+            --arg instructions "$instructions" \
+            '{
+              assignees: ["copilot-swe-agent[bot]"],
+              agent_assignment: {
+                target_repo: $repo,
+                base_branch: "main",
+                custom_instructions: $instructions,
+                custom_agent: "foremention-autopilot",
+                model: ""
+              }
+            }' > /tmp/copilot-assignment.json
+
+          if GH_TOKEN="$COPILOT_ASSIGNMENT_TOKEN" gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/$REPO/issues/$issue_number/assignees" \
+            --input /tmp/copilot-assignment.json; then
+            echo "Assigned issue #$issue_number to Copilot using the Foremention Autopilot agent."
+            exit 0
+          fi
+
+          echo "Custom-agent assignment failed; retrying with repository instructions only."
+          jq -n \
+            --arg repo "$REPO" \
+            --arg instructions "$instructions" \
+            '{
+              assignees: ["copilot-swe-agent[bot]"],
+              agent_assignment: {
+                target_repo: $repo,
+                base_branch: "main",
+                custom_instructions: $instructions,
+                custom_agent: "",
+                model: ""
+              }
+            }' > /tmp/copilot-assignment-fallback.json
+
+          GH_TOKEN="$COPILOT_ASSIGNMENT_TOKEN" gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/$REPO/issues/$issue_number/assignees" \
+            --input /tmp/copilot-assignment-fallback.json
+
+      - name: Explain inactive public-repository fallback
+        if: env.COPILOT_ASSIGNMENT_TOKEN == ''
+        shell: bash
+        run: |
+          echo "::notice::Autopilot queue is healthy, but automatic Copilot assignment is inactive. Either make the repository private/internal and use native Copilot Automations, or add a fine-grained GitHub token named COPILOT_ASSIGNMENT_TOKEN. No OpenAI/model API key is required."
