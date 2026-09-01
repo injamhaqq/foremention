@@ -20,9 +20,10 @@ Advance Foremention through small, evidence-based, reviewable engineering cycles
 
 ## Open autonomous work
 
-- Autopilot bootstrap PR #192 was merged to `main` as `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc` on 2026-09-01.
-- First live Autopilot run #1 triggered automatically from that merge. Preflight, checkout, dependency install, Copilot CLI install, and keyless `copilot-requests: write` permission all worked. Copilot CLI rejected the configured `--max-ai-credits 10` because the current CLI requires at least `30`.
-- Repair in progress: branch `fix/autopilot-ai-credit-floor-20260901` changes the bounded AI-credit cap to the supported minimum `30` and locks it with a contract test.
+- The AI-credit repair PR merged to `main` at `9b93b5515f6d71e5ac0811a10b92eec1b8de6dd2` on 2026-09-01.
+- The repair applied the supported Copilot CLI minimum of `30` AI credits and kept the keyless bounded-control-plane design intact; no additional repository patch was produced after that merge.
+- Controller run #2 succeeded with keyless Copilot execution from the exact merged `main` SHA. The live activation evidence confirms that the bounded control plane is working without a repository write grant to the AI agent.
+- Auto-merge remains intentionally disabled. The security guardrails remain in force: no destructive production/database actions, no secret changes, no weakened auth/RLS/security boundaries, and no unaudited product/runtime changes.
 - Before selecting new product work, inspect all current open PRs and avoid duplicate implementation.
 
 ## Founder-decision queue
@@ -51,6 +52,14 @@ Advance Foremention through small, evidence-based, reviewable engineering cycles
 - Verified working: trigger, serialized preflight, read-only checkout, pnpm/Node setup, repository dependency install, current Copilot CLI install, `GITHUB_TOKEN` with `CopilotRequests: write`.
 - Observed failure: CLI rejected `--max-ai-credits 10` with the explicit requirement to use at least 30 AI credits.
 - Repair: set `--max-ai-credits 30`; keep all other privilege, continuation, timeout, no-auto-merge, stale-patch, and protected-path controls unchanged.
+
+### 2026-09-01 — AI-credit repair merge and controller run #2
+
+- Starting main SHA for the fix: `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc`.
+- Repair PR merged to `main` at `9b93b5515f6d71e5ac0811a10b92eec1b8de6dd2`.
+- Verified live evidence: controller run #2 succeeded with keyless Copilot execution from the exact merged `main` SHA.
+- No additional repository patch was produced after the merge; the AI agent remained bounded by the read-only checkout and no-auto-merge policy.
+- Product/runtime behavior was not changed by this control-plane status update; the change is limited to canonical state/documentation truth.
 
 ## How to update this file
 
