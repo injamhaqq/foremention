@@ -1,0 +1,51 @@
+name: Foremention Autopilot Task
+description: Queue one bounded, evidence-based execution cycle for the Foremention autonomous operator.
+title: "[AUTOPILOT] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Queue marker: `autopilot:ready`
+
+        Use this template only for one bounded execution cycle. The agent must recover current reality before implementation and must not duplicate active work.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / evidence
+      description: What observed code, CI, production, customer, or operating evidence justifies this task?
+      placeholder: Describe the verified problem and cite the relevant SHA, PR, issue, test, log, or canonical document.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Define the smallest complete outcome and how it will be verified.
+      placeholder: |
+        - Observable behavior
+        - Focused regression coverage
+        - Required checks
+        - Truth/security constraints
+        - Non-goals
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk class
+      description: Founder approval is required before any action outside the repository-safe boundary.
+      options:
+        - Repository-safe engineering work
+        - Founder approval required before execution
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Optional links, paths, dependencies, blockers, or founder decisions already made.
