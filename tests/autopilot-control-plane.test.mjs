@@ -14,7 +14,7 @@ test("Copilot receives a concise repository-wide Foremention operating contract"
   assert.match(instructions, /one bounded unit of work/i);
 });
 
-test("Foremention exposes a dedicated Copilot cloud autopilot agent", () => {
+test("Foremention exposes a dedicated Copilot CLI autopilot agent", () => {
   const agent = read(".github/agents/foremention-autopilot.agent.md");
   assert.match(agent, /^---[\s\S]*description:/);
   assert.match(agent, /target:\s*github-copilot/);
@@ -33,22 +33,51 @@ test("autopilot state and operating documentation are persistent and truth-safe"
   assert.match(state, /Open autonomous work/i);
   assert.match(state, /Founder-decision queue/i);
   assert.match(state, /Execution ledger/i);
-  assert.match(docs, /private or internal/i);
-  assert.match(docs, /public-repository fallback/i);
-  assert.match(docs, /COPILOT_ASSIGNMENT_TOKEN/);
-  assert.match(docs, /not an OpenAI API key/i);
+  assert.match(docs, /short-lived `GITHUB_TOKEN`/i);
+  assert.match(docs, /no `OPENAI_API_KEY`/i);
+  assert.match(docs, /Copilot Student/i);
+  assert.match(docs, /not unlimited/i);
+  assert.match(docs, /privilege separation/i);
 });
 
-test("public-repository fallback is bounded, serialized, and never auto-merges", () => {
+test("keyless online controller is bounded, serialized, privilege-separated, and never auto-merges", () => {
   const workflow = read(".github/workflows/autopilot-control.yml");
   assert.match(workflow, /schedule:/);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /push:[\s\S]*main/);
   assert.match(workflow, /concurrency:/);
-  assert.match(workflow, /COPILOT_ASSIGNMENT_TOKEN/);
-  assert.match(workflow, /copilot-swe-agent\[bot\]/);
-  assert.match(workflow, /autopilot:ready/);
+  assert.match(workflow, /copilot-requests:\s*write/);
+  assert.match(workflow, /npm install --global @github\/copilot@latest/);
+  assert.match(workflow, /--agent foremention-autopilot/);
+  assert.match(workflow, /--autopilot/);
+  assert.match(workflow, /--max-autopilot-continues 8/);
+  assert.match(workflow, /--max-ai-credits 10/);
+  assert.match(workflow, /persist-credentials:\s*false/);
+  assert.match(workflow, /validate-autopilot-diff\.mjs/);
+  assert.match(workflow, /autopilot\/run-/);
+  assert.doesNotMatch(workflow, /COPILOT_ASSIGNMENT_TOKEN/);
+  assert.doesNotMatch(workflow, /OPENAI_API_KEY/);
   assert.doesNotMatch(workflow, /gh\s+pr\s+merge/i);
   assert.doesNotMatch(workflow, /enable_auto_merge/i);
+});
+
+test("cycle prompt keeps remote writes outside the AI job and requires a durable handoff", () => {
+  const prompt = read(".github/autopilot/CYCLE_PROMPT.md");
+  assert.match(prompt, /Do not.*push/i);
+  assert.match(prompt, /outer workflow/i);
+  assert.match(prompt, /pr-summary\.md/);
+  assert.match(prompt, /founder-decision\.md/);
+  assert.match(prompt, /Never manufacture work/i);
+});
+
+test("deterministic diff guard blocks autonomous self-modification and secret files", () => {
+  const guard = read("scripts/validate-autopilot-diff.mjs");
+  assert.match(guard, /\.github\/workflows\//);
+  assert.match(guard, /\.github\/autopilot\//);
+  assert.match(guard, /foremention-autopilot\.agent\.md/);
+  assert.match(guard, /validate-autopilot-diff\.mjs/);
+  assert.match(guard, /\.claude\/hooks\//);
+  assert.match(guard, /\.env/);
 });
 
 test("autopilot issue template scopes work to a single safe cycle", () => {
