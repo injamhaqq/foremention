@@ -75,6 +75,7 @@ export default async function PrintableOutcomeValueReport() {
         <h2>{record.title}</h2><p>{record.problemStatement}</p>
         {record.changeSpecificationId ? <><p><strong>Change Specification:</strong> {record.changeTitle || "Untitled decision"}</p><p><strong>Execution asset:</strong> {record.assetType.replaceAll("_", " ")}</p></> : <p><strong>Recommendation:</strong> {record.assetType.replaceAll("_", " ")}</p>}
         <footer><span>Owner: {record.ownerId ? "assigned" : "unassigned"}</span><span>Due: {formatDate(record.dueAt)}</span><span>Outcome: {record.outcomeState.replaceAll("_", " ")}</span><span>Comparison eligible: {record.comparisonEligible === null ? "not assessed" : record.comparisonEligible ? "yes" : "no"}</span></footer>
+        <p><strong>Attribution boundary:</strong> {record.limitation}</p>
         {record.comparison && <p><strong>Eligible observed association:</strong> brand presence {record.comparison.brandPresencePct.delta > 0 ? "+" : ""}{record.comparison.brandPresencePct.delta} pts; first mention {record.comparison.firstMentionPct.delta > 0 ? "+" : ""}{record.comparison.firstMentionPct.delta} pts. {record.comparison.interpretation}</p>}
       </article>)}
     </section>
