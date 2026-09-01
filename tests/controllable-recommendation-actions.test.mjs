@@ -49,7 +49,7 @@ test("applied references support generic customer-controlled records with exact 
     text("app/api/resolutions/route.ts"),
     text("components/resolution-center.tsx"),
   ]);
-  assert.match(route, /page, pull request, document, ticket, release, or other reference/i);
+  assert.match(route, /page, pull request, document, ticket, release, policy, or other reference/i);
   assert.match(center, /Page, pull request, document, ticket, release, policy, or other reference/i);
   assert.match(center, /Applied reference recorded\. This records customer action; it does not claim the change caused an AI result\./);
   assert.doesNotMatch(center, /publication caused an AI result/i);
