@@ -14,6 +14,20 @@ This file is a compact handoff ledger for autonomous workers. It is not a substi
 - Copilot usage boundary: billed against the repository owner's Copilot seat/AI-credit allowance; Copilot Student is not unlimited.
 - Production deployment SHA/health for this bootstrap: UNKNOWN; not independently inspected as part of this control-plane change.
 
+## Recommendation Engineering build authority — 2026-09-01
+
+- Long-term destination: **Category Leadership OS** — not claimed as achieved.
+- Core product category being built: **Recommendation Engineering**.
+- Measurement + diagnosis subsystem: **Recommendation Intelligence**.
+- Canonical company-decision object: **Change Specification**.
+- Execution artifacts are subordinate to Change Specifications.
+- Public positioning remains **Recommendation Intelligence** until the Recommendation Engineering core path is shipped and separately approved for public migration.
+- PR #200 merged the approved architecture/specification, but the four authority files are updated by the first Slice A implementation rather than treated as already complete.
+- PR #197 is directionally useful but **do not merge #197 as-is**. Reconcile it only after the first-class Change Specification domain exists; `controlSurface` belongs to Change Specification, not `ResolutionProposal`.
+- Historical `resolution_assets` remain valid and must not be backfilled with fabricated Change Specifications.
+- Production reliability issue #202 was completed only after exact production SHA `3256b9fd6e2c99e40f1667b81778915fff620ba6` passed Cloudflare release verification, live Inngest sync/probe, and the authenticated first-evidence canary.
+- No customer, PMF, revenue, retention, willingness-to-pay, category-leadership, benchmark, ROI, or causal claim is implied by the Recommendation Engineering architecture or its implementation.
+
 ## Operating objective
 
 Advance Foremention through small, evidence-based, reviewable engineering cycles without requiring the founder to repeatedly type “continue.” Each cycle must recover reality, choose one justified task, implement the smallest complete solution, verify it, open a review-only PR, and leave an evidence-backed handoff.
@@ -24,6 +38,7 @@ Advance Foremention through small, evidence-based, reviewable engineering cycles
 - First live Autopilot run #1 triggered automatically from that merge. Preflight, checkout, dependency install, Copilot CLI install, and keyless `copilot-requests: write` permission all worked. Copilot CLI rejected the configured `--max-ai-credits 10` because the current CLI requires at least `30`.
 - Repair in progress: branch `fix/autopilot-ai-credit-floor-20260901` changes the bounded AI-credit cap to the supported minimum `30` and locks it with a contract test.
 - Before selecting new product work, inspect all current open PRs and avoid duplicate implementation.
+- Recommendation Engineering Core Loop v1 must follow the approved spec/plan and exact-head gates. Do not start Slice B until Slice A is merged and independently production-verified.
 
 ## Founder-decision queue
 
@@ -51,6 +66,13 @@ Advance Foremention through small, evidence-based, reviewable engineering cycles
 - Verified working: trigger, serialized preflight, read-only checkout, pnpm/Node setup, repository dependency install, current Copilot CLI install, `GITHUB_TOKEN` with `CopilotRequests: write`.
 - Observed failure: CLI rejected `--max-ai-credits 10` with the explicit requirement to use at least 30 AI credits.
 - Repair: set `--max-ai-credits 30`; keep all other privilege, continuation, timeout, no-auto-merge, stale-patch, and protected-path controls unchanged.
+
+### 2026-09-01 — Recommendation Engineering unblocked
+
+- Verified production base: `3256b9fd6e2c99e40f1667b81778915fff620ba6`.
+- Runtime hardening PRs: #204 workflow envelope; #205 collection runtime/canary envelope.
+- Production verification: exact release, live Inngest sync, live Inngest execution probe, authenticated first-evidence canary, and evidence archival all succeeded before Change Specification implementation began.
+- Approved architecture authority: PR #200 plus `docs/superpowers/specs/2026-09-01-recommendation-engineering-core-loop-design.md` and its implementation plan.
 
 ## How to update this file
 
