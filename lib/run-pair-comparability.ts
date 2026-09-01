@@ -3,6 +3,7 @@ import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
 import { loadWorkspaceContext } from "@/lib/data";
 import {
   assessExactQuestionComparability,
+  coerceComparableMeasurementContext,
   type ComparableQuestionSlot,
 } from "@/lib/intelligence-comparability";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -20,6 +21,7 @@ type VerifiedAnswerRow = {
   prompt_text: string | null;
   provider: string;
   model: string | null;
+  measurement_context_json: unknown;
   citations_json: Array<{ url?: string; title?: string }> | null;
   brand_present: boolean | null;
 };
@@ -49,7 +51,7 @@ function withheld(reason: string): RunPairComparability {
 function answerView(row: VerifiedAnswerRow): VerifiedRunComparisonAnswer | null {
   const promptText = (row.prompt_text || "").replace(/\s+/g, " ").trim();
   const model = (row.model || "").trim();
-  if (!promptText || !model) return null;
+  if (!promptText || !model || !coerceComparableMeasurementContext(row.measurement_context_json)) return null;
   const citations = (row.citations_json || []).flatMap((citation) => {
     if (!citation.url) return [];
     const canonical = canonicalizeEvidenceUrl(citation.url);
@@ -69,7 +71,8 @@ function answerView(row: VerifiedAnswerRow): VerifiedRunComparisonAnswer | null 
 /**
  * Customer-facing run movement is allowed only for a chronological pair of
  * human-reviewed terminal runs from the active workspace that share the exact
- * methodology and persisted buyer-question/provider/model matrix.
+ * methodology and persisted buyer-question/provider/model/measurement-context
+ * matrix. The context includes locale, market, buyer stage and version identity.
  *
  * Individual runs remain valid standalone evidence when this returns false.
  */
@@ -112,7 +115,7 @@ export async function assessWorkspaceRunPairComparability(
   }
 
   const rows = await supabaseRest<VerifiedAnswerRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
     { token: viewer.accessToken },
   );
   const slots: ComparableQuestionSlot[] = rows.map((row) => ({
@@ -121,13 +124,14 @@ export async function assessWorkspaceRunPairComparability(
     promptText: row.prompt_text,
     provider: row.provider,
     model: row.model,
+    measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
   }));
   const assessment = assessExactQuestionComparability(laterRunId, earlierRunId, slots);
   if (!assessment.comparable) return withheld(assessment.reason || "The reviewed collections are not exactly comparable.");
 
   const answers = rows.map(answerView).filter((answer): answer is VerifiedRunComparisonAnswer => Boolean(answer));
   if (answers.length !== rows.length) {
-    return withheld("Exact persisted question or model provenance is missing from at least one verified answer.");
+    return withheld("Exact persisted question, model, or measurement context provenance is missing from at least one verified answer.");
   }
   return { comparable: true, reason: null, answers };
 }
