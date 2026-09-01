@@ -51,10 +51,7 @@ type ChangeSpecificationRow = {
   primary_opportunity_id: string;
   status: "draft" | "in_review" | "approved" | "in_execution" | "completed" | "rejected";
 };
-
-type ChangeExecutionAssetRow = {
-  change_specification_id: string;
-};
+type ChangeExecutionAssetRow = { change_specification_id: string };
 
 async function resolveWorkspace(viewer: Viewer) {
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
@@ -79,9 +76,7 @@ const proposalContent = (proposal: Record<string, unknown>) => {
 };
 const latestDate = (evidence: VerifiedResolutionEvidence[], fallback: string) => evidence.map((entry) => entry.observedAt).filter((value): value is string => Boolean(value)).sort().at(-1) || fallback;
 const uniqueViolation = (error: unknown) => error instanceof SupabaseRequestError && error.code === "23505";
-
 const allowedGenerationAssetTypes = ["comparison_page", "faq", "content_brief"] as const;
-
 const parseGenerateAssetType = (value: unknown): ResolutionAssetType | null => {
   const cleaned = clean(value, 40);
   if (!cleaned) return "source_page_brief";
@@ -89,12 +84,7 @@ const parseGenerateAssetType = (value: unknown): ResolutionAssetType | null => {
   if (!allowedGenerationAssetTypes.includes(cleaned as (typeof allowedGenerationAssetTypes)[number])) return null;
   return internalAssetType(cleaned);
 };
-
-const executionRoleFor = (value: ResolutionAssetType) => value === "comparison_brief"
-  ? "comparison"
-  : value === "faq_evidence_brief"
-    ? "faq"
-    : "website";
+const executionRoleFor = (value: ResolutionAssetType) => value === "comparison_brief" ? "comparison" : value === "faq_evidence_brief" ? "faq" : "website";
 
 async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) {
   const [assets, opportunities] = await Promise.all([
@@ -189,16 +179,8 @@ async function findProblem(viewer: Viewer, context: WorkspaceContext, problemId:
   );
   const source = sources[0];
   if (!source) return null;
-  return {
-    id: opportunity.id,
-    title: opportunity.title,
-    nextAction: opportunity.next_action,
-    sourceId: source.id,
-    sourceTitle: source.page_title,
-    sourceUrl: source.canonical_url,
-  } satisfies ResolutionProblem;
+  return { id: opportunity.id, title: opportunity.title, nextAction: opportunity.next_action, sourceId: source.id, sourceTitle: source.page_title, sourceUrl: source.canonical_url } satisfies ResolutionProblem;
 }
-
 
 async function loadChangeSpecification(viewer: Viewer, context: WorkspaceContext, id: string) {
   const rows = await supabaseRest<ChangeSpecificationRow[]>(
@@ -208,9 +190,7 @@ async function loadChangeSpecification(viewer: Viewer, context: WorkspaceContext
   return rows[0] || null;
 }
 
-async function loadVerifiedEvidence(input: {
-  viewer: Viewer; context: WorkspaceContext; problem: ResolutionProblem; evidenceItemIds: string[]; sourceObservationIds: string[];
-}) {
+async function loadVerifiedEvidence(input: { viewer: Viewer; context: WorkspaceContext; problem: ResolutionProblem; evidenceItemIds: string[]; sourceObservationIds: string[] }) {
   const { viewer, context, problem } = input;
   const observationFilter = input.sourceObservationIds.length ? `&id=in.(${inFilter(input.sourceObservationIds)})` : "";
   const observations = await supabaseRest<Array<{ id: string; run_answer_id: string | null; provider: string; observed_at: string; review_status: string }>>(
@@ -235,7 +215,6 @@ async function loadVerifiedEvidence(input: {
     if (!answer) return [];
     return [{ id: observation.id, kind: "source_observation", title: problem.sourceTitle || problem.sourceUrl, url: problem.sourceUrl, observedAt: observation.observed_at, provider: answer.provider || observation.provider, model: answer.model, question: answer.prompt_text || null, excerpt: clean(answer.answer_text, 500) || null, runId: answer.run_id, verification: "verified" } as VerifiedResolutionEvidence];
   });
-
   if (input.evidenceItemIds.length) {
     const items = await supabaseRest<Array<{ id: string; title: string; source_url: string | null; verified_at: string | null; verification_status: string; usage_rights: string | null; expires_at: string | null }>>(
       `evidence_items?select=id,title,source_url,verified_at,verification_status,usage_rights,expires_at&id=in.(${inFilter(input.evidenceItemIds)})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&verification_status=eq.verified`,
@@ -264,12 +243,8 @@ export async function GET() {
   if (viewer.mode === "demo") return NextResponse.json({ data: { resolutions: [] }, mode: "demo" });
   const { context } = await resolveWorkspace(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  try {
-    return NextResponse.json({ data: { resolutions: await loadResolutionRecords(viewer, context) } });
-  } catch (error) {
-    if (isMissingRelationError(error)) return pendingMigrationResponse();
-    throw error;
-  }
+  try { return NextResponse.json({ data: { resolutions: await loadResolutionRecords(viewer, context) } }); }
+  catch (error) { if (isMissingRelationError(error)) return pendingMigrationResponse(); throw error; }
 }
 
 async function handleCreate(request: Request) {
@@ -285,36 +260,34 @@ async function handleCreate(request: Request) {
 
   if (action === "generate") {
     const changeSpecificationId = clean(body.changeSpecificationId, 36);
-    const requestedProblemId = clean(body.problemId, 36);
     const assetType = parseGenerateAssetType(body.assetType);
-    if ((changeSpecificationId && !uuid.test(changeSpecificationId)) || (!changeSpecificationId && !uuid.test(requestedProblemId)) || !assetType) {
-      return NextResponse.json({ error: "Choose a valid reviewed Change Specification and resolution type." }, { status: 400 });
-    }
+    if (!uuid.test(changeSpecificationId) || !assetType) return NextResponse.json({ error: "Choose a valid reviewed Change Specification and resolution type." }, { status: 400 });
 
-    const changeSpecification = changeSpecificationId
-      ? await loadChangeSpecification(viewer, context, changeSpecificationId)
-      : null;
-    if (changeSpecificationId && !changeSpecification) {
-      return NextResponse.json({ error: "Change Specification not found in this workspace." }, { status: 404 });
-    }
-    if (changeSpecification && !["in_review", "approved", "in_execution", "completed"].includes(changeSpecification.status)) {
+    const changeSpecification = await loadChangeSpecification(viewer, context, changeSpecificationId);
+    if (!changeSpecification) return NextResponse.json({ error: "Change Specification not found in this workspace." }, { status: 404 });
+    if (!["in_review", "approved", "in_execution", "completed"].includes(changeSpecification.status)) {
       return NextResponse.json({ error: "Execution assets require a reviewed Change Specification before generation." }, { status: 409 });
     }
 
-    const problemId = changeSpecification?.primary_opportunity_id || requestedProblemId;
-    const problem = await findProblem(viewer, context, problemId);
+    const problem = await findProblem(viewer, context, changeSpecification.primary_opportunity_id);
     if (!problem) return NextResponse.json({ error: "Observed problem not found in this workspace." }, { status: 404 });
     const existingAssets = await supabaseRest<Array<{ id: string }>>(
       `resolution_assets?select=id&opportunity_id=eq.${problem.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
       { token: viewer.accessToken },
     );
     if (existingAssets[0]) {
+      const existingLinks = await supabaseRest<ChangeExecutionAssetRow[]>(
+        `change_execution_assets?select=change_specification_id&resolution_asset_id=eq.${existingAssets[0].id}&change_specification_id=eq.${changeSpecification.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+        { token: viewer.accessToken },
+      );
+      if (!existingLinks[0]) return NextResponse.json({ error: "A legacy Resolution Asset already exists for this opportunity. Foremention will not silently reinterpret it as execution of this Change Specification." }, { status: 409 });
       const resolutions = await loadResolutionRecords(viewer, context);
       return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === existingAssets[0].id) } });
     }
+
     const { evidence, baselineRunId } = await loadVerifiedEvidence({ viewer, context, problem, evidenceItemIds: uniqueIds(body.evidenceItemIds), sourceObservationIds: uniqueIds(body.sourceObservationIds) });
     if (!evidence.length || !baselineRunId) return NextResponse.json({ error: "Review at least one observation for this source before generating a solution asset." }, { status: 409 });
-    const generated = buildResolutionProposal({ type: assetType as ResolutionAssetType, problem, evidence });
+    const generated = buildResolutionProposal({ type: assetType, problem, evidence });
     let rows: AssetRow[];
     try {
       rows = await supabaseRest<AssetRow[]>("resolution_assets", {
@@ -327,33 +300,28 @@ async function handleCreate(request: Request) {
         `resolution_assets?select=id&opportunity_id=eq.${problem.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
         { token: viewer.accessToken },
       );
+      if (!concurrent[0]) throw error;
+      const concurrentLinks = await supabaseRest<ChangeExecutionAssetRow[]>(
+        `change_execution_assets?select=change_specification_id&resolution_asset_id=eq.${concurrent[0].id}&change_specification_id=eq.${changeSpecification.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+        { token: viewer.accessToken },
+      );
+      if (!concurrentLinks[0]) return NextResponse.json({ error: "A Resolution Asset was created concurrently but is not linked to this Change Specification. Retry after reviewing the current decision state." }, { status: 409 });
       const resolutions = await loadResolutionRecords(viewer, context);
-      return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === concurrent[0]?.id) }, duplicate: true });
+      return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === concurrent[0].id) }, duplicate: true });
     }
     const asset = rows[0];
     if (!asset) return NextResponse.json({ error: "The resolution draft could not be created." }, { status: 503 });
     try {
       await supabaseRest("resolution_asset_evidence", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: evidence.map((entry) => ({ organization_id: context.organizationId, project_id: context.projectId, resolution_asset_id: asset.id, evidence_item_id: entry.kind === "evidence_item" ? entry.id : null, source_observation_id: entry.kind === "source_observation" ? entry.id : null, evidence_snapshot: entry })) });
-      if (changeSpecification) {
-        await supabaseRest("change_execution_assets", {
-          method: "POST",
-          token: viewer.accessToken,
-          prefer: "return=minimal",
-          body: {
-            organization_id: context.organizationId,
-            project_id: context.projectId,
-            change_specification_id: changeSpecification.id,
-            resolution_asset_id: asset.id,
-            execution_role: executionRoleFor(asset.asset_type),
-            created_by: viewer.id,
-          },
-        });
-      }
+      await supabaseRest("change_execution_assets", {
+        method: "POST", token: viewer.accessToken, prefer: "return=minimal",
+        body: { organization_id: context.organizationId, project_id: context.projectId, change_specification_id: changeSpecification.id, resolution_asset_id: asset.id, execution_role: executionRoleFor(asset.asset_type), created_by: viewer.id },
+      });
     } catch (error) {
       await supabaseRest(`resolution_assets?id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "DELETE", token: viewer.accessToken }).catch(() => undefined);
       throw error;
     }
-    await supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "resolution.generated", entity_type: "resolution_asset", entity_id: asset.id, after_state: { asset_type: assetType, opportunity_id: problem.id, evidence_count: evidence.length, baseline_run_id: baselineRunId, change_specification_id: changeSpecification?.id || null } } }).catch(() => undefined);
+    await supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "resolution.generated", entity_type: "resolution_asset", entity_id: asset.id, after_state: { asset_type: assetType, opportunity_id: problem.id, evidence_count: evidence.length, baseline_run_id: baselineRunId, change_specification_id: changeSpecification.id } } }).catch(() => undefined);
     const resolutions = await loadResolutionRecords(viewer, context);
     return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } }, { status: 201 });
   }
@@ -372,9 +340,7 @@ async function handleCreate(request: Request) {
         supabaseRest<RunRow[]>(`runs?select=id,status,provider_ids,brand_presence_pct,first_mention_pct,citation_count,new_source_count,completed_at,created_at&id=eq.${asset.baseline_run_id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(review,complete,partial)&limit=1`, { token: viewer.accessToken }),
         supabaseRest<Array<{ prompt_id: string }>>(`run_prompt_selections?select=prompt_id&run_id=eq.${asset.baseline_run_id}&organization_id=eq.${context.organizationId}&order=prompt_id.asc`, { token: viewer.accessToken }),
       ]);
-      if (!baseline[0] || baseline[0].provider_ids.length !== 1 || !selections.length) {
-        return NextResponse.json({ error: "The baseline is missing one exact provider or its approved buyer questions, so a comparable run cannot be started." }, { status: 409 });
-      }
+      if (!baseline[0] || baseline[0].provider_ids.length !== 1 || !selections.length) return NextResponse.json({ error: "The baseline is missing one exact provider or its approved buyer questions, so a comparable run cannot be started." }, { status: 409 });
       const existing = await supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&status=in.(requested,queued)&order=requested_at.desc&limit=1`, { token: viewer.accessToken });
       let followUp = existing[0];
       if (!followUp) {
@@ -392,7 +358,6 @@ async function handleCreate(request: Request) {
     }
 
     if (!measurementId) return NextResponse.json({ error: "The durable follow-up request ID is required before a run can be attached." }, { status: 400 });
-
     const requests = await supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&${measurementId ? `id=eq.${measurementId}&` : ""}resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&status=in.(requested,queued)&order=requested_at.desc&limit=1`, { token: viewer.accessToken });
     const followUp = requests[0];
     if (!followUp) return NextResponse.json({ error: "Create a follow-up request before attaching the run." }, { status: 409 });
@@ -404,21 +369,12 @@ async function handleCreate(request: Request) {
     ]);
     const baseline = baselineRows[0]; const rerun = rerunRows[0];
     if (!baseline || !rerun) return NextResponse.json({ error: "The follow-up run does not belong to this workspace." }, { status: 404 });
-    if (rerun.id === baseline.id || new Date(rerun.created_at).getTime() < new Date(followUp.requested_at).getTime()) {
-      return NextResponse.json({ error: "A comparable follow-up must be a new run created after the resolution measurement was requested." }, { status: 409 });
-    }
+    if (rerun.id === baseline.id || new Date(rerun.created_at).getTime() < new Date(followUp.requested_at).getTime()) return NextResponse.json({ error: "A comparable follow-up must be a new run created after the resolution measurement was requested." }, { status: 409 });
     const sameProviders = JSON.stringify([...baseline.provider_ids].sort()) === JSON.stringify([...rerun.provider_ids].sort());
     const samePrompts = JSON.stringify(baselineSelections.map((row) => row.prompt_id).sort()) === JSON.stringify(rerunSelections.map((row) => row.prompt_id).sort());
     if (!sameProviders || !samePrompts) return NextResponse.json({ error: "The follow-up must use the same buyer questions and provider as the baseline." }, { status: 409 });
     if (followUp.status === "requested") await supabaseRest(`resolution_follow_ups?id=eq.${followUp.id}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { rerun_id: rerun.id, status: "queued" } });
-    if (["complete", "partial", "failed", "cancelled"].includes(rerun.status)) {
-      await finalizeResolutionFollowUpsForRun({
-        organizationId: context.organizationId,
-        runId: rerun.id,
-        runStatus: rerun.status as "complete" | "partial" | "failed" | "cancelled",
-        recordedBy: viewer.id,
-      });
-    }
+    if (["complete", "partial", "failed", "cancelled"].includes(rerun.status)) await finalizeResolutionFollowUpsForRun({ organizationId: context.organizationId, runId: rerun.id, runStatus: rerun.status as "complete" | "partial" | "failed" | "cancelled", recordedBy: viewer.id });
     const resolutions = await loadResolutionRecords(viewer, context);
     return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } }, { status: 200 });
   }
@@ -448,9 +404,8 @@ async function handleChange(request: Request) {
     let title = asset.title;
     let limitations = asset.limitations;
     let assetType = asset.asset_type;
-    if (body.proposal && typeof body.proposal === "object" && !Array.isArray(body.proposal)) {
-      proposal = body.proposal as Record<string, unknown>;
-    } else {
+    if (body.proposal && typeof body.proposal === "object" && !Array.isArray(body.proposal)) proposal = body.proposal as Record<string, unknown>;
+    else {
       title = clean(body.title, 200);
       const summary = clean(body.summary, 1200); const content = cleanMultiline(body.content, 20_000); const limitationText = cleanMultiline(body.limitations, 2000);
       assetType = internalAssetType(clean(body.assetType, 40));
@@ -469,17 +424,13 @@ async function handleChange(request: Request) {
       update = { status: "in_review", review_decision: "pending", submitted_by: viewer.id, submitted_at: now };
     } else {
       if (!manager(role)) return NextResponse.json({ error: "Only an owner or admin can decide a resolution review." }, { status: 403 });
-      if (asset.status === "draft") {
-        await supabaseRest(`resolution_assets?id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { status: "in_review", review_decision: "pending", submitted_by: viewer.id, submitted_at: now } });
-      } else if (asset.status !== "in_review") return NextResponse.json({ error: "Only a draft or submitted resolution can receive a review decision." }, { status: 409 });
-      update = decision === "approved"
-        ? { status: "approved", review_decision: "approved", approved_by: viewer.id, approved_at: now, decision_by: viewer.id, decision_at: now, approval_note: note }
-        : { review_decision: decision, decision_by: viewer.id, decision_at: now, approval_note: note };
+      if (asset.status === "draft") await supabaseRest(`resolution_assets?id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { status: "in_review", review_decision: "pending", submitted_by: viewer.id, submitted_at: now } });
+      else if (asset.status !== "in_review") return NextResponse.json({ error: "Only a draft or submitted resolution can receive a review decision." }, { status: 409 });
+      update = decision === "approved" ? { status: "approved", review_decision: "approved", approved_by: viewer.id, approved_at: now, decision_by: viewer.id, decision_at: now, approval_note: note } : { review_decision: decision, decision_by: viewer.id, decision_at: now, approval_note: note };
     }
   } else if (action === "mark_applied") {
     if (!manager(role)) return NextResponse.json({ error: "Only an owner or admin can mark an approved resolution applied." }, { status: 403 });
     if (asset.status !== "approved" && asset.status !== "applied") return NextResponse.json({ error: "Approve the resolution before recording its application." }, { status: 409 });
-
     const links = await supabaseRest<ChangeExecutionAssetRow[]>(
       `change_execution_assets?select=change_specification_id&resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
       { token: viewer.accessToken },
@@ -487,14 +438,11 @@ async function handleChange(request: Request) {
     const linkedChangeSpecificationId = links[0]?.change_specification_id || null;
     if (linkedChangeSpecificationId) {
       const linked = await loadChangeSpecification(viewer, context, linkedChangeSpecificationId);
-      if (!linked || !["approved", "in_execution", "completed"].includes(linked.status)) {
-        return NextResponse.json({ error: "Approve the linked Change Specification before recording execution." }, { status: 409 });
-      }
+      if (!linked || !["approved", "in_execution", "completed"].includes(linked.status)) return NextResponse.json({ error: "Approve the linked Change Specification before recording execution." }, { status: 409 });
     }
-
     const reference = clean(body.reference || body.targetUrl, 1000);
     const note = clean(body.note, 2000) || null;
-    if (!reference) return NextResponse.json({ error: "Record the customer-controlled page, pull request, document, ticket, release, or other reference where the approved execution asset was applied." }, { status: 400 });
+    if (!reference) return NextResponse.json({ error: "Record the customer-controlled page, pull request, document, ticket, release, policy, or other reference where the approved execution asset was applied." }, { status: 400 });
     update = { status: "applied", applied_by: viewer.id, applied_at: now, application_reference: reference, application_note: note };
   } else return NextResponse.json({ error: "Choose update_draft, decision, or mark_applied." }, { status: 400 });
 
@@ -504,23 +452,10 @@ async function handleChange(request: Request) {
   return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } });
 }
 
-/**
- * A pending forward-only migration is an explainable operational state, not a
- * server crash. Every other failure keeps its existing behaviour.
- */
 async function withPendingMigrationGuard(run: () => Promise<Response>) {
-  try {
-    return await run();
-  } catch (error) {
-    if (isMissingRelationError(error)) return pendingMigrationResponse();
-    throw error;
-  }
+  try { return await run(); }
+  catch (error) { if (isMissingRelationError(error)) return pendingMigrationResponse(); throw error; }
 }
 
-export async function POST(request: Request) {
-  return withPendingMigrationGuard(() => handleCreate(request));
-}
-
-export async function PATCH(request: Request) {
-  return withPendingMigrationGuard(() => handleChange(request));
-}
+export async function POST(request: Request) { return withPendingMigrationGuard(() => handleCreate(request)); }
+export async function PATCH(request: Request) { return withPendingMigrationGuard(() => handleChange(request)); }
