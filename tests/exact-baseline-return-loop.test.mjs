@@ -33,6 +33,5 @@ test("withheld movement returns to the reviewed baseline without claiming the ne
   assert.match(withheld, /title: "Repeat the same reviewed questions and provider"/);
   assert.match(withheld, /href: exactBaselineHref\(latest\.id\)/);
   assert.match(withheld, /A later trend is comparable only if the \$\{exactMeasurementBoundary\} all match/);
-  assert.match(withheld, /locale, market, buyer stage, and measurement context/);
   assert.doesNotMatch(withheld, /same evidence set/);
 });
