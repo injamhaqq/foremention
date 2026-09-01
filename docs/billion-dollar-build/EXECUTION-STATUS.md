@@ -1,6 +1,17 @@
 # Foremention Billion-Dollar Build — Integration Execution Status
 
-Status: canonical integration ledger for PR #187. This file records what was actually reconciled into `build/billion-dollar-master-integration`; it is not a claim that specialist source branches can be merged independently.
+Status: canonical integration ledger for PR #187 plus the current Recommendation Engineering build authority. This file records what was actually reconciled into `build/billion-dollar-master-integration`; it is not a claim that specialist source branches can be merged independently or that later product architecture is already validated by customers.
+
+## Current Recommendation Engineering authority
+
+- Long-term destination: **Category Leadership OS** — not claimed as achieved.
+- Core product category being built: **Recommendation Engineering**.
+- Measurement + diagnosis subsystem: **Recommendation Intelligence**.
+- Canonical company-decision object: **Change Specification**.
+- Execution artifacts are subordinate to Change Specifications.
+- Public positioning remains **Recommendation Intelligence** until the Recommendation Engineering core path is shipped and separately approved for public migration.
+- Recommendation Engineering is build authority, while Category Leadership OS remains destination only.
+- No customer, PMF, revenue, retention, willingness-to-pay, category-leadership, benchmark, or causal claim follows from implementing this architecture.
 
 ## Base and policy
 
@@ -13,12 +24,14 @@ Status: canonical integration ledger for PR #187. This file records what was act
 
 ## Locked product truth
 
-- Category: **Recommendation Intelligence**.
+- Public positioning: **Recommendation Intelligence**; internal core category being built: **Recommendation Engineering**; long-term destination: **Category Leadership OS**.
 - Signed-in IA: **Attention → Questions → Records → Comparisons → Settings**.
-- Canonical object: **Recommendation Record**.
+- Canonical measurement object: **Recommendation Record**.
+- Canonical decision object: **Change Specification**.
 - Evidence lifecycle: **Returned → Retrieved → Observed → Reviewed → Safe Conclusion**.
 - Standalone Source X-Ray is retired. Legacy telemetry aliases may exist only for continuity and normalize into canonical evidence events; they are not a product surface or public claim.
 - Human review, exact comparability, tenant isolation, RLS, provider boundaries, cost control, and privacy-safe analytics remain required.
+- Historical Resolution Assets remain valid execution records and are not backfilled with fabricated Change Specifications.
 - No fake customers, revenue, benchmarks, partnerships, integrations, certifications, ROI, pricing validation, or investor interest may be inferred from code or plans.
 
 ## Integrated runtime slices
@@ -65,7 +78,7 @@ Status: canonical integration ledger for PR #187. This file records what was act
 - Contract repair: `a1c8fd336da0bf480044596be86950c355165346`.
 - Integrated Recommendation Intelligence category/glossary/research/partner surfaces, private Recommendation Record sharing, privacy-safe distribution analytics, robots/SEO support, and reconciled sitemap/public navigation without dropping the newer Trust Center.
 - Source documentation was deferred because source CI exposed patch-hygiene defects and because the integrated runtime needed to be verified before canonical operating documentation was written.
-- The repair changed only a stale public-architecture test assertion so it validates the current canonical category definition rather than an obsolete tagline.
+- The repair changed only a stale public-architecture test assertion so it validates the current canonical public category definition rather than an obsolete tagline.
 
 ## Canonical operating documentation
 
@@ -74,6 +87,8 @@ The final reconciliation creates current operating guidance rather than copying 
 - `04-distribution-category.md` — founder-led distribution, CRM truth, design-partner, research, partner, benchmark, sharing, and analytics guardrails.
 - `09-company-operating-system.md` — strategy, North-Star hierarchy, operating cadence, finance truth labels, hiring triggers, international gates, and documentation precedence.
 - this execution ledger — integration provenance and remaining boundaries.
+- `docs/superpowers/specs/2026-09-01-recommendation-engineering-core-loop-design.md` — approved Recommendation Engineering architecture.
+- `docs/superpowers/plans/2026-09-01-recommendation-engineering-core-loop.md` — implementation authority for the Change Specification core loop.
 
 The open documentation/process PRs #174, #179, #180, #182, and #183 remain historical/specialist inputs. Their existence does not prove runtime capability, customers, revenue, retention, finance actuals, or international readiness. Where their concepts remain useful, the current canonical docs restate them under the integrated product constitution.
 
@@ -81,11 +96,11 @@ The open documentation/process PRs #174, #179, #180, #182, and #183 remain histo
 
 PR #187 historically referenced possible remaining `data moat / platform / reporting` work. The live PR audit did not identify separate runtime source PRs for those placeholder labels in this integration sequence. No nonexistent code slice is invented here.
 
-Existing repository capabilities may cover parts of those themes, but any future material data-moat, public-platform, integration, or reporting expansion must be handled as new evidence-backed work with its own exact-head verification.
+Existing repository capabilities may cover parts of those themes, but any future material data-moat, public-platform, integration, reporting, Recommendation Engineering, or Category Leadership OS expansion must be handled as new evidence-backed work with its own exact-head verification.
 
 ## Final release rule
 
-PR #187 may be merged only when its final exact head has:
+Every material product slice may be merged only when its final exact head has:
 
 1. isolated Supabase migration replay green;
 2. repository tests green;
@@ -98,6 +113,7 @@ PR #187 may be merged only when its final exact head has:
 9. Security green;
 10. CodeQL green;
 11. AI Safety & Code Health green;
-12. a clean comparison against the live `main` branch and truthful PR metadata.
+12. relevant Agent Harness contracts green where applicable;
+13. a clean comparison against the live `main` branch and truthful PR metadata.
 
-Production deployment is a separate fact from merging code. Do not claim production is running the merged SHA unless deployment evidence verifies that exact SHA.
+Production deployment is a separate fact from merging code. Do not claim production is running the merged SHA or migration unless deployment evidence verifies that exact state.
