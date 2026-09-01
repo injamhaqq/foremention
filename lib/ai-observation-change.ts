@@ -2,6 +2,7 @@ import type { Viewer } from "@/lib/auth";
 import { buildAiObservationChangeGraph, fictionalAiObservationChangeGraph, type AiObservationChangeGraph } from "@/lib/ai-observation-change-core";
 import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
 import { loadWorkspaceContext } from "@/lib/data";
+import { coerceComparableMeasurementContext } from "@/lib/intelligence-comparability";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export type { AiObservationChangeGraph } from "@/lib/ai-observation-change-core";
@@ -13,6 +14,7 @@ type AnswerRow = {
   prompt_text: string | null;
   provider: string;
   model: string | null;
+  measurement_context_json: unknown;
   answer_text: string;
   citations_json: Array<{ url?: string }> | null;
   brand_present: boolean | null;
@@ -99,7 +101,7 @@ export async function loadAiObservationChangeGraph(
   const requested = [latestRunId, previous.id];
 
   const answers = await supabaseRest<AnswerRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
     { token: viewer.accessToken },
   );
 
@@ -138,6 +140,7 @@ export async function loadAiObservationChangeGraph(
       prompt: answer.prompt_text || "",
       provider: answer.provider,
       model: answer.model,
+      measurementContext: coerceComparableMeasurementContext(answer.measurement_context_json),
       answerText: answer.answer_text,
       brandPresent: answer.brand_present,
       citationUrls: Array.from(new Set((answer.citations_json || []).flatMap((citation) => {
