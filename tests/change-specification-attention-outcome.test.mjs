@@ -55,5 +55,6 @@ test("Outcome Ledger is decision-aware only for real execution links and preserv
   assert.match(outcomesPage, /record\.changeSpecificationId \?/);
   assert.match(printPage, /record\.changeSpecificationId \? "execution asset" : "recommendation"/);
   assert.match(printPage, /<strong>Recommendation:<\/strong>/);
-  assert.match(printPage, /does not establish that the applied change caused the result/i);
+  assert.match(printPage, /Attribution boundary:/);
+  assert.match(printPage, /record\.limitation/);
 });
