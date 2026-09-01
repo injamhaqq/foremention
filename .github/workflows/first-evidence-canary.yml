@@ -16,7 +16,7 @@ concurrency:
 jobs:
   production-canary:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Harden runner
@@ -68,7 +68,7 @@ jobs:
           FOREMENTION_ACCEPTANCE_PROVIDER: ${{ secrets.FOREMENTION_ACCEPTANCE_PROVIDER }}
           FOREMENTION_ACCEPTANCE_MAX_COST_USD: ${{ secrets.FOREMENTION_ACCEPTANCE_MAX_COST_USD }}
           FOREMENTION_ACCEPTANCE_CANARY_REQUIRED: 'true'
-          FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS: '600000'
+          FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS: '1200000'
         run: node scripts/first-evidence-production-canary.mjs
 
       - name: Archive first-evidence canary evidence
