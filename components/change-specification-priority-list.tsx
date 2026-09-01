@@ -9,7 +9,7 @@ export function ChangeSpecificationPriorityList({ items }: { items: ChangeSpecif
     return <div className="panel">
       <div className="empty-state">
         <h2>No active Change Specifications yet.</h2>
-        <p>Foremention will not manufacture actions without reviewed evidence. Review opportunities first, then submit a Change Specification when the decision is inspectable.</p>
+        <p>Foremention will not manufacture actions without reviewed evidence. Review opportunities first, then create and submit a Change Specification when the company decision is inspectable.</p>
         <Link className="button button--ink" href="/app/opportunities">Open reviewed opportunities →</Link>
       </div>
     </div>;
@@ -35,7 +35,7 @@ export function ChangeSpecificationPriorityList({ items }: { items: ChangeSpecif
         <div><dt>Acceptance</dt><dd>{item.acceptanceCriteriaCount || "Not specified"}</dd></div>
         <div><dt>Verification</dt><dd>{item.hasVerificationPlan ? "Recorded" : "Not specified"}</dd></div>
       </dl>
-      <Link className="text-link" href={`/app/opportunities?changeSpecificationId=${encodeURIComponent(item.id)}`}>Open decision and evidence <span aria-hidden="true">→</span></Link>
+      <Link className="text-link" href={`/app/change-specifications/${encodeURIComponent(item.id)}`}>Open Change Specification <span aria-hidden="true">→</span></Link>
     </article>)}
   </div>;
 }
