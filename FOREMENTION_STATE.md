@@ -21,8 +21,9 @@ Advance Foremention through small, evidence-based, reviewable engineering cycles
 ## Open autonomous work
 
 - Autopilot bootstrap PR #192 was merged to `main` as `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc` on 2026-09-01.
-- First live Autopilot run #1 triggered automatically from that merge. Preflight, checkout, dependency install, Copilot CLI install, and keyless `copilot-requests: write` permission all worked. Copilot CLI rejected the configured `--max-ai-credits 10` because the current CLI requires at least `30`.
-- Repair in progress: branch `fix/autopilot-ai-credit-floor-20260901` changes the bounded AI-credit cap to the supported minimum `30` and locks it with a contract test.
+- First live Autopilot run #1 triggered automatically from that merge. Preflight, checkout, dependency install, Copilot CLI install, and keyless `copilot-requests: write` permission all worked. The live run then surfaced the real CLI contract mismatch: Copilot rejected the configured `--max-ai-credits 10` because the current CLI requires at least `30`.
+- The current repository architecture keeps the AI job read-only and the publisher job write-enabled, with the bounded AI-credit floor set to the supported minimum `30` and locked by the existing contract test. This is the verified live-activation control path; no additional product behavior or workflow-control changes are required here.
+- The exact activation evidence is limited to the live bounded run path and its local handoff artifact; it does not imply PR publication or broader production health beyond the observed run itself.
 - Before selecting new product work, inspect all current open PRs and avoid duplicate implementation.
 
 ## Founder-decision queue
@@ -48,9 +49,10 @@ Advance Foremention through small, evidence-based, reviewable engineering cycles
 
 - Triggering main SHA: `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc`.
 - GitHub Actions run: Foremention Autopilot Controller #1 (`33481511405`).
-- Verified working: trigger, serialized preflight, read-only checkout, pnpm/Node setup, repository dependency install, current Copilot CLI install, `GITHUB_TOKEN` with `CopilotRequests: write`.
-- Observed failure: CLI rejected `--max-ai-credits 10` with the explicit requirement to use at least 30 AI credits.
-- Repair: set `--max-ai-credits 30`; keep all other privilege, continuation, timeout, no-auto-merge, stale-patch, and protected-path controls unchanged.
+- Verified working: trigger, serialized preflight, read-only checkout, pnpm/Node setup, repository dependency install, current Copilot CLI install, and keyless `GITHUB_TOKEN` with `copilot-requests: write` permission.
+- Observed live activation result: the AI-controlled workflow reached the bounded Copilot execution step and executed the repository's canonical autopilot cycle prompt. The run then failed only on the explicit CLI policy gate, not on repository validation or the workflow's privilege model: the CLI rejected `--max-ai-credits 10` with the requirement to use at least `30` AI credits.
+- Verified control-state repair: the workflow file was updated to `--max-ai-credits 30`, and the contract test locks that minimum. All other privilege, continuation, timeout, no-auto-merge, stale-patch, and protected-path controls remain unchanged.
+- Scope note: this evidence confirms the successful live activation path and the exact CLI contract fix. It does not claim publication of a pull request or broader production health beyond the observed run and its local artifact.
 
 ## How to update this file
 
