@@ -3,6 +3,7 @@ import { loadWorkspaceContext } from "@/lib/data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import {
   assessExactQuestionComparability,
+  coerceComparableMeasurementContext,
   type ComparableQuestionSlot,
 } from "@/lib/intelligence-comparability";
 import { loadWeeklyIntelligence, type WeeklyIntelligence } from "@/lib/intelligence-loop";
@@ -14,7 +15,10 @@ type SlotRow = {
   prompt_text: string | null;
   provider: string;
   model: string | null;
+  measurement_context_json: unknown;
 };
+
+const exactMeasurementBoundary = "exact persisted buyer-question text, provider, exact model, methodology, locale, market, buyer stage, and measurement context";
 
 function exactBaselineHref(latestRunId: string) {
   return `/app/runs/${latestRunId}`;
@@ -30,7 +34,7 @@ function makeCustomerReturnLoopTruthful(intelligence: WeeklyIntelligence): Weekl
       nextAction: {
         ...intelligence.nextAction,
         title: "Repeat the same questions and provider",
-        reason: "Open the latest finalized reviewed baseline to reuse its saved questions and provider. Foremention will compare the later observation only if the exact question text, provider, model, and methodology remain compatible.",
+        reason: `Open the latest finalized reviewed baseline to reuse its saved questions and provider. Foremention will compare the later observation only if the ${exactMeasurementBoundary} remain compatible.`,
         href: exactBaselineHref(latest.id),
         cta: "Open reviewed baseline",
       },
@@ -43,7 +47,7 @@ function makeCustomerReturnLoopTruthful(intelligence: WeeklyIntelligence): Weekl
       nextAction: {
         priority: "watch",
         title: "Open the reviewed baseline",
-        reason: "Eligible workspaces are checked weekly for a capped re-observation. A new provider run is queued only when provider configuration, capacity, quota, and spend controls allow it. You can also repeat this reviewed baseline manually. Foremention reports a comparison only when exact question text, provider, model, and methodology remain compatible.",
+        reason: `Eligible workspaces are checked weekly for a capped re-observation. A new provider run is queued only when provider configuration, capacity, quota, and spend controls allow it. You can also repeat this reviewed baseline manually. Foremention reports a comparison only when the ${exactMeasurementBoundary} remain compatible.`,
         href: exactBaselineHref(latest.id),
         cta: "Open reviewed baseline",
       },
@@ -65,7 +69,7 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
       ...check,
       state: "attention" as const,
       value: "1 exact baseline",
-      detail: `${reason} Foremention withholds cross-collection movement until the exact persisted buyer-question text, provider, exact model, and methodology all match.`,
+      detail: `${reason} Foremention withholds cross-collection movement until the ${exactMeasurementBoundary} all match.`,
     }
     : check);
 
@@ -85,13 +89,13 @@ function withholdUnsafePair(intelligence: WeeklyIntelligence, reason: string): W
     nextAction: {
       priority: "now",
       title: "Repeat the same reviewed questions and provider",
-      reason: "Open the latest finalized reviewed baseline. A later trend is comparable only if the persisted question text, provider, exact model, and methodology all match.",
+      reason: `Open the latest finalized reviewed baseline. A later trend is comparable only if the ${exactMeasurementBoundary} all match.`,
       href: exactBaselineHref(latest.id),
       cta: "Open reviewed baseline",
     },
     cadence: {
       mode: "reviewed runs",
-      description: `Updated from the latest finalized reviewed collection on ${latest.date}. Cross-collection movement is withheld until the exact buyer-question text, provider, exact model, and methodology match a prior finalized reviewed run.`,
+      description: `Updated from the latest finalized reviewed collection on ${latest.date}. Cross-collection movement is withheld until the ${exactMeasurementBoundary} match a prior finalized reviewed run.`,
     },
   };
 }
@@ -139,8 +143,8 @@ async function withTruthfulSourceReview(viewer: Viewer, intelligence: WeeklyInte
       priority: intelligence.previous ? "watch" : "now",
       title: intelligence.previous ? "Open the reviewed baseline" : "Repeat the same questions and provider",
       reason: intelligence.previous
-        ? "The human source-review gate is healthy. Preserve the exact buyer-question wording, provider, model, and methodology for the next controlled observation."
-        : "The source-review gate is healthy, but one finalized baseline is not a trend. Repeat the same reviewed questions with the same provider; a later trend is comparable only if the exact question text, provider, exact model, and methodology still match.",
+        ? `The human source-review gate is healthy. Preserve the ${exactMeasurementBoundary} for the next controlled observation.`
+        : `The source-review gate is healthy, but one finalized baseline is not a trend. Repeat the same reviewed questions with the same provider; a later trend is comparable only if the ${exactMeasurementBoundary} still match.`,
       href: exactBaselineHref(intelligence.latest.id),
       cta: "Open reviewed baseline",
     };
@@ -164,7 +168,8 @@ async function withTruthfulSourceReview(viewer: Viewer, intelligence: WeeklyInte
  * The base engine restricts candidates to finalized complete/partial runs with
  * verified answers and matching methodology + prompt-key/provider/model
  * matrices. This final customer-facing gate verifies the exact persisted
- * question text too, preventing a reused prompt key from creating a false
+ * question text plus locale, market, buyer stage and versioned measurement
+ * context, preventing superficially similar collections from creating a false
  * like-for-like trend. It then replaces crawler-derived source-review state
  * with explicit human-review provenance tied to the exact finalized baseline.
  */
@@ -180,7 +185,7 @@ export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<Weekly
     } else {
       const runIds = [intelligence.latest.id, intelligence.previous.id];
       const rows = await supabaseRest<SlotRow[]>(
-        `run_answers?select=run_id,prompt_key,prompt_text,provider,model&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+        `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
         { token: viewer.accessToken },
       );
       const slots: ComparableQuestionSlot[] = rows.map((row) => ({
@@ -189,6 +194,7 @@ export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<Weekly
         promptText: row.prompt_text,
         provider: row.provider,
         model: row.model,
+        measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
       }));
       const assessment = assessExactQuestionComparability(intelligence.latest.id, intelligence.previous.id, slots);
       pairSafe = assessment.comparable
