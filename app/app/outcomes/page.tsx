@@ -19,6 +19,9 @@ const formatDate = (value: string | null) => {
 const formatDelta = (value: number, unit: string) => `${value > 0 ? "+" : ""}${value}${unit}`;
 const outcomeLabel = (value: string) => value.replaceAll("_", " ");
 
+type ChangeExecutionAssetRow = { resolution_asset_id: string; change_specification_id: string };
+type ChangeSpecificationRow = { id: string; title: string };
+
 /**
  * A pending forward-only migration must read as an explainable state. Any other
  * database failure still reaches the route error boundary.
@@ -56,7 +59,7 @@ export default async function OutcomesPage() {
   ), pending);
   const assetIds = assets.map((row) => row.id);
   const opportunityIds = Array.from(new Set(assets.map((row) => row.opportunity_id)));
-  const [evidence, opportunities, followUps] = await Promise.all([
+  const [evidence, opportunities, followUps, executionLinks] = await Promise.all([
     assetIds.length ? readLedgerTable(supabaseRest<OutcomeLedgerEvidenceRow[]>(
       `resolution_asset_evidence?select=id,resolution_asset_id,evidence_snapshot,created_at&resolution_asset_id=in.(${assetIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.asc`,
       { token: viewer.accessToken },
@@ -69,14 +72,34 @@ export default async function OutcomesPage() {
       `resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_by,requested_at,recorded_by,completed_at,outcome,limitation&resolution_asset_id=in.(${assetIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=requested_at.desc`,
       { token: viewer.accessToken },
     ), pending) : [],
+    assetIds.length ? readLedgerTable(supabaseRest<ChangeExecutionAssetRow[]>(
+      `change_execution_assets?select=resolution_asset_id,change_specification_id&resolution_asset_id=in.(${assetIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`,
+      { token: viewer.accessToken },
+    ), pending) : [],
   ]);
-  const runIds = Array.from(new Set([...assets.map((row) => row.baseline_run_id), ...followUps.map((row) => row.rerun_id)].filter((id): id is string => Boolean(id))));
+  const changeSpecificationIds = Array.from(new Set(executionLinks.map((row) => row.change_specification_id)));
+  const changeSpecifications = changeSpecificationIds.length ? await readLedgerTable(supabaseRest<ChangeSpecificationRow[]>(
+    `change_specifications?select=id,title&id=in.(${changeSpecificationIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`,
+    { token: viewer.accessToken },
+  ), pending) : [];
+  const changeById = new Map(changeSpecifications.map((row) => [row.id, row.title]));
+  const linkByAssetId = new Map(executionLinks.map((row) => [row.resolution_asset_id, row.change_specification_id]));
+  const assetsWithChange = assets.map((asset) => {
+    const changeId = linkByAssetId.get(asset.id) || null;
+    return {
+      ...asset,
+      change_specification_id: changeId,
+      change_title: changeId ? changeById.get(changeId) || null : null,
+    };
+  });
+
+  const runIds = Array.from(new Set([...assetsWithChange.map((row) => row.baseline_run_id), ...followUps.map((row) => row.rerun_id)].filter((id): id is string => Boolean(id))));
   const runs = runIds.length ? await readLedgerTable(supabaseRest<OutcomeLedgerRunRow[]>(
     `runs?select=id,status,brand_presence_pct,first_mention_pct,citation_count,new_source_count,completed_at&id=in.(${runIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`,
     { token: viewer.accessToken },
   ), pending) : [];
 
-  const records = buildOutcomeLedger({ assets, evidence, opportunities, followUps, runs });
+  const records = buildOutcomeLedger({ assets: assetsWithChange, evidence, opportunities, followUps, runs });
   const value = buildBusinessValueReport(records);
   const digest = buildExecutiveDigest(records);
   const periods = buildPeriodSummaries(records);
@@ -132,7 +155,9 @@ export default async function OutcomesPage() {
 
     <section className="panel panel--flush">
       {records.length ? <div className="outcome-ledger">{records.map((record) => <article className="outcome-ledger__record" key={record.id}>
-        <header><div><span className="eyebrow">{record.assetType.replaceAll("_", " ")}</span><h2>{record.title}</h2><p>{record.problemStatement}</p>{record.recommendationRecordRunId && <small>Recommendation Record · {record.recommendationRecordRunId.slice(0, 8).toUpperCase()}</small>}</div><span className={`outcome-ledger__status outcome-ledger__status--${record.status}`}>{record.status.replaceAll("_", " ")}</span></header>
+        <header><div><span className="eyebrow">{record.assetType.replaceAll("_", " ")}</span><h2>{record.title}</h2><p>{record.problemStatement}</p>{record.recommendationRecordRunId && <small>Recommendation Record · {record.recommendationRecordRunId.slice(0, 8).toUpperCase()}</small>}
+            {record.changeSpecificationId && <small>Change Specification · {record.changeTitle || "Untitled decision"}</small>}
+            <small>Execution asset · {record.assetType.replaceAll("_", " ")}</small></div><span className={`outcome-ledger__status outcome-ledger__status--${record.status}`}>{record.status.replaceAll("_", " ")}</span></header>
         <ol className="outcome-ledger__chain">{record.steps.map((step) => <li key={step.key} data-done={step.done ? "true" : "false"} aria-label={`${step.label}: ${step.done ? "complete" : "not complete"}`}><strong>{step.label}</strong><span>{step.detail}</span><small>{step.done ? "Complete" : "Not complete"} · {formatDate(step.at)}{step.actorId ? " · actor recorded" : ""}</small></li>)}</ol>
         <div className="inline-notice" role="note"><strong>Confidence: {record.confidence.replaceAll("_", " ")}</strong><p>{record.confidenceBasis}</p></div>
         {record.applicationNote && <p className="outcome-ledger__limitation"><strong>Application note:</strong> {record.applicationNote}</p>}

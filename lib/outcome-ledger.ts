@@ -25,6 +25,8 @@ export type OutcomeLedgerAssetRow = {
   applied_at: string | null;
   application_reference: string | null;
   application_note: string | null;
+  change_specification_id?: string | null;
+  change_title?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -96,6 +98,8 @@ export type OutcomeLedgerRecord = {
   recommendationRecordRunId: string | null;
   opportunityId: string;
   sourceId: string;
+  changeSpecificationId: string | null;
+  changeTitle: string | null;
   title: string;
   problemStatement: string;
   assetType: ResolutionAssetType;
@@ -116,8 +120,8 @@ export type OutcomeLedgerRecord = {
   limitation: string;
 };
 
-const DEFAULT_LIMITATION = "Observed before-and-after association only; Foremention does not claim the applied asset caused the change.";
-const COMPARISON_INTERPRETATION = "Observed before-and-after association only. This record does not establish that the applied resolution caused the change.";
+const DEFAULT_LIMITATION = "Observed before-and-after association only. This record does not establish that the applied change caused the result.";
+const COMPARISON_INTERPRETATION = "Observed before-and-after association only. This record does not establish that the applied change caused the result.";
 
 const toNumber = (value: number | string | null | undefined) => {
   const parsed = Number(value);
@@ -281,8 +285,8 @@ export function buildOutcomeLedger(input: {
     const steps: OutcomeLedgerStep[] = [
       { key: "observation", label: "Observation", done: baselineMeasured, at: baseline?.completed_at || (baselineMeasured ? asset.created_at : null), actorId: null, detail: baselineMeasured ? `Recommendation Record ${asset.baseline_run_id || "baseline"} preserves the observed AI answer set.` : "No readable finalized reviewed Recommendation Record baseline is attached." },
       { key: "evidence", label: "Evidence", done: evidenceReviewed, at: latestEvidenceAt, actorId: null, detail: evidenceReviewed ? `${linkedEvidence.length} verified evidence link${linkedEvidence.length === 1 ? "" : "s"} preserved from the reviewed record.` : "No verified linked evidence is readable for this resolution." },
-      { key: "recommendation", label: "Recommendation", done: true, at: asset.created_at, actorId: asset.created_by || null, detail: `${asset.asset_type.replaceAll("_", " ")}: ${asset.title}` },
-      { key: "decision", label: "Decision", done: Boolean(asset.decision_at), at: asset.decision_at, actorId: asset.decision_by || null, detail: decisionDetail },
+      { key: "recommendation", label: "Execution asset", done: true, at: asset.created_at, actorId: asset.created_by || null, detail: `${asset.asset_type.replaceAll("_", " ")}: ${asset.title}` },
+      { key: "decision", label: "Decision", done: Boolean(asset.decision_at), at: asset.decision_at, actorId: asset.decision_by || null, detail: asset.change_specification_id ? `Change Specification decision context linked. ${decisionDetail}` : decisionDetail },
       { key: "action", label: "Action", done: Boolean(asset.approved_at), at: asset.approved_at, actorId: asset.approved_by || null, detail: asset.approved_at ? "The reviewed recommendation was approved as an action." : "No approved action is recorded yet." },
       { key: "owner", label: "Owner", done: Boolean(opportunity?.owner_id), at: opportunity?.updated_at || null, actorId: opportunity?.owner_id || null, detail: opportunity?.owner_id ? `Assigned owner${opportunity.due_at ? ` · due ${opportunity.due_at}` : ""}${opportunity.next_action ? ` · ${opportunity.next_action}` : ""}` : "No action owner is assigned." },
       { key: "completion", label: "Completion", done: Boolean(asset.applied_at), at: asset.applied_at, actorId: asset.applied_by || null, detail: asset.application_reference || "Not recorded as applied yet." },
@@ -295,6 +299,8 @@ export function buildOutcomeLedger(input: {
       recommendationRecordRunId: asset.baseline_run_id,
       opportunityId: asset.opportunity_id,
       sourceId: asset.source_id,
+      changeSpecificationId: asset.change_specification_id || null,
+      changeTitle: asset.change_title || null,
       title: asset.title,
       problemStatement: asset.problem_statement,
       assetType: asset.asset_type,

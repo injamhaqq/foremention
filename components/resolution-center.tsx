@@ -291,11 +291,11 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
 
   async function markApplied() {
     if (!canManage) return;
-    if (!active || !isExternalHttpUrl(targetUrl)) {
-      setError("Enter the full http:// or https:// URL where your team applied the approved asset.");
+    if (!active || !targetUrl.trim()) {
+      setError("Record the customer-controlled page, pull request, document, ticket, release, or other reference where the approved execution asset was applied.");
       return;
     }
-    await mutate("PATCH", { action: "mark_applied", resolutionId: active.id, targetUrl }, "apply", "Applied location recorded. This records customer action; it does not claim publication caused an AI result.");
+    await mutate("PATCH", { action: "mark_applied", resolutionId: active.id, reference: targetUrl }, "apply", "Applied reference recorded. This records customer action; it does not claim the change caused an AI result.");
   }
 
   async function requestRemeasurement() {
@@ -464,10 +464,10 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
           </div>
 
           <div className={styles.sectionPanel}>
-            <div className={styles.sectionHeading}><div><span>05 · Applied location</span><h3>Record where your team applied it.</h3></div><small>{readable(active.application.status)}</small></div>
-            <label className={styles.stackLabel}>Target URL<input type="url" inputMode="url" value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} placeholder="https://yourcompany.com/page" /></label>
-            <button className="button button--ink" type="button" disabled={!canManage || busy !== "" || !approved} onClick={() => void markApplied()}>{busy === "apply" ? "Recording…" : applied ? "Update applied location" : "Record applied location"}</button>
-            <p className={styles.auditLine}>{approved ? "Foremention records the customer-controlled destination. It does not publish to the website from this action." : "Customer approval is required before an applied location can be recorded."}</p>
+            <div className={styles.sectionHeading}><div><span>05 · Applied reference</span><h3>Record where your team applied it.</h3></div><small>{readable(active.application.status)}</small></div>
+            <label className={styles.stackLabel}>Applied reference<input type="text" value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} placeholder="Page, pull request, document, ticket, release, policy, or other reference" /></label>
+            <button className="button button--ink" type="button" disabled={!canManage || busy !== "" || !approved} onClick={() => void markApplied()}>{busy === "apply" ? "Recording…" : applied ? "Update applied reference" : "Record applied reference"}</button>
+            <p className={styles.auditLine}>{approved ? "Foremention records the customer-controlled reference. It does not publish, rank, or change provider behavior from this action." : "Customer approval is required before an applied reference can be recorded."}</p>
             {active.application.appliedAt && <p className={styles.auditLine}>Applied {formatDate(active.application.appliedAt)}.</p>}
             {active.application.error && <p className={styles.inlineError}>{active.application.error}</p>}
           </div>
