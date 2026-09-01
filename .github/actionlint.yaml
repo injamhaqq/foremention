@@ -1,0 +1,8 @@
+# GitHub introduced the `copilot-requests` workflow permission after actionlint
+# v1.7.12 (the latest release as of 2026-09-01) shipped its permission list.
+# Keep the compatibility exception path-specific and message-specific so every
+# other actionlint rule remains authoritative.
+paths:
+  .github/workflows/autopilot-control.yml:
+    ignore:
+      - '^unknown permission scope "copilot-requests"\.'
