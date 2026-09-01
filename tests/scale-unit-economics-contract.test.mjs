@@ -5,6 +5,7 @@ import test from "node:test";
 const migration = await readFile(new URL("../supabase/migrations/20260830113100_scale_unit_economics_observability.sql", import.meta.url), "utf8");
 const groq = await readFile(new URL("../lib/providers/groq.ts", import.meta.url), "utf8");
 const inngest = await readFile(new URL("../lib/jobs/inngest.ts", import.meta.url), "utf8");
+const canary = await readFile(new URL("../scripts/first-evidence-production-canary.mjs", import.meta.url), "utf8");
 
 test("FinOps operational facts stay service-only and content-free", () => {
   assert.match(migration, /create or replace view public\.provider_attempt_operational_facts/);
@@ -39,4 +40,12 @@ test("collection execution keeps explicit global and tenant concurrency, timeout
   assert.doesNotMatch(inngest, /timeouts: \{ start: "5m", finish: "10m" \}/);
   assert.match(inngest, /foremention\/run\.cancelled/);
   assert.match(inngest, /LIVE_COLLECTION_LIMITS\.providerTimeoutMs/);
+});
+
+test("authenticated first-evidence canary keeps the bounded twenty-minute polling timeout", () => {
+  assert.match(
+    canary,
+    /Math\.max\(60_000, Math\.min\(Number\(process\.env\.FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS \|\| 1_200_000\), 1_200_000\)\)/,
+  );
+  assert.doesNotMatch(canary, /FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS \|\| 600_000\), 900_000/);
 });
