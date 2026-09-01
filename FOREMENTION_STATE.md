@@ -20,12 +20,14 @@ Advance Foremention through small, evidence-based, reviewable engineering cycles
 
 ## Open autonomous work
 
-- Control-plane bootstrap: branch `build/foremention-autopilot-control-plane`.
-- Before selecting new product work, inspect all current open PRs and avoid duplicate implementation. The repository already had multiple active feature/operating-system PRs when this control plane was created.
+- Autopilot bootstrap PR #192 was merged to `main` as `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc` on 2026-09-01.
+- First live Autopilot run #1 triggered automatically from that merge. Preflight, checkout, dependency install, Copilot CLI install, and keyless `copilot-requests: write` permission all worked. Copilot CLI rejected the configured `--max-ai-credits 10` because the current CLI requires at least `30`.
+- Repair in progress: branch `fix/autopilot-ai-credit-floor-20260901` changes the bounded AI-credit cap to the supported minimum `30` and locks it with a contract test.
+- Before selecting new product work, inspect all current open PRs and avoid duplicate implementation.
 
 ## Founder-decision queue
 
-1. One-time repository setting may be required: allow GitHub Actions to create pull requests under repository Actions workflow permissions. The connected tooling used for this bootstrap could not read or change that administrative setting.
+1. One-time repository setting may be required: allow GitHub Actions to create pull requests under repository Actions workflow permissions. The connected GitHub API tooling cannot read or change that administrative setting. Browser automation was attempted on 2026-09-01 but could not start because the external automation wallet had insufficient balance. The publisher path itself remains the authoritative test of whether this setting is already enabled.
 2. Auto-merge remains intentionally disabled. Autonomous workers may create and repair local proposals/PRs, but merges stay founder-controlled unless a separate, explicitly approved publication identity and merge policy are introduced.
 3. GitHub may require a maintainer to approve workflows on pull requests created by `GITHUB_TOKEN`; this is a GitHub recursion/security safeguard. A separate GitHub App/PAT could remove that click later, but is intentionally not required for the keyless baseline.
 
@@ -38,10 +40,17 @@ Advance Foremention through small, evidence-based, reviewable engineering cycles
 - Added/expected controls: repository Copilot instructions, dedicated Foremention Autopilot custom agent, bounded cycle prompt, persistent state ledger, issue template, two-job privilege-separated controller, deterministic self-modification/sensitive-path guard, documentation, and contract tests.
 - Agent privilege: repository read + `copilot-requests: write`; no repository write permission.
 - Publisher privilege: repository write, no AI execution; applies only the artifacted patch after exact-base and deterministic path validation.
-- Cost controls: 10 AI-credit soft cap per objective, 8 maximum autopilot continuations, 12-hour fallback schedule, one concurrent controller run.
+- Cost controls: 30 AI-credit soft cap per objective (current Copilot CLI minimum), 8 maximum autopilot continuations, 12-hour fallback schedule, one concurrent controller run.
 - Safety posture: no auto-merge; no destructive production/database actions or security/business-truth changes without founder approval.
 - Continuation behavior: normal merge/push to `main` triggers the next bounded cycle; schedule is a fallback.
-- Next verification: exact-head CI, Agent Harness, and Autopilot contract tests on the bootstrap PR.
+
+### 2026-09-01 — First live activation run
+
+- Triggering main SHA: `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc`.
+- GitHub Actions run: Foremention Autopilot Controller #1 (`33481511405`).
+- Verified working: trigger, serialized preflight, read-only checkout, pnpm/Node setup, repository dependency install, current Copilot CLI install, `GITHUB_TOKEN` with `CopilotRequests: write`.
+- Observed failure: CLI rejected `--max-ai-credits 10` with the explicit requirement to use at least 30 AI credits.
+- Repair: set `--max-ai-credits 30`; keep all other privilege, continuation, timeout, no-auto-merge, stale-patch, and protected-path controls unchanged.
 
 ## How to update this file
 
