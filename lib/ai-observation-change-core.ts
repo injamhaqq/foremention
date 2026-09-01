@@ -1,4 +1,7 @@
-import { assessExactQuestionComparability } from "./intelligence-comparability.ts";
+import {
+  assessExactQuestionComparability,
+  type ComparableMeasurementContext,
+} from "./intelligence-comparability.ts";
 
 export type AiObservationChangeKind = "brand_mention" | "citation" | "source" | "competitor" | "answer_context";
 
@@ -16,6 +19,7 @@ export type AiObservationAnswer = {
   prompt: string;
   provider: string;
   model: string | null;
+  measurementContext: ComparableMeasurementContext | null;
   answerText: string;
   brandPresent: boolean | null;
   citationUrls: string[];
@@ -130,13 +134,14 @@ export function buildAiObservationChangeGraph(input: Input): AiObservationChange
       promptText: answer.prompt,
       provider: answer.provider,
       model: answer.model,
+      measurementContext: answer.measurementContext,
     })),
   );
 
   if (!sameMethodology || !exactPair.comparable) {
     const reason = !sameMethodology
       ? "The methodology version changed."
-      : exactPair.reason || "The exact buyer-question/provider/model matrix is not comparable.";
+      : exactPair.reason || "The exact buyer-question/provider/model/measurement context matrix is not comparable.";
     return {
       ...base,
       status: "withheld",
@@ -201,14 +206,14 @@ export function buildAiObservationChangeGraph(input: Input): AiObservationChange
     kind: "citation",
     direction: citationLosses ? "changed" : "new",
     title: `${citationGains} new citation observation${citationGains === 1 ? "" : "s"} · ${citationLosses} lost`,
-    detail: "Citation movement compares canonical URL observations inside the same reviewed exact-question/provider/exact-model answer slots.",
+    detail: "Citation movement compares canonical URL observations inside the same reviewed exact-question/provider/exact-model/measurement-context answer slots.",
   });
   if (sourceGains.length || sourceLosses.length) events.push({
     id: "unique-sources",
     kind: "source",
     direction: sourceLosses.length ? "changed" : "new",
     title: `${sourceGains.length} new unique source${sourceGains.length === 1 ? "" : "s"} · ${sourceLosses.length} lost`,
-    detail: "Unique-source movement is derived from canonical citation URLs after the exact comparison pair passes the evidence gate.",
+    detail: "Unique-source movement is derived from canonical citation URLs after the exact comparison pair passes the full measurement-context evidence gate.",
   });
   if (input.competitorContextComparable && (competitorGains.length || competitorLosses.length)) events.push({
     id: "competitor-context",
@@ -231,6 +236,6 @@ export function buildAiObservationChangeGraph(input: Input): AiObservationChange
     comparable: true,
     summary,
     events,
-    note: "These events use the exact comparable reviewed collection pair already selected by Foremention, including exact persisted buyer-question text. Observed differences do not establish causation.",
+    note: "These events use the exact comparable reviewed collection pair already selected by Foremention, including exact persisted buyer-question text and full measurement context. Observed differences do not establish causation.",
   };
 }
