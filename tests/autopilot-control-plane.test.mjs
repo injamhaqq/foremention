@@ -23,6 +23,8 @@ test("Foremention exposes a dedicated Copilot CLI autopilot agent", () => {
   assert.match(agent, /one bounded execution cycle/i);
   assert.match(agent, /do not auto-merge/i);
   assert.match(agent, /founder approval/i);
+  assert.match(agent, /outer non-AI publisher/i);
+  assert.match(agent, /make no remote GitHub writes/i);
 });
 
 test("autopilot state and operating documentation are persistent and truth-safe", () => {
@@ -75,9 +77,19 @@ test("deterministic diff guard blocks autonomous self-modification and secret fi
   assert.match(guard, /\.github\/workflows\//);
   assert.match(guard, /\.github\/autopilot\//);
   assert.match(guard, /foremention-autopilot\.agent\.md/);
+  assert.match(guard, /actionlint\.yaml/);
   assert.match(guard, /validate-autopilot-diff\.mjs/);
   assert.match(guard, /\.claude\/hooks\//);
   assert.match(guard, /\.env/);
+});
+
+test("actionlint compatibility exception is only for GitHub's new Copilot permission", () => {
+  const config = read(".github/actionlint.yaml");
+  assert.match(config, /\.github\/workflows\/autopilot-control\.yml/);
+  assert.match(config, /unknown permission scope/);
+  assert.match(config, /copilot-requests/);
+  assert.doesNotMatch(config, /\.github\/workflows\/\*\*/);
+  assert.doesNotMatch(config, /syntax-check|shellcheck|untrusted|credential/i);
 });
 
 test("autopilot issue template scopes work to a single safe cycle", () => {
