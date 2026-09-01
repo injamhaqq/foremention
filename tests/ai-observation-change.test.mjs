@@ -5,12 +5,24 @@ import { buildAiObservationChangeGraph, fictionalAiObservationChangeGraph } from
 
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
+const measurementContext = {
+  locale: "en-US",
+  market: "US",
+  buyerStage: "consideration",
+  promptVersion: "provider-prompts.2026-08-30.1",
+  parserVersion: "provider-adapters.2026-08-30.1",
+  retrievalVersion: "returned-references.2026-08-30.1",
+  policyVersion: "recommendation-quality.2026-08-30.1",
+  schemaVersion: "recommendation-record.2026-08-30.1",
+  evaluationVersion: "ai-evaluation.2026-08-30.1",
+};
 const answer = (overrides = {}) => ({
   runId: "latest",
   promptKey: "q1",
   prompt: "Best evidence platform?",
   provider: "groq",
   model: "groq/compound-mini",
+  measurementContext,
   answerText: "Foremention is included.",
   brandPresent: true,
   citationUrls: ["https://example.com/new"],
@@ -49,7 +61,7 @@ test("AI Observation Change Graph separates brand, citation, source, competitor,
   assert.match(graph.events.at(-1)?.detail || "", /does not claim that meaning, factual accuracy, buyer behavior, or a customer action caused the difference/i);
 });
 
-test("AI Observation Change Graph reuses the exact persisted buyer-question comparability boundary", () => {
+test("AI Observation Change Graph reuses the full exact measurement comparability boundary", () => {
   const changedQuestion = buildAiObservationChangeGraph({
     latest: { id: "latest", methodologyVersion: "3.0" },
     previous: { id: "previous", methodologyVersion: "3.0" },
@@ -59,7 +71,18 @@ test("AI Observation Change Graph reuses the exact persisted buyer-question comp
     ],
   });
   assert.equal(changedQuestion.status, "withheld");
-  assert.match(changedQuestion.note, /exact buyer-question\/provider\/model matrix changed/i);
+  assert.match(changedQuestion.note, /exact buyer-question\/provider\/model\/measurement context matrix changed/i);
+
+  const changedMarket = buildAiObservationChangeGraph({
+    latest: { id: "latest", methodologyVersion: "3.0" },
+    previous: { id: "previous", methodologyVersion: "3.0" },
+    answers: [
+      answer({ runId: "previous" }),
+      answer({ runId: "latest", measurementContext: { ...measurementContext, market: "GB" } }),
+    ],
+  });
+  assert.equal(changedMarket.status, "withheld");
+  assert.match(changedMarket.note, /measurement context matrix changed/i);
 
   const missingQuestion = buildAiObservationChangeGraph({
     latest: { id: "latest", methodologyVersion: "3.0" },
@@ -70,7 +93,7 @@ test("AI Observation Change Graph reuses the exact persisted buyer-question comp
   assert.match(missingQuestion.note, /Exact buyer-question text is missing/i);
 });
 
-test("AI Observation Change Graph defensively withholds methodology or model drift", () => {
+test("AI Observation Change Graph defensively withholds methodology, model, or measurement-provenance drift", () => {
   const methodologyChange = buildAiObservationChangeGraph({
     latest: { id: "latest", methodologyVersion: "3.1" },
     previous: { id: "previous", methodologyVersion: "3.0" },
@@ -86,6 +109,14 @@ test("AI Observation Change Graph defensively withholds methodology or model dri
   });
   assert.equal(missingModel.status, "withheld");
   assert.match(missingModel.note, /Exact model provenance is missing/i);
+
+  const missingContext = buildAiObservationChangeGraph({
+    latest: { id: "latest", methodologyVersion: "3.0" },
+    previous: { id: "previous", methodologyVersion: "3.0" },
+    answers: [answer({ runId: "previous", measurementContext: null }), answer({ runId: "latest" })],
+  });
+  assert.equal(missingContext.status, "withheld");
+  assert.match(missingContext.note, /measurement context is unavailable/i);
 });
 
 test("competitor movement is withheld unless both runs have reviewed source-map context", () => {
@@ -119,13 +150,15 @@ test("one reviewed collection stays a baseline and fictional demo comparisons st
   assert.match(demo.note, /fictional demo/i);
 });
 
-test("AI observation loader is tenant, active-project, human-review, and customer-token scoped", async () => {
+test("AI observation loader is tenant, active-project, human-review, measurement-context, and customer-token scoped", async () => {
   const loader = await text("lib/ai-observation-change.ts");
   assert.match(loader, /loadWorkspaceContext\(viewer\)/);
   assert.match(loader, /organization_id=eq\.\$\{context\.organizationId\}/g);
   assert.match(loader, /latest\.project_id !== context\.projectId/);
   assert.match(loader, /previous\.project_id !== context\.projectId/);
   assert.match(loader, /review_status=eq\.verified/);
+  assert.match(loader, /measurement_context_json/);
+  assert.match(loader, /coerceComparableMeasurementContext/);
   assert.match(loader, /name\.startsWith\("Reviewed collection"\)/);
   assert.match(loader, /canonicalizeEvidenceUrl/);
   assert.match(loader, /token: viewer\.accessToken/g);
@@ -145,7 +178,7 @@ test("when Safe Intelligence withholds movement, the nearest reviewed run is dia
   assert.match(loader, /source_maps\?select=id,run_id,name/);
 });
 
-test("Analytics preserves Safe Intelligence exact-question gating and separates AI changes from Source Change Graph", async () => {
+test("Analytics preserves Safe Intelligence full measurement gating and separates AI changes from Source Change Graph", async () => {
   const [page, panel, core] = await Promise.all([
     text("app/app/analytics/page.tsx"),
     text("components/ai-observation-change-graph.tsx"),
@@ -161,4 +194,5 @@ test("Analytics preserves Safe Intelligence exact-question gating and separates 
   assert.match(panel, /do not establish causation, ranking, market share, demand, traffic, leads, revenue, or publisher acceptance/i);
   assert.match(core, /assessExactQuestionComparability/);
   assert.match(core, /promptText: answer\.prompt/);
+  assert.match(core, /measurementContext: answer\.measurementContext/);
 });
