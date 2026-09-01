@@ -49,7 +49,7 @@ export async function loadPriorityChangeSpecifications(
 
   try {
     const rows = await supabaseRest<ChangeSpecificationPriorityRow[]>(
-      `change_specifications?select=id,title,exact_change,control_class,eligibility_state,decision_state,confidence_state,effort,owner_role,priority_rank,acceptance_criteria_json,verification_plan_json,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(draft,in_review,approved,in_execution,completed)&order=priority_rank.asc.nullslast,created_at.desc&limit=5`,
+      `change_specifications?select=id,title,exact_change,control_class,eligibility_state,decision_state,confidence_state,effort,owner_role,priority_rank,acceptance_criteria_json,verification_plan_json,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(draft,in_review,approved,in_execution)&order=priority_rank.asc.nullslast,created_at.desc&limit=5`,
       { token: viewer.accessToken },
     );
     const ids = rows.map((row) => row.id);
