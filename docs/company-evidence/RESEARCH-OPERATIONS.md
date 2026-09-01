@@ -70,7 +70,7 @@ Open with context: this is research about how teams handle AI-mediated buyer rec
 - Who normally owns the problem?
 - Who else becomes involved?
 - Who can approve a change in process or tooling?
-- Who approved spending the last time you bought something for this job?
+- Who approved spending?
 - What would procurement/security/legal need to see?
 - What would make you switch from the current approach?
 
