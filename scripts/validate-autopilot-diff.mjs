@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 const forbiddenExact = new Set([
   ".github/copilot-instructions.md",
   ".github/agents/foremention-autopilot.agent.md",
+  ".github/actionlint.yaml",
   "scripts/validate-autopilot-diff.mjs",
   ".mcp.json",
 ]);
