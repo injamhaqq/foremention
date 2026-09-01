@@ -17,9 +17,8 @@ const formatDate = (value: string | null) => value && Number.isFinite(Date.parse
   : "—";
 
 async function safeRead<T>(query: Promise<T[]>): Promise<T[]> {
-  try {
-    return await query;
-  } catch (error) {
+  try { return await query; }
+  catch (error) {
     if (isMissingRelationError(error)) return [];
     throw error;
   }
@@ -54,11 +53,7 @@ export default async function PrintableOutcomeValueReport() {
   const linkByAssetId = new Map(executionLinks.map((row) => [row.resolution_asset_id, row.change_specification_id]));
   const assetsWithChange = assets.map((asset) => {
     const changeId = linkByAssetId.get(asset.id) || null;
-    return {
-      ...asset,
-      change_specification_id: changeId,
-      change_title: changeId ? changeById.get(changeId) || null : null,
-    };
+    return { ...asset, change_specification_id: changeId, change_title: changeId ? changeById.get(changeId) || null : null };
   });
 
   const runIds = Array.from(new Set([...assetsWithChange.map((row) => row.baseline_run_id), ...followUps.map((row) => row.rerun_id)].filter((id): id is string => Boolean(id))));
@@ -75,7 +70,13 @@ export default async function PrintableOutcomeValueReport() {
     <section className="print-record__answers">
       <article><span className="eyebrow">Executive digest</span><h2>What changed</h2><p>{digest.whatChanged}</p><h2>Needs attention</h2><p>{digest.needsAttention}</p><h2>Open actions</h2><p>{digest.openActions}</p><h2>Intervention observation</h2><p>{digest.interventionObservation}</p><h2>Review next</h2><p>{digest.reviewNext}</p></article>
       <article><span className="eyebrow">Reporting cadence</span><h2>Weekly · monthly · quarterly</h2>{periods.map((period) => <p key={period.label}><strong>{period.label}:</strong> {period.report.actionsCompleted} completed · {period.report.itemsRemeasured} remeasured · {period.report.improvementsObserved} improved · {period.report.regressionsObserved} regressed · {period.report.unresolvedItems} unresolved.</p>)}</article>
-      {records.map((record) => <article key={record.id}><span className="eyebrow">Recommendation Record {record.recommendationRecordRunId?.slice(0, 8).toUpperCase() || "not attached"} · {record.assetType.replaceAll("_", " ")}</span><h2>{record.title}</h2><p>{record.problemStatement}</p>{record.changeSpecificationId && <p><strong>Change Specification:</strong> {record.changeTitle || "Untitled decision"}</p>}<p><strong>Execution asset:</strong> {record.assetType.replaceAll("_", " ")}</p><footer><span>Owner: {record.ownerId ? "assigned" : "unassigned"}</span><span>Due: {formatDate(record.dueAt)}</span><span>Outcome: {record.outcomeState.replaceAll("_", " ")}</span><span>Comparison eligible: {record.comparisonEligible === null ? "not assessed" : record.comparisonEligible ? "yes" : "no"}</span></footer>{record.comparison && <p><strong>Eligible observed association:</strong> brand presence {record.comparison.brandPresencePct.delta > 0 ? "+" : ""}{record.comparison.brandPresencePct.delta} pts; first mention {record.comparison.firstMentionPct.delta > 0 ? "+" : ""}{record.comparison.firstMentionPct.delta} pts. {record.comparison.interpretation}</p>}</article>)}
+      {records.map((record) => <article key={record.id}>
+        <span className="eyebrow">Recommendation Record {record.recommendationRecordRunId?.slice(0, 8).toUpperCase() || "not attached"} · {record.changeSpecificationId ? "execution asset" : "recommendation"}</span>
+        <h2>{record.title}</h2><p>{record.problemStatement}</p>
+        {record.changeSpecificationId ? <><p><strong>Change Specification:</strong> {record.changeTitle || "Untitled decision"}</p><p><strong>Execution asset:</strong> {record.assetType.replaceAll("_", " ")}</p></> : <p><strong>Recommendation:</strong> {record.assetType.replaceAll("_", " ")}</p>}
+        <footer><span>Owner: {record.ownerId ? "assigned" : "unassigned"}</span><span>Due: {formatDate(record.dueAt)}</span><span>Outcome: {record.outcomeState.replaceAll("_", " ")}</span><span>Comparison eligible: {record.comparisonEligible === null ? "not assessed" : record.comparisonEligible ? "yes" : "no"}</span></footer>
+        {record.comparison && <p><strong>Eligible observed association:</strong> brand presence {record.comparison.brandPresencePct.delta > 0 ? "+" : ""}{record.comparison.brandPresencePct.delta} pts; first mention {record.comparison.firstMentionPct.delta > 0 ? "+" : ""}{record.comparison.firstMentionPct.delta} pts. {record.comparison.interpretation}</p>}
+      </article>)}
     </section>
     <footer className="print-record__footer">Foremention reports chronology and eligible observed association, not causal attribution. Operational value is not automatically economic ROI.</footer>
   </main>;
