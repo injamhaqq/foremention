@@ -458,7 +458,7 @@ export const runMultiEngineScan = inngest.createFunction(
     idempotency: "event.data.runId",
     retries: LIVE_COLLECTION_LIMITS.providerRetries,
     concurrency: [{ limit: 4 }, { limit: 1, key: "event.data.organizationId" }],
-    timeouts: { start: "5m", finish: "10m" },
+    timeouts: { start: "5m", finish: "30m" },
     cancelOn: [{ event: "foremention/run.cancelled", if: "async.data.runId == event.data.runId" }],
     triggers: { event: "foremention/run.requested" },
     onFailure: async ({ event }) => {
