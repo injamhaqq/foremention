@@ -35,7 +35,7 @@ test("Groq per-prompt reservation is not derived from the whole-run ceiling", ()
 test("collection execution keeps explicit global and tenant concurrency, timeouts, idempotency and cancellation", () => {
   assert.match(inngest, /idempotency: "event\.data\.runId"/);
   assert.match(inngest, /concurrency: \[\{ limit: 4 \}, \{ limit: 1, key: "event\.data\.organizationId" \}\]/);
-  assert.match(inngest, /timeouts: \{ start: "5m", finish: "10m" \}/);
+  assert.match(inngest, /timeouts: \{ start: "5m", finish: "30m" \}/);
   assert.match(inngest, /foremention\/run\.cancelled/);
   assert.match(inngest, /LIVE_COLLECTION_LIMITS\.providerTimeoutMs/);
 });
