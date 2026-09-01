@@ -2,138 +2,339 @@ name: Foremention Autopilot Controller
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: Run even if another autopilot pull request is already open
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches:
+      - main
   schedule:
-    - cron: "17 * * * *"
+    - cron: "17 */12 * * *"
 
-permissions:
-  contents: read
-  issues: write
-  pull-requests: read
-  actions: read
+permissions: {}
 
 concurrency:
   group: foremention-autopilot-controller
   cancel-in-progress: false
 
 jobs:
-  maintain-autopilot-queue:
+  preflight:
+    name: Autopilot preflight
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REPO: ${{ github.repository }}
-      COPILOT_ASSIGNMENT_TOKEN: ${{ secrets.COPILOT_ASSIGNMENT_TOKEN }}
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run_agent: ${{ steps.gate.outputs.run_agent }}
     steps:
-      - name: Find or create one bounded autopilot cycle
-        id: queue
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Refuse parallel autonomous product branches
+        id: gate
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          FORCE_RUN: ${{ inputs.force }}
         run: |
           set -euo pipefail
+          active="$(gh pr list --repo "$REPO" --state open --limit 100 --json headRefName,url,title)"
+          active_count="$(jq '[.[] | select(.headRefName | startswith("autopilot/"))] | length' <<<"$active")"
 
-          open_issues="$(gh issue list \
-            --repo "$REPO" \
-            --state open \
-            --limit 100 \
-            --json number,title,assignees,url)"
-
-          issue_number="$(jq -r '[.[] | select(.title | startswith("[AUTOPILOT]"))][0].number // empty' <<<"$open_issues")"
-
-          if [[ -z "$issue_number" ]]; then
-            body="$(cat <<'BODY'
-          Queue marker: `autopilot:ready`
-
-          Complete **one bounded execution cycle** using the repository's `Foremention Autopilot` instructions.
-
-          Required operating loop:
-          1. Recover reality from current `main`, exact SHA, open PRs/issues, relevant implementation, tests/migrations/CI, and canonical docs.
-          2. Identify the single highest-value unresolved problem that is justified by current evidence and is not already being solved by another active PR.
-          3. Define acceptance criteria and non-goals before implementation.
-          4. Implement the smallest complete solution using RED -> GREEN -> VERIFY.
-          5. Run and report only checks actually observed.
-          6. Open a pull request. The PR body must close this issue when merged and must include starting SHA, evidence, acceptance criteria, verification, risks/unknowns, and the next recommended bounded task.
-
-          Do not auto-merge. Do not perform destructive production/database operations, weaken authentication/RLS/security, change secrets, publish unverified claims, change pricing/ICP/category/business model, send customer communications, or make legal/financial commitments without founder approval.
-
-          If a founder decision is required, stop that branch of work and document the decision request instead of guessing.
-          BODY
-            )"
-
-            issue_url="$(gh issue create \
-              --repo "$REPO" \
-              --title "[AUTOPILOT] One bounded execution cycle" \
-              --body "$body")"
-            issue_number="${issue_url##*/}"
-            echo "Created autopilot issue #$issue_number"
+          if [[ "$active_count" -gt 0 && "$FORCE_RUN" != "true" ]]; then
+            echo "An autonomous Foremention PR is already open; this cycle will not create competing work."
+            jq -r '.[] | select(.headRefName | startswith("autopilot/")) | "- \(.title): \(.url)"' <<<"$active"
+            echo "run_agent=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Reusing open autopilot issue #$issue_number"
+            echo "run_agent=true" >> "$GITHUB_OUTPUT"
           fi
 
-          echo "issue_number=$issue_number" >> "$GITHUB_OUTPUT"
+  agent:
+    name: Keyless Copilot execution
+    needs: preflight
+    if: needs.preflight.outputs.run_agent == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+      copilot-requests: write
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
 
-      - name: Assign queued cycle to GitHub Copilot cloud agent
-        if: env.COPILOT_ASSIGNMENT_TOKEN != ''
+      - name: Checkout latest main without persisted write credentials
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # current v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # current v6
+        with:
+          version: 10.25.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # current v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install current GitHub Copilot CLI
+        run: npm install --global @github/copilot@latest
+
+      - name: Capture immutable cycle base
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .autopilot-run
+          base_sha="$(git rev-parse HEAD)"
+          echo "$base_sha" > .autopilot-run/base-sha.txt
+          echo "BASE_SHA=$base_sha" >> "$GITHUB_ENV"
+
+      - name: Run one bounded Foremention Autopilot cycle
+        id: copilot
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          COPILOT_AUTO_UPDATE: "false"
+        run: |
+          set -uo pipefail
+          mkdir -p .autopilot-output .autopilot-run
+
+          prompt="$(cat .github/autopilot/CYCLE_PROMPT.md)"
+          copilot \
+            --agent foremention-autopilot \
+            --autopilot \
+            --yolo \
+            --max-autopilot-continues 8 \
+            --max-ai-credits 10 \
+            -p "$prompt" \
+            2>&1 | tee .autopilot-run/copilot-output.txt
+          exit_code="${PIPESTATUS[0]}"
+          echo "$exit_code" > .autopilot-run/agent-exit-code.txt
+          exit 0
+
+      - name: Package only the local proposed patch and handoff
         shell: bash
         run: |
           set -euo pipefail
 
-          issue_number="${{ steps.queue.outputs.issue_number }}"
-          current_assignees="$(GH_TOKEN="$COPILOT_ASSIGNMENT_TOKEN" gh api "/repos/$REPO/issues/$issue_number" --jq '[.assignees[].login]')"
+          mkdir -p .autopilot-run/handoff
+          if [[ -f .autopilot-output/pr-summary.md ]]; then
+            cp .autopilot-output/pr-summary.md .autopilot-run/handoff/pr-summary.md
+          fi
+          if [[ -f .autopilot-output/founder-decision.md ]]; then
+            cp .autopilot-output/founder-decision.md .autopilot-run/handoff/founder-decision.md
+          fi
+          rm -rf .autopilot-output
 
-          if jq -e 'any(. == "copilot-swe-agent[bot]" or . == "copilot-swe-agent")' <<<"$current_assignees" >/dev/null; then
-            echo "Issue #$issue_number is already assigned to Copilot."
-            exit 0
+          if [[ "$(git rev-parse HEAD)" != "$BASE_SHA" ]]; then
+            git reset --soft "$BASE_SHA"
           fi
 
-          instructions="Use the repository custom agent 'foremention-autopilot' if available. Complete exactly one bounded execution cycle. Read CLAUDE.md, .github/copilot-instructions.md, FOREMENTION_STATE.md, and docs/AUTOPILOT.md. Avoid duplicate work. The pull request body must include 'Closes #$issue_number'. Do not auto-merge or cross founder-approval boundaries."
+          git add -A
+          git reset -- .autopilot-run
+          git diff --cached --check
+          git diff --cached --binary > .autopilot-run/handoff/autopilot.patch
+          git diff --cached --name-status > .autopilot-run/handoff/changed-files.txt
+          git diff --cached --stat > .autopilot-run/handoff/diff-stat.txt
+          cp .autopilot-run/base-sha.txt .autopilot-run/handoff/base-sha.txt
+          cp .autopilot-run/agent-exit-code.txt .autopilot-run/handoff/agent-exit-code.txt
+          cp .autopilot-run/copilot-output.txt .autopilot-run/handoff/copilot-output.txt
 
-          jq -n \
-            --arg repo "$REPO" \
-            --arg instructions "$instructions" \
-            '{
-              assignees: ["copilot-swe-agent[bot]"],
-              agent_assignment: {
-                target_repo: $repo,
-                base_branch: "main",
-                custom_instructions: $instructions,
-                custom_agent: "foremention-autopilot",
-                model: ""
-              }
-            }' > /tmp/copilot-assignment.json
-
-          if GH_TOKEN="$COPILOT_ASSIGNMENT_TOKEN" gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "/repos/$REPO/issues/$issue_number/assignees" \
-            --input /tmp/copilot-assignment.json; then
-            echo "Assigned issue #$issue_number to Copilot using the Foremention Autopilot agent."
-            exit 0
+          if [[ ! -s .autopilot-run/handoff/autopilot.patch ]]; then
+            touch .autopilot-run/handoff/no-change
           fi
 
-          echo "Custom-agent assignment failed; retrying with repository instructions only."
-          jq -n \
-            --arg repo "$REPO" \
-            --arg instructions "$instructions" \
-            '{
-              assignees: ["copilot-swe-agent[bot]"],
-              agent_assignment: {
-                target_repo: $repo,
-                base_branch: "main",
-                custom_instructions: $instructions,
-                custom_agent: "",
-                model: ""
-              }
-            }' > /tmp/copilot-assignment-fallback.json
+      - name: Upload isolated autopilot result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: foremention-autopilot-${{ github.run_id }}
+          path: .autopilot-run/handoff
+          if-no-files-found: error
+          retention-days: 3
 
-          GH_TOKEN="$COPILOT_ASSIGNMENT_TOKEN" gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "/repos/$REPO/issues/$issue_number/assignees" \
-            --input /tmp/copilot-assignment-fallback.json
+  publish:
+    name: Publish bounded autonomous proposal
+    needs:
+      - preflight
+      - agent
+    if: needs.preflight.outputs.run_agent == 'true' && needs.agent.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
 
-      - name: Explain inactive public-repository fallback
-        if: env.COPILOT_ASSIGNMENT_TOKEN == ''
+      - name: Checkout clean main for privileged publication
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # current v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # current v6
+        with:
+          node-version: 22.13.0
+
+      - name: Download unprivileged agent result
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: foremention-autopilot-${{ github.run_id }}
+          path: .autopilot-result
+
+      - name: Verify result is complete and still based on current main
+        id: verify
         shell: bash
         run: |
-          echo "::notice::Autopilot queue is healthy, but automatic Copilot assignment is inactive. Either make the repository private/internal and use native Copilot Automations, or add a fine-grained GitHub token named COPILOT_ASSIGNMENT_TOKEN. No OpenAI/model API key is required."
+          set -euo pipefail
+
+          base_sha="$(cat .autopilot-result/base-sha.txt)"
+          exit_code="$(cat .autopilot-result/agent-exit-code.txt)"
+          current_main="$(git rev-parse HEAD)"
+
+          if [[ "$exit_code" != "0" ]]; then
+            echo "Copilot exited with code $exit_code; refusing to publish a potentially partial patch."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$base_sha" != "$current_main" ]]; then
+            echo "main moved from $base_sha to $current_main during the cycle; refusing a stale autonomous patch."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ -f .autopilot-result/no-change ]]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "no_change=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "no_change=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open founder decision issue when the safe cycle is blocked
+        if: steps.verify.outputs.no_change == 'true' && hashFiles('.autopilot-result/founder-decision.md') != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          existing="$(gh issue list --repo "$REPO" --state open --search '"[FOUNDER DECISION] Foremention Autopilot" in:title' --json number --jq 'length')"
+          if [[ "$existing" -gt 0 ]]; then
+            echo "A founder-decision issue is already open; not creating a duplicate."
+            exit 0
+          fi
+          gh issue create \
+            --repo "$REPO" \
+            --title "[FOUNDER DECISION] Foremention Autopilot needs input" \
+            --body-file .autopilot-result/founder-decision.md
+
+      - name: Apply and validate the unprivileged patch
+        if: steps.verify.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --index --binary .autopilot-result/autopilot.patch
+          node scripts/validate-autopilot-diff.mjs
+          git diff --cached --check
+
+      - name: Commit autonomous proposal on an isolated branch
+        if: steps.verify.outputs.publish == 'true'
+        id: commit
+        shell: bash
+        env:
+          BRANCH: autopilot/run-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name "foremention-autopilot[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -m "autopilot: complete one bounded Foremention cycle"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Push isolated proposal branch
+        if: steps.verify.outputs.publish == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+      - name: Create review-only pull request
+        if: steps.verify.outputs.publish == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+          HEAD_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          summary_file=.autopilot-result/pr-summary.md
+          if [[ ! -s "$summary_file" ]]; then
+            cat > "$summary_file" <<EOF
+          ## Autonomous cycle
+
+          The keyless Foremention Copilot CLI agent proposed a bounded repository change from the exact main SHA recorded by this run.
+
+          Full independent repository CI remains authoritative. Review the diff and observed checks before merge.
+          EOF
+          fi
+
+          cat > .autopilot-result/pr-body.md <<EOF
+          ## Foremention Autopilot
+
+          - Base SHA: \`$(cat .autopilot-result/base-sha.txt)\`
+          - Proposed head SHA: \`$HEAD_SHA\`
+          - AI engine: GitHub Copilot CLI using the workflow's short-lived \`GITHUB_TOKEN\`
+          - Stored OpenAI/model API key: **none**
+          - Merge policy: **human approval required; this workflow never auto-merges**
+
+          $(cat "$summary_file")
+
+          ### Patch summary
+
+          \`\`\`
+          $(cat .autopilot-result/diff-stat.txt)
+          \`\`\`
+
+          ### Verification boundary
+
+          This controller isolates AI execution from repository write credentials, blocks changes to its own control-plane/sensitive paths, and refuses stale or partial patches. Existing pull-request CI/security/browser gates remain authoritative. GitHub may place workflows triggered by a \`GITHUB_TOKEN\`-created PR into an approval-required state; a repository maintainer can approve those runs in the PR UI.
+          EOF
+
+          gh pr create \
+            --repo "$REPO" \
+            --base main \
+            --head "$BRANCH" \
+            --title "Autopilot: bounded Foremention execution cycle" \
+            --body-file .autopilot-result/pr-body.md
