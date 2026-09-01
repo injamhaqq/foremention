@@ -51,8 +51,9 @@ test("Outcome Ledger is decision-aware only for real execution links and preserv
   assert.match(outcomeLedger, /Observed before-and-after association only\. This record does not establish that the applied change caused the result\./);
   assert.match(outcomesPage, /change_execution_assets/);
   assert.match(outcomesPage, /change_specifications/);
-  assert.match(outcomesPage, /record\.changeSpecificationId &&/);
-  assert.match(printPage, /record\.changeSpecificationId \?/);
-  assert.match(printPage, /Legacy recommendation/);
+  assert.match(outcomesPage, /record\.changeSpecificationId \? "Execution asset" : "Recommendation"/);
+  assert.match(outcomesPage, /record\.changeSpecificationId \?/);
+  assert.match(printPage, /record\.changeSpecificationId \? "execution asset" : "recommendation"/);
+  assert.match(printPage, /<strong>Recommendation:<\/strong>/);
   assert.match(printPage, /does not establish that the applied change caused the result/i);
 });
