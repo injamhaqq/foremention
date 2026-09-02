@@ -72,6 +72,16 @@ const draftFrom = (record: ChangeSpecificationRecord): Draft => ({
   verificationIntent: typeof record.verificationPlan.intent === "string" ? record.verificationPlan.intent : "",
 });
 
+async function loadChangeSpecification(id: string) {
+  const response = await fetch("/api/change-specifications", { headers: { accept: "application/json" } });
+  const payload = await readPayload(response);
+  if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Change Specifications could not be loaded.");
+  const rows = Array.isArray(payload.data) ? payload.data as ChangeSpecificationRecord[] : [];
+  const found = rows.find((item) => item.id === id) || null;
+  if (!found) throw new Error("Change Specification not found in this workspace.");
+  return found;
+}
+
 export function ChangeSpecificationDetail({ id }: { id: string }) {
   const [record, setRecord] = useState<ChangeSpecificationRecord | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -80,24 +90,33 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
   const [notice, setNotice] = useState("");
   const [approvalNote, setApprovalNote] = useState("");
 
+  const applyLoadedRecord = useCallback((found: ChangeSpecificationRecord) => {
+    setRecord(found);
+    setDraft(draftFrom(found));
+    setApprovalNote(found.approvalNote || "");
+    setError("");
+  }, []);
+
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/change-specifications", { headers: { accept: "application/json" } });
-      const payload = await readPayload(response);
-      if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Change Specifications could not be loaded.");
-      const rows = Array.isArray(payload.data) ? payload.data as ChangeSpecificationRecord[] : [];
-      const found = rows.find((item) => item.id === id) || null;
-      if (!found) throw new Error("Change Specification not found in this workspace.");
-      setRecord(found);
-      setDraft(draftFrom(found));
-      setApprovalNote(found.approvalNote || "");
-      setError("");
+      applyLoadedRecord(await loadChangeSpecification(id));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Change Specification could not be loaded.");
     }
-  }, [id]);
+  }, [applyLoadedRecord, id]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    void loadChangeSpecification(id).then(
+      (found) => {
+        if (!cancelled) applyLoadedRecord(found);
+      },
+      (caught) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Change Specification could not be loaded.");
+      },
+    );
+    return () => { cancelled = true; };
+  }, [applyLoadedRecord, id]);
 
   const mutate = useCallback(async (body: Record<string, unknown>, success: string) => {
     if (busy) return;
