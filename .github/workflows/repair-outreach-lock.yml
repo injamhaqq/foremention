@@ -1,0 +1,64 @@
+name: Repair outreach lockfile
+
+on:
+  push:
+    branches:
+      - build/outreach-ready-public-site-20260903
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-outreach-lock
+  cancel-in-progress: true
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # current v6
+        with:
+          ref: build/outreach-ready-public-site-20260903
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # current v6
+        with:
+          version: 10.25.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # current v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Regenerate lockfile with repository policy
+        run: pnpm install --lockfile-only
+
+      - name: Commit only the generated lockfile when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "Lockfile already matches workspace policy."
+            exit 0
+          fi
+          changed="$(git diff --name-only)"
+          if [ "$changed" != "pnpm-lock.yaml" ]; then
+            echo "Unexpected generated files:" >&2
+            printf '%s\n' "$changed" >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "fix: regenerate lockfile for patched fast-uri"
+          git push origin HEAD:build/outreach-ready-public-site-20260903
