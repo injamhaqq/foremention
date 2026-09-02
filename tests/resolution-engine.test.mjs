@@ -107,7 +107,8 @@ test("resolution mutations are origin-checked, role-gated, demo-isolated, and to
   assert.match(route, /Only an owner or admin can mark an approved resolution applied/);
   assert.match(route, /unavailable in the fictional demo/);
   assert.match(route, /request\.json\(\)\.catch\(\(\) => \(\{\}\)\)/);
-  assert.match(route, /uuid\.test\(problemId\)/);
+  assert.match(route, /uuid\.test\(changeSpecificationId\)/);
+  assert.doesNotMatch(route, /uuid\.test\(problemId\)/);
   assert.match(route, /uuid\.test\(resolutionId\)/);
 });
 

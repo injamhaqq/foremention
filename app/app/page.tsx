@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Arrow, StatusDot } from "@/components/brand";
+import { ChangeSpecificationPriorityList } from "@/components/change-specification-priority-list";
 import { ProductTruthPanel } from "@/components/product-truth-panel";
 import { demoCompany } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
 import { loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
+import { loadPriorityChangeSpecifications } from "@/lib/change-specification-data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { productStateLabel, stateForRun } from "@/lib/product-state";
 import { productTruthForRunMetric } from "@/lib/product-truth";
@@ -51,72 +53,30 @@ export default async function DashboardPage() {
     { label: "See your first AI result", detail: "Read the persisted answer and any URLs the AI system actually returned.", done: Boolean(firstObservedRun), href: firstObservedRun ? `/app/runs/${firstObservedRun.id}` : "/app/runs" },
     { label: "Review your first source", detail: "Check one cited page before treating it as evidence for an opportunity.", done: Boolean(firstReviewedSource), href: firstReviewedSource ? `/app/sources/${firstReviewedSource.id}` : "/app/source-map" },
   ];
+  const activationComplete = activation.every((item) => item.done);
   const next = activation.find((item) => !item.done) || { label: reviewedOpportunities.length ? "Choose an opportunity" : "Review your Sources", href: reviewedOpportunities.length ? "/app/opportunities" : "/app/source-map" };
+  const changeSpecifications = activationComplete ? await loadPriorityChangeSpecifications(viewer, context) : [];
   const state = pendingOrFailedRun
     ? stateForRun({ status: pendingOrFailedRun.status, answerCount: pendingOrFailedRun.answers, citationCount: pendingOrFailedRun.citations })
     : latest
       ? stateForRun({ status: latest.status, answerCount: latest.answers, citationCount: latest.citations })
       : "READY_TO_COLLECT";
   const exactMovement = comparableLatest && comparablePrevious
-    ? {
-      delta: comparableLatest.presence - comparablePrevious.presence,
-      latest: comparableLatest,
-      previous: comparablePrevious,
-    }
+    ? { delta: comparableLatest.presence - comparablePrevious.presence, latest: comparableLatest, previous: comparablePrevious }
     : null;
   const metricTruth = latest ? [
-    productTruthForRunMetric({
-      id: "overview-brand-presence",
-      label: "Observed brand presence",
-      source: "Persisted AI answer observations from the current collection",
-      sample: `${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}`,
-      denominator: "Current collection answer set; inspect AI Results for answer-level brand-presence states",
-      collectedAt: latest.date,
-      verification: latest.status === "review" ? "Awaiting human review" : "Human-reviewed collection",
-      demo: viewer.mode === "demo",
-      methodology: "Uses the collection's persisted methodology. Cross-collection movement is shown only when exact buyer-question text, provider, exact model, and methodology all match.",
-    }),
-    productTruthForRunMetric({
-      id: "overview-competitor-appearances",
-      label: "Configured competitors appearing",
-      source: "Exact-name checks against persisted AI answer text from the current collection",
-      sample: `${observedAnswers.length} persisted answer${observedAnswers.length === 1 ? "" : "s"}`,
-      denominator: `${competitors.length} configured competitor name${competitors.length === 1 ? "" : "s"} checked against those answers`,
-      collectedAt: latest.date,
-      verification: latest.status === "review" ? "Current answer observations; run review is still pending" : "Current human-reviewed collection",
-      demo: viewer.mode === "demo",
-      methodology: "This is an exact-name observation, not market share. Trend interpretation follows the same exact-question/provider/model/methodology boundary.",
-    }),
-    productTruthForRunMetric({
-      id: "overview-cited-sources",
-      label: "Cited sources",
-      source: "Provider-returned citation observations normalized into the baseline run's Source Map",
-      sample: `${latest.citations} returned citation observation${latest.citations === 1 ? "" : "s"}`,
-      denominator: `${sources.length} unique mapped source record${sources.length === 1 ? "" : "s"}`,
-      collectedAt: latest.date,
-      verification: `${sources.filter((source) => source.reviewedAt).length} of ${sources.length} mapped pages have an explicit human review`,
-      demo: viewer.mode === "demo",
-      methodology: "Only returned citation evidence is mapped; automated retrieval checks are not counted as human source review.",
-    }),
-    productTruthForRunMetric({
-      id: "overview-reviewed-opportunities",
-      label: "Reviewed opportunities",
-      source: "Mapped cited pages that passed the explicit human-review opportunity gates",
-      sample: `${reviewedOpportunities.length} qualifying reviewed page${reviewedOpportunities.length === 1 ? "" : "s"}`,
-      denominator: `${sources.length} mapped cited page${sources.length === 1 ? "" : "s"}`,
-      collectedAt: latest.date,
-      verification: "Requires explicit human review plus known route, influence, and feasibility; automated checks are excluded",
-      demo: viewer.mode === "demo",
-      methodology: "Opportunity status is evidence-gated human review, not a ranking score, publisher promise, or predicted outcome.",
-    }),
+    productTruthForRunMetric({ id: "overview-brand-presence", label: "Observed brand presence", source: "Persisted AI answer observations from the current collection", sample: `${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}`, denominator: "Current collection answer set; inspect AI Results for answer-level brand-presence states", collectedAt: latest.date, verification: latest.status === "review" ? "Awaiting human review" : "Human-reviewed collection", demo: viewer.mode === "demo", methodology: "Uses the collection's persisted methodology. Cross-collection movement is shown only when exact buyer-question text, provider, exact model, and methodology all match." }),
+    productTruthForRunMetric({ id: "overview-competitor-appearances", label: "Configured competitors appearing", source: "Exact-name checks against persisted AI answer text from the current collection", sample: `${observedAnswers.length} persisted answer${observedAnswers.length === 1 ? "" : "s"}`, denominator: `${competitors.length} configured competitor name${competitors.length === 1 ? "" : "s"} checked against those answers`, collectedAt: latest.date, verification: latest.status === "review" ? "Current answer observations; run review is still pending" : "Current human-reviewed collection", demo: viewer.mode === "demo", methodology: "This is an exact-name observation, not market share. Trend interpretation follows the same exact-question/provider/model/methodology boundary." }),
+    productTruthForRunMetric({ id: "overview-cited-sources", label: "Cited sources", source: "Provider-returned citation observations normalized into the baseline run's Source Map", sample: `${latest.citations} returned citation observation${latest.citations === 1 ? "" : "s"}`, denominator: `${sources.length} unique mapped source record${sources.length === 1 ? "" : "s"}`, collectedAt: latest.date, verification: `${sources.filter((source) => source.reviewedAt).length} of ${sources.length} mapped pages have an explicit human review`, demo: viewer.mode === "demo", methodology: "Only returned citation evidence is mapped; automated retrieval checks are not counted as human source review." }),
+    productTruthForRunMetric({ id: "overview-reviewed-opportunities", label: "Reviewed opportunities", source: "Mapped cited pages that passed the explicit human-review opportunity gates", sample: `${reviewedOpportunities.length} qualifying reviewed page${reviewedOpportunities.length === 1 ? "" : "s"}`, denominator: `${sources.length} mapped cited page${sources.length === 1 ? "" : "s"}`, collectedAt: latest.date, verification: "Requires explicit human review plus known route, influence, and feasibility; automated checks are excluded", demo: viewer.mode === "demo", methodology: "Opportunity status is evidence-gated human review, not a ranking score, publisher promise, or predicted outcome." }),
   ] : [];
 
   return <main className="workspace" data-product-state={state}>
     <div className="workspace-heading">
       <div>
-        <span className="eyebrow">{viewer.mode === "demo" ? demoCompany.category : context?.category || "Customer workspace"}</span>
-        <h1>{latest ? "What changed in your AI evidence?" : "Build your first trustworthy baseline."}</h1>
-        <p>{viewer.mode === "demo" ? "Every metric below comes from fictional sample observations and fictional sample answers created only for this isolated demo." : latest ? "Start with the latest observed answer, the cited pages behind it, and the next reviewed opportunity. Unreviewed evidence stays clearly labelled." : "Five clear steps take you from your website to a reviewed cited source. No fake metrics appear while Foremention is waiting for real observations."}</p>
+        <span className="eyebrow">{activationComplete ? "Recommendation Engineering" : viewer.mode === "demo" ? demoCompany.category : context?.category || "Customer workspace"}</span>
+        <h1>{activationComplete ? "What should we change next?" : latest ? "What changed in your AI evidence?" : "Build your first trustworthy baseline."}</h1>
+        <p>{activationComplete ? "Prioritize explicit company decisions backed by reviewed evidence. Foremention separates what your company can change from what it can only influence or monitor, and it does not manufacture an action to fill an empty state." : viewer.mode === "demo" ? "Every metric below comes from fictional sample observations and fictional sample answers created only for this isolated demo." : latest ? "Start with the latest observed answer, the cited pages behind it, and the next reviewed opportunity. Unreviewed evidence stays clearly labelled." : "Five clear steps take you from your website to a reviewed cited source. No fake metrics appear while Foremention is waiting for real observations."}</p>
         <p className="table-caption"><strong>{productStateLabel(state)}</strong>{latest ? ` · Baseline collected ${latest.date} · ${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}` : ""}</p>
       </div>
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
@@ -124,10 +84,13 @@ export default async function DashboardPage() {
 
     {pendingOrFailedRun && <section className="inline-notice" role={newestFailed ? "alert" : "status"}><strong>{newestFailed ? "The newest collection failed." : "A newer collection is running now."}</strong><p>{newestFailed ? `${latest ? "The prior reviewed baseline remains visible below; it has not been replaced by the failed run. " : ""}No fake metrics were added. Open the newest collection to inspect the failure and retry safely.` : `${latest ? "The prior reviewed baseline remains visible below until this collection reaches a reviewable state. " : ""}Foremention is collecting answers and preserving returned citations without rewriting historical evidence.`}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open newest collection <Arrow /></Link></section>}
 
-    {!activation.every((item) => item.done) ? <section className="getting-started" aria-labelledby="getting-started-title">
+    {!activationComplete ? <section className="getting-started" aria-labelledby="getting-started-title">
       <div className="getting-started__heading"><div><span className="eyebrow">Workspace readiness</span><h2 id="getting-started-title">Five steps to useful evidence.</h2></div><strong>{activation.filter((item) => item.done).length}/{activation.length} complete</strong></div>
       <ol>{activation.map((item) => <li className={item.done ? "is-complete" : item.label === next.label ? "is-next" : ""} key={item.label}><Link href={item.href}><span className="getting-started__check" aria-hidden="true">{item.done ? "✓" : ""}</span><span><strong>{item.label}</strong><small>{item.detail}</small></span><Arrow /></Link></li>)}</ol>
-    </section> : <section className="setup-complete"><strong>First-use setup complete.</strong><span>Your workspace now has a reviewed evidence baseline. Continue with comparable collections, opportunities, and actions.</span><Link href={next.href}>{next.label} <Arrow /></Link></section>}
+    </section> : <>
+      <section aria-label="Prioritized Change Specifications"><ChangeSpecificationPriorityList items={changeSpecifications} /></section>
+      <section className="setup-complete"><strong>First-use setup complete.</strong><span>Your workspace has a reviewed evidence baseline. Attention now leads with explicit Change Specifications rather than a synthetic score.</span><Link href={next.href}>{next.label} <Arrow /></Link></section>
+    </>}
 
     <div className="metric-grid">
       <article><span>Observed brand presence</span><strong>{latest ? `${latest.presence}%` : "—"}</strong><small>{latest ? `Across ${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}${latest.status === "review" ? " · awaiting review" : ""}` : "First audit has not completed"}</small></article>

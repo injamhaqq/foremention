@@ -122,7 +122,7 @@ test("an incomplete chain does not fabricate evidence, ownership, completion, or
   assert.equal(record.measurementStatus, "not_requested");
   assert.deepEqual(record.steps.filter((item) => item.done).map((item) => item.key), ["observation", "recommendation"]);
   assert.match(record.steps.find((item) => item.key === "completion").detail, /Not recorded as applied yet/);
-  assert.match(record.limitation, /does not claim the applied asset caused the change/);
+  assert.match(record.limitation, /does not establish that the applied change caused the result/);
 });
 
 test("queued, failed, and cancelled measurement states stay explicit", () => {
