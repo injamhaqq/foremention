@@ -31,7 +31,7 @@ test("Evidence Standard foundation remains available beneath Registered Evidence
 
 test("public Evidence Standard accessibility refinements remain explicit", () => {
   const homeCss = read("app/evidence-standard-home.css");
-  const home = read("app/page.tsx");
+  const outreachCss = read("app/outreach-site.css");
 
   assert.match(homeCss, /@media \(prefers-reduced-transparency: reduce\)/);
   assert.match(homeCss, /backdrop-filter:\s*none/);
@@ -39,108 +39,102 @@ test("public Evidence Standard accessibility refinements remain explicit", () =>
   assert.match(homeCss, /\.fm-record-meta[\s\S]*font-size:\s*11px/);
   assert.match(homeCss, /\.fm-readiness-states span[\s\S]*font-size:\s*11px/);
   assert.match(homeCss, /\.xray-product-shell[\s\S]*background:\s*var\(--fm-ink\)/);
-  assert.match(home, /fm-compare__boundary[^>]*><Arrow \/><\/div>/);
+  assert.match(outreachCss, /prefers-reduced-motion:\s*reduce/);
+  assert.match(outreachCss, /min-height:\s*44px/);
 });
 
-test("public navigation reflects the compressed Registered Evidence information architecture", () => {
+test("public navigation is compressed around product understanding and design-partner conversion", () => {
   const shell = read("components/public-shell.tsx");
-  for (const item of ["Product", "Methodology", "Research"]) assert.ok(shell.includes('\"' + item + '\"'));
-  assert.match(shell, /Request a demo/);
+  for (const item of ["Product", "How it works", "Methodology", "Trust"]) assert.ok(shell.includes('\"' + item + '\"'));
+  assert.match(shell, /Apply as Design Partner/);
   assert.match(shell, /Sign in/);
-  assert.match(shell, /Design-partner workspace/);
-  assert.match(shell, /href="\/recommendation-record"/);
   assert.match(shell, /href="\/privacy"/);
   assert.match(shell, /href="\/subprocessors"/);
+  assert.match(shell, /public-footer__utility/);
+  assert.doesNotMatch(shell, />Research</);
+  assert.doesNotMatch(shell, />Glossary</);
+  assert.doesNotMatch(shell, />Partners</);
+  assert.doesNotMatch(shell, />Request a demo</);
   assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
   assert.doesNotMatch(shell, /\["\/pricing", "Pricing"\]/);
 });
 
-test("public metadata keeps the returned-evidence boundary without causal overclaim", () => {
+test("public metadata states the company-change value while preserving the evidence boundary", () => {
   const layout = read("app/layout.tsx");
-  assert.match(layout, /returned citation URLs/i);
-  assert.match(layout, /returned-source records/i);
-  assert.doesNotMatch(layout, /Know why AI recommends/i);
-  assert.doesNotMatch(layout, /webpages supporting them/i);
+  assert.match(layout, /Understand why competitors are being recommended/);
+  assert.match(layout, /what your company can actually change/);
+  assert.match(layout, /verify what happened after the change/);
+  assert.match(layout, /Recommendation intelligence software/);
+  assert.doesNotMatch(layout, /guaranteed|caused the recommendation|Category Leadership OS/i);
 });
 
-test("homepage hero uses Registered Evidence while commercial truth remains explicit", () => {
+test("homepage leads with the company-change outcome while commercial truth remains explicit", () => {
   const experience = read("components/goat-home-experience.tsx");
-  const home = read("app/page.tsx");
   const pricing = read("app/pricing/page.tsx");
   const primitives = read("components/evidence-standard-primitives.tsx");
-  const combined = experience + "\n" + home;
 
-  assert.match(experience, /Register\. Prove\./);
-  assert.match(experience, /Prepare\./);
-  assert.match(experience, /Recommendation intelligence for B2B software\./);
-  assert.match(experience, /LIVE RECORD \/ ILLUSTRATIVE/);
-  assert.match(experience, /Recommendation Record/);
-  assert.match(experience, /Evidence inspection/);
-  assert.match(home, /Private beta/);
+  assert.match(experience, /Know what your company should change next to become the stronger recommendation\./);
+  assert.match(experience, /Recommendation intelligence for B2B software/i);
+  assert.match(experience, /No ranking guarantees\. No fabricated scores\. No causal claims without evidence\./);
+  assert.match(experience, /Illustrative example — not customer evidence\./);
+  assert.match(experience, /Company Truth/);
+  assert.match(experience, /Eligibility/);
+  assert.match(experience, /Change Specification/);
   assert.match(pricing, /does\s+not charge a card/i);
   assert.match(pricing, /Self-serve paid checkout is shown\s+only when billing is configured/i);
-  assert.match(combined, /returned reference/i);
-  assert.match(combined, /retrievable/i);
-  assert.match(combined, /review/i);
   assert.match(primitives, /NOT OBSERVED/);
   assert.match(primitives, /NOT COMPARABLE/);
   assert.match(primitives, /INSUFFICIENT EVIDENCE/);
 });
 
-test("homepage retains the canonical six-scene evidence narrative beneath the conviction layer", () => {
-  const home = read("app/page.tsx");
+test("homepage exposes one complete Recommendation Engineering decision narrative", () => {
+  const experience = read("components/goat-home-experience.tsx");
 
-  for (const scene of [
-    "01 / Recommendation record",
-    "02 / Honesty as product",
-    "03 / Competitor evidence",
-    "04 / Decision Gate",
-    "05 / Later measurement",
-    "06 / Enter workspace",
-  ]) assert.ok(home.includes(scene), "missing homepage scene: " + scene);
+  for (const stage of [
+    "Buyer question",
+    "Recommendation observation",
+    "Evidence",
+    "Company Truth",
+    "Eligibility",
+    "Change Specification",
+    "Human approval",
+    "Execution",
+    "Comparable remeasurement",
+    "Learning",
+  ]) assert.match(experience, new RegExp(stage, "i"));
 
-  assert.doesNotMatch(home, /Source X-Ray|source-xray/i);
-  assert.match(home, /Decision-ready/);
-  assert.match(home, /Directional only/);
-  assert.match(home, /Insufficient evidence/);
-  assert.match(home, /collection coverage/i);
-  assert.match(home, /provider agreement/i);
-  assert.match(home, /source review/i);
-  assert.match(home, /source concentration/i);
-  assert.match(home, /exact repeatability/i);
-  assert.doesNotMatch(home, /\b\d{1,3}\s*\/\s*100\b/);
-  assert.match(home, /RUN \/ 01/);
-  assert.match(home, /RUN \/ 02/);
-  assert.match(home, /Build your first Recommendation Record\./);
+  assert.match(experience, /CONTROLLABLE/);
+  assert.match(experience, /PARTIALLY ELIGIBLE/);
+  assert.match(experience, /TEST FIRST/);
+  assert.match(experience, /STRUCTURALLY INELIGIBLE/);
+  assert.doesNotMatch(experience, /Source X-Ray|source-xray/i);
+  assert.doesNotMatch(experience, /\b\d{1,3}\s*\/\s*100\b/);
 });
 
-test("competitor and later-measurement scenes preserve product truth boundaries", () => {
-  const home = read("app/page.tsx");
+test("illustrative company-change and remeasurement copy preserve product truth boundaries", () => {
+  const experience = read("components/goat-home-experience.tsx");
 
-  assert.match(home, /Illustrative product interface/);
-  assert.match(home, /provider/i);
-  assert.match(home, /run id/i);
-  assert.match(home, /returned reference/i);
-  assert.match(home, /distinct source/i);
-  assert.match(home, /review state/i);
-  assert.match(home, /observed change/i);
-  assert.match(home, /not proof of causation/i);
-  assert.match(home, /≠ NOT COMPARABLE/);
-  assert.doesNotMatch(home, /leaderboard/i);
+  assert.match(experience, /NEXT COMPANY CHANGE/);
+  assert.match(experience, /Illustrative example — not customer evidence/);
+  assert.match(experience, /publicly verifiable/);
+  assert.match(experience, /Repeat the equivalent buyer-question measurement/);
+  assert.match(experience, /observed before-and-after association/i);
+  assert.match(experience, /without manufacturing causality/i);
+  assert.doesNotMatch(experience, /leaderboard|guaranteed rank|caused the result/i);
 });
 
 test("Recommendation Record integrates evidence inspection without causal overclaim", () => {
-  const experience = read("components/goat-home-experience.tsx");
-  const home = read("app/page.tsx");
-  const combined = experience + "\n" + home;
+  const record = read("app/recommendation-record/page.tsx");
 
-  assert.match(experience, /id="recommendation-record"/);
-  assert.match(experience, /Evidence inspection/);
-  assert.match(experience, /Returned/);
-  assert.match(experience, /Retrievable/);
-  assert.match(experience, /REVIEW/);
-  assert.doesNotMatch(combined, /Source X-Ray|source-xray/i);
-  assert.doesNotMatch(combined, /What shaped the answer/i);
+  assert.match(record, /Recommendation Record/);
+  assert.match(record, /Returned/);
+  assert.match(record, /Retrieved/);
+  assert.match(record, /Observed/);
+  assert.match(record, /Reviewed/);
+  assert.match(record, /Safe conclusion/);
+  assert.match(record, /do not establish causal influence/i);
+  assert.doesNotMatch(record, /Source X-Ray|source-xray/i);
+  assert.doesNotMatch(record, /What shaped the answer/i);
 });
 
 test("semantic primitives keep evidence meaning visible without color", () => {
