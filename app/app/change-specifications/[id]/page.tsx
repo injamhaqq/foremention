@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChangeSpecificationDetail } from "@/components/change-specification-detail";
 import { DecisionIntelligenceContext } from "@/components/decision-intelligence-context";
+import { NextBestChangeContext } from "@/components/next-best-change-context";
 import { requireViewer } from "@/lib/auth";
 
 export default async function ChangeSpecificationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,5 +15,6 @@ export default async function ChangeSpecificationPage({ params }: { params: Prom
     </div>
     <ChangeSpecificationDetail id={id} />
     <DecisionIntelligenceContext changeSpecificationId={id} />
+    <NextBestChangeContext changeSpecificationId={id} />
   </main>;
 }
