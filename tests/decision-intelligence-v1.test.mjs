@@ -36,8 +36,8 @@ test("Company Truth verification is evidence-backed, historical, and cannot be f
 
   assert.match(sql, /verification_state[^\n]*unverified[^\n]*verified[^\n]*rejected[^\n]*superseded[^\n]*expired/i);
   assert.match(sql, /verification_status\s*=\s*'verified'/i);
-  assert.match(sql, /evidence\.source_url\s+is\s+not\s+null/i);
-  assert.match(sql, /nullif\(trim\(evidence\.usage_rights\),\s*''\)\s+is\s+not\s+null/i);
+  assert.match(sql, /source_url\s+is\s+not\s+null/i);
+  assert.match(sql, /nullif\(trim\(usage_rights\),\s*''\)\s+is\s+not\s+null/i);
   assert.match(sql, /new\.source_snapshot\s*:=\s*jsonb_build_object/i);
   assert.match(sql, /Company Truth verified assertion body is immutable/i);
   assert.match(sql, /unique[\s\S]*entity_id[\s\S]*attribute_key/i);
@@ -97,9 +97,9 @@ test("Cross-business Evidence v1 reuses explicitly linked first-party commercial
 });
 
 test("Decision Intelligence API and Change Specification UI preserve the human approval boundary", async () => {
-  const [api, changeDetail, contextUi] = await Promise.all([
+  const [api, changePage, contextUi] = await Promise.all([
     text("app/api/decision-intelligence/route.ts"),
-    text("components/change-specification-detail.tsx"),
+    text("app/app/change-specifications/[id]/page.tsx"),
     text("components/decision-intelligence-context.tsx"),
   ]);
 
@@ -123,7 +123,8 @@ test("Decision Intelligence API and Change Specification UI preserve the human a
   assert.doesNotMatch(api, /body:\s*\{[^}]*truth_state[^}]*\}/s);
   assert.doesNotMatch(api, /body:\s*\{[^}]*confidence_state[^}]*\}/s);
 
-  assert.match(changeDetail, /DecisionIntelligenceContext/);
+  assert.match(changePage, /DecisionIntelligenceContext/);
+  assert.match(changePage, /<DecisionIntelligenceContext changeSpecificationId=\{id\}/);
   assert.match(contextUi, /Decision intelligence informs human review\. It does not authorize a company change or prove causality\./);
   assert.doesNotMatch(contextUi, /Category Leadership Score|Recommendation Engineering Score|0–100/i);
 });
