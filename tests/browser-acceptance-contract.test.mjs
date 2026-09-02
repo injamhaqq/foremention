@@ -67,14 +67,18 @@ test("browser acceptance captures every approved Foremention QA width", () => {
   assert.match(runner, /name: "chromium-narrow"[\s\S]{0,120}width: 320/);
 });
 
-test("browser acceptance requires the approved reverse identity and rejects white/warm surfaces", () => {
+test("browser acceptance requires the approved reverse identity and restricts warm-light surfaces to the approved inspection set", () => {
   assert.match(runner, /verifyCanonicalBrandArtwork/);
   assert.match(runner, /Approved Foremention identity artwork is not visibly rendered/);
   assert.match(runner, /Text-only Foremention fallback is still rendered/);
   assert.match(runner, /foremention-logo-white\.svg/);
   assert.match(runner, /foremention-mark-white\.svg/);
   assert.match(runner, /forbiddenLightBackgrounds/);
-  assert.match(runner, /Visible website surface still uses a white\/warm-light background/);
+  assert.match(runner, /approvedWarmLightSelectors/);
+  for (const selector of [".outreach-problem", ".outreach-change__record", ".outreach-truth"]) {
+    assert.ok(runner.includes(`"${selector}"`));
+  }
+  assert.match(runner, /Visible website surface still uses an unapproved white\/warm-light background/);
   assert.match(runner, /\/foremention-wordmark\.png/);
   assert.match(runner, /\/source-eclipse\.svg/);
   assert.match(runner, /\.source-eclipse/);
