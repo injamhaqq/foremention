@@ -21,7 +21,11 @@ test("public brand surfaces publish only intentionally retained verified social 
 });
 
 test("homepage trust links go directly to canonical methodology and Recommendation Record routes", async () => {
-  const home = await text("app/page.tsx");
+  const [page, experience] = await Promise.all([
+    text("app/page.tsx"),
+    text("components/goat-home-experience.tsx"),
+  ]);
+  const home = `${page}\n${experience}`;
   assert.doesNotMatch(home, /href="\/honesty"|href="\/standards"/);
   assert.match(home, /href="\/methodology"/);
   assert.match(home, /href="\/recommendation-record"/);

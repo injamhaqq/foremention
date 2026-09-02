@@ -5,11 +5,9 @@ import { SiteMotion } from "@/components/site-motion";
 
 const links = [
   ["/product", "Product"],
-  ["/recommendation-intelligence", "Category"],
+  ["/#how-it-works", "How it works"],
   ["/methodology", "Methodology"],
-  ["/insights", "Research"],
-  ["/glossary", "Glossary"],
-  ["/partners", "Partners"],
+  ["/trust", "Trust"],
 ] as const;
 
 export function PublicHeader() {
@@ -19,14 +17,14 @@ export function PublicHeader() {
       <nav className="public-nav" aria-label="Primary navigation">
         {links.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
         <Link className="canonical-header__signin" href="/login">Sign in</Link>
-        <Link className="registered-header__demo canonical-header__demo" href="/contact">Request a demo <span aria-hidden="true">→</span></Link>
+        <Link data-design-partner-cta="header" className="registered-header__demo canonical-header__demo" href="/contact">Apply as Design Partner <span aria-hidden="true">→</span></Link>
       </nav>
       <details className="mobile-nav registered-mobile-nav canonical-mobile-nav">
         <summary aria-label="Open navigation"><Arrow /></summary>
         <div className="mobile-nav__panel">
           {links.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
           <Link href="/login">Sign in</Link>
-          <Link href="/contact">Request a demo</Link>
+          <Link data-design-partner-cta="mobile_header" href="/contact">Apply as Design Partner</Link>
         </div>
       </details>
     </div>
@@ -34,7 +32,28 @@ export function PublicHeader() {
 }
 
 export function PublicFooter() {
-  return <footer className="public-footer canonical-public-footer"><div className="shell footer-grid"><div><Wordmark /><p className="footer-note">Recommendation intelligence for B2B software. Inspect what AI-mediated buyers were shown, what evidence came back, and what can safely be acted on.</p><a className="footer-email" href="mailto:hello@foremention.com">hello@foremention.com</a></div><div className="footer-links"><div><span>Product</span><Link href="/product">Product</Link><Link href="/recommendation-record">Recommendation Record</Link><Link href="/recommendation-intelligence">Category</Link><Link href="/methodology">Methodology</Link></div><div><span>Research / Company</span><Link href="/insights">Research</Link><Link href="/glossary">Glossary</Link><Link href="/partners">Partners</Link><Link href="/about">About</Link><Link href="/contact">Request a demo</Link></div><div><span>Trust</span><Link href="/trust">Trust Center</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/subprocessors">Subprocessors</Link><ExperienceAnalyticsPreferences /></div><div><span>Access</span><Link href="/login">Sign in</Link><Link href="/signup">Design-partner workspace</Link><a href="https://www.linkedin.com/company/foremention/" target="_blank" rel="noreferrer">LinkedIn</a></div></div></div><div className="shell footer-bottom"><span>&copy; {new Date().getFullYear()} Foremention</span><span>Register. Prove. Prepare.</span></div></footer>;
+  return <footer className="public-footer canonical-public-footer">
+    <div className="shell footer-grid outreach-footer-grid">
+      <div className="outreach-footer-brand">
+        <Wordmark />
+        <p className="footer-note">Recommendation intelligence for B2B software. Understand why competitors are being recommended, what your company can actually change, and what deserves verification next.</p>
+        <a className="footer-email" href="mailto:hello@foremention.com">hello@foremention.com</a>
+      </div>
+      <div className="footer-links outreach-footer-links">
+        <div><span>Product</span><Link href="/product">Product</Link><Link href="/#how-it-works">How it works</Link><Link href="/recommendation-record">Recommendation Record</Link><Link href="/methodology">Methodology</Link></div>
+        <div><span>Company</span><Link href="/about">About</Link><Link href="/insights">Research &amp; evidence</Link><a href="https://www.linkedin.com/company/foremention/" target="_blank" rel="noreferrer">LinkedIn</a></div>
+        <div><span>Trust</span><Link href="/trust">Trust Center</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
+        <div><span>Action</span><Link data-design-partner-cta="footer" href="/contact">Apply as Design Partner</Link><Link href="/login">Sign in</Link></div>
+      </div>
+    </div>
+    <div className="shell public-footer__utility">
+      <Link href="/recommendation-intelligence">Category definition</Link>
+      <Link href="/glossary">Terms &amp; definitions</Link>
+      <Link href="/subprocessors">Subprocessors</Link>
+      <span className="sr-only">Analytics settings</span><ExperienceAnalyticsPreferences />
+    </div>
+    <div className="shell footer-bottom"><span>&copy; {new Date().getFullYear()} Foremention</span><span>Register. Prove. Prepare.</span></div>
+  </footer>;
 }
 
 export function PublicShell({ children }: { children: React.ReactNode }) {

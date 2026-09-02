@@ -54,7 +54,7 @@ export default function RecommendationRecordPage() {
           </p>
           <div className="page-hero__actions">
             <Link className="button" href="#evidence-inspection">Inspect the evidence chain <Arrow /></Link>
-            <Link className="text-link text-link--inverse" href="/contact">Request a demo <Arrow /></Link>
+            <Link data-design-partner-cta="record_hero" className="text-link text-link--inverse" href="/contact">Apply as a Design Partner <Arrow /></Link>
           </div>
         </div>
       </section>
@@ -120,7 +120,7 @@ export default function RecommendationRecordPage() {
         </div>
       </section>
 
-      <section className="cta-band"><div className="shell cta-band__inner"><div><span className="eyebrow">Register. Prove. Prepare.</span><h2>Keep the observation, evidence, review boundary and later-comparison eligibility in one inspectable record.</h2></div><Link className="button button--ink button--large" href="/contact">Request a demo <Arrow /></Link></div></section>
+      <section className="cta-band"><div className="shell cta-band__inner"><div><span className="eyebrow">One measurable cycle</span><h2>Bring five buyer questions, review the evidence, choose one company change, and return for comparable remeasurement.</h2></div><Link data-design-partner-cta="record_bottom" className="button button--ink button--large" href="/contact">Apply as a Design Partner <Arrow /></Link></div></section>
     </PublicShell>
   );
 }

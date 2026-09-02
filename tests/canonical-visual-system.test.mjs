@@ -75,24 +75,24 @@ test("approved canonical Foremention identity artwork stays locked while legacy 
   ]) assert.equal(await exists(path), false, `${path} must remain retired`);
 });
 
-test("homepage follows the approved product composition with lightweight layered 5d depth", async () => {
-  const [home, signal, layout, homepageCss, releaseCss] = await Promise.all([
+test("homepage uses the approved outreach composition while retaining lightweight layered signal depth", async () => {
+  const [home, signal, layout, outreachCss, releaseCss] = await Promise.all([
     text("components/goat-home-experience.tsx"),
     text("components/canonical-signal-field.tsx"),
     text("app/layout.tsx"),
-    text("app/homepage-reference.css"),
+    text("app/outreach-site.css"),
     text("app/canonical-release.css"),
   ]);
 
-  assert.match(home, /THE FOREMENTION STANDARD/);
-  assert.match(home, /Register\. Prove\. Prepare\./);
-  assert.match(home, /Recommendation intelligence for B2B software\./);
-  assert.match(home, /Capture signals as immutable records\./);
-  assert.match(home, /Verify provenance with integrity at every step\./);
-  assert.match(home, /Make confident decisions with real evidence\./);
-  assert.match(home, /canonical-home__dot/);
-  assert.match(home, /canonical-button--overview/);
+  assert.match(home, /Know what your company should change next to become the stronger recommendation\./);
+  assert.match(home, /Recommendation intelligence for B2B software/i);
+  assert.match(home, /Apply as a Design Partner/);
+  assert.match(home, /See how it works/);
   assert.match(home, /CanonicalSignalField/);
+  assert.match(home, /Company Truth/);
+  assert.match(home, /Eligibility/);
+  assert.match(home, /Change Specification/);
+  assert.match(home, /NEXT COMPANY CHANGE/);
   assert.match(signal, /canonical-signal--5d/);
   assert.match(signal, /IntersectionObserver/);
   assert.match(signal, /prefers-reduced-motion/);
@@ -100,7 +100,8 @@ test("homepage follows the approved product composition with lightweight layered
   assert.match(signal, /canonical-signal__beam/);
   assert.doesNotMatch(signal, /foremention-hero-signal\.jpg/);
   assert.doesNotMatch(signal, /three|webgl|canvas/i);
-  assert.match(homepageCss, /canonical-home__pillars--reference/);
+  assert.match(outreachCss, /\.outreach-hero/);
+  assert.match(outreachCss, /\.outreach-workflow/);
   assert.match(releaseCss, /canonical-signal__depth--horizon/);
   assert.match(layout, /Recommendation intelligence for B2B software/);
 });
@@ -114,17 +115,17 @@ test("signed-in primary IA remains exactly five product objects", async () => {
 });
 
 test("Recommendation Record evidence semantics stay distinct and standalone Source X-Ray is retired", async () => {
-  const [home, runDetail, retiredSourceRoute, activationAnalytics, reviewForm] = await Promise.all([
-    text("components/goat-home-experience.tsx"),
+  const [recordPage, runDetail, retiredSourceRoute, activationAnalytics, reviewForm] = await Promise.all([
+    text("app/recommendation-record/page.tsx"),
     text("app/app/runs/[id]/page.tsx"),
     text("app/app/sources/[id]/page.tsx"),
     text("components/workspace-activation-analytics.tsx"),
     text("components/source-review-form.tsx"),
   ]);
-  for (const label of ["ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) assert.match(home, new RegExp(label));
-  for (const label of ["RETURNED", "RETRIEVED", "OBSERVED", "REVIEWED", "SAFE CONCLUSION"]) assert.match(home, new RegExp(label));
-  assert.match(home, /registered-foundation/);
-  assert.match(home, /Inspect evidence/);
+  for (const label of ["Observed answer", "Returned references", "Distinct sources", "Review state"]) assert.match(recordPage, new RegExp(label, "i"));
+  for (const label of ["Returned", "Retrieved", "Observed", "Reviewed", "Safe conclusion"]) assert.match(recordPage, new RegExp(label, "i"));
+  assert.match(recordPage, /Recommendation Record/);
+  assert.match(recordPage, /Inspect the evidence chain/);
   assert.match(runDetail, /Recommendation Record/);
   assert.doesNotMatch(runDetail, /Source X-Ray/);
   assert.match(retiredSourceRoute, /redirect\("\/app\/source-map"\)/);

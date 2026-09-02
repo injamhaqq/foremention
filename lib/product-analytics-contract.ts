@@ -42,6 +42,10 @@ export const PRODUCT_ANALYTICS_EVENTS = [
   "category_page_viewed",
   "research_page_viewed",
   "partner_page_viewed",
+  "design_partner_cta_clicked",
+  "design_partner_page_viewed",
+  "design_partner_application_started",
+  "design_partner_application_submitted",
 ] as const;
 
 export type ProductAnalyticsEventName = (typeof PRODUCT_ANALYTICS_EVENTS)[number];
@@ -184,7 +188,6 @@ function normalizeLegacyEvent(event: string, input: Record<string, unknown>): No
     event: "decision_insight_reached",
     input: { insight_type: "actionable_source_gap" },
   };
-  // Preserve telemetry continuity without emitting retired Source X-Ray event names.
   if (event === "source_xray_viewed") return { event: "evidence_inspection_opened", input };
   if (event === "source_xray_reviewed") return { event: "evidence_review_completed", input };
   return { event, input };
@@ -215,6 +218,12 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
     case "category_page_viewed":
     case "research_page_viewed":
     case "partner_page_viewed":
+    case "design_partner_page_viewed":
+    case "design_partner_application_started":
+    case "design_partner_application_submitted":
+      break;
+    case "design_partner_cta_clicked":
+      addEnum(properties, "surface", normalizedInput.surface, surfaces);
       break;
     case "score_completed":
       addCountBucket(properties, "question_count_bucket", normalizedInput.question_count);

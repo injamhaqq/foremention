@@ -37,15 +37,14 @@ test("Registered Evidence is the final presentation layer", () => {
   assert.doesNotMatch(css, /linear-gradient|radial-gradient|filter:\s*blur/i);
 });
 
-test("homepage carries the locked Foremention category and original-reference hero", () => {
+test("homepage carries the outreach outcome while retaining the canonical evidence record", () => {
   const hero = read("components/goat-home-experience.tsx");
   const signal = read("components/canonical-signal-field.tsx");
 
-  assert.match(hero, /THE FOREMENTION STANDARD/);
-  assert.match(hero, /aria-label="Register\. Prove\. Prepare\."/);
+  assert.match(hero, /Know what your company should change next to become the stronger recommendation\./);
   assert.match(hero, /Recommendation intelligence for B2B software\./);
-  assert.match(hero, /Request a demo/);
-  assert.match(hero, /View overview/);
+  assert.match(hero, /Apply as a Design Partner/);
+  assert.match(hero, /See how it works/);
   assert.match(hero, /LIVE RECORD \/ ILLUSTRATIVE/);
   assert.match(hero, /ANSWER/);
   assert.match(hero, /Observed/);
@@ -55,6 +54,8 @@ test("homepage carries the locked Foremention category and original-reference he
   assert.match(hero, /Retrievable/);
   assert.match(hero, /REVIEW/);
   assert.match(hero, /Pending/);
+  assert.match(hero, /Evidence inspection/);
+  assert.match(hero, /NEXT COMPANY CHANGE/);
   assert.match(signal, /canonical-signal__depth--rings/);
   assert.match(signal, /canonical-signal__beam/);
   assert.match(signal, /canonical-signal__horizon/);
@@ -62,14 +63,18 @@ test("homepage carries the locked Foremention category and original-reference he
   assert.match(hero, /returned references[^.]*distinct sources[^.]*retrievability[^.]*review state[^.]*later comparison eligibility/i);
 });
 
-test("public navigation reflects the locked public information architecture", () => {
+test("public navigation reflects the approved outreach information architecture while keeping canonical objects reachable", () => {
   const shell = read("components/public-shell.tsx");
 
   assert.match(shell, /\["\/product", "Product"\]/);
+  assert.match(shell, /\["\/#how-it-works", "How it works"\]/);
   assert.match(shell, /\["\/methodology", "Methodology"\]/);
-  assert.match(shell, /\["\/insights", "Research"\]/);
-  assert.match(shell, />Request a demo/);
+  assert.match(shell, /\["\/trust", "Trust"\]/);
+  assert.match(shell, /Apply as Design Partner/);
   assert.match(shell, /href="\/login">Sign in/);
+  assert.match(shell, /href="\/recommendation-record">Recommendation Record/);
+  assert.match(shell, /href="\/insights">Research &amp; evidence/);
+  assert.match(shell, /href="\/recommendation-intelligence">Category definition/);
   assert.match(shell, /Recommendation intelligence for B2B software/);
   assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
 });

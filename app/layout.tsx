@@ -17,6 +17,8 @@ import "./canonical-release.css";
 import "./canonical-release-qa.css";
 import "./identity-retirement.css";
 import "./canonical-responsive-hardening.css";
+import "./outreach-site.css";
+import "./outreach-reflow.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
@@ -24,17 +26,19 @@ import { PublicActivationAnalytics } from "../components/public-activation-analy
 import { ContentsquareAnalytics } from "../components/contentsquare-analytics";
 import { SITE_URL } from "../lib/seo";
 
+const publicDescription = "Understand why competitors are being recommended, what your company can actually change, and how to verify what happened after the change.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "Foremention - Recommendation Intelligence", template: "%s - Foremention" },
-  description: "Recommendation intelligence for B2B software: record the AI answers buyers see, returned citation URLs when providers supply them, human review, and comparable change over time.",
+  description: publicDescription,
   applicationName: "Foremention",
   authors: [{ name: "Foremention", url: SITE_URL }],
   creator: "Foremention",
   publisher: "Foremention",
   category: "Recommendation intelligence software",
-  openGraph: { title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect observed AI recommendations, returned-source records, review state, and comparable change over time.", url: SITE_URL, type: "website", siteName: "Foremention" },
-  twitter: { card: "summary", title: "Foremention - Recommendation intelligence for B2B software", description: "Inspect observed recommendations, returned evidence, review state, and comparable change." },
+  openGraph: { title: "Foremention - Recommendation intelligence for B2B software", description: publicDescription, url: SITE_URL, type: "website", siteName: "Foremention" },
+  twitter: { card: "summary", title: "Foremention - Recommendation intelligence for B2B software", description: publicDescription },
   verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
     ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
     : undefined,

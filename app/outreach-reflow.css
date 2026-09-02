@@ -1,0 +1,9 @@
+/* Extreme zoom/reflow hardening for the outreach homepage.
+ * At 400% desktop zoom the effective CSS viewport is ~342px wide; allow the
+ * long hero token “recommendation.” to break rather than increasing the
+ * section's min-content width beyond its shell. */
+@media (max-width: 420px) {
+  .outreach-hero h1 {
+    overflow-wrap: anywhere;
+  }
+}
