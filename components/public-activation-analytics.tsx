@@ -4,10 +4,30 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { captureProductEvent } from "@/lib/product-analytics";
 
+function publicSurface(pathname: string) {
+  if (pathname === "/") return "home";
+  if (pathname === "/product") return "product";
+  if (pathname === "/pricing") return "pricing";
+  return "public_other";
+}
+
 export function PublicActivationAnalytics() {
   const pathname = usePathname();
   const scoreAttempt = useRef(false);
   const scoreOutcomeCaptured = useRef(false);
+  const designPartnerStartCaptured = useRef(false);
+
+  useEffect(() => {
+    const onDocumentClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (!target.closest("[data-design-partner-cta]")) return;
+      captureProductEvent("design_partner_cta_clicked", { surface: publicSurface(pathname) });
+    };
+
+    document.addEventListener("click", onDocumentClick);
+    return () => document.removeEventListener("click", onDocumentClick);
+  }, [pathname]);
 
   useEffect(() => {
     if (pathname === "/recommendation-intelligence") {
@@ -21,6 +41,26 @@ export function PublicActivationAnalytics() {
     if (pathname === "/partners") {
       captureProductEvent("partner_page_viewed");
       return;
+    }
+
+    if (pathname === "/contact") {
+      captureProductEvent("design_partner_page_viewed");
+      if (new URLSearchParams(window.location.search).get("submitted") === "1") {
+        captureProductEvent("design_partner_application_submitted");
+      }
+
+      const form = document.querySelector<HTMLFormElement>("[data-design-partner-form]");
+      if (!form) return;
+      designPartnerStartCaptured.current = false;
+
+      const onStart = () => {
+        if (designPartnerStartCaptured.current) return;
+        designPartnerStartCaptured.current = true;
+        captureProductEvent("design_partner_application_started");
+      };
+
+      form.addEventListener("focusin", onStart);
+      return () => form.removeEventListener("focusin", onStart);
     }
 
     if (pathname === "/score") {
