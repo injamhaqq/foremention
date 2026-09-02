@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChangeSpecificationDetail } from "@/components/change-specification-detail";
+import { DecisionIntelligenceContext } from "@/components/decision-intelligence-context";
 import { requireViewer } from "@/lib/auth";
 
 export default async function ChangeSpecificationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -12,5 +13,6 @@ export default async function ChangeSpecificationPage({ params }: { params: Prom
       <Link className="button button--outline" href="/app">Back to Attention</Link>
     </div>
     <ChangeSpecificationDetail id={id} />
+    <DecisionIntelligenceContext changeSpecificationId={id} />
   </main>;
 }
