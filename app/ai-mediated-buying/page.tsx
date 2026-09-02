@@ -36,7 +36,7 @@ export default function AIMediatedBuyingPage() {
           </p>
           <div className="page-hero__actions">
             <Link className="button" href="/recommendation-intelligence">Recommendation Intelligence <Arrow /></Link>
-            <Link className="text-link text-link--inverse" href="/contact">Request a demo <Arrow /></Link>
+            <Link data-design-partner-cta="market_shift" className="text-link text-link--inverse" href="/contact">Apply as a Design Partner <Arrow /></Link>
           </div>
         </div>
       </section>
