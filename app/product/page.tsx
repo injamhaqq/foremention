@@ -50,7 +50,7 @@ export default function ProductPage() {
         <div className="shell">
           <div className="section-heading">
             <h2>Observe → understand → decide → execute → verify.</h2>
-            <p>The product is intentionally not a black-box ranking score. Each stage keeps the underlying evidence and human decision boundary recoverable.</p>
+            <p>The product is intentionally not a black-box ranking score. Evidence inspection lives in the record, where each stage keeps the underlying evidence and human decision boundary recoverable. A returned reference does not by itself establish a causal explanation.</p>
           </div>
           <div className="outreach-stage-list">
             {stages.map(([n, title, body]) => <article key={n}><span>{n}</span><h3>{title}</h3><p>{body}</p></article>)}

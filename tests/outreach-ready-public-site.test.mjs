@@ -41,6 +41,8 @@ test("homepage leads with the company-change outcome and shows the complete deci
   assert.match(home, /Know what your company should change next to become the stronger recommendation\./);
   assert.match(home, /Apply as a Design Partner/);
   assert.match(home, /See how it works/);
+  assert.match(home, /LIVE RECORD \/ ILLUSTRATIVE/);
+  assert.match(home, /Evidence inspection/);
   assert.match(home, /Why are competitors being recommended/);
   assert.match(home, /Buyer question/);
   assert.match(home, /Recommendation observation/);
@@ -115,4 +117,15 @@ test("outreach presentation layer is loaded last and contains mobile footer comp
   assert.match(css, /\.outreach-change/);
   assert.match(css, /\.canonical-public-footer/);
   assert.match(css, /@media \(max-width: 720px\)/);
+});
+
+test("browser acceptance allows only the approved warm-light inspection surfaces", async () => {
+  const browserAcceptance = await read("scripts/browser-acceptance.mjs");
+
+  assert.match(browserAcceptance, /forbiddenLightBackgrounds/);
+  assert.match(browserAcceptance, /approvedWarmLightSelectors/);
+  for (const selector of [".outreach-problem", ".outreach-change__record", ".outreach-truth"]) {
+    assert.match(browserAcceptance, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.match(browserAcceptance, /Recommendation Record is not visibly rendered on the homepage/);
 });

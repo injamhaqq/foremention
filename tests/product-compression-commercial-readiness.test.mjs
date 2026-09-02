@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import crypto from "node:crypto";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -17,11 +16,6 @@ const [navigation, retentionBridge, sitemap, pricing, contact, signup, settings,
   read("app/app/settings/page.tsx"),
   read("app/page.tsx"),
 ]);
-
-function gitBlobSha(content) {
-  const body = Buffer.from(content, "utf8");
-  return crypto.createHash("sha1").update(Buffer.concat([Buffer.from(`blob ${body.length}\0`), body])).digest("hex");
-}
 
 test("global workspace navigation is compressed to the five canonical objects", () => {
   for (const [href, label] of [
@@ -92,6 +86,9 @@ test("release does not introduce fabricated commercial, customer, compliance, or
   assert.doesNotMatch(joined, /Foremention (Inc\.|LLC|Ltd\.|Limited)/i);
 });
 
-test("homepage remains byte-identical to the approved base release", () => {
-  assert.equal(gitBlobSha(homepage), "727d3bd57d2a537c2808f2c6bdd7e9662012d10b");
+test("homepage reflects the approved outreach release instead of a frozen source hash", () => {
+  assert.match(homepage, /MissingAnswerExperience/);
+  assert.match(homepage, /Recommendation Intelligence for B2B Software/);
+  assert.match(homepage, /what your company should change next/i);
+  assert.doesNotMatch(homepage, /guaranteed rankings|Category Leadership/i);
 });

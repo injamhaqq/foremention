@@ -30,12 +30,14 @@ test("commercial structured data does not advertise unvalidated paid offers", as
   assert.doesNotMatch(layout, /offers:\s*\[[\s\S]{0,500}price:\s*["'](?:149|499)["']/);
 });
 
-test("global footer is concise and exposes trust destinations by their real names", async () => {
+test("global footer is concise and exposes trust and canonical evidence destinations by their real names", async () => {
   const shell = await text("components/public-shell.tsx");
 
   assert.match(shell, />Product</);
-  assert.match(shell, />Research \/ Company</);
+  assert.match(shell, />Company</);
   assert.match(shell, />Trust</);
+  assert.match(shell, />Action</);
+  assert.match(shell, /href=["']\/recommendation-record["'][^>]*>Recommendation Record</);
   assert.match(shell, /href=["']\/subprocessors["'][^>]*>Subprocessors</);
   assert.match(shell, /href=["']\/privacy["'][^>]*>Privacy</);
   assert.match(shell, /href=["']\/terms["'][^>]*>Terms</);

@@ -35,13 +35,13 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
       <section className="section section--paper outreach-contact">
         <div className="shell contact-grid">
           <article>
-            <span>One measurable cycle</span>
+            <span>Design partner / working session</span>
             <h2>Use the product on a real decision, not a generic demo.</h2>
             <ol className="access-steps">
               <li>Bring 5 priority buyer questions that can genuinely affect your shortlist or category.</li>
-              <li>Establish dated Recommendation Records for the approved baseline.</li>
-              <li>Review returned evidence, Company Truth, eligibility, and uncertainty before deciding what deserves action.</li>
-              <li>Define one exact Change Specification with an owner, acceptance criteria, and verification plan.</li>
+              <li>Establish a baseline Recommendation Record for each approved question.</li>
+              <li>Keep the returned evidence inspectable while reviewing Company Truth, eligibility, and uncertainty before deciding what deserves action.</li>
+              <li>Define one owned action as an exact Change Specification with an owner, acceptance criteria, and verification plan.</li>
               <li>Implement only the change your team approves and record the applied reference.</li>
               <li>Return for comparable remeasurement and record what changed — without claiming causality the evidence cannot support.</li>
             </ol>

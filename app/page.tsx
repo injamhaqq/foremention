@@ -6,7 +6,7 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata: Metadata = pageMetadata({
   title: "Recommendation Intelligence for B2B Software",
   description:
-    "Understand why competitors are being recommended, what your company can actually change, and how to verify what happened after the change.",
+    "No fake reviews. No hidden promotion. No ranking guarantees. Understand why competitors are being recommended, what your company should change next, and how to verify what happened after the change.",
   path: "/",
 });
 

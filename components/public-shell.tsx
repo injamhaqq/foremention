@@ -40,13 +40,15 @@ export function PublicFooter() {
         <a className="footer-email" href="mailto:hello@foremention.com">hello@foremention.com</a>
       </div>
       <div className="footer-links outreach-footer-links">
-        <div><span>Product</span><Link href="/product">Product</Link><Link href="/#how-it-works">How it works</Link><Link href="/methodology">Methodology</Link></div>
-        <div><span>Company</span><Link href="/about">About</Link><a href="https://www.linkedin.com/company/foremention/" target="_blank" rel="noreferrer">LinkedIn</a></div>
+        <div><span>Product</span><Link href="/product">Product</Link><Link href="/#how-it-works">How it works</Link><Link href="/recommendation-record">Recommendation Record</Link><Link href="/methodology">Methodology</Link></div>
+        <div><span>Company</span><Link href="/about">About</Link><Link href="/insights">Research &amp; evidence</Link><a href="https://www.linkedin.com/company/foremention/" target="_blank" rel="noreferrer">LinkedIn</a></div>
         <div><span>Trust</span><Link href="/trust">Trust Center</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
         <div><span>Action</span><Link data-design-partner-cta="footer" href="/contact">Apply as Design Partner</Link><Link href="/login">Sign in</Link></div>
       </div>
     </div>
     <div className="shell public-footer__utility">
+      <Link href="/recommendation-intelligence">Category definition</Link>
+      <Link href="/glossary">Terms &amp; definitions</Link>
       <Link href="/subprocessors">Subprocessors</Link>
       <span className="sr-only">Analytics settings</span><ExperienceAnalyticsPreferences />
     </div>

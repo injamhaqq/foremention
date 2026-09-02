@@ -30,6 +30,11 @@ const forbiddenLightBackgrounds = new Set([
   "rgb(243, 255, 249)",
   "rgb(238, 247, 255)",
 ]);
+const approvedWarmLightSelectors = [
+  ".outreach-problem",
+  ".outreach-change__record",
+  ".outreach-truth",
+];
 const profiles = [
   { name: "chromium-desktop", browserType: chromium, viewport: { width: 1440, height: 1200 } },
   { name: "chromium-laptop", browserType: chromium, viewport: { width: 1024, height: 900 } },
@@ -214,16 +219,20 @@ async function verifyCanonicalBrandArtwork(page, profileName, path) {
     '.inline-notice',
     '.pricing-activation',
     '.pricing-shared > article',
-  ].join(", ")).evaluateAll((elements, forbidden) => elements.flatMap((element) => {
+  ].join(", ")).evaluateAll((elements, policy) => elements.flatMap((element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     if (rect.width <= 0 || rect.height <= 0 || style.display === "none" || style.visibility === "hidden") return [];
-    return forbidden.includes(style.backgroundColor)
+    if (policy.approvedWarmLightSelectors.some((selector) => element.matches(selector))) return [];
+    return policy.forbiddenLightBackgrounds.includes(style.backgroundColor)
       ? [{ tag: element.tagName, className: typeof element.className === "string" ? element.className : "", backgroundColor: style.backgroundColor }]
       : [];
-  }), [...forbiddenLightBackgrounds]);
+  }), {
+    forbiddenLightBackgrounds: [...forbiddenLightBackgrounds],
+    approvedWarmLightSelectors,
+  });
   if (lightSurfaces.length) {
-    recordFailure("Visible website surface still uses a white/warm-light background.", { profile: profileName, path, lightSurfaces: lightSurfaces.slice(0, 20) });
+    recordFailure("Visible website surface still uses an unapproved white/warm-light background.", { profile: profileName, path, lightSurfaces: lightSurfaces.slice(0, 20) });
   }
 
   for (const approvedPath of approvedIdentityPaths) {

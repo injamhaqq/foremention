@@ -26,20 +26,79 @@ const partnerSteps = [
   ["06", "Remeasure comparably", "Return under equivalent conditions and record what changed — or did not."],
 ] as const;
 
+const recordStates = [
+  ["ANSWER", "Observed", "Provider response preserved.", ""],
+  ["REFERENCE", "Returned", "Returned reference recorded.", ""],
+  ["SOURCE", "Retrievable", "Public source can be inspected.", ""],
+  ["REVIEW", "Pending", "Human verification remains open.", "is-pending"],
+] as const;
+
+const recordChain = [
+  ["RETURNED", "is-complete"],
+  ["RETRIEVED", "is-complete"],
+  ["OBSERVED", "is-complete"],
+  ["REVIEWED", "is-pending"],
+  ["SAFE CONCLUSION", "is-withheld"],
+] as const;
+
+const changeDefinitionLabelStyle = { color: "#666460" } as const;
+
 export function MissingAnswerExperience() {
   return <div className="outreach-home">
     <section className="outreach-hero shell" aria-labelledby="outreach-hero-title">
       <div className="outreach-hero__copy">
         <h1 id="outreach-hero-title">Know what your company should change next to become the stronger recommendation.</h1>
-        <p className="outreach-hero__lead">Foremention is recommendation intelligence for B2B software. It observes how AI systems answer your buyers&apos; questions, verifies the evidence behind those recommendations, separates controllable gaps from structural ones, and turns the result into exact company changes your team can review and verify.</p>
+        <p className="outreach-hero__lead">Recommendation intelligence for B2B software. Foremention observes how AI systems answer your buyers&apos; questions, verifies the evidence behind those recommendations, separates controllable gaps from structural ones, and turns the result into exact company changes your team can review and verify.</p>
         <div className="outreach-hero__actions">
           <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--primary" href="/contact">Apply as a Design Partner <Arrow /></Link>
           <Link className="canonical-button canonical-button--secondary" href="/#how-it-works">See how it works <Arrow /></Link>
+          <Link className="canonical-button canonical-button--secondary" href="#recommendation-record">Inspect a Recommendation Record <Arrow /></Link>
         </div>
-        <p className="outreach-hero__boundary">No ranking guarantees. No fabricated scores. No causal claims without evidence.</p>
+        <p className="outreach-hero__boundary">No fake reviews. No hidden promotion. No ranking guarantees. No fabricated scores. No causal claims without evidence.</p>
       </div>
       <div className="outreach-hero__visual"><CanonicalSignalField compact /></div>
     </section>
+
+    <div className="shell">
+      <section className="canonical-record" id="recommendation-record" aria-labelledby="outreach-record-title">
+        <div className="canonical-record__eyebrow">LIVE RECORD / ILLUSTRATIVE</div>
+        <div className="canonical-record__heading">
+          <div>
+            <span>RECOMMENDATION RECORD</span>
+            <h2 id="outreach-record-title">“What is the best platform for enterprise product marketing?”</h2>
+          </div>
+          <dl className="canonical-record__meta">
+            <div><dt>TYPE</dt><dd>Illustrative</dd></div>
+            <div><dt>STATE</dt><dd>Review pending</dd></div>
+          </dl>
+        </div>
+        <dl className="canonical-record__states">
+          {recordStates.map(([label, state, detail, className]) => <div key={label} className={className || undefined}><dt>{label}</dt><dd><span>{state}</span><small>{detail}</small></dd></div>)}
+        </dl>
+        <div className="canonical-record__chain" aria-label="Evidence chain: returned, retrieved, observed, reviewed, safe conclusion">
+          {recordChain.map(([label, state], index) => <div key={label} className={state}><span aria-hidden="true" /><strong>{label}</strong>{index < recordChain.length - 1 ? <i aria-hidden="true" /> : null}</div>)}
+        </div>
+        <div className="canonical-record__actions">
+          <Link className="canonical-record__inspect" href="/recommendation-record">Inspect evidence <span aria-hidden="true">→</span></Link>
+          <Link className="canonical-record__inspect" href="/methodology">Read methodology <span aria-hidden="true">→</span></Link>
+        </div>
+        <div className="canonical-record__boundary">
+          <span>CAUSAL RESTRAINT</span>
+          <p>A returned or reviewed source does not, by itself, prove that the source caused the recommendation.</p>
+        </div>
+      </section>
+
+      <section className="canonical-foundation registered-foundation" aria-labelledby="outreach-foundation-title">
+        <span className="canonical-kicker">FROM OBSERVATION TO INSPECTABLE RECORD</span>
+        <h2 id="outreach-foundation-title">The recommendation is only the start.</h2>
+        <p>Foremention keeps returned references, distinct sources, retrievability, review state, and later comparison eligibility together so the evidence remains inspectable before a company decision is made.</p>
+        <div className="canonical-foundation__grid">
+          <article><span>01</span><h3>Recommendation Record</h3><p>A canonical, timestamped observation — not a generic score.</p></article>
+          <article><span>02</span><h3>Evidence inspection</h3><p>Inspect what came back, what was retrievable, what was reviewed, and what remains uncertain inside the record.</p></article>
+          <article><span>03</span><h3>Comparable later measurement</h3><p>Track change only when the later observation is actually comparable.</p></article>
+        </div>
+      </section>
+    </div>
 
     <section className="outreach-problem" aria-labelledby="outreach-problem-title">
       <div className="shell">
@@ -62,11 +121,7 @@ export function MissingAnswerExperience() {
           <p>Foremention keeps the evidence chain and the company-decision chain connected without pretending that one caused the other.</p>
         </div>
         <ol className="outreach-workflow__list">
-          {workflow.map(([number, title, body]) => <li key={number}>
-            <span className="outreach-workflow__number">{number}</span>
-            <strong>{title}</strong>
-            <p>{body}</p>
-          </li>)}
+          {workflow.map(([number, title, body]) => <li key={number}><span className="outreach-workflow__number">{number}</span><strong>{title}</strong><p>{body}</p></li>)}
         </ol>
       </div>
     </section>
@@ -80,14 +135,14 @@ export function MissingAnswerExperience() {
         <article className="outreach-change__record" aria-label="Illustrative next company change">
           <header><span>NEXT COMPANY CHANGE</span><strong>Improve enterprise security proof</strong></header>
           <dl>
-            <div><dt>Why</dt><dd>Evidence indicates that enterprise-security requirements are easier to verify for stronger recommended alternatives.</dd></div>
-            <div><dt>Control</dt><dd>CONTROLLABLE</dd></div>
-            <div><dt>Eligibility</dt><dd>PARTIALLY ELIGIBLE</dd></div>
-            <div><dt>Confidence</dt><dd>MEDIUM</dd></div>
-            <div><dt>Decision</dt><dd>TEST FIRST</dd></div>
-            <div className="outreach-change__wide"><dt>Exact change</dt><dd>Publish an approved security overview that makes already-verified SSO, audit-log, data-retention, and access-control capabilities easier for buyers to substantiate.</dd></div>
-            <div className="outreach-change__wide"><dt>Acceptance criteria</dt><dd>Every included claim is internally approved and publicly verifiable from the referenced evidence.</dd></div>
-            <div className="outreach-change__wide"><dt>Verification</dt><dd>Repeat the equivalent buyer-question measurement after implementation and record only the observed before-and-after association.</dd></div>
+            <div><dt style={changeDefinitionLabelStyle}>Why</dt><dd>Evidence indicates that enterprise-security requirements are easier to verify for stronger recommended alternatives.</dd></div>
+            <div><dt style={changeDefinitionLabelStyle}>Control</dt><dd>CONTROLLABLE</dd></div>
+            <div><dt style={changeDefinitionLabelStyle}>Eligibility</dt><dd>PARTIALLY ELIGIBLE</dd></div>
+            <div><dt style={changeDefinitionLabelStyle}>Confidence</dt><dd>MEDIUM</dd></div>
+            <div><dt style={changeDefinitionLabelStyle}>Decision</dt><dd>TEST FIRST</dd></div>
+            <div className="outreach-change__wide"><dt style={changeDefinitionLabelStyle}>Exact change</dt><dd>Publish an approved security overview that makes already-verified SSO, audit-log, data-retention, and access-control capabilities easier for buyers to substantiate.</dd></div>
+            <div className="outreach-change__wide"><dt style={changeDefinitionLabelStyle}>Acceptance criteria</dt><dd>Every included claim is internally approved and publicly verifiable from the referenced evidence.</dd></div>
+            <div className="outreach-change__wide"><dt style={changeDefinitionLabelStyle}>Verification</dt><dd>Repeat the equivalent buyer-question measurement after implementation and record only the observed before-and-after association.</dd></div>
           </dl>
           <footer>Illustrative example — not customer evidence.</footer>
         </article>

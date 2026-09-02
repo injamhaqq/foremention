@@ -97,7 +97,7 @@ test("public shell keeps the defining Record, trust, and conversion paths concis
   assert.match(shell, /href="\/methodology"/);
   assert.match(shell, /href="\/insights"/);
   assert.match(shell, /href="\/contact"/);
-  assert.match(shell, /Design-partner workspace/);
+  assert.match(shell, /Apply as Design Partner/);
   assert.doesNotMatch(shell, /href="\/ai-mediated-buying"/);
   assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
 });
