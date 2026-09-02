@@ -65,7 +65,7 @@ test("product page explains Recommendation Engineering value without changing th
   assert.doesNotMatch(product, /Category Leadership OS/);
 });
 
-test("design-partner conversion is the primary contact flow and is measured without PII", async () => {
+test("design-partner conversion is the primary contact flow and is measured without form-value capture", async () => {
   const [contact, analytics, contract] = await Promise.all([
     read("app/contact/page.tsx"),
     read("components/public-activation-analytics.tsx"),
@@ -78,10 +78,15 @@ test("design-partner conversion is the primary contact flow and is measured with
   assert.match(analytics, /design_partner_page_viewed/);
   assert.match(analytics, /design_partner_application_started/);
   assert.match(analytics, /design_partner_application_submitted/);
+  assert.match(analytics, /design_partner_cta_clicked/);
   assert.match(contract, /design_partner_page_viewed/);
   assert.match(contract, /design_partner_application_started/);
   assert.match(contract, /design_partner_application_submitted/);
-  assert.doesNotMatch(analytics, /email|company|role|buyerQuestions|currentProblem/);
+  assert.match(contract, /case "design_partner_cta_clicked":\s*addEnum\(properties, "surface"/);
+  assert.doesNotMatch(analytics, /FormData|\.elements\b|\[name=|\.value\b/);
+  assert.doesNotMatch(contract, /case "design_partner_page_viewed":[\s\S]{0,160}add(?:Enum|Boolean|CountBucket)/);
+  assert.doesNotMatch(contract, /case "design_partner_application_started":[\s\S]{0,160}add(?:Enum|Boolean|CountBucket)/);
+  assert.doesNotMatch(contract, /case "design_partner_application_submitted":[\s\S]{0,160}add(?:Enum|Boolean|CountBucket)/);
 });
 
 test("outreach presentation layer is loaded last and contains mobile footer compression", async () => {
@@ -97,5 +102,4 @@ test("outreach presentation layer is loaded last and contains mobile footer comp
   assert.match(css, /\.outreach-change/);
   assert.match(css, /\.canonical-public-footer/);
   assert.match(css, /@media \(max-width: 720px\)/);
-}
-);
+});
