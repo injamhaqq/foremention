@@ -5,6 +5,15 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
+function switchCaseBody(source, eventName) {
+  const marker = `case "${eventName}":`;
+  const start = source.indexOf(marker);
+  assert.notEqual(start, -1, `missing ${eventName} switch case`);
+  const rest = source.slice(start + marker.length);
+  const nextCase = rest.indexOf("\n    case ");
+  return nextCase === -1 ? rest : rest.slice(0, nextCase);
+}
+
 test("public navigation is focused on product understanding and design-partner conversion", async () => {
   const shell = await read("components/public-shell.tsx");
 
@@ -82,11 +91,15 @@ test("design-partner conversion is the primary contact flow and is measured with
   assert.match(contract, /design_partner_page_viewed/);
   assert.match(contract, /design_partner_application_started/);
   assert.match(contract, /design_partner_application_submitted/);
-  assert.match(contract, /case "design_partner_cta_clicked":\s*addEnum\(properties, "surface"/);
+  assert.match(switchCaseBody(contract, "design_partner_cta_clicked"), /addEnum\(properties, "surface"/);
   assert.doesNotMatch(analytics, /FormData|\.elements\b|\[name=|\.value\b/);
-  assert.doesNotMatch(contract, /case "design_partner_page_viewed":[\s\S]{0,160}add(?:Enum|Boolean|CountBucket)/);
-  assert.doesNotMatch(contract, /case "design_partner_application_started":[\s\S]{0,160}add(?:Enum|Boolean|CountBucket)/);
-  assert.doesNotMatch(contract, /case "design_partner_application_submitted":[\s\S]{0,160}add(?:Enum|Boolean|CountBucket)/);
+  for (const eventName of [
+    "design_partner_page_viewed",
+    "design_partner_application_started",
+    "design_partner_application_submitted",
+  ]) {
+    assert.doesNotMatch(switchCaseBody(contract, eventName), /add(?:Enum|Boolean|CountBucket)/);
+  }
 });
 
 test("outreach presentation layer is loaded last and contains mobile footer compression", async () => {
