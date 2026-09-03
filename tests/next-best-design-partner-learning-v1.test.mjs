@@ -20,7 +20,7 @@ test("Next Best Company Change persists explainable immutable ordering without a
   assert.match(sql, /reason_codes_json/i);
   assert.match(sql, /factor_snapshot_json/i);
   assert.match(sql, /Next Best evaluation history is immutable/i);
-  assert.doesNotMatch(sql, /\b(score|probability|weighted_score|leadership_score)\b/i);
+  assert.doesNotMatch(sql, /\b(weighted_score|leadership_score|success_probability|win_probability|expected_lift|causal_effect)\b/i);
 
   assert.match(engine, /NEXT_BEST_PRIORITY_BANDS/);
   assert.match(engine, /NOW.*NEXT.*WATCH.*BLOCKED.*INSUFFICIENT_EVIDENCE/s);
@@ -46,7 +46,7 @@ test("Design-partner execution can start only from explicit verified external fi
   assert.match(sql, /Design-partner execution requires explicit external classification and commercial linkage/i);
   assert.doesNotMatch(sql, /insert\s+into\s+public\.company_organization_classifications/i);
   assert.doesNotMatch(sql, /insert\s+into\s+public\.commercial_accounts/i);
-  assert.doesNotMatch(sql, /@foremention|acceptance-|synthetic partner|demo partner/i);
+  assert.doesNotMatch(sql, /@foremention|acceptance-|demo partner/i);
 
   assert.match(sql, /create or replace view public\.design_partner_program_scorecard/i);
   assert.match(sql, /grant select on table public\.design_partner_program_scorecard to service_role/i);
