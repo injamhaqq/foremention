@@ -19,11 +19,12 @@ export function ChangeSpecificationPriorityList({ items }: { items: ChangeSpecif
     {items.slice(0, 5).map((item) => <article className="panel" key={item.id}>
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">Priority {optional(item.priorityRank, "Not specified")}</span>
+          <span className="eyebrow">{item.recommendedBand ? `Next Best · ${item.recommendedBand} · ${item.recommendedOrdinal}` : `Priority ${optional(item.priorityRank, "Not specified")}`}</span>
           <h2>{item.title}</h2>
         </div>
       </div>
       <p>{item.exactChange || "Exact change not specified."}</p>
+      {item.recommendedReasons.length > 0 && <p className="table-caption">Ordering context: {item.recommendedReasons.map(readable).join(" · ")}. This ordering does not authorize execution.</p>}
       <dl className="fact-grid">
         <div><dt>Decision</dt><dd>{readable(item.decisionState)}</dd></div>
         <div><dt>Control</dt><dd>{item.controlClass ? readable(item.controlClass) : "Unknown"}</dd></div>

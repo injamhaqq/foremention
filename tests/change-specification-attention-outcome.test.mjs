@@ -19,7 +19,9 @@ test("Attention is the single post-activation H1 and loads at most five active C
   assert.match(page, /Five steps to useful evidence/);
   assert.match(loader, /status=in\.\(draft,in_review,approved,in_execution\)/);
   assert.doesNotMatch(loader, /status=in\.\([^)]*completed/);
-  assert.match(loader, /order=priority_rank\.asc\.nullslast,created_at\.desc&limit=5/);
+  assert.match(loader, /order=priority_rank\.asc\.nullslast,created_at\.desc&limit=25/);
+  assert.match(loader, /order=ordinal_rank\.asc&limit=100/);
+  assert.match(loader, /\.slice\(0,\s*5\)/);
   assert.match(list, /item\.decisionState/);
   assert.match(list, /item\.controlClass/);
   assert.match(list, /item\.eligibilityState/);
