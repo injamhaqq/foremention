@@ -119,6 +119,14 @@ test("outreach presentation layer is loaded last and contains mobile footer comp
   assert.match(css, /@media \(max-width: 720px\)/);
 });
 
+test("homepage hero can reflow a long recommendation word at the 400 percent effective viewport", async () => {
+  const css = await read("app/outreach-site.css");
+  assert.match(
+    css,
+    /@media \(max-width: 360px\)[\s\S]*?\.outreach-hero h1\s*\{[\s\S]*?overflow-wrap:\s*anywhere;/,
+  );
+});
+
 test("browser acceptance allows only the approved warm-light inspection surfaces", async () => {
   const browserAcceptance = await read("scripts/browser-acceptance.mjs");
 
