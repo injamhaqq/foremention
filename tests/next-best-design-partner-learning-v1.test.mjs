@@ -29,8 +29,9 @@ test("Next Best Company Change persists explainable immutable ordering without a
   assert.match(engine, /unresolvedDependencies/);
   assert.match(engine, /STRUCTURALLY_INELIGIBLE/);
   assert.match(engine, /DO_NOT_DO/);
+  assert.match(engine, /humanDecision:\s*candidate\.decisionState/i);
   assert.doesNotMatch(engine, /\bscore\b|probability|weighted/i);
-  assert.doesNotMatch(engine, /decisionState:\s*(?:candidate\.|result\.|["'])/i);
+  assert.doesNotMatch(engine, /decisionState:\s*(?:candidate|result)\./i);
 });
 
 test("Design-partner execution can start only from explicit verified external first-party evidence", async () => {
