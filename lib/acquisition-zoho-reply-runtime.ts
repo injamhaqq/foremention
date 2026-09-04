@@ -62,9 +62,6 @@ async function processZohoReplyMessage(input: {
   config: NonNullable<ReturnType<typeof getZohoMailConfig>>;
   message: ZohoMailMessageSummary;
 }) {
-  const configuredReplyTo = zohoEmailAddress(process.env.ACQUISITION_OUTREACH_REPLY_TO_EMAIL);
-  if (!configuredReplyTo || !input.message.toAddress?.toLowerCase().includes(configuredReplyTo)) return "ignored" as const;
-
   const header = await getZohoMessageHeader({
     accessToken: input.accessToken,
     mailBaseUrl: input.config.mailBaseUrl,
@@ -108,6 +105,10 @@ export async function pollZohoAcquisitionReplies() {
   }
   const config = getZohoMailConfig();
   if (!config) return { status: "provider_unavailable" as const, processed: 0, ignored: 0 };
+  const replyMailbox = zohoEmailAddress(process.env.ACQUISITION_OUTREACH_REPLY_TO_EMAIL);
+  if (!replyMailbox || replyMailbox !== config.fromAddress) {
+    return { status: "reply_mailbox_mismatch" as const, processed: 0, ignored: 0 };
+  }
 
   const accessToken = await refreshZohoMailAccessToken(config);
   const messages = await searchZohoUnreadMessages({
