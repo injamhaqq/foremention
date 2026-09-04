@@ -10,8 +10,8 @@ export const discoverAcquisitionTargets = inngest.createFunction(
   {
     id: "discover-acquisition-targets-shadow",
     retries: 1,
+    triggers: { cron: "0 6 * * *" },
   },
-  { cron: "0 6 * * *" },
   async ({ step }) => {
     const provider = scrapeGraphAcquisitionProvider();
     if (!provider) {
