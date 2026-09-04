@@ -1,31 +1,19 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ACCOUNT_ID_PATTERN = /^[0-9]{6,30}$/;
 
-const ALLOWED_ACCOUNTS_BASE_URLS = new Set([
-  "https://accounts.zoho.com",
-  "https://accounts.zoho.eu",
-  "https://accounts.zoho.in",
-  "https://accounts.zoho.com.au",
-  "https://accounts.zoho.jp",
-  "https://accounts.zohocloud.ca",
-  "https://accounts.zoho.com.cn",
-  "https://accounts.zoho.ae",
-  "https://accounts.zoho.sa",
-  "https://accounts.zoho.uk",
+const ZOHO_DATA_CENTER_ENDPOINTS = new Map<string, string>([
+  ["https://accounts.zoho.com", "https://mail.zoho.com"],
+  ["https://accounts.zoho.eu", "https://mail.zoho.eu"],
+  ["https://accounts.zoho.in", "https://mail.zoho.in"],
+  ["https://accounts.zoho.com.au", "https://mail.zoho.com.au"],
+  ["https://accounts.zoho.jp", "https://mail.zoho.jp"],
+  ["https://accounts.zohocloud.ca", "https://mail.zohocloud.ca"],
+  ["https://accounts.zoho.com.cn", "https://mail.zoho.com.cn"],
+  ["https://accounts.zoho.ae", "https://mail.zoho.ae"],
+  ["https://accounts.zoho.sa", "https://mail.zoho.sa"],
 ]);
-
-const ALLOWED_MAIL_BASE_URLS = new Set([
-  "https://mail.zoho.com",
-  "https://mail.zoho.eu",
-  "https://mail.zoho.in",
-  "https://mail.zoho.com.au",
-  "https://mail.zoho.jp",
-  "https://mail.zohocloud.ca",
-  "https://mail.zoho.com.cn",
-  "https://mail.zoho.ae",
-  "https://mail.zoho.sa",
-  "https://mail.zoho.uk",
-]);
+const ALLOWED_ACCOUNTS_BASE_URLS = new Set(ZOHO_DATA_CENTER_ENDPOINTS.keys());
+const ALLOWED_MAIL_BASE_URLS = new Set(ZOHO_DATA_CENTER_ENDPOINTS.values());
 
 type FetchLike = typeof fetch;
 
@@ -87,7 +75,7 @@ export function getZohoMailConfig(): ZohoMailConfig | null {
   const mailBaseUrl = normalizedBaseUrl(process.env.ZOHO_MAIL_API_BASE_URL, ALLOWED_MAIL_BASE_URLS);
   const fromAddress = zohoEmailAddress(process.env.ACQUISITION_OUTREACH_FROM_EMAIL);
   if (!clientId || !clientSecret || !refreshToken || !accountId || !ACCOUNT_ID_PATTERN.test(accountId)) return null;
-  if (!accountsBaseUrl || !mailBaseUrl || !fromAddress) return null;
+  if (!accountsBaseUrl || !mailBaseUrl || ZOHO_DATA_CENTER_ENDPOINTS.get(accountsBaseUrl) !== mailBaseUrl || !fromAddress) return null;
   return { clientId, clientSecret, refreshToken, accountId, accountsBaseUrl, mailBaseUrl, fromAddress };
 }
 
@@ -124,6 +112,33 @@ export async function refreshZohoMailAccessToken(input: {
   return payload.access_token.trim();
 }
 
+function accountSenderAddresses(data: Record<string, unknown>) {
+  const addresses = new Set<string>();
+  for (const value of [data.primaryEmailAddress, data.mailboxAddress, data.incomingUserName]) {
+    const address = zohoEmailAddress(value);
+    if (address) addresses.add(address);
+  }
+  if (Array.isArray(data.emailAddress)) {
+    for (const entry of data.emailAddress) {
+      if (!entry || typeof entry !== "object") continue;
+      const row = entry as Record<string, unknown>;
+      if (row.isConfirmed === false) continue;
+      const address = zohoEmailAddress(row.mailId);
+      if (address) addresses.add(address);
+    }
+  }
+  if (Array.isArray(data.sendMailDetails)) {
+    for (const entry of data.sendMailDetails) {
+      if (!entry || typeof entry !== "object") continue;
+      const row = entry as Record<string, unknown>;
+      if (row.status === false) continue;
+      const address = zohoEmailAddress(row.fromAddress);
+      if (address) addresses.add(address);
+    }
+  }
+  return addresses;
+}
+
 export async function verifyZohoMailAccount(input: {
   accessToken: string;
   mailBaseUrl: string;
@@ -141,10 +156,12 @@ export async function verifyZohoMailAccount(input: {
   });
   if (!response.ok) throw new Error(`ACQUISITION_ZOHO_ACCOUNT_HTTP_${response.status}`);
   const payload = await response.json() as { data?: Record<string, unknown> };
-  const candidates = [payload.data?.primaryEmailAddress, payload.data?.emailAddress, payload.data?.mailboxAddress]
-    .map(zohoEmailAddress)
-    .filter(Boolean);
-  if (candidates.length > 0 && !candidates.includes(expected)) throw new Error("ACQUISITION_ZOHO_ACCOUNT_SENDER_MISMATCH");
+  const data = payload.data;
+  if (!data || String(data.accountId ?? "") !== input.accountId) throw new Error("ACQUISITION_ZOHO_ACCOUNT_ID_MISMATCH");
+  if (data.enabled === false || data.outgoingBlocked === true || data.smtpStatus === false) {
+    throw new Error("ACQUISITION_ZOHO_ACCOUNT_OUTBOUND_UNAVAILABLE");
+  }
+  if (!accountSenderAddresses(data).has(expected)) throw new Error("ACQUISITION_ZOHO_ACCOUNT_SENDER_MISMATCH");
   return { accountId: input.accountId, sender: expected };
 }
 
