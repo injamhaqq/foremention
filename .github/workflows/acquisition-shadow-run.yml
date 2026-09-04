@@ -1,7 +1,7 @@
 name: Acquisition Shadow Run
 
 on:
-  # The workflow's first merge to main performs one bounded real shadow run.
+  # The OIDC bridge's first merge to main performs one bounded real shadow run.
   # Future executions are manual and require the explicit RUN confirmation.
   push:
     branches:
@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: acquisition-shadow-production
@@ -28,7 +29,7 @@ jobs:
     name: Invoke bounded acquisition shadow
     if: github.event_name == 'push' || inputs.confirm == 'RUN'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
 
     steps:
       - name: Harden runner
@@ -49,7 +50,7 @@ jobs:
 
       - name: Invoke production shadow function
         env:
-          INNGEST_AUTH_TOKEN: ${{ secrets.INNGEST_API_KEY || secrets.INNGEST_SIGNING_KEY }}
+          FOREMENTION_BASE_URL: https://foremention.com
           FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
           ACQUISITION_SHADOW_CONFIRM: ${{ github.event_name == 'push' && 'RUN' || inputs.confirm }}
         run: node scripts/invoke-acquisition-shadow.mjs
