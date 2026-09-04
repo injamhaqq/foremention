@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import type { GetStepTools } from "inngest";
 import { runAcquisitionDiscovery } from "@/lib/acquisition-discovery";
 import { scrapeGraphAcquisitionProvider } from "@/lib/acquisition-discovery-scrapegraph";
 import { deriveAcquisitionResearchAssessment } from "@/lib/acquisition-research";
@@ -30,9 +31,7 @@ const MAX_CONTACT_CREDITS_PER_CANDIDATE = 5;
 const SHADOW_REQUEST_KEY_PATTERN = /^shadow-[a-f0-9]{12}-[0-9]+-[0-9]+$/;
 const RELEASE_SHA_PATTERN = /^[a-f0-9]{40}$/;
 
-type AcquisitionStep = {
-  run<T>(id: string, handler: () => T | Promise<T>): Promise<T>;
-};
+type AcquisitionStep = GetStepTools<typeof inngest>;
 
 function acquisitionAutopilotEnabled() {
   return (env as unknown as Record<string, unknown>).ACQUISITION_AUTOPILOT_ENABLED === "true";
