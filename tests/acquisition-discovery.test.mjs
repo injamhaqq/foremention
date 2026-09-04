@@ -8,10 +8,10 @@ import {
   runAcquisitionDiscovery,
 } from "../lib/acquisition-discovery.ts";
 
-test("normalizes domains and produces stable canonical company keys", () => {
+test("normalizes domains and produces database-compatible canonical company keys", () => {
   assert.equal(normalizeAcquisitionDomain("HTTPS://WWW.Example.COM/path"), "example.com");
-  assert.equal(canonicalAcquisitionCompanyKey("Example, Inc.", "www.example.com"), "domain:example.com");
-  assert.equal(canonicalAcquisitionCompanyKey(" Example, Inc. ", null), "name:example-inc");
+  assert.equal(canonicalAcquisitionCompanyKey("Example, Inc.", "www.example.com"), "domain-example.com");
+  assert.equal(canonicalAcquisitionCompanyKey(" Example, Inc. ", null), "name-example-inc");
 });
 
 test("fails closed when no provider is configured", async () => {
@@ -58,7 +58,7 @@ test("caps provider budget and deterministically dedupes replayed companies", as
   assert.equal(providerInput.maxCandidates, ACQUISITION_DISCOVERY_MAX_CANDIDATES);
   assert.equal(providerInput.maxCredits, ACQUISITION_DISCOVERY_MAX_CREDITS);
   assert.equal(result.candidates.length, 1);
-  assert.equal(result.candidates[0].canonicalCompanyKey, "domain:example.com");
+  assert.equal(result.candidates[0].canonicalCompanyKey, "domain-example.com");
   assert.equal(result.candidates[0].sourceUrl, "https://example.com/about");
 });
 
@@ -73,6 +73,30 @@ test("fails closed on missing provenance or malformed candidate identity", async
             companyName: "Example",
             domain: "example.com",
             sourceUrl: "not-a-url",
+            retrievedAt: "2026-09-04T08:00:00Z",
+          },
+        ],
+      };
+    },
+  };
+
+  await assert.rejects(
+    () => runAcquisitionDiscovery(provider, { query: "B2B SaaS" }),
+    /ACQUISITION_DISCOVERY_MALFORMED_CANDIDATE/,
+  );
+});
+
+test("rejects non-HTTPS provenance because the research store requires HTTPS sources", async () => {
+  const provider = {
+    id: "test-provider",
+    async discover() {
+      return {
+        creditsUsed: 1,
+        candidates: [
+          {
+            companyName: "Example",
+            domain: "example.com",
+            sourceUrl: "http://example.com/about",
             retrievedAt: "2026-09-04T08:00:00Z",
           },
         ],
