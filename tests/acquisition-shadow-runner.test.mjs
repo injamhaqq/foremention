@@ -54,7 +54,7 @@ test("production operator route requires repo-bound OIDC and exact deployed SHA"
   assert.doesNotMatch(route, /process\.env/);
 });
 
-test("OIDC verifier pins repository, main ref, workflow, runner, audience, and signature", async () => {
+test("OIDC verifier pins repository, main ref, workflow, runner, audience, signature, and workflow SHA", async () => {
   const verifier = await text("lib/acquisition-github-oidc.ts");
   assert.match(verifier, /EXPECTED_REPOSITORY = "injamhaqq\/foremention"/);
   assert.match(verifier, /EXPECTED_REPOSITORY_ID = "1310253121"/);
@@ -62,18 +62,22 @@ test("OIDC verifier pins repository, main ref, workflow, runner, audience, and s
   assert.match(verifier, /EXPECTED_WORKFLOW = "Acquisition Shadow Run"/);
   assert.match(verifier, /ACQUISITION_SHADOW_OIDC_AUDIENCE = "foremention-acquisition-shadow"/);
   assert.match(verifier, /runner_environment !== "github-hosted"/);
+  assert.match(verifier, /workflowSha !== releaseSha/);
   assert.match(verifier, /crypto\.subtle\.verify/);
   assert.match(verifier, /header\.alg !== "RS256"/);
 });
 
-test("requested acquisition function persists terminal truth and is registered", async () => {
+test("requested acquisition function requires a durable authorized request before provider work", async () => {
   const job = await text("lib/jobs/acquisition-discovery.ts");
   const route = await text("app/api/inngest/route.ts");
   assert.match(job, /id: "discover-acquisition-targets-shadow-requested"/);
   assert.match(job, /triggers: \{ event: "foremention\/acquisition\.shadow\.requested" \}/);
-  assert.match(job, /onFailure: async/);
-  assert.match(job, /finishAcquisitionShadowRequest/);
+  assert.match(job, /loadAcquisitionShadowRequest\(requestKey\)/);
+  assert.match(job, /authorizedRequest\.release_sha !== releaseSha/);
+  assert.match(job, /ACQUISITION_SHADOW_REQUEST_NOT_AUTHORIZED/);
   assert.match(job, /markAcquisitionShadowRunning/);
+  assert.match(job, /finishAcquisitionShadowRequest/);
+  assert.match(job, /onFailure: async/);
   assert.match(route, /runRequestedAcquisitionShadow/);
 });
 
