@@ -57,21 +57,11 @@ function messageReferences(headers: Record<string, string> | null | undefined) {
 
 function plainReplyText(email: ReceivedEmail) {
   if (typeof email.text === "string" && email.text.trim()) return email.text.trim().slice(0, 20_000);
-  if (typeof email.html === "string" && email.html.trim()) {
-    return email.html
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/gi, " ")
-      .replace(/&amp;/gi, "&")
-      .replace(/&lt;/gi, "<")
-      .replace(/&gt;/gi, ">")
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;/gi, "'")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 20_000);
-  }
+
+  // HTML email is untrusted provider input. Do not try to sanitize or decode it
+  // with ad-hoc regular expressions in the webhook path. Resend's plain-text
+  // representation is preferred; a bounded subject preserves reply evidence when
+  // a sender supplies HTML-only content without introducing an HTML parser surface.
   const subject = typeof email.subject === "string" ? email.subject.trim().slice(0, 500) : "";
   return subject || null;
 }
