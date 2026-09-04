@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildDiscoveryPersistenceRecords,
+  buildResearchAssessmentPersistenceRecords,
   discoveryRunKey,
 } from "../lib/acquisition-research-persistence.ts";
 
@@ -45,6 +46,62 @@ test("builds shadow-only persistence records without lifecycle promotion", () =>
   const serialized = JSON.stringify(records);
   for (const forbidden of ["design_partner", "customer", "contacted", "conversation", "outreach_sent", "email"]) {
     assert.equal(serialized.includes(forbidden), false, `unexpected lifecycle/outreach mutation: ${forbidden}`);
+  }
+});
+
+test("builds research update + source facts without mutating commercial lifecycle truth", () => {
+  const assessment = {
+    facts: [
+      {
+        key: "recent_trigger",
+        value: "Launched an AI-search initiative",
+        sourceUrl: "https://example.com/blog/ai-search",
+        retrievedAt: "2026-09-04T10:00:00.000Z",
+        confidence: 95,
+      },
+      {
+        key: "buyer_role",
+        value: "VP Marketing",
+        sourceUrl: "https://news.example.org/example",
+        retrievedAt: "2026-09-04T10:00:00.000Z",
+        confidence: 90,
+      },
+    ],
+    sourceCount: 2,
+    scores: {
+      buyerQuestionCommercialFit: 20,
+      competitiveDensity: 15,
+      interventionCapability: 15,
+      aiDiscoveryUrgency: 15,
+      evidenceSensitivity: 10,
+      measurementFit: 10,
+      budgetAuthorityPath: 10,
+      thirtyDayActionability: 5,
+    },
+    disqualifiers: [],
+    qualification: {
+      score: 100,
+      qualified: true,
+      threshold: 75,
+      reasonCodes: ["SCORE_THRESHOLD_MET", "PUBLIC_EVIDENCE_PRESENT", "WHY_NOW_PRESENT"],
+      whyNow: "Launched an AI-search initiative",
+      sourceCount: 2,
+    },
+  };
+
+  const records = buildResearchAssessmentPersistenceRecords(assessment);
+  assert.equal(records.runPatch.qualification_score, 100);
+  assert.equal(records.runPatch.qualified_shadow, true);
+  assert.equal(records.runPatch.why_now, "Launched an AI-search initiative");
+  assert.equal(records.evidence.length, 2);
+  assert.deepEqual(
+    new Set(records.evidence.map((evidence) => evidence.evidence_key)),
+    new Set(["buyer_role", "recent_trigger"]),
+  );
+
+  const serialized = JSON.stringify(records);
+  for (const forbidden of ["design_partner", "customer", "contacted", "conversation", "outreach_sent"]) {
+    assert.equal(serialized.includes(forbidden), false, `unexpected lifecycle mutation: ${forbidden}`);
   }
 });
 
