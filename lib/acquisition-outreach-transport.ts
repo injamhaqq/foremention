@@ -1,11 +1,19 @@
 import { createAcquisitionUnsubscribeToken } from "./acquisition-outreach-unsubscribe.ts";
+import {
+  getZohoMailConfig,
+  refreshZohoMailAccessToken,
+  sendZohoMailMessage,
+  verifyZohoMailAccount,
+} from "./acquisition-zoho-mail.ts";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
+type AcquisitionOutreachProvider = "resend" | "zoho";
+
 export type AcquisitionOutreachTransportStatus = {
   available: boolean;
-  provider: "resend";
+  provider: AcquisitionOutreachProvider;
   reason: string;
 };
 
@@ -38,33 +46,53 @@ function normalizedSiteUrl(value: unknown) {
   }
 }
 
-export function getAcquisitionOutreachTransportStatus(): AcquisitionOutreachTransportStatus {
+function selectedProvider(): AcquisitionOutreachProvider {
+  return process.env.ACQUISITION_OUTREACH_PROVIDER?.trim().toLowerCase() === "zoho" ? "zoho" : "resend";
+}
+
+function commonTransportFailure(provider: AcquisitionOutreachProvider) {
   if (process.env.ACQUISITION_OUTREACH_SEND_ENABLED !== "true") {
-    return { available: false, provider: "resend", reason: "Sending is disabled." };
+    return { available: false, provider, reason: "Sending is disabled." } as const;
   }
   if (process.env.ACQUISITION_OUTREACH_DELIVERABILITY_VERIFIED !== "true") {
-    return { available: false, provider: "resend", reason: "Deliverability has not been verified." };
-  }
-  if (process.env.ACQUISITION_OUTREACH_WEBHOOKS_VERIFIED !== "true") {
-    return { available: false, provider: "resend", reason: "Reply and delivery webhooks have not been verified." };
-  }
-  if (!process.env.RESEND_API_KEY) return { available: false, provider: "resend", reason: "Resend is not configured." };
-  if (!process.env.RESEND_WEBHOOK_SECRET?.startsWith("whsec_")) {
-    return { available: false, provider: "resend", reason: "The Resend webhook signing secret is not configured." };
+    return { available: false, provider, reason: "Deliverability has not been verified." } as const;
   }
   if (!normalizedFrom(process.env.ACQUISITION_OUTREACH_FROM_EMAIL)) {
-    return { available: false, provider: "resend", reason: "A dedicated outreach sender is not configured." };
+    return { available: false, provider, reason: "A dedicated outreach sender is not configured." } as const;
   }
   if (!normalizedEmail(process.env.ACQUISITION_OUTREACH_REPLY_TO_EMAIL)) {
-    return { available: false, provider: "resend", reason: "A monitored outreach reply mailbox is not configured." };
+    return { available: false, provider, reason: "A monitored outreach reply mailbox is not configured." } as const;
   }
   if (!normalizedSiteUrl(process.env.NEXT_PUBLIC_SITE_URL)) {
-    return { available: false, provider: "resend", reason: "The production site URL is not configured." };
+    return { available: false, provider, reason: "The production site URL is not configured." } as const;
   }
   if ((process.env.EMAIL_UNSUBSCRIBE_SECRET || "").length < 32) {
-    return { available: false, provider: "resend", reason: "Unsubscribe signing is not configured." };
+    return { available: false, provider, reason: "Unsubscribe signing is not configured." } as const;
   }
-  return { available: true, provider: "resend", reason: "Configured, safety-verified, and explicitly enabled." };
+  return null;
+}
+
+export function getAcquisitionOutreachTransportStatus(): AcquisitionOutreachTransportStatus {
+  const provider = selectedProvider();
+  const commonFailure = commonTransportFailure(provider);
+  if (commonFailure) return commonFailure;
+
+  if (provider === "zoho") {
+    if (process.env.ACQUISITION_OUTREACH_ZOHO_REPLY_POLLING_VERIFIED !== "true") {
+      return { available: false, provider, reason: "Zoho reply polling has not been verified." };
+    }
+    if (!getZohoMailConfig()) return { available: false, provider, reason: "Zoho Mail OAuth is not configured." };
+    return { available: true, provider, reason: "Zoho Mail OAuth is configured, safety-verified, and explicitly enabled." };
+  }
+
+  if (process.env.ACQUISITION_OUTREACH_WEBHOOKS_VERIFIED !== "true") {
+    return { available: false, provider, reason: "Reply and delivery webhooks have not been verified." };
+  }
+  if (!process.env.RESEND_API_KEY) return { available: false, provider, reason: "Resend is not configured." };
+  if (!process.env.RESEND_WEBHOOK_SECRET?.startsWith("whsec_")) {
+    return { available: false, provider, reason: "The Resend webhook signing secret is not configured." };
+  }
+  return { available: true, provider, reason: "Resend is configured, safety-verified, and explicitly enabled." };
 }
 
 export async function buildResendAcquisitionRequest(input: {
@@ -91,19 +119,12 @@ export async function buildResendAcquisitionRequest(input: {
   const originalBody = input.body.trim().slice(0, 18_500);
   if (!subject || !originalBody) throw new Error("ACQUISITION_OUTREACH_MESSAGE_INVALID");
 
-  const token = await createAcquisitionUnsubscribeToken(
-    input.accountId,
-    input.contactId,
-    input.unsubscribeSecret,
-  );
+  const token = await createAcquisitionUnsubscribeToken(input.accountId, input.contactId, input.unsubscribeSecret);
   const unsubscribeUrl = `${siteUrl}/api/acquisition/unsubscribe?token=${encodeURIComponent(token)}`;
   const idempotencyKey = `acquisition-send-${input.draftId}`.slice(0, 256);
-  const text = [
-    originalBody,
-    "",
-    "Prefer not to receive further messages from Foremention?",
-    `Unsubscribe: ${unsubscribeUrl}`,
-  ].join("\n").slice(0, 20_000);
+  const text = [originalBody, "", "Prefer not to receive further messages from Foremention?", `Unsubscribe: ${unsubscribeUrl}`]
+    .join("\n")
+    .slice(0, 20_000);
 
   return {
     headers: {
@@ -129,6 +150,35 @@ export async function buildResendAcquisitionRequest(input: {
   };
 }
 
+async function buildZohoAcquisitionMessage(input: {
+  accountId: string;
+  contactId: string;
+  to: string;
+  subject: string;
+  body: string;
+}) {
+  const to = normalizedEmail(input.to);
+  const siteUrl = normalizedSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  if (!to) throw new Error("ACQUISITION_OUTREACH_RECIPIENT_INVALID");
+  if (!siteUrl) throw new Error("ACQUISITION_OUTREACH_SITE_URL_INVALID");
+  const subject = input.subject.replace(/[\r\n]+/g, " ").trim().slice(0, 160);
+  const originalBody = input.body.trim().slice(0, 18_500);
+  if (!subject || !originalBody) throw new Error("ACQUISITION_OUTREACH_MESSAGE_INVALID");
+  const token = await createAcquisitionUnsubscribeToken(
+    input.accountId,
+    input.contactId,
+    process.env.EMAIL_UNSUBSCRIBE_SECRET as string,
+  );
+  const unsubscribeUrl = `${siteUrl}/api/acquisition/unsubscribe?token=${encodeURIComponent(token)}`;
+  return {
+    to,
+    subject,
+    content: [originalBody, "", "Prefer not to receive further messages from Foremention?", `Unsubscribe: ${unsubscribeUrl}`]
+      .join("\n")
+      .slice(0, 20_000),
+  };
+}
+
 export async function sendAcquisitionOutreachEmail(input: {
   accountId: string;
   contactId: string;
@@ -139,6 +189,34 @@ export async function sendAcquisitionOutreachEmail(input: {
 }) {
   const status = getAcquisitionOutreachTransportStatus();
   if (!status.available) throw new Error("ACQUISITION_OUTREACH_TRANSPORT_UNAVAILABLE");
+
+  if (status.provider === "zoho") {
+    const config = getZohoMailConfig();
+    if (!config) throw new Error("ACQUISITION_ZOHO_OAUTH_CONFIG_INVALID");
+    const accessToken = await refreshZohoMailAccessToken(config);
+    await verifyZohoMailAccount({
+      accessToken,
+      mailBaseUrl: config.mailBaseUrl,
+      accountId: config.accountId,
+      expectedFromAddress: config.fromAddress,
+    });
+    const message = await buildZohoAcquisitionMessage(input);
+    const result = await sendZohoMailMessage({
+      accessToken,
+      mailBaseUrl: config.mailBaseUrl,
+      accountId: config.accountId,
+      fromAddress: config.fromAddress,
+      toAddress: message.to,
+      subject: message.subject,
+      content: message.content,
+    });
+    return {
+      provider: "zoho" as const,
+      externalReference: `zoho-${result.messageId}`.slice(0, 300),
+      providerMessageId: result.mailId,
+      idempotencyKey: null,
+    };
+  }
 
   const apiKey = process.env.RESEND_API_KEY as string;
   const request = await buildResendAcquisitionRequest({
@@ -162,5 +240,10 @@ export async function sendAcquisitionOutreachEmail(input: {
   if (!response.ok) throw new Error(`ACQUISITION_OUTREACH_PROVIDER_HTTP_${response.status}`);
   const result = (await response.json()) as { id?: string };
   if (!result.id) throw new Error("ACQUISITION_OUTREACH_PROVIDER_MISSING_ID");
-  return { provider: "resend" as const, externalReference: result.id, idempotencyKey: request.headers["Idempotency-Key"] };
+  return {
+    provider: "resend" as const,
+    externalReference: result.id,
+    providerMessageId: null,
+    idempotencyKey: request.headers["Idempotency-Key"],
+  };
 }
