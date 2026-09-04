@@ -13,6 +13,7 @@ import { persistResolvedAcquisitionContact } from "@/lib/acquisition-contact-per
 import { createAcquisitionOutreachDraft } from "@/lib/acquisition-outreach-persistence";
 import {
   finishAcquisitionShadowRequest,
+  loadAcquisitionShadowRequest,
   markAcquisitionShadowRunning,
   type AcquisitionShadowResult,
 } from "@/lib/acquisition-shadow-request";
@@ -27,6 +28,7 @@ const MAX_RESEARCH_CREDITS_PER_CANDIDATE = 15;
 const MAX_CONTACTED_CANDIDATES_PER_RUN = 1;
 const MAX_CONTACT_CREDITS_PER_CANDIDATE = 5;
 const SHADOW_REQUEST_KEY_PATTERN = /^shadow-[a-f0-9]{12}-[0-9]+-[0-9]+$/;
+const RELEASE_SHA_PATTERN = /^[a-f0-9]{40}$/;
 
 type AcquisitionStep = {
   run<T>(id: string, handler: () => T | Promise<T>): Promise<T>;
@@ -232,11 +234,21 @@ export const runRequestedAcquisitionShadow = inngest.createFunction(
     },
   },
   async ({ event, step }) => {
-    const requestKey = typeof (event.data as { requestKey?: unknown })?.requestKey === "string"
-      ? String((event.data as { requestKey?: unknown }).requestKey)
-      : "";
-    if (!SHADOW_REQUEST_KEY_PATTERN.test(requestKey)) {
-      return { status: "failed", errorCode: "ACQUISITION_SHADOW_REQUEST_KEY_INVALID" };
+    const data = event.data as { requestKey?: unknown; releaseSha?: unknown };
+    const requestKey = typeof data?.requestKey === "string" ? data.requestKey : "";
+    const releaseSha = typeof data?.releaseSha === "string" ? data.releaseSha.trim().toLowerCase() : "";
+    if (!SHADOW_REQUEST_KEY_PATTERN.test(requestKey) || !RELEASE_SHA_PATTERN.test(releaseSha)) {
+      return { status: "failed", errorCode: "ACQUISITION_SHADOW_REQUEST_IDENTITY_INVALID" };
+    }
+
+    const authorizedRequest = await step.run("load-authorized-acquisition-shadow-request", () =>
+      loadAcquisitionShadowRequest(requestKey),
+    );
+    if (!authorizedRequest || authorizedRequest.release_sha !== releaseSha) {
+      return { status: "failed", errorCode: "ACQUISITION_SHADOW_REQUEST_NOT_AUTHORIZED" };
+    }
+    if (!["requested", "running"].includes(authorizedRequest.status)) {
+      return { status: authorizedRequest.status, skipped: true, reason: "already_terminal" };
     }
 
     await step.run("mark-acquisition-shadow-running", () => markAcquisitionShadowRunning(requestKey));
