@@ -72,11 +72,11 @@ export function normalizeAcquisitionDomain(value: unknown): string | null {
   }
 }
 
-function normalizeHttpUrl(value: unknown): string | null {
+function normalizeHttpsUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   try {
     const url = new URL(value.trim());
-    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.protocol !== "https:") return null;
     url.hash = "";
     return url.toString();
   } catch {
@@ -87,7 +87,9 @@ function normalizeHttpUrl(value: unknown): string | null {
 function normalizeTimestamp(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+  if (!Number.isFinite(timestamp)) return null;
+  if (timestamp > Date.now() + 5 * 60 * 1000) return null;
+  return new Date(timestamp).toISOString();
 }
 
 function companyNameKey(name: string) {
@@ -101,11 +103,11 @@ function companyNameKey(name: string) {
 
 export function canonicalAcquisitionCompanyKey(companyName: string, domain?: string | null) {
   const normalizedDomain = normalizeAcquisitionDomain(domain);
-  if (normalizedDomain) return `domain:${normalizedDomain}`;
+  if (normalizedDomain) return `domain-${normalizedDomain}`;
   const normalizedName = normalizeCompanyName(companyName);
   if (!normalizedName) return null;
   const key = companyNameKey(normalizedName);
-  return key ? `name:${key}` : null;
+  return key ? `name-${key}` : null;
 }
 
 export async function runAcquisitionDiscovery(
@@ -129,7 +131,7 @@ export async function runAcquisitionDiscovery(
   const deduped = new Map<string, NormalizedAcquisitionCandidate>();
   for (const candidate of result.candidates.slice(0, maxCandidates)) {
     const companyName = normalizeCompanyName(candidate.companyName);
-    const sourceUrl = normalizeHttpUrl(candidate.sourceUrl);
+    const sourceUrl = normalizeHttpsUrl(candidate.sourceUrl);
     const retrievedAt = normalizeTimestamp(candidate.retrievedAt);
     const domain = normalizeAcquisitionDomain(candidate.domain);
     const canonicalCompanyKey = companyName ? canonicalAcquisitionCompanyKey(companyName, domain) : null;
