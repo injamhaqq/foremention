@@ -6,6 +6,7 @@ import {
   getZohoMailConfig,
   refreshZohoMailAccessToken,
   sendZohoMailMessage,
+  verifyZohoMailAccount,
   ZohoMailSendUncertainError,
 } from "../lib/acquisition-zoho-mail.ts";
 
@@ -36,7 +37,7 @@ function configureZohoEnv() {
   });
 }
 
-test("Zoho Mail config fails closed unless OAuth, account, sender and regional endpoints are configured", () => {
+test("Zoho Mail config fails closed unless OAuth, account, sender and matching regional endpoints are configured", () => {
   for (const key of [
     "ZOHO_MAIL_CLIENT_ID",
     "ZOHO_MAIL_CLIENT_SECRET",
@@ -55,6 +56,9 @@ test("Zoho Mail config fails closed unless OAuth, account, sender and regional e
   assert.equal(config.accountsBaseUrl, "https://accounts.zoho.com");
   assert.equal(config.mailBaseUrl, "https://mail.zoho.com");
   assert.equal(config.fromAddress, "outreach@foremention.com");
+
+  process.env.ZOHO_MAIL_API_BASE_URL = "https://mail.zoho.eu";
+  assert.equal(getZohoMailConfig(), null);
 });
 
 test("Zoho config rejects arbitrary OAuth/API hosts instead of creating an SSRF surface", () => {
@@ -64,6 +68,50 @@ test("Zoho config rejects arbitrary OAuth/API hosts instead of creating an SSRF 
   process.env.ZOHO_MAIL_ACCOUNTS_BASE_URL = "https://accounts.zoho.com";
   process.env.ZOHO_MAIL_API_BASE_URL = "https://mail.zoho.com.attacker.example";
   assert.equal(getZohoMailConfig(), null);
+});
+
+test("Zoho account verification accepts only a sender actually attached to the configured account", async () => {
+  const accountPayload = {
+    status: { code: 200, description: "success" },
+    data: {
+      accountId: "1234567890123456789",
+      enabled: true,
+      outgoingBlocked: false,
+      smtpStatus: true,
+      primaryEmailAddress: "injam@foremention.com",
+      mailboxAddress: "injam@foremention.com",
+      emailAddress: [
+        { isAlias: false, isPrimary: true, mailId: "injam@foremention.com", isConfirmed: true },
+        { isAlias: true, isPrimary: false, mailId: "outreach@foremention.com", isConfirmed: true },
+      ],
+      sendMailDetails: [
+        { fromAddress: "outreach@foremention.com", status: true },
+        { fromAddress: "unverified@foremention.com", status: false },
+      ],
+    },
+  };
+  const fetchImpl = async () => new Response(JSON.stringify(accountPayload), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+  const verified = await verifyZohoMailAccount({
+    accessToken: "1000.access",
+    mailBaseUrl: "https://mail.zoho.com",
+    accountId: "1234567890123456789",
+    expectedFromAddress: "outreach@foremention.com",
+    fetchImpl,
+  });
+  assert.equal(verified.sender, "outreach@foremention.com");
+  await assert.rejects(
+    verifyZohoMailAccount({
+      accessToken: "1000.access",
+      mailBaseUrl: "https://mail.zoho.com",
+      accountId: "1234567890123456789",
+      expectedFromAddress: "unverified@foremention.com",
+      fetchImpl,
+    }),
+    /ACQUISITION_ZOHO_ACCOUNT_SENDER_MISMATCH/,
+  );
 });
 
 test("Zoho acquisition transport requires explicit provider selection and verified reply polling", () => {
