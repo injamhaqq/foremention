@@ -1,5 +1,5 @@
-import type { NormalizedAcquisitionCandidate } from "@/lib/acquisition-discovery";
-import { SupabaseRequestError, supabaseRest } from "@/lib/supabase-rest";
+import type { NormalizedAcquisitionCandidate } from "./acquisition-discovery.ts";
+import { SupabaseRequestError, supabaseRest } from "./supabase-rest.ts";
 
 const COMPANY_KEY_PATTERN = /^(domain|name)-[a-z0-9][a-z0-9.-]{0,253}[a-z0-9]$/;
 
