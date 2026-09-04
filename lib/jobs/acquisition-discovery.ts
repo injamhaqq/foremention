@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { runAcquisitionDiscovery } from "@/lib/acquisition-discovery";
 import { scrapeGraphAcquisitionProvider } from "@/lib/acquisition-discovery-scrapegraph";
 import { deriveAcquisitionResearchAssessment } from "@/lib/acquisition-research";
@@ -6,6 +7,10 @@ import {
   persistAcquisitionResearchAssessment,
   persistDiscoveredAcquisitionCandidates,
 } from "@/lib/acquisition-research-persistence";
+import { scrapeGraphAcquisitionContactProvider } from "@/lib/acquisition-contact-scrapegraph";
+import { selectBestAcquisitionContact } from "@/lib/acquisition-contact-resolution";
+import { persistResolvedAcquisitionContact } from "@/lib/acquisition-contact-persistence";
+import { createAcquisitionOutreachDraft } from "@/lib/acquisition-outreach-persistence";
 import { logOperationalEvent } from "@/lib/structured-logger";
 import { inngest } from "@/lib/jobs/inngest";
 import { isMissingRelationError } from "@/lib/supabase-rest";
@@ -14,6 +19,12 @@ const SHADOW_DISCOVERY_QUERY =
   "English-language growth-stage B2B SaaS companies with roughly 50-500 employees and visible SEO, organic growth, GEO, AI-search, content, or recommendation-discovery motion";
 const MAX_RESEARCHED_CANDIDATES_PER_RUN = 3;
 const MAX_RESEARCH_CREDITS_PER_CANDIDATE = 15;
+const MAX_CONTACTED_CANDIDATES_PER_RUN = 1;
+const MAX_CONTACT_CREDITS_PER_CANDIDATE = 5;
+
+function acquisitionAutopilotEnabled() {
+  return (env as unknown as Record<string, unknown>).ACQUISITION_AUTOPILOT_ENABLED === "true";
+}
 
 export const discoverAcquisitionTargets = inngest.createFunction(
   {
@@ -22,9 +33,23 @@ export const discoverAcquisitionTargets = inngest.createFunction(
     triggers: { cron: "0 6 * * *" },
   },
   async ({ step }) => {
+    if (!acquisitionAutopilotEnabled()) {
+      logOperationalEvent("acquisition_autopilot_disabled", { status: "disabled" });
+      return {
+        status: "disabled",
+        candidateCount: 0,
+        persistedCount: 0,
+        researchedCount: 0,
+        qualifiedShadowCount: 0,
+        contactResolvedCount: 0,
+        draftCreatedCount: 0,
+      };
+    }
+
     const discoveryProvider = scrapeGraphAcquisitionProvider();
     const researchProvider = scrapeGraphAcquisitionResearchProvider();
-    if (!discoveryProvider || !researchProvider) {
+    const contactProvider = scrapeGraphAcquisitionContactProvider();
+    if (!discoveryProvider || !researchProvider || !contactProvider) {
       logOperationalEvent("acquisition_discovery_provider_unavailable", {
         status: "blocked",
         errorCode: "MISSING_SGAI_API_KEY",
@@ -35,6 +60,8 @@ export const discoverAcquisitionTargets = inngest.createFunction(
         persistedCount: 0,
         researchedCount: 0,
         qualifiedShadowCount: 0,
+        contactResolvedCount: 0,
+        draftCreatedCount: 0,
       };
     }
 
@@ -54,6 +81,10 @@ export const discoverAcquisitionTargets = inngest.createFunction(
 
       let researchCreditsUsed = 0;
       let qualifiedShadowCount = 0;
+      const qualifiedTargets = [] as Array<{
+        candidate: (typeof result.candidates)[number];
+        identity: (typeof persisted)[number];
+      }>;
       const researchTargets = result.candidates.slice(0, MAX_RESEARCHED_CANDIDATES_PER_RUN);
 
       for (let index = 0; index < researchTargets.length; index += 1) {
@@ -78,7 +109,50 @@ export const discoverAcquisitionTargets = inngest.createFunction(
         const persistedAssessment = await step.run(`persist-public-icp-research-${index}`, () =>
           persistAcquisitionResearchAssessment(identity, assessment),
         );
-        if (persistedAssessment.qualifiedShadow) qualifiedShadowCount += 1;
+        if (persistedAssessment.qualifiedShadow) {
+          qualifiedShadowCount += 1;
+          qualifiedTargets.push({ candidate, identity });
+        }
+      }
+
+      let contactCreditsUsed = 0;
+      let contactResolvedCount = 0;
+      let draftCreatedCount = 0;
+      const contactTargets = qualifiedTargets
+        .filter(({ candidate }) => Boolean(candidate.domain))
+        .slice(0, MAX_CONTACTED_CANDIDATES_PER_RUN);
+
+      for (let index = 0; index < contactTargets.length; index += 1) {
+        const { candidate, identity } = contactTargets[index];
+        if (!candidate.domain) continue;
+        const contactResult = await step.run(`resolve-public-icp-contact-${index}`, () =>
+          contactProvider.resolve({
+            companyName: candidate.companyName,
+            domain: candidate.domain as string,
+            maxResults: 1,
+            maxCredits: MAX_CONTACT_CREDITS_PER_CANDIDATE,
+          }),
+        );
+        if (contactResult.creditsUsed > MAX_CONTACT_CREDITS_PER_CANDIDATE) {
+          throw new Error("ACQUISITION_CONTACT_BUDGET_EXCEEDED");
+        }
+        contactCreditsUsed += contactResult.creditsUsed;
+        const selectedContact = selectBestAcquisitionContact(contactResult.contacts);
+        if (!selectedContact) continue;
+
+        const persistedContact = await step.run(`persist-public-icp-contact-${index}`, () =>
+          persistResolvedAcquisitionContact(identity.accountId, selectedContact),
+        );
+        contactResolvedCount += 1;
+
+        await step.run(`create-public-icp-draft-${index}`, () =>
+          createAcquisitionOutreachDraft({
+            accountId: identity.accountId,
+            contactId: persistedContact.contactId,
+            researchRunId: identity.researchRunId,
+          }),
+        );
+        draftCreatedCount += 1;
       }
 
       logOperationalEvent("acquisition_discovery_shadow_complete", {
@@ -87,13 +161,16 @@ export const discoverAcquisitionTargets = inngest.createFunction(
       });
 
       return {
-        status: "shadow_researched",
+        status: "shadow_drafted",
         candidateCount: result.candidates.length,
         persistedCount: persisted.length,
         researchedCount: researchTargets.length,
         qualifiedShadowCount,
+        contactResolvedCount,
+        draftCreatedCount,
         discoveryCreditsUsed: result.creditsUsed,
         researchCreditsUsed,
+        contactCreditsUsed,
       };
     } catch (error) {
       if (isMissingRelationError(error)) {
@@ -108,6 +185,8 @@ export const discoverAcquisitionTargets = inngest.createFunction(
           persistedCount: 0,
           researchedCount: 0,
           qualifiedShadowCount: 0,
+          contactResolvedCount: 0,
+          draftCreatedCount: 0,
         };
       }
 
