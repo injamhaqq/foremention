@@ -7,20 +7,58 @@ begin;
 alter table public.commercial_accounts
   add column if not exists canonical_company_key text;
 
+create or replace function private.acquisition_company_key(p_domain text, p_company_name text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+    when nullif(btrim(coalesce(p_domain, '')), '') is not null then
+      'domain-' || regexp_replace(
+        regexp_replace(
+          lower(regexp_replace(regexp_replace(btrim(p_domain), '^https?://', '', 'i'), '^www\.', '', 'i')),
+          '[/#?].*$', ''
+        ),
+        ':[0-9]+$', ''
+      )
+    else
+      'name-' || trim(both '-' from regexp_replace(lower(btrim(p_company_name)), '[^a-z0-9]+', '-', 'g'))
+  end;
+$$;
+
+create or replace function private.set_commercial_account_canonical_company_key()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.canonical_company_key := private.acquisition_company_key(new.domain, new.company_name);
+  return new;
+end;
+$$;
+
+drop trigger if exists commercial_accounts_canonical_company_key_trigger on public.commercial_accounts;
+create trigger commercial_accounts_canonical_company_key_trigger
+before insert or update of domain, company_name on public.commercial_accounts
+for each row execute function private.set_commercial_account_canonical_company_key();
+
 alter table public.commercial_accounts
   add constraint commercial_accounts_canonical_company_key_check
   check (
     canonical_company_key is null
-    or canonical_company_key ~ '^[a-z0-9][a-z0-9.-]{1,253}[a-z0-9]$'
+    or canonical_company_key ~ '^(domain|name)-[a-z0-9][a-z0-9.-]{0,253}[a-z0-9]$'
   ) not valid;
 
-create unique index if not exists commercial_accounts_canonical_company_key_uidx
-  on public.commercial_accounts (canonical_company_key)
-  where canonical_company_key is not null;
+alter table public.commercial_accounts
+  add constraint commercial_accounts_canonical_company_key_unique unique (canonical_company_key);
+
+alter table public.commercial_accounts
+  add constraint commercial_accounts_id_canonical_company_key_unique unique (id, canonical_company_key);
 
 create table if not exists public.acquisition_research_runs (
   id uuid primary key default gen_random_uuid(),
-  account_id uuid not null references public.commercial_accounts(id) on delete cascade,
+  account_id uuid not null,
   run_key text not null unique,
   canonical_company_key text not null,
   started_at timestamptz not null default now(),
@@ -32,10 +70,14 @@ create table if not exists public.acquisition_research_runs (
   disqualifiers text[] not null default '{}'::text[],
   qualified_shadow boolean not null default false,
   created_at timestamptz not null default now(),
+  constraint acquisition_research_runs_account_identity_fk
+    foreign key (account_id, canonical_company_key)
+    references public.commercial_accounts(id, canonical_company_key)
+    on delete cascade,
   constraint acquisition_research_runs_key_check
     check (char_length(run_key) between 8 and 200),
   constraint acquisition_research_runs_company_key_check
-    check (canonical_company_key ~ '^[a-z0-9][a-z0-9.-]{1,253}[a-z0-9]$'),
+    check (canonical_company_key ~ '^(domain|name)-[a-z0-9][a-z0-9.-]{0,253}[a-z0-9]$'),
   constraint acquisition_research_runs_score_breakdown_check
     check (jsonb_typeof(score_breakdown) = 'object'),
   constraint acquisition_research_runs_why_now_check
@@ -87,6 +129,10 @@ alter table public.acquisition_research_evidence enable row level security;
 revoke all on table public.acquisition_research_runs, public.acquisition_research_evidence from public;
 revoke all on table public.acquisition_research_runs, public.acquisition_research_evidence from anon, authenticated;
 grant select, insert, update, delete on table public.acquisition_research_runs, public.acquisition_research_evidence to service_role;
+
+revoke all on function private.acquisition_company_key(text, text) from public;
+revoke all on function private.set_commercial_account_canonical_company_key() from public;
+grant execute on function private.acquisition_company_key(text, text) to service_role;
 
 -- Eligibility is computed from provenance at read time. A candidate cannot appear in
 -- this view when it has no public evidence or when every source is stale (>30 days).
