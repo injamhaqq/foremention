@@ -59,6 +59,8 @@ test("runtime never regex-sanitizes or entity-decodes untrusted HTML replies", a
   const source = await text("lib/acquisition-resend-webhook-runtime.ts");
   assert.match(source, /typeof email\.text === "string"/);
   assert.match(source, /email\.subject\.trim\(\)\.slice\(0, 500\)/);
+  assert.doesNotMatch(source, /typeof email\.html/);
+  assert.doesNotMatch(source, /email\.html\s*[.?]/);
   assert.doesNotMatch(source, /email\.html\s*\.replace/);
   assert.doesNotMatch(source, /replace\(\/<script/);
   assert.doesNotMatch(source, /replace\(\/&amp;/);
