@@ -81,7 +81,11 @@ export function getAcquisitionOutreachTransportStatus(): AcquisitionOutreachTran
     if (process.env.ACQUISITION_OUTREACH_ZOHO_REPLY_POLLING_VERIFIED !== "true") {
       return { available: false, provider, reason: "Zoho reply polling has not been verified." };
     }
-    if (!getZohoMailConfig()) return { available: false, provider, reason: "Zoho Mail OAuth is not configured." };
+    const config = getZohoMailConfig();
+    if (!config) return { available: false, provider, reason: "Zoho Mail OAuth is not configured." };
+    if (normalizedEmail(process.env.ACQUISITION_OUTREACH_REPLY_TO_EMAIL) !== config.fromAddress) {
+      return { available: false, provider, reason: "Zoho reply mailbox must match the verified sender mailbox." };
+    }
     return { available: true, provider, reason: "Zoho Mail OAuth is configured, safety-verified, and explicitly enabled." };
   }
 
