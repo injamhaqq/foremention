@@ -25,7 +25,7 @@ function configureZohoEnv() {
     ACQUISITION_OUTREACH_DELIVERABILITY_VERIFIED: "true",
     ACQUISITION_OUTREACH_ZOHO_REPLY_POLLING_VERIFIED: "true",
     ACQUISITION_OUTREACH_FROM_EMAIL: "Injam <outreach@foremention.com>",
-    ACQUISITION_OUTREACH_REPLY_TO_EMAIL: "injam@foremention.com",
+    ACQUISITION_OUTREACH_REPLY_TO_EMAIL: "outreach@foremention.com",
     NEXT_PUBLIC_SITE_URL: "https://foremention.com",
     EMAIL_UNSUBSCRIBE_SECRET: "u".repeat(40),
     ZOHO_MAIL_CLIENT_ID: "1000.client",
@@ -114,13 +114,20 @@ test("Zoho account verification accepts only a sender actually attached to the c
   );
 });
 
-test("Zoho acquisition transport requires explicit provider selection and verified reply polling", () => {
+test("Zoho acquisition transport requires explicit provider selection, verified polling, and the sender mailbox as reply mailbox", () => {
   configureZohoEnv();
   assert.deepEqual(getAcquisitionOutreachTransportStatus(), {
     available: true,
     provider: "zoho",
     reason: "Zoho Mail OAuth is configured, safety-verified, and explicitly enabled.",
   });
+  process.env.ACQUISITION_OUTREACH_REPLY_TO_EMAIL = "different@foremention.com";
+  assert.deepEqual(getAcquisitionOutreachTransportStatus(), {
+    available: false,
+    provider: "zoho",
+    reason: "Zoho reply mailbox must match the verified sender mailbox.",
+  });
+  process.env.ACQUISITION_OUTREACH_REPLY_TO_EMAIL = "outreach@foremention.com";
   delete process.env.ACQUISITION_OUTREACH_ZOHO_REPLY_POLLING_VERIFIED;
   assert.equal(getAcquisitionOutreachTransportStatus().available, false);
 });
