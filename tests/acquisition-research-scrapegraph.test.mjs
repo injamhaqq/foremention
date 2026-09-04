@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   buildScrapeGraphResearchRequest,
   extractScrapeGraphResearchFacts,
-} from "../lib/acquisition-research-scrapegraph.ts";
+} from "../lib/acquisition-research-scrapegraph-contract.ts";
 
+const root = new URL("../", import.meta.url);
+const text = (path) => readFile(new URL(path, root), "utf8");
 const retrievedAt = "2026-09-04T10:00:00.000Z";
 
 test("builds a bounded company-only research request", () => {
@@ -75,4 +78,11 @@ test("fails closed when extracted fact cites a URL the search response did not r
     () => extractScrapeGraphResearchFacts(payload, retrievedAt),
     /ACQUISITION_RESEARCH_PROVIDER_SOURCE_MISMATCH/,
   );
+});
+
+test("runtime adapter keeps ScrapeGraph credentials server-side", async () => {
+  const source = await text("lib/acquisition-research-scrapegraph.ts");
+  assert.match(source, /cloudflare:workers/);
+  assert.match(source, /SGAI_API_KEY/);
+  assert.doesNotMatch(source, /NEXT_PUBLIC_SGAI|localStorage|document\./);
 });
