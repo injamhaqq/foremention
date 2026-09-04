@@ -64,9 +64,12 @@ test("fails closed for roles outside the initial buyer/champion hypothesis", () 
   );
 });
 
-test("outreach control schema dedupes source-backed contacts by account + normalized email", async () => {
+test("outreach control schema dedupes acquisition-created contacts without constraining historical CRM contacts", async () => {
   const migration = await text("supabase/migrations/20260904000200_acquisition_outreach_control.sql");
-  assert.match(migration, /create unique index if not exists commercial_contacts_account_email_unique/i);
-  assert.match(migration, /on public\.commercial_contacts \(account_id, lower\(email\)\)/i);
-  assert.match(migration, /where email is not null/i);
+  assert.match(migration, /add column if not exists acquisition_contact_key text/i);
+  assert.match(migration, /commercial_contacts_acquisition_contact_key_check/i);
+  assert.match(migration, /create unique index if not exists commercial_contacts_acquisition_contact_key_unique/i);
+  assert.match(migration, /on public\.commercial_contacts \(acquisition_contact_key\)/i);
+  assert.match(migration, /where acquisition_contact_key is not null/i);
+  assert.doesNotMatch(migration, /commercial_contacts_account_email_unique/i);
 });
