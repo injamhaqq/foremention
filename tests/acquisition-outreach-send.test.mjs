@@ -17,6 +17,7 @@ test("enrollment idempotency key is deterministic and provider scoped", () => {
   assert.equal(first, second);
   assert.match(first, /^acquisition-enrollment-resend-[a-f0-9]{16}$/);
   assert.notEqual(first, acquisitionEnrollmentKey(draftId, "outreach"));
+  assert.notEqual(first, acquisitionEnrollmentKey(draftId, "zoho"));
 });
 
 test("confirmed send produces only contacted-stage evidence, never customer truth", () => {
@@ -40,6 +41,15 @@ test("runtime send re-checks qualification, approval, verified route, suppressio
   assert.match(source, /sendAcquisitionOutreachEmail/);
   assert.match(source, /acquisition_sequence_enrollments/);
   assert.match(source, /outreach_sent/);
+  assert.match(source, /provider_message_id/);
   assert.match(source, /lifecycle_stage=in\.\(target,prospect,qualified\)/);
   assert.doesNotMatch(source, /design_partner|payment_verified|stage:\s*["']customer/);
+});
+
+test("Zoho ambiguous sends stop the enrollment instead of retrying a potentially delivered first touch", async () => {
+  const source = await text("lib/acquisition-outreach-send.ts");
+  assert.match(source, /ZohoMailSendUncertainError/);
+  assert.match(source, /transport\.provider === "zoho"/);
+  assert.match(source, /status: "stopped"/);
+  assert.match(source, /provider_send_uncertain/);
 });
