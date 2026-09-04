@@ -69,6 +69,9 @@ export function validateGitHubActionsOidcClaims(
 
   const releaseSha = typeof claims.sha === "string" ? claims.sha.toLowerCase() : "";
   if (!/^[0-9a-f]{40}$/.test(releaseSha)) throw new Error("ACQUISITION_OIDC_SHA_INVALID");
+  const workflowSha = typeof claims.workflow_sha === "string" ? claims.workflow_sha.toLowerCase() : "";
+  if (workflowSha !== releaseSha) throw new Error("ACQUISITION_OIDC_WORKFLOW_SHA_INVALID");
+
   const githubRunId = typeof claims.run_id === "string" ? claims.run_id : String(claims.run_id ?? "");
   if (!/^\d+$/.test(githubRunId)) throw new Error("ACQUISITION_OIDC_RUN_ID_INVALID");
   const githubRunAttempt = numericClaim(claims.run_attempt);
