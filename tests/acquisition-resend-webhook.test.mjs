@@ -55,6 +55,15 @@ test("runtime webhook stores svix id, correlates Message-ID, suppresses unsafe d
   assert.match(source, /suppressAcquisitionContact/);
 });
 
+test("runtime never regex-sanitizes or entity-decodes untrusted HTML replies", async () => {
+  const source = await text("lib/acquisition-resend-webhook-runtime.ts");
+  assert.match(source, /typeof email\.text === "string"/);
+  assert.match(source, /email\.subject\.trim\(\)\.slice\(0, 500\)/);
+  assert.doesNotMatch(source, /email\.html\s*\.replace/);
+  assert.doesNotMatch(source, /replace\(\/<script/);
+  assert.doesNotMatch(source, /replace\(\/&amp;/);
+});
+
 test("public webhook route verifies the raw body before parsing", async () => {
   const source = await text("app/api/acquisition/resend-webhook/route.ts");
   assert.match(source, /request\.text\(\)/);
