@@ -53,6 +53,8 @@ Before every first-touch mutation Foremention calls the specific account endpoin
 - the account is enabled for outbound mail; and
 - `ACQUISITION_OUTREACH_FROM_EMAIL` is a real mailbox/confirmed alias/send address attached to that account.
 
+Zoho's send-message API does not expose a per-message Reply-To field. For this initial transport, `ACQUISITION_OUTREACH_REPLY_TO_EMAIL` must therefore be the same email address as the verified sender. That guarantees replies return to the exact mailbox Foremention polls.
+
 ## 4. Configure production secrets/variables
 
 Keep send disabled while configuring:
@@ -63,7 +65,7 @@ ACQUISITION_OUTREACH_SEND_ENABLED=false
 ACQUISITION_OUTREACH_DELIVERABILITY_VERIFIED=false
 ACQUISITION_OUTREACH_ZOHO_REPLY_POLLING_VERIFIED=false
 ACQUISITION_OUTREACH_FROM_EMAIL=Injam <outreach@foremention.com>
-ACQUISITION_OUTREACH_REPLY_TO_EMAIL=<monitored Zoho mailbox>
+ACQUISITION_OUTREACH_REPLY_TO_EMAIL=outreach@foremention.com
 ZOHO_MAIL_CLIENT_ID=<server secret/config>
 ZOHO_MAIL_CLIENT_SECRET=<server secret>
 ZOHO_MAIL_REFRESH_TOKEN=<server secret>
