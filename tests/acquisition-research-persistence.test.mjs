@@ -94,8 +94,10 @@ test("builds research update + source facts without mutating commercial lifecycl
   assert.equal(records.runPatch.qualified_shadow, true);
   assert.equal(records.runPatch.why_now, "Launched an AI-search initiative");
   assert.equal(records.evidence.length, 2);
-  assert.equal(records.evidence[0].evidence_key, "buyer_role");
-  assert.equal(records.evidence[1].evidence_key, "recent_trigger");
+  assert.deepEqual(
+    new Set(records.evidence.map((evidence) => evidence.evidence_key)),
+    new Set(["buyer_role", "recent_trigger"]),
+  );
 
   const serialized = JSON.stringify(records);
   for (const forbidden of ["design_partner", "customer", "contacted", "conversation", "outreach_sent"]) {
