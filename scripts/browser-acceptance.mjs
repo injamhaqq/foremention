@@ -133,12 +133,19 @@ async function verifyExactHealth() {
   }
 }
 
+function isBenignBrowserConsoleNoise(message) {
+  return /^Cookie [“"]dmn_chk_[^”"]+[”"] has been rejected for invalid domain\.?$/.test(message.trim());
+}
+
 function attachRuntimeObservers(page) {
   const consoleErrors = [];
   const pageErrors = [];
   const failedResponses = [];
   page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text());
+    if (message.type() !== "error") return;
+    const text = message.text();
+    if (isBenignBrowserConsoleNoise(text)) return;
+    consoleErrors.push(text);
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("response", (response) => {
