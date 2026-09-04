@@ -1,4 +1,4 @@
-import { SupabaseRequestError, supabaseRest } from "./supabase-rest.ts";
+import { SupabaseRequestError, supabaseRest } from "@/lib/supabase-rest";
 
 export type AcquisitionShadowTerminalStatus =
   | "disabled"
@@ -126,7 +126,7 @@ export async function markAcquisitionShadowDispatched(requestKey: string, eventI
 export async function markAcquisitionShadowRunning(requestKey: string) {
   const now = new Date().toISOString();
   await supabaseRest(
-    `acquisition_shadow_requests?request_key=eq.${encodeURIComponent(requestKey)}&status=eq.requested`,
+    `acquisition_shadow_requests?request_key=eq.${encodeURIComponent(requestKey)}&status=in.(requested,running)`,
     {
       method: "PATCH",
       serviceRole: true,
