@@ -1,4 +1,5 @@
 import type { NormalizedAcquisitionCandidate } from "@/lib/acquisition-discovery";
+import type { AcquisitionResearchAssessment, AcquisitionResearchFact } from "@/lib/acquisition-research";
 import { SupabaseRequestError, supabaseRest } from "@/lib/supabase-rest";
 
 const COMPANY_KEY_PATTERN = /^(domain|name)-[a-z0-9][a-z0-9.-]{0,253}[a-z0-9]$/;
@@ -11,6 +12,12 @@ type CommercialAccountIdentity = {
 type AcquisitionResearchRunIdentity = {
   id: string;
   run_key: string;
+};
+
+export type PersistedDiscoveryIdentity = {
+  accountId: string;
+  researchRunId: string;
+  canonicalCompanyKey: string;
 };
 
 export type DiscoveryPersistenceRecords = {
@@ -40,6 +47,25 @@ export type DiscoveryPersistenceRecords = {
   };
 };
 
+export type ResearchAssessmentPersistenceRecords = {
+  runPatch: {
+    completed_at: string;
+    qualification_score: number;
+    qualification_reasons: string[];
+    score_breakdown: AcquisitionResearchAssessment["scores"];
+    why_now: string | null;
+    disqualifiers: string[];
+    qualified_shadow: boolean;
+  };
+  evidence: Array<{
+    source_url: string;
+    retrieved_at: string;
+    evidence_key: string;
+    evidence_value: string;
+    confidence: number;
+  }>;
+};
+
 function stableHash32(value: string, seed: number) {
   let hash = seed >>> 0;
   for (let index = 0; index < value.length; index += 1) {
@@ -53,6 +79,19 @@ function boundedEvidenceValue(candidate: NormalizedAcquisitionCandidate) {
   const provider = candidate.providerId.trim().slice(0, 80);
   const request = candidate.providerRequestId?.trim().slice(0, 120) || "none";
   return `Public company discovery via ${provider}; provider request ${request}.`.slice(0, 4000);
+}
+
+function latestRetrievedAt(facts: readonly AcquisitionResearchFact[]) {
+  let latest = 0;
+  for (const fact of facts) latest = Math.max(latest, Date.parse(fact.retrievedAt));
+  if (!Number.isFinite(latest) || latest <= 0) throw new Error("ACQUISITION_PERSISTENCE_RESEARCH_TIMESTAMP_REQUIRED");
+  return new Date(latest).toISOString();
+}
+
+function researchEvidenceKey(fact: AcquisitionResearchFact, collisions: ReadonlyMap<string, number>) {
+  const collisionKey = `${fact.sourceUrl}\n${fact.key}`;
+  if ((collisions.get(collisionKey) ?? 0) <= 1) return fact.key;
+  return `${fact.key}-${stableHash32(fact.value.toLowerCase(), 2166136261)}`.slice(0, 120);
 }
 
 export function discoveryRunKey(canonicalCompanyKey: string, retrievedAt: string) {
@@ -104,6 +143,37 @@ export function buildDiscoveryPersistenceRecords(candidate: NormalizedAcquisitio
       evidence_value: boundedEvidenceValue(candidate),
       confidence: 100,
     },
+  };
+}
+
+export function buildResearchAssessmentPersistenceRecords(
+  assessment: AcquisitionResearchAssessment,
+): ResearchAssessmentPersistenceRecords {
+  if (assessment.facts.length === 0) throw new Error("ACQUISITION_PERSISTENCE_RESEARCH_FACTS_REQUIRED");
+
+  const collisions = new Map<string, number>();
+  for (const fact of assessment.facts) {
+    const key = `${fact.sourceUrl}\n${fact.key}`;
+    collisions.set(key, (collisions.get(key) ?? 0) + 1);
+  }
+
+  return {
+    runPatch: {
+      completed_at: latestRetrievedAt(assessment.facts),
+      qualification_score: assessment.qualification.score,
+      qualification_reasons: [...assessment.qualification.reasonCodes],
+      score_breakdown: assessment.scores,
+      why_now: assessment.qualification.whyNow,
+      disqualifiers: [...assessment.disqualifiers],
+      qualified_shadow: assessment.qualification.qualified,
+    },
+    evidence: assessment.facts.map((fact) => ({
+      source_url: fact.sourceUrl,
+      retrieved_at: fact.retrievedAt,
+      evidence_key: researchEvidenceKey(fact, collisions),
+      evidence_value: fact.value.slice(0, 4000),
+      confidence: fact.confidence,
+    })),
   };
 }
 
@@ -178,7 +248,7 @@ async function ensureResearchRun(
   return raced;
 }
 
-export async function persistDiscoveredAcquisitionCandidate(candidate: NormalizedAcquisitionCandidate) {
+export async function persistDiscoveredAcquisitionCandidate(candidate: NormalizedAcquisitionCandidate): Promise<PersistedDiscoveryIdentity> {
   const records = buildDiscoveryPersistenceRecords(candidate);
   const account = await ensureAccount(candidate, records);
   const researchRun = await ensureResearchRun(account, records);
@@ -201,9 +271,47 @@ export async function persistDiscoveredAcquisitionCandidate(candidate: Normalize
 }
 
 export async function persistDiscoveredAcquisitionCandidates(candidates: readonly NormalizedAcquisitionCandidate[]) {
-  const persisted = [];
-  for (const candidate of candidates) {
-    persisted.push(await persistDiscoveredAcquisitionCandidate(candidate));
-  }
+  const persisted: PersistedDiscoveryIdentity[] = [];
+  for (const candidate of candidates) persisted.push(await persistDiscoveredAcquisitionCandidate(candidate));
   return persisted;
+}
+
+export async function persistAcquisitionResearchAssessment(
+  identity: PersistedDiscoveryIdentity,
+  assessment: AcquisitionResearchAssessment,
+) {
+  if (!COMPANY_KEY_PATTERN.test(identity.canonicalCompanyKey)) {
+    throw new Error("ACQUISITION_PERSISTENCE_INVALID_COMPANY_KEY");
+  }
+  const records = buildResearchAssessmentPersistenceRecords(assessment);
+
+  const updated = await supabaseRest<Array<{ id: string }>>(
+    `acquisition_research_runs?id=eq.${encodeURIComponent(identity.researchRunId)}&account_id=eq.${encodeURIComponent(identity.accountId)}&canonical_company_key=eq.${encodeURIComponent(identity.canonicalCompanyKey)}&select=id`,
+    {
+      method: "PATCH",
+      serviceRole: true,
+      body: records.runPatch,
+      prefer: "return=representation",
+    },
+  );
+  if (updated.length !== 1) throw new Error("ACQUISITION_PERSISTENCE_RESEARCH_RUN_NOT_FOUND");
+
+  for (const evidence of records.evidence) {
+    await supabaseRest(
+      "acquisition_research_evidence?on_conflict=research_run_id,source_url,evidence_key",
+      {
+        method: "POST",
+        serviceRole: true,
+        body: { ...evidence, research_run_id: identity.researchRunId },
+        prefer: "resolution=ignore-duplicates,return=minimal",
+      },
+    );
+  }
+
+  return {
+    researchRunId: identity.researchRunId,
+    qualifiedShadow: records.runPatch.qualified_shadow,
+    qualificationScore: records.runPatch.qualification_score,
+    evidenceCount: records.evidence.length,
+  };
 }
