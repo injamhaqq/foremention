@@ -1,0 +1,55 @@
+name: Acquisition Shadow Run
+
+on:
+  # The workflow's first merge to main performs one bounded real shadow run.
+  # Future executions are manual and require the explicit RUN confirmation.
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/acquisition-shadow-run.yml'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type RUN to invoke the bounded production acquisition shadow function'
+        required: true
+        default: 'NO'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acquisition-shadow-production
+  cancel-in-progress: false
+
+jobs:
+  invoke-shadow:
+    name: Invoke bounded acquisition shadow
+    if: github.event_name == 'push' || inputs.confirm == 'RUN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # current v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # current v6
+        with:
+          node-version: 22.13.0
+
+      - name: Invoke production shadow function
+        env:
+          INNGEST_AUTH_TOKEN: ${{ secrets.INNGEST_API_KEY || secrets.INNGEST_SIGNING_KEY }}
+          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
+          ACQUISITION_SHADOW_CONFIRM: ${{ github.event_name == 'push' && 'RUN' || inputs.confirm }}
+        run: node scripts/invoke-acquisition-shadow.mjs
