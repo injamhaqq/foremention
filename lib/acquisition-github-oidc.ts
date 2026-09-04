@@ -75,7 +75,7 @@ export function validateGitHubActionsOidcClaims(
   const githubRunId = typeof claims.run_id === "string" ? claims.run_id : String(claims.run_id ?? "");
   if (!/^\d+$/.test(githubRunId)) throw new Error("ACQUISITION_OIDC_RUN_ID_INVALID");
   const githubRunAttempt = numericClaim(claims.run_attempt);
-  if (!Number.isInteger(githubRunAttempt) || githubRunAttempt === null || githubRunAttempt < 1 || githubRunAttempt > 1000) {
+  if (githubRunAttempt === null || !Number.isInteger(githubRunAttempt) || githubRunAttempt < 1 || githubRunAttempt > 1000) {
     throw new Error("ACQUISITION_OIDC_RUN_ATTEMPT_INVALID");
   }
 
