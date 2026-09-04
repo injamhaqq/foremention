@@ -11,7 +11,12 @@ test("acquisition research persists provenance with deterministic company dedupe
   const migration = await text(migrationPath);
 
   assert.match(migration, /add column if not exists canonical_company_key text/i);
-  assert.match(migration, /unique index if not exists commercial_accounts_canonical_company_key_uidx/i);
+  assert.match(migration, /create or replace function private\.acquisition_company_key/i);
+  assert.match(migration, /commercial_accounts_canonical_company_key_trigger/i);
+  assert.match(migration, /before insert or update of domain, company_name/i);
+  assert.match(migration, /commercial_accounts_canonical_company_key_unique unique \(canonical_company_key\)/i);
+  assert.match(migration, /foreign key \(account_id, canonical_company_key\)/i);
+  assert.match(migration, /references public\.commercial_accounts\(id, canonical_company_key\)/i);
   assert.match(migration, /create table if not exists public\.acquisition_research_runs/i);
   assert.match(migration, /run_key text not null unique/i);
   assert.match(migration, /qualification_score smallint not null/i);
