@@ -2,7 +2,7 @@ import {
   qualifyAcquisitionCandidate,
   type AcquisitionQualificationResult,
   type AcquisitionScoreDimension,
-} from "@/lib/acquisition-qualification";
+} from "./acquisition-qualification.ts";
 
 export const ACQUISITION_RESEARCH_FACT_KEYS = [
   "company_category",
