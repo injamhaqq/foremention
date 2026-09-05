@@ -3,6 +3,7 @@ import {
   getAcquisitionOutreachTransportStatus,
   sendAcquisitionOutreachEmail,
 } from "./acquisition-outreach-transport.ts";
+import { ZohoMailSendUncertainError } from "./acquisition-zoho-mail.ts";
 import { SupabaseRequestError, supabaseRest } from "./supabase-rest.ts";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -205,6 +206,7 @@ export async function sendApprovedAcquisitionOutreach(draftIdInput: string) {
           sent_at: now,
           transport: result.provider,
           external_reference: result.externalReference,
+          provider_message_id: result.providerMessageId ?? null,
         },
         prefer: "return=minimal",
       },
@@ -238,6 +240,19 @@ export async function sendApprovedAcquisitionOutreach(draftIdInput: string) {
 
     return { status: "sent" as const, externalReference: result.externalReference, duplicate: false };
   } catch (error) {
+    if (transport.provider === "zoho" && error instanceof ZohoMailSendUncertainError) {
+      await supabaseRest(
+        `acquisition_sequence_enrollments?id=eq.${encodeURIComponent(enrollment.id)}&status=eq.queued`,
+        {
+          method: "PATCH",
+          serviceRole: true,
+          body: { status: "stopped", stopped_at: new Date().toISOString(), stop_reason: "provider_send_uncertain" },
+          prefer: "return=minimal",
+        },
+      ).catch(() => undefined);
+      throw error;
+    }
+
     await supabaseRest(
       `acquisition_sequence_enrollments?id=eq.${encodeURIComponent(enrollment.id)}&status=eq.queued`,
       {
