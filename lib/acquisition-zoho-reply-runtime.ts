@@ -1,4 +1,5 @@
 import { recordAcquisitionReply } from "./acquisition-outreach-persistence.ts";
+import { canaryConfigFromEnv, processZohoCanaryReplyMessage } from "./acquisition-zoho-canary.ts";
 import {
   getZohoMailConfig,
   getZohoMessageContent,
@@ -61,17 +62,10 @@ async function processZohoReplyMessage(input: {
   accessToken: string;
   config: NonNullable<ReturnType<typeof getZohoMailConfig>>;
   message: ZohoMailMessageSummary;
+  references: readonly string[];
 }) {
-  const header = await getZohoMessageHeader({
-    accessToken: input.accessToken,
-    mailBaseUrl: input.config.mailBaseUrl,
-    accountId: input.config.accountId,
-    folderId: input.message.folderId,
-    messageId: input.message.messageId,
-  });
-  const references = messageReferences(header);
-  if (references.length === 0) return "ignored" as const;
-  const draft = await findDraftByMessageReferences(references);
+  if (input.references.length === 0) return "ignored" as const;
+  const draft = await findDraftByMessageReferences(input.references);
   if (!draft) return "ignored" as const;
   if (!(await senderMatchesDraft(draft, input.message.fromAddress))) return "ignored" as const;
 
@@ -98,16 +92,21 @@ async function processZohoReplyMessage(input: {
 
 export async function pollZohoAcquisitionReplies() {
   if (process.env.ACQUISITION_OUTREACH_PROVIDER?.trim().toLowerCase() !== "zoho") {
-    return { status: "disabled" as const, processed: 0, ignored: 0 };
+    return { status: "disabled" as const, processed: 0, canaryProcessed: 0, ignored: 0 };
   }
-  if (process.env.ACQUISITION_OUTREACH_ZOHO_REPLY_POLLING_VERIFIED !== "true") {
-    return { status: "unverified" as const, processed: 0, ignored: 0 };
+
+  const replyPollingVerified = process.env.ACQUISITION_OUTREACH_ZOHO_REPLY_POLLING_VERIFIED === "true";
+  const canaryEnabled = process.env.ACQUISITION_OUTREACH_CANARY_ENABLED === "true" && Boolean(canaryConfigFromEnv());
+  const verificationMode = !replyPollingVerified && canaryEnabled;
+  if (!replyPollingVerified && !verificationMode) {
+    return { status: "unverified" as const, processed: 0, canaryProcessed: 0, ignored: 0, verificationMode: false };
   }
+
   const config = getZohoMailConfig();
-  if (!config) return { status: "provider_unavailable" as const, processed: 0, ignored: 0 };
+  if (!config) return { status: "provider_unavailable" as const, processed: 0, canaryProcessed: 0, ignored: 0, verificationMode };
   const replyMailbox = zohoEmailAddress(process.env.ACQUISITION_OUTREACH_REPLY_TO_EMAIL);
   if (!replyMailbox || replyMailbox !== config.fromAddress) {
-    return { status: "reply_mailbox_mismatch" as const, processed: 0, ignored: 0 };
+    return { status: "reply_mailbox_mismatch" as const, processed: 0, canaryProcessed: 0, ignored: 0, verificationMode };
   }
 
   const accessToken = await refreshZohoMailAccessToken(config);
@@ -119,13 +118,43 @@ export async function pollZohoAcquisitionReplies() {
   });
 
   let processed = 0;
+  let canaryProcessed = 0;
   let ignored = 0;
   for (const message of messages) {
-    const outcome = await processZohoReplyMessage({ accessToken, config, message });
+    const header = await getZohoMessageHeader({
+      accessToken,
+      mailBaseUrl: config.mailBaseUrl,
+      accountId: config.accountId,
+      folderId: message.folderId,
+      messageId: message.messageId,
+    });
+    const references = messageReferences(header);
+
+    if (canaryEnabled && references.length > 0) {
+      const canaryOutcome = await processZohoCanaryReplyMessage({
+        references,
+        sender: message.fromAddress,
+        messageId: message.messageId,
+        receivedAt: message.receivedAt,
+      });
+      if (canaryOutcome === "processed") {
+        canaryProcessed += 1;
+        continue;
+      }
+    }
+
+    // Before verification, canary mode is intentionally incapable of ingesting
+    // ordinary acquisition replies into customer/commercial evidence tables.
+    if (verificationMode) {
+      ignored += 1;
+      continue;
+    }
+
+    const outcome = await processZohoReplyMessage({ accessToken, config, message, references });
     if (outcome === "processed") processed += 1;
     else ignored += 1;
   }
-  return { status: "complete" as const, processed, ignored, examined: messages.length };
+  return { status: "complete" as const, processed, canaryProcessed, ignored, examined: messages.length, verificationMode };
 }
 
 export const zohoReplyRuntimeInternals = { messageReferences, safeReplyText };
