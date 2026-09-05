@@ -3,7 +3,7 @@ create table if not exists public.acquisition_zoho_mail_canaries (
   canary_key text not null unique,
   recipient_email text not null,
   sender_email text not null,
-  status text not null default 'requested' check (status in ('requested', 'sent', 'reply_received', 'send_uncertain')),
+  status text not null default 'requested' check (status in ('requested', 'sending', 'sent', 'reply_received', 'send_uncertain')),
   provider_message_id text,
   zoho_message_id text,
   sent_at timestamptz,
