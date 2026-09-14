@@ -6,10 +6,10 @@ export type ValueReport = {
   actionsApproved: number;
   actionsCompleted: number;
   itemsRemeasured: number;
-  improvementsObserved: number;
-  regressionsObserved: number;
-  mixedChangesObserved: number;
-  noMaterialChangeObserved: number;
+  higherObserved: number;
+  lowerObserved: number;
+  mixedObserved: number;
+  noDirectionalChangeObserved: number;
   incomparableMeasurements: number;
   competitiveGapsAddressed: number;
   unresolvedItems: number;
@@ -66,7 +66,7 @@ function countOutcome(records: OutcomeLedgerRecord[], state: OutcomeState, since
  * Derive operational value from the immutable outcome chain. This function has
  * no currency input by design: economic value remains explicitly unproven until
  * a separately verified economic record exists. It never converts chronology,
- * movement, or completed work into dollar ROI.
+ * movement, or completed work into dollar ROI or a value judgment.
  */
 export function buildBusinessValueReport(
   records: OutcomeLedgerRecord[],
@@ -76,10 +76,10 @@ export function buildBusinessValueReport(
   const until = validTime(period.until || null);
   const actionsCompleted = countStep(records, "completion", since, until);
   const itemsRemeasured = countStep(records, "measurement", since, until);
-  const improvementsObserved = countOutcome(records, "improved", since, until);
-  const regressionsObserved = countOutcome(records, "regressed", since, until);
-  const mixedChangesObserved = countOutcome(records, "mixed", since, until);
-  const noMaterialChangeObserved = countOutcome(records, "no_material_change", since, until);
+  const higherObserved = countOutcome(records, "higher_observed", since, until);
+  const lowerObserved = countOutcome(records, "lower_observed", since, until);
+  const mixedObserved = countOutcome(records, "mixed_observed", since, until);
+  const noDirectionalChangeObserved = countOutcome(records, "no_directional_change", since, until);
   const incomparableMeasurements = records.filter((record) => {
     const item = step(record, "measurement");
     return record.outcomeState === "incomparable" && Boolean(item?.done) && inWindow(item?.at, since, until);
@@ -100,10 +100,10 @@ export function buildBusinessValueReport(
     actionsApproved: countStep(records, "action", since, until),
     actionsCompleted,
     itemsRemeasured,
-    improvementsObserved,
-    regressionsObserved,
-    mixedChangesObserved,
-    noMaterialChangeObserved,
+    higherObserved,
+    lowerObserved,
+    mixedObserved,
+    noDirectionalChangeObserved,
     incomparableMeasurements,
     competitiveGapsAddressed,
     unresolvedItems,
@@ -113,7 +113,7 @@ export function buildBusinessValueReport(
       currency: null,
       basis: "The Outcome Ledger contains operational evidence and eligible before-and-after observations, not verified economic attribution. No dollar ROI is inferred.",
     },
-    operationalValue: `${actionsCompleted} completed action${actionsCompleted === 1 ? "" : "s"}; ${itemsRemeasured} later measurement${itemsRemeasured === 1 ? "" : "s"}; ${improvementsObserved} eligible improvement${improvementsObserved === 1 ? "" : "s"}; ${regressionsObserved} eligible regression${regressionsObserved === 1 ? "" : "s"}.`,
+    operationalValue: `${actionsCompleted} completed action${actionsCompleted === 1 ? "" : "s"}; ${itemsRemeasured} later measurement${itemsRemeasured === 1 ? "" : "s"}; ${higherObserved} higher-direction observation${higherObserved === 1 ? "" : "s"}; ${lowerObserved} lower-direction observation${lowerObserved === 1 ? "" : "s"}.`,
   };
 }
 
@@ -122,36 +122,36 @@ export function buildExecutiveDigest(records: OutcomeLedgerRecord[]): ExecutiveD
   const open = records.filter((record) => step(record, "action")?.done && !step(record, "completion")?.done);
   const awaitingMeasurement = records.filter((record) => step(record, "completion")?.done && !step(record, "measurement")?.done);
   const incomparable = records.filter((record) => record.outcomeState === "incomparable");
-  const regressions = records.filter((record) => record.comparisonEligible === true && record.outcomeState === "regressed");
-  const eligibleOutcomes = records.filter((record) => record.comparisonEligible === true && step(record, "outcome")?.done);
+  const lowerDirection = records.filter((record) => record.comparisonEligible === true && record.outcomeState === "lower_observed");
+  const eligibleComparisons = records.filter((record) => record.comparisonEligible === true && step(record, "outcome")?.done);
   const earliestDue = open
     .filter((record) => validTime(record.dueAt) !== null)
     .slice()
     .sort((a, b) => (validTime(a.dueAt) || Number.MAX_SAFE_INTEGER) - (validTime(b.dueAt) || Number.MAX_SAFE_INTEGER))[0];
 
   const changedParts = [
-    report.improvementsObserved ? `${report.improvementsObserved} eligible improvement${report.improvementsObserved === 1 ? "" : "s"}` : "",
-    report.regressionsObserved ? `${report.regressionsObserved} eligible regression${report.regressionsObserved === 1 ? "" : "s"}` : "",
-    report.mixedChangesObserved ? `${report.mixedChangesObserved} mixed result${report.mixedChangesObserved === 1 ? "" : "s"}` : "",
-    report.noMaterialChangeObserved ? `${report.noMaterialChangeObserved} unchanged eligible result${report.noMaterialChangeObserved === 1 ? "" : "s"}` : "",
+    report.higherObserved ? `${report.higherObserved} higher-direction observation${report.higherObserved === 1 ? "" : "s"}` : "",
+    report.lowerObserved ? `${report.lowerObserved} lower-direction observation${report.lowerObserved === 1 ? "" : "s"}` : "",
+    report.mixedObserved ? `${report.mixedObserved} mixed-direction observation${report.mixedObserved === 1 ? "" : "s"}` : "",
+    report.noDirectionalChangeObserved ? `${report.noDirectionalChangeObserved} observation${report.noDirectionalChangeObserved === 1 ? "" : "s"} with no directional change` : "",
   ].filter(Boolean);
 
   return {
-    whatChanged: changedParts.length ? `${changedParts.join("; ")}.` : "No eligible observed outcome is available yet; Foremention is withholding trend language until exact comparison requirements are met.",
-    needsAttention: regressions.length || incomparable.length || report.unresolvedItems
-      ? `${regressions.length} regression${regressions.length === 1 ? "" : "s"}, ${incomparable.length} incomparable measurement${incomparable.length === 1 ? "" : "s"}, and ${report.unresolvedItems} unresolved item${report.unresolvedItems === 1 ? "" : "s"} need review.`
+    whatChanged: changedParts.length ? `${changedParts.join("; ")}.` : "No eligible directional comparison is available yet; Foremention is withholding trend language until exact comparison requirements are met.",
+    needsAttention: lowerDirection.length || incomparable.length || report.unresolvedItems
+      ? `${lowerDirection.length} lower-direction observation${lowerDirection.length === 1 ? "" : "s"}, ${incomparable.length} incomparable measurement${incomparable.length === 1 ? "" : "s"}, and ${report.unresolvedItems} unresolved item${report.unresolvedItems === 1 ? "" : "s"} need review.`
       : "No unresolved outcome-ledger item currently requires attention.",
     competitorMovement: report.competitiveGapsAddressed
       ? `${report.competitiveGapsAddressed} competitive comparison gap${report.competitiveGapsAddressed === 1 ? "" : "s"} had a completed intervention. Current competitor movement still belongs to the exact Comparisons evidence layer.`
       : "No completed competitive-gap intervention is recorded here. Current competitor movement remains sourced from exact Comparisons, not inferred from this ledger.",
     openActions: open.length ? `${open.length} approved action${open.length === 1 ? "" : "s"} remain open${open.filter((record) => record.ownerId).length ? `; ${open.filter((record) => record.ownerId).length} have an assigned owner` : "; none has a recorded owner"}.` : "No approved action is waiting for recorded completion.",
-    interventionObservation: eligibleOutcomes.length ? `${eligibleOutcomes.length} completed intervention${eligibleOutcomes.length === 1 ? "" : "s"} coincide with an eligible later measurement. This is observed association only, not causal attribution.` : "No completed intervention currently has an eligible later outcome comparison.",
+    interventionObservation: eligibleComparisons.length ? `${eligibleComparisons.length} completed intervention${eligibleComparisons.length === 1 ? "" : "s"} coincide with an eligible later comparison. This is observed association only, not causal attribution or proof of business value.` : "No completed intervention currently has an eligible later directional comparison.",
     reviewNext: earliestDue
       ? `Review “${earliestDue.title}” next; it is the earliest dated open action${earliestDue.dueAt ? ` (${new Date(earliestDue.dueAt).toLocaleDateString("en-GB")})` : ""}.`
-      : regressions[0]
-        ? `Review the regression on “${regressions[0].title}” before approving another intervention.`
+      : lowerDirection[0]
+        ? `Review the lower-direction observation on “${lowerDirection[0].title}” before deciding the next intervention.`
         : incomparable[0]
-          ? `Review comparison eligibility for “${incomparable[0].title}”; the later measurement was retained but no outcome comparison was calculated.`
+          ? `Review comparison eligibility for “${incomparable[0].title}”; the later measurement was retained but no directional comparison was calculated.`
           : awaitingMeasurement[0]
             ? `Remeasure “${awaitingMeasurement[0].title}” under the exact eligible protocol before judging the intervention.`
             : "Review the latest Recommendation Record and exact Comparison before deciding the next intervention.",

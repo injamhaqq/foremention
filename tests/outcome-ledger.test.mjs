@@ -67,7 +67,7 @@ test("the outcome ledger preserves the complete decision-to-outcome chain in ord
   assert.equal(record.steps.find((item) => item.key === "decision").actorId, asset.decision_by);
   assert.equal(record.steps.find((item) => item.key === "completion").actorId, asset.applied_by);
   assert.equal(record.comparisonEligible, true);
-  assert.equal(record.outcomeState, "improved");
+  assert.equal(record.outcomeState, "higher_observed");
 });
 
 test("eligible deltas are derived only from persisted run metrics and stay non-causal", () => {
@@ -98,7 +98,7 @@ test("malformed or mismatched stored outcomes never become displayed evidence", 
   }
 });
 
-test("an incomparable follow-up remains measured but fails closed before an outcome label", () => {
+test("an incomparable follow-up remains measured but fails closed before a directional label", () => {
   const incomparable = { ...followUp, status: "incomparable", outcome: { baselineRunId: baselineRun.id, followUpRunId: followUpRun.id, interpretation: "Exact model changed." } };
   const [record] = build({ followUps: [incomparable] });
   assert.equal(record.comparison, null);
@@ -109,10 +109,10 @@ test("an incomparable follow-up remains measured but fails closed before an outc
   assert.match(record.steps.find((item) => item.key === "outcome").detail, /withheld/i);
 });
 
-test("directional outcome labels do not treat citation volume as automatic business improvement", () => {
+test("directional labels do not treat citation volume as automatic business value", () => {
   const contextualOnly = { ...followUpRun, brand_presence_pct: 20, first_mention_pct: 10, citation_count: 20, new_source_count: 10 };
   const [record] = build({ runs: [baselineRun, contextualOnly] });
-  assert.equal(record.outcomeState, "no_material_change");
+  assert.equal(record.outcomeState, "no_directional_change");
 });
 
 test("an incomplete chain does not fabricate evidence, ownership, completion, or outcome", () => {
@@ -155,7 +155,7 @@ test("the ledger page is tenant-scoped, demo-isolated, executive-readable, and f
   assert.match(page, /What needs attention\?/);
   assert.match(page, /Where are competitors moving\?/);
   assert.match(page, /What should we review next\?/);
-  assert.match(page, /never claims an intervention caused/);
+  assert.match(page, /without claiming that chronology proves causation or business value/);
 });
 
 test("a pending migration is an explainable state, not a crash or silent empty page", async () => {

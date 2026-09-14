@@ -22,7 +22,7 @@ const record = (overrides = {}) => ({
   comparison: overrides.comparison === undefined ? {} : overrides.comparison,
   comparisonEligible: overrides.comparisonEligible === undefined ? true : overrides.comparisonEligible,
   measurementStatus: overrides.measurementStatus || "complete",
-  outcomeState: overrides.outcomeState || "improved",
+  outcomeState: overrides.outcomeState || "higher_observed",
   confidence: "reviewed",
   confidenceBasis: "reviewed",
   limitations: ["No causal attribution."],
@@ -32,14 +32,14 @@ const record = (overrides = {}) => ({
 test("business value reports operational facts without inventing dollar ROI", () => {
   const report = buildBusinessValueReport([
     record(),
-    record({ id: "r2", assetType: "faq_evidence_brief", outcomeState: "regressed" }),
+    record({ id: "r2", assetType: "faq_evidence_brief", outcomeState: "lower_observed" }),
   ]);
   assert.equal(report.issuesIdentified, 2);
   assert.equal(report.actionsApproved, 2);
   assert.equal(report.actionsCompleted, 2);
   assert.equal(report.itemsRemeasured, 2);
-  assert.equal(report.improvementsObserved, 1);
-  assert.equal(report.regressionsObserved, 1);
+  assert.equal(report.higherObserved, 1);
+  assert.equal(report.lowerObserved, 1);
   assert.equal(report.competitiveGapsAddressed, 1);
   assert.equal(report.unresolvedItems, 0);
   assert.deepEqual(report.economicValue, {
@@ -51,7 +51,7 @@ test("business value reports operational facts without inventing dollar ROI", ()
   assert.match(report.economicValue.basis, /No dollar ROI is inferred/i);
 });
 
-test("an incomparable later measurement counts as remeasured but never as improvement or regression", () => {
+test("an incomparable later measurement counts as remeasured but never as directional evidence", () => {
   const incomparable = record({
     comparison: null,
     comparisonEligible: false,
@@ -62,8 +62,8 @@ test("an incomparable later measurement counts as remeasured but never as improv
   const report = buildBusinessValueReport([incomparable]);
   assert.equal(report.itemsRemeasured, 1);
   assert.equal(report.incomparableMeasurements, 1);
-  assert.equal(report.improvementsObserved, 0);
-  assert.equal(report.regressionsObserved, 0);
+  assert.equal(report.higherObserved, 0);
+  assert.equal(report.lowerObserved, 0);
   assert.equal(report.unresolvedItems, 1);
 });
 
