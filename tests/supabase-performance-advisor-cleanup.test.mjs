@@ -23,7 +23,7 @@ test("RLS auth helpers are init-plan safe and duplicate run index is removed", a
   for (const policyName of policyContracts) {
     assert.match(
       migration,
-      new RegExp(`alter\\s+policy\\s+${policyName}\\s+on\\s+public\\.`, "i"),
+      new RegExp(`alter\\s+policy\\s+"?${policyName}"?\\s+on\\s+public\\.`, "i"),
       `${policyName} must be altered in place so command/role semantics are preserved`,
     );
   }
