@@ -71,6 +71,7 @@ jobs:
           supabase db reset
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-company-migrations.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-tenant-isolation.sql
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-run-accounting.sql
 
       - name: Run tests
         shell: bash
