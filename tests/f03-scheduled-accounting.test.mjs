@@ -14,13 +14,26 @@ test("scheduled measurement uses the same atomic quota and budget reservations a
   assert.doesNotMatch(dispatcher, /supabaseRest\("usage_events"/);
 });
 
+test("budget reservation serializes queued candidates so one request wins instead of both rejecting", async () => {
+  const [manualRoute, dispatcher, migration] = await Promise.all([
+    text("app/api/runs/route.ts"),
+    text("lib/jobs/measurement-schedule-dispatcher.ts"),
+    text("supabase/migrations/20260914000300_run_accounting_role_alignment.sql"),
+  ]);
+  assert.match(manualRoute, /estimated_max_cost_usd:\s*0/);
+  assert.match(dispatcher, /estimated_max_cost_usd:\s*0/);
+  assert.match(migration, /p_estimated_max_cost_usd\s*<=\s*0/i);
+  assert.match(migration, /status\s*=\s*'running'[\s\S]*status\s*=\s*'queued'[\s\S]*estimated_max_cost_usd\s*>\s*0/is);
+  assert.match(migration, /set\s+estimated_max_cost_usd\s*=\s*p_estimated_max_cost_usd/i);
+});
+
 test("scheduled accounting preserves fail-closed actor authorization and admin parity", async () => {
   const [dispatcher, migration] = await Promise.all([
     text("lib/jobs/measurement-schedule-dispatcher.ts"),
     text("supabase/migrations/20260914000300_run_accounting_role_alignment.sql"),
   ]);
   assert.match(dispatcher, /if \(!schedule\.created_by\) return null/);
-  assert.match(dispatcher, /p_actor_id: schedule\.created_by/);
+  assert.match(dispatcher, /p_actor_id:\s*schedule\.created_by/);
   assert.match(migration, /member\.role in \([^)]*'owner'[^)]*'admin'[^)]*'analyst'[^)]*\)/is);
   for (const fn of ["reserve_run_quota_server", "reserve_run_budget_server", "release_queued_run_server"]) {
     assert.match(migration, new RegExp(`create or replace function public\\.${fn}`));
