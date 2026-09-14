@@ -59,7 +59,7 @@ test("Groq has fixed pre-call run and organization spend ceilings without prompt
     text("lib/providers/groq.ts"),
     text("lib/collection-policy.ts"),
   ]);
-  assert.match(policy, /maxRunCostUsd: 0\.10/);
+  assert.match(policy, /maxRunCostUsd: 0\.50/);
   assert.match(policy, /maxMonthlyOrgSpendUsd: 5\.00/);
   assert.match(route, /providerId === "groq"[\s\S]*GROQ_SPEND_LIMITS\.maxRunCostUsd/);
   assert.match(job, /recordedOrganizationMonthlyCost/);
