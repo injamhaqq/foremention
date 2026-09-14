@@ -131,14 +131,69 @@ begin
 end
 $$;
 
--- Service-role/database invariant: even privileged writers must not be able to attach
--- a Tenant A child row to a Tenant B parent merely by knowing the parent's UUID.
+-- Role downgrade must take effect immediately; a viewer cannot keep analyst write power.
+reset role;
+update public.organization_members
+set role = 'viewer'
+where organization_id = 'f0200000-0000-4000-8000-000000000001'::uuid
+  and user_id = 'f0100000-0000-4000-8000-000000000003'::uuid;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'f0100000-0000-4000-8000-000000000003', true);
+
+do $$
+declare
+  changed integer := 0;
+begin
+  begin
+    update public.prompts
+    set prompt_text = 'viewer must not write'
+    where id = 'f0400000-0000-4000-8000-000000000001'::uuid;
+    get diagnostics changed = row_count;
+  exception when insufficient_privilege then
+    changed := 0;
+  end;
+  if changed <> 0 then
+    raise exception 'Role downgrade did not revoke prompt write access';
+  end if;
+end
+$$;
+
+-- Membership revocation must remove tenant visibility without waiting for a new session.
+reset role;
+delete from public.organization_members
+where organization_id = 'f0200000-0000-4000-8000-000000000001'::uuid
+  and user_id = 'f0100000-0000-4000-8000-000000000003'::uuid;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'f0100000-0000-4000-8000-000000000003', true);
+
+do $$
+declare
+  denied boolean := false;
+begin
+  if exists (select 1 from public.organizations where id = 'f0200000-0000-4000-8000-000000000001'::uuid)
+     or exists (select 1 from public.runs where organization_id = 'f0200000-0000-4000-8000-000000000001'::uuid)
+     or exists (select 1 from public.run_answers where organization_id = 'f0200000-0000-4000-8000-000000000001'::uuid) then
+    raise exception 'Revoked member retained tenant read access';
+  end if;
+  begin
+    insert into public.categories (organization_id, name)
+    values ('f0200000-0000-4000-8000-000000000001'::uuid, 'revoked member write');
+  exception when insufficient_privilege then
+    denied := true;
+  end;
+  if not denied then raise exception 'Revoked member retained tenant write access'; end if;
+end
+$$;
+
+-- Service-role/database invariant: privileged writers cannot attach a tenant-owned
+-- child to another tenant's parent merely by knowing the parent's UUID.
 reset role;
 
 do $$
 declare
-  rejected boolean := false;
+  rejected boolean;
 begin
+  rejected := false;
   begin
     insert into public.run_answers (
       id, run_id, organization_id, prompt_id, prompt_key, provider, model, answer_text, collected_at
@@ -154,6 +209,77 @@ begin
   end;
   if not rejected then
     raise exception 'Database accepted a cross-tenant run_answers -> runs attachment';
+  end if;
+
+  rejected := false;
+  begin
+    insert into public.citations (id, organization_id, run_answer_id, source_id, ordinal)
+    values (
+      'f0800000-0000-4000-8000-000000000098'::uuid,
+      'f0200000-0000-4000-8000-000000000001'::uuid,
+      'f0600000-0000-4000-8000-000000000002'::uuid,
+      'f0700000-0000-4000-8000-000000000001'::uuid,
+      2
+    );
+  exception when foreign_key_violation or check_violation or raise_exception then
+    rejected := true;
+  end;
+  if not rejected then
+    raise exception 'Database accepted a cross-tenant citation -> run_answer attachment';
+  end if;
+
+  rejected := false;
+  begin
+    insert into public.citations (id, organization_id, run_answer_id, source_id, ordinal)
+    values (
+      'f0800000-0000-4000-8000-000000000097'::uuid,
+      'f0200000-0000-4000-8000-000000000001'::uuid,
+      'f0600000-0000-4000-8000-000000000001'::uuid,
+      'f0700000-0000-4000-8000-000000000002'::uuid,
+      3
+    );
+  exception when foreign_key_violation or check_violation or raise_exception then
+    rejected := true;
+  end;
+  if not rejected then
+    raise exception 'Database accepted a cross-tenant citation -> source attachment';
+  end if;
+
+  rejected := false;
+  begin
+    insert into public.run_attempts (
+      id, organization_id, run_id, prompt_id, provider, attempt_number, status
+    ) values (
+      'f0900000-0000-4000-8000-000000000099'::uuid,
+      'f0200000-0000-4000-8000-000000000001'::uuid,
+      'f0500000-0000-4000-8000-000000000002'::uuid,
+      'f0400000-0000-4000-8000-000000000001'::uuid,
+      'fixture', 1, 'queued'
+    );
+  exception when foreign_key_violation or check_violation or raise_exception then
+    rejected := true;
+  end;
+  if not rejected then
+    raise exception 'Database accepted a cross-tenant run_attempt -> run attachment';
+  end if;
+
+  rejected := false;
+  begin
+    insert into public.source_observations (
+      id, organization_id, source_id, run_answer_id, prompt_id, provider, observed_at
+    ) values (
+      'f0a00000-0000-4000-8000-000000000099'::uuid,
+      'f0200000-0000-4000-8000-000000000001'::uuid,
+      'f0700000-0000-4000-8000-000000000002'::uuid,
+      'f0600000-0000-4000-8000-000000000001'::uuid,
+      'f0400000-0000-4000-8000-000000000001'::uuid,
+      'fixture', now()
+    );
+  exception when foreign_key_violation or check_violation or raise_exception then
+    rejected := true;
+  end;
+  if not rejected then
+    raise exception 'Database accepted a cross-tenant source_observation -> source attachment';
   end if;
 end
 $$;
