@@ -27,6 +27,16 @@ test("budget reservation serializes queued candidates so one request wins instea
   assert.match(migration, /set\s+estimated_max_cost_usd\s*=\s*p_estimated_max_cost_usd/i);
 });
 
+test("scheduled dispatch is recoverable and advances cadence only after durable event dispatch", async () => {
+  const dispatcher = await text("lib/jobs/measurement-schedule-dispatcher.ts");
+  assert.match(dispatcher, /idempotency_key=eq/);
+  assert.match(dispatcher, /foremention-schedule-\$\{data\.runId\}/);
+  const dispatchIndex = dispatcher.indexOf("step.sendEvent");
+  const advanceIndex = dispatcher.lastIndexOf("measurement_schedules?id=eq.");
+  assert.ok(dispatchIndex >= 0, "expected durable schedule event dispatch");
+  assert.ok(advanceIndex > dispatchIndex, "schedule cadence must advance only after event dispatch succeeds");
+});
+
 test("scheduled accounting preserves fail-closed actor authorization and admin parity", async () => {
   const [dispatcher, migration] = await Promise.all([
     text("lib/jobs/measurement-schedule-dispatcher.ts"),
