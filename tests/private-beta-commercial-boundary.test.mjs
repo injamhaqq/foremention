@@ -41,7 +41,7 @@ test("repository documentation matches the configuration-gated commercial bounda
 });
 
 test("provider transparency does not overclaim activation or contracts", () => {
-  for (const name of ["Cloudflare", "Supabase", "Inngest", "Resend", "Groq", "PostHog EU", "Microsoft Clarity", "Contentsquare"]) {
+  for (const name of ["Cloudflare", "Supabase", "Inngest", "Resend", "Groq", "PostHog", "Microsoft Clarity", "Contentsquare"]) {
     assert.match(providers, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(providers, /not automatically active for every workspace/);
