@@ -34,11 +34,12 @@ test("Groq web-search execution remains distinct from returned citations", async
   assert.match(envExample, /GROQ_INPUT_COST_PER_MILLION_USD=0\.075/);
   assert.match(envExample, /GROQ_OUTPUT_COST_PER_MILLION_USD=0\.30/);
   assert.match(envExample, /GROQ_REQUEST_COST_USD=0\.05/);
+  assert.match(envExample, /FOREMENTION_MAX_RUN_COST_USD=0\.50/);
   assert.match(workerConfig, /"GROQ_MODEL":\s*"openai\/gpt-oss-20b"/);
   assert.match(workerConfig, /"GROQ_INPUT_COST_PER_MILLION_USD":\s*"0\.075"/);
   assert.match(workerConfig, /"GROQ_OUTPUT_COST_PER_MILLION_USD":\s*"0\.30"/);
   assert.match(workerConfig, /"GROQ_REQUEST_COST_USD":\s*"0\.05"/);
-  assert.match(workerConfig, /"FOREMENTION_MAX_RUN_COST_USD":\s*"0\.10"/);
+  assert.match(workerConfig, /"FOREMENTION_MAX_RUN_COST_USD":\s*"0\.50"/);
 
   assert.match(diagnostics, /raw_json/);
   assert.match(diagnostics, /sanitizeProviderRunDiagnostics/);
