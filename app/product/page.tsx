@@ -16,7 +16,7 @@ const stages = [
   ["02", "Understand", "Review the evidence, Company Truth, eligibility, and cross-business context before treating a recommendation gap as a company problem."],
   ["03", "Decide", "Turn a decision-relevant gap into a Change Specification with the exact change, evidence, owner, acceptance criteria, and verification plan."],
   ["04", "Execute", "Generate or attach execution assets only after human review and record the page, PR, document, ticket, release, policy, product, or other reference the customer actually changed."],
-  ["05", "Verify", "Remeasure under comparable conditions and record IMPROVED, UNCHANGED, WORSENED, or INSUFFICIENT_EVIDENCE without turning association into a causal claim."],
+  ["05", "Verify", "Remeasure under comparable conditions and record HIGHER_OBSERVED, LOWER_OBSERVED, MIXED_OBSERVED, NO_DIRECTIONAL_CHANGE, or INSUFFICIENT_EVIDENCE without turning direction into business value or association into a causal claim."],
 ] as const;
 
 const decisionLayers = [
