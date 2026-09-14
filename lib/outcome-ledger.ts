@@ -42,7 +42,7 @@ export type OutcomeLedgerRunRow = { id: string; status: string; brand_presence_p
 
 export type OutcomeLedgerStepKey = "observation" | "evidence" | "recommendation" | "decision" | "action" | "owner" | "completion" | "measurement" | "outcome";
 export type OutcomeLedgerStep = { key: OutcomeLedgerStepKey; label: string; done: boolean; at: string | null; actorId: string | null; detail: string };
-export type OutcomeState = "improved" | "regressed" | "mixed" | "no_material_change" | "incomparable" | "pending";
+export type OutcomeState = "higher_observed" | "lower_observed" | "mixed_observed" | "no_directional_change" | "incomparable" | "pending";
 
 export type OutcomeLedgerRecord = {
   id: string;
@@ -126,10 +126,10 @@ function classifyOutcome(comparison: ReturnType<typeof compareResolutionRuns> | 
   const directional = [comparison.brandPresencePct.delta, comparison.firstMentionPct.delta];
   const positive = directional.some((delta) => delta > 0);
   const negative = directional.some((delta) => delta < 0);
-  if (positive && negative) return "mixed";
-  if (positive) return "improved";
-  if (negative) return "regressed";
-  return "no_material_change";
+  if (positive && negative) return "mixed_observed";
+  if (positive) return "higher_observed";
+  if (negative) return "lower_observed";
+  return "no_directional_change";
 }
 
 const uniqueLimitations = (...groups: Array<Array<string | null | undefined>>) => Array.from(new Set(groups.flat().map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
@@ -179,7 +179,7 @@ export function buildOutcomeLedger(input: {
     const confidenceBasis = comparison && evidenceReviewed
       ? "Verified linked evidence and an eligible exact-protocol remeasurement are present. This supports an observed association, not causation."
       : baselineMeasured && evidenceReviewed
-        ? "The baseline Recommendation Record and linked evidence are reviewed, but no eligible observed outcome is available yet."
+        ? "The baseline Recommendation Record and linked evidence are reviewed, but no eligible directional comparison is available yet."
         : baselineMeasured
           ? "A reviewed baseline exists, but this read does not contain a verified linked evidence record."
           : "No readable finalized reviewed baseline is available for this record.";
@@ -193,7 +193,7 @@ export function buildOutcomeLedger(input: {
       { key: "owner", label: "Owner", done: Boolean(opportunity?.owner_id), at: opportunity?.updated_at || null, actorId: opportunity?.owner_id || null, detail: opportunity?.owner_id ? `Assigned owner${opportunity.due_at ? ` · due ${opportunity.due_at}` : ""}${opportunity.next_action ? ` · ${opportunity.next_action}` : ""}` : "No action owner is assigned." },
       { key: "completion", label: "Completion", done: Boolean(asset.applied_at), at: asset.applied_at, actorId: asset.applied_by || null, detail: asset.application_reference || "Not recorded as applied yet." },
       { key: "measurement", label: "Later measurement", done: measurementComplete, at: measurementComplete ? followUp?.completed_at || null : followUp?.requested_at || null, actorId: followUp?.recorded_by || followUp?.requested_by || null, detail: followUp ? (measurementComplete ? followUp.status === "incomparable" ? "A later measurement finished, but exact comparison eligibility failed closed." : "The same eligible measurement protocol was completed again." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
-      { key: "outcome", label: "Observed outcome", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, actorId: followUp?.recorded_by || null, detail: comparison ? `${outcomeState.replaceAll("_", " ")}. ${comparison.interpretation}` : followUp?.status === "incomparable" ? "Outcome comparison withheld because the later observation was not eligible for exact comparison." : "No eligible observed outcome is available yet." },
+      { key: "outcome", label: "Observed direction", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, actorId: followUp?.recorded_by || null, detail: comparison ? `${outcomeState.replaceAll("_", " ")}. ${comparison.interpretation}` : followUp?.status === "incomparable" ? "Directional comparison withheld because the later observation was not eligible for exact comparison." : "No eligible directional comparison is available yet." },
     ];
 
     return {
