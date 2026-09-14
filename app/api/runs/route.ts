@@ -159,7 +159,7 @@ export async function POST(request: Request) {
         provider_ids: [providerId],
         prompt_count: prompts.length,
         requested_units: requestedUnits,
-        estimated_max_cost_usd: estimatedMaximumCost,
+        estimated_max_cost_usd: 0,
         idempotency_key: idempotencyKey,
         active_request_key: activeRequestKey,
         methodology_version: currentObservationMethodologyVersion(),
