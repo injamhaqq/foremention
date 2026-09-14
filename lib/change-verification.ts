@@ -1,4 +1,10 @@
-export const CHANGE_VERIFICATION_STATES = ["IMPROVED", "UNCHANGED", "WORSENED", "INSUFFICIENT_EVIDENCE"] as const;
+export const CHANGE_VERIFICATION_STATES = [
+  "HIGHER_OBSERVED",
+  "LOWER_OBSERVED",
+  "MIXED_OBSERVED",
+  "NO_DIRECTIONAL_CHANGE",
+  "INSUFFICIENT_EVIDENCE",
+] as const;
 export type ChangeVerificationState = typeof CHANGE_VERIFICATION_STATES[number];
 
 type DeltaMetric = {
@@ -36,7 +42,7 @@ export function assessChangeVerification(input: {
   outcome: FollowUpOutcome;
   limitation?: string | null;
 }): ChangeVerificationResult {
-  const limitation = input.limitation?.trim() || "Observed before-and-after association only; no causal attribution is claimed.";
+  const limitation = input.limitation?.trim() || "Observed before-and-after association only; no causal attribution or business-value judgment is claimed.";
   const metricSnapshot = {
     brandPresencePct: input.outcome.brandPresencePct || null,
     firstMentionPct: input.outcome.firstMentionPct || null,
@@ -80,7 +86,7 @@ export function assessChangeVerification(input: {
 
   if (hasPositive && hasNegative) {
     return {
-      verificationState: "INSUFFICIENT_EVIDENCE",
+      verificationState: "MIXED_OBSERVED",
       comparisonEligible: true,
       reasonCodes: ["mixed_direction"],
       metricSnapshot,
@@ -91,9 +97,9 @@ export function assessChangeVerification(input: {
 
   if (hasPositive) {
     return {
-      verificationState: "IMPROVED",
+      verificationState: "HIGHER_OBSERVED",
       comparisonEligible: true,
-      reasonCodes: ["primary_recommendation_metrics_positive"],
+      reasonCodes: ["primary_recommendation_metrics_higher"],
       metricSnapshot,
       limitations: [limitation],
       causalAttribution: "not_claimed",
@@ -102,9 +108,9 @@ export function assessChangeVerification(input: {
 
   if (hasNegative) {
     return {
-      verificationState: "WORSENED",
+      verificationState: "LOWER_OBSERVED",
       comparisonEligible: true,
-      reasonCodes: ["primary_recommendation_metrics_negative"],
+      reasonCodes: ["primary_recommendation_metrics_lower"],
       metricSnapshot,
       limitations: [limitation],
       causalAttribution: "not_claimed",
@@ -113,9 +119,9 @@ export function assessChangeVerification(input: {
 
   if (allZero) {
     return {
-      verificationState: "UNCHANGED",
+      verificationState: "NO_DIRECTIONAL_CHANGE",
       comparisonEligible: true,
-      reasonCodes: ["primary_recommendation_metrics_unchanged"],
+      reasonCodes: ["primary_recommendation_metrics_no_directional_change"],
       metricSnapshot,
       limitations: [limitation],
       causalAttribution: "not_claimed",
