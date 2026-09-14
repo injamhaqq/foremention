@@ -10,16 +10,15 @@ export const LIVE_COLLECTION_LIMITS = {
   providerRetries: 2,
   circuitFailureThreshold: 3,
   circuitWindowMinutes: 15,
-  maxRunCostUsd: 0.25,
+  maxRunCostUsd: 0.50,
 } as const;
 
 export const GROQ_SPEND_LIMITS = {
   // Keep the conservative browser-search reservation independent from the
-  // whole-run ceiling. Defaults intentionally preserve today's $0.10 Groq
-  // run cap; separating the dimensions prevents a future run-cap increase
-  // from also inflating every prompt's reservation estimate.
+  // whole-run ceiling. The five-question baseline reserves $0.50 at $0.10
+  // per prompt, while each prompt's reservation remains explicit.
   reservedCostPerPromptUsd: 0.10,
-  maxRunCostUsd: 0.10,
+  maxRunCostUsd: 0.50,
   maxMonthlyOrgSpendUsd: 5.00,
 } as const;
 
