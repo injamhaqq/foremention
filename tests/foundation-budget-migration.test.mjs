@@ -9,6 +9,7 @@ test("Foundation entitlement defaults reserve the full 20-observation monthly al
   assert.ok(migration, "expected a forward migration for the Foundation budget alignment");
   assert.match(migration, /monthly_ai_spend_cap_usd\s+set default\s+2\.00/i);
   assert.match(migration, /plan\s*=\s*'free_beta'/i);
+  assert.match(migration, /monthly_run_units\s*=\s*20/i);
   assert.match(migration, /monthly_ai_spend_cap_usd\s*=\s*1\.00/i);
   assert.match(migration, /set\s+monthly_ai_spend_cap_usd\s*=\s*2\.00/i);
 });
