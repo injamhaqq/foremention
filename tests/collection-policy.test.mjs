@@ -23,6 +23,7 @@ test("Groq reservation supports the bounded five-question pilot without hiding c
   const rates = { inputPerMillionUsd: 0.075, outputPerMillionUsd: 0.30, requestUsd: 0.05 };
   assert.equal(policy.GROQ_SPEND_LIMITS.reservedCostPerPromptUsd, 0.10);
   assert.equal(policy.GROQ_SPEND_LIMITS.maxRunCostUsd, 0.50);
+  assert.equal(policy.LIVE_COLLECTION_LIMITS.maxRunCostUsd, 0.50);
   assert.equal(policy.estimateReservedRunCost("groq", 1, rates), 0.10);
   assert.equal(policy.estimateReservedRunCost("groq", 5, rates), 0.50);
   assert.equal(policy.estimateReservedRunCost("groq", 6, rates), 0.60);
