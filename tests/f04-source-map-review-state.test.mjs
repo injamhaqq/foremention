@@ -16,22 +16,17 @@ test("source map publication lifecycle is separate from evidence review state", 
   assert.match(generator, /review_state:\s*reviewStatus === "verified" \? "reviewed" : "observed"/);
 });
 
-test("customer decision loaders require reviewed source maps rather than merely published maps", async () => {
-  const [data, evidence, intelligence, change] = await Promise.all([
-    text("lib/data.ts"),
-    text("lib/evidence-integrity-data.ts"),
-    text("lib/intelligence-loop.ts"),
-    text("lib/ai-observation-change.ts"),
-  ]);
-  for (const source of [data, evidence, intelligence, change]) {
-    assert.match(source, /review_state=eq\.reviewed/);
-  }
-  assert.doesNotMatch(change, /name\.startsWith\("Reviewed collection"\)/);
+test("published maps are database-enforced reviewed evidence, never merely observed maps", async () => {
+  const migration = await text("supabase/migrations/20260915000100_source_map_review_state.sql");
+  assert.match(migration, /set status = 'draft'[\s\S]*review_state = 'observed'/i);
+  assert.match(migration, /check \(status <> 'published' or review_state = 'reviewed'\)/i);
 });
 
-test("observed source maps remain explicitly available for inspection without becoming reviewed evidence", async () => {
+test("observed source maps remain inspectable without becoming published reviewed evidence", async () => {
   const generator = await text("lib/source-map-generation.ts");
   assert.match(generator, /generateObservedSourceMap/);
   assert.match(generator, /generateReviewedSourceMap/);
   assert.match(generator, /reviewStatus === "verified" \? "Reviewed" : "Observed"/);
+  assert.match(generator, /status:\s*reviewStatus === "verified" \? "published" : "draft"/);
+  assert.doesNotMatch(generator, /body:\s*\{ status: "published" \}/);
 });
