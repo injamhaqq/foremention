@@ -4,7 +4,7 @@ export const FOUNDATION_ACCESS_LIMITS = {
   buyerQuestions: 10,
   providersPerRun: 1,
   runUnitsPerMonth: 20,
-  monthlyAiSpendCapUsd: 1,
+  monthlyAiSpendCapUsd: 2,
   historyDays: 90,
   teamMembers: 1,
 } as const;
