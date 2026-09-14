@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const migrationUrl = new URL(
-  "../supabase/migrations/20260915000100_private_org_permission_helper.sql",
+  "../supabase/migrations/20260915000200_private_org_permission_helper.sql",
   import.meta.url,
 );
 
