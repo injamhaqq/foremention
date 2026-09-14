@@ -1,11 +1,19 @@
 begin;
 
 -- F03: align every live-run producer on the same service-only accounting contract.
--- Candidate runs enter the database with estimated_max_cost_usd = 0. The locked
--- budget reservation promotes exactly one candidate to a positive reservation,
--- so concurrent queued candidates do not make each other fail symmetrically.
+-- Candidate runs enter the database with no capacity reservation. The locked
+-- budget RPC marks exactly one candidate as reserved, so concurrent queued
+-- candidates do not make each other fail symmetrically. The explicit marker also
+-- remains correct for a provider whose truthful estimated cost is zero.
 -- Schedule management already permits owner/admin/analyst; accounting must use
 -- the same operator set. Browser sessions remain unable to execute these RPCs.
+
+alter table public.runs
+  add column if not exists capacity_reserved_at timestamptz;
+
+create index if not exists runs_organization_capacity_reserved_idx
+  on public.runs (organization_id, capacity_reserved_at)
+  where capacity_reserved_at is not null;
 
 create or replace function public.reserve_run_quota_server(
   p_organization_id uuid,
@@ -103,7 +111,7 @@ declare
   reserved_usd numeric(12,6) := 0;
 begin
   if p_actor_id is null then raise exception 'Authentication required'; end if;
-  if p_estimated_max_cost_usd <= 0 or p_estimated_max_cost_usd > 100 then
+  if p_estimated_max_cost_usd < 0 or p_estimated_max_cost_usd > 100 then
     raise exception 'Invalid run cost reservation';
   end if;
   if not exists (
@@ -140,16 +148,13 @@ begin
   where organization_id = p_organization_id and status = 'active';
   if limit_usd is null then raise exception 'This workspace is not active'; end if;
 
-  -- A queued row with zero estimated cost is only a candidate. Under the lock,
-  -- the first successful reservation promotes it above zero; later candidates
-  -- then see that reservation and fail deterministically when the limit is one.
   select count(*) into concurrent_count
   from public.runs
   where organization_id = p_organization_id
     and id <> p_run_id
     and (
       status = 'running'
-      or (status = 'queued' and estimated_max_cost_usd > 0)
+      or (status = 'queued' and capacity_reserved_at is not null)
     );
   if concurrent_count >= concurrent_limit then
     raise exception 'This workspace already has the maximum number of active collection runs';
@@ -166,14 +171,15 @@ begin
     and id <> p_run_id
     and created_at >= cycle_start
     and (status not in ('failed','cancelled') or started_at is not null)
-    and (actual_cost_usd > 0 or estimated_max_cost_usd > 0 or started_at is not null);
+    and (capacity_reserved_at is not null or started_at is not null);
 
   if reserved_usd + p_estimated_max_cost_usd > limit_usd then
     raise exception 'Monthly AI spending ceiling reached';
   end if;
 
   update public.runs
-  set estimated_max_cost_usd = p_estimated_max_cost_usd
+  set estimated_max_cost_usd = p_estimated_max_cost_usd,
+      capacity_reserved_at = coalesce(capacity_reserved_at, now())
   where id = p_run_id and organization_id = p_organization_id;
 
   return jsonb_build_object(
@@ -227,7 +233,8 @@ begin
   set status = 'failed',
       completed_at = now(),
       error_summary = left(coalesce(nullif(trim(p_reason), ''), 'The background job could not be queued.'), 500),
-      estimated_max_cost_usd = 0
+      estimated_max_cost_usd = 0,
+      capacity_reserved_at = null
   where id = p_run_id and organization_id = p_organization_id;
   return true;
 end;
