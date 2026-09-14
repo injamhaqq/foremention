@@ -22,9 +22,10 @@ test("budget reservation serializes queued candidates so one request wins instea
   ]);
   assert.match(manualRoute, /estimated_max_cost_usd:\s*0/);
   assert.match(dispatcher, /estimated_max_cost_usd:\s*0/);
-  assert.match(migration, /p_estimated_max_cost_usd\s*<=\s*0/i);
-  assert.match(migration, /status\s*=\s*'running'[\s\S]*status\s*=\s*'queued'[\s\S]*estimated_max_cost_usd\s*>\s*0/is);
-  assert.match(migration, /set\s+estimated_max_cost_usd\s*=\s*p_estimated_max_cost_usd/i);
+  assert.match(migration, /add column if not exists capacity_reserved_at timestamptz/i);
+  assert.match(migration, /status\s*=\s*'running'[\s\S]*status\s*=\s*'queued'[\s\S]*capacity_reserved_at\s+is\s+not\s+null/is);
+  assert.match(migration, /set[\s\S]*estimated_max_cost_usd\s*=\s*p_estimated_max_cost_usd[\s\S]*capacity_reserved_at\s*=\s*coalesce\(capacity_reserved_at,\s*now\(\)\)/is);
+  assert.match(migration, /capacity_reserved_at\s*=\s*null/i);
 });
 
 test("scheduled dispatch is recoverable and advances cadence only after durable event dispatch", async () => {
