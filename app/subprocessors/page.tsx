@@ -40,10 +40,10 @@ const providers = [
     boundary: "Receives the buyer question and request context required for that provider call. Foremention stores the returned provider/model label, answer, citations, and evidence boundary separately.",
   },
   {
-    name: "PostHog EU",
+    name: "PostHog",
     status: "Limited product analytics",
-    purpose: "Route and selected product-milestone measurement used to find broken journeys and improve reliability.",
-    boundary: "Configured without session replay, automatic form capture, provider answers, citations, or customer evidence. Identified events use internal IDs rather than names or email addresses.",
+    purpose: "Selected product-milestone measurement used to find broken journeys and improve reliability. The current production configuration uses PostHog's US ingestion endpoint.",
+    boundary: "Configured without session replay, automatic form capture, automatic pageview capture, provider answers, citations, or customer evidence. Identified events use internal IDs rather than names or email addresses.",
   },
   {
     name: "Microsoft Clarity",
