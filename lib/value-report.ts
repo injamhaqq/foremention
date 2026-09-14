@@ -58,7 +58,7 @@ function countStep(records: OutcomeLedgerRecord[], key: OutcomeLedgerStep["key"]
 function countOutcome(records: OutcomeLedgerRecord[], state: OutcomeState, since: number | null, until: number | null) {
   return records.filter((record) => {
     const item = step(record, "outcome");
-    return record.comparisonEligible === true && record.outcomeState === state && Boolean(item?.done) && inWindow(item.at, since, until);
+    return record.comparisonEligible === true && record.outcomeState === state && Boolean(item?.done) && inWindow(item?.at, since, until);
   }).length;
 }
 
