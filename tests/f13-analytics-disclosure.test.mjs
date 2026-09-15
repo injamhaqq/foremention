@@ -27,8 +27,11 @@ test("disclosure preserves the actual privacy boundaries configured in product a
   for (const contract of [/autocapture: false/, /disable_session_recording: true/, /capture_pageview: false/]) {
     assert.match(analytics, contract);
   }
-  assert.match(privacy, /without session replay/i);
-  assert.match(privacy, /automatic click or form capture/i);
-  assert.match(subprocessors, /without session replay/i);
-  assert.match(subprocessors, /automatic form capture/i);
+
+  for (const disclosure of [privacy, subprocessors]) {
+    assert.match(disclosure, /session replay[^.]{0,80}(?:disabled|are disabled)/i,
+      "disclosure must state that PostHog session replay is disabled");
+    assert.match(disclosure, /(?:click\/form autocapture|automatic click or form capture)[^.]{0,120}(?:disabled|are disabled)/i,
+      "disclosure must state that PostHog click/form autocapture is disabled");
+  }
 });

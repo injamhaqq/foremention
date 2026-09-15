@@ -42,8 +42,8 @@ const providers = [
   {
     name: "PostHog",
     status: "Limited product analytics",
-    purpose: "Selected product-milestone measurement used to find broken journeys and improve reliability. The current production configuration uses PostHog's US ingestion endpoint.",
-    boundary: "Configured without session replay, automatic form capture, automatic pageview capture, provider answers, citations, or customer evidence. Identified events use internal IDs rather than names or email addresses.",
+    purpose: "Selected product-milestone measurement plus Foremention's manually emitted route-level pageview event, used to find broken journeys and improve reliability. The current production configuration uses PostHog's US ingestion endpoint.",
+    boundary: "PostHog SDK automatic pageviews, click/form autocapture, form-value capture, and session replay are disabled. Foremention manually sends a bounded route-level pageview containing only allowlisted route/product-surface context. The SDK uses browser local storage and a cookie for bounded analytics persistence. The instrumentation does not send prompts, provider answers, citations, customer evidence, finding/review content, operator-entered free text, names, or email addresses; identified events use internal IDs.",
   },
   {
     name: "Microsoft Clarity",
