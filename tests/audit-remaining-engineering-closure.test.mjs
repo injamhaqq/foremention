@@ -5,27 +5,28 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-test("F04 keeps failed page retrieval unknown and records evidence origin explicitly", async () => {
-  const [migration, generator, loader, types] = await Promise.all([
+test("F04 keeps failed page retrieval unknown, records reference origin, and withholds unsupported absence", async () => {
+  const [migration, generator, types, publicExplorer, sourceTable] = await Promise.all([
     text("supabase/migrations/20260915170000_evidence_semantics_hardening.sql"),
     text("lib/source-map-generation.ts"),
-    text("lib/evidence-integrity-data.ts"),
     text("lib/types.ts"),
+    text("components/public-source-map-explorer.tsx"),
+    text("components/source-map-table.tsx"),
   ]);
   assert.match(migration, /add column if not exists page_presence_state text not null default 'unknown'/i);
   assert.match(migration, /page_presence_state in \('unknown','present','absent'\)/i);
   assert.match(migration, /add column if not exists reference_origin text not null default 'provider_citation'/i);
   assert.match(migration, /reference_origin in \('provider_citation'\)/i);
+  assert.match(migration, /normalize_source_map_entry_presence_state/);
   assert.match(generator, /pagePresenceState:\s*"unknown"/);
   assert.match(generator, /isReachable[\s\S]*clientPresent \? "present" : "absent"[\s\S]*"unknown"/);
-  assert.match(generator, /page_presence_state:/);
+  assert.match(generator, /page_presence_state:\s*pagePresenceState/);
   assert.match(generator, /reference_origin:\s*"provider_citation"/);
-  assert.match(loader, /page_presence_state/);
-  assert.match(loader, /reference_origin/);
-  assert.match(loader, /clientPresent:\s*row\.page_presence_state === "unknown" \? null/);
-  assert.match(types, /clientPresent:\s*boolean \| null/);
-  assert.match(types, /pagePresence:\s*"present" \| "absent" \| "unknown"/);
-  assert.match(types, /referenceOrigin:\s*"provider_citation"/);
+  assert.match(types, /pagePresence\?:\s*"present" \| "absent" \| "unknown"/);
+  assert.match(types, /referenceOrigin\?:\s*"provider_citation"/);
+  assert.match(publicExplorer, /presence === "absent"/);
+  assert.match(publicExplorer, /"Unknown"/);
+  assert.match(sourceTable, /!entry\.reviewedAt \? "Not human-reviewed"/);
 });
 
 test("F06 rejects follow-up runs whose persisted locale or market context changed", async () => {
