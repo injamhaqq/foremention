@@ -46,6 +46,8 @@ test("Company Truth verification is evidence-backed, historical, and cannot be f
   assert.match(domain, /COMPANY_TRUTH_VERIFICATION_STATES/);
   assert.match(domain, /isCurrentVerifiedTruth/);
   assert.match(domain, /selectCurrentVerifiedTruth/);
+  assert.match(domain, /const evidenceExpiresAt = validDate\(assertion\.sourceSnapshot\?\.expiresAt as string \| null \| undefined\)/);
+  assert.match(domain, /evidenceExpiresAt !== null && evidenceExpiresAt <= now\.getTime\(\)/);
   assert.doesNotMatch(domain, /confidencePercent|probability|score\s*:/i);
 });
 

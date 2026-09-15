@@ -45,6 +45,8 @@ export function isCurrentVerifiedTruth(assertion: CompanyTruthAssertion, now = n
   if (assertion.verificationState !== "verified" || assertion.supersededAt) return false;
   const effectiveAt = validDate(assertion.effectiveAt);
   if (effectiveAt === null || effectiveAt > now.getTime()) return false;
+  const evidenceExpiresAt = validDate(assertion.sourceSnapshot?.expiresAt as string | null | undefined);
+  if (evidenceExpiresAt !== null && evidenceExpiresAt <= now.getTime()) return false;
   return true;
 }
 
