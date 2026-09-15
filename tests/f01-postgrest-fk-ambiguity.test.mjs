@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const migrationUrl = new URL(
-  "../supabase/migrations/20260915000500_remove_redundant_single_tenant_fks.sql",
+  "../supabase/migrations/20260915000600_remove_redundant_single_tenant_fks.sql",
   import.meta.url,
 );
 
