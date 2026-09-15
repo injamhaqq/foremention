@@ -27,6 +27,12 @@ test("public analytics disclosure matches production PostHog behavior", async ()
       "disclosure must state that PostHog uses a cookie");
   }
 
-  assert.match(privacy, /Analytics settings[^.]{0,220}(?:Clarity|Contentsquare)/i,
-    "privacy notice must make clear which optional tools the Analytics settings control");
+  assert.ok(
+    privacy.includes("The Analytics settings link in the footer controls the optional Microsoft Clarity and Contentsquare experience-analytics choice;"),
+    "privacy notice must name the optional tools controlled by Analytics settings",
+  );
+  assert.ok(
+    privacy.includes("it does not toggle the separate limited PostHog product analytics described above."),
+    "privacy notice must distinguish optional experience analytics from limited PostHog product analytics",
+  );
 });
