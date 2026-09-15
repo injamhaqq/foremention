@@ -18,6 +18,8 @@ export type SourceMapEntry = {
   influence: "high" | "medium" | "low" | "emerging" | "unknown";
   engines: Engine[];
   clientPresent: boolean;
+  pagePresence: "present" | "absent" | "unknown";
+  referenceOrigin: "provider_citation";
   competitors: string[];
   crawlerAccess: "open" | "partial" | "blocked" | "unknown";
   route: EntryRoute | "unknown";
