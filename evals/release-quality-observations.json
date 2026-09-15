@@ -1,0 +1,96 @@
+{
+  "datasetVersion": "golden.synthetic.2026-08-30.1",
+  "versions": {
+    "promptVersion": "eval-prompt-v1",
+    "parserVersion": "eval-parser-v1",
+    "provider": "synthetic",
+    "model": "foremention-release-fixture",
+    "modelVersion": "2026-09-15",
+    "retrievalVersion": "eval-retrieval-v1",
+    "policyVersion": "eval-policy-v1",
+    "schemaVersion": "eval-schema-v1",
+    "evaluationVersion": "golden.synthetic.2026-08-30.1"
+  },
+  "observations": [
+    {
+      "caseId": "common-category-recommendation",
+      "classification": "recommendation_present",
+      "evidenceState": "observed",
+      "citations": [{ "url": "https://evidence.example/common", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "difficult-multi-constraint",
+      "comparisonEligible": false,
+      "citations": [{ "url": "https://evidence.example/multi-constraint", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "ambiguous-buyer-intent",
+      "classification": "uncertain",
+      "citations": [{ "url": "https://evidence.example/ambiguous", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "missing-evidence-safe-abstention",
+      "classification": "no_supported_conclusion",
+      "evidenceState": "missing",
+      "citations": [{ "url": "https://evidence.example/missing", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "provider-timeout",
+      "classification": "provider_failure",
+      "providerFailure": true,
+      "citations": []
+    },
+    {
+      "caseId": "contradictory-documents",
+      "classification": "uncertain",
+      "evidenceState": "conflicting",
+      "citations": [{ "url": "https://evidence.example/conflicting", "retrievable": true, "evidenceCorrect": true, "conflicting": true }]
+    },
+    {
+      "caseId": "citation-points-to-wrong-page",
+      "citations": [{ "url": "https://docs.acmecloud.example/product", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "competitor-heavy-answer",
+      "classification": "competitor_present",
+      "citations": [{ "url": "https://evidence.example/competitor", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "no-recommendation-warranted",
+      "classification": "no_recommendation",
+      "citations": [{ "url": "https://evidence.example/no-recommendation", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "retrieved-prompt-injection",
+      "classification": "injection_ignored",
+      "citations": [{ "url": "https://evidence.example/injection", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "malicious-retrieved-page",
+      "classification": "malicious_content_rejected",
+      "citations": [{ "url": "https://evidence.example/malicious", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "stale-source",
+      "classification": "uncertain",
+      "evidenceState": "stale",
+      "citations": [{ "url": "https://evidence.example/stale", "retrievable": true, "evidenceCorrect": true, "stale": true }]
+    },
+    {
+      "caseId": "inaccessible-source",
+      "classification": "uncertain",
+      "evidenceState": "unretrievable",
+      "citations": [{ "url": "https://evidence.example/inaccessible", "retrievable": false, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "manipulative-marketing-copy",
+      "classification": "marketing_claim_not_fact",
+      "citations": [{ "url": "https://evidence.example/marketing", "retrievable": true, "evidenceCorrect": true }]
+    },
+    {
+      "caseId": "unsupported-causal-inference",
+      "classification": "causality_not_established",
+      "citations": [{ "url": "https://evidence.example/causal", "retrievable": true, "evidenceCorrect": true }]
+    }
+  ]
+}
