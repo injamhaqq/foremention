@@ -70,7 +70,7 @@ export async function RecommendationSourceEvidence({
         <div>
           <span className="eyebrow">Saved page observations</span>
           <h3 id={`snapshots-${source.id}`}>What changed on this cited page?</h3>
-          <p>Foremention saves bounded retrieval metadata, a text fingerprint, and—when readable text was available—a small historical evidence excerpt. The excerpt is not the full page. A changed fingerprint records an observed difference; it does not prove what caused the difference.</p>
+          <p>Foremention saves bounded retrieval metadata and a text fingerprint—not the page body. When readable text is available, it also retains a small historical evidence excerpt, not the full page. A changed fingerprint records an observed difference; it does not prove what caused the difference.</p>
         </div>
       </div>
       {snapshots.length ? <div className="table-wrap"><table><thead><tr><th>Checked</th><th>Result</th><th>Page</th><th>Provenance</th></tr></thead><tbody>{snapshots.map((snapshot) => <tr key={snapshot.id}>
