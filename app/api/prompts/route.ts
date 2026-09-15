@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
   const [context, role, existing] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer), loadPrompts(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
-  if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
+  if (!(["owner", "admin", "analyst"] as string[]).includes(role)) return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
   if (existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions) return NextResponse.json({ error: `This access level allows ${FOUNDATION_ACCESS_LIMITS.buyerQuestions} buyer questions. Paid capacity is enabled only after billing activation.` }, { status: 429 });
 
   let clusterId = context.clusterId;
@@ -84,48 +84,36 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
   }
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo" });
+
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can edit buyer questions." }, { status: 403 });
-  const currentRows = await supabaseRest<Array<{ id: string; prompt_text: string; active: boolean; version: number }>>(
-    `prompts?select=id,prompt_text,active,version&id=eq.${id}&organization_id=eq.${context.organizationId}&limit=1`,
-    { token: viewer.accessToken },
-  );
-  const current = currentRows[0];
-  if (!current) return NextResponse.json({ error: "Buyer question not found." }, { status: 404 });
-  const nextVersion = hasText && text !== current.prompt_text ? current.version + 1 : current.version;
-  const rows = await supabaseRest<Array<{ id: string; prompt_text: string; active: boolean }>>(
-      `prompts?id=eq.${id}&organization_id=eq.${context.organizationId}`,
-    {
-      method: "PATCH",
-      token: viewer.accessToken,
-      prefer: "return=representation",
-      body: {
-        ...(hasActive ? { active: body.active } : {}),
-        ...(hasText ? { prompt_text: text, version: nextVersion } : {}),
-      },
-    },
-  );
-  if (nextVersion !== current.version) {
-    await supabaseRest("prompt_versions", {
-      method: "POST",
-      token: viewer.accessToken,
-      prefer: "return=minimal",
-      body: {
-        organization_id: context.organizationId,
-        prompt_id: current.id,
-        version: nextVersion,
-        prompt_text: text,
-        change_reason: "Edited by workspace member",
-        created_by: viewer.id,
-      },
-    });
+  if (!(["owner", "admin", "analyst"] as string[]).includes(role)) {
+    return NextResponse.json({ error: "Only owners and analysts can edit buyer questions." }, { status: 403 });
   }
+
+  const updated = await supabaseRest<{
+    id: string;
+    prompt_key: string;
+    prompt_text: string;
+    active: boolean;
+    version: number;
+  }>("rpc/update_prompt_versioned", {
+    method: "POST",
+    token: viewer.accessToken,
+    body: {
+      p_prompt_id: id,
+      p_organization_id: context.organizationId,
+      p_prompt_text: hasText ? text : null,
+      p_active: hasActive ? body.active : null,
+      p_change_reason: "Edited by workspace member",
+    },
+  });
+
   return NextResponse.json({
     data: {
-      id: rows[0].id,
-      text: rows[0].prompt_text,
-      approved: rows[0].active,
+      id: updated.id,
+      text: updated.prompt_text,
+      approved: updated.active,
     },
   });
 }
