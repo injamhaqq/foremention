@@ -25,6 +25,7 @@ export async function POST(request: Request) {
 
   const [context, role, existing] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer), loadPrompts(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
+  if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
   if (!(["owner", "admin", "analyst"] as string[]).includes(role)) return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
   if (existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions) return NextResponse.json({ error: `This access level allows ${FOUNDATION_ACCESS_LIMITS.buyerQuestions} buyer questions. Paid capacity is enabled only after billing activation.` }, { status: 429 });
 
@@ -87,9 +88,16 @@ export async function PATCH(request: Request) {
 
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+  if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can edit buyer questions." }, { status: 403 });
   if (!(["owner", "admin", "analyst"] as string[]).includes(role)) {
     return NextResponse.json({ error: "Only owners and analysts can edit buyer questions." }, { status: 403 });
   }
+
+  const scopedPrompt = await supabaseRest<Array<{ id: string }>>(
+    `prompts?select=id&id=eq.${id}&organization_id=eq.${context.organizationId}&limit=1`,
+    { token: viewer.accessToken },
+  );
+  if (!scopedPrompt[0]) return NextResponse.json({ error: "Buyer question not found." }, { status: 404 });
 
   const updated = await supabaseRest<{
     id: string;
