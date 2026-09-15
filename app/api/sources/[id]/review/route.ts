@@ -144,29 +144,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!source) return NextResponse.json({ error: "The reviewed Source Map record no longer has a source in this workspace." }, { status: 409 });
 
   const reviewedAt = new Date().toISOString();
-  await Promise.all([
-    supabaseRest(`sources?id=eq.${entry.source_id}&organization_id=eq.${organizationId}`, {
-      method: "PATCH",
-      token: accessToken,
-      prefer: "return=minimal",
-      body: { crawler_access: body.crawlerAccess, crawler_checked_at: reviewedAt },
-    }),
-    supabaseRest(`source_map_entries?id=eq.${entry.id}&organization_id=eq.${organizationId}`, {
-      method: "PATCH",
-      token: accessToken,
-      prefer: "return=minimal",
-      body: {
-        client_present: Boolean(body.clientPresent),
-        competitors_present: competitors,
-        entry_route: body.route,
-        feasibility: body.feasibility,
-        influence: body.influence,
-        analyst_note: note || null,
-        reviewed_at: reviewedAt,
-        reviewed_by: viewer.id,
-      },
-    }),
-  ]);
+  // Human review and machine retrieval are different provenance facts. The
+  // automated crawler owns sources.crawler_access/crawler_checked_at. A review
+  // records the reviewer's judgment on the reviewed entry and in the audit log
+  // without rewriting the crawler's retrieval timestamp.
+  await supabaseRest(`source_map_entries?id=eq.${entry.id}&organization_id=eq.${organizationId}`, {
+    method: "PATCH",
+    token: accessToken,
+    prefer: "return=minimal",
+    body: {
+      client_present: Boolean(body.clientPresent),
+      competitors_present: competitors,
+      entry_route: body.route,
+      feasibility: body.feasibility,
+      influence: body.influence,
+      analyst_note: note || null,
+      reviewed_at: reviewedAt,
+      reviewed_by: viewer.id,
+    },
+  });
 
   const opportunity = await syncReviewedOpportunity({
     token: accessToken,
