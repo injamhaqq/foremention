@@ -146,7 +146,7 @@ async function ensureCanaryWorkspace(page) {
   const organizationId = typeof workspace.body?.organizationId === "string" ? workspace.body.organizationId.trim().toLowerCase() : "";
   if (!/^[0-9a-f-]{36}$/i.test(organizationId)) fail("Dedicated canary workspace identity lookup returned an invalid organization identifier; refusing to mutate or spend.");
 
-  const canarySlot = approved[0];
+  const canarySlot = approved.find((item) => item?.text === freshWebEvidenceQuestion) || approved[0];
   if (!canarySlot?.id || !/^[0-9a-f-]{36}$/i.test(canarySlot.id)) fail("The historical canary buyer question is missing a valid ID.");
   const observedFingerprint = createHash("sha256")
     .update(`${organizationId}:${canarySlot.id}`)
