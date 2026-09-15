@@ -13,7 +13,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo" });
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can cancel runs." }, { status: 403 });
+  if (!["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can cancel runs." }, { status: 403 });
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "Invalid run ID." }, { status: 400 });
   const rows = await supabaseRest<Array<{ id: string; status: string; started_at: string | null }>>(
