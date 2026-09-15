@@ -36,10 +36,12 @@ type SourceAggregate = {
   url: string;
 };
 
+type PagePresenceState = "unknown" | "present" | "absent";
 type PersistedInspection = {
   access: string;
   checkedAt: string | null;
   clientPresent: boolean;
+  pagePresenceState: PagePresenceState;
   competitors: string[];
   title: string | null;
 };
@@ -62,14 +64,14 @@ const engineLabels: Record<string, string> = {
  * unknown until a separate page-level review records those judgments.
  */
 async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
-  if (!run.project_id || !ranked.length) return new Map<string, { access: string; checkedAt: string | null; clientPresent: boolean; competitors: string[]; title: string | null }>();
+  if (!run.project_id || !ranked.length) return new Map<string, PersistedInspection>();
   const [projects, competitorRows] = await Promise.all([
     supabaseRest<Array<{ client_brand: string }>>(`projects?select=client_brand&id=eq.${run.project_id}&organization_id=eq.${run.organization_id}&limit=1`, { serviceRole: true }),
     supabaseRest<Array<{ name: string }>>(`competitors?select=name&project_id=eq.${run.project_id}&organization_id=eq.${run.organization_id}&active=eq.true`, { serviceRole: true }),
   ]);
   const brand = projects[0]?.client_brand || "";
   const competitors = competitorRows.map((row) => row.name).filter(Boolean);
-  const inspected = new Map<string, { access: string; checkedAt: string | null; clientPresent: boolean; competitors: string[]; title: string | null }>();
+  const inspected = new Map<string, PersistedInspection>();
   for (let offset = 0; offset < ranked.length; offset += 4) {
     await Promise.all(ranked.slice(offset, offset + 4).map(async (source) => {
       try {
@@ -82,6 +84,9 @@ async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
           ...competitorsPresent,
         ]);
         const isReachable = result.access === "open" || result.access === "partial";
+        const pagePresenceState: PagePresenceState = isReachable
+          ? clientPresent ? "present" : "absent"
+          : "unknown";
 
         await persistSourceSnapshot({
           organizationId: run.organization_id,
@@ -96,7 +101,14 @@ async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
           serviceRole: true,
         });
 
-        inspected.set(source.sourceId, { access: result.access, checkedAt: result.checkedAt, clientPresent, competitors: competitorsPresent, title: result.pageTitle });
+        inspected.set(source.sourceId, {
+          access: result.access,
+          checkedAt: result.checkedAt,
+          clientPresent: pagePresenceState === "present",
+          pagePresenceState,
+          competitors: isReachable ? competitorsPresent : [],
+          title: result.pageTitle,
+        });
         await supabaseRest(`sources?id=eq.${source.sourceId}&organization_id=eq.${run.organization_id}`, {
           method: "PATCH",
           serviceRole: true,
@@ -111,7 +123,7 @@ async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
           },
         });
       } catch {
-        inspected.set(source.sourceId, { access: "unknown", checkedAt: null, clientPresent: false, competitors: [], title: null });
+        inspected.set(source.sourceId, { access: "unknown", checkedAt: null, clientPresent: false, pagePresenceState: "unknown", competitors: [], title: null });
       }
     }));
   }
@@ -122,16 +134,18 @@ async function loadPersistedInspections(run: RunRow, sourceMapId: string) {
   const rows = await supabaseRest<Array<{
     source_id: string;
     client_present: boolean;
+    page_presence_state: PagePresenceState;
     competitors_present: string[] | null;
     source: { crawler_access: string | null; crawler_checked_at: string | null; page_title: string | null } | null;
   }>>(
-    `source_map_entries?select=source_id,client_present,competitors_present,source:sources(crawler_access,crawler_checked_at,page_title)&organization_id=eq.${run.organization_id}&source_map_id=eq.${sourceMapId}`,
+    `source_map_entries?select=source_id,client_present,page_presence_state,competitors_present,source:sources(crawler_access,crawler_checked_at,page_title)&organization_id=eq.${run.organization_id}&source_map_id=eq.${sourceMapId}`,
     { serviceRole: true },
   );
   return new Map<string, PersistedInspection>(rows.map((row) => [row.source_id, {
     access: row.source?.crawler_access || "unknown",
     checkedAt: row.source?.crawler_checked_at || null,
-    clientPresent: Boolean(row.client_present),
+    clientPresent: row.page_presence_state === "present",
+    pagePresenceState: row.page_presence_state || "unknown",
     competitors: row.competitors_present || [],
     title: row.source?.page_title || null,
   }]));
@@ -232,6 +246,7 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
       prefer: "resolution=merge-duplicates,return=minimal",
       body: ranked.map((item, index) => {
         const inspection = inspected.get(item.sourceId);
+        const pagePresenceState = inspection?.pagePresenceState || "unknown";
         return {
           organization_id: run.organization_id,
           source_map_id: sourceMapId,
@@ -239,7 +254,9 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
           rank: index + 1,
           citation_observations: item.count,
           engines: Array.from(item.providers).sort(),
-          client_present: inspection?.clientPresent || false,
+          client_present: pagePresenceState === "present",
+          page_presence_state: pagePresenceState,
+          reference_origin: "provider_citation",
           competitors_present: inspection?.competitors || [],
           entry_route: null,
           feasibility: "unknown",
@@ -247,8 +264,8 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
           analyst_note: reviewStatus === "verified"
             ? inspection?.checkedAt
               ? "Verified citation observation using the persisted bounded page inspection. Influence, route and feasibility still require a human decision."
-              : "Verified citation observation. Page presence, influence, route and feasibility still require a separate review."
-            : "Provider-returned citation with bounded automated page inspection. Answer evidence and page presence remain explicitly unreviewed until a person approves the run.",
+              : "Verified citation observation. Page presence is unknown until a retrieval or human review supports presence or absence; influence, route and feasibility still require a human decision."
+            : "Provider-returned citation with bounded automated page inspection. Unknown retrieval remains unknown; answer evidence and page presence remain explicitly unreviewed until a person approves the run.",
         };
       }),
     });
