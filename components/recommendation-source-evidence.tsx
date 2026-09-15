@@ -70,16 +70,16 @@ export async function RecommendationSourceEvidence({
         <div>
           <span className="eyebrow">Saved page observations</span>
           <h3 id={`snapshots-${source.id}`}>What changed on this cited page?</h3>
-          <p>Foremention saves bounded retrieval metadata and a text fingerprint—not the page body. A changed fingerprint records an observed difference; it does not prove what caused the difference.</p>
+          <p>Foremention saves bounded retrieval metadata and a text fingerprint—not the page body. When readable text is available, it also retains a small historical evidence excerpt, not the full page. A changed fingerprint records an observed difference; it does not prove what caused the difference.</p>
         </div>
       </div>
       {snapshots.length ? <div className="table-wrap"><table><thead><tr><th>Checked</th><th>Result</th><th>Page</th><th>Provenance</th></tr></thead><tbody>{snapshots.map((snapshot) => <tr key={snapshot.id}>
         <td>{snapshotDate(snapshot.checkedAt)}<div className="table-caption">Snapshot {shortRecord(snapshot.id)}</div></td>
         <td><strong>{snapshotStateLabel(snapshot.changeState)}</strong><div className="table-caption">{snapshot.access}{snapshot.httpStatus ? ` · HTTP ${snapshot.httpStatus}` : ""}{snapshot.changeReason ? ` · ${snapshot.changeReason}` : ""}</div></td>
-        <td>{snapshot.pageTitle || source.title}<div className="table-caption">{snapshot.finalUrl}</div>{snapshot.contentLength !== null && <div className="table-caption">Bounded visible text: {snapshot.contentLength.toLocaleString()} chars</div>}</td>
+        <td>{snapshot.pageTitle || source.title}<div className="table-caption">{snapshot.finalUrl}</div>{snapshot.contentLength !== null && <div className="table-caption">Bounded visible text: {snapshot.contentLength.toLocaleString()} chars</div>}{snapshot.evidenceExcerpt ? <div className="canonical-snapshot-excerpt"><strong>Historical evidence excerpt</strong><p>{snapshot.evidenceExcerpt}</p><div className="table-caption">Retained normalized excerpt only; not the full page and not proof that omitted text was absent.</div></div> : null}</td>
         <td>{snapshot.runId ? <Link href={`/app/runs/${snapshot.runId}`}>Collection {shortRecord(snapshot.runId)} →</Link> : <strong>Manual page check</strong>}<div className="table-caption">{snapshot.linkedObservationCount} linked citation observation{snapshot.linkedObservationCount === 1 ? "" : "s"}</div><div className="table-caption">{snapshot.previousSnapshotId ? `Previous ${shortRecord(snapshot.previousSnapshotId)}` : "No previous saved observation"}</div><div className="table-caption">Representation: {snapshot.representationVersion}</div><div className="table-caption">Fingerprint: {snapshot.fingerprint || "Unavailable"}</div></td>
       </tr>)}</tbody></table></div> : <div className="empty-state empty-state--compact"><strong>No saved page observations yet.</strong><span>Run a collection or inspect this evidence to create the first bounded fingerprint.</span></div>}
-      <p className="table-caption">Fingerprint values come from a bounded normalized text representation. They are not stored page content and are not proof of why a page changed.</p>
+      <p className="table-caption">Fingerprint values come from a bounded normalized text representation and are not stored page content. Historical excerpts are separately capped at 4,000 normalized characters and do not establish causation or page-wide absence.</p>
     </section>
 
     <SourceLiveInspector entryId={source.id} demo={demo} canInspect={canInspectSources} />

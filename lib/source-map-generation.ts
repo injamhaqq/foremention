@@ -1,6 +1,6 @@
 import { supabaseRest } from "@/lib/supabase-rest";
 import { inspectSourceUrl } from "@/lib/source-inspection";
-import { persistSourceSnapshot } from "@/lib/source-snapshots";
+import { buildBoundedEvidenceExcerpt, persistSourceSnapshot } from "@/lib/source-snapshots";
 
 type RunRow = {
   id: string;
@@ -77,6 +77,10 @@ async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
         const searchable = `${result.pageTitle || ""} ${result.pageDescription || ""} ${result.pageText || ""}`.toLocaleLowerCase();
         const clientPresent = Boolean(brand) && searchable.includes(brand.toLocaleLowerCase());
         const competitorsPresent = competitors.filter((name) => searchable.includes(name.toLocaleLowerCase()));
+        const evidenceExcerpt = buildBoundedEvidenceExcerpt(result.pageText || "", [
+          ...(clientPresent ? [brand] : []),
+          ...competitorsPresent,
+        ]);
         const isReachable = result.access === "open" || result.access === "partial";
 
         await persistSourceSnapshot({
@@ -84,6 +88,7 @@ async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
           sourceId: source.sourceId,
           canonicalUrl: source.url,
           inspection: result,
+          evidenceExcerpt,
           runId: run.id,
           snapshotKey: `${run.id}:${source.sourceId}:source-map-v1`,
           observationIds: source.observationIds,
@@ -213,9 +218,9 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
   if (!sourceMapId) throw new Error("The reviewed Source Map could not be created.");
 
   // The background observed-map job performs bounded page inspection once and
-  // stores only immutable retrieval metadata plus bounded text fingerprints.
-  // Human approval reuses that persisted result so the review click never waits
-  // on or repeats an external crawl for every cited page.
+  // stores immutable retrieval metadata, fingerprints, and a small readable
+  // evidence excerpt. Human approval reuses that persisted result so the review
+  // click never waits on or repeats an external crawl for every cited page.
   const inspected = reviewStatus === "all"
     ? await inspectMappedSources(run, ranked)
     : await loadPersistedInspections(run, sourceMapId);

@@ -7,6 +7,7 @@ import {
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export const SOURCE_SNAPSHOT_REPRESENTATION_VERSION = "visible-text-prefix-24k-v1";
+export const MAX_SOURCE_EVIDENCE_EXCERPT_CHARS = 4_000;
 
 export type SourceSnapshotChangeState = "initial" | "unchanged" | "changed" | "unreachable" | "unknown";
 
@@ -27,6 +28,7 @@ type SourceSnapshotRow = {
   content_length: number | null;
   content_signature: string | null;
   content_hash: string | null;
+  evidence_excerpt: string | null;
   representation_version: string;
   change_state: SourceSnapshotChangeState;
   change_reason: string | null;
@@ -46,6 +48,7 @@ export type SourceSnapshotView = {
   representationVersion: string;
   contentLength: number | null;
   fingerprint: string | null;
+  evidenceExcerpt: string | null;
   collectionLinked: boolean;
   linkedObservationCount: number;
 };
@@ -60,6 +63,7 @@ type PersistSourceSnapshotInput = SnapshotAccess & {
   sourceId: string;
   canonicalUrl: string;
   inspection: SourceInspectionResult;
+  evidenceExcerpt?: string | null;
   runId?: string | null;
   snapshotKey?: string | null;
   observationIds?: string[];
@@ -81,6 +85,30 @@ function isReachable(access: SourceCrawlerAccess) {
 
 function restOptions(access: SnapshotAccess) {
   return access.serviceRole ? { serviceRole: true } : { token: access.token };
+}
+
+function normalizeEvidenceText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+export function buildBoundedEvidenceExcerpt(value: string, terms: string[] = []) {
+  const normalized = normalizeEvidenceText(value);
+  if (!normalized) return null;
+  if (normalized.length <= MAX_SOURCE_EVIDENCE_EXCERPT_CHARS) return normalized;
+
+  const lower = normalized.toLocaleLowerCase();
+  const matches = terms
+    .map((term) => normalizeEvidenceText(term))
+    .filter(Boolean)
+    .map((term) => lower.indexOf(term.toLocaleLowerCase()))
+    .filter((index) => index >= 0);
+  const firstMatch = matches.length ? Math.min(...matches) : -1;
+  if (firstMatch < 0) return normalized.slice(0, MAX_SOURCE_EVIDENCE_EXCERPT_CHARS);
+
+  const contextBefore = 800;
+  const maxStart = normalized.length - MAX_SOURCE_EVIDENCE_EXCERPT_CHARS;
+  const start = Math.max(0, Math.min(firstMatch - contextBefore, maxStart));
+  return normalized.slice(start, start + MAX_SOURCE_EVIDENCE_EXCERPT_CHARS);
 }
 
 export async function hashBoundedSourceText(value: string) {
@@ -173,10 +201,12 @@ export function classifySourceSnapshotChange(
   };
 }
 
+const snapshotSelect = "id,organization_id,source_id,run_id,previous_snapshot_id,canonical_url,final_url,retrieved_at,access,http_status,content_type,page_title,redirect_count,content_length,content_signature,content_hash,evidence_excerpt,representation_version,change_state,change_reason";
+
 async function loadSnapshotByKey(input: PersistSourceSnapshotInput) {
   if (!input.snapshotKey) return null;
   const rows = await supabaseRest<SourceSnapshotRow[]>(
-    `source_snapshots?select=id,organization_id,source_id,run_id,previous_snapshot_id,canonical_url,final_url,retrieved_at,access,http_status,content_type,page_title,redirect_count,content_length,content_signature,content_hash,representation_version,change_state,change_reason&organization_id=eq.${input.organizationId}&source_id=eq.${input.sourceId}&snapshot_key=eq.${encodeURIComponent(input.snapshotKey)}&limit=1`,
+    `source_snapshots?select=${snapshotSelect}&organization_id=eq.${input.organizationId}&source_id=eq.${input.sourceId}&snapshot_key=eq.${encodeURIComponent(input.snapshotKey)}&limit=1`,
     restOptions(input),
   );
   return rows[0] || null;
@@ -184,7 +214,7 @@ async function loadSnapshotByKey(input: PersistSourceSnapshotInput) {
 
 async function loadLatestSnapshot(input: PersistSourceSnapshotInput) {
   const rows = await supabaseRest<SourceSnapshotRow[]>(
-    `source_snapshots?select=id,organization_id,source_id,run_id,previous_snapshot_id,canonical_url,final_url,retrieved_at,access,http_status,content_type,page_title,redirect_count,content_length,content_signature,content_hash,representation_version,change_state,change_reason&organization_id=eq.${input.organizationId}&source_id=eq.${input.sourceId}&order=retrieved_at.desc&limit=1`,
+    `source_snapshots?select=${snapshotSelect}&organization_id=eq.${input.organizationId}&source_id=eq.${input.sourceId}&order=retrieved_at.desc&limit=1`,
     restOptions(input),
   );
   return rows[0] || null;
@@ -236,6 +266,9 @@ export async function persistSourceSnapshot(input: PersistSourceSnapshotInput) {
   const contentHash = input.inspection.pageText
     ? await hashBoundedSourceText(input.inspection.pageText)
     : null;
+  const evidenceExcerpt = input.evidenceExcerpt !== undefined
+    ? buildBoundedEvidenceExcerpt(input.evidenceExcerpt || "")
+    : buildBoundedEvidenceExcerpt(input.inspection.pageText || "");
   const current: SnapshotChangeInput = {
     access: input.inspection.access,
     httpStatus: input.inspection.httpStatus,
@@ -275,6 +308,7 @@ export async function persistSourceSnapshot(input: PersistSourceSnapshotInput) {
       content_length: input.inspection.contentLength ?? null,
       content_signature: input.inspection.contentSignature || null,
       content_hash: contentHash,
+      evidence_excerpt: evidenceExcerpt,
       representation_version: SOURCE_SNAPSHOT_REPRESENTATION_VERSION,
       change_state: change.changeState,
       change_reason: change.changeReason,
@@ -296,7 +330,7 @@ export async function persistSourceSnapshot(input: PersistSourceSnapshotInput) {
 export async function loadSourceSnapshotHistory(viewer: Viewer, sourceId: string): Promise<SourceSnapshotView[]> {
   if (viewer.mode === "demo" || !viewer.accessToken) return [];
   const rows = await supabaseRest<SourceSnapshotRow[]>(
-    `source_snapshots?select=id,organization_id,source_id,run_id,previous_snapshot_id,canonical_url,final_url,retrieved_at,access,http_status,content_type,page_title,redirect_count,content_length,content_signature,content_hash,representation_version,change_state,change_reason&source_id=eq.${sourceId}&order=retrieved_at.desc&limit=10`,
+    `source_snapshots?select=${snapshotSelect}&source_id=eq.${sourceId}&order=retrieved_at.desc&limit=10`,
     { token: viewer.accessToken },
   );
   if (!rows.length) return [];
@@ -323,6 +357,7 @@ export async function loadSourceSnapshotHistory(viewer: Viewer, sourceId: string
     representationVersion: row.representation_version,
     contentLength: row.content_length,
     fingerprint: row.content_hash?.slice(0, 12) || row.content_signature || null,
+    evidenceExcerpt: row.evidence_excerpt,
     collectionLinked: Boolean(row.run_id),
     linkedObservationCount: counts.get(row.id) || 0,
   }));
