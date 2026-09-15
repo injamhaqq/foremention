@@ -65,7 +65,7 @@ test("the canary derives a privacy-safe exact fixture fingerprint and fails clos
   assert.doesNotMatch(canary, /const workspace = await sameOriginFetch\(page, "\/api\/onboarding", \{[\s\S]*?body: JSON\.stringify\(\{\}\)/);
   assert.match(canary, /existing !== true/);
   assert.match(canary, /organizationId/);
-  assert.match(canary, /const canarySlot = approved\[0\]/);
+  assert.match(canary, /const canarySlot = approved\.find\(\(item\) => item\?\.text === freshWebEvidenceQuestion\) \|\| approved\[0\]/);
   assert.match(canary, /createHash\("sha256"\)/);
   assert.match(canary, /\.update\(`\$\{organizationId\}:\$\{canarySlot\.id\}`\)/);
   assert.match(canary, /acceptance-fixture-fingerprint-observed/);
