@@ -16,6 +16,7 @@ as $$
 declare
   actor_id uuid := auth.uid();
   current_prompt record;
+  v_current_version integer;
   v_next_version integer;
   v_prompt_text text;
   final_prompt record;
@@ -54,15 +55,13 @@ begin
     raise exception 'Buyer question must contain between 10 and 1000 characters';
   end if;
 
-  v_next_version := current_prompt.version;
-
+  v_current_version := current_prompt.version;
+  v_next_version := v_current_version;
   if v_prompt_text is not null and v_prompt_text is distinct from current_prompt.prompt_text then
     v_next_version := v_current_version + 1;
   end if;
 
-  -- Keep the explicit current-version alias adjacent to the serialized increment
-  -- so the transaction's concurrency contract remains obvious and testable.
-  if v_next_version <> current_prompt.version then
+  if v_next_version <> v_current_version then
     update public.prompts
     set prompt_text = v_prompt_text,
         version = v_next_version,
