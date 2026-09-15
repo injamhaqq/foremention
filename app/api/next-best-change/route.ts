@@ -102,9 +102,10 @@ type LearningRow = {
   control_class: string | null;
   assessment_count: number;
   comparable_assessment_count: number;
-  improved_count: number;
-  unchanged_count: number;
-  worsened_count: number;
+  higher_observed_count: number;
+  lower_observed_count: number;
+  mixed_observed_count: number;
+  no_directional_change_count: number;
   insufficient_evidence_count: number;
   verified_cross_business_evidence_count: number;
   latest_assessed_at: string;
@@ -172,7 +173,7 @@ export async function GET(request: Request) {
           { token: viewer.accessToken },
         ),
         supabaseRest<LearningRow[]>(
-          `change_learning_summaries?select=learning_key,control_class,assessment_count,comparable_assessment_count,improved_count,unchanged_count,worsened_count,insufficient_evidence_count,verified_cross_business_evidence_count,latest_assessed_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&project_id=eq.${encodeURIComponent(context.projectId)}&order=latest_assessed_at.desc&limit=50`,
+          `change_learning_summaries?select=learning_key,control_class,assessment_count,comparable_assessment_count,higher_observed_count,lower_observed_count,mixed_observed_count,no_directional_change_count,insufficient_evidence_count,verified_cross_business_evidence_count,latest_assessed_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&project_id=eq.${encodeURIComponent(context.projectId)}&order=latest_assessed_at.desc&limit=50`,
           { token: viewer.accessToken },
         ),
       ]);

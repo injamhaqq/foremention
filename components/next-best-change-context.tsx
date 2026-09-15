@@ -39,9 +39,10 @@ type Learning = {
   learning_key: string;
   assessment_count: number;
   comparable_assessment_count: number;
-  improved_count: number;
-  unchanged_count: number;
-  worsened_count: number;
+  higher_observed_count: number;
+  lower_observed_count: number;
+  mixed_observed_count: number;
+  no_directional_change_count: number;
   insufficient_evidence_count: number;
 };
 
@@ -152,7 +153,7 @@ export function NextBestChangeContext({ changeSpecificationId }: { changeSpecifi
 
       {payload?.latestVerification && <div className="form-stack"><strong>Verification limitations</strong><p>{payload.latestVerification.limitations.join(" ") || "No additional limitation recorded."}</p></div>}
 
-      <p className="table-caption">Observed before-and-after association only. This record does not establish that the applied change caused the result.</p>
+      <p className="table-caption">Observed before-and-after association only. This record does not establish that the applied change caused the result or that directional movement created business value.</p>
     </>}
   </section>;
 }

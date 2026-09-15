@@ -53,7 +53,7 @@ test("Design-partner execution can start only from explicit verified external fi
   assert.match(sql, /revoke all on table public\.design_partner_program_scorecard from anon, authenticated/i);
 });
 
-test("Verification refinement is append-only, canonical, comparable-first, and never causal", async () => {
+test("Historical verification schema remains frozen while current runtime uses neutral comparable-first direction states", async () => {
   const [sql, verifier] = await Promise.all([
     text(migrationPath),
     text("lib/change-verification.ts"),
@@ -67,10 +67,12 @@ test("Verification refinement is append-only, canonical, comparable-first, and n
   assert.match(sql, /create table public\.change_verification_cross_business_evidence/i);
   assert.match(sql, /verification_state\s*=\s*'verified'/i);
 
-  assert.match(verifier, /IMPROVED/);
-  assert.match(verifier, /UNCHANGED/);
-  assert.match(verifier, /WORSENED/);
+  assert.match(verifier, /HIGHER_OBSERVED/);
+  assert.match(verifier, /LOWER_OBSERVED/);
+  assert.match(verifier, /MIXED_OBSERVED/);
+  assert.match(verifier, /NO_DIRECTIONAL_CHANGE/);
   assert.match(verifier, /INSUFFICIENT_EVIDENCE/);
+  assert.doesNotMatch(verifier, /\bIMPROVED\b|\bUNCHANGED\b|\bWORSENED\b/);
   assert.match(verifier, /brandPresencePct/);
   assert.match(verifier, /firstMentionPct/);
   assert.match(verifier, /mixed_direction/i);
@@ -78,8 +80,11 @@ test("Verification refinement is append-only, canonical, comparable-first, and n
   assert.doesNotMatch(verifier, /caused|causalAttribution:\s*"(?:claimed|proven)"/i);
 });
 
-test("Learning summaries are descriptive only and require persisted assessment evidence", async () => {
-  const sql = await text(migrationPath);
+test("Historical learning summaries remain recoverable and are superseded by the forward parity migration", async () => {
+  const [sql, parity] = await Promise.all([
+    text(migrationPath),
+    text("supabase/migrations/20260915000400_decision_learning_production_parity.sql"),
+  ]);
   assert.match(sql, /create or replace view public\.change_learning_summaries/i);
   assert.match(sql, /comparable_assessment_count/i);
   assert.match(sql, /improved_count/i);
@@ -87,6 +92,12 @@ test("Learning summaries are descriptive only and require persisted assessment e
   assert.match(sql, /worsened_count/i);
   assert.match(sql, /insufficient_evidence_count/i);
   assert.doesNotMatch(sql, /success_probability|win_probability|expected_lift|causal_effect/i);
+
+  assert.match(parity, /higher_observed_count/i);
+  assert.match(parity, /lower_observed_count/i);
+  assert.match(parity, /mixed_observed_count/i);
+  assert.match(parity, /no_directional_change_count/i);
+  assert.doesNotMatch(parity, /success_probability|win_probability|expected_lift|causal_effect/i);
 });
 
 test("Next Best API exposes the execution and learning loop without mutating company decisions", async () => {
@@ -112,7 +123,7 @@ test("Next Best API exposes the execution and learning loop without mutating com
   assert.doesNotMatch(api, /body:\s*\{[^}]*priority_rank[^}]*\}/s);
 
   assert.match(component, /Next Best Company Change is an explainable ordering aid\. It does not approve a company change\./);
-  assert.match(component, /Observed before-and-after association only\. This record does not establish that the applied change caused the result\./);
+  assert.match(component, /Observed before-and-after association only\. This record does not establish that the applied change caused the result or that directional movement created business value\./);
   assert.doesNotMatch(component, /0\s*[-–]\s*100|Leadership Score|Recommendation Engineering Score/i);
   assert.match(detailPage, /NextBestChangeContext/);
 });

@@ -11,7 +11,7 @@ import {
 test("canonical Change Specification states remain explicit", () => {
   assert.deepEqual(CONTROL_CLASSES, ["CONTROLLABLE", "INFLUENCEABLE", "UNCONTROLLABLE"]);
   assert.deepEqual(DECISION_STATES, ["DO_NOW", "TEST_FIRST", "DO_NOT_DO", "MONITOR_ONLY", "INSUFFICIENT_EVIDENCE"]);
-  assert.deepEqual(VERIFICATION_STATES, ["IMPROVED", "UNCHANGED", "WORSENED", "INSUFFICIENT_EVIDENCE"]);
+  assert.deepEqual(VERIFICATION_STATES, ["HIGHER_OBSERVED", "LOWER_OBSERVED", "MIXED_OBSERVED", "NO_DIRECTIONAL_CHANGE", "INSUFFICIENT_EVIDENCE"]);
 });
 
 test("generated drafts default to uncertainty rather than invented confidence", () => {
