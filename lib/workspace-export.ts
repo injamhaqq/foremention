@@ -9,6 +9,8 @@ type ExportRow = Record<string, unknown>;
 // is deliberately not discovered dynamically and therefore cannot drift into the
 // archive just because a new database table is added.
 const datasets = [
+  "organization_members", "organization_entitlements", "organization_domains", "notification_preferences",
+  "data_governance_settings", "data_governance_requests",
   "projects", "categories", "domains", "competitors", "prompt_clusters", "prompts", "prompt_versions",
   "runs", "run_prompt_selections", "run_attempts", "run_answers", "citations", "sources", "source_observations",
   "answer_brand_mentions", "source_brand_mentions", "citation_observations", "source_snapshots", "source_routes", "source_contacts",
@@ -27,10 +29,14 @@ const datasets = [
 
 type WorkspaceExportDataset = (typeof datasets)[number];
 
-// Most tenant-owned export tables use a UUID `id`. Relationship/snapshot tables
-// intentionally use composite keys instead, so pagination must follow the actual
-// persisted key rather than assuming every table has an `id` column.
+// Most tenant-owned export tables use a UUID `id`. Relationship/snapshot and
+// singleton settings tables intentionally use composite keys instead, so
+// pagination must follow the actual persisted key rather than assume `id`.
 const datasetOrder: Partial<Record<WorkspaceExportDataset, string>> = {
+  organization_members: "organization_id.asc,user_id.asc",
+  organization_entitlements: "organization_id.asc",
+  notification_preferences: "organization_id.asc,user_id.asc",
+  data_governance_settings: "organization_id.asc",
   run_prompt_selections: "run_id.asc,prompt_key.asc",
   verified_claim_evidence: "claim_id.asc,evidence_item_id.asc",
 };
@@ -90,7 +96,7 @@ export async function buildWorkspaceExport(input: { organizationId: string; orga
       "passwords", "authentication tokens", "provider credentials", "integration credentials",
       "webhook secrets", "invitation token hashes", "service-account key material",
     ],
-    note: "This archive contains persisted customer-owned records for one authorized organization, including evidence provenance, decision history, and human follow-up links. Provider observations remain distinct from human-reviewed conclusions.",
+    note: "This archive contains persisted customer-owned workspace records, membership/entitlement state needed for controlled recovery, evidence provenance, decision history, and human follow-up links. Provider observations remain distinct from human-reviewed conclusions.",
   };
   const files = [
     { name: "manifest.json", content: JSON.stringify(manifest, null, 2) },
