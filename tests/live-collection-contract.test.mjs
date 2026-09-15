@@ -135,8 +135,11 @@ test("customer mutations explicitly enforce workspace roles and organization fil
   for (const source of [runRoute, promptRoute, reviewRoute]) {
     assert.match(source, /getPrimaryWorkspaceRole/);
     assert.match(source, /organization_id=eq\.\$\{/);
-    assert.match(source, /role === "viewer"/);
     assert.match(source, /isTrustedMutationOrigin/);
+  }
+  assert.match(runRoute, /!\["owner",\s*"admin",\s*"analyst"\]\.includes\(role\)/);
+  for (const source of [promptRoute, reviewRoute]) {
+    assert.match(source, /role === "viewer"/);
   }
 });
 
