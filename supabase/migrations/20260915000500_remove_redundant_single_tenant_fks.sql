@@ -15,18 +15,24 @@ alter table public.runs
   drop constraint if exists runs_category_id_fkey;
 
 alter table public.run_answers
-  drop constraint if exists run_answers_run_id_fkey,
+  drop constraint if exists run_answers_run_id_fkey;
+
+alter table public.run_answers
   drop constraint if exists run_answers_prompt_id_fkey;
 
 alter table public.citations
-  drop constraint if exists citations_run_answer_id_fkey,
+  drop constraint if exists citations_run_answer_id_fkey;
+
+alter table public.citations
   drop constraint if exists citations_source_id_fkey;
 
 alter table public.source_maps
   drop constraint if exists source_maps_category_id_fkey;
 
 alter table public.source_map_entries
-  drop constraint if exists source_map_entries_source_map_id_fkey,
+  drop constraint if exists source_map_entries_source_map_id_fkey;
+
+alter table public.source_map_entries
   drop constraint if exists source_map_entries_source_id_fkey;
 
 alter table public.placements
@@ -36,7 +42,9 @@ alter table public.placement_events
   drop constraint if exists placement_events_placement_id_fkey;
 
 alter table public.run_attempts
-  drop constraint if exists run_attempts_run_id_fkey,
+  drop constraint if exists run_attempts_run_id_fkey;
+
+alter table public.run_attempts
   drop constraint if exists run_attempts_prompt_id_fkey;
 
 alter table public.answer_brand_mentions
@@ -46,8 +54,12 @@ alter table public.source_brand_mentions
   drop constraint if exists source_brand_mentions_source_id_fkey;
 
 alter table public.source_observations
-  drop constraint if exists source_observations_source_id_fkey,
-  drop constraint if exists source_observations_run_answer_id_fkey,
+  drop constraint if exists source_observations_source_id_fkey;
+
+alter table public.source_observations
+  drop constraint if exists source_observations_run_answer_id_fkey;
+
+alter table public.source_observations
   drop constraint if exists source_observations_prompt_id_fkey;
 
 commit;
