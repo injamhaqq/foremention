@@ -18,6 +18,10 @@ export type SourceMapEntry = {
   influence: "high" | "medium" | "low" | "emerging" | "unknown";
   engines: Engine[];
   clientPresent: boolean;
+  /** Explicit page-level evidence state; older in-memory callers may omit it. */
+  pagePresence?: "present" | "absent" | "unknown";
+  /** Source-reference provenance; persisted Source Map entries use provider_citation. */
+  referenceOrigin?: "provider_citation";
   competitors: string[];
   crawlerAccess: "open" | "partial" | "blocked" | "unknown";
   route: EntryRoute | "unknown";

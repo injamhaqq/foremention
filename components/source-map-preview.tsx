@@ -20,17 +20,20 @@ export function SourceMapPreview() {
         <div className="source-row source-row--head" role="row">
           <span>Source</span><span>AI evidence</span><span>You</span><span>Route in</span>
         </div>
-        {sourceMapEntries.slice(0, 4).map((source) => (
-          <div className="source-row" role="row" key={source.id}>
-            <div className="source-cell__title">
-              <span className="source-rank">{String(source.rank).padStart(2, "0")}</span>
-              <span><strong>{source.domain}</strong><small>{source.type}</small></span>
+        {sourceMapEntries.slice(0, 4).map((source) => {
+          const presence = source.pagePresence || (source.clientPresent ? "present" : "unknown");
+          return (
+            <div className="source-row" role="row" key={source.id}>
+              <div className="source-cell__title">
+                <span className="source-rank">{String(source.rank).padStart(2, "0")}</span>
+                <span><strong>{source.domain}</strong><small>{source.type}</small></span>
+              </div>
+              <div><strong>{source.evidenceCount}</strong><small>citations observed</small></div>
+              <div className="presence-cell"><StatusDot tone={presence === "present" ? "green" : presence === "absent" ? "red" : "gray"} />{presence === "present" ? "Present" : presence === "absent" ? "Absent" : "Unknown"}</div>
+              <div className="route-cell">{source.route}<Arrow direction="up" /></div>
             </div>
-            <div><strong>{source.evidenceCount}</strong><small>citations observed</small></div>
-            <div className="presence-cell"><StatusDot tone={source.clientPresent ? "green" : "red"} />{source.clientPresent ? "Present" : "Absent"}</div>
-            <div className="route-cell">{source.route}<Arrow direction="up" /></div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="source-preview__foot">
         <span>Evidence, crawler access, competitors, and route are stored per URL.</span>
