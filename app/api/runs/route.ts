@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     loadPrompts(viewer),
   ]);
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before starting a collection run." }, { status: 409 });
-  if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can start collection runs." }, { status: 403 });
+  if (!["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can start collection runs." }, { status: 403 });
 
   const existingRuns = await supabaseRest<Array<{ id: string; status: string }>>(
     `runs?select=id,status&organization_id=eq.${context.organizationId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
