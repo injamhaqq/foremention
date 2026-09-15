@@ -7,9 +7,10 @@ const text = (path) => readFile(new URL(path, root), "utf8");
 
 test("buyer-question edits use one atomic versioning RPC and preserve question identity", async () => {
   const route = await text("app/api/prompts/route.ts");
-  assert.match(route, /rpc\/update_prompt_versioned/);
-  assert.doesNotMatch(route, /current\.version \+ 1/);
-  assert.doesNotMatch(route, /supabaseRest\("prompt_versions"[\s\S]*change_reason: "Edited by workspace member"/);
+  const patchHandler = route.slice(route.indexOf("export async function PATCH"));
+  assert.match(patchHandler, /rpc\/update_prompt_versioned/);
+  assert.doesNotMatch(patchHandler, /current\.version \+ 1/);
+  assert.doesNotMatch(patchHandler, /supabaseRest\("prompt_versions"/);
 });
 
 test("atomic prompt versioning locks the canonical prompt row and appends coherent history", async () => {
