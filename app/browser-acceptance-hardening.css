@@ -1,0 +1,8 @@
+/* Post-merge browser acceptance hardening.
+ * Keep status pills readable even when they sit inside muted table cells.
+ * #fff0a1 with the inherited --muted color fell just below WCAG AA 4.5:1.
+ */
+.pill--partial,
+.feasibility--medium {
+  color: var(--ink);
+}
