@@ -19,6 +19,7 @@ import "./identity-retirement.css";
 import "./canonical-responsive-hardening.css";
 import "./outreach-site.css";
 import "./outreach-reflow.css";
+import "./browser-acceptance-hardening.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
