@@ -119,7 +119,10 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
     };
   }
 
-  const approvedPayload = validateCustomerSuccessExecutionAction(action);
+  const approvedPayload = validateCustomerSuccessExecutionAction({
+    ...action,
+    payload: action.payload || {},
+  });
   if (!approvedPayload) throw new Error("AGENT_EXECUTION_ACTION_NOT_EXECUTABLE");
 
   const executionKey = customerSuccessExecutionKey(action.id);
@@ -240,15 +243,26 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
     });
   }
 
-  const token = await createEmailUnsubscribeToken(
-    action.organizationId,
-    approvedPayload.recipientUserId,
-    unsubscribeSecret,
-  );
-  const unsubscribeUrl = new URL(
-    `/unsubscribe?token=${encodeURIComponent(token)}`,
-    siteUrl,
-  ).toString();
+  let unsubscribeUrl: string;
+  try {
+    const token = await createEmailUnsubscribeToken(
+      action.organizationId,
+      approvedPayload.recipientUserId,
+      unsubscribeSecret,
+    );
+    unsubscribeUrl = new URL(
+      `/unsubscribe?token=${encodeURIComponent(token)}`,
+      siteUrl,
+    ).toString();
+  } catch {
+    await finishExecution({
+      actionId: action.id,
+      status: "failed",
+      errorCode: "unsubscribe_token_failed",
+      result: { externalEffect: false },
+    }).catch(() => undefined);
+    throw new Error("AGENT_EXECUTION_UNSUBSCRIBE_TOKEN_FAILED");
+  }
   const text = [
     approvedPayload.messageBody,
     "",
