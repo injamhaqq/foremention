@@ -108,7 +108,8 @@ async function blockExecution(input: {
 export async function executeApprovedAgentAction(actionId: string, actorId: string) {
   const action = await loadAgentAction(actionId);
   if (!action) throw new Error("AGENT_EXECUTION_ACTION_NOT_FOUND");
-  if (!action.organizationId) throw new Error("AGENT_EXECUTION_ORGANIZATION_REQUIRED");
+  if (!organizationId) throw new Error("AGENT_EXECUTION_ORGANIZATION_REQUIRED");
+  const organizationId = action.organizationId;
 
   if (action.execution) {
     return {
@@ -149,7 +150,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     return blockExecution({
       actionId: action.id,
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       code: "application_email_not_configured",
     });
@@ -157,7 +158,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (!siteUrl) {
     return blockExecution({
       actionId: action.id,
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       code: "site_url_not_configured",
     });
@@ -165,7 +166,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (!unsubscribeSecret || unsubscribeSecret.length < 32) {
     return blockExecution({
       actionId: action.id,
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       code: "unsubscribe_not_configured",
     });
@@ -177,7 +178,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   } catch {
     return blockExecution({
       actionId: action.id,
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       code: "workspace_url_invalid",
     });
@@ -188,11 +189,11 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   try {
     [memberships, preferences] = await Promise.all([
       supabaseRest<MembershipRow[]>(
-        `organization_members?select=user_id,member_email,role&organization_id=eq.${encodeURIComponent(action.organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&role=eq.owner&limit=1`,
+        `organization_members?select=user_id,member_email,role&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&role=eq.owner&limit=1`,
         { serviceRole: true },
       ),
       supabaseRest<PreferenceRow[]>(
-        `notification_preferences?select=email_enabled,unsubscribed_at&organization_id=eq.${encodeURIComponent(action.organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&limit=1`,
+        `notification_preferences?select=email_enabled,unsubscribed_at&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&limit=1`,
         { serviceRole: true },
       ),
     ]);
@@ -210,7 +211,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (!membership || membership.role !== "owner") {
     return blockExecution({
       actionId: action.id,
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       code: "recipient_not_owner",
     });
@@ -219,7 +220,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (!currentEmail || currentEmail !== approvedPayload.recipientEmail) {
     return blockExecution({
       actionId: action.id,
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       code: "recipient_changed",
     });
@@ -229,7 +230,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (!preference?.email_enabled) {
     return blockExecution({
       actionId: action.id,
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       code: "email_opt_in_required",
     });
@@ -237,7 +238,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (preference.unsubscribed_at) {
     return blockExecution({
       actionId: action.id,
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       code: "recipient_unsubscribed",
     });
@@ -246,7 +247,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   let unsubscribeUrl: string;
   try {
     const token = await createEmailUnsubscribeToken(
-      action.organizationId,
+      organizationId,
       approvedPayload.recipientUserId,
       unsubscribeSecret,
     );
@@ -297,7 +298,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
         },
       }).catch(() => undefined);
       await auditExecution({
-        organizationId: action.organizationId,
+        organizationId: organizationId,
         actorId,
         actionId: action.id,
         status: "uncertain",
@@ -318,7 +319,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       result: { externalEffect: false },
     }).catch(() => undefined);
     await auditExecution({
-      organizationId: action.organizationId,
+      organizationId: organizationId,
       actorId,
       actionId: action.id,
       status: "failed",
@@ -346,7 +347,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   }
 
   await auditExecution({
-    organizationId: action.organizationId,
+    organizationId: organizationId,
     actorId,
     actionId: action.id,
     status: "succeeded",
