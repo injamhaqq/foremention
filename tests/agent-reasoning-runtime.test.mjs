@@ -8,6 +8,7 @@ import {
   resolveReasoningPricing,
   validateCustomerSuccessDraftOutput,
   validateResearchInsightReasoningOutput,
+  validateSupportReplyDraftOutput,
 } from "../lib/agent-os/reasoning-core.ts";
 
 test("default reasoning model uses the pinned Luna cost reservation", () => {
@@ -59,4 +60,33 @@ test("customer success draft rejects unsupported fact keys", () => {
     evidence_keys: ["fact:made_up"],
   };
   assert.equal(validateCustomerSuccessDraftOutput(output, new Set(["fact:activation_stage"])), null);
+});
+
+
+test("support reply draft rejects unsupported diagnostic keys", () => {
+  const output = {
+    internal_summary: "Needs review.",
+    subject: "Re: collection issue",
+    body: "We received your request and need to inspect this further.",
+    needs_human_investigation: true,
+    evidence_keys: ["workspace:invented"],
+  };
+  assert.equal(
+    validateSupportReplyDraftOutput(output, new Set(["ticket:request", "workspace:latest_run_status"])),
+    null,
+  );
+});
+
+test("support reply draft preserves bounded human-investigation state", () => {
+  const output = {
+    internal_summary: "The packet does not establish a root cause.",
+    subject: "Re: collection issue",
+    body: "We received your request. The recorded workspace state does not establish the cause, so we need to inspect it further.",
+    needs_human_investigation: true,
+    evidence_keys: ["ticket:request", "workspace:latest_run_status"],
+  };
+  assert.deepEqual(
+    validateSupportReplyDraftOutput(output, new Set(["ticket:request", "workspace:latest_run_status"])),
+    output,
+  );
 });
