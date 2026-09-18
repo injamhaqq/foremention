@@ -114,6 +114,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       </section>
 
       <section className="panel">
+        <span className="eyebrow">Support</span>
+        <h2>Need help with your workspace?</h2>
+        <p>Submit an account, collection, evidence, integration, or billing question with workspace context attached. Any AI-assisted reply is reviewed by a human before it is sent.</p>
+        <div className="settings-actions"><Link className="button button--outline" href="/app/support">Open Support</Link></div>
+      </section>
+
+      <section className="panel">
         <span className="eyebrow">Account security</span>
         <h2>Signed-in devices</h2>
         <SessionSecurity demo={viewer.mode === "demo"} globalError={query.session_action === "global_failed"} />
