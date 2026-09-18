@@ -20,7 +20,15 @@ export type ProductAlertEmail = {
   subject: string;
   text: string;
   headers?: Record<string, string>;
+  idempotencyKey?: string;
 };
+
+export class ApplicationEmailSendUncertainError extends Error {
+  constructor(message = "Application email delivery outcome is uncertain.") {
+    super(message);
+    this.name = "ApplicationEmailSendUncertainError";
+  }
+}
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -36,21 +44,38 @@ export async function sendProductAlertEmail(input: ProductAlertEmail) {
   if (!emailPattern.test(to)) throw new Error("A valid product-alert recipient is required.");
   const subject = input.subject.replace(/[\r\n]+/g, " ").trim().slice(0, 160);
   const text = input.text.trim().slice(0, 20_000);
+  const idempotencyKey = input.idempotencyKey?.trim();
   if (!subject || !text) throw new Error("Product-alert subject and text are required.");
+  if (idempotencyKey && (idempotencyKey.length > 256 || /[\r\n]/.test(idempotencyKey))) {
+    throw new Error("Application email idempotency key is invalid.");
+  }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ from, to: [to], subject, text, ...(input.headers ? { headers: input.headers } : {}) }),
-  });
+  let response: Response;
+  try {
+    response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      },
+      body: JSON.stringify({ from, to: [to], subject, text, ...(input.headers ? { headers: input.headers } : {}) }),
+    });
+  } catch {
+    throw new ApplicationEmailSendUncertainError();
+  }
   if (!response.ok) {
     throw new Error(`Application email provider rejected the request (status ${response.status}).`);
   }
-  const result = await response.json() as { id?: string };
-  if (!result.id) throw new Error("Application email provider returned no delivery identifier.");
+  let result: { id?: string };
+  try {
+    result = await response.json() as { id?: string };
+  } catch {
+    throw new ApplicationEmailSendUncertainError("Application email provider accepted the request but returned an unreadable receipt.");
+  }
+  if (!result.id) {
+    throw new ApplicationEmailSendUncertainError("Application email provider accepted the request but returned no delivery identifier.");
+  }
   return { id: result.id };
 }
 

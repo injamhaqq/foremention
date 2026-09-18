@@ -1,6 +1,6 @@
 # Foremention Agent OS
 
-Status: Phase 1 operating-control foundation. Disabled by default until `FOREMENTION_AGENT_OS_ENABLED=1` is configured in the server environment and the production Inngest sync is verified.
+Status: Phase 3 controlled-execution foundation. Agent OS and model reasoning remain independently disabled by default until their server flags are enabled and production verification is complete.
 
 ## Purpose
 
@@ -73,6 +73,38 @@ The default model is `gpt-5.6-luna`; changing the model requires explicit input/
 1. **Research / Insight decision memo** — an internal low-risk synthesis of reviewed evidence. It may recommend reversible investigation/review/experiment steps but cannot execute them.
 2. **Customer Success message draft** — a concise draft built only from the deterministic activation/retention state. It is classified as external communication and therefore enters the founder approval queue. Approval still does not send it.
 
+## Phase 3 controlled execution
+
+Phase 3 adds the first dedicated consequential executor: **Customer Success email**. It does not broaden agent permissions generally.
+
+The execution path is deliberately two-step:
+
+```text
+pending approval
+    -> founder/operator approves
+    -> approved
+    -> founder/operator explicitly executes
+    -> atomic execution claim
+    -> recipient + opt-in + unsubscribe re-check
+    -> idempotent provider request
+    -> execution receipt
+```
+
+Controls:
+
+- Only `customer-success / customer_success_message_draft / external_communication / medium` actions are executable.
+- The primary workspace owner user ID and email are frozen into the draft payload before approval.
+- Immediately before send, the executor confirms the same user is still an owner and the same email is still attached.
+- Product email must still be explicitly enabled and the recipient must not have unsubscribed.
+- The existing signed one-click unsubscribe system is appended to the approved message.
+- Resend receives a deterministic provider idempotency key.
+- `agent_action_executions` is service-only and permits one execution claim per action.
+- Provider rejection records a failed receipt; policy/config/preference blocks record a blocked receipt and cancel the action.
+- Network ambiguity or provider acceptance without a trustworthy receipt records `uncertain`. The action deliberately stays `executing` and is not automatically retried.
+- A provider-success / receipt-persistence race never triggers another send. Manual reconciliation is required instead.
+
+Approval is therefore permission to execute, not execution itself.
+
 ## Agent-runtime evolution
 
 The OpenAI Agents SDK should plug into this control plane rather than replace it once its dependency lock is generated reproducibly:
@@ -100,4 +132,7 @@ This keeps model choice and orchestration replaceable while the durable action, 
 6. Human-review a real collection and verify two deterministic idempotent actions appear: Research / Insight and Customer Success.
 7. If Phase 2 reasoning is desired, deploy the reasoning migration, set `FOREMENTION_AGENT_REASONING_ENABLED=1`, and verify the configured cost caps/rates.
 8. Verify one Research decision memo appears and one Customer Success draft enters the approval queue; confirm approving the draft does not send it.
-9. Verify the daily CEO brief appears on the next scheduled cycle without invented commercial metrics.
+9. For Phase 3, verify Resend application email, `NEXT_PUBLIC_SITE_URL`, and `EMAIL_UNSUBSCRIBE_SECRET` are configured. Confirm the target workspace owner has product email enabled and is not unsubscribed.
+10. Approve a Customer Success draft, verify the frozen recipient is correct, then use the separate **Send approved email** control. Confirm one execution receipt is recorded and a repeated execute attempt does not send a second message.
+11. Verify blocked recipients (email disabled/unsubscribed/owner changed) create no external effect, and an uncertain result remains non-retryable.
+12. Verify the daily CEO brief appears on the next scheduled cycle without invented commercial metrics.

@@ -64,6 +64,14 @@ export type AgentActionProposal = {
   idempotencyKey: string;
 };
 
+export type AgentExecutionReceipt = {
+  status: "running" | "succeeded" | "failed" | "blocked" | "uncertain";
+  provider: string | null;
+  providerMessageId: string | null;
+  errorCode: string | null;
+  completedAt: string | null;
+};
+
 export type AgentActionRecord = AgentActionProposal & {
   id: string;
   status: AgentActionStatus;
@@ -75,4 +83,5 @@ export type AgentActionRecord = AgentActionProposal & {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  execution?: AgentExecutionReceipt | null;
 };

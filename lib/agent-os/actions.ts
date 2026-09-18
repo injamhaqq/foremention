@@ -2,6 +2,15 @@ import type { AgentActionProposal, AgentActionRecord, AgentActionStatus } from "
 import { evaluateAgentAutonomy } from "@/lib/agent-os/policy";
 import { supabaseRest } from "@/lib/supabase-rest";
 
+type AgentExecutionRow = {
+  action_id: string;
+  status: NonNullable<AgentActionRecord["execution"]>["status"];
+  provider: string | null;
+  provider_message_id: string | null;
+  error_code: string | null;
+  completed_at: string | null;
+};
+
 type AgentActionRow = {
   id: string;
   organization_id: string | null;
@@ -35,7 +44,7 @@ function numberOrNull(value: number | string | null) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function actionView(row: AgentActionRow): AgentActionRecord {
+function actionView(row: AgentActionRow, execution: AgentExecutionRow | null = null): AgentActionRecord {
   return {
     id: row.id,
     organizationId: row.organization_id,
@@ -61,6 +70,13 @@ function actionView(row: AgentActionRow): AgentActionRecord {
     completedAt: row.completed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    execution: execution ? {
+      status: execution.status,
+      provider: execution.provider,
+      providerMessageId: execution.provider_message_id,
+      errorCode: execution.error_code,
+      completedAt: execution.completed_at,
+    } : null,
   };
 }
 
@@ -109,7 +125,28 @@ export async function loadOperatingAgentActions(limit = 50) {
     `agent_actions?select=*&order=created_at.desc&limit=${safeLimit}`,
     { serviceRole: true },
   );
-  return rows.map(actionView);
+  if (!rows.length) return [];
+  const ids = rows.map((row) => row.id).join(",");
+  const executions = await supabaseRest<AgentExecutionRow[]>(
+    `agent_action_executions?select=action_id,status,provider,provider_message_id,error_code,completed_at&action_id=in.(${ids})`,
+    { serviceRole: true },
+  ).catch(() => []);
+  const executionByAction = new Map(executions.map((execution) => [execution.action_id, execution]));
+  return rows.map((row) => actionView(row, executionByAction.get(row.id) || null));
+}
+
+export async function loadAgentAction(actionId: string) {
+  const rows = await supabaseRest<AgentActionRow[]>(
+    `agent_actions?select=*&id=eq.${encodeURIComponent(actionId)}&limit=1`,
+    { serviceRole: true },
+  );
+  const row = rows[0];
+  if (!row) return null;
+  const executions = await supabaseRest<AgentExecutionRow[]>(
+    `agent_action_executions?select=action_id,status,provider,provider_message_id,error_code,completed_at&action_id=eq.${encodeURIComponent(actionId)}&limit=1`,
+    { serviceRole: true },
+  ).catch(() => []);
+  return actionView(row, executions[0] || null);
 }
 
 export async function decideAgentAction(input: {
