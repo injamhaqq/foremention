@@ -66,6 +66,31 @@ async function finishExecution(input: {
   });
 }
 
+async function failBeforeExternalEffect(input: {
+  actionId: string;
+  organizationId: string;
+  code: string;
+  supportTicketId?: string | null;
+}) {
+  await finishExecution({
+    actionId: input.actionId,
+    status: "failed",
+    errorCode: input.code,
+    result: { externalEffect: false },
+  }).catch(() => undefined);
+  if (input.supportTicketId) {
+    await supabaseRest(
+      `support_tickets?id=eq.${encodeURIComponent(input.supportTicketId)}&organization_id=eq.${encodeURIComponent(input.organizationId)}&status=eq.reply_pending`,
+      {
+        method: "PATCH",
+        serviceRole: true,
+        prefer: "return=minimal",
+        body: { status: "triaged" },
+      },
+    ).catch(() => undefined);
+  }
+}
+
 async function auditExecution(input: {
   organizationId: string;
   actorId: string;
@@ -210,12 +235,12 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       );
       ticket = rows[0];
     } catch {
-      await finishExecution({
+      await failBeforeExternalEffect({
         actionId: action.id,
-        status: "failed",
-        errorCode: "support_ticket_preflight_failed",
-        result: { externalEffect: false },
-      }).catch(() => undefined);
+        organizationId,
+        code: "support_ticket_preflight_failed",
+        supportTicketId: supportPayload.ticketId,
+      });
       throw new Error("AGENT_EXECUTION_SUPPORT_TICKET_PREFLIGHT_FAILED");
     }
 
@@ -243,12 +268,12 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
     );
     membership = rows[0];
   } catch {
-    await finishExecution({
+    await failBeforeExternalEffect({
       actionId: action.id,
-      status: "failed",
-      errorCode: "recipient_preflight_failed",
-      result: { externalEffect: false },
-    }).catch(() => undefined);
+      organizationId,
+      code: "recipient_preflight_failed",
+      supportTicketId: supportPayload?.ticketId,
+    });
     throw new Error("AGENT_EXECUTION_RECIPIENT_PREFLIGHT_FAILED");
   }
 
