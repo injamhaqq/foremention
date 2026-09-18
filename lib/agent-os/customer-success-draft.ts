@@ -6,6 +6,23 @@ import {
 import { runStructuredReasoning } from "@/lib/agent-os/reasoning-runtime";
 import { supabaseRest } from "@/lib/supabase-rest";
 
+const schema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["subject", "body", "purpose", "evidence_keys"],
+  properties: {
+    subject: { type: "string", maxLength: 120 },
+    body: { type: "string", maxLength: 1400 },
+    purpose: { type: "string", maxLength: 300 },
+    evidence_keys: {
+      type: "array",
+      minItems: 1,
+      maxItems: 8,
+      items: { type: "string", maxLength: 120 },
+    },
+  },
+} as const;
+
 export async function runCustomerSuccessDraftReasoner(input: {
   runId: string;
   organizationId: string;
