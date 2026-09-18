@@ -1,8 +1,9 @@
 /* Post-merge browser acceptance hardening.
- * Keep status pills readable even when they sit inside muted table cells.
- * #fff0a1 with the inherited --muted color fell just below WCAG AA 4.5:1.
+ * Authenticated workspace status pills must use the stable dark evidence token
+ * rather than --ink: canonical workspace layers can remap --ink to the light
+ * foreground (#fffdf9), which made partial status text unreadable on #fff0a1.
  */
-.pill--partial,
-.feasibility--medium {
-  color: var(--ink);
+.app-frame .pill.pill--partial,
+.app-frame .feasibility.feasibility--medium {
+  color: var(--re-ink);
 }
