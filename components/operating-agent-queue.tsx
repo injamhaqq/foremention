@@ -42,7 +42,32 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
     }
   }
 
+  async function execute(id: string) {
+    setBusy(id);
+    setError("");
+    try {
+      const response = await fetch(`/api/agent-actions/${id}/execute`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      });
+      const payload = await response.json() as { error?: string };
+      if (!response.ok && response.status !== 202) {
+        throw new Error(payload.error || "Execution could not be completed.");
+      }
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Execution could not be completed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const pending = actions.filter((action) => action.status === "pending_approval");
+  const readyToExecute = actions.filter((action) =>
+    action.status === "approved"
+    && action.agentId === "customer-success"
+    && action.actionType === "customer_success_message_draft"
+  );
   return <section className="agent-plane">
     <header className="agent-plane__header">
       <div>
@@ -50,7 +75,7 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
         <h2>Operating queue</h2>
         <p>Low-risk observations may be recorded automatically. External communication, commercial commitments, financial actions, production changes, destructive actions, and legal/compliance actions stop here for human approval.</p>
       </div>
-      <div className="agent-plane__telemetry"><span>Founder decisions</span><strong>{pending.length} pending</strong></div>
+      <div className="agent-plane__telemetry"><span>Founder controls</span><strong>{pending.length} pending · {readyToExecute.length} ready</strong></div>
     </header>
     {error && <div className="evidence-note"><strong>Decision not recorded</strong><p>{error}</p></div>}
     <div className="agent-plane__grid">
@@ -58,6 +83,11 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
         const payload = action.payload || {};
         const messageSubject = typeof payload.messageSubject === "string" ? payload.messageSubject : "";
         const messageBody = typeof payload.messageBody === "string" ? payload.messageBody : "";
+        const recipientEmail = typeof payload.recipientEmail === "string" ? payload.recipientEmail : "";
+        const canExecute =
+          action.status === "approved"
+          && action.agentId === "customer-success"
+          && action.actionType === "customer_success_message_draft";
         return <article className={`agent-card agent-card--${action.status === "pending_approval" ? "review" : action.status === "failed" ? "failed" : "complete"}`} key={action.id}>
         <div className="agent-card__top"><span>{agentLabel[action.agentId]} · {action.riskLevel} risk</span><strong>{action.status.replaceAll("_", " ")}</strong></div>
         <h3>{action.title}</h3>
@@ -68,12 +98,27 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
         </div>
         {(messageSubject || messageBody) && <div className="agent-card__boundary">
           <span>Draft for review</span>
+          {recipientEmail && <p><strong>Recipient:</strong> {recipientEmail}</p>}
+          {!recipientEmail && action.actionType === "customer_success_message_draft" && <p><strong>Recipient:</strong> unavailable — execution will fail closed.</p>}
           {messageSubject && <p><strong>{messageSubject}</strong></p>}
           {messageBody && <p>{messageBody}</p>}
+        </div>}
+        {action.execution && <div className="agent-card__boundary">
+          <span>Execution receipt</span>
+          <p><strong>Status:</strong> {action.execution.status}</p>
+          {action.execution.provider && <p><strong>Provider:</strong> {action.execution.provider}</p>}
+          {action.execution.providerMessageId && <p><strong>Provider receipt:</strong> {action.execution.providerMessageId}</p>}
+          {action.execution.errorCode && <p><strong>Control result:</strong> {action.execution.errorCode}</p>}
         </div>}
         {action.status === "pending_approval" && <footer>
           <button type="button" disabled={busy === action.id} onClick={() => decide(action.id, "approve")}>Approve</button>
           <button type="button" disabled={busy === action.id} onClick={() => decide(action.id, "reject")}>Reject</button>
+        </footer>}
+        {canExecute && <footer>
+          <button type="button" disabled={busy === action.id || !recipientEmail} onClick={() => execute(action.id)}>
+            Send approved email
+          </button>
+          <span>Separate execution step. Recipient eligibility and unsubscribe status are rechecked immediately before send.</span>
         </footer>}
       </article>;
       })}
