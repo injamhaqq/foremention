@@ -108,7 +108,7 @@ async function blockExecution(input: {
 export async function executeApprovedAgentAction(actionId: string, actorId: string) {
   const action = await loadAgentAction(actionId);
   if (!action) throw new Error("AGENT_EXECUTION_ACTION_NOT_FOUND");
-  if (!organizationId) throw new Error("AGENT_EXECUTION_ORGANIZATION_REQUIRED");
+  if (!action.organizationId) throw new Error("AGENT_EXECUTION_ORGANIZATION_REQUIRED");
   const organizationId = action.organizationId;
 
   if (action.execution) {
