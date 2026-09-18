@@ -31,6 +31,7 @@ export const CONTEXTUAL_WORKSPACE_ROUTES = [
   ["/app/passport", "Vendor Passport"],
   ["/app/intelligence", "Intelligence Loop"],
   ["/app/agents", "Agent Control Plane"],
+  ["/app/support", "Support"],
   ["/app/decision-lab", "Decision Lab"],
   ["/app/evidence", "Evidence Vault"],
 ] as const;
