@@ -1,4 +1,5 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
+import { runResearchInsightReasoner } from "@/lib/agent-os/research-reasoning";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type ReviewedRunRow = {
@@ -53,5 +54,18 @@ export async function runResearchInsightAgent(input: {
     estimatedCostUsd: 0,
     idempotencyKey: `research-insight:reviewed-run:${run.id}:v1`,
   });
-  return { skipped: false, action } as const;
+  const reasoning = await runResearchInsightReasoner({
+    runId: run.id,
+    organizationId: run.organization_id,
+    projectId: run.project_id,
+  }).catch((error) => {
+    console.warn("Research / Insight reasoning unavailable.", error instanceof Error ? error.message : String(error));
+    return { skipped: true as const, reason: "reasoning_failed" };
+  });
+  return {
+    skipped: false,
+    action,
+    reasoningActionId: "action" in reasoning ? reasoning.action.id : null,
+    reasoning,
+  } as const;
 }

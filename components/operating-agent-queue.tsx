@@ -54,7 +54,11 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
     </header>
     {error && <div className="evidence-note"><strong>Decision not recorded</strong><p>{error}</p></div>}
     <div className="agent-plane__grid">
-      {actions.slice(0, 12).map((action) => <article className={`agent-card agent-card--${action.status === "pending_approval" ? "review" : action.status === "failed" ? "failed" : "complete"}`} key={action.id}>
+      {actions.slice(0, 12).map((action) => {
+        const payload = action.payload || {};
+        const messageSubject = typeof payload.messageSubject === "string" ? payload.messageSubject : "";
+        const messageBody = typeof payload.messageBody === "string" ? payload.messageBody : "";
+        return <article className={`agent-card agent-card--${action.status === "pending_approval" ? "review" : action.status === "failed" ? "failed" : "complete"}`} key={action.id}>
         <div className="agent-card__top"><span>{agentLabel[action.agentId]} · {action.riskLevel} risk</span><strong>{action.status.replaceAll("_", " ")}</strong></div>
         <h3>{action.title}</h3>
         <p>{action.rationale}</p>
@@ -62,11 +66,17 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
           <div><span>Effect</span><strong>{action.effectClass.replaceAll("_", " ")}</strong></div>
           <div><span>Approval</span><strong>{action.requiresApproval ? "Required" : "Not required"}</strong></div>
         </div>
+        {(messageSubject || messageBody) && <div className="agent-card__boundary">
+          <span>Draft for review</span>
+          {messageSubject && <p><strong>{messageSubject}</strong></p>}
+          {messageBody && <p>{messageBody}</p>}
+        </div>}
         {action.status === "pending_approval" && <footer>
           <button type="button" disabled={busy === action.id} onClick={() => decide(action.id, "approve")}>Approve</button>
           <button type="button" disabled={busy === action.id} onClick={() => decide(action.id, "reject")}>Reject</button>
         </footer>}
-      </article>)}
+      </article>;
+      })}
     </div>
     {!actions.length && <div className="evidence-note"><strong>No operating-agent actions yet</strong><p>After the feature flag is enabled, a human-reviewed run triggers Research / Insight and Customer Success actions. The CEO brief runs daily.</p></div>}
   </section>;

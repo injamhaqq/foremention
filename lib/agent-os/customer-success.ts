@@ -1,4 +1,5 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
+import { runCustomerSuccessDraftReasoner } from "@/lib/agent-os/customer-success-draft";
 import { deriveActivationStage } from "@/lib/retention-loop";
 import { deriveRetentionHealth } from "@/lib/retention-health";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -80,5 +81,32 @@ export async function runCustomerSuccessAgent(input: {
     estimatedCostUsd: 0,
     idempotencyKey: `customer-success:reviewed-run:${input.runId}:v1`,
   });
-  return { action, activation, retentionHealth };
+  const draft = await runCustomerSuccessDraftReasoner({
+    runId: input.runId,
+    organizationId: input.organizationId,
+    projectId: input.projectId,
+    activationStage: activation.key,
+    activationTitle: activation.title,
+    activationDetail: activation.detail,
+    activationHref: activation.href,
+    retentionStatus: retentionHealth.status,
+    retentionLabel: retentionHealth.label,
+    retentionReason: retentionHealth.reason,
+    approvedQuestionCount: prompts.length,
+    firstActionCreated,
+    firstActionAssigned,
+    scheduleEnabled: schedules.length > 0,
+    overdueActionCount,
+  }).catch((error) => {
+    console.warn("Customer Success reasoning unavailable.", error instanceof Error ? error.message : String(error));
+    return { skipped: true as const, reason: "reasoning_failed" };
+  });
+
+  return {
+    action,
+    activation,
+    retentionHealth,
+    draftActionId: "action" in draft ? draft.action.id : null,
+    draft,
+  };
 }
