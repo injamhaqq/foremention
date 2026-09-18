@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 type Ticket = {
   id: string;
@@ -66,7 +66,7 @@ export function SupportCenter({ demo }: { demo: boolean }) {
     return () => window.clearTimeout(task);
   }, [load]);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (demo || busy) return;
     setBusy(true);
