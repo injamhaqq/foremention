@@ -6,9 +6,9 @@ import {
   DEFAULT_REASONING_OUTPUT_COST_PER_MILLION_USD,
   estimateReasoningCostUsd,
   resolveReasoningPricing,
-} from "../lib/agent-os/reasoning-runtime.ts";
-import { validateResearchInsightReasoningOutput } from "../lib/agent-os/research-reasoning.ts";
-import { validateCustomerSuccessDraftOutput } from "../lib/agent-os/customer-success-draft.ts";
+  validateCustomerSuccessDraftOutput,
+  validateResearchInsightReasoningOutput,
+} from "../lib/agent-os/reasoning-core.ts";
 
 test("default reasoning model uses the pinned Luna cost reservation", () => {
   const previousInput = process.env.FOREMENTION_AGENT_REASONING_INPUT_COST_PER_MILLION_USD;
