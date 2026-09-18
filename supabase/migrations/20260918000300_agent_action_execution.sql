@@ -178,7 +178,8 @@ begin
     when 'succeeded' then 'completed'
     when 'blocked' then 'cancelled'
     when 'failed' then 'failed'
-    else 'executing'
+    when 'uncertain' then 'executing'
+    else 'failed'
   end;
 
   update public.agent_actions
