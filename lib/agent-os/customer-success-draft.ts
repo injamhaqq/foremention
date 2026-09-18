@@ -40,10 +40,18 @@ export async function runCustomerSuccessDraftReasoner(input: {
   scheduleEnabled: boolean;
   overdueActionCount: number;
 }) {
-  const projects = await supabaseRest<Array<{ client_brand: string }>>(
-    `projects?select=client_brand&id=eq.${encodeURIComponent(input.projectId)}&organization_id=eq.${encodeURIComponent(input.organizationId)}&limit=1`,
-    { serviceRole: true },
-  );
+  const [projects, owners] = await Promise.all([
+    supabaseRest<Array<{ client_brand: string }>>(
+      `projects?select=client_brand&id=eq.${encodeURIComponent(input.projectId)}&organization_id=eq.${encodeURIComponent(input.organizationId)}&limit=1`,
+      { serviceRole: true },
+    ),
+    supabaseRest<Array<{ user_id: string; member_email: string | null }>>(
+      `organization_members?select=user_id,member_email&organization_id=eq.${encodeURIComponent(input.organizationId)}&role=eq.owner&order=created_at.asc&limit=1`,
+      { serviceRole: true },
+    ),
+  ]);
+  const primaryOwner = owners[0] || null;
+  const recipientEmail = primaryOwner?.member_email?.trim().toLowerCase() || null;
 
   const facts = {
     "fact:activation_stage": input.activationStage,
@@ -106,7 +114,7 @@ export async function runCustomerSuccessDraftReasoner(input: {
     effectClass: "external_communication",
     riskLevel: "medium",
     title: `Customer Success draft · ${reasoning.output.subject}`,
-    rationale: "AI-drafted customer-success message based only on Foremention’s deterministic activation/retention facts. Founder/operator approval is required. Approval records a decision; it does not send the message.",
+    rationale: "AI-drafted customer-success message based only on Foremention’s deterministic activation/retention facts. The primary workspace owner is frozen into the approved payload when available. Founder/operator approval is required, and approval still does not send the message.",
     evidence: [
       { type: "run", id: input.runId, href: `/app/runs/${input.runId}`, note: "Latest human-reviewed collection anchors this CS checkpoint." },
       { type: "placement", href: input.activationHref, note: `Current deterministic activation stage: ${input.activationStage}.` },
@@ -118,7 +126,9 @@ export async function runCustomerSuccessDraftReasoner(input: {
       messageBody: reasoning.output.body,
       purpose: reasoning.output.purpose,
       evidenceKeys: reasoning.output.evidence_keys,
-      target: "workspace_owner",
+      target: "primary_workspace_owner",
+      recipientUserId: primaryOwner?.user_id || null,
+      recipientEmail,
       activationStage: input.activationStage,
       activationHref: input.activationHref,
       actualCostUsd: reasoning.actualCostUsd,
