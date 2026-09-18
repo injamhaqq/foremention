@@ -226,4 +226,113 @@ grant execute on function public.reserve_agent_support_reasoning_run(uuid, uuid,
 comment on function public.reserve_agent_support_reasoning_run(uuid, uuid, uuid, text, text, text, text, text, text, integer, integer, numeric, numeric) is
   'Atomically reserves bounded Support Agent reasoning cost against a real active support ticket without fabricating a collection run.';
 
+-- Extend the Phase 3 controlled executor by exactly one action family.
+alter table public.agent_action_executions
+  drop constraint if exists agent_action_executions_executor_check;
+alter table public.agent_action_executions
+  add constraint agent_action_executions_executor_check check (
+    executor_type in ('customer_success_email','support_reply_email')
+  );
+
+create or replace function public.claim_agent_action_execution(
+  p_action_id uuid,
+  p_execution_key text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  existing public.agent_action_executions%rowtype;
+  claimed_org uuid;
+  claimed_executor text;
+  new_id uuid;
+begin
+  select * into existing
+  from public.agent_action_executions
+  where action_id = p_action_id
+  limit 1;
+
+  if existing.id is not null then
+    return jsonb_build_object(
+      'id', existing.id,
+      'created', false,
+      'status', existing.status,
+      'reason', 'already_claimed'
+    );
+  end if;
+
+  update public.agent_actions
+  set status = 'executing',
+      executed_at = now()
+  where id = p_action_id
+    and status = 'approved'
+    and requires_approval = true
+    and decided_at is not null
+    and decided_by is not null
+    and effect_class = 'external_communication'
+    and risk_level = 'medium'
+    and (
+      (agent_id = 'customer-success' and action_type = 'customer_success_message_draft')
+      or
+      (agent_id = 'support' and action_type = 'support_reply_draft')
+    )
+  returning organization_id,
+    case
+      when agent_id = 'support' then 'support_reply_email'
+      else 'customer_success_email'
+    end
+  into claimed_org, claimed_executor;
+
+  if claimed_org is null or claimed_executor is null then
+    return jsonb_build_object('created', false, 'reason', 'not_executable');
+  end if;
+
+  begin
+    insert into public.agent_action_executions (
+      action_id,
+      organization_id,
+      executor_type,
+      execution_key,
+      status
+    ) values (
+      p_action_id,
+      claimed_org,
+      claimed_executor,
+      p_execution_key,
+      'running'
+    )
+    returning id into new_id;
+  exception when unique_violation then
+    select * into existing
+    from public.agent_action_executions
+    where action_id = p_action_id
+    limit 1;
+    if existing.id is not null then
+      return jsonb_build_object(
+        'id', existing.id,
+        'created', false,
+        'status', existing.status,
+        'reason', 'already_claimed'
+      );
+    end if;
+    raise;
+  end;
+
+  return jsonb_build_object(
+    'id', new_id,
+    'created', true,
+    'status', 'running',
+    'executorType', claimed_executor
+  );
+end;
+$;
+
+revoke all on function public.claim_agent_action_execution(uuid, text) from public;
+revoke all on function public.claim_agent_action_execution(uuid, text) from anon, authenticated;
+grant execute on function public.claim_agent_action_execution(uuid, text) to service_role;
+
+comment on function public.claim_agent_action_execution(uuid, text) is
+  'Atomically claims only an approved medium-risk Customer Success email or Support reply action.';
+
 commit;
