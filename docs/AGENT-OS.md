@@ -51,11 +51,31 @@ Only an authenticated email in `FOREMENTION_COMPANY_OPERATOR_EMAILS` may decide 
 
 Approval changes an action from `pending_approval` to `approved`. It does **not** automatically execute a consequential effect. Dedicated executors must be added per action type with their own permissions, idempotency, rollback, and verification contract.
 
+## Phase 2 reasoning layer
+
+Phase 2 adds a bounded read-only reasoning adapter on the OpenAI Responses API without adding an npm dependency. This preserves the repository's frozen pnpm lockfile while providing the same owned control-plane boundary that a future Agents SDK runtime will use.
+
+The reasoning runtime is independently gated by `FOREMENTION_AGENT_REASONING_ENABLED=1`. It:
+
+- sends only bounded, already human-verified run evidence or deterministic customer-success facts;
+- exposes no tools, browser, email, payment, production, shell, or destructive capability to the model;
+- uses strict JSON Schema output;
+- validates every research evidence key against records actually supplied to the model;
+- treats provider answers and page metadata as untrusted data, never instructions;
+- records input hash, model, token usage, latency, output, and cost in a service-only reasoning ledger;
+- atomically reserves a global daily reasoning-cost budget before a call;
+- keeps operating-agent reasoning cost separate from customer collection cost.
+
+The default model is `gpt-5.6-luna`; changing the model requires explicit input/output pricing configuration or reasoning fails closed.
+
+### Phase 2 outputs
+
+1. **Research / Insight decision memo** — an internal low-risk synthesis of reviewed evidence. It may recommend reversible investigation/review/experiment steps but cannot execute them.
+2. **Customer Success message draft** — a concise draft built only from the deterministic activation/retention state. It is classified as external communication and therefore enters the founder approval queue. Approval still does not send it.
+
 ## Agent-runtime evolution
 
-Phase 1 deliberately has no new agent-framework dependency, preserving the repository's frozen pnpm lockfile and Cloudflare build gates.
-
-The next reasoning layer should plug into this control plane rather than replace it:
+The OpenAI Agents SDK should plug into this control plane rather than replace it once its dependency lock is generated reproducibly:
 
 ```text
 Foremention events
@@ -77,5 +97,7 @@ This keeps model choice and orchestration replaceable while the durable action, 
 3. Set `FOREMENTION_AGENT_OS_ENABLED=1` in the server environment.
 4. Ensure `FOREMENTION_COMPANY_OPERATOR_EMAILS` contains the founder/operator email.
 5. Sync Inngest functions and run the existing production probe.
-6. Human-review a real collection and verify two idempotent actions appear: Research / Insight and Customer Success.
-7. Verify the daily CEO brief appears on the next scheduled cycle without invented commercial metrics.
+6. Human-review a real collection and verify two deterministic idempotent actions appear: Research / Insight and Customer Success.
+7. If Phase 2 reasoning is desired, deploy the reasoning migration, set `FOREMENTION_AGENT_REASONING_ENABLED=1`, and verify the configured cost caps/rates.
+8. Verify one Research decision memo appears and one Customer Success draft enters the approval queue; confirm approving the draft does not send it.
+9. Verify the daily CEO brief appears on the next scheduled cycle without invented commercial metrics.

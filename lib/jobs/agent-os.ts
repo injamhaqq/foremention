@@ -30,7 +30,9 @@ export const runReviewedOperatingAgents = inngest.createFunction(
       skipped: false,
       runId: data.runId,
       researchActionId: research.skipped ? null : research.action.id,
+      researchReasoningActionId: research.skipped ? null : research.reasoningActionId,
       customerSuccessActionId: customerSuccess.action.id,
+      customerSuccessDraftActionId: customerSuccess.draftActionId,
     };
   },
 );
