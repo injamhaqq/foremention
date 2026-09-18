@@ -42,8 +42,9 @@ test("controlled execution adds only the approved medium-risk Support reply fami
 test("support intake is authenticated, same-origin protected, and bounded", () => {
   assert.match(api, /getViewer\(\)/);
   assert.match(api, /isTrustedMutationOrigin\(request\)/);
-  assert.match(api, /slice\(0, 180\)/);
-  assert.match(api, /slice\(0, 4000\)/);
+  assert.match(api, /const subject = clean\(body\.subject, 180\)/);
+  assert.match(api, /const message = clean\(body\.message, 4000\)/);
+  assert.match(api, /value\.replace\(\/\\r\\n\/g, "\\n"\)\.trim\(\)\.slice\(0, max\)/);
   assert.match(api, /requester_id: resolved\.viewer!\.id/);
 });
 
