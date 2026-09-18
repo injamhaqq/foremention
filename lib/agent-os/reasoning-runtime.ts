@@ -1,15 +1,18 @@
 import type { OperatingAgentId } from "@/lib/agent-os/contracts";
+import {
+  DEFAULT_REASONING_MODEL,
+  estimateReasoningCostUsd,
+  resolveReasoningPricing,
+} from "@/lib/agent-os/reasoning-core";
+export {
+  DEFAULT_REASONING_INPUT_COST_PER_MILLION_USD,
+  DEFAULT_REASONING_MODEL,
+  DEFAULT_REASONING_OUTPUT_COST_PER_MILLION_USD,
+  estimateReasoningCostUsd,
+  resolveReasoningPricing,
+} from "@/lib/agent-os/reasoning-core";
 import { safeOperationalError } from "@/lib/collection-policy";
 import { supabaseRest } from "@/lib/supabase-rest";
-
-export const DEFAULT_REASONING_MODEL = "gpt-5.6-luna";
-export const DEFAULT_REASONING_INPUT_COST_PER_MILLION_USD = 0.20;
-export const DEFAULT_REASONING_OUTPUT_COST_PER_MILLION_USD = 1.20;
-
-type ReasoningPricing = {
-  inputPerMillionUsd: number;
-  outputPerMillionUsd: number;
-};
 
 type ReservationResult = {
   id?: string;
@@ -79,42 +82,12 @@ function positiveNumber(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function optionalPositiveNumber(value: string | undefined) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
 export function reasoningEnabled() {
   return process.env.FOREMENTION_AGENT_REASONING_ENABLED === "1";
 }
 
 export function reasoningModel() {
   return String(process.env.FOREMENTION_AGENT_REASONING_MODEL || DEFAULT_REASONING_MODEL).trim();
-}
-
-export function resolveReasoningPricing(model: string): ReasoningPricing | null {
-  const configuredInput = optionalPositiveNumber(process.env.FOREMENTION_AGENT_REASONING_INPUT_COST_PER_MILLION_USD);
-  const configuredOutput = optionalPositiveNumber(process.env.FOREMENTION_AGENT_REASONING_OUTPUT_COST_PER_MILLION_USD);
-  if (configuredInput !== null && configuredOutput !== null) {
-    return { inputPerMillionUsd: configuredInput, outputPerMillionUsd: configuredOutput };
-  }
-  if (model === DEFAULT_REASONING_MODEL) {
-    return {
-      inputPerMillionUsd: DEFAULT_REASONING_INPUT_COST_PER_MILLION_USD,
-      outputPerMillionUsd: DEFAULT_REASONING_OUTPUT_COST_PER_MILLION_USD,
-    };
-  }
-  return null;
-}
-
-export function estimateReasoningCostUsd(
-  inputTokens: number,
-  outputTokens: number,
-  pricing: ReasoningPricing,
-) {
-  const inputCost = Math.max(0, inputTokens) * pricing.inputPerMillionUsd / 1_000_000;
-  const outputCost = Math.max(0, outputTokens) * pricing.outputPerMillionUsd / 1_000_000;
-  return Math.round((inputCost + outputCost) * 1_000_000) / 1_000_000;
 }
 
 function estimatedInputTokensFromChars(chars: number) {
