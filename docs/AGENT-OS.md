@@ -1,6 +1,6 @@
 # Foremention Agent OS
 
-Status: Phase 3 controlled-execution foundation. Agent OS and model reasoning remain independently disabled by default until their server flags are enabled and production verification is complete.
+Status: Phase 4 support-agent foundation. Agent OS and model reasoning remain independently disabled by default until their server flags are enabled and production verification is complete.
 
 ## Purpose
 
@@ -105,6 +105,45 @@ Controls:
 
 Approval is therefore permission to execute, not execution itself.
 
+## Phase 4 Support Agent
+
+Phase 4 adds a customer-initiated support loop without treating support diagnostics as Recommendation Intelligence evidence.
+
+### Support flow
+
+```text
+authenticated workspace member
+    -> creates support ticket
+    -> requester-scoped persisted ticket
+    -> durable foremention/support.requested event
+    -> deterministic workspace diagnostic snapshot
+    -> optional bounded Support reasoning
+    -> support_reply_draft
+    -> operator approval
+    -> explicit Send approved email
+    -> transactional email receipt
+    -> ticket responded
+```
+
+Controls:
+
+- Support tickets are tenant-scoped and readable by the authenticated requester; company operators use a service-only Support inbox.
+- Internal `support_ticket_diagnostics` records are service-only and never become Recommendation Intelligence evidence.
+- Support reasoning can be anchored directly to a real active support ticket. It does not fabricate a collection run when none exists.
+- The Support Agent shares the existing global reasoning-cost reservation and idempotency ledger.
+- Customer ticket text is treated as untrusted data, never model instructions.
+- The model is forbidden from inventing root causes, fixes, outages, billing states, entitlements, refunds, credits, SLAs, deadlines, or resolved status.
+- A Support reply is `external_communication / medium` and always requires a human decision.
+- Approval still does not send. The operator must use the separate controlled execution step.
+- Support reply execution requires the same requester identity/email, a still-active workspace membership, and the same `reply_pending` ticket.
+- Support replies are transactional responses to customer-initiated requests. They do not depend on product-alert opt-in/unsubscribe state and do not carry marketing unsubscribe headers.
+- Customer Success emails retain their existing product-email preference and one-click unsubscribe requirements.
+- Rejected, blocked, or definite pre-send failed Support actions return the ticket to `triaged`.
+- Provider uncertainty remains non-retryable and leaves the ticket/action pending manual reconciliation.
+- A successful provider send is receipt-protected from duplicate execution; ticket-state persistence is attempted afterward without issuing a second email.
+
+The operator Support inbox reads persisted tickets directly, so customer requests remain visible even when Agent OS reasoning is disabled or unavailable.
+
 ## Agent-runtime evolution
 
 The OpenAI Agents SDK should plug into this control plane rather than replace it once its dependency lock is generated reproducibly:
@@ -136,3 +175,9 @@ This keeps model choice and orchestration replaceable while the durable action, 
 10. Approve a Customer Success draft, verify the frozen recipient is correct, then use the separate **Send approved email** control. Confirm one execution receipt is recorded and a repeated execute attempt does not send a second message.
 11. Verify blocked recipients (email disabled/unsubscribed/owner changed) create no external effect, and an uncertain result remains non-retryable.
 12. Verify the daily CEO brief appears on the next scheduled cycle without invented commercial metrics.
+13. For Phase 4, submit a real support request from `/app/support` and verify it appears immediately in the operator Support inbox.
+14. Confirm the Support diagnostic action is observation-only and the diagnostic ledger is inaccessible to authenticated customers.
+15. With reasoning enabled, verify a `support_reply_draft` enters the approval queue. Confirm customer ticket text cannot inject instructions into the Support model.
+16. Reject one Support draft and verify the ticket returns to `triaged`.
+17. Approve a new Support draft, then use the separate send control. Confirm the ticket changes to `responded`, one execution receipt is recorded, and a repeated execute attempt cannot send a second email.
+18. Verify a customer who has disabled product alerts can still receive the explicitly requested transactional Support reply, while Customer Success product emails remain preference-gated.

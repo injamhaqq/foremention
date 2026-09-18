@@ -16,3 +16,19 @@ export async function queueReviewedRunOperatingAgents(input: {
   });
   return { queued: true };
 }
+
+
+export async function queueSupportTicketOperatingAgent(input: {
+  ticketId: string;
+  organizationId: string;
+  projectId: string;
+  requestedBy: string;
+}) {
+  if (!operatingAgentOsEnabled() || !process.env.INNGEST_EVENT_KEY) return { queued: false };
+  await inngest.send({
+    id: `agent-os-support-ticket-${input.ticketId}`,
+    name: "foremention/support.requested",
+    data: input,
+  });
+  return { queued: true };
+}

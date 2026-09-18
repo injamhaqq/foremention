@@ -139,10 +139,13 @@ async function failReasoningRun(id: string, error: unknown) {
   }).catch(() => undefined);
 }
 
-export async function runStructuredReasoning<T>(input: {
+type StructuredReasoningContext =
+  | { runId: string; supportTicketId?: never }
+  | { runId?: null; supportTicketId: string };
+
+export async function runStructuredReasoning<T>(input: StructuredReasoningContext & {
   organizationId: string;
   projectId: string;
-  runId: string;
   agentId: OperatingAgentId;
   taskType: string;
   promptVersion: string;
@@ -175,25 +178,47 @@ export async function runStructuredReasoning<T>(input: {
   const dailyCostCapUsd = positiveNumber(process.env.FOREMENTION_AGENT_REASONING_DAILY_COST_CAP_USD, 0.10);
 
   const inputHash = await sha256Hex(`${input.instructions}\n\n${input.inputText}`);
-  const reservation = await supabaseRest<ReservationResult | null>("rpc/reserve_agent_reasoning_run", {
-    method: "POST",
-    serviceRole: true,
-    body: {
-      p_organization_id: input.organizationId,
-      p_project_id: input.projectId,
-      p_run_id: input.runId,
-      p_agent_id: input.agentId,
-      p_task_type: input.taskType,
-      p_model: model,
-      p_prompt_version: input.promptVersion,
-      p_idempotency_key: input.idempotencyKey,
-      p_input_hash: inputHash,
-      p_input_chars: input.inputText.length,
-      p_max_output_tokens: maxOutputTokens,
-      p_estimated_max_cost_usd: estimatedMaxCostUsd,
-      p_daily_cost_cap_usd: dailyCostCapUsd,
-    },
-  });
+  const supportTicketId = "supportTicketId" in input ? input.supportTicketId : null;
+  const runId = "runId" in input ? input.runId ?? null : null;
+  const reservation = supportTicketId
+    ? await supabaseRest<ReservationResult | null>("rpc/reserve_agent_support_reasoning_run", {
+      method: "POST",
+      serviceRole: true,
+      body: {
+        p_organization_id: input.organizationId,
+        p_project_id: input.projectId,
+        p_support_ticket_id: supportTicketId,
+        p_agent_id: input.agentId,
+        p_task_type: input.taskType,
+        p_model: model,
+        p_prompt_version: input.promptVersion,
+        p_idempotency_key: input.idempotencyKey,
+        p_input_hash: inputHash,
+        p_input_chars: input.inputText.length,
+        p_max_output_tokens: maxOutputTokens,
+        p_estimated_max_cost_usd: estimatedMaxCostUsd,
+        p_daily_cost_cap_usd: dailyCostCapUsd,
+      },
+    })
+    : await supabaseRest<ReservationResult | null>("rpc/reserve_agent_reasoning_run", {
+      method: "POST",
+      serviceRole: true,
+      body: {
+        p_organization_id: input.organizationId,
+        p_project_id: input.projectId,
+        p_run_id: runId,
+        p_agent_id: input.agentId,
+        p_task_type: input.taskType,
+        p_model: model,
+        p_prompt_version: input.promptVersion,
+        p_idempotency_key: input.idempotencyKey,
+        p_input_hash: inputHash,
+        p_input_chars: input.inputText.length,
+        p_max_output_tokens: maxOutputTokens,
+        p_estimated_max_cost_usd: estimatedMaxCostUsd,
+        p_daily_cost_cap_usd: dailyCostCapUsd,
+      },
+    });
   if (!reservation?.id) return { skipped: true, reason: "daily_cost_cap" };
 
   const persisted = await loadReasoningRun(reservation.id);
@@ -249,7 +274,8 @@ export async function runStructuredReasoning<T>(input: {
         metadata: {
           agent_id: input.agentId,
           task_type: input.taskType.slice(0, 64),
-          run_id: input.runId,
+          ...(runId ? { run_id: runId } : {}),
+          ...(supportTicketId ? { support_ticket_id: supportTicketId } : {}),
         },
       }),
     });

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   customerSuccessExecutionKey,
+  supportReplyExecutionKey,
   validateCustomerSuccessExecutionAction,
+  validateSupportReplyExecutionAction,
 } from "../lib/agent-os/execution-core.ts";
 
 const action = {
@@ -58,4 +60,43 @@ test("execution key is deterministic for provider idempotency", () => {
     "agent-action/customer-success-email/11111111-1111-4111-8111-111111111111/v1",
   );
   assert.throws(() => customerSuccessExecutionKey("bad-id"), /ACTION_ID_INVALID/);
+});
+
+
+const supportAction = {
+  ...action,
+  agentId: "support",
+  actionType: "support_reply_draft",
+  payload: {
+    ticketId: "33333333-3333-4333-8333-333333333333",
+    recipientUserId: "22222222-2222-4222-8222-222222222222",
+    recipientEmail: "member@example.com",
+    messageSubject: "Re: collection issue",
+    messageBody: "We received your support request and are reviewing the recorded workspace state.",
+  },
+};
+
+test("support execution accepts only the exact approved support reply contract", () => {
+  assert.deepEqual(validateSupportReplyExecutionAction(supportAction), {
+    ticketId: "33333333-3333-4333-8333-333333333333",
+    recipientUserId: "22222222-2222-4222-8222-222222222222",
+    recipientEmail: "member@example.com",
+    messageSubject: "Re: collection issue",
+    messageBody: "We received your support request and are reviewing the recorded workspace state.",
+  });
+  assert.equal(validateSupportReplyExecutionAction({ ...supportAction, status: "pending_approval" }), null);
+  assert.equal(validateSupportReplyExecutionAction({ ...supportAction, agentId: "customer-success" }), null);
+  assert.equal(validateSupportReplyExecutionAction({ ...supportAction, actionType: "support_diagnostic_snapshot" }), null);
+  assert.equal(validateSupportReplyExecutionAction({
+    ...supportAction,
+    payload: { ...supportAction.payload, ticketId: "bad-ticket" },
+  }), null);
+});
+
+test("support execution key is deterministic and isolated from customer success", () => {
+  assert.equal(
+    supportReplyExecutionKey(supportAction.id),
+    "agent-action/support-reply-email/11111111-1111-4111-8111-111111111111/v1",
+  );
+  assert.notEqual(supportReplyExecutionKey(supportAction.id), customerSuccessExecutionKey(action.id));
 });

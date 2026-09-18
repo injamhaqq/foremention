@@ -1,7 +1,9 @@
 import { loadAgentAction } from "@/lib/agent-os/actions";
 import {
   customerSuccessExecutionKey,
+  supportReplyExecutionKey,
   validateCustomerSuccessExecutionAction,
+  validateSupportReplyExecutionAction,
 } from "@/lib/agent-os/execution-core";
 import {
   ApplicationEmailSendUncertainError,
@@ -35,6 +37,13 @@ type PreferenceRow = {
   unsubscribed_at: string | null;
 };
 
+type SupportTicketRow = {
+  id: string;
+  requester_id: string;
+  requester_email: string;
+  status: string;
+};
+
 async function finishExecution(input: {
   actionId: string;
   status: "succeeded" | "failed" | "blocked" | "uncertain";
@@ -55,6 +64,31 @@ async function finishExecution(input: {
       p_result_json: input.result || {},
     },
   });
+}
+
+async function failBeforeExternalEffect(input: {
+  actionId: string;
+  organizationId: string;
+  code: string;
+  supportTicketId?: string | null;
+}) {
+  await finishExecution({
+    actionId: input.actionId,
+    status: "failed",
+    errorCode: input.code,
+    result: { externalEffect: false },
+  }).catch(() => undefined);
+  if (input.supportTicketId) {
+    await supabaseRest(
+      `support_tickets?id=eq.${encodeURIComponent(input.supportTicketId)}&organization_id=eq.${encodeURIComponent(input.organizationId)}&status=eq.reply_pending`,
+      {
+        method: "PATCH",
+        serviceRole: true,
+        prefer: "return=minimal",
+        body: { status: "triaged" },
+      },
+    ).catch(() => undefined);
+  }
 }
 
 async function auditExecution(input: {
@@ -88,6 +122,7 @@ async function blockExecution(input: {
   organizationId: string;
   actorId: string;
   code: string;
+  supportTicketId?: string | null;
 }) {
   await finishExecution({
     actionId: input.actionId,
@@ -95,6 +130,17 @@ async function blockExecution(input: {
     errorCode: input.code,
     result: { externalEffect: false },
   });
+  if (input.supportTicketId) {
+    await supabaseRest(
+      `support_tickets?id=eq.${encodeURIComponent(input.supportTicketId)}&organization_id=eq.${encodeURIComponent(input.organizationId)}&status=eq.reply_pending`,
+      {
+        method: "PATCH",
+        serviceRole: true,
+        prefer: "return=minimal",
+        body: { status: "triaged" },
+      },
+    ).catch(() => undefined);
+  }
   await auditExecution({
     organizationId: input.organizationId,
     actorId: input.actorId,
@@ -120,13 +166,18 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
     };
   }
 
-  const approvedPayload = validateCustomerSuccessExecutionAction({
-    ...action,
-    payload: action.payload || {},
-  });
-  if (!approvedPayload) throw new Error("AGENT_EXECUTION_ACTION_NOT_EXECUTABLE");
+  const actionInput = { ...action, payload: action.payload || {} };
+  const customerSuccessPayload = validateCustomerSuccessExecutionAction(actionInput);
+  const supportPayload = validateSupportReplyExecutionAction(actionInput);
+  if (!customerSuccessPayload && !supportPayload) {
+    throw new Error("AGENT_EXECUTION_ACTION_NOT_EXECUTABLE");
+  }
+  const supportReply = Boolean(supportPayload);
+  const approvedPayload = supportPayload || customerSuccessPayload!;
+  const executionKey = supportPayload
+    ? supportReplyExecutionKey(action.id)
+    : customerSuccessExecutionKey(action.id);
 
-  const executionKey = customerSuccessExecutionKey(action.id);
   const claim = await supabaseRest<ClaimResult | null>("rpc/claim_agent_action_execution", {
     method: "POST",
     serviceRole: true,
@@ -150,127 +201,197 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
       actorId,
       code: "application_email_not_configured",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
-  if (!siteUrl) {
+  if (!supportReply && !siteUrl) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
       actorId,
       code: "site_url_not_configured",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
-  if (!unsubscribeSecret || unsubscribeSecret.length < 32) {
+  if (!supportReply && (!unsubscribeSecret || unsubscribeSecret.length < 32)) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
       actorId,
       code: "unsubscribe_not_configured",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
 
-  let workspaceUrl: string;
-  try {
-    workspaceUrl = new URL(approvedPayload.activationHref, siteUrl).toString();
-  } catch {
-    return blockExecution({
-      actionId: action.id,
-      organizationId: organizationId,
-      actorId,
-      code: "workspace_url_invalid",
-    });
+  if (supportPayload) {
+    let ticket: SupportTicketRow | undefined;
+    try {
+      const rows = await supabaseRest<SupportTicketRow[]>(
+        `support_tickets?select=id,requester_id,requester_email,status&id=eq.${encodeURIComponent(supportPayload.ticketId)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`,
+        { serviceRole: true },
+      );
+      ticket = rows[0];
+    } catch {
+      await failBeforeExternalEffect({
+        actionId: action.id,
+        organizationId,
+        code: "support_ticket_preflight_failed",
+        supportTicketId: supportPayload.ticketId,
+      });
+      throw new Error("AGENT_EXECUTION_SUPPORT_TICKET_PREFLIGHT_FAILED");
+    }
+
+    if (
+      !ticket
+      || ticket.status !== "reply_pending"
+      || ticket.requester_id !== supportPayload.recipientUserId
+      || ticket.requester_email.trim().toLowerCase() !== supportPayload.recipientEmail
+    ) {
+      return blockExecution({
+        actionId: action.id,
+        organizationId,
+        actorId,
+        code: "support_ticket_changed",
+        supportTicketId: supportPayload.ticketId,
+      });
+    }
   }
 
-  let memberships: MembershipRow[];
-  let preferences: PreferenceRow[];
+  let membership: MembershipRow | undefined;
   try {
-    [memberships, preferences] = await Promise.all([
-      supabaseRest<MembershipRow[]>(
-        `organization_members?select=user_id,member_email,role&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&role=eq.owner&limit=1`,
-        { serviceRole: true },
-      ),
-      supabaseRest<PreferenceRow[]>(
-        `notification_preferences?select=email_enabled,unsubscribed_at&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&limit=1`,
-        { serviceRole: true },
-      ),
-    ]);
+    const rows = await supabaseRest<MembershipRow[]>(
+      `organization_members?select=user_id,member_email,role&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&limit=1`,
+      { serviceRole: true },
+    );
+    membership = rows[0];
   } catch {
-    await finishExecution({
+    await failBeforeExternalEffect({
       actionId: action.id,
-      status: "failed",
-      errorCode: "recipient_preflight_failed",
-      result: { externalEffect: false },
-    }).catch(() => undefined);
+      organizationId,
+      code: "recipient_preflight_failed",
+      supportTicketId: supportPayload?.ticketId,
+    });
     throw new Error("AGENT_EXECUTION_RECIPIENT_PREFLIGHT_FAILED");
   }
 
-  const membership = memberships[0];
-  if (!membership || membership.role !== "owner") {
+  if (!membership) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
+      actorId,
+      code: supportReply ? "recipient_not_member" : "recipient_not_owner",
+      supportTicketId: supportPayload?.ticketId,
+    });
+  }
+  if (!supportReply && membership.role !== "owner") {
+    return blockExecution({
+      actionId: action.id,
+      organizationId,
       actorId,
       code: "recipient_not_owner",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
+
   const currentEmail = membership.member_email?.trim().toLowerCase() || "";
-  if (!currentEmail || currentEmail !== approvedPayload.recipientEmail) {
+  const recipientChanged = supportReply
+    ? Boolean(currentEmail && currentEmail !== approvedPayload.recipientEmail)
+    : !currentEmail || currentEmail !== approvedPayload.recipientEmail;
+  if (recipientChanged) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
       actorId,
       code: "recipient_changed",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
 
-  const preference = preferences[0];
-  if (!preference?.email_enabled) {
-    return blockExecution({
-      actionId: action.id,
-      organizationId: organizationId,
-      actorId,
-      code: "email_opt_in_required",
-    });
-  }
-  if (preference.unsubscribed_at) {
-    return blockExecution({
-      actionId: action.id,
-      organizationId: organizationId,
-      actorId,
-      code: "recipient_unsubscribed",
-    });
-  }
+  let text: string;
+  let headers: Record<string, string> | undefined;
 
-  let unsubscribeUrl: string;
-  try {
-    const token = await createEmailUnsubscribeToken(
-      organizationId,
-      approvedPayload.recipientUserId,
-      unsubscribeSecret,
-    );
-    unsubscribeUrl = new URL(
-      `/unsubscribe?token=${encodeURIComponent(token)}`,
-      siteUrl,
-    ).toString();
-  } catch {
-    await finishExecution({
-      actionId: action.id,
-      status: "failed",
-      errorCode: "unsubscribe_token_failed",
-      result: { externalEffect: false },
-    }).catch(() => undefined);
-    throw new Error("AGENT_EXECUTION_UNSUBSCRIBE_TOKEN_FAILED");
+  if (customerSuccessPayload) {
+    let preferences: PreferenceRow[];
+    try {
+      preferences = await supabaseRest<PreferenceRow[]>(
+        `notification_preferences?select=email_enabled,unsubscribed_at&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(customerSuccessPayload.recipientUserId)}&limit=1`,
+        { serviceRole: true },
+      );
+    } catch {
+      await finishExecution({
+        actionId: action.id,
+        status: "failed",
+        errorCode: "preference_preflight_failed",
+        result: { externalEffect: false },
+      }).catch(() => undefined);
+      throw new Error("AGENT_EXECUTION_PREFERENCE_PREFLIGHT_FAILED");
+    }
+    const preference = preferences[0];
+    if (!preference?.email_enabled) {
+      return blockExecution({
+        actionId: action.id,
+        organizationId,
+        actorId,
+        code: "email_opt_in_required",
+        supportTicketId: supportPayload?.ticketId,
+      });
+    }
+    if (preference.unsubscribed_at) {
+      return blockExecution({
+        actionId: action.id,
+        organizationId,
+        actorId,
+        code: "recipient_unsubscribed",
+        supportTicketId: supportPayload?.ticketId,
+      });
+    }
+
+    let workspaceUrl: string;
+    let unsubscribeUrl: string;
+    try {
+      workspaceUrl = new URL(customerSuccessPayload.activationHref, siteUrl!).toString();
+      const token = await createEmailUnsubscribeToken(
+        organizationId,
+        customerSuccessPayload.recipientUserId,
+        unsubscribeSecret!,
+      );
+      unsubscribeUrl = new URL(
+        `/unsubscribe?token=${encodeURIComponent(token)}`,
+        siteUrl!,
+      ).toString();
+    } catch {
+      await finishExecution({
+        actionId: action.id,
+        status: "failed",
+        errorCode: "customer_success_link_failed",
+        result: { externalEffect: false },
+      }).catch(() => undefined);
+      throw new Error("AGENT_EXECUTION_CUSTOMER_SUCCESS_LINK_FAILED");
+    }
+
+    text = [
+      customerSuccessPayload.messageBody,
+      "",
+      `Open Foremention: ${workspaceUrl}`,
+      "",
+      `Unsubscribe from product alerts: ${unsubscribeUrl}`,
+    ].join("\n");
+    headers = {
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+  } else {
+    const supportUrl = siteUrl
+      ? new URL(`/app/support?ticket=${supportPayload!.ticketId}`, siteUrl).toString()
+      : null;
+    text = [
+      supportPayload!.messageBody,
+      ...(supportUrl ? ["", `View your support request: ${supportUrl}`] : []),
+    ].join("\n");
   }
-  const text = [
-    approvedPayload.messageBody,
-    "",
-    `Open Foremention: ${workspaceUrl}`,
-    "",
-    `Unsubscribe from product alerts: ${unsubscribeUrl}`,
-  ].join("\n");
 
   let providerMessageId: string;
   try {
@@ -279,10 +400,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       subject: approvedPayload.messageSubject,
       text,
       idempotencyKey: executionKey,
-      headers: {
-        "List-Unsubscribe": `<${unsubscribeUrl}>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      },
+      ...(headers ? { headers } : {}),
     });
     providerMessageId = result.id;
   } catch (error) {
@@ -295,10 +413,11 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
         result: {
           externalEffect: "unknown",
           retryAllowed: false,
+          ...(supportPayload ? { supportTicketId: supportPayload.ticketId } : {}),
         },
       }).catch(() => undefined);
       await auditExecution({
-        organizationId: organizationId,
+        organizationId,
         actorId,
         actionId: action.id,
         status: "uncertain",
@@ -316,10 +435,24 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       status: "failed",
       provider: "resend",
       errorCode: "provider_rejected",
-      result: { externalEffect: false },
+      result: {
+        externalEffect: false,
+        ...(supportPayload ? { supportTicketId: supportPayload.ticketId } : {}),
+      },
     }).catch(() => undefined);
+    if (supportPayload) {
+      await supabaseRest(
+        `support_tickets?id=eq.${encodeURIComponent(supportPayload.ticketId)}&organization_id=eq.${encodeURIComponent(organizationId)}&status=eq.reply_pending`,
+        {
+          method: "PATCH",
+          serviceRole: true,
+          prefer: "return=minimal",
+          body: { status: "triaged" },
+        },
+      ).catch(() => undefined);
+    }
     await auditExecution({
-      organizationId: organizationId,
+      organizationId,
       actorId,
       actionId: action.id,
       status: "failed",
@@ -337,17 +470,33 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       result: {
         externalEffect: true,
         channel: "email",
+        ...(supportPayload ? { supportTicketId: supportPayload.ticketId } : {}),
       },
     });
   } catch {
-    // The provider already accepted the email. Do not issue another send.
-    // Leaving the action in executing/running is safer than inventing a failure
-    // or retrying a side effect that may already have occurred.
     throw new Error("AGENT_EXECUTION_RECEIPT_PERSISTENCE_FAILED");
   }
 
+  let supportTicketStatusRecorded: boolean | null = null;
+  if (supportPayload) {
+    const respondedAt = new Date().toISOString();
+    const rows = await supabaseRest<Array<{ id: string }>>(
+      `support_tickets?id=eq.${encodeURIComponent(supportPayload.ticketId)}&organization_id=eq.${encodeURIComponent(organizationId)}&status=eq.reply_pending`,
+      {
+        method: "PATCH",
+        serviceRole: true,
+        prefer: "return=representation",
+        body: {
+          status: "responded",
+          responded_at: respondedAt,
+        },
+      },
+    ).catch(() => []);
+    supportTicketStatusRecorded = Boolean(rows[0]);
+  }
+
   await auditExecution({
-    organizationId: organizationId,
+    organizationId,
     actorId,
     actionId: action.id,
     status: "succeeded",
@@ -356,5 +505,6 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
     status: "succeeded" as const,
     providerMessageId,
     duplicate: false,
+    ...(supportPayload ? { supportTicketStatusRecorded } : {}),
   };
 }

@@ -183,6 +183,23 @@ export async function decideAgentAction(input: {
   );
   if (!rows[0]) throw new Error("The agent action changed before this decision was recorded.");
 
+  if (
+    input.decision === "reject"
+    && action.agent_id === "support"
+    && action.action_type === "support_reply_draft"
+    && typeof action.payload_json?.ticketId === "string"
+  ) {
+    await supabaseRest(
+      `support_tickets?id=eq.${encodeURIComponent(action.payload_json.ticketId)}&organization_id=eq.${encodeURIComponent(action.organization_id || "")}&status=eq.reply_pending`,
+      {
+        method: "PATCH",
+        serviceRole: true,
+        prefer: "return=minimal",
+        body: { status: "triaged" },
+      },
+    ).catch(() => undefined);
+  }
+
   if (action.organization_id) {
     await supabaseRest("audit_logs", {
       method: "POST",
