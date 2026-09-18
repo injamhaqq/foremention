@@ -1,7 +1,9 @@
 import { loadAgentAction } from "@/lib/agent-os/actions";
 import {
   customerSuccessExecutionKey,
+  supportReplyExecutionKey,
   validateCustomerSuccessExecutionAction,
+  validateSupportReplyExecutionAction,
 } from "@/lib/agent-os/execution-core";
 import {
   ApplicationEmailSendUncertainError,
@@ -33,6 +35,13 @@ type MembershipRow = {
 type PreferenceRow = {
   email_enabled: boolean;
   unsubscribed_at: string | null;
+};
+
+type SupportTicketRow = {
+  id: string;
+  requester_id: string;
+  requester_email: string;
+  status: string;
 };
 
 async function finishExecution(input: {
@@ -120,13 +129,18 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
     };
   }
 
-  const approvedPayload = validateCustomerSuccessExecutionAction({
-    ...action,
-    payload: action.payload || {},
-  });
-  if (!approvedPayload) throw new Error("AGENT_EXECUTION_ACTION_NOT_EXECUTABLE");
+  const actionInput = { ...action, payload: action.payload || {} };
+  const customerSuccessPayload = validateCustomerSuccessExecutionAction(actionInput);
+  const supportPayload = validateSupportReplyExecutionAction(actionInput);
+  if (!customerSuccessPayload && !supportPayload) {
+    throw new Error("AGENT_EXECUTION_ACTION_NOT_EXECUTABLE");
+  }
+  const supportReply = Boolean(supportPayload);
+  const approvedPayload = supportPayload || customerSuccessPayload!;
+  const executionKey = supportPayload
+    ? supportReplyExecutionKey(action.id)
+    : customerSuccessExecutionKey(action.id);
 
-  const executionKey = customerSuccessExecutionKey(action.id);
   const claim = await supabaseRest<ClaimResult | null>("rpc/claim_agent_action_execution", {
     method: "POST",
     serviceRole: true,
@@ -150,53 +164,68 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
       actorId,
       code: "application_email_not_configured",
     });
   }
-  if (!siteUrl) {
+  if (!supportReply && !siteUrl) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
       actorId,
       code: "site_url_not_configured",
     });
   }
-  if (!unsubscribeSecret || unsubscribeSecret.length < 32) {
+  if (!supportReply && (!unsubscribeSecret || unsubscribeSecret.length < 32)) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
       actorId,
       code: "unsubscribe_not_configured",
     });
   }
 
-  let workspaceUrl: string;
-  try {
-    workspaceUrl = new URL(approvedPayload.activationHref, siteUrl).toString();
-  } catch {
-    return blockExecution({
-      actionId: action.id,
-      organizationId: organizationId,
-      actorId,
-      code: "workspace_url_invalid",
-    });
+  if (supportPayload) {
+    let ticket: SupportTicketRow | undefined;
+    try {
+      const rows = await supabaseRest<SupportTicketRow[]>(
+        `support_tickets?select=id,requester_id,requester_email,status&id=eq.${encodeURIComponent(supportPayload.ticketId)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`,
+        { serviceRole: true },
+      );
+      ticket = rows[0];
+    } catch {
+      await finishExecution({
+        actionId: action.id,
+        status: "failed",
+        errorCode: "support_ticket_preflight_failed",
+        result: { externalEffect: false },
+      }).catch(() => undefined);
+      throw new Error("AGENT_EXECUTION_SUPPORT_TICKET_PREFLIGHT_FAILED");
+    }
+
+    if (
+      !ticket
+      || ticket.status !== "reply_pending"
+      || ticket.requester_id !== supportPayload.recipientUserId
+      || ticket.requester_email.trim().toLowerCase() !== supportPayload.recipientEmail
+    ) {
+      return blockExecution({
+        actionId: action.id,
+        organizationId,
+        actorId,
+        code: "support_ticket_changed",
+      });
+    }
   }
 
-  let memberships: MembershipRow[];
-  let preferences: PreferenceRow[];
+  let membership: MembershipRow | undefined;
   try {
-    [memberships, preferences] = await Promise.all([
-      supabaseRest<MembershipRow[]>(
-        `organization_members?select=user_id,member_email,role&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&role=eq.owner&limit=1`,
-        { serviceRole: true },
-      ),
-      supabaseRest<PreferenceRow[]>(
-        `notification_preferences?select=email_enabled,unsubscribed_at&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&limit=1`,
-        { serviceRole: true },
-      ),
-    ]);
+    const rows = await supabaseRest<MembershipRow[]>(
+      `organization_members?select=user_id,member_email,role&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(approvedPayload.recipientUserId)}&limit=1`,
+      { serviceRole: true },
+    );
+    membership = rows[0];
   } catch {
     await finishExecution({
       actionId: action.id,
@@ -207,70 +236,113 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
     throw new Error("AGENT_EXECUTION_RECIPIENT_PREFLIGHT_FAILED");
   }
 
-  const membership = memberships[0];
-  if (!membership || membership.role !== "owner") {
+  if (!membership) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
+      actorId,
+      code: supportReply ? "recipient_not_member" : "recipient_not_owner",
+    });
+  }
+  if (!supportReply && membership.role !== "owner") {
+    return blockExecution({
+      actionId: action.id,
+      organizationId,
       actorId,
       code: "recipient_not_owner",
     });
   }
+
   const currentEmail = membership.member_email?.trim().toLowerCase() || "";
   if (!currentEmail || currentEmail !== approvedPayload.recipientEmail) {
     return blockExecution({
       actionId: action.id,
-      organizationId: organizationId,
+      organizationId,
       actorId,
       code: "recipient_changed",
     });
   }
 
-  const preference = preferences[0];
-  if (!preference?.email_enabled) {
-    return blockExecution({
-      actionId: action.id,
-      organizationId: organizationId,
-      actorId,
-      code: "email_opt_in_required",
-    });
-  }
-  if (preference.unsubscribed_at) {
-    return blockExecution({
-      actionId: action.id,
-      organizationId: organizationId,
-      actorId,
-      code: "recipient_unsubscribed",
-    });
-  }
+  let text: string;
+  let headers: Record<string, string> | undefined;
 
-  let unsubscribeUrl: string;
-  try {
-    const token = await createEmailUnsubscribeToken(
-      organizationId,
-      approvedPayload.recipientUserId,
-      unsubscribeSecret,
-    );
-    unsubscribeUrl = new URL(
-      `/unsubscribe?token=${encodeURIComponent(token)}`,
-      siteUrl,
-    ).toString();
-  } catch {
-    await finishExecution({
-      actionId: action.id,
-      status: "failed",
-      errorCode: "unsubscribe_token_failed",
-      result: { externalEffect: false },
-    }).catch(() => undefined);
-    throw new Error("AGENT_EXECUTION_UNSUBSCRIBE_TOKEN_FAILED");
+  if (customerSuccessPayload) {
+    let preferences: PreferenceRow[];
+    try {
+      preferences = await supabaseRest<PreferenceRow[]>(
+        `notification_preferences?select=email_enabled,unsubscribed_at&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(customerSuccessPayload.recipientUserId)}&limit=1`,
+        { serviceRole: true },
+      );
+    } catch {
+      await finishExecution({
+        actionId: action.id,
+        status: "failed",
+        errorCode: "preference_preflight_failed",
+        result: { externalEffect: false },
+      }).catch(() => undefined);
+      throw new Error("AGENT_EXECUTION_PREFERENCE_PREFLIGHT_FAILED");
+    }
+    const preference = preferences[0];
+    if (!preference?.email_enabled) {
+      return blockExecution({
+        actionId: action.id,
+        organizationId,
+        actorId,
+        code: "email_opt_in_required",
+      });
+    }
+    if (preference.unsubscribed_at) {
+      return blockExecution({
+        actionId: action.id,
+        organizationId,
+        actorId,
+        code: "recipient_unsubscribed",
+      });
+    }
+
+    let workspaceUrl: string;
+    let unsubscribeUrl: string;
+    try {
+      workspaceUrl = new URL(customerSuccessPayload.activationHref, siteUrl!).toString();
+      const token = await createEmailUnsubscribeToken(
+        organizationId,
+        customerSuccessPayload.recipientUserId,
+        unsubscribeSecret!,
+      );
+      unsubscribeUrl = new URL(
+        `/unsubscribe?token=${encodeURIComponent(token)}`,
+        siteUrl!,
+      ).toString();
+    } catch {
+      await finishExecution({
+        actionId: action.id,
+        status: "failed",
+        errorCode: "customer_success_link_failed",
+        result: { externalEffect: false },
+      }).catch(() => undefined);
+      throw new Error("AGENT_EXECUTION_CUSTOMER_SUCCESS_LINK_FAILED");
+    }
+
+    text = [
+      customerSuccessPayload.messageBody,
+      "",
+      `Open Foremention: ${workspaceUrl}`,
+      "",
+      `Unsubscribe from product alerts: ${unsubscribeUrl}`,
+    ].join("\n");
+    headers = {
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+  } else {
+    const supportUrl = siteUrl
+      ? new URL(`/app/support?ticket=${supportPayload!.ticketId}`, siteUrl).toString()
+      : null;
+    text = [
+      supportPayload!.messageBody,
+      ...(supportUrl ? ["", `View your support request: ${supportUrl}`] : []),
+    ].join("\n");
   }
-  const text = [
-    approvedPayload.messageBody,
-    "",
-    `Open Foremention: ${workspaceUrl}`,
-    "",
-    `Unsubscribe from product alerts: ${unsubscribeUrl}`,
-  ].join("\n");
 
   let providerMessageId: string;
   try {
@@ -279,10 +351,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       subject: approvedPayload.messageSubject,
       text,
       idempotencyKey: executionKey,
-      headers: {
-        "List-Unsubscribe": `<${unsubscribeUrl}>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      },
+      ...(headers ? { headers } : {}),
     });
     providerMessageId = result.id;
   } catch (error) {
@@ -295,10 +364,11 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
         result: {
           externalEffect: "unknown",
           retryAllowed: false,
+          ...(supportPayload ? { supportTicketId: supportPayload.ticketId } : {}),
         },
       }).catch(() => undefined);
       await auditExecution({
-        organizationId: organizationId,
+        organizationId,
         actorId,
         actionId: action.id,
         status: "uncertain",
@@ -316,10 +386,13 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       status: "failed",
       provider: "resend",
       errorCode: "provider_rejected",
-      result: { externalEffect: false },
+      result: {
+        externalEffect: false,
+        ...(supportPayload ? { supportTicketId: supportPayload.ticketId } : {}),
+      },
     }).catch(() => undefined);
     await auditExecution({
-      organizationId: organizationId,
+      organizationId,
       actorId,
       actionId: action.id,
       status: "failed",
@@ -337,17 +410,33 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       result: {
         externalEffect: true,
         channel: "email",
+        ...(supportPayload ? { supportTicketId: supportPayload.ticketId } : {}),
       },
     });
   } catch {
-    // The provider already accepted the email. Do not issue another send.
-    // Leaving the action in executing/running is safer than inventing a failure
-    // or retrying a side effect that may already have occurred.
     throw new Error("AGENT_EXECUTION_RECEIPT_PERSISTENCE_FAILED");
   }
 
+  let supportTicketStatusRecorded: boolean | null = null;
+  if (supportPayload) {
+    const respondedAt = new Date().toISOString();
+    const rows = await supabaseRest<Array<{ id: string }>>(
+      `support_tickets?id=eq.${encodeURIComponent(supportPayload.ticketId)}&organization_id=eq.${encodeURIComponent(organizationId)}&status=eq.reply_pending`,
+      {
+        method: "PATCH",
+        serviceRole: true,
+        prefer: "return=representation",
+        body: {
+          status: "responded",
+          responded_at: respondedAt,
+        },
+      },
+    ).catch(() => []);
+    supportTicketStatusRecorded = Boolean(rows[0]);
+  }
+
   await auditExecution({
-    organizationId: organizationId,
+    organizationId,
     actorId,
     actionId: action.id,
     status: "succeeded",
@@ -356,5 +445,6 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
     status: "succeeded" as const,
     providerMessageId,
     duplicate: false,
+    ...(supportPayload ? { supportTicketStatusRecorded } : {}),
   };
 }
