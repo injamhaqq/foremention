@@ -133,7 +133,7 @@ create or replace function public.reserve_agent_support_reasoning_run(
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $support$
 declare
   existing_id uuid;
   reserved_usd numeric(14,6) := 0;
@@ -217,7 +217,7 @@ begin
     'remainingUsd', p_daily_cost_cap_usd - reserved_usd - p_estimated_max_cost_usd
   );
 end;
-$;
+$support$;
 
 revoke all on function public.reserve_agent_support_reasoning_run(uuid, uuid, uuid, text, text, text, text, text, text, integer, integer, numeric, numeric) from public;
 revoke all on function public.reserve_agent_support_reasoning_run(uuid, uuid, uuid, text, text, text, text, text, text, integer, integer, numeric, numeric) from anon, authenticated;
@@ -241,7 +241,7 @@ create or replace function public.claim_agent_action_execution(
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $support$
 declare
   existing public.agent_action_executions%rowtype;
   claimed_org uuid;
@@ -326,7 +326,7 @@ begin
     'executorType', claimed_executor
   );
 end;
-$;
+$support$;
 
 revoke all on function public.claim_agent_action_execution(uuid, text) from public;
 revoke all on function public.claim_agent_action_execution(uuid, text) from anon, authenticated;
