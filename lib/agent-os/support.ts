@@ -263,7 +263,7 @@ export async function loadOpenSupportTickets(limit = 25): Promise<OperatorSuppor
     status: "new" | "triaged" | "reply_pending";
     created_at: string;
   }>>(
-    `support_tickets?select=id,organization_id,requester_email,category,subject,message,status&status=in.(new,triaged,reply_pending)&order=created_at.asc&limit=${safeLimit}`,
+    `support_tickets?select=id,organization_id,requester_email,category,subject,message,status,created_at&status=in.(new,triaged,reply_pending)&order=created_at.asc&limit=${safeLimit}`,
     { serviceRole: true },
   );
   return rows.map((row) => ({
