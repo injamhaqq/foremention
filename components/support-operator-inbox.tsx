@@ -6,7 +6,6 @@ function dateLabel(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "UTC",
-    timeZoneName: "short",
   }).format(date);
 }
 
