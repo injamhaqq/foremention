@@ -67,8 +67,15 @@ export async function sendProductAlertEmail(input: ProductAlertEmail) {
   if (!response.ok) {
     throw new Error(`Application email provider rejected the request (status ${response.status}).`);
   }
-  const result = await response.json() as { id?: string };
-  if (!result.id) throw new Error("Application email provider returned no delivery identifier.");
+  let result: { id?: string };
+  try {
+    result = await response.json() as { id?: string };
+  } catch {
+    throw new ApplicationEmailSendUncertainError("Application email provider accepted the request but returned an unreadable receipt.");
+  }
+  if (!result.id) {
+    throw new ApplicationEmailSendUncertainError("Application email provider accepted the request but returned no delivery identifier.");
+  }
   return { id: result.id };
 }
 
