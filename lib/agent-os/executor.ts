@@ -97,6 +97,7 @@ async function blockExecution(input: {
   organizationId: string;
   actorId: string;
   code: string;
+  supportTicketId?: string | null;
 }) {
   await finishExecution({
     actionId: input.actionId,
@@ -104,6 +105,17 @@ async function blockExecution(input: {
     errorCode: input.code,
     result: { externalEffect: false },
   });
+  if (input.supportTicketId) {
+    await supabaseRest(
+      `support_tickets?id=eq.${encodeURIComponent(input.supportTicketId)}&organization_id=eq.${encodeURIComponent(input.organizationId)}&status=eq.reply_pending`,
+      {
+        method: "PATCH",
+        serviceRole: true,
+        prefer: "return=minimal",
+        body: { status: "triaged" },
+      },
+    ).catch(() => undefined);
+  }
   await auditExecution({
     organizationId: input.organizationId,
     actorId: input.actorId,
@@ -167,6 +179,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       organizationId,
       actorId,
       code: "application_email_not_configured",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
   if (!supportReply && !siteUrl) {
@@ -175,6 +188,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       organizationId,
       actorId,
       code: "site_url_not_configured",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
   if (!supportReply && (!unsubscribeSecret || unsubscribeSecret.length < 32)) {
@@ -183,6 +197,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       organizationId,
       actorId,
       code: "unsubscribe_not_configured",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
 
@@ -215,6 +230,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
         organizationId,
         actorId,
         code: "support_ticket_changed",
+        supportTicketId: supportPayload.ticketId,
       });
     }
   }
@@ -242,6 +258,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       organizationId,
       actorId,
       code: supportReply ? "recipient_not_member" : "recipient_not_owner",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
   if (!supportReply && membership.role !== "owner") {
@@ -250,16 +267,21 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
       organizationId,
       actorId,
       code: "recipient_not_owner",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
 
   const currentEmail = membership.member_email?.trim().toLowerCase() || "";
-  if (!currentEmail || currentEmail !== approvedPayload.recipientEmail) {
+  const recipientChanged = supportReply
+    ? Boolean(currentEmail && currentEmail !== approvedPayload.recipientEmail)
+    : !currentEmail || currentEmail !== approvedPayload.recipientEmail;
+  if (recipientChanged) {
     return blockExecution({
       actionId: action.id,
       organizationId,
       actorId,
       code: "recipient_changed",
+      supportTicketId: supportPayload?.ticketId,
     });
   }
 
@@ -289,6 +311,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
         organizationId,
         actorId,
         code: "email_opt_in_required",
+        supportTicketId: supportPayload?.ticketId,
       });
     }
     if (preference.unsubscribed_at) {
@@ -297,6 +320,7 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
         organizationId,
         actorId,
         code: "recipient_unsubscribed",
+        supportTicketId: supportPayload?.ticketId,
       });
     }
 
@@ -391,6 +415,17 @@ export async function executeApprovedAgentAction(actionId: string, actorId: stri
         ...(supportPayload ? { supportTicketId: supportPayload.ticketId } : {}),
       },
     }).catch(() => undefined);
+    if (supportPayload) {
+      await supabaseRest(
+        `support_tickets?id=eq.${encodeURIComponent(supportPayload.ticketId)}&organization_id=eq.${encodeURIComponent(organizationId)}&status=eq.reply_pending`,
+        {
+          method: "PATCH",
+          serviceRole: true,
+          prefer: "return=minimal",
+          body: { status: "triaged" },
+        },
+      ).catch(() => undefined);
+    }
     await auditExecution({
       organizationId,
       actorId,
