@@ -133,3 +133,46 @@ export function validateCustomerSuccessDraftOutput(
   ) return null;
   return { subject, body, purpose, evidence_keys: evidenceKeys };
 }
+
+
+export type SupportReplyDraftOutput = {
+  internal_summary: string;
+  subject: string;
+  body: string;
+  needs_human_investigation: boolean;
+  evidence_keys: string[];
+};
+
+export function validateSupportReplyDraftOutput(
+  value: unknown,
+  allowedEvidenceKeys: Set<string>,
+): SupportReplyDraftOutput | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const internalSummary = clean(record.internal_summary, 700);
+  const subject = clean(record.subject, 120);
+  const body = typeof record.body === "string" ? record.body.trim().slice(0, 1800) : "";
+  const evidenceKeys = Array.isArray(record.evidence_keys)
+    ? Array.from(new Set(
+      record.evidence_keys
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => clean(item, 120))
+        .filter(Boolean),
+    ))
+    : [];
+  if (
+    !internalSummary
+    || !subject
+    || !body
+    || typeof record.needs_human_investigation !== "boolean"
+    || !evidenceKeys.length
+    || evidenceKeys.some((key) => !allowedEvidenceKeys.has(key))
+  ) return null;
+  return {
+    internal_summary: internalSummary,
+    subject,
+    body,
+    needs_human_investigation: record.needs_human_investigation,
+    evidence_keys: evidenceKeys,
+  };
+}
