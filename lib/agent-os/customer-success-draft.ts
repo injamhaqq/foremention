@@ -135,7 +135,7 @@ export async function runCustomerSuccessDraftReasoner(input: {
     },
     confidence: null,
     estimatedCostUsd: reasoning.actualCostUsd ?? reasoning.estimatedMaxCostUsd,
-    idempotencyKey: `customer-success:message-draft:${input.runId}:${input.activationStage}:v1`,
+    idempotencyKey: `customer-success:message-draft:${input.runId}:${input.activationStage}:v2`,
   });
   return { ...reasoning, action };
 }
