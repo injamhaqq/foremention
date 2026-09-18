@@ -77,7 +77,7 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
       </div>
       <div className="agent-plane__telemetry"><span>Founder controls</span><strong>{pending.length} pending · {readyToExecute.length} ready</strong></div>
     </header>
-    {error && <div className="evidence-note"><strong>Decision not recorded</strong><p>{error}</p></div>}
+    {error && <div className="evidence-note"><strong>Agent control not completed</strong><p>{error}</p></div>}
     <div className="agent-plane__grid">
       {actions.slice(0, 12).map((action) => {
         const payload = action.payload || {};
