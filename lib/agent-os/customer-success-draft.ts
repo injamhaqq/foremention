@@ -1,45 +1,10 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
+import {
+  type CustomerSuccessDraftOutput,
+  validateCustomerSuccessDraftOutput,
+} from "@/lib/agent-os/reasoning-core";
 import { runStructuredReasoning } from "@/lib/agent-os/reasoning-runtime";
 import { supabaseRest } from "@/lib/supabase-rest";
-
-export type CustomerSuccessDraftOutput = {
-  subject: string;
-  body: string;
-  purpose: string;
-  evidence_keys: string[];
-};
-
-const clean = (value: unknown, max: number) => String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
-
-const schema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["subject", "body", "purpose", "evidence_keys"],
-  properties: {
-    subject: { type: "string", maxLength: 120 },
-    body: { type: "string", maxLength: 1400 },
-    purpose: { type: "string", maxLength: 300 },
-    evidence_keys: {
-      type: "array",
-      minItems: 1,
-      maxItems: 8,
-      items: { type: "string", maxLength: 120 },
-    },
-  },
-} as const;
-
-export function validateCustomerSuccessDraftOutput(value: unknown, allowedEvidenceKeys: Set<string>) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
-  const subject = clean(record.subject, 120);
-  const body = typeof record.body === "string" ? record.body.trim().slice(0, 1400) : "";
-  const purpose = clean(record.purpose, 300);
-  const evidenceKeys = Array.isArray(record.evidence_keys)
-    ? Array.from(new Set(record.evidence_keys.filter((item): item is string => typeof item === "string").map((item) => clean(item, 120)).filter(Boolean)))
-    : [];
-  if (!subject || !body || !purpose || !evidenceKeys.length || evidenceKeys.some((key) => !allowedEvidenceKeys.has(key))) return null;
-  return { subject, body, purpose, evidence_keys: evidenceKeys } satisfies CustomerSuccessDraftOutput;
-}
 
 export async function runCustomerSuccessDraftReasoner(input: {
   runId: string;
