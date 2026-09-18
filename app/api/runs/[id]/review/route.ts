@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { safeOperationalError } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
+import { queueReviewedRunOperatingAgents } from "@/lib/agent-os/event-queue";
 import { recordReviewedComparableChangeNotifications } from "@/lib/reviewed-change-notifications";
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { generateReviewedSourceMap } from "@/lib/source-map-generation";
@@ -111,6 +112,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       },
     }),
     recordReviewedComparableChangeNotifications(viewer, run.id),
+    queueReviewedRunOperatingAgents({
+      runId: run.id,
+      organizationId: run.organization_id,
+      projectId: run.project_id,
+      reviewedBy: viewer.id,
+      status: finalStatus,
+    }),
   ]);
   if (sideEffects.some((result) => result.status === "rejected")) {
     console.warn("Run review completed with a non-critical notification or audit-log failure.");

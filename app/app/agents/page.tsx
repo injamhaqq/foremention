@@ -1,10 +1,15 @@
 import { AgentControlPlane } from "@/components/agent-control-plane";
+import { OperatingAgentQueue } from "@/components/operating-agent-queue";
 import { requireViewer } from "@/lib/auth";
 import { loadAgentControlPlane } from "@/lib/data";
+import { loadOperatingAgentActions } from "@/lib/agent-os/actions";
+import { isCompanyOperatorEmail } from "@/lib/company-operator";
 
 export default async function AgentsPage() {
   const viewer = await requireViewer("/app/agents");
   const plane = await loadAgentControlPlane(viewer);
+  const companyOperator = viewer.mode === "supabase" && isCompanyOperatorEmail(viewer.email);
+  const operatingActions = companyOperator ? await loadOperatingAgentActions(50).catch(() => []) : [];
   return <main className="workspace">
     <div className="workspace-heading">
       <div>
@@ -14,6 +19,7 @@ export default async function AgentsPage() {
       </div>
     </div>
     <AgentControlPlane plane={plane} />
+    {companyOperator && <OperatingAgentQueue actions={operatingActions} />}
     <div className="evidence-note"><strong>Operating rule</strong><p>Agents may validate, collect, normalize, measure, and route work. Only a human may approve evidence for customer-facing conclusions. An unavailable stage stays unavailable.</p></div>
   </main>;
 }
