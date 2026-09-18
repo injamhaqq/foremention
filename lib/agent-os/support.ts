@@ -238,3 +238,42 @@ export async function runSupportAgent(input: {
     reasoning,
   } as const;
 }
+
+
+export type OperatorSupportTicket = {
+  id: string;
+  organizationId: string;
+  requesterEmail: string;
+  category: string;
+  subject: string;
+  message: string;
+  status: "new" | "triaged" | "reply_pending";
+  createdAt: string;
+};
+
+export async function loadOpenSupportTickets(limit = 25): Promise<OperatorSupportTicket[]> {
+  const safeLimit = Math.max(1, Math.min(100, Math.round(limit)));
+  const rows = await supabaseRest<Array<{
+    id: string;
+    organization_id: string;
+    requester_email: string;
+    category: string;
+    subject: string;
+    message: string;
+    status: "new" | "triaged" | "reply_pending";
+    created_at: string;
+  }>>(
+    `support_tickets?select=id,organization_id,requester_email,category,subject,message,status&status=in.(new,triaged,reply_pending)&order=created_at.asc&limit=${safeLimit}`,
+    { serviceRole: true },
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    organizationId: row.organization_id,
+    requesterEmail: row.requester_email,
+    category: row.category,
+    subject: row.subject,
+    message: row.message,
+    status: row.status,
+    createdAt: row.created_at,
+  }));
+}
