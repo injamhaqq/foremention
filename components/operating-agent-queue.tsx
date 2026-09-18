@@ -65,8 +65,10 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
   const pending = actions.filter((action) => action.status === "pending_approval");
   const readyToExecute = actions.filter((action) =>
     action.status === "approved"
-    && action.agentId === "customer-success"
-    && action.actionType === "customer_success_message_draft"
+    && (
+      (action.agentId === "customer-success" && action.actionType === "customer_success_message_draft")
+      || (action.agentId === "support" && action.actionType === "support_reply_draft")
+    )
   );
   return <section className="agent-plane">
     <header className="agent-plane__header">
@@ -86,8 +88,11 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
         const recipientEmail = typeof payload.recipientEmail === "string" ? payload.recipientEmail : "";
         const canExecute =
           action.status === "approved"
-          && action.agentId === "customer-success"
-          && action.actionType === "customer_success_message_draft";
+          && (
+            (action.agentId === "customer-success" && action.actionType === "customer_success_message_draft")
+            || (action.agentId === "support" && action.actionType === "support_reply_draft")
+          );
+        const supportReply = action.agentId === "support" && action.actionType === "support_reply_draft";
         return <article className={`agent-card agent-card--${action.status === "pending_approval" ? "review" : action.status === "failed" ? "failed" : "complete"}`} key={action.id}>
         <div className="agent-card__top"><span>{agentLabel[action.agentId]} · {action.riskLevel} risk</span><strong>{action.status.replaceAll("_", " ")}</strong></div>
         <h3>{action.title}</h3>
@@ -99,7 +104,7 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
         {(messageSubject || messageBody) && <div className="agent-card__boundary">
           <span>Draft for review</span>
           {recipientEmail && <p><strong>Recipient:</strong> {recipientEmail}</p>}
-          {!recipientEmail && action.actionType === "customer_success_message_draft" && <p><strong>Recipient:</strong> unavailable — execution will fail closed.</p>}
+          {!recipientEmail && (action.actionType === "customer_success_message_draft" || action.actionType === "support_reply_draft") && <p><strong>Recipient:</strong> unavailable — execution will fail closed.</p>}
           {messageSubject && <p><strong>{messageSubject}</strong></p>}
           {messageBody && <p>{messageBody}</p>}
         </div>}
@@ -118,7 +123,7 @@ export function OperatingAgentQueue({ actions }: { actions: AgentActionRecord[] 
           <button type="button" disabled={busy === action.id || !recipientEmail} onClick={() => execute(action.id)}>
             Send approved email
           </button>
-          <span>Separate execution step. Recipient eligibility and unsubscribe status are rechecked immediately before send.</span>
+          <span>{supportReply ? "Separate execution step. Ticket state, workspace membership, and recipient email are rechecked immediately before send." : "Separate execution step. Recipient eligibility and unsubscribe status are rechecked immediately before send."}</span>
         </footer>}
       </article>;
       })}
