@@ -223,7 +223,9 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
       name: `${reviewStatus === "verified" ? "Reviewed" : "Observed"} collection ${run.id.slice(0, 8).toUpperCase()}`,
       evidence_from: evidenceFrom,
       evidence_to: evidenceTo,
-      status: "draft",
+      // New rows use the database default of "draft". Deliberately omit status
+      // from conflict updates so a retry cannot downgrade an already-published
+      // run map before the rebuild reaches the final publish step.
       methodology_version: methodologyVersion,
       created_by: run.created_by,
     },
