@@ -1,7 +1,8 @@
 import { createHash, createPublicKey, verify } from "node:crypto";
 
 export const TRUSTED_OUTREACH_SIGNING_PUBLIC_KEYS = [
-  // Pinned Railway Outreach public keys are added here after verification.
+  // Railway Foremention Outreach production signing identity.
+  "MCowBQYDK2VwAyEAYpCFhyVEP4NhEvi3oKYEYRD-f9yjGmlTeg3l_qv_RK4",
 ] as string[];
 
 function constantTimeTextEqual(left: string, right: string) {
