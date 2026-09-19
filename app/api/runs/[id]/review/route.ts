@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
+import { reconcileReviewedRunAgentTelemetry } from "@/lib/agent-control-plane";
 import { safeOperationalError } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { queueReviewedRunOperatingAgents } from "@/lib/agent-os/event-queue";
@@ -118,6 +119,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       projectId: run.project_id,
       reviewedBy: viewer.id,
       status: finalStatus,
+    }),
+    reconcileReviewedRunAgentTelemetry({
+      runId: run.id,
+      organizationId: run.organization_id,
+      projectId: run.project_id,
+      finalStatus,
+      failedAttemptCount: failedAttempts.length,
+      verifiedSourceCount: sourceCount,
     }),
   ]);
   if (sideEffects.some((result) => result.status === "rejected")) {
