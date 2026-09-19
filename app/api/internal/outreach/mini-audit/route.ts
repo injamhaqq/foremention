@@ -1,19 +1,26 @@
 import { NextResponse } from "next/server";
-import { authorizeOutreachMiniAuditRequest } from "@/lib/outreach-mini-audit-auth";
+import {
+  authorizeOutreachMiniAuditRequest,
+  authorizeSignedOutreachMiniAuditRequest,
+  outreachMiniAuditAuthConfigured,
+} from "@/lib/outreach-mini-audit-auth";
 import { parseOutreachMiniAuditInput, runOutreachMiniAudit } from "@/lib/outreach-mini-audit";
 import { readJsonObject } from "@/lib/input-validation";
 
 export async function POST(request: Request) {
   const secret = String(process.env.OUTREACH_MINI_AUDIT_SECRET || "").trim();
-  if (!secret) {
+  if (!outreachMiniAuditAuthConfigured(secret)) {
     return NextResponse.json({ error: "Outreach mini-audit is not configured." }, { status: 503 });
-  }
-  if (!authorizeOutreachMiniAuditRequest(request, secret)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   const body = await readJsonObject(request, 25_000);
   if (!body) return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+
+  const authorized = authorizeOutreachMiniAuditRequest(request, secret)
+    || authorizeSignedOutreachMiniAuditRequest(request, body);
+  if (!authorized) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
 
   try {
     const input = parseOutreachMiniAuditInput(body);
