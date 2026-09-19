@@ -742,6 +742,17 @@ export const runMultiEngineScan = inngest.createFunction(
         })),
     ]);
 
+    // Finish the run-scoped observed Source Map before exposing the run to
+    // human review. Otherwise a slow observed-map crawl can race a fast human
+    // approval and overwrite reviewed evidence while its rebuild is still active.
+    let mappedSourceCount = 0;
+    try {
+      const generated = await step.run("generate-observed-source-map", () => generateObservedSourceMap(run));
+      mappedSourceCount = generated.sourceCount;
+    } catch (error) {
+      console.warn("Observed Source Map generation will be retried after review.", safeOperationalError(error));
+    }
+
     const completedAt = new Date().toISOString();
     await step.run("mark-run-for-human-review", () =>
       supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${run.organization_id}`, {
@@ -760,13 +771,6 @@ export const runMultiEngineScan = inngest.createFunction(
           error_summary: failures.length ? `${failures.length} provider attempt(s) failed. Review the successful evidence before publishing.` : null,
         },
       }));
-    let mappedSourceCount = 0;
-    try {
-      const generated = await step.run("generate-observed-source-map", () => generateObservedSourceMap(run));
-      mappedSourceCount = generated.sourceCount;
-    } catch (error) {
-      console.warn("Observed Source Map generation will be retried after review.", safeOperationalError(error));
-    }
     await step.run("notify-run-owner", () =>
       notifyRunOwner(
         run,
