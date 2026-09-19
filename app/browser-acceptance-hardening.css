@@ -7,3 +7,12 @@
 .app-frame .feasibility.feasibility--medium {
   color: var(--re-ink);
 }
+
+/* Open evidence pills use a pale green surface, so keep their small uppercase
+ * labels on the stable registered dark ink token instead of inheriting the
+ * authenticated shell's reverse foreground.
+ */
+.app-frame .pill.pill--open,
+.app-frame .feasibility.feasibility--high {
+  color: var(--re-ink);
+}
