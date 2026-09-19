@@ -193,7 +193,7 @@ async function handleHealth(env: Env) {
     ? env.FOREMENTION_BUILD_COMMIT
     : "unavailable";
   return Response.json(
-    { status, worker: "reachable", buildCommit, d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, agentOs, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. Readiness fields expose booleans only; no credentials, customer data, prompts, or provider responses are included." },
+    { status, worker: "reachable", buildCommit, d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, agentOs, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. No credentials, customer data, prompts, or provider responses are included. Readiness fields expose booleans only." },
     { status: status === "ok" ? 200 : 503, headers: { "Cache-Control": "no-store" } },
   );
 }
