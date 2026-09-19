@@ -272,12 +272,16 @@ async function generateSourceMap(run: RunRow, reviewStatus: "all" | "verified") 
       }),
     });
   }
-  await supabaseRest(`source_maps?id=eq.${sourceMapId}&organization_id=eq.${run.organization_id}`, {
-    method: "PATCH",
-    serviceRole: true,
-    prefer: "return=minimal",
-    body: { status: "published" },
-  });
+  // Observed maps remain truthful drafts. Only the human-reviewed rebuild may
+  // publish into customer decision surfaces.
+  if (reviewStatus === "verified") {
+    await supabaseRest(`source_maps?id=eq.${sourceMapId}&organization_id=eq.${run.organization_id}`, {
+      method: "PATCH",
+      serviceRole: true,
+      prefer: "return=minimal",
+      body: { status: "published" },
+    });
+  }
 
   return { sourceMapId, sourceCount: ranked.length };
 }

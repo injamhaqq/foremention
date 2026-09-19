@@ -133,7 +133,7 @@ test("source map retries do not downgrade an existing published map before a suc
   assert.ok(upsertStart >= 0 && upsertEnd > upsertStart, "expected the run-scoped source-map upsert");
   const upsert = generator.slice(upsertStart, upsertEnd);
   assert.doesNotMatch(upsert, /status:\s*"draft"/);
-  assert.match(generator, /body:\s*\{\s*status:\s*"published"\s*\}/);
+  assert.match(generator, /if \(reviewStatus === "verified"\)[\s\S]*body:\s*\{\s*status:\s*"published"\s*\}/);
 });
 
 test("customer mutations explicitly enforce workspace roles and organization filters", async () => {

@@ -29,3 +29,20 @@ test("observed and reviewed generators remain explicitly distinguishable", async
   assert.match(generator, /generateReviewedSourceMap/);
   assert.match(generator, /reviewStatus === "verified" \? "Reviewed" : "Observed"/);
 });
+
+test("reviewed source maps cannot regress when a slower observed rebuild finishes later", async () => {
+  const migration = await text("supabase/migrations/20260920000100_source_map_review_monotonicity.sql");
+  assert.match(migration, /old\.review_state = 'reviewed'/i);
+  assert.match(migration, /new\.name like 'Observed collection %'/i);
+  assert.match(migration, /new\.review_state := 'reviewed'/i);
+  assert.match(migration, /new\.name := old\.name/i);
+  assert.match(migration, /old\.status = 'published'[\s\S]*new\.status = 'draft'[\s\S]*new\.status := 'published'/i);
+  assert.match(migration, /r\.status in \('complete', 'partial'\)/i);
+  assert.match(migration, /ra\.review_status <> 'verified'/i);
+  assert.match(migration, /so\.review_status <> 'verified'/i);
+});
+
+test("observed map generation stays draft while reviewed generation owns publication", async () => {
+  const generator = await text("lib/source-map-generation.ts");
+  assert.match(generator, /if \(reviewStatus === "verified"\)[\s\S]*body: \{ status: "published" \}/);
+});
