@@ -12,3 +12,9 @@ test("authenticated partial evidence pills use the stable dark evidence token", 
   assert.match(css, /\.app-frame \.feasibility\.feasibility--medium[\s\S]*color:\s*var\(--re-ink\)/);
   assert.doesNotMatch(css, /pill--partial[\s\S]*color:\s*var\(--ink\)/);
 });
+
+test("authenticated open evidence pills use the stable dark evidence token", () => {
+  assert.match(css, /\.app-frame \.pill\.pill--open[\s\S]*color:\s*var\(--re-ink\)/);
+  assert.match(css, /\.app-frame \.feasibility\.feasibility--high[\s\S]*color:\s*var\(--re-ink\)/);
+  assert.doesNotMatch(css, /pill--open[\s\S]*color:\s*var\(--ink\)/);
+});
