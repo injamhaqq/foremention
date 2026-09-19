@@ -29,3 +29,13 @@ test("observed and reviewed generators remain explicitly distinguishable", async
   assert.match(generator, /generateReviewedSourceMap/);
   assert.match(generator, /reviewStatus === "verified" \? "Reviewed" : "Observed"/);
 });
+
+
+test("observed Source Map finishes before the run becomes human-reviewable", async () => {
+  const job = await text("lib/jobs/inngest.ts");
+  const observedMapStep = job.indexOf('step.run("generate-observed-source-map"');
+  const reviewGateStep = job.indexOf('step.run("mark-run-for-human-review"');
+  assert.ok(observedMapStep >= 0, "observed Source Map step must exist");
+  assert.ok(reviewGateStep >= 0, "human review gate must exist");
+  assert.ok(observedMapStep < reviewGateStep, "observed Source Map must finish before human review can begin");
+});
