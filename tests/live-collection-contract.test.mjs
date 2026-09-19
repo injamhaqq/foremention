@@ -126,6 +126,16 @@ test("observed citations auto-populate a truthful draft map while review remains
   assert.match(loader, /status=eq\.published/);
 });
 
+test("source map retries do not downgrade an existing published map before a successful rebuild", async () => {
+  const generator = await text("lib/source-map-generation.ts");
+  const upsertStart = generator.indexOf('const mapRows = await supabaseRest<Array<{ id: string }>>("source_maps?on_conflict=run_id"');
+  const upsertEnd = generator.indexOf("const sourceMapId = mapRows[0]?.id;", upsertStart);
+  assert.ok(upsertStart >= 0 && upsertEnd > upsertStart, "expected the run-scoped source-map upsert");
+  const upsert = generator.slice(upsertStart, upsertEnd);
+  assert.doesNotMatch(upsert, /status:\s*"draft"/);
+  assert.match(generator, /body:\s*\{\s*status:\s*"published"\s*\}/);
+});
+
 test("customer mutations explicitly enforce workspace roles and organization filters", async () => {
   const [runRoute, promptRoute, reviewRoute] = await Promise.all([
     text("app/api/runs/route.ts"),
