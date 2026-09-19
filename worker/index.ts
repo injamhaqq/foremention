@@ -39,6 +39,13 @@ interface Env {
   GROQ_API_KEY?: string;
   GEMINI_API_KEY?: string;
   OPENROUTER_API_KEY?: string;
+  OPENAI_API_KEY?: string;
+  FOREMENTION_AGENT_OS_ENABLED?: string;
+  FOREMENTION_AGENT_REASONING_ENABLED?: string;
+  FOREMENTION_COMPANY_OPERATOR_EMAILS?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
+  EMAIL_UNSUBSCRIBE_SECRET?: string;
   INNGEST_EVENT_KEY?: string;
   INNGEST_SIGNING_KEY?: string;
   GROQ_MODEL?: string;
@@ -172,12 +179,21 @@ async function handleHealth(env: Env) {
     groq: env.GROQ_API_KEY ? "configured_not_probed" : "not_configured",
     openrouter: env.OPENROUTER_API_KEY ? "configured_not_probed" : "not_configured",
   };
+  const agentOs = {
+    enabled: env.FOREMENTION_AGENT_OS_ENABLED === "1",
+    reasoningEnabled: env.FOREMENTION_AGENT_REASONING_ENABLED === "1",
+    operatorConfigured: Boolean(env.FOREMENTION_COMPANY_OPERATOR_EMAILS?.trim()),
+    openaiConfigured: Boolean(env.OPENAI_API_KEY),
+    applicationEmailConfigured: Boolean(
+      env.RESEND_API_KEY && env.RESEND_FROM_EMAIL && env.EMAIL_UNSUBSCRIBE_SECRET,
+    ),
+  };
   const status = d1Status === "reachable" && supabaseStatus === "reachable" ? "ok" : "degraded";
   const buildCommit = /^[0-9a-f]{40}$/i.test(env.FOREMENTION_BUILD_COMMIT || "")
     ? env.FOREMENTION_BUILD_COMMIT
     : "unavailable";
   return Response.json(
-    { status, worker: "reachable", buildCommit, d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. No credentials, customer data, prompts, or provider responses are included." },
+    { status, worker: "reachable", buildCommit, d1: d1Status, supabase: supabaseStatus, inngest: inngestStatus, providers, agentOs, observedAt: new Date().toISOString(), note: "Configured dependencies are not reported as reachable until an independent production probe succeeds. No credentials, customer data, prompts, or provider responses are included. Readiness fields expose booleans only." },
     { status: status === "ok" ? 200 : 503, headers: { "Cache-Control": "no-store" } },
   );
 }
