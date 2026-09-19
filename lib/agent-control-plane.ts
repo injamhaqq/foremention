@@ -135,3 +135,50 @@ export async function recordAgentExecution(input: {
     },
   });
 }
+
+
+const TERMINAL_AGENT_EXECUTION_STATUSES = new Set<ForementionAgentStatus>(["complete", "failed", "cancelled"]);
+
+export async function reconcileReviewedRunAgentTelemetry(input: {
+  runId: string;
+  organizationId: string;
+  projectId: string;
+  finalStatus: "complete" | "partial";
+  failedAttemptCount: number;
+  verifiedSourceCount: number;
+}) {
+  const agentIds = ["human-review-gate", "run-supervisor"] as const;
+  const idPairs = await Promise.all(
+    agentIds.map(async (agentId) => ({ agentId, id: await deterministicJobId(input.runId, agentId) })),
+  );
+  const rows = await supabaseRest<Array<{ id: string; status: ForementionAgentStatus; attempt_count: number | null }>>(
+    `jobs?select=id,status,attempt_count&id=in.(${idPairs.map(({ id }) => id).join(",")})`,
+    { serviceRole: true },
+  );
+  const existingById = new Map(rows.map((row) => [row.id, row]));
+
+  await Promise.all(idPairs.map(({ agentId, id }) => {
+    const existing = existingById.get(id);
+    if (existing && TERMINAL_AGENT_EXECUTION_STATUSES.has(existing.status)) return Promise.resolve();
+
+    return recordAgentExecution({
+      runId: input.runId,
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      agentId,
+      status: "complete",
+      attemptCount: existing?.attempt_count ?? 0,
+      result: agentId === "human-review-gate"
+        ? {
+            nextState: input.finalStatus,
+            verifiedSourceCount: input.verifiedSourceCount,
+            reviewFinalized: true,
+          }
+        : {
+            finalStatus: input.finalStatus,
+            failedPrompts: input.failedAttemptCount,
+            reviewFinalized: true,
+          },
+    });
+  }));
+}
