@@ -42,6 +42,7 @@ export const PRODUCT_ANALYTICS_EVENTS = [
   "category_page_viewed",
   "research_page_viewed",
   "partner_page_viewed",
+  "design_partner_cta_impression",
   "design_partner_cta_clicked",
   "design_partner_page_viewed",
   "design_partner_application_started",
@@ -222,6 +223,7 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
     case "design_partner_application_started":
     case "design_partner_application_submitted":
       break;
+    case "design_partner_cta_impression":
     case "design_partner_cta_clicked":
       addEnum(properties, "surface", normalizedInput.surface, surfaces);
       break;
