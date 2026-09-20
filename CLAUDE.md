@@ -31,17 +31,20 @@ Before any material UI, product, brand, SEO, investor, accelerator, or design-sy
 - Brand system uses near-black/graphite conviction mode, controlled registered green, and warm/light inspection surfaces only where the approved evidence-review system requires them.
 - The hero must read as recommendation evidence resolving into an inspectable record, not a planet, cyber-grid, or generic AI network.
 
-## Foremention 5 — locked product architecture
+## Signed-in navigation — locked information architecture
 
-The primary signed-in product has five objects only:
+The primary signed-in navigation has eight focused destinations:
 
-1. Attention — what changed / what requires review.
+1. Overview — what changed, what requires review, and the next best step.
 2. Questions — real buyer questions.
 3. Records — canonical Recommendation Records, including evidence inspection.
-4. Comparisons — only valid/comparable later observations.
-5. Settings — minimal workspace administration.
+4. Evidence — source and evidence inspection without creating a separate evidence product concept.
+5. Opportunities — evidence-gated opportunities that may justify action.
+6. Comparisons — only valid/comparable later observations.
+7. All tools — the complete directory for specialist and operational capabilities.
+8. Settings — minimal workspace administration.
 
-Source X-Ray is retired as a standalone feature, page, navigation item, SEO route, analytics event, investor story element, or design-system deliverable. Preserve the useful inspection behavior inside Recommendation Records: returned reference -> retrievability -> observed evidence -> review -> limitations -> safe conclusion -> comparison eligibility.
+Keep specialist routes intact and discoverable through `/app/tools` and contextual links rather than expanding the sidebar into a giant menu. Source X-Ray is retired as a standalone feature, page, navigation item, SEO route, analytics event, investor story element, or design-system deliverable. Preserve the useful inspection behavior inside Recommendation Records: returned reference -> retrievability -> observed evidence -> review -> limitations -> safe conclusion -> comparison eligibility.
 
 ## Product truth
 
