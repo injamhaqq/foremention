@@ -389,7 +389,9 @@ test("SEO, neutral social metadata, and accessibility states are bundled", async
   assert.doesNotMatch(seo, /og\.png|SOCIAL_IMAGE/);
   assert.match(seo, /card: "summary"/);
   assert.match(seo, /https:\/\/foremention\.com/);
-  assert.match(seo, /alternates: \{ canonical \}/);
+  assert.match(seo, /alternates:\s*\{/);
+  assert.match(seo, /canonical,/);
+  assert.match(seo, /"text\/markdown"/);
   assert.doesNotMatch(sitemap, /localhost/);
   assert.match(sitemap, /\/recommendation-intelligence/);
   assert.match(sitemap, /\/recommendation-record/);
