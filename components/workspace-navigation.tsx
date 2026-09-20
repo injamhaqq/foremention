@@ -31,7 +31,6 @@ const workspaceGroups = [
     label: "Decide & act",
     links: [
       ["/app/opportunities", "Opportunities"],
-      ["/app/change-specifications", "Change Specifications"],
       ["/app/placements", "Actions"],
       ["/app/resolutions", "Resolution Center"],
       ["/app/outcomes", "Outcome Ledger"],
