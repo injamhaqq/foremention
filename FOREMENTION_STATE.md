@@ -14,6 +14,11 @@ This is a compact handoff ledger, not a substitute for live verification. Re-che
 - Canonical company-decision object: **Change Specification**.
 - Governing company constraint: customer proof, not additional product breadth.
 
+- Internal core product category remains **Recommendation Engineering**.
+- Public positioning remains **Recommendation Intelligence** during Stage 0.
+- **Category Leadership OS** remains a long-term destination, not a current achievement or public claim.
+- Historical PR #197 remains directionally useful but **do not merge #197 as-is**; Change Specification is the first-class decision object and ResolutionProposal remains subordinate.
+
 Do not declare Stage 0 complete until first-party evidence supports all three conditions:
 
 1. 3–5 qualified external B2B SaaS design partners actively complete the agreed workflow.
