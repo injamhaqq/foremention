@@ -174,7 +174,7 @@ test("Groq Browser Search is a first-class, citation-preserving provider", async
   assert.match(sourceMap, /groq:/);
 });
 
-test("Cloudflare Workers AI uses free Jina web retrieval and persists only validated retrieved citations", async () => {
+test("Cloudflare Workers AI uses keyless Bing RSS web retrieval and persists only validated retrieved citations", async () => {
   const [adapter, retrieval, types, registry, data, route, worker, sourceMap, config, prepare] = await Promise.all([
     text("lib/providers/cloudflare.ts"),
     text("lib/free-web-retrieval.ts"),
@@ -194,17 +194,17 @@ test("Cloudflare Workers AI uses free Jina web retrieval and persists only valid
   assert.match(adapter, /grounded: true/);
   assert.match(adapter, /retrievalProvider/);
   assert.doesNotMatch(adapter, /extractUrls/);
-  assert.match(retrieval, /https:\/\/s\.jina\.ai/);
-  assert.match(retrieval, /parseJinaSearchCitations/);
-  assert.match(retrieval, /Jina Search returned no verifiable source URLs/);
+  assert.match(retrieval, /https:\/\/www\.bing\.com\/search/);
+  assert.match(retrieval, /parseBingSearchRss/);
+  assert.match(retrieval, /Bing RSS returned no verifiable source URLs/);
   assert.doesNotMatch(adapter, /CLOUDFLARE_API_(?:KEY|TOKEN)/);
   assert.match(registry, /cloudflareAdapter/);
-  assert.match(data, /Cloudflare Workers AI \+ Jina Search/);
+  assert.match(data, /Cloudflare Workers AI \+ Bing Search RSS/);
   assert.match(data, /id: "cloudflare"[\s\S]*supportsCitations: true/);
   assert.match(route, /"cloudflare"/);
   assert.match(worker, /setCloudflareAiBinding\(env\.AI\)/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
-  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI \+ Jina Search"/);
+  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI \+ Bing Search RSS"/);
   assert.match(config, /"binding": "AI"/);
   assert.match(config, /@cf\/google\/gemma-4-26b-a4b-it/);
   assert.match(prepare, /config\.ai = \{ binding: "AI" \}/);
