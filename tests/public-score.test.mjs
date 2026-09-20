@@ -1,3 +1,36 @@
-import assert from "node:assert/strict"; import fs from "node:fs"; import path from "node:path"; import test from "node:test"; const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
-test("public visibility score uses five grounded Gemini answers and never fabricates a fallback", () => { const worker = read("worker/index.ts"); assert.match(worker, /answers\.length !== 5/); assert.match(worker, /No result was invented/); assert.match(worker, /runPublicGroundedGemini/); assert.match(worker, /google_search/); assert.match(worker, /groundingChunks/); assert.match(worker, /if \(!citations\.length\) return null/); assert.match(worker, /provider: "Google Gemini"/); assert.match(worker, /appearedIn/); assert.match(worker, /methodology/); assert.doesNotMatch(worker, /Math\.random/); });
-test("public visibility score is free-only, hashed-rate-limited, cached, and shareable", () => { const worker = read("worker/index.ts"); const schema = read("db/schema.ts"); const ui = read("components/visibility-score-form.tsx"); assert.match(worker, /FOREMENTION_FREE_ONLY_MODE/); assert.match(worker, /GEMINI_API_KEY/); assert.doesNotMatch(worker.slice(worker.indexOf("async function handleVisibilityScore"), worker.indexOf("async function handlePromptCoverage")), /api\.groq\.com/); assert.match(worker, /sha256/); assert.match(schema, /public_visibility_scores/); assert.match(ui, /Copy share link/); assert.match(ui, /Three checks per day/); });
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
+
+test("public visibility score uses five grounded Cloudflare plus Jina answers and never fabricates a fallback", () => {
+  const worker = read("worker/index.ts");
+  const retrieval = read("lib/free-web-retrieval.ts");
+  assert.match(worker, /answers\.length !== 5/);
+  assert.match(worker, /No result was invented/);
+  assert.match(worker, /runPublicGroundedCloudflare/);
+  assert.match(worker, /runGroundedCloudflareWithBinding/);
+  assert.match(worker, /provider: "Cloudflare Workers AI \+ Jina Search"/);
+  assert.match(retrieval, /https:\/\/s\.jina\.ai/);
+  assert.match(retrieval, /Jina Search returned no verifiable source URLs/);
+  assert.match(worker, /appearedIn/);
+  assert.match(worker, /methodology/);
+  assert.doesNotMatch(worker, /Math\.random/);
+});
+
+test("public visibility score is free-only, hashed-rate-limited, cached, and shareable", () => {
+  const worker = read("worker/index.ts");
+  const schema = read("db/schema.ts");
+  const ui = read("components/visibility-score-form.tsx");
+  assert.match(worker, /FOREMENTION_FREE_ONLY_MODE/);
+  assert.match(worker, /env\.AI/);
+  assert.match(worker, /env\.CLOUDFLARE_MODEL/);
+  const scoreSlice = worker.slice(worker.indexOf("async function handleVisibilityScore"), worker.indexOf("async function handlePromptCoverage"));
+  assert.doesNotMatch(scoreSlice, /GEMINI_API_KEY|api\.groq\.com/);
+  assert.match(worker, /sha256/);
+  assert.match(schema, /public_visibility_scores/);
+  assert.match(ui, /Copy share link/);
+  assert.match(ui, /Three checks per day/);
+});

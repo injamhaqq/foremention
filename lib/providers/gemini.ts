@@ -1,4 +1,4 @@
-import { configuredFreeOnlyGeminiModel, freeOnlyProviderMode } from "@/lib/free-provider-mode";
+import { configuredGeminiModel } from "@/lib/free-provider-mode";
 import { ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
 
 type GeminiResponse = {
@@ -20,10 +20,10 @@ type GeminiResponse = {
 
 export const geminiAdapter: AnswerProviderAdapter = {
   id: "gemini",
-  configured: () => Boolean(process.env.GEMINI_API_KEY && (process.env.GEMINI_MODEL || freeOnlyProviderMode())),
+  configured: () => Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL),
   async run(prompt: ProviderPrompt, options): Promise<ProviderAnswer> {
     const started = Date.now();
-    const model = configuredFreeOnlyGeminiModel();
+    const model = configuredGeminiModel();
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       signal: options.signal,

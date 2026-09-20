@@ -2,17 +2,16 @@ import type { ProviderId } from "@/lib/providers/types";
 
 type LiveProviderId = Exclude<ProviderId, "mock">;
 
-export const FREE_ONLY_COLLECTION_PROVIDER: LiveProviderId = "gemini";
-export const FREE_ONLY_GEMINI_MODEL = "gemini-2.5-flash-lite";
-export const FREE_ONLY_INTERNAL_MODEL_PROVIDERS = new Set<LiveProviderId>(["gemini", "cloudflare"]);
+export const FREE_ONLY_COLLECTION_PROVIDER: LiveProviderId = "cloudflare";
+export const OPTIONAL_GEMINI_MODEL_FALLBACK = "gemini-3.5-flash-lite";
+export const FREE_ONLY_INTERNAL_MODEL_PROVIDERS = new Set<LiveProviderId>(["cloudflare"]);
 
 export function freeOnlyProviderMode() {
   return process.env.FOREMENTION_FREE_ONLY_MODE !== "0";
 }
 
-export function configuredFreeOnlyGeminiModel() {
-  if (freeOnlyProviderMode()) return FREE_ONLY_GEMINI_MODEL;
-  return process.env.GEMINI_MODEL?.trim() || FREE_ONLY_GEMINI_MODEL;
+export function configuredGeminiModel() {
+  return process.env.GEMINI_MODEL?.trim() || OPTIONAL_GEMINI_MODEL_FALLBACK;
 }
 
 export function providerAllowedForLiveCollection(provider: LiveProviderId) {

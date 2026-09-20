@@ -174,9 +174,10 @@ test("Groq Browser Search is a first-class, citation-preserving provider", async
   assert.match(sourceMap, /groq:/);
 });
 
-test("Cloudflare Workers AI is a cost-capped answer-only comparison provider", async () => {
-  const [adapter, types, registry, data, route, worker, sourceMap, config, prepare, launcher] = await Promise.all([
+test("Cloudflare Workers AI uses free Jina web retrieval and persists only validated retrieved citations", async () => {
+  const [adapter, retrieval, types, registry, data, route, worker, sourceMap, config, prepare] = await Promise.all([
     text("lib/providers/cloudflare.ts"),
+    text("lib/free-web-retrieval.ts"),
     text("lib/providers/types.ts"),
     text("lib/providers/index.ts"),
     text("lib/data.ts"),
@@ -185,26 +186,29 @@ test("Cloudflare Workers AI is a cost-capped answer-only comparison provider", a
     text("lib/source-map-generation.ts"),
     text("wrangler.jsonc"),
     text("scripts/prepare-worker-config.mjs"),
-    text("components/run-launcher.tsx"),
   ]);
   assert.match(types, /"cloudflare"/);
-  assert.match(adapter, /binding\.run\(model/);
-  assert.match(adapter, /citations: \[\]/);
-  assert.match(adapter, /grounded: false/);
-  assert.match(adapter, /Do not invent citations, URLs/);
+  assert.match(adapter, /binding\.run\(input\.model/);
+  assert.match(adapter, /retrieveFreeWebEvidence/);
+  assert.match(adapter, /SOURCES:/);
+  assert.match(adapter, /grounded: true/);
+  assert.match(adapter, /retrievalProvider/);
   assert.doesNotMatch(adapter, /extractUrls/);
+  assert.match(retrieval, /https:\/\/s\.jina\.ai/);
+  assert.match(retrieval, /parseJinaSearchCitations/);
+  assert.match(retrieval, /Jina Search returned no verifiable source URLs/);
   assert.doesNotMatch(adapter, /CLOUDFLARE_API_(?:KEY|TOKEN)/);
   assert.match(registry, /cloudflareAdapter/);
-  assert.match(data, /Cloudflare Workers AI/);
-  assert.match(data, /supportsCitations: false/);
+  assert.match(data, /Cloudflare Workers AI \+ Jina Search/);
+  assert.match(data, /id: "cloudflare"[\s\S]*supportsCitations: true/);
   assert.match(route, /"cloudflare"/);
   assert.match(worker, /setCloudflareAiBinding\(env\.AI\)/);
-  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI"/);
+  assert.match(worker, /runGroundedCloudflareWithBinding/);
+  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI \+ Jina Search"/);
   assert.match(config, /"binding": "AI"/);
   assert.match(config, /@cf\/google\/gemma-4-26b-a4b-it/);
   assert.match(prepare, /config\.ai = \{ binding: "AI" \}/);
   assert.match(prepare, /CLOUDFLARE_INPUT_COST_PER_MILLION_USD/);
-  assert.match(launcher, /answer comparison only; no returned web citations/);
 });
 
 test("OpenRouter uses an explicit GLM model and never fabricates citation evidence", async () => {

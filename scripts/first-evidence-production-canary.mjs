@@ -228,7 +228,7 @@ async function waitForRun(page, runId) {
 async function verifyRunEvidenceAndPublish(page, run) {
   if (["failed", "cancelled"].includes(run.status)) fail(`First-evidence collection terminated with status ${run.status}.`);
   if (!Number.isFinite(Number(run.answers)) || Number(run.answers) < 1) fail("The real provider run persisted no answer observations.");
-  if (!Number.isFinite(Number(run.citations)) || Number(run.citations) < 1) fail("The grounded Gemini canary persisted no provider-returned citations.");
+  if (!Number.isFinite(Number(run.citations)) || Number(run.citations) < 1) fail("The free grounded canary persisted no provider-returned citations.");
 
   await page.goto(new URL(`/app/runs/${run.id}?first_evidence=1`, baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
@@ -320,8 +320,8 @@ async function run() {
   }
   if (!acceptanceEmail || !acceptancePassword) fail("Dedicated production acceptance credentials are required when the first-evidence canary is enabled.");
   if (!liveProviders.has(provider)) fail("FOREMENTION_ACCEPTANCE_PROVIDER must name exactly one supported live provider; mock is never allowed in the production canary.");
-  if (provider === "gemini" && expectedModel !== "gemini-2.5-flash-lite") {
-    fail("The free-only Gemini canary must explicitly pin gemini-2.5-flash-lite.");
+  if (provider === "cloudflare" && expectedModel !== "@cf/google/gemma-4-26b-a4b-it") {
+    fail("The free-only Cloudflare canary must explicitly pin @cf/google/gemma-4-26b-a4b-it.");
   }
   if (!Number.isFinite(maxCostUsd) || maxCostUsd <= 0 || maxCostUsd > 1) fail("FOREMENTION_ACCEPTANCE_MAX_COST_USD must be an explicit positive ceiling no greater than $1.00.");
   if (baseUrl.protocol !== "https:" || baseUrl.hostname !== "foremention.com") fail("The authenticated production canary is restricted to https://foremention.com.");
