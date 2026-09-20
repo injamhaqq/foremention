@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/cloudflare";
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, publicToolRateLimitsTable, publicVisibilityScoresTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
-import { setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
+import { runGroundedCloudflareWithBinding, setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
 import { scrubSentryEvent } from "../lib/sentry-privacy";
 import { logOperationalEvent } from "../lib/structured-logger";
 
@@ -53,6 +53,7 @@ interface Env {
   GROQ_MODEL?: string;
   GROQ_MODEL_VERSION?: string;
   GROQ_REQUEST_COST_USD?: string;
+  CLOUDFLARE_MODEL?: string;
   PUBLIC_TOOL_MAX_REQUEST_COST_USD?: string;
   PUBLIC_RATE_LIMIT_SECRET?: string;
   IMAGES: {
@@ -71,15 +72,8 @@ interface ExecutionContext {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const FREE_ONLY_GEMINI_MODEL = "gemini-2.5-flash-lite";
-
 function freeOnlyWorkerMode(env: Env) {
   return env.FOREMENTION_FREE_ONLY_MODE !== "0";
-}
-
-function workerGeminiModel(env: Env) {
-  if (freeOnlyWorkerMode(env)) return FREE_ONLY_GEMINI_MODEL;
-  return env.GEMINI_MODEL?.trim() || FREE_ONLY_GEMINI_MODEL;
 }
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -196,6 +190,7 @@ async function handleHealth(env: Env) {
   const [d1Status, supabaseStatus] = await Promise.all([d1, supabase]);
   const inngestStatus = env.INNGEST_EVENT_KEY && env.INNGEST_SIGNING_KEY ? "configured_not_probed" : "not_configured";
   const providers = {
+    cloudflare: env.AI && env.CLOUDFLARE_MODEL ? "configured_not_probed" : "not_configured",
     gemini: env.GEMINI_API_KEY ? "configured_not_probed" : "not_configured",
     groq: env.GROQ_API_KEY ? "configured_not_probed" : "not_configured",
     openrouter: env.OPENROUTER_API_KEY ? "configured_not_probed" : "not_configured",
@@ -229,47 +224,20 @@ function scoreQuestions(category: string) {
   ];
 }
 
-type PublicGeminiResponse = {
-  modelVersion?: string;
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-    groundingMetadata?: {
-      groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
-    };
-  }>;
-};
-
-async function runPublicGroundedGemini(env: Env, prompt: string, maxOutputTokens: number) {
-  if (!freeOnlyWorkerMode(env) || !env.GEMINI_API_KEY) return null;
-  const model = workerGeminiModel(env);
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": env.GEMINI_API_KEY,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ google_search: {} }],
-        generationConfig: { maxOutputTokens },
-      }),
-      signal: AbortSignal.timeout(25_000),
-    },
-  );
-  const raw = await response.json().catch(() => null) as PublicGeminiResponse | null;
-  const candidate = raw?.candidates?.[0];
-  const answer = (candidate?.content?.parts || []).map((part) => part.text || "").join("\n").trim();
-  if (!response.ok || !answer) return null;
-  const citations = Array.from(new Map(
-    (candidate?.groundingMetadata?.groundingChunks || [])
-      .map((chunk) => chunk.web)
-      .filter((web): web is { uri: string; title?: string } => Boolean(web?.uri))
-      .map((web) => [web.uri, { url: web.uri, title: web.title || null }]),
-  ).values()).slice(0, 20);
-  if (!citations.length) return null;
-  return { answer, citations, model: raw?.modelVersion || model };
+async function runPublicGroundedCloudflare(env: Env, prompt: string, maxOutputTokens: number, searchQuery?: string) {
+  if (!freeOnlyWorkerMode(env) || !env.AI || !env.CLOUDFLARE_MODEL) return null;
+  try {
+    return await runGroundedCloudflareWithBinding({
+      binding: env.AI,
+      model: env.CLOUDFLARE_MODEL,
+      prompt,
+      searchQuery,
+      maxOutputTokens,
+      signal: AbortSignal.timeout(40_000),
+    });
+  } catch {
+    return null;
+  }
 }
 
 async function handleVisibilityScore(request: Request, env: Env) {
@@ -293,7 +261,7 @@ async function handleVisibilityScore(request: Request, env: Env) {
   const limited = await publicRateLimit(request, env, "score", 3, 24 * 60 * 60 * 1000);
   if (!limited.configured) return Response.json({ error: "The public score is not configured safely yet." }, { status: 503 });
   if (!limited.allowed) return Response.json({ error: "Daily score limit reached. Try again tomorrow." }, { status: 429 });
-  if (!freeOnlyWorkerMode(env) || !env.GEMINI_API_KEY) {
+  if (!freeOnlyWorkerMode(env) || !env.AI || !env.CLOUDFLARE_MODEL) {
     return Response.json({ error: "The free grounded score provider is temporarily unavailable." }, { status: 503 });
   }
   const body = await request.json().catch(() => null) as { brand?: string; category?: string } | null;
@@ -303,15 +271,16 @@ async function handleVisibilityScore(request: Request, env: Env) {
     return Response.json({ error: "Enter a brand and a specific category." }, { status: 400 });
   }
   const questions = scoreQuestions(category);
-  const grounded = await runPublicGroundedGemini(
+  const grounded = await runPublicGroundedCloudflare(
     env,
     [
-      "Use Google Search grounding to answer each supplied buyer question independently.",
+      "Answer each supplied buyer question independently using only the current retrieved web evidence.",
       'Return valid JSON only in the form {"answers":[{"question_number":1,"answer":"..."}]}.',
       "Include exactly five answers. Do not invent companies, claims, sources, or URLs.",
       ...questions.map((question, index) => `${index + 1}. ${question}`),
     ].join("\n"),
     1800,
+    `${category} tools platforms vendors comparison independent evidence growing team`,
   );
   if (!grounded) return Response.json({ error: "The live provider did not complete the score. No result was invented." }, { status: 502 });
   let parsed: { answers?: Array<{ question_number?: number; answer?: string }> } = {};
@@ -340,7 +309,7 @@ async function handleVisibilityScore(request: Request, env: Env) {
     appearedIn: observations.filter((item) => item.appeared).length,
     questions: observations,
     citations: grounded.citations.map((citation) => citation.url),
-    provider: "Google Gemini",
+    provider: "Cloudflare Workers AI + Jina Search",
     model: grounded.model,
     observedAt: createdAt,
     methodology: "One dated grounded provider collection across five deterministic category questions. This is not a market-wide rank or outcome guarantee.",
@@ -355,7 +324,7 @@ async function handlePromptCoverage(request: Request, env: Env) {
   const limited = await publicRateLimit(request, env, "prompt-check", 5, 24 * 60 * 60 * 1000);
   if (!limited.configured) return Response.json({ error: "The public prompt check is not configured safely yet." }, { status: 503 });
   if (!limited.allowed) return Response.json({ error: "Daily prompt-check limit reached. Try again tomorrow." }, { status: 429 });
-  if (!freeOnlyWorkerMode(env) || !env.GEMINI_API_KEY) {
+  if (!freeOnlyWorkerMode(env) || !env.AI || !env.CLOUDFLARE_MODEL) {
     return Response.json({ error: "The free grounded prompt provider is temporarily unavailable." }, { status: 503 });
   }
   const body = await request.json().catch(() => null) as { brand?: string; question?: string } | null;
@@ -364,11 +333,7 @@ async function handlePromptCoverage(request: Request, env: Env) {
   if (brand.length < 2 || brand.length > 80 || question.length < 8 || question.length > 500) {
     return Response.json({ error: "Enter a brand and one complete buyer question." }, { status: 400 });
   }
-  const grounded = await runPublicGroundedGemini(
-    env,
-    `Use Google Search grounding. Answer this buyer question directly, preserve uncertainty, and do not invent companies, claims, sources, or URLs.\n\n${question}`,
-    1000,
-  );
+  const grounded = await runPublicGroundedCloudflare(\n    env,\n    `Answer this buyer question directly using only the current retrieved web evidence, preserve uncertainty, and do not invent companies, claims, sources, or URLs.\\n\\n${question}`,\n    1000,\n    question,\n  );
   if (!grounded) return Response.json({ error: "The live provider did not complete the check. No result was invented." }, { status: 502 });
   const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const appeared = new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i").test(grounded.answer);
@@ -379,7 +344,7 @@ async function handlePromptCoverage(request: Request, env: Env) {
       appeared,
       answer: grounded.answer,
       citations: grounded.citations,
-      provider: "Google Gemini",
+      provider: "Cloudflare Workers AI + Jina Search",
       model: grounded.model,
       observedAt: new Date().toISOString(),
       methodology: "One dated grounded provider answer. Presence does not establish ranking, buyer behavior, or future visibility.",
