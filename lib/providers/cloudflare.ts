@@ -1,4 +1,5 @@
 import { retrieveFreeWebEvidence } from "@/lib/free-web-retrieval";
+import { selectGroundedFunctionCall } from "@/lib/providers/cloudflare-grounding";
 import {
   ProviderRequestError,
   type AnswerProviderAdapter,
@@ -106,61 +107,6 @@ function citationIndex(citations: ProviderCitation[]) {
   }).join("\n");
 }
 
-function parseToolArguments(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, unknown>;
-  if (typeof value !== "string" || !value.trim()) return null;
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-export function selectGroundedFunctionCall(raw: CloudflareTextResponse, available: ProviderCitation[]) {
-  const calls = [
-    ...(Array.isArray(raw.tool_calls) ? raw.tool_calls : []),
-    ...((raw.choices || []).flatMap((choice) => Array.isArray(choice.message?.tool_calls) ? choice.message.tool_calls : [])),
-  ];
-  const call = calls.find((candidate) => {
-    const name = typeof candidate.name === "string"
-      ? candidate.name
-      : typeof candidate.function?.name === "string"
-        ? candidate.function.name
-        : "";
-    return name === "recordGroundedAnswer";
-  });
-  if (!call) {
-    throw new ProviderRequestError(
-      "Cloudflare Workers AI + Bing Search RSS",
-      502,
-      "The grounded model did not return the required structured evidence selection.",
-    );
-  }
-
-  const args = parseToolArguments(call.arguments ?? call.function?.arguments);
-  const answer = typeof args?.answer === "string" ? args.answer.trim() : "";
-  const sourceIndexes = Array.isArray(args?.source_indexes) ? args.source_indexes : [];
-  if (!answer) {
-    throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, "The grounded model returned no structured answer text.");
-  }
-  if (!sourceIndexes.length || sourceIndexes.some((index) => !Number.isInteger(index) || Number(index) < 1 || Number(index) > available.length)) {
-    throw new ProviderRequestError(
-      "Cloudflare Workers AI + Bing Search RSS",
-      502,
-      "The grounded model selected an invalid retrieved source index.",
-    );
-  }
-
-  const uniqueIndexes = Array.from(new Set(sourceIndexes.map(Number)));
-  return {
-    answer,
-    citations: uniqueIndexes.map((index) => available[index - 1]),
-  };
-}
-
 export async function runGroundedCloudflareWithBinding(input: {
   binding: CloudflareAiBinding;
   model: string;
@@ -229,8 +175,12 @@ export async function runGroundedCloudflareWithBinding(input: {
   );
 
   const selected = selectGroundedFunctionCall(raw, evidence.citations);
+  if (!selected.ok) {
+    throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, selected.error);
+  }
   return {
-    ...selected,
+    answer: selected.answer,
+    citations: selected.citations,
     model: input.model,
     usage: usageFrom(raw),
     finishReason: raw.choices?.[0]?.finish_reason,
