@@ -1,8 +1,8 @@
 # Foremention Stage-0 Priority Outreach Pack — 2026-09-20
 
-**Truth class:** PUBLIC RESEARCH / OUTREACH PREPARATION  
-**Customer evidence:** NO  
-**Send status:** NOT SENT  
+**Truth class:** PUBLIC RESEARCH / OUTREACH PREPARATION
+**Customer evidence:** NO
+**Send status:** NOT SENT
 **Rule:** Re-check the linked trigger immediately before sending. A public trigger is a reason to start a conversation, not evidence of pain, budget, willingness to pay, or purchase intent.
 
 These seven accounts are pulled from the 100-account research pool because they are inside the 50–500 employee band and have a current 2026 first-party product/category trigger that creates a credible reason to discuss AI-mediated buyer recommendations.
