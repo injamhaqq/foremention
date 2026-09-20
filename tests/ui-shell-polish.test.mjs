@@ -5,7 +5,7 @@ import test from "node:test";
 const navigation = await readFile(new URL("../components/workspace-navigation.tsx", import.meta.url), "utf8");
 const polish = await readFile(new URL("../app/product-polish.css", import.meta.url), "utf8");
 const analytics = await readFile(new URL("../components/contentsquare-analytics.tsx", import.meta.url), "utf8");
-const publicShell = await readFile(new URL("../components/public-shell.tsx", import.meta.url), "utf8");
+const publicShell = await readFile(new URL("../components/public-shell.tsx", import.meta.url), "utf8");\nconst accessibility = await readFile(new URL("../app/accessibility-hardening.css", import.meta.url), "utf8");\nconst analyticsPage = await readFile(new URL("../app/app/analytics/page.tsx", import.meta.url), "utf8");
 
 test("desktop workspace navigation exposes the core workflow plus one complete tools directory", () => {
   assert.match(navigation, /className="app-sidebar__navigation"/);
@@ -33,4 +33,13 @@ test("optional experience analytics stays off by default without an automatic ov
   assert.match(analytics, /Microsoft Clarity/);
   assert.match(analytics, /Contentsquare/);
   assert.match(analytics, /This preference controls optional experience analytics only/);
+});
+
+test("production light-surface accessibility regressions stay fixed", () => {
+  assert.match(accessibility, /\.app-frame \.opportunity-score--review > span[\s\S]*color:\s*#33463c !important;/);
+  assert.match(accessibility, /\.app-frame \.opportunity-score--review > strong[\s\S]*color:\s*#111412 !important;/);
+  assert.match(accessibility, /\.app-frame \.opportunity-evidence > span[\s\S]*color:\s*#33463c !important;/);
+  assert.match(accessibility, /\.app-frame \.opportunity-evidence > strong[\s\S]*color:\s*#111412 !important;/);
+  assert.match(analyticsPage, /className="question-performance__table" tabIndex=\{0\} role="region" aria-label="Question performance table"/);
+  assert.match(accessibility, /\.question-performance__table:focus-visible/);
 });
