@@ -160,3 +160,13 @@
     display: grid;
   }
 }
+
+
+/* Analytics baseline cards are light evidence surfaces inside the authenticated
+   graphite shell. Prevent reverse/muted workspace text from leaking onto the
+   pale green card so both the provider/model label and explanatory copy meet
+   WCAG AA on desktop and mobile. */
+.app-frame .baseline-record > strong,
+.app-frame .baseline-record > p {
+  color: #173327 !important;
+}
