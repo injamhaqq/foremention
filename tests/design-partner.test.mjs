@@ -39,5 +39,5 @@ test("accepted design-partner applications notify configured operators without c
   assert.match(route, /Promise\.allSettled/);
   assert.match(route, /review within one business day/i);
   assert.match(route, /not a customer, paid pilot, or traction claim/i);
-  assert.ok(route.indexOf('supabaseRest("design_partner_applications"') < route.indexOf("notifyDesignPartnerOperators"));
+  assert.ok(route.indexOf('supabaseRest("design_partner_applications"') < route.indexOf("await notifyDesignPartnerOperators"));
 });
