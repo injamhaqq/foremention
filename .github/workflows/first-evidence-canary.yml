@@ -64,9 +64,12 @@ jobs:
           FOREMENTION_ACCEPTANCE_EMAIL: ${{ secrets.FOREMENTION_ACCEPTANCE_EMAIL }}
           FOREMENTION_ACCEPTANCE_PASSWORD: ${{ secrets.FOREMENTION_ACCEPTANCE_PASSWORD }}
           FOREMENTION_ACCEPTANCE_CANARY_ENABLED: ${{ secrets.FOREMENTION_ACCEPTANCE_CANARY_ENABLED }}
-          FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: ${{ secrets.FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED }}
-          FOREMENTION_ACCEPTANCE_PROVIDER: ${{ secrets.FOREMENTION_ACCEPTANCE_PROVIDER }}
-          FOREMENTION_ACCEPTANCE_MAX_COST_USD: ${{ secrets.FOREMENTION_ACCEPTANCE_MAX_COST_USD }}
+          # Free-only production canary: grounded Gemini is fixed by policy.
+          # The legacy approval flag remains true so the canary executes its real-provider path;
+          # this is not authorization to purchase or upgrade provider billing.
+          FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: 'true'
+          FOREMENTION_ACCEPTANCE_PROVIDER: 'gemini'
+          FOREMENTION_ACCEPTANCE_MAX_COST_USD: '0.01'
           FOREMENTION_ACCEPTANCE_CANARY_REQUIRED: 'true'
           FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS: '1200000'
         run: node scripts/first-evidence-production-canary.mjs

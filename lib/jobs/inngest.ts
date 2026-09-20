@@ -15,6 +15,7 @@ import {
   safeOperationalError,
 } from "@/lib/collection-policy";
 import { getProvider } from "@/lib/providers";
+import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -92,7 +93,7 @@ async function sendWeeklyDigest(seed: ScheduledRunSeed, weekKey: string, queued:
 
 async function prepareWeeklyRun(seed: ScheduledRunSeed, weekKey: string) {
   const providerId = seed.provider_ids[0];
-  if (!providerId) return null;
+  if (!providerId || !providerAllowedForLiveCollection(providerId)) return null;
   const rates = getProviderCostRates(providerId);
   if (!rates || !getProvider(providerId).configured()) return null;
   const [prompts, entitlements, activeRuns, monthlyUsage, monthlyRuns] = await Promise.all([
@@ -523,6 +524,10 @@ export const runMultiEngineScan = inngest.createFunction(
 
 
     const providerId = run.provider_ids[0];
+    if (!providerAllowedForLiveCollection(providerId)) {
+      await markRunFailed(data, "The queued provider is disabled by Foremention free-only mode.", true);
+      return { runId: run.id, answers: 0, citations: 0, failures: prompts.length, freeOnlyBlocked: true };
+    }
     const adapter = getProvider(providerId);
     const model = String(process.env[`${providerId.toUpperCase()}_MODEL`] || "");
     const providerRates = getProviderCostRates(providerId);

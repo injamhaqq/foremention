@@ -9,6 +9,7 @@ import {
   safeOperationalError,
 } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, getProviderStatuses, loadPrompts, loadRuns, loadWorkspaceContext } from "@/lib/data";
+import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { inngest } from "@/lib/jobs/inngest";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { runUnits } from "@/lib/product-limits";
@@ -69,6 +70,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "The mock provider is isolated to the labelled demo." }, { status: 400 });
   }
   const providerId = providers[0] as LiveProviderId;
+  if (!providerAllowedForLiveCollection(providerId)) {
+    return NextResponse.json({
+      error: "Production is in free-only mode. Grounded Gemini is the only live customer-evidence provider enabled.",
+    }, { status: 403 });
+  }
   const idempotencyKey = request.headers.get("idempotency-key")?.trim();
   if (!idempotencyKey || !/^[a-zA-Z0-9:_-]{16,100}$/.test(idempotencyKey)) {
     return NextResponse.json({ error: "A valid idempotency key is required to start a collection safely." }, { status: 400 });

@@ -9,6 +9,7 @@ import {
   type ForementionAgentStatus,
 } from "@/lib/agent-control-plane";
 import { getProviderCostRates } from "@/lib/collection-policy";
+import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
 import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
@@ -416,7 +417,7 @@ export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
 }
 
 export function getProviderStatuses(): ProviderStatus[] {
-  return [
+  const statuses: ProviderStatus[] = [
     { id: "openai", label: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL && getProviderCostRates("openai")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
@@ -427,6 +428,10 @@ export function getProviderStatuses(): ProviderStatus[] {
     { id: "zenmux", label: "ZenMux Gateway", configured: Boolean(process.env.ZENMUX_API_KEY && process.env.ZENMUX_MODEL && getProviderCostRates("zenmux")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "omnirouters", label: "OmniRouters Gateway", configured: Boolean(process.env.OMNIROUTERS_API_KEY && process.env.OMNIROUTERS_MODEL && getProviderCostRates("omnirouters")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
   ];
+  return statuses.map((provider) => ({
+    ...provider,
+    configured: provider.configured && providerAllowedForLiveCollection(provider.id),
+  }));
 }
 
 export async function loadProviderStatuses(viewer: Viewer): Promise<ProviderStatus[]> {
