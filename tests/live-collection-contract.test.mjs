@@ -174,7 +174,7 @@ test("Groq Browser Search is a first-class, citation-preserving provider", async
   assert.match(sourceMap, /groq:/);
 });
 
-test("Cloudflare Workers AI uses free Jina web retrieval and persists only validated retrieved citations", async () => {
+test("Cloudflare Workers AI uses Browser Run discovery and persists only fetched public citations", async () => {
   const [adapter, retrieval, types, registry, data, route, worker, sourceMap, config, prepare] = await Promise.all([
     text("lib/providers/cloudflare.ts"),
     text("lib/free-web-retrieval.ts"),
@@ -189,25 +189,32 @@ test("Cloudflare Workers AI uses free Jina web retrieval and persists only valid
   ]);
   assert.match(types, /"cloudflare"/);
   assert.match(adapter, /binding\.run\(input\.model/);
+  assert.match(adapter, /browserRunConfigured/);
   assert.match(adapter, /retrieveFreeWebEvidence/);
   assert.match(adapter, /SOURCES:/);
   assert.match(adapter, /grounded: true/);
   assert.match(adapter, /retrievalProvider/);
   assert.doesNotMatch(adapter, /extractUrls/);
-  assert.match(retrieval, /https:\/\/s\.jina\.ai/);
-  assert.match(retrieval, /parseJinaSearchCitations/);
-  assert.match(retrieval, /Jina Search returned no verifiable source URLs/);
+  assert.match(retrieval, /https:\/\/search\.brave\.com/);
+  assert.match(retrieval, /quickAction\("links"/);
+  assert.match(retrieval, /parseBrowserSearchLinks/);
+  assert.match(retrieval, /Search found public URLs, but none returned usable source content/);
+  assert.match(retrieval, /cloudflare-browser-search/);
+  assert.doesNotMatch(retrieval, /s\.jina\.ai|JINA_API_KEY/);
   assert.doesNotMatch(adapter, /CLOUDFLARE_API_(?:KEY|TOKEN)/);
   assert.match(registry, /cloudflareAdapter/);
-  assert.match(data, /Cloudflare Workers AI \+ Jina Search/);
+  assert.match(data, /Cloudflare Workers AI \+ Browser Run/);
   assert.match(data, /id: "cloudflare"[\s\S]*supportsCitations: true/);
   assert.match(route, /"cloudflare"/);
   assert.match(worker, /setCloudflareAiBinding\(env\.AI\)/);
+  assert.match(worker, /setBrowserRunBinding\(env\.BROWSER\)/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
-  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI \+ Jina Search"/);
+  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI \+ Browser Run"/);
   assert.match(config, /"binding": "AI"/);
+  assert.match(config, /"browser"\s*:\s*\{[\s\S]*"binding"\s*:\s*"BROWSER"/);
   assert.match(config, /@cf\/google\/gemma-4-26b-a4b-it/);
   assert.match(prepare, /config\.ai = \{ binding: "AI" \}/);
+  assert.match(prepare, /config\.browser = \{ binding: "BROWSER" \}/);
   assert.match(prepare, /CLOUDFLARE_INPUT_COST_PER_MILLION_USD/);
 });
 
