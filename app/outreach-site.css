@@ -18,12 +18,12 @@
 }
 
 .outreach-hero {
-  min-height: min(850px, calc(100vh - 76px));
+  min-height: min(720px, calc(100svh - 76px));
   display: grid;
   grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
   align-items: center;
-  gap: clamp(48px, 8vw, 128px);
-  padding-block: clamp(88px, 10vw, 150px);
+  gap: clamp(36px, 6vw, 88px);
+  padding-block: clamp(44px, 6vh, 68px);
 }
 
 .outreach-hero__copy {
@@ -34,17 +34,17 @@
 .outreach-hero h1 {
   margin: 0;
   max-width: 920px;
-  font-size: clamp(52px, 6.4vw, 100px);
-  line-height: 0.93;
+  font-size: clamp(48px, 5.5vw, 78px);
+  line-height: 0.95;
   text-wrap: balance;
 }
 
 .outreach-hero__lead {
   max-width: 760px;
-  margin: 36px 0 0;
+  margin: 24px 0 0;
   color: var(--fm-fg-soft);
-  font-size: clamp(18px, 1.65vw, 23px);
-  line-height: 1.55;
+  font-size: clamp(17px, 1.35vw, 21px);
+  line-height: 1.5;
 }
 
 .outreach-hero__actions {
@@ -52,7 +52,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  margin-top: 36px;
+  margin-top: 24px;
 }
 
 .outreach-hero__actions .canonical-button {
@@ -63,7 +63,7 @@
 }
 
 .outreach-hero__boundary {
-  margin: 20px 0 0;
+  margin: 16px 0 0;
   color: var(--fm-muted);
   font-family: var(--fm-font-mono);
   font-size: 11px;
