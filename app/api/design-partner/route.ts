@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { designPartnerSubmissionKey, normalizeDesignPartnerApplication } from "@/lib/design-partner";
+import { sendProductAlertEmail } from "@/lib/application-email";
+import { designPartnerSubmissionKey, normalizeDesignPartnerApplication, type DesignPartnerApplication } from "@/lib/design-partner";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
@@ -24,6 +25,49 @@ function limitedResponse(request: Request) {
     return NextResponse.redirect(target, 303);
   }
   return NextResponse.json({ error: "Too many recent applications. Please try again later." }, { status: 429 });
+}
+
+const operatorEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function operatorRecipients() {
+  return (process.env.FOREMENTION_COMPANY_OPERATOR_EMAILS || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value, index, values) => operatorEmailPattern.test(value) && values.indexOf(value) === index)
+    .slice(0, 5);
+}
+
+async function notifyDesignPartnerOperators(application: DesignPartnerApplication, keyHash: string) {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return;
+  const recipients = operatorRecipients();
+  if (!recipients.length) return;
+
+  const questionSummary = application.buyerQuestions.length
+    ? application.buyerQuestions.map((question, index) => `${index + 1}. ${question}`).join("\n")
+    : "Not supplied yet.";
+
+  const text = [
+    "New Foremention design-partner application.",
+    "",
+    `Company: ${application.company}`,
+    `Work email: ${application.email}`,
+    `Role: ${application.role}`,
+    `Category: ${application.category}`,
+    "",
+    "Priority buyer questions:",
+    questionSummary,
+    "",
+    `Current decision/problem: ${application.currentProblem || "Not supplied yet."}`,
+    "",
+    "Stage-0 operating target: review within one business day. This application is not a customer, paid pilot, or traction claim until first-party commercial evidence supports that state.",
+  ].join("\n");
+
+  await Promise.allSettled(recipients.map((to, index) => sendProductAlertEmail({
+    to,
+    subject: `Foremention design-partner application — ${application.company}`,
+    text,
+    idempotencyKey: `design-partner-application-${keyHash}-${index}`,
+  })));
 }
 
 export async function POST(request: Request) {
@@ -75,6 +119,7 @@ export async function POST(request: Request) {
         source: "website_design_partner",
       },
     });
+    await notifyDesignPartnerOperators(normalized.value, keyHash);
   } catch {
     return responseFor(request, 503, "Applications are temporarily unavailable. Email hello@foremention.com instead.");
   }
