@@ -104,6 +104,9 @@ jobs:
       - name: Cloudflare Worker dry run
         run: pnpm exec wrangler deploy --dry-run --config dist/server/wrangler.json --outdir .wrangler-dry-run
 
+      - name: Cloudflare root config dry run
+        run: pnpm exec wrangler deploy --dry-run --config wrangler.jsonc --outdir .wrangler-root-dry-run
+
       - name: Rehearse rollback build from previous main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.before != '0000000000000000000000000000000000000000'
         env:
