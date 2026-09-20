@@ -62,7 +62,7 @@ test("public score and prompt-check use grounded Gemini and contain no direct Gr
   assert.match(publicAi, /groundingChunks/);
   assert.match(publicAi, /if \(!citations\.length\) return null/);
   assert.match(publicAi, /provider: "Google Gemini"/);
-  assert.match(publicAi, /FOREMENTION_FREE_ONLY_MODE/);
+  assert.match(publicAi, /freeOnlyWorkerMode\(env\)/);\n  assert.match(publicAi, /workerGeminiModel\(env\)/);
   assert.doesNotMatch(publicAi, /api\.groq\.com/);
   assert.doesNotMatch(publicAi, /OPENAI_API_KEY|OPENROUTER_API_KEY|PERPLEXITY_API_KEY|ANTHROPIC_API_KEY/);
 });
