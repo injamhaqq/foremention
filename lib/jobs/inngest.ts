@@ -15,7 +15,7 @@ import {
   safeOperationalError,
 } from "@/lib/collection-policy";
 import { getProvider } from "@/lib/providers";
-import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
+import { configuredFreeOnlyGeminiModel, providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -529,7 +529,9 @@ export const runMultiEngineScan = inngest.createFunction(
       return { runId: run.id, answers: 0, citations: 0, failures: prompts.length, freeOnlyBlocked: true };
     }
     const adapter = getProvider(providerId);
-    const model = String(process.env[`${providerId.toUpperCase()}_MODEL`] || "");
+    const model = providerId === "gemini"
+      ? configuredFreeOnlyGeminiModel()
+      : String(process.env[`${providerId.toUpperCase()}_MODEL`] || "");
     const providerRates = getProviderCostRates(providerId);
     if (!model || !providerRates) throw new Error("The selected provider model or cost ceiling is not configured.");
     const recentFailureWindow = new Date(Date.now() - LIVE_COLLECTION_LIMITS.circuitWindowMinutes * 60_000).toISOString();
