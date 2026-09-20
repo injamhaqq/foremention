@@ -95,17 +95,25 @@ function citationIndex(citations: ProviderCitation[]) {
   }).join("\n");
 }
 
-function selectedCitations(answer: string, available: ProviderCitation[]) {
+export function selectRetrievedCitations(answer: string, available: ProviderCitation[]) {
   const marker = answer.match(/(?:^|\n)\s*SOURCES:\s*([^\n\r]+)/i);
-  if (!marker) throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, "The grounded answer did not identify which retrieved sources supported it.");
-
-  const indexes = Array.from(marker[1].matchAll(/\[(\d+)\]/g), (match) => Number(match[1]));
-  const unique = Array.from(new Set(indexes)).filter((index) => Number.isInteger(index) && index >= 1 && index <= available.length);
-  if (!unique.length) throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, "The grounded answer selected no valid retrieved source.");
-
   const cleanAnswer = answer.replace(/(?:^|\n)\s*SOURCES:\s*[^\n\r]+/i, "").trim();
   if (!cleanAnswer) throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, "The grounded answer returned no answer text.");
-  return { answer: cleanAnswer, citations: unique.map((index) => available[index - 1]) };
+  if (!available.length) throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, "The retriever returned no citation evidence.");
+
+  if (marker) {
+    const indexes = Array.from(marker[1].matchAll(/\[(\d+)\]/g), (match) => Number(match[1]));
+    const unique = Array.from(new Set(indexes)).filter((index) => Number.isInteger(index) && index >= 1 && index <= available.length);
+    if (unique.length) {
+      return { answer: cleanAnswer, citations: unique.map((index) => available[index - 1]), citationSelection: "model-selected" as const };
+    }
+  }
+
+  // Retrieval provenance is authoritative. If the model omits or mangles the
+  // optional SOURCES marker, preserve the bounded set of URLs returned by Bing
+  // RSS rather than promoting URLs from generated answer text or fabricating a
+  // citation. This keeps the run grounded while avoiding a brittle formatting gate.
+  return { answer: cleanAnswer, citations: available, citationSelection: "retrieved-evidence-set" as const };
 }
 
 export async function runGroundedCloudflareWithBinding(input: {
@@ -156,7 +164,7 @@ export async function runGroundedCloudflareWithBinding(input: {
 
   const fullAnswer = contentFrom(raw);
   if (!fullAnswer) throw new ProviderRequestError("Cloudflare Workers AI", 502, "The model returned no answer text.");
-  const selected = selectedCitations(fullAnswer, evidence.citations);
+  const selected = selectRetrievedCitations(fullAnswer, evidence.citations);
   return {
     ...selected,
     model: input.model,
@@ -164,6 +172,7 @@ export async function runGroundedCloudflareWithBinding(input: {
     finishReason: raw.choices?.[0]?.finish_reason,
     retrievalProvider: evidence.retrievalProvider,
     retrievedCitationCount: evidence.citations.length,
+    citationSelection: selected.citationSelection,
   };
 }
 
@@ -198,6 +207,7 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
           retrievalProvider: grounded.retrievalProvider,
           retrievedCitationCount: grounded.retrievedCitationCount,
           citationCount: grounded.citations.length,
+          citationSelection: grounded.citationSelection,
           finishReason: grounded.finishReason,
           usage: grounded.usage,
         },
