@@ -2,6 +2,7 @@ import type { OperatingAgentId } from "@/lib/agent-os/contracts";
 import {
   DEFAULT_REASONING_MODEL,
   estimateReasoningCostUsd,
+  formatOpenAIReasoningError,
   resolveReasoningPricing,
 } from "@/lib/agent-os/reasoning-core";
 export {
@@ -47,6 +48,10 @@ type OpenAIResponse = {
     input_tokens?: number;
     output_tokens?: number;
     total_tokens?: number;
+  };
+  error?: {
+    code?: string | null;
+    type?: string | null;
   };
 };
 
@@ -280,7 +285,9 @@ export async function runStructuredReasoning<T>(input: StructuredReasoningContex
       }),
     });
     const raw = await response.json() as OpenAIResponse;
-    if (!response.ok) throw new Error(`OpenAI reasoning request failed with status ${response.status}.`);
+    if (!response.ok) {
+      throw new Error(formatOpenAIReasoningError(response.status, raw, response.headers.get("x-request-id")));
+    }
     const outputText = extractOutputText(raw);
     if (!outputText) throw new Error("OpenAI reasoning response contained no structured text output.");
 
