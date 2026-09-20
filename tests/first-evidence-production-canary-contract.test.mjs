@@ -30,7 +30,7 @@ test("the production canary is trusted-main only and exact releases require expl
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_CANARY_ENABLED: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_CANARY_ENABLED \}\}/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: 'true'/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER: 'cloudflare'/);
-  assert.match(workflow, /FOREMENTION_ACCEPTANCE_EXPECTED_MODEL: '@cf\\/google\\/gemma-4-26b-a4b-it'/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_EXPECTED_MODEL: '@cf\/google\/gemma-4-26b-a4b-it'/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_MAX_COST_USD: '0\.01'/);
 });
 
@@ -92,9 +92,9 @@ test("the dedicated synthetic canary maintains a freshness-dependent web-evidenc
 
 test("the release canary requires grounded citations, the pinned Cloudflare model, review publication and contained Recommendation Record evidence inspection", () => {
   assert.match(canary, /The real provider run persisted no answer observations/);
-  assert.match(canary, /The free grounded Cloudflare canary persisted no provider-returned citations/);
+  assert.match(canary, /The free grounded canary persisted no provider-returned citations/);
   assert.match(canary, /FOREMENTION_ACCEPTANCE_EXPECTED_MODEL/);
-  assert.match(canary, /@cf\\/google\\/gemma-4-26b-a4b-it/);
+  assert.match(canary, /@cf\/google\/gemma-4-26b-a4b-it/);
   assert.match(canary, /The persisted provider answer did not expose the expected model/);
   assert.match(canary, /Recorded model/);
   assert.doesNotMatch(canary, /contained-evidence-not-required-no-provider-citations/);
