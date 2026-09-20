@@ -14,11 +14,20 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function HomePage() {
-  const structuredData = webPageJsonLd({
-    name: "Foremention — Recommendation Intelligence for B2B Software",
-    description,
-    path: "/",
-  });
+  const structuredData = {
+    ...webPageJsonLd({
+      name: "Foremention — Recommendation Intelligence for B2B Software",
+      description,
+      path: "/",
+    }),
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      name: "Foremention home breadcrumb",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Foremention", item: "https://foremention.com/" },
+      ],
+    },
+  };
 
   return (
     <PublicShell>
