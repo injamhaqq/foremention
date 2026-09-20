@@ -333,7 +333,12 @@ async function handlePromptCoverage(request: Request, env: Env) {
   if (brand.length < 2 || brand.length > 80 || question.length < 8 || question.length > 500) {
     return Response.json({ error: "Enter a brand and one complete buyer question." }, { status: 400 });
   }
-  const grounded = await runPublicGroundedCloudflare(\n    env,\n    `Answer this buyer question directly using only the current retrieved web evidence, preserve uncertainty, and do not invent companies, claims, sources, or URLs.\\n\\n${question}`,\n    1000,\n    question,\n  );
+  const grounded = await runPublicGroundedCloudflare(
+    env,
+    `Answer this buyer question directly using only the current retrieved web evidence, preserve uncertainty, and do not invent companies, claims, sources, or URLs.\n\n${question}`,
+    1000,
+    question,
+  );
   if (!grounded) return Response.json({ error: "The live provider did not complete the check. No result was invented." }, { status: 502 });
   const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const appeared = new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i").test(grounded.answer);
