@@ -22,7 +22,7 @@ test("homepage exposes explicit markdown discovery and worker content negotiatio
   assert.match(worker, /accept.*text\/markdown/s);
   assert.match(worker, /new URL\("\/index\.md", request\.url\)/);
   assert.match(worker, /Content-Type", "text\/markdown; charset=utf-8"/);
-  assert.match(worker, /<https:\/\/foremention\.com\/>; rel=\"canonical\"/);
+  assert.match(worker, /<https:\/\/foremention\.com\/>; rel=\\?"canonical\\?"/);
   assert.match(worker, /<\/index\.md>; rel=\"alternate\"; type=\"text\/markdown\"/);
 });
 
