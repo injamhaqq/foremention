@@ -17,15 +17,18 @@ const [navigation, retentionBridge, sitemap, pricing, contact, signup, settings,
   read("app/page.tsx"),
 ]);
 
-test("global workspace navigation is compressed to the five canonical objects", () => {
+test("global workspace navigation keeps the core workflow clear and exposes a complete tools directory", () => {
   for (const [href, label] of [
-    ["/app", "Attention"],
+    ["/app", "Overview"],
     ["/app/prompts", "Questions"],
     ["/app/runs", "Records"],
+    ["/app/source-map", "Evidence"],
+    ["/app/opportunities", "Opportunities"],
     ["/app/analytics", "Comparisons"],
+    ["/app/tools", "All tools"],
     ["/app/settings", "Settings"],
   ]) {
-    assert.match(navigation, new RegExp(`\\[\\"${href.replaceAll("/", "\\/")}\\", \\"${label}\\"\\]`));
+    assert.match(navigation, new RegExp(`\\["${href.replaceAll("/", "\\/")}", "${label}"\\]`));
   }
   assert.doesNotMatch(navigation, /workspaceNav|advancedNav|sidebar-advanced|Workspace tools|Advanced workspace tools/);
 });
