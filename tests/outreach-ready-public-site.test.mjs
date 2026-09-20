@@ -95,7 +95,7 @@ test("design-partner conversion is the primary contact flow and is measured with
   assert.match(contract, /design_partner_page_viewed/);
   assert.match(contract, /design_partner_application_started/);
   assert.match(contract, /design_partner_application_submitted/);
-  assert.match(switchCaseBody(contract, "design_partner_cta_impression"), /addEnum\(properties, "surface"/);
+  assert.match(contract, /case "design_partner_cta_impression":\s*\n\s*case "design_partner_cta_clicked":/);
   assert.match(switchCaseBody(contract, "design_partner_cta_clicked"), /addEnum\(properties, "surface"/);
   assert.doesNotMatch(analytics, /FormData|\.elements\b|\[name=|\.value\b/);
   for (const eventName of [
