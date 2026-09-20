@@ -43,6 +43,7 @@ const summary = {
     runStatus: null,
     answerCount: null,
     citationCount: null,
+    errorSummary: null,
     providerSearchUsed: null,
     providerSearchResultCount: null,
     duplicateRequestConfirmed: false,
@@ -218,6 +219,7 @@ async function waitForRun(page, runId) {
       summary.evidence.runStatus = run.status || null;
       summary.evidence.answerCount = Number.isFinite(Number(run.answers)) ? Number(run.answers) : null;
       summary.evidence.citationCount = Number.isFinite(Number(run.citations)) ? Number(run.citations) : null;
+      summary.evidence.errorSummary = typeof run.errorSummary === "string" && run.errorSummary.trim() ? run.errorSummary.trim() : null;
       if (["review", "complete", "partial", "failed", "cancelled"].includes(run.status)) return run;
     }
     await page.waitForTimeout(3_000);
