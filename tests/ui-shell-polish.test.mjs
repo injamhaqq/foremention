@@ -7,12 +7,14 @@ const polish = await readFile(new URL("../app/product-polish.css", import.meta.u
 const analytics = await readFile(new URL("../components/contentsquare-analytics.tsx", import.meta.url), "utf8");
 const publicShell = await readFile(new URL("../components/public-shell.tsx", import.meta.url), "utf8");
 
-test("desktop workspace navigation keeps only the five canonical objects in the rendered sidebar", () => {
+test("desktop workspace navigation exposes the core workflow plus one complete tools directory", () => {
   assert.match(navigation, /className="app-sidebar__navigation"/);
   assert.match(navigation, /className="app-sidebar__footer"/);
   assert.match(navigation, /className="sidebar-nav sidebar-nav--primary"/);
-  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
-  assert.doesNotMatch(navigation, /className="sidebar-nav sidebar-nav--workspace"/);
+  for (const label of ["Overview", "Questions", "Records", "Evidence", "Opportunities", "Comparisons", "All tools", "Settings"]) {
+    assert.match(navigation, new RegExp(label));
+  }
+  assert.match(navigation, /"\/app\/tools", "All tools"/);
   assert.doesNotMatch(navigation, /className="sidebar-nav sidebar-nav--advanced"/);
   assert.doesNotMatch(navigation, /<details className="sidebar-advanced">/);
   assert.match(navigation, /CONTEXTUAL_WORKSPACE_ROUTES/);
