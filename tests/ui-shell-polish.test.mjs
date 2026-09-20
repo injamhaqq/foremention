@@ -34,3 +34,11 @@ test("optional experience analytics stays off by default without an automatic ov
   assert.match(analytics, /Contentsquare/);
   assert.match(analytics, /This preference controls optional experience analytics only/);
 });
+
+test("authenticated navigation avoids automatic route-prefetch bursts", async () => {
+  const toolsPage = await readFile(new URL("../app/app/tools/page.tsx", import.meta.url), "utf8");
+  assert.match(navigation, /<Link prefetch=\{false\} className=\{current \? "is-current" : ""\}/);
+  assert.match(navigation, /<Link prefetch=\{false\} className="app-mobile-nav__search"/);
+  assert.match(toolsPage, /<Link prefetch=\{false\} className="button button--ink" href="\/app"/);
+  assert.match(toolsPage, /group\.tools\.map\(\(\[href, label, detail\]\) => <Link prefetch=\{false\} href=\{href\}/);
+});
