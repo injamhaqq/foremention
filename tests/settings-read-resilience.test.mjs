@@ -10,7 +10,7 @@ test("Settings survives transient read failures without inventing workspace data
 
   assert.match(settings, /recoverSettingsRead/);
   assert.match(settings, /Settings read temporarily unavailable/);
-  assert.match(settings, /settingsReadDegraded = true/);
+  assert.match(settings, /const settingsReadDegraded = \[workspaceResult, teamResult, deletionResult, providerResult, notificationResult\]/);\n  assert.match(settings, /\.some\(\(result\) => result\.unavailable\)/);
   assert.match(settings, /recoverSettingsRead\("workspace", loadWorkspaceSummary\(viewer\), null\)/);
   assert.match(settings, /recoverSettingsRead\("team", loadTeam\(viewer\), \{ members: \[\], invitations: \[\], role: null \}\)/);
   assert.match(settings, /recoverSettingsRead\("account-deletion", loadPendingDeletionRequest\(viewer\), null\)/);
