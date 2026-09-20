@@ -1,3 +1,28 @@
-import assert from "node:assert/strict"; import fs from "node:fs"; import path from "node:path"; import test from "node:test"; const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
-test("public prompt checker exposes one real grounded Gemini answer with provider-returned citations", () => { const worker = read("worker/index.ts"); const start = worker.indexOf("async function handlePromptCoverage"); const end = worker.indexOf("async function handleSourceGapRequest", start); const promptCheck = worker.slice(start, end); assert.match(promptCheck, /runPublicGroundedGemini/); assert.match(worker, /groundingChunks/); assert.match(worker, /if \(!citations\.length\) return null/); assert.match(promptCheck, /No result was invented/); assert.match(promptCheck, /provider: "Google Gemini"/); assert.doesNotMatch(promptCheck, /api\.groq\.com/); });
-test("public prompt checker is hashed-rate-limited and ends with a signup CTA", () => { const worker = read("worker/index.ts"); const ui = read("components/prompt-coverage-checker.tsx"); assert.match(worker, /publicRateLimit\(request, env, "prompt-check", 5/); assert.match(ui, /Track this question over time/); assert.match(ui, /not a permanent rank/); });
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
+
+test("public prompt checker exposes one real Cloudflare plus Jina answer with retrieved citations", () => {
+  const worker = read("worker/index.ts");
+  const retrieval = read("lib/free-web-retrieval.ts");
+  const start = worker.indexOf("async function handlePromptCoverage");
+  const end = worker.indexOf("async function handleSourceGapRequest", start);
+  const promptCheck = worker.slice(start, end);
+  assert.match(promptCheck, /runPublicGroundedCloudflare/);
+  assert.match(promptCheck, /provider: "Cloudflare Workers AI \+ Jina Search"/);
+  assert.match(retrieval, /parseJinaSearchCitations/);
+  assert.match(retrieval, /Jina Search returned no verifiable source URLs/);
+  assert.match(promptCheck, /No result was invented/);
+  assert.doesNotMatch(promptCheck, /GEMINI_API_KEY|api\.groq\.com/);
+});
+
+test("public prompt checker is hashed-rate-limited and ends with a signup CTA", () => {
+  const worker = read("worker/index.ts");
+  const ui = read("components/prompt-coverage-checker.tsx");
+  assert.match(worker, /publicRateLimit\(request, env, "prompt-check", 5/);
+  assert.match(ui, /Track this question over time/);
+  assert.match(ui, /not a permanent rank/);
+});
