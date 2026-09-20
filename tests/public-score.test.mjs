@@ -13,9 +13,9 @@ test("public visibility score uses five grounded Cloudflare web-retrieval answer
   assert.match(worker, /runPublicGroundedCloudflare/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
   assert.match(worker, /provider: "Cloudflare Workers AI \+ Web Retrieval"/);
-  assert.match(retrieval, /searchBrave/);\n  assert.match(retrieval, /searchDuckDuckGo/);\n  assert.match(retrieval, /searchBing/);
+  assert.match(retrieval, /inspectSourceUrl/);\n  assert.match(retrieval, /seedUrlsFromQuery/);
   assert.match(retrieval, /parseSearchHtmlLinks/);
-  assert.match(retrieval, /keyless-search-evidence/);\n  assert.doesNotMatch(retrieval, /fetchSource|fetch\\(citation\\.url/);
+  assert.match(retrieval, /keyless-web-retrieval/);\n  assert.doesNotMatch(retrieval, /fetch\\(citation\\.url/);
   assert.match(worker, /appearedIn/);
   assert.match(worker, /methodology/);
   assert.doesNotMatch(worker, /Math\.random/);
