@@ -36,13 +36,13 @@ export default async function WorkspaceSearchPage({ searchParams }: { searchPara
     </form>
 
     {matchingDestinations.length > 0 && <section className="panel panel--flush workspace-destination-directory" aria-labelledby="workspace-destination-title">
-      <div className="evidence-search__header"><div><span className="eyebrow">Workspace directory</span><h2 id="workspace-destination-title">{destinationQuery ? "Matching tools" : "Jump to a workspace tool"}</h2><p className="table-caption">The five primary workspace objects stay focused; supporting tools remain one search away.</p></div></div>
+      <div className="evidence-search__header"><div><span className="eyebrow">Workspace directory</span><h2 id="workspace-destination-title">{destinationQuery ? "Matching tools" : "Jump to a workspace tool"}</h2><p className="table-caption">Core workspace navigation stays focused; supporting tools remain easy to reach here and in All tools.</p></div></div>
       <div className="evidence-search__results">{matchingDestinations.map(([href, title, detail]) => <Link href={href} key={href}><span>Tool</span><div><strong>{title}</strong><p>{detail}</p></div><span aria-hidden="true">&rarr;</span></Link>)}</div>
     </section>}
 
     {search.failedKinds.length > 0 && <p className="inline-notice" role="status">Some result types could not be checked: {search.failedKinds.join(", ")}. Results below are partial; no missing category is being reported as zero.</p>}
     {!search.query ? <section className="panel empty-state"><h2>Search your workspace records.</h2><p>Try a buyer question, brand, source domain, answer phrase, opportunity, or action. Supporting tools are listed above.</p></section>
       : search.results.length ? <section className="panel panel--flush evidence-search"><div className="evidence-search__header"><div><span className="eyebrow">{search.results.length} result{search.results.length === 1 ? "" : "s"}</span><h2>Record matches for “{search.query}”</h2></div></div><div className="evidence-search__results">{search.results.map((result) => <Link href={result.href} key={result.id}><span>{result.kind}</span><div><strong>{result.title}</strong><p>{result.detail}</p><small>{result.meta}</small></div><span aria-hidden="true">&rarr;</span></Link>)}</div></section>
-        : <section className="panel empty-state"><h2>No matching workspace records.</h2><p>The record search returned no matches. Use a matching tool above or try fewer or more specific words.</p><Link className="text-link" href="/app">Back to Attention &rarr;</Link></section>}
+        : <section className="panel empty-state"><h2>No matching workspace records.</h2><p>The record search returned no matches. Use a matching tool above or try fewer or more specific words.</p><Link className="text-link" href="/app">Back to Overview &rarr;</Link></section>}
   </main>;
 }
