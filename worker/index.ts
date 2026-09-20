@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/cloudflare";
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, publicToolRateLimitsTable, publicVisibilityScoresTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
-import { runGroundedCloudflareWithBinding, setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";\nimport { setBrowserRunBinding, type BrowserRunBinding } from "../lib/free-web-retrieval";
+import { runGroundedCloudflareWithBinding, setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
 import { scrubSentryEvent } from "../lib/sentry-privacy";
 import { logOperationalEvent } from "../lib/structured-logger";
 
