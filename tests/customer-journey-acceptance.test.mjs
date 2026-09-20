@@ -41,16 +41,20 @@ test("a nontechnical customer can follow website to question to collection to Re
   assert.match(actions, /Every action keeps the source/);
 });
 
-test("core customer navigation exposes five objects while proven secondary routes stay contextually reachable", async () => {
-  const [navigation, bridge] = await Promise.all([
+test("core customer navigation exposes the workflow and keeps specialist routes easy to find", async () => {
+  const [navigation, bridge, tools] = await Promise.all([
     text("components/workspace-navigation.tsx"),
     text("components/retention-surface-bridge.tsx"),
+    text("app/app/tools/page.tsx"),
   ]);
   const primary = navigation.slice(navigation.indexOf("const primaryNav"), navigation.indexOf("export const CONTEXTUAL_WORKSPACE_ROUTES"));
-  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(primary, new RegExp(label));
-  assert.doesNotMatch(primary, /Source X-Ray|Competitors|Opportunities|Actions|Evidence Vault|Agent Control Plane/);
+  for (const label of ["Overview", "Questions", "Records", "Evidence", "Opportunities", "Comparisons", "All tools", "Settings"]) {
+    assert.match(primary, new RegExp(label));
+  }
   assert.doesNotMatch(navigation, /sidebar-advanced|advancedNav|workspaceNav/);
   for (const route of ["/app/competitors", "/app/opportunities", "/app/placements", "/app/resolutions", "/app/outcomes", "/app/passport", "/app/intelligence", "/app/agents", "/app/decision-lab", "/app/evidence", "/app/alerts", "/app/team", "/app/settings#integrations"]) {
-    assert.match(bridge, new RegExp(route.replaceAll("/", "\\/")));
+    const escaped = new RegExp(route.replaceAll("/", "\\/"));
+    assert.match(bridge, escaped);
+    assert.match(tools, escaped);
   }
 });
