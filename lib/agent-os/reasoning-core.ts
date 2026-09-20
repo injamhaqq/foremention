@@ -2,6 +2,28 @@ export const DEFAULT_REASONING_MODEL = "gpt-5.6-luna";
 export const DEFAULT_REASONING_INPUT_COST_PER_MILLION_USD = 0.20;
 export const DEFAULT_REASONING_OUTPUT_COST_PER_MILLION_USD = 1.20;
 
+export type OpenAIReasoningErrorMetadata = {
+  error?: {
+    code?: string | null;
+    type?: string | null;
+  };
+};
+
+export function formatOpenAIReasoningError(
+  status: number,
+  raw: OpenAIReasoningErrorMetadata,
+  requestId: string | null,
+) {
+  const code = typeof raw.error?.code === "string" && raw.error.code ? raw.error.code : null;
+  const type = typeof raw.error?.type === "string" && raw.error.type ? raw.error.type : null;
+  return [
+    `OpenAI reasoning request failed with status ${status}`,
+    code ? `code=${code}` : null,
+    type ? `type=${type}` : null,
+    requestId ? `request_id=${requestId}` : null,
+  ].filter(Boolean).join(" ") + ".";
+}
+
 export type ReasoningPricing = {
   inputPerMillionUsd: number;
   outputPerMillionUsd: number;
