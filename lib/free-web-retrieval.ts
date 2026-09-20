@@ -1,26 +1,14 @@
 import type { ProviderCitation } from "@/lib/providers/types";
+import { inspectSourceUrl, validatePublicSourceUrl } from "@/lib/source-inspection";
 
 const MAX_SEARCH_CITATIONS = 8;
+const MAX_FETCHED_SOURCES = 4;
 const MAX_RETRIEVAL_CHARS = 14_000;
-
-function publicHostname(hostname: string) {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return false;
-  if (/^(?:10|127)\./.test(host) || /^169\.254\./.test(host) || /^192\.168\./.test(host)) return false;
-  const private172 = host.match(/^172\.(\d{1,3})\./);
-  if (private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31) return false;
-  if (host === "::1" || host.startsWith("fe80:") || host.startsWith("fc") || host.startsWith("fd")) return false;
-  return true;
-}
 
 function normalizeHttpUrl(value: string) {
   const candidate = value.trim().replace(/[),.;:]+$/, "");
   try {
-    const url = new URL(candidate);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-    if (!publicHostname(url.hostname)) return null;
-    url.hash = "";
-    return url.toString();
+    return validatePublicSourceUrl(candidate).toString();
   } catch {
     return null;
   }
@@ -65,113 +53,109 @@ function unwrapSearchUrl(raw: string, base: string) {
 
 export function parseSearchHtmlLinks(html: string, baseUrl: string): ProviderCitation[] {
   const citations = new Map<string, ProviderCitation>();
-  const hrefPattern = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const hrefPattern = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>/gi;
   for (const match of html.matchAll(hrefPattern)) {
     const url = unwrapSearchUrl(match[1], baseUrl);
     if (!url || citations.has(url)) continue;
-    const anchorText = decodeEntities(match[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
-    citations.set(url, {
-      url,
-      title: (anchorText || new URL(url).hostname.replace(/^www\./, "")).slice(0, 240),
-    });
+    citations.set(url, { url, title: new URL(url).hostname.replace(/^www\./, "") });
     if (citations.size >= MAX_SEARCH_CITATIONS) break;
   }
   return Array.from(citations.values());
 }
 
-function readableText(html: string) {
-  return decodeEntities(
-    html
-      .replace(/<!--[\s\S]*?-->/g, " ")
-      .replace(/<(?:script|style|noscript|svg|template)[^>]*>[\s\S]*?<\/(?:script|style|noscript|svg|template)>/gi, " ")
-      .replace(/<br\s*\/?\s*>/gi, "\n")
-      .replace(/<\/(?:p|div|article|section|li|h[1-6]|tr|a)>/gi, "\n")
-      .replace(/<[^>]+>/g, " "),
-  ).replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
+export function seedUrlsFromQuery(query: string): ProviderCitation[] {
+  const seen = new Map<string, ProviderCitation>();
+  const pattern = /(?:https?:\/\/)?(?:www\.)?[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?\.[a-z]{2,24}(?:\/[^\s<>"']*)?/gi;
+  for (const match of query.matchAll(pattern)) {
+    const raw = match[0];
+    const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const url = normalizeHttpUrl(withScheme);
+    if (!url || seen.has(url)) continue;
+    seen.set(url, { url, title: new URL(url).hostname.replace(/^www\./, "") });
+    if (seen.size >= MAX_SEARCH_CITATIONS) break;
+  }
+  return Array.from(seen.values());
+}
+
+async function inspectEvidenceSource(citation: ProviderCitation) {
+  const inspected = await inspectSourceUrl(citation.url, {
+    includePageText: true,
+    maxExtractedTextChars: 4_000,
+    maxBytes: 192 * 1024,
+    timeoutMs: 8_000,
+    allowTruncatedBody: true,
+  });
+  if (!["open", "partial"].includes(inspected.access) || !inspected.pageText || inspected.pageText.length < 160) return null;
+  const finalUrl = normalizeHttpUrl(inspected.finalUrl);
+  if (!finalUrl) return null;
+  return {
+    citation: {
+      url: finalUrl,
+      title: inspected.pageTitle?.trim().slice(0, 240) || citation.title || new URL(finalUrl).hostname,
+    },
+    text: inspected.pageText.slice(0, 4_000),
+  };
+}
+
+async function discoverSearchUrls(query: string, signal?: AbortSignal) {
+  const encoded = encodeURIComponent(query);
+  const candidates = [
+    `https://search.brave.com/search?q=${encoded}&source=web`,
+    `https://html.duckduckgo.com/html/?q=${encoded}`,
+    `https://www.bing.com/search?q=${encoded}`,
+  ];
+
+  for (const searchUrl of candidates) {
+    try {
+      const response = await fetch(searchUrl, {
+        method: "GET",
+        redirect: "follow",
+        headers: {
+          accept: "text/html,application/xhtml+xml",
+          "user-agent": "Mozilla/5.0 (compatible; ForementionEvidence/1.0; +https://foremention.com)",
+        },
+        signal,
+      });
+      if (!response.ok) continue;
+      const html = (await response.text()).slice(0, 500_000);
+      const citations = parseSearchHtmlLinks(html, searchUrl);
+      if (citations.length) return citations;
+    } catch {
+      // Try the next fixed, keyless public search surface. No paid or authenticated fallback is allowed.
+    }
+  }
+  return [];
 }
 
 export type FreeWebEvidence = {
   content: string;
   citations: ProviderCitation[];
-  retrievalProvider: "keyless-search-evidence";
+  retrievalProvider: "keyless-web-retrieval";
 };
-
-async function searchBrave(query: string, signal?: AbortSignal) {
-  const url = `https://search.brave.com/search?q=${encodeURIComponent(query)}&source=web`;
-  const response = await fetch(url, {
-    method: "GET",
-    redirect: "follow",
-    headers: {
-      accept: "text/html,application/xhtml+xml",
-      "user-agent": "Mozilla/5.0 (compatible; ForementionEvidence/1.0; +https://foremention.com)",
-    },
-    signal,
-  });
-  if (!response.ok) return null;
-  const html = (await response.text()).slice(0, 500_000);
-  return { html, url };
-}
-
-async function searchDuckDuckGo(query: string, signal?: AbortSignal) {
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-  const response = await fetch(url, {
-    method: "GET",
-    redirect: "follow",
-    headers: {
-      accept: "text/html,application/xhtml+xml",
-      "user-agent": "Mozilla/5.0 (compatible; ForementionEvidence/1.0; +https://foremention.com)",
-    },
-    signal,
-  });
-  if (!response.ok) return null;
-  const html = (await response.text()).slice(0, 500_000);
-  return { html, url };
-}
-
-async function searchBing(query: string, signal?: AbortSignal) {
-  const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
-  const response = await fetch(url, {
-    method: "GET",
-    redirect: "follow",
-    headers: {
-      accept: "text/html,application/xhtml+xml",
-      "user-agent": "Mozilla/5.0 (compatible; ForementionEvidence/1.0; +https://foremention.com)",
-    },
-    signal,
-  });
-  if (!response.ok) return null;
-  const html = (await response.text()).slice(0, 500_000);
-  return { html, url };
-}
 
 export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal): Promise<FreeWebEvidence> {
   const normalized = query.normalize("NFKC").replace(/\s+/g, " ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
-  const searchers = [searchBrave, searchDuckDuckGo, searchBing];
-  for (const search of searchers) {
-    try {
-      const result = await search(normalized, signal);
-      if (!result) continue;
-      const citations = parseSearchHtmlLinks(result.html, result.url);
-      if (!citations.length) continue;
+  const seeded = seedUrlsFromQuery(normalized);
+  let discovered = seeded;
+  let inspected = (await Promise.all(seeded.slice(0, MAX_FETCHED_SOURCES).map(inspectEvidenceSource)))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-      const visibleEvidence = readableText(result.html).slice(0, MAX_RETRIEVAL_CHARS);
-      if (visibleEvidence.length < 160) continue;
-
-      return {
-        content: [
-          "CURRENT SEARCH RESULT EVIDENCE",
-          "Use only statements visible in this search-result evidence. Do not assume the underlying pages say anything beyond the visible result text.",
-          visibleEvidence,
-        ].join("\n\n"),
-        citations,
-        retrievalProvider: "keyless-search-evidence",
-      };
-    } catch {
-      // Try the next fixed public search origin. No authenticated or paid fallback is allowed here.
-    }
+  if (!inspected.length) {
+    discovered = await discoverSearchUrls(normalized, signal);
+    if (!discovered.length) throw new Error("Keyless web discovery returned no verifiable public source URLs.");
+    inspected = (await Promise.all(discovered.slice(0, MAX_FETCHED_SOURCES).map(inspectEvidenceSource)))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
   }
 
-  throw new Error("Keyless web discovery returned no verifiable search-result evidence.");
+  if (!inspected.length) throw new Error("Web discovery found public URLs, but none passed safe source inspection with usable content.");
+
+  const citations = inspected.map((item) => item.citation);
+  const content = inspected
+    .map((item, index) => `SOURCE [${index + 1}]\nTitle: ${item.citation.title || new URL(item.citation.url).hostname}\nURL: ${item.citation.url}\n${item.text}`)
+    .join("\n\n")
+    .slice(0, MAX_RETRIEVAL_CHARS);
+
+  return { content, citations, retrievalProvider: "keyless-web-retrieval" };
 }
