@@ -10,7 +10,7 @@ import { SessionSecurity } from "@/components/session-security";
 import { WebhookSettings } from "@/components/webhook-settings";
 import { requireViewer } from "@/lib/auth";
 import { getApplicationEmailStatus } from "@/lib/application-email";
-import { loadNotificationPreference, loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
+import { getProviderStatuses, loadNotificationPreference, loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 import { getSecretRotationStatuses, MAX_SECRET_AGE_DAYS } from "@/lib/secret-rotation";
 
@@ -19,12 +19,22 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     requireViewer("/app/settings"),
     searchParams,
   ]);
+  let settingsReadDegraded = false;
+  const recoverSettingsRead = async <T,>(section: string, operation: Promise<T>, fallback: T): Promise<T> => {
+    try {
+      return await operation;
+    } catch {
+      settingsReadDegraded = true;
+      console.warn("Settings read temporarily unavailable.", { section });
+      return fallback;
+    }
+  };
   const [workspace, team, deletionRequest, providers, emailPreference] = await Promise.all([
-    loadWorkspaceSummary(viewer),
-    loadTeam(viewer),
-    loadPendingDeletionRequest(viewer),
-    loadProviderStatuses(viewer),
-    loadNotificationPreference(viewer),
+    recoverSettingsRead("workspace", loadWorkspaceSummary(viewer), null),
+    recoverSettingsRead("team", loadTeam(viewer), { members: [], invitations: [], role: null }),
+    recoverSettingsRead("account-deletion", loadPendingDeletionRequest(viewer), null),
+    recoverSettingsRead("provider-status", loadProviderStatuses(viewer), getProviderStatuses()),
+    recoverSettingsRead("notification-preference", loadNotificationPreference(viewer), { emailEnabled: false, weeklyDigestEnabled: true, unsubscribed: false }),
   ]);
   const applicationEmail = getApplicationEmailStatus();
   const jobsReady = viewer.mode === "demo" || Boolean(process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY);
@@ -44,6 +54,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       </div>
       <Link className="button button--outline" href="/app/onboarding">Revisit onboarding</Link>
     </div>
+    {settingsReadDegraded && <p className="notice" role="status">Some workspace settings could not be refreshed right now. No values were invented; available controls are shown with conservative defaults. Retry this page to refresh the missing data.</p>}
     <div className="settings-grid">
       <section className="panel">
         <span className="eyebrow">Workspace profile</span>
