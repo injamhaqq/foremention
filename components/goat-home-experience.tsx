@@ -50,9 +50,9 @@ export function MissingAnswerExperience() {
         <h1 id="outreach-hero-title">Know what your company should change next to become the stronger recommendation.</h1>
         <p className="outreach-hero__lead">Recommendation intelligence for B2B software. Foremention observes how AI systems answer your buyers&apos; questions, verifies the evidence behind those recommendations, separates controllable gaps from structural ones, and turns the result into exact company changes your team can review and verify.</p>
         <div className="outreach-hero__actions">
-          <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--primary" href="/contact">Apply as a Design Partner <Arrow /></Link>
+          <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--primary" href="/contact">Apply as Design Partner <Arrow /></Link>
           <Link className="canonical-button canonical-button--secondary" href="/#how-it-works">See how it works <Arrow /></Link>
-          <Link className="canonical-button canonical-button--secondary" href="#recommendation-record">Inspect a Recommendation Record <Arrow /></Link>
+          <Link className="canonical-button canonical-button--secondary" href="#recommendation-record">See example Recommendation Record <Arrow /></Link>
         </div>
         <p className="outreach-hero__boundary">No fake reviews. No hidden promotion. No ranking guarantees. No fabricated scores. No causal claims without evidence.</p>
       </div>
@@ -177,7 +177,7 @@ export function MissingAnswerExperience() {
             <h2 id="outreach-partner-title">Become a Foremention Design Partner.</h2>
             <p>Use one real B2B software category, five buyer questions, and one measurable company-change cycle. Founder-led by design while the workflow is being validated with real teams.</p>
           </div>
-          <Link data-design-partner-cta="home_partner" className="canonical-button canonical-button--primary" href="/contact">Apply as a Design Partner <Arrow /></Link>
+          <Link data-design-partner-cta="home_partner" className="canonical-button canonical-button--primary" href="/contact">Apply as Design Partner <Arrow /></Link>
         </div>
         <ol className="outreach-partner__steps">
           {partnerSteps.map(([number, title, body]) => <li key={number}><span>{number}</span><strong>{title}</strong><p>{body}</p></li>)}
