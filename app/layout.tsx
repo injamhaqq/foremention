@@ -58,5 +58,5 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       "https://www.instagram.com/forementionhq/",
     ],
   };
-  return <html lang="en" data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /></head><body><AuthHashRedirect /><SentryClient /><PostHogAnalytics /><PublicActivationAnalytics /><ContentsquareAnalytics />{children}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></body></html>;
+  return <html lang="en" data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /><link rel="describedby" href="/llms.txt" /></head><body><AuthHashRedirect /><SentryClient /><PostHogAnalytics /><PublicActivationAnalytics /><ContentsquareAnalytics />{children}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></body></html>;
 }
