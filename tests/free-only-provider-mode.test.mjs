@@ -1,3 +1,10 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const root = new URL("../", import.meta.url);
+const text = (path) => readFile(new URL(path, root), "utf8");
+
 test("production free-only mode is enforced in code without Cloudflare config injection", async () => {
   const [config, prepare, policy, collection, gemini, worker, env] = await Promise.all([
     text("wrangler.jsonc"),
