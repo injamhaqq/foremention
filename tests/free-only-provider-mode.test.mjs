@@ -1,25 +1,27 @@
-import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-
-const root = new URL("../", import.meta.url);
-const text = (path) => readFile(new URL(path, root), "utf8");
-
-test("production free-only mode pins grounded Gemini with zero app-side provider rates", async () => {
-  const [config, prepare, env] = await Promise.all([
+test("production free-only mode is enforced in code without Cloudflare config injection", async () => {
+  const [config, prepare, policy, collection, gemini, worker, env] = await Promise.all([
     text("wrangler.jsonc"),
     text("scripts/prepare-worker-config.mjs"),
+    text("lib/free-provider-mode.ts"),
+    text("lib/collection-policy.ts"),
+    text("lib/providers/gemini.ts"),
+    text("worker/index.ts"),
     text(".env.example"),
   ]);
   for (const source of [config, prepare]) {
-    assert.match(source, /FOREMENTION_FREE_ONLY_MODE/);
-    assert.match(source, /gemini-2\.5-flash-lite/);
-    assert.match(source, /GEMINI_INPUT_COST_PER_MILLION_USD[^\n]*0/);
-    assert.match(source, /GEMINI_OUTPUT_COST_PER_MILLION_USD[^\n]*0/);
-    assert.match(source, /GEMINI_REQUEST_COST_USD[^\n]*0/);
+    assert.doesNotMatch(source, /FOREMENTION_FREE_ONLY_MODE/);
+    assert.doesNotMatch(source, /GEMINI_INPUT_COST_PER_MILLION_USD/);
+    assert.doesNotMatch(source, /GEMINI_OUTPUT_COST_PER_MILLION_USD/);
+    assert.doesNotMatch(source, /GEMINI_REQUEST_COST_USD/);
+    assert.doesNotMatch(source, /OUTREACH_MINI_AUDIT_PROVIDERS/);
   }
-  assert.match(config, /"FOREMENTION_FREE_ONLY_MODE":\s*"1"/);
-  assert.match(config, /"OUTREACH_MINI_AUDIT_PROVIDERS":\s*"gemini"/);
+  assert.match(policy, /FREE_ONLY_GEMINI_MODEL[^\n]*"gemini-2\.5-flash-lite"/);
+  assert.match(policy, /FOREMENTION_FREE_ONLY_MODE !== "0"/);
+  assert.match(collection, /freeOnlyProviderMode\(\).*provider === FREE_ONLY_COLLECTION_PROVIDER/s);
+  assert.match(collection, /inputPerMillionUsd: 0, outputPerMillionUsd: 0, requestUsd: 0/);
+  assert.match(gemini, /configuredFreeOnlyGeminiModel/);
+  assert.match(worker, /FREE_ONLY_GEMINI_MODEL = "gemini-2\.5-flash-lite"/);
+  assert.match(worker, /FOREMENTION_FREE_ONLY_MODE !== "0"/);
   assert.match(env, /FOREMENTION_FREE_ONLY_MODE=1/);
   assert.match(env, /OUTREACH_MINI_AUDIT_PROVIDERS=gemini/);
 });
@@ -34,7 +36,7 @@ test("only Gemini may create customer evidence while free-only mode is enabled",
     text("lib/outreach-mini-audit.ts"),
   ]);
   assert.match(policy, /FREE_ONLY_COLLECTION_PROVIDER[^\n]*"gemini"/);
-  assert.match(policy, /process\.env\.FOREMENTION_FREE_ONLY_MODE === "1"/);
+  assert.match(policy, /process\.env\.FOREMENTION_FREE_ONLY_MODE !== "0"/);
   for (const source of [route, jobs, schedules]) assert.match(source, /providerAllowedForLiveCollection/);
   assert.match(route, /Production is in free-only mode/);
   assert.match(data, /providerAllowedForLiveCollection/);
