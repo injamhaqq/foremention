@@ -20,8 +20,8 @@ test("public health exposes only boolean Agent OS readiness signals", () => {
 });
 
 
-test("production enables bounded reasoning with the configured OpenAI provider", () => {
-  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_ENABLED":\s*"1"/);
+test("production fail-closes bounded reasoning when OpenAI credit is unavailable", () => {
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_ENABLED":\s*"0"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_MODEL":\s*"gpt-5\.6-luna"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_INPUT_COST_PER_MILLION_USD":\s*"0\.20"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_OUTPUT_COST_PER_MILLION_USD":\s*"1\.20"/);
