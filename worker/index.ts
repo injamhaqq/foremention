@@ -78,6 +78,7 @@ function freeOnlyWorkerMode(env: Env) {
 }
 
 function workerGeminiModel(env: Env) {
+  if (freeOnlyWorkerMode(env)) return FREE_ONLY_GEMINI_MODEL;
   return env.GEMINI_MODEL?.trim() || FREE_ONLY_GEMINI_MODEL;
 }
 const contentSecurityPolicy = [
