@@ -8,12 +8,6 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: "17 */12 * * *"
-
 permissions: {}
 
 concurrency:
