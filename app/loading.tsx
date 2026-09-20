@@ -1,3 +1,3 @@
 export default function Loading() {
-  return <main className="state-page state-page--loading" aria-live="polite" aria-busy="true"><div className="loading-mark" /><div><span className="eyebrow">Loading evidence</span><h1>Tracing the source chain.</h1><p>Preparing the next view without inventing missing results.</p></div></main>;
+  return <div className="state-page state-page--loading" role="status" aria-live="polite" aria-busy="true"><div className="loading-mark" /><div><span className="eyebrow">Loading evidence</span><p className="state-page__title">Tracing the source chain.</p><p>Preparing the next view without inventing missing results.</p></div></div>;
 }

@@ -1,0 +1,186 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Foremention Public API",
+    "version": "2026-09-20",
+    "description": "Bounded public Foremention endpoints only. Authenticated workspace and internal service endpoints are intentionally omitted."
+  },
+  "servers": [
+    { "url": "https://foremention.com" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Read privacy-limited production health",
+        "operationId": "getPublicHealth",
+        "responses": {
+          "200": {
+            "description": "Core public health dependencies are reachable.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more core dependencies are degraded."
+          }
+        }
+      }
+    },
+    "/api/public/score": {
+      "get": {
+        "summary": "Read an unexpired shared visibility score by id",
+        "operationId": "getSharedVisibilityScore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Shared score returned." },
+          "400": { "description": "Invalid id." },
+          "404": { "description": "Score unavailable or expired." },
+          "429": { "description": "Temporary public rate limit reached." }
+        }
+      },
+      "post": {
+        "summary": "Run one bounded five-question visibility observation",
+        "operationId": "createVisibilityScore",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["brand", "category"],
+                "properties": {
+                  "brand": { "type": "string", "minLength": 2, "maxLength": 80 },
+                  "category": { "type": "string", "minLength": 3, "maxLength": 160 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Dated five-question observation created." },
+          "400": { "description": "Invalid input." },
+          "429": { "description": "Daily public limit reached." },
+          "502": { "description": "Provider result could not be verified." },
+          "503": { "description": "Provider, storage, rate limiting, or cost ceiling is unavailable." }
+        }
+      }
+    },
+    "/api/public/prompt-check": {
+      "post": {
+        "summary": "Run one bounded buyer-question brand observation",
+        "operationId": "createPromptCoverageObservation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["brand", "question"],
+                "properties": {
+                  "brand": { "type": "string", "minLength": 2, "maxLength": 80 },
+                  "question": { "type": "string", "minLength": 8, "maxLength": 500 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Dated prompt observation returned." },
+          "400": { "description": "Invalid input." },
+          "429": { "description": "Daily public limit reached." },
+          "502": { "description": "Provider did not complete a verifiable observation." },
+          "503": { "description": "Provider, rate limiting, or cost ceiling is unavailable." }
+        }
+      }
+    },
+    "/api/design-partner": {
+      "post": {
+        "summary": "Submit a founder-led design-partner application",
+        "operationId": "submitDesignPartnerApplication",
+        "description": "Accepts browser form submissions and JSON. Submission does not create a paid subscription, customer status, or product entitlement.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DesignPartnerApplication" }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/DesignPartnerApplication" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Application received." },
+          "400": { "description": "Invalid application input." },
+          "403": { "description": "Invalid mutation origin." },
+          "429": { "description": "Recent application limit reached." },
+          "503": { "description": "Application storage is temporarily unavailable." }
+        }
+      }
+    },
+    "/api/leads/source-gap": {
+      "post": {
+        "summary": "Submit a bounded public source-gap request",
+        "operationId": "submitSourceGapRequest",
+        "responses": {
+          "202": { "description": "Request accepted for review." },
+          "400": { "description": "Invalid input." },
+          "429": { "description": "Temporary public intake limit reached." },
+          "503": { "description": "Intake storage or safety controls are unavailable." }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["ok", "degraded"] },
+          "worker": { "type": "string" },
+          "buildCommit": { "type": "string" },
+          "d1": { "type": "string" },
+          "supabase": { "type": "string" },
+          "inngest": { "type": "string" },
+          "providers": { "type": "object" },
+          "agentOs": { "type": "object" },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "note": { "type": "string" }
+        },
+        "required": ["status", "worker", "buildCommit", "d1", "supabase", "observedAt"]
+      },
+      "DesignPartnerApplication": {
+        "type": "object",
+        "required": ["email", "company", "role", "category"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "maxLength": 320 },
+          "company": { "type": "string", "minLength": 2, "maxLength": 160 },
+          "role": { "type": "string", "minLength": 2, "maxLength": 120 },
+          "category": { "type": "string", "minLength": 2, "maxLength": 180 },
+          "buyerQuestions": {
+            "description": "Up to five newline-delimited buyer questions.",
+            "type": "string",
+            "maxLength": 2600
+          },
+          "currentProblem": { "type": "string", "maxLength": 2000 },
+          "planInterest": {
+            "type": "string",
+            "enum": ["core", "signal", "intelligence"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

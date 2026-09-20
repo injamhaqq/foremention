@@ -53,15 +53,15 @@ The outer publisher reads the validator from a clean `main` checkout, so an agen
 
 ## Execution cadence
 
-The controller runs when:
+**Stage 0 override (2026-09-20): manual dispatch only.**
 
-- a maintainer manually dispatches it;
-- `main` receives a normal user/maintainer push or merge;
-- the 12-hour fallback schedule fires.
+The automatic `main` push trigger and 12-hour fallback schedule are intentionally paused while customer proof is the governing company gate and the linked Copilot seat is quota-constrained. This prevents a customer-evidence phase from consuming AI credits or creating engineering pressure merely because code was merged.
 
-A successful human merge therefore acts as the normal continuation signal: the next cycle starts from the new `main` without the founder typing `continue`.
+A maintainer can still run **Actions -> Foremention Autopilot Controller -> Run workflow** for a specific production, security, reliability, or pilot-blocker task after checking that Copilot quota is available.
 
 The preflight refuses to start a second autonomous product branch while an open PR whose head starts with `autopilot/` already exists. This prevents the system from spraying competing autonomous branches.
+
+Automatic cadence may be restored only after the Stage-0 exit gate is satisfied or a documented production-risk exception justifies it.
 
 ## One-cycle budget
 
@@ -126,9 +126,9 @@ If the setting is disabled, the AI cycle can still run, but the publication step
 2. Merge the Autopilot bootstrap PR after the normal Foremention release gates pass.
 3. Ensure GitHub Actions is enabled.
 4. Ensure GitHub Actions is allowed to create pull requests if you want automatic proposal publication.
-5. Use **Actions -> Foremention Autopilot Controller -> Run workflow** for the first controlled run, or allow the next `main` push/schedule to trigger it.
+5. During Stage 0, use **Actions -> Foremention Autopilot Controller -> Run workflow** only for a specific approved production, security, reliability, or pilot-blocker task.
 6. Review the generated `autopilot/run-*` PR and approve its workflow runs when GitHub requests approval.
-7. Merge only after the normal exact-SHA Foremention gates pass. The merge automatically triggers the next bounded cycle.
+7. Merge only after the normal exact-SHA Foremention gates pass. Stage 0 does not automatically start another cycle after merge.
 
 No laptop, browser tab, Codex session, OpenAI API key, or model API server needs to stay running.
 
@@ -136,7 +136,7 @@ No laptop, browser tab, Codex session, OpenAI API key, or model API server needs
 
 - **Copilot AI credits exhausted:** the Copilot step stops; no partial patch is published because the publisher requires a zero agent exit code.
 - **Unsupported AI-credit cap:** Copilot CLI currently requires `--max-ai-credits` to be at least `30`; the repository contract test locks that minimum.
-- **`main` changes during an agent run:** the publisher refuses the stale patch; a later `main` push or scheduled run retries from fresh reality.
+- **`main` changes during an agent run:** the publisher refuses the stale patch; a later explicit manual dispatch can retry from fresh reality.
 - **Agent produces no justified change:** no empty PR is opened.
 - **Founder decision required:** a founder-decision issue is opened instead of speculative code.
 - **Agent modifies a protected control-plane path:** deterministic diff guard rejects publication.

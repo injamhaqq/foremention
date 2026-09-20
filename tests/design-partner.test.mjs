@@ -30,3 +30,14 @@ test("design-partner application is server-only, bounded, and not auto-provision
   assert.match(migration, /enable row level security/i);
   assert.doesNotMatch(migration, /create policy/i);
 });
+
+
+test("accepted design-partner applications notify configured operators without changing commercial truth", async () => {
+  const route = await read("app/api/design-partner/route.ts");
+  assert.match(route, /sendProductAlertEmail/);
+  assert.match(route, /FOREMENTION_COMPANY_OPERATOR_EMAILS/);
+  assert.match(route, /Promise\.allSettled/);
+  assert.match(route, /review within one business day/i);
+  assert.match(route, /not a customer, paid pilot, or traction claim/i);
+  assert.ok(route.indexOf('supabaseRest("design_partner_applications"') < route.indexOf("await notifyDesignPartnerOperators"));
+});

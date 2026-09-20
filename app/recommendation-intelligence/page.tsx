@@ -46,6 +46,8 @@ export default function RecommendationIntelligencePage() {
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
+    name: "Recommendation Intelligence breadcrumb",
+    url: `${SITE_URL}/recommendation-intelligence`,
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Foremention", item: SITE_URL },
       { "@type": "ListItem", position: 2, name: "Recommendation Intelligence", item: `${SITE_URL}/recommendation-intelligence` },

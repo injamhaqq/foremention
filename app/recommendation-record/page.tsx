@@ -34,6 +34,8 @@ export default function RecommendationRecordPage() {
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
+    name: "Recommendation Record breadcrumb",
+    url: `${SITE_URL}/recommendation-record`,
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Foremention", item: SITE_URL },
       { "@type": "ListItem", position: 2, name: "Recommendation Record", item: `${SITE_URL}/recommendation-record` },

@@ -15,6 +15,8 @@ export default function AIMediatedBuyingPage() {
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
+    name: "AI-Mediated Software Buying breadcrumb",
+    url: `${SITE_URL}/ai-mediated-buying`,
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Foremention", item: SITE_URL },
       { "@type": "ListItem", position: 2, name: "AI-Mediated Software Buying", item: `${SITE_URL}/ai-mediated-buying` },
