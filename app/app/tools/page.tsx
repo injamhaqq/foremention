@@ -62,7 +62,7 @@ export default function ToolsPage() {
         <h1>Everything in Foremention, in one place.</h1>
         <p>Use the core sidebar for the normal workflow. Use this directory whenever you need a supporting capability, administration area, or deeper analysis tool.</p>
       </div>
-      <Link className="button button--ink" href="/app">Back to Overview <Arrow /></Link>
+      <Link prefetch={false} className="button button--ink" href="/app">Back to Overview <Arrow /></Link>
     </div>
 
     <div className="dashboard-grid">
@@ -71,7 +71,7 @@ export default function ToolsPage() {
         <h2>{group.title}</h2>
         <p>{group.description}</p>
         <div className="compact-sources">
-          {group.tools.map(([href, label, detail]) => <Link href={href} key={href}>
+          {group.tools.map(([href, label, detail]) => <Link prefetch={false} href={href} key={href}>
             <span><strong>{label}</strong></span>
             <small>{detail}</small>
           </Link>)}
