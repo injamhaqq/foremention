@@ -20,8 +20,8 @@ test("public health exposes only boolean Agent OS readiness signals", () => {
 });
 
 
-test("production enables bounded reasoning on the free Cloudflare Workers AI allocation", () => {
-  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_ENABLED":\s*"1"/);
+test("Stage 0 production fail-closes model reasoning while keeping the bounded provider configuration available", () => {
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_ENABLED":\s*"0"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_PROVIDER":\s*"cloudflare"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_MODEL":\s*"@cf\/meta\/llama-3\.3-70b-instruct-fp8-fast"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_INPUT_COST_PER_MILLION_USD":\s*"0\.293"/);
