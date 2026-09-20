@@ -8,6 +8,7 @@ type PageMetadataInput = {
   description: string;
   path: string;
   noIndex?: boolean;
+  markdownPath?: string;
 };
 
 type ArticleMetadataInput = PageMetadataInput & {
@@ -29,12 +30,15 @@ function absoluteUrl(path: string) {
   return new URL(path || "/", SITE_URL).toString();
 }
 
-export function pageMetadata({ title, description, path, noIndex = false }: PageMetadataInput): Metadata {
+export function pageMetadata({ title, description, path, noIndex = false, markdownPath }: PageMetadataInput): Metadata {
   const canonical = absoluteUrl(path);
   return {
     title,
     description,
-    alternates: { canonical },
+    alternates: {
+      canonical,
+      ...(markdownPath ? { types: { "text/markdown": absoluteUrl(markdownPath) } } : {}),
+    },
     robots: noIndex
       ? { index: false, follow: false }
       : "index, follow, max-snippet:-1, max-image-preview:large",
