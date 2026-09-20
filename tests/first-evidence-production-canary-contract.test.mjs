@@ -28,7 +28,9 @@ test("the production canary is trusted-main only and exact releases require expl
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_EMAIL: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_EMAIL \}\}/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_PASSWORD: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_PASSWORD \}\}/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_CANARY_ENABLED: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_CANARY_ENABLED \}\}/);
-  assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED \}\}/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: 'true'/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER: 'gemini'/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_MAX_COST_USD: '0\\.01'/);
 });
 
 test("the canary uses the real customer session and API path without an auth, RLS, provider, or publication bypass", () => {
