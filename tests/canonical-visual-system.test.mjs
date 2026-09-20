@@ -86,7 +86,7 @@ test("homepage uses the approved outreach composition while retaining lightweigh
 
   assert.match(home, /Know what your company should change next to become the stronger recommendation\./);
   assert.match(home, /Recommendation intelligence for B2B software/i);
-  assert.match(home, /Apply as a Design Partner/);
+  assert.match(home, /Apply as Design Partner/);
   assert.match(home, /See how it works/);
   assert.match(home, /CanonicalSignalField/);
   assert.match(home, /Company Truth/);
