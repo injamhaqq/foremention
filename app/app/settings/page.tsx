@@ -19,23 +19,28 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     requireViewer("/app/settings"),
     searchParams,
   ]);
-  let settingsReadDegraded = false;
-  const recoverSettingsRead = async <T,>(section: string, operation: Promise<T>, fallback: T): Promise<T> => {
+  const recoverSettingsRead = async <T,>(section: string, operation: Promise<T>, fallback: T): Promise<{ value: T; unavailable: boolean }> => {
     try {
-      return await operation;
+      return { value: await operation, unavailable: false };
     } catch {
-      settingsReadDegraded = true;
       console.warn("Settings read temporarily unavailable.", { section });
-      return fallback;
+      return { value: fallback, unavailable: true };
     }
   };
-  const [workspace, team, deletionRequest, providers, emailPreference] = await Promise.all([
+  const [workspaceResult, teamResult, deletionResult, providerResult, notificationResult] = await Promise.all([
     recoverSettingsRead("workspace", loadWorkspaceSummary(viewer), null),
     recoverSettingsRead("team", loadTeam(viewer), { members: [], invitations: [], role: null }),
     recoverSettingsRead("account-deletion", loadPendingDeletionRequest(viewer), null),
     recoverSettingsRead("provider-status", loadProviderStatuses(viewer), getProviderStatuses()),
     recoverSettingsRead("notification-preference", loadNotificationPreference(viewer), { emailEnabled: false, weeklyDigestEnabled: true, unsubscribed: false }),
   ]);
+  const workspace = workspaceResult.value;
+  const team = teamResult.value;
+  const deletionRequest = deletionResult.value;
+  const providers = providerResult.value;
+  const emailPreference = notificationResult.value;
+  const settingsReadDegraded = [workspaceResult, teamResult, deletionResult, providerResult, notificationResult]
+    .some((result) => result.unavailable);
   const applicationEmail = getApplicationEmailStatus();
   const jobsReady = viewer.mode === "demo" || Boolean(process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY);
   const serviceReady = viewer.mode === "demo" || Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
