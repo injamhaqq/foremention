@@ -5,6 +5,57 @@ const MAX_RSS_CHARS = 256_000;
 const MAX_RETRIEVAL_CHARS = 12_000;
 const MAX_CITATIONS = 8;
 
+const RETRIEVAL_STOPWORDS = new Set([
+  "a", "an", "and", "answer", "according", "at", "cannot", "cite", "current", "evidence",
+  "exact", "for", "from", "if", "in", "is", "it", "most", "now", "of", "official", "on",
+  "or", "rather", "say", "search", "so", "source", "the", "time", "to", "url", "use", "used",
+  "verify", "web", "website", "what", "when", "which", "with", "you", "your",
+]);
+
+export function extractRequestedDomains(query: string) {
+  const domains = new Set<string>();
+  const pattern = /(?:https?:\/\/)?(?:www\.)?([a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?\.[a-z]{2,24})(?:\/[^\s<>"']*)?/gi;
+  for (const match of query.matchAll(pattern)) {
+    const domain = String(match[1] || "").toLowerCase().replace(/^www\./, "").replace(/\.$/, "");
+    if (domain) domains.add(domain);
+  }
+  return Array.from(domains).slice(0, 3);
+}
+
+function domainMatches(hostname: string, domain: string) {
+  const host = hostname.toLowerCase().replace(/^www\./, "");
+  const target = domain.toLowerCase().replace(/^www\./, "");
+  return host === target || host.endsWith(`.${target}`);
+}
+
+export function buildBingSearchQuery(query: string) {
+  const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim();
+  const domains = extractRequestedDomains(normalized);
+  const tokens = normalized
+    .toLowerCase()
+    .replace(/https?:\/\//g, " ")
+    .replace(/[^a-z0-9.-]+/g, " ")
+    .split(/\s+/)
+    .map((token) => token.replace(/^www\./, "").replace(/[.]+$/, ""))
+    .filter((token) => token.length >= 3 && !RETRIEVAL_STOPWORDS.has(token) && !domains.includes(token));
+
+  const keywords = Array.from(new Set(tokens)).slice(0, 10);
+  const siteScope = domains.length === 1 ? `site:${domains[0]}` : "";
+  const compact = [siteScope, ...keywords].filter(Boolean).join(" ").trim();
+  return compact || normalized.slice(0, 240);
+}
+
+export function filterResultsForRequestedDomains(results: BingSearchResult[], domains: string[]) {
+  if (!domains.length) return results;
+  return results.filter((result) => {
+    try {
+      return domains.some((domain) => domainMatches(new URL(result.url).hostname, domain));
+    } catch {
+      return false;
+    }
+  });
+}
+
 function decodeXml(value: string) {
   let result = "";
   for (let index = 0; index < value.length;) {
@@ -145,9 +196,11 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
+  const requestedDomains = extractRequestedDomains(normalized);
+  const searchQuery = buildBingSearchQuery(normalized);
   const url = new URL(BING_SEARCH_ENDPOINT);
   url.searchParams.set("format", "rss");
-  url.searchParams.set("q", normalized);
+  url.searchParams.set("q", searchQuery);
   url.searchParams.set("count", String(MAX_CITATIONS));
   url.searchParams.set("setlang", "en-US");
 
@@ -164,8 +217,14 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const raw = (await response.text()).slice(0, MAX_RSS_CHARS).trim();
   if (!raw) throw new Error("Bing RSS returned no evidence content.");
 
-  const results = parseBingSearchRss(raw);
-  if (!results.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+  const parsedResults = parseBingSearchRss(raw);
+  if (!parsedResults.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+
+  const results = filterResultsForRequestedDomains(parsedResults, requestedDomains);
+  if (!results.length && requestedDomains.length) {
+    throw new Error(`Bing RSS returned no citations matching the explicitly requested domain: ${requestedDomains.join(", ")}.`);
+  }
+  if (!results.length) throw new Error("Bing RSS returned no usable source URLs.");
 
   const evidenceText = results.map((result, index) => [
     `SOURCE [${index + 1}]`,
