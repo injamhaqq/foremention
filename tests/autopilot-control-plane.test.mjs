@@ -31,9 +31,9 @@ test("autopilot state and operating documentation are persistent and truth-safe"
   const state = read("FOREMENTION_STATE.md");
   const docs = read("docs/AUTOPILOT.md");
 
-  assert.match(state, /Current canonical main SHA/i);
-  assert.match(state, /Open autonomous work/i);
-  assert.match(state, /Founder-decision queue/i);
+  assert.match(state, /Current authority — Stage 0 Customer Proof/i);
+  assert.match(state, /Stage 0 execution priority/i);
+  assert.match(state, /Founder-decision boundary/i);
   assert.match(state, /Execution ledger/i);
   assert.match(docs, /short-lived `GITHUB_TOKEN`/i);
   assert.match(docs, /no `OPENAI_API_KEY`/i);
