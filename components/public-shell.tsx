@@ -23,6 +23,7 @@ export function PublicHeader() {
         <summary aria-label="Open navigation"><Arrow /></summary>
         <div className="mobile-nav__panel">
           {links.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
+          <Link href="/explore">Explore Foremention</Link>
           <Link href="/login">Sign in</Link>
           <Link data-design-partner-cta="mobile_header" href="/contact">Apply as Design Partner</Link>
         </div>
@@ -40,7 +41,7 @@ export function PublicFooter() {
         <a className="footer-email" href="mailto:hello@foremention.com">hello@foremention.com</a>
       </div>
       <div className="footer-links outreach-footer-links">
-        <div><span>Product</span><Link href="/product">Product</Link><Link href="/#how-it-works">How it works</Link><Link href="/recommendation-record">Recommendation Record</Link><Link href="/methodology">Methodology</Link></div>
+        <div><span>Product</span><Link href="/explore">Explore Foremention</Link><Link href="/product">Product</Link><Link href="/#how-it-works">How it works</Link><Link href="/recommendation-record">Recommendation Record</Link><Link href="/methodology">Methodology</Link></div>
         <div><span>Company</span><Link href="/about">About</Link><Link href="/insights">Research &amp; evidence</Link><a href="https://www.linkedin.com/company/foremention/" target="_blank" rel="noreferrer">LinkedIn</a></div>
         <div><span>Trust</span><Link href="/trust">Trust Center</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
         <div><span>Action</span><Link data-design-partner-cta="footer" href="/contact">Apply as Design Partner</Link><Link href="/login">Sign in</Link></div>

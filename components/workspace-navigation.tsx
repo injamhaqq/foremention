@@ -96,6 +96,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
       <summary ref={summaryRef}><ForementionMark /><span>Workspace menu</span></summary>
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
+        <Link className="app-mobile-nav__search" href="/app/search" onClick={() => closeMenu()}>Search workspace <span aria-hidden="true">&rarr;</span></Link>
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>

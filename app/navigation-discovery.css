@@ -1,0 +1,112 @@
+.explore-directory {
+  scroll-margin-top: 88px;
+}
+
+.explore-directory__grid {
+  display: grid;
+  gap: 26px;
+}
+
+.explore-directory__group {
+  scroll-margin-top: 96px;
+  overflow: hidden;
+  border: 1px solid var(--fm-border, var(--line));
+  border-radius: 8px;
+  background: var(--fm-surface, var(--paper));
+}
+
+.explore-directory__group > header {
+  display: grid;
+  gap: 9px;
+  padding: 28px 30px 22px;
+  border-bottom: 1px solid var(--fm-border, var(--line));
+}
+
+.explore-directory__group > header h2 {
+  margin: 0;
+}
+
+.explore-directory__links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.explore-directory__link {
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 26px;
+  border-bottom: 1px solid var(--fm-border, var(--line));
+  color: inherit;
+}
+
+.explore-directory__link:nth-child(odd) {
+  border-right: 1px solid var(--fm-border, var(--line));
+}
+
+.explore-directory__link:hover,
+.explore-directory__link:focus-visible {
+  background: var(--fm-surface-raised, #f4f1ea);
+}
+
+.explore-directory__link > span {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.explore-directory__link strong {
+  font-size: 15px;
+}
+
+.explore-directory__link small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.explore-account-cta__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-mobile-nav__search {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--fm-border, var(--line));
+  border-bottom: 1px solid var(--fm-border, var(--line));
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.workspace-destination-directory {
+  margin-top: 20px;
+}
+
+@media (max-width: 760px) {
+  .explore-directory__links {
+    grid-template-columns: 1fr;
+  }
+
+  .explore-directory__link:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .explore-directory__group > header,
+  .explore-directory__link {
+    padding-inline: 20px;
+  }
+
+  .explore-account-cta__actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
