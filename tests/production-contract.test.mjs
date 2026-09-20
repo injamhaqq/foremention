@@ -262,11 +262,11 @@ test("workspace navigation and customer controls are complete on desktop and mob
     text("components/notification-center.tsx"),
     text("app/app/page.tsx"),
   ]);
-  for (const route of ["/app/prompts", "/app/runs", "/app/analytics", "/app/settings", "/app/decision-lab", "/app/opportunities", "/app/placements", "/app/evidence", "/app/alerts", "/app/team"]) {
+  for (const route of ["/app/prompts", "/app/runs", "/app/source-map", "/app/opportunities", "/app/analytics", "/app/tools", "/app/settings", "/app/decision-lab", "/app/placements", "/app/evidence", "/app/alerts", "/app/team"]) {
     assert.match(navigation, new RegExp(route.replaceAll("/", "\\/")));
   }
-  assert.doesNotMatch(navigation, /\/app\/source-map|Source X-Ray|source-xray/i);
-  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(navigation, new RegExp(label));
+  assert.doesNotMatch(navigation, /Source X-Ray|source-xray/i);
+  for (const label of ["Overview", "Questions", "Records", "Evidence", "Opportunities", "Comparisons", "All tools", "Settings"]) assert.match(navigation, new RegExp(label));
   assert.match(navigation, /aria-current/);
   assert.match(navigation, /mobileMenu\.current\.open = false/);
   assert.match(navigation, /Sign out/);
