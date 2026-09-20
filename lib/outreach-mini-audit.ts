@@ -99,7 +99,7 @@ export function parseOutreachMiniAuditInput(input: unknown): OutreachMiniAuditIn
     : [];
   const providers = parseProviders(record.providers);
   if (freeOnlyProviderMode() && providers.some((provider) => provider !== "mock" && !providerAllowedForLiveCollection(provider))) {
-    throw new Error("Foremention free-only mode permits only grounded Cloudflare Workers AI with Jina Search for outreach mini-audits.");
+    throw new Error("Foremention free-only mode permits only grounded Cloudflare Workers AI with Browser Run for outreach mini-audits.");
   }
   const locale = cleanText(record.locale, 40) || undefined;
   return { brand, domain, questions, competitors, providers, locale };
