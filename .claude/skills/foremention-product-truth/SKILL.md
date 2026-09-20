@@ -30,19 +30,22 @@ user-invocable: false
 - Signature behavior: registration, alignment, resolution, state, provenance, time, comparability.
 - Hero meaning: recommendation evidence resolves into an inspectable record. Avoid planet imagery, cyber grids, purple/blue generic AI styling, random particles, decorative 3D, and meaningless glow.
 
-## Foremention 5
+## Signed-in navigation
 
 Primary signed-in navigation is exactly:
 
-1. Attention
+1. Overview
 2. Questions
 3. Records
-4. Comparisons
-5. Settings
+4. Evidence
+5. Opportunities
+6. Comparisons
+7. All tools
+8. Settings
 
-Recommendation Record remains the canonical measurement/evidence object and contains evidence inspection. Change Specification is the canonical business/product decision object. Do not add a sixth top-level navigation item merely because the Change Specification domain exists; Recommendation Engineering changes what Attention prioritizes.
+Recommendation Record remains the canonical measurement/evidence object and contains evidence inspection. Change Specification is the canonical business/product decision object. Keep the primary sidebar focused; specialist capabilities belong in `/app/tools` and contextual links unless a future approved information-architecture change says otherwise.
 
-Source X-Ray is retired as a standalone feature, route, nav item, SEO page, analytics event, investor story element, or design-system deliverable. Preserve its useful inspection sequence inside Records:
+Source X-Ray is retired as a standalone feature, route, nav item, SEO page, analytics event, investor story element, or design-system deliverable. The Evidence destination may expose source/evidence inspection without reviving Source X-Ray as a product concept. Preserve its useful inspection sequence inside Records:
 
 `returned reference -> retrievability -> observed evidence -> human review -> limitations -> safe conclusion -> comparison eligibility`
 
@@ -61,7 +64,7 @@ Historical Resolution Assets remain valid execution records and must not be back
 ## Homepage/product rules
 
 - First viewport must explain what changed, what Foremention is, what it does, what artifact proves it, why it differs from ordinary AI-visibility software, and the next action.
-- Home is an attention surface, not a KPI wall.
+- Home/Overview is an attention and next-step surface, not a KPI wall.
 - Recommendation Record should feel like a canonical measurement record, not a generic card.
 - Comparisons exist only when later measurements are genuinely comparable.
 - Mobile must become a vertical evidence sequence, not a miniature desktop dashboard.
