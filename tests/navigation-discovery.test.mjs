@@ -16,7 +16,7 @@ test("public navigation exposes product discovery, free tools, pricing, trust, a
   assert.ok(shell.includes('aria-label="Foremention home"'));
   assert.ok(explore.includes("Find the right page without hunting for it."));
   for (const section of ["start", "free-tools", "evidence", "learn", "company"]) {
-    assert.ok(explore.includes('id={' + 'group.id' + '}') || explore.includes('id="' + section + '"') || explore.includes('id: "' + section + '"'));
+    assert.ok(explore.includes('id: "' + section + '"'), "missing explore directory group: " + section);
   }
 });
 
