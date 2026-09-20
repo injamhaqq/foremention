@@ -1,8 +1,8 @@
 # Foremention Stage-0 First-Party Commercial Baseline — 2026-09-20
 
-**Truth class:** VERIFIED PRODUCTION FACT  
-**Source:** Foremention production Supabase service tables, read-only aggregate query  
-**Observed:** 2026-09-20  
+**Truth class:** VERIFIED PRODUCTION FACT
+**Source:** Foremention production Supabase service tables, read-only aggregate query
+**Observed:** 2026-09-20
 **Purpose:** establish the honest starting point for the 90-day customer-proof gate. Zero means zero rows in the named production table at observation time; it does not mean the product has no internal/test activity elsewhere.
 
 ## Customer-proof baseline
