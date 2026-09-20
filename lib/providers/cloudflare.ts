@@ -159,6 +159,7 @@ export async function runGroundedCloudflareWithBinding(input: {
   const selected = selectedCitations(fullAnswer, evidence.citations);
   return {
     ...selected,
+    model: input.model,
     usage: usageFrom(raw),
     finishReason: raw.choices?.[0]?.finish_reason,
     retrievalProvider: evidence.retrievalProvider,
