@@ -3,6 +3,7 @@ title: "Recommendation Intelligence for B2B Software | Foremention"
 description: "Understand why competitors are being recommended, what your company should change next, and how to verify what happened after the change."
 canonical: "https://foremention.com/"
 updated: "2026-09-20"
+last_updated: "2026-09-20"
 ---
 
 # Know what your company should change next to become the stronger recommendation.
