@@ -43,7 +43,7 @@ test("homepage carries the outreach outcome while retaining the canonical eviden
 
   assert.match(hero, /Know what your company should change next to become the stronger recommendation\./);
   assert.match(hero, /Recommendation intelligence for B2B software\./);
-  assert.match(hero, /Apply as a Design Partner/);
+  assert.match(hero, /Apply as Design Partner/);
   assert.match(hero, /See how it works/);
   assert.match(hero, /LIVE RECORD \/ ILLUSTRATIVE/);
   assert.match(hero, /ANSWER/);
@@ -68,7 +68,8 @@ test("public navigation reflects the approved outreach information architecture 
 
   assert.match(shell, /\["\/product", "Product"\]/);
   assert.match(shell, /\["\/#how-it-works", "How it works"\]/);
-  assert.match(shell, /\["\/methodology", "Methodology"\]/);
+  assert.match(shell, /\["\/pricing", "Pricing"\]/);
+  assert.match(shell, /\["\/insights", "Research"\]/);
   assert.match(shell, /\["\/trust", "Trust"\]/);
   assert.match(shell, /Apply as Design Partner/);
   assert.match(shell, /href="\/login">Sign in/);
@@ -79,21 +80,25 @@ test("public navigation reflects the approved outreach information architecture 
   assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
 });
 
-test("workspace primary navigation is the five-object inspection architecture without deleting proven routes", () => {
+test("workspace primary navigation exposes the core inspection workflow without deleting proven routes", () => {
   const nav = read("components/workspace-navigation.tsx");
+  const tools = read("app/app/tools/page.tsx");
 
   for (const [route, label] of [
-    ["/app", "Attention"],
+    ["/app", "Overview"],
     ["/app/prompts", "Questions"],
     ["/app/runs", "Records"],
+    ["/app/source-map", "Evidence"],
+    ["/app/opportunities", "Opportunities"],
     ["/app/analytics", "Comparisons"],
+    ["/app/tools", "All tools"],
     ["/app/settings", "Settings"],
   ]) assert.ok(nav.includes(`["${route}", "${label}"]`), `missing ${label} navigation route`);
 
   assert.doesNotMatch(nav, /Source X-Ray/);
-  assert.match(nav, /\["\/app\/competitors", "Competitors"\]/);
-  assert.match(nav, /\["\/app\/opportunities", "Opportunities"\]/);
-  assert.match(nav, /\["\/app\/placements", "Actions"\]/);
+  for (const route of ["/app/competitors", "/app/placements", "/app/outcomes", "/app/agents", "/app/evidence"]) {
+    assert.ok(tools.includes(route), `missing ${route} from tools directory`);
+  }
   assert.match(nav, /<summary ref=\{summaryRef\}><ForementionMark \/><span>Workspace menu<\/span><\/summary>/);
   assert.match(nav, /event\.key === "Escape"/);
   assert.match(nav, /ForementionMark/);
