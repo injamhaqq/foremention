@@ -44,9 +44,9 @@ test("autopilot state and operating documentation are persistent and truth-safe"
 
 test("keyless online controller is bounded, serialized, privilege-separated, and never auto-merges", () => {
   const workflow = read(".github/workflows/autopilot-control.yml");
-  assert.match(workflow, /schedule:/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /push:[\s\S]*main/);
+  assert.doesNotMatch(workflow, /\n\s+schedule:/);
+  assert.doesNotMatch(workflow, /\n\s+push:/);
   assert.match(workflow, /concurrency:/);
   assert.match(workflow, /copilot-requests:\s*write/);
   assert.match(workflow, /npm install --global @github\/copilot@latest/);
