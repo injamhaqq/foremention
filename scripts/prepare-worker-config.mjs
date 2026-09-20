@@ -35,7 +35,7 @@ config.topLevelName = "foremention-mvp";
 config.compatibility_date = "2026-05-15";
 config.compatibility_flags = ["nodejs_compat"];
 config.keep_vars = true;
-config.ai = { binding: "AI" };
+config.ai = { binding: "AI" };\nconfig.browser = { binding: "BROWSER" };
 config.vars = {
   ...(config.vars || {}),
   ...(buildCommit ? { FOREMENTION_BUILD_COMMIT: buildCommit } : {}),
