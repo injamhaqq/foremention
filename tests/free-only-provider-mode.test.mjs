@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-test("production free-only mode is grounded Cloudflare plus Browser Run without paid fallback", async () => {
+test("production free-only mode uses grounded Cloudflare plus keyless web retrieval without paid fallback", async () => {
   const [config, prepare, policy, collection, cloudflare, retrieval, worker, env] = await Promise.all([
     text("wrangler.jsonc"),
     text("scripts/prepare-worker-config.mjs"),
@@ -17,33 +17,33 @@ test("production free-only mode is grounded Cloudflare plus Browser Run without 
     text(".env.example"),
   ]);
 
-  assert.match(config, /"browser"\s*:\s*\{[\s\S]*"binding"\s*:\s*"BROWSER"/);
-  assert.match(prepare, /config\.browser = \{ binding: "BROWSER" \}/);
   for (const source of [config, prepare]) {
     assert.doesNotMatch(source, /FOREMENTION_FREE_ONLY_MODE/);
     assert.doesNotMatch(source, /GEMINI_INPUT_COST_PER_MILLION_USD/);
     assert.doesNotMatch(source, /OUTREACH_MINI_AUDIT_PROVIDERS/);
+    assert.doesNotMatch(source, /"browser"\s*:/);
   }
 
   assert.match(policy, /FREE_ONLY_COLLECTION_PROVIDER[^\n]*"cloudflare"/);
   assert.match(policy, /FREE_ONLY_INTERNAL_MODEL_PROVIDERS[^\n]*\["cloudflare"\]/);
   assert.match(collection, /freeOnlyProviderMode\(\).*provider === FREE_ONLY_COLLECTION_PROVIDER/s);
   assert.match(collection, /inputPerMillionUsd: 0, outputPerMillionUsd: 0, requestUsd: 0/);
-  assert.match(cloudflare, /browserRunConfigured/);
   assert.match(cloudflare, /retrieveFreeWebEvidence/);
   assert.match(cloudflare, /grounded: true/);
   assert.match(cloudflare, /SOURCES:/);
   assert.doesNotMatch(cloudflare, /extractUrls/);
   assert.match(retrieval, /https:\/\/search\.brave\.com/);
-  assert.match(retrieval, /quickAction\("links"/);
-  assert.match(retrieval, /parseBrowserSearchLinks/);
-  assert.match(retrieval, /cloudflare-browser-search/);
-  assert.match(worker, /setBrowserRunBinding\(env\.BROWSER\)/);
+  assert.match(retrieval, /seedUrlsFromQuery/);
+  assert.match(retrieval, /parseSearchHtmlLinks/);
+  assert.match(retrieval, /keyless-web-retrieval/);
+  assert.doesNotMatch(retrieval, /s\.jina\.ai|JINA_API_KEY|quickAction/);
+  assert.match(worker, /runGroundedCloudflareWithBinding/);
+  assert.doesNotMatch(worker, /setBrowserRunBinding|env\.BROWSER/);
   assert.match(env, /FOREMENTION_FREE_ONLY_MODE=1/);
   assert.match(env, /OUTREACH_MINI_AUDIT_PROVIDERS=cloudflare/);
 });
 
-test("only grounded Cloudflare Browser Run may create customer evidence in free-only mode", async () => {
+test("only grounded Cloudflare web retrieval may create customer evidence while free-only mode is enabled", async () => {
   const [policy, route, jobs, schedules, data, outreach] = await Promise.all([
     text("lib/free-provider-mode.ts"),
     text("app/api/runs/route.ts"),
@@ -55,14 +55,14 @@ test("only grounded Cloudflare Browser Run may create customer evidence in free-
   assert.match(policy, /FREE_ONLY_COLLECTION_PROVIDER[^\n]*"cloudflare"/);
   assert.match(policy, /process\.env\.FOREMENTION_FREE_ONLY_MODE !== "0"/);
   for (const source of [route, jobs, schedules]) assert.match(source, /providerAllowedForLiveCollection/);
-  assert.match(route, /Grounded Cloudflare Workers AI with Browser Run/);
-  assert.match(data, /Cloudflare Workers AI \+ Browser Run/);
+  assert.match(route, /Grounded Cloudflare Workers AI with Web Retrieval/);
+  assert.match(data, /Cloudflare Workers AI \+ Web Retrieval/);
   assert.match(data, /id: "cloudflare"[\s\S]*supportsCitations: true/);
   assert.match(outreach, /DEFAULT_PROVIDER_ORDER[^\n]*\["cloudflare"/);
-  assert.match(outreach, /free-only mode permits only grounded Cloudflare Workers AI with Browser Run/);
+  assert.match(outreach, /free-only mode permits only grounded Cloudflare Workers AI with Web Retrieval/);
 });
 
-test("public score and prompt-check use the same free grounded Browser Run path", async () => {
+test("public score and prompt-check use the same free grounded web-retrieval path", async () => {
   const worker = await text("worker/index.ts");
   const start = worker.indexOf("async function runPublicGroundedCloudflare");
   const end = worker.indexOf("async function handleSourceGapRequest", start);
@@ -70,10 +70,9 @@ test("public score and prompt-check use the same free grounded Browser Run path"
   const publicAi = worker.slice(start, end);
   assert.match(publicAi, /runGroundedCloudflareWithBinding/);
   assert.match(publicAi, /env\.AI/);
-  assert.match(publicAi, /env\.BROWSER/);
   assert.match(publicAi, /env\.CLOUDFLARE_MODEL/);
-  assert.match(publicAi, /provider: "Cloudflare Workers AI \+ Browser Run"/);
-  assert.doesNotMatch(publicAi, /runPublicGroundedGemini|google_search|api\.groq\.com|s\.jina\.ai/);
+  assert.match(publicAi, /provider: "Cloudflare Workers AI \+ Web Retrieval"/);
+  assert.doesNotMatch(publicAi, /env\.BROWSER|runPublicGroundedGemini|google_search|api\.groq\.com|s\.jina\.ai/);
 });
 
 test("optional Gemini adapter still fails closed without structured provider grounding citations", async () => {
