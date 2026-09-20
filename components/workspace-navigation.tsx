@@ -16,28 +16,49 @@ const primaryNav = [
   ["/app/settings", "Settings"],
 ] as const;
 
-// These proven capabilities remain part of the product contract, but they are
-// intentionally not rendered as global navigation. RetentionSurfaceBridge
-// exposes them contextually from the five canonical objects instead.
-export const CONTEXTUAL_WORKSPACE_ROUTES = [
-  ["/app/alerts", "Alerts"],
-  ["/app/team", "Team"],
-  ["/app/settings#integrations", "Integrations"],
-  ["/app/competitors", "Competitors"],
-  ["/app/opportunities", "Opportunities"],
-  ["/app/placements", "Actions"],
-  ["/app/resolutions", "Resolution Center"],
-  ["/app/outcomes", "Outcome Ledger"],
-  ["/app/passport", "Vendor Passport"],
-  ["/app/intelligence", "Intelligence Loop"],
-  ["/app/agents", "Agent Control Plane"],
-  ["/app/support", "Support"],
-  ["/app/decision-lab", "Decision Lab"],
-  ["/app/evidence", "Evidence Vault"],
+const workspaceGroups = [
+  {
+    label: "Monitor",
+    links: [
+      ["/app/alerts", "Alerts"],
+      ["/app/competitors", "Competitors"],
+      ["/app/source-map", "Source Map"],
+      ["/app/evidence", "Evidence Vault"],
+      ["/app/intelligence", "Intelligence Loop"],
+    ],
+  },
+  {
+    label: "Decide & act",
+    links: [
+      ["/app/opportunities", "Opportunities"],
+      ["/app/change-specifications", "Change Specifications"],
+      ["/app/placements", "Actions"],
+      ["/app/resolutions", "Resolution Center"],
+      ["/app/outcomes", "Outcome Ledger"],
+      ["/app/decision-lab", "Decision Lab"],
+    ],
+  },
+  {
+    label: "Workspace",
+    links: [
+      ["/app/team", "Team"],
+      ["/app/settings#integrations", "Integrations"],
+      ["/app/support", "Support"],
+      ["/app/passport", "Vendor Passport"],
+      ["/app/agents", "Agent Control Plane"],
+    ],
+  },
 ] as const;
 
+export const CONTEXTUAL_WORKSPACE_ROUTES = workspaceGroups.flatMap((group) => group.links);
+
+function hrefPath(href: string) {
+  return href.split("#")[0] || href;
+}
+
 function isCurrent(pathname: string, href: string) {
-  return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const path = hrefPath(href);
+  return path === "/app" ? pathname === path : pathname === path || pathname.startsWith(`${path}/`);
 }
 
 function WorkspaceIdentity({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
@@ -63,12 +84,32 @@ function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigat
   </nav>;
 }
 
+function ExploreWorkspace({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const containsCurrent = CONTEXTUAL_WORKSPACE_ROUTES.some(([href]) => isCurrent(pathname, href));
+  return <details className="sidebar-advanced workspace-explorer" open={containsCurrent ? true : undefined}>
+    <summary>
+      <span>Explore workspace</span>
+      <small>{CONTEXTUAL_WORKSPACE_ROUTES.length} tools</small>
+    </summary>
+    <nav className="sidebar-nav sidebar-nav--workspace" aria-label="Explore workspace">
+      {workspaceGroups.map((group) => <div className="sidebar-nav__group" key={group.label}>
+        <span className="sidebar-nav__group-label">{group.label}</span>
+        {group.links.map(([href, label]) => {
+          const current = isCurrent(pathname, href);
+          return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
+        })}
+      </div>)}
+    </nav>
+  </details>;
+}
+
 export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
   const pathname = usePathname();
   return <aside className="app-sidebar registered-workspace-sidebar">
-    <Wordmark />
+    <Link className="app-sidebar__home" href="/app" aria-label="Foremention workspace home"><Wordmark /></Link>
     <div className="app-sidebar__navigation">
       <NavigationLinks pathname={pathname} />
+      <ExploreWorkspace pathname={pathname} />
     </div>
     <div className="app-sidebar__footer">
       <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
@@ -96,6 +137,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
       <summary ref={summaryRef}><ForementionMark /><span>Workspace menu</span></summary>
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
+        <ExploreWorkspace pathname={pathname} onNavigate={() => closeMenu()} />
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>
