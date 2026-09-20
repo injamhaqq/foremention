@@ -190,7 +190,7 @@ async function handleHealth(env: Env) {
   const [d1Status, supabaseStatus] = await Promise.all([d1, supabase]);
   const inngestStatus = env.INNGEST_EVENT_KEY && env.INNGEST_SIGNING_KEY ? "configured_not_probed" : "not_configured";
   const providers = {
-    cloudflare: env.AI && env.BROWSER && env.CLOUDFLARE_MODEL ? "configured_not_probed" : "not_configured",
+    cloudflare: env.AI && env.CLOUDFLARE_MODEL ? "configured_not_probed" : "not_configured",
     gemini: env.GEMINI_API_KEY ? "configured_not_probed" : "not_configured",
     groq: env.GROQ_API_KEY ? "configured_not_probed" : "not_configured",
     openrouter: env.OPENROUTER_API_KEY ? "configured_not_probed" : "not_configured",
@@ -225,7 +225,7 @@ function scoreQuestions(category: string) {
 }
 
 async function runPublicGroundedCloudflare(env: Env, prompt: string, maxOutputTokens: number, searchQuery?: string) {
-  if (!freeOnlyWorkerMode(env) || !env.AI || !env.BROWSER || !env.CLOUDFLARE_MODEL) return null;
+  if (!freeOnlyWorkerMode(env) || !env.AI || !env.CLOUDFLARE_MODEL) return null;
   try {
     return await runGroundedCloudflareWithBinding({
       binding: env.AI,
@@ -261,7 +261,7 @@ async function handleVisibilityScore(request: Request, env: Env) {
   const limited = await publicRateLimit(request, env, "score", 3, 24 * 60 * 60 * 1000);
   if (!limited.configured) return Response.json({ error: "The public score is not configured safely yet." }, { status: 503 });
   if (!limited.allowed) return Response.json({ error: "Daily score limit reached. Try again tomorrow." }, { status: 429 });
-  if (!freeOnlyWorkerMode(env) || !env.AI || !env.BROWSER || !env.CLOUDFLARE_MODEL) {
+  if (!freeOnlyWorkerMode(env) || !env.AI || !env.CLOUDFLARE_MODEL) {
     return Response.json({ error: "The free grounded score provider is temporarily unavailable." }, { status: 503 });
   }
   const body = await request.json().catch(() => null) as { brand?: string; category?: string } | null;
@@ -309,7 +309,7 @@ async function handleVisibilityScore(request: Request, env: Env) {
     appearedIn: observations.filter((item) => item.appeared).length,
     questions: observations,
     citations: grounded.citations.map((citation) => citation.url),
-    provider: "Cloudflare Workers AI + Browser Run",
+    provider: "Cloudflare Workers AI + Web Retrieval",
     model: grounded.model,
     observedAt: createdAt,
     methodology: "One dated grounded provider collection across five deterministic category questions. This is not a market-wide rank or outcome guarantee.",
@@ -324,7 +324,7 @@ async function handlePromptCoverage(request: Request, env: Env) {
   const limited = await publicRateLimit(request, env, "prompt-check", 5, 24 * 60 * 60 * 1000);
   if (!limited.configured) return Response.json({ error: "The public prompt check is not configured safely yet." }, { status: 503 });
   if (!limited.allowed) return Response.json({ error: "Daily prompt-check limit reached. Try again tomorrow." }, { status: 429 });
-  if (!freeOnlyWorkerMode(env) || !env.AI || !env.BROWSER || !env.CLOUDFLARE_MODEL) {
+  if (!freeOnlyWorkerMode(env) || !env.AI || !env.CLOUDFLARE_MODEL) {
     return Response.json({ error: "The free grounded prompt provider is temporarily unavailable." }, { status: 503 });
   }
   const body = await request.json().catch(() => null) as { brand?: string; question?: string } | null;
@@ -349,7 +349,7 @@ async function handlePromptCoverage(request: Request, env: Env) {
       appeared,
       answer: grounded.answer,
       citations: grounded.citations,
-      provider: "Cloudflare Workers AI + Browser Run",
+      provider: "Cloudflare Workers AI + Web Retrieval",
       model: grounded.model,
       observedAt: new Date().toISOString(),
       methodology: "One dated grounded provider answer. Presence does not establish ranking, buyer behavior, or future visibility.",
