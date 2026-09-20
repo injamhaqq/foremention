@@ -44,6 +44,8 @@ The detailed operating gate is `docs/STAGE-0-CUSTOMER-PROOF-90-DAY.md`. The foun
 ## Production and public-funnel state
 
 - Stage-0 funnel PR #282 merged to `main` as `8fce4b27e8bf6a17c3d0e8ecc7895706dfc44daa`.
+- Production commercial scorecard after the first Stage-0 target seeding on 2026-09-20: **7 target accounts, 7 qualified accounts, 0 design partners, 0 customers, 0 contacted accounts, 0 replies, 0 conversations, 0 demos, 0 pilot proposals, 0 active pilots, 0 paying organizations, and $0 verified paid value/MRR/ARR**.
+- The 100-account file at `docs/company-evidence/STAGE0-TARGET-ACCOUNTS-2026-09-20.json` is public prospect research only; it is not pipeline, customer evidence, or permission to contact. Seven current-trigger accounts are now represented in the protected commercial ledger as qualified targets, with drafts in `docs/company-evidence/STAGE0-PRIORITY-OUTREACH-7-2026-09-20.md`. No outreach has been recorded as sent.
 - Primary design-partner CTA is deliberately pulled earlier into the hero.
 - Public funnel analytics now covers CTA impression -> CTA click -> application page -> application start -> application submit.
 - Commercial stages after submission remain first-party commercial truth; do not infer them from web analytics.
