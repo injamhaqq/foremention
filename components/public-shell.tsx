@@ -54,7 +54,7 @@ export function PublicFooter() {
       <Link href="/recommendation-intelligence">Category definition</Link>
       <Link href="/glossary">Terms &amp; definitions</Link>
       <Link href="/subprocessors">Subprocessors</Link>
-      <Link href="/api-docs">API docs</Link>
+      <Link href="/api-docs/webhooks">Webhook API docs</Link>
       <span className="sr-only">Analytics settings</span><ExperienceAnalyticsPreferences />
     </div>
     <div className="shell footer-bottom"><span>&copy; {new Date().getFullYear()} Foremention</span><span>Register. Prove. Prepare.</span></div>
