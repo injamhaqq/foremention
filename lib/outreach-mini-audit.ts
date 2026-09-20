@@ -1,3 +1,4 @@
+import { freeOnlyProviderMode, providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import type { ProviderId } from "@/lib/providers/types";
 
 const ALLOWED_PROVIDERS = new Set<ProviderId>([
@@ -11,7 +12,7 @@ const ALLOWED_PROVIDERS = new Set<ProviderId>([
   "zenmux",
   "omnirouters",
 ]);
-const DEFAULT_PROVIDER_ORDER: ProviderId[] = ["groq", "perplexity", "gemini", "openai", "openrouter"];
+const DEFAULT_PROVIDER_ORDER: ProviderId[] = ["gemini", "groq", "perplexity", "openai", "openrouter"];
 const MAX_QUESTIONS = 5;
 const MIN_QUESTIONS = 3;
 const MAX_PROVIDERS = 2;
@@ -97,6 +98,9 @@ export function parseOutreachMiniAuditInput(input: unknown): OutreachMiniAuditIn
     ? Array.from(new Set(record.competitors.map((item) => cleanText(item, 160)).filter(Boolean))).slice(0, 5)
     : [];
   const providers = parseProviders(record.providers);
+  if (freeOnlyProviderMode() && providers.some((provider) => provider !== "mock" && !providerAllowedForLiveCollection(provider))) {
+    throw new Error("Foremention free-only mode permits only grounded Gemini for outreach mini-audits.");
+  }
   const locale = cleanText(record.locale, 40) || undefined;
   return { brand, domain, questions, competitors, providers, locale };
 }
@@ -133,7 +137,9 @@ async function configuredProviders(input: OutreachMiniAuditInput) {
       .split(",")
       .map((value) => value.trim() as ProviderId)
       .filter((value) => ALLOWED_PROVIDERS.has(value));
-  const candidates = (requested.length ? requested : DEFAULT_PROVIDER_ORDER).slice(0, MAX_PROVIDERS);
+  const candidates = (requested.length ? requested : DEFAULT_PROVIDER_ORDER)
+    .filter((providerId) => providerId === "mock" || providerAllowedForLiveCollection(providerId))
+    .slice(0, MAX_PROVIDERS);
   const result: Array<ReturnType<typeof getProvider>> = [];
   for (const providerId of candidates) {
     try {
