@@ -61,7 +61,7 @@ function AttentionSurface() {
     <AttentionInbox items={items} />
     <ContextLinks
       title="Move from signal to owned follow-through."
-      body="Alerts, opportunities, actions, and resolution work remain available when you need the underlying workflow, without competing with the five core workspace objects."
+      body="Alerts, opportunities, actions, and resolution work remain available when you need the underlying workflow, without crowding the core workspace navigation."
       links={[["/app/alerts", "Alerts"], ["/app/opportunities", "Opportunities"], ["/app/placements", "Actions"], ["/app/resolutions", "Resolution Center"]]}
     />
   </>;
