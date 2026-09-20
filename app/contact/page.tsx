@@ -50,7 +50,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
 
           <article>
             <span>Design partner</span>
-            <h2>Apply as a Design Partner.</h2>
+            <h2>Apply as Design Partner.</h2>
             {submitted ? <div className="inline-notice"><strong>Application received.</strong><p>Founder review target: one business day. If the application fits the current design-partner scope, the reply will include scheduling instructions for the working session.</p></div> : <>
               {failed && <p className="inline-error" role="alert">The application could not be saved. Please try again or email hello@foremention.com.</p>}
               <form className="intake-form" data-design-partner-form action="/api/design-partner" method="post">
@@ -67,7 +67,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
                     <label>Current decision or recommendation problem<textarea name="currentProblem" rows={4} maxLength={2000} placeholder="What are you trying to understand or change?" /></label>
                   </div>
                 </details>
-                <button className="button button--ink" type="submit">Apply as a Design Partner <Arrow /></button>
+                <button className="button button--ink" type="submit">Apply as Design Partner <Arrow /></button>
                 <p className="form-fineprint">Applying does not create a paid subscription, authorize automated collection, or approve a company change. Scope and commercial terms are confirmed separately.</p>
               </form>
             </>}

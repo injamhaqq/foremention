@@ -184,11 +184,12 @@ test("only a missing relation degrades; other database failures still surface", 
   assert.equal(isMissingRelationError(new Error("network down")), false);
 });
 
-test("Outcome Ledger stays contextual to the five-object IA and keeps an accessible loading state", async () => {
-  const [navigation, loading] = await Promise.all([text("components/workspace-navigation.tsx"), text("app/app/outcomes/loading.tsx")]);
+test("Outcome Ledger remains discoverable through All tools and keeps an accessible loading state", async () => {
+  const [navigation, tools, loading] = await Promise.all([text("components/workspace-navigation.tsx"), text("app/app/tools/page.tsx"), text("app/app/outcomes/loading.tsx")]);
   assert.match(navigation, /CONTEXTUAL_WORKSPACE_ROUTES/);
-  assert.match(navigation, /\/app\/outcomes/);
-  assert.match(navigation, /Outcome Ledger/);
+  assert.match(navigation, /\["\/app\/tools", "All tools"\]/);
+  assert.match(tools, /\/app\/outcomes/);
+  assert.match(tools, /Outcome Ledger/);
   assert.match(loading, /WorkspaceListSkeleton/);
   assert.match(await text("app/app/outcomes/page.tsx"), /aria-label=\{`\$\{step\.label\}/);
 });

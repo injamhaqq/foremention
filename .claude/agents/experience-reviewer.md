@@ -1,6 +1,6 @@
 ---
 name: experience-reviewer
-description: Review Foremention public and signed-in experience for canonical identity fidelity, Foremention 5 architecture, accessibility, responsive behavior, SEO clarity, and investor/customer comprehension.
+description: Review Foremention public and signed-in experience for canonical identity fidelity, the locked navigation architecture, accessibility, responsive behavior, SEO clarity, and investor/customer comprehension.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Edit, Write
 ---
@@ -15,7 +15,7 @@ Check:
 - no redraws, recolors, traces, derived replacements, unapproved variants, legacy identity assets, or unrelated visual directions are introduced;
 - the canonical black/graphite public system and controlled registered-green treatment remain intact, with warm/light inspection surfaces used only where the approved evidence-review system requires them;
 - product-native registration/alignment behavior rather than generic sci-fi decoration;
-- Foremention 5 navigation: Attention, Questions, Records, Comparisons, Settings;
+- signed-in navigation: Overview, Questions, Records, Evidence, Opportunities, Comparisons, All tools, Settings;
 - no standalone Source X-Ray surface; evidence inspection belongs inside Recommendation Records;
 - investor comprehension in ~30 seconds and PMM/CMO product clarity;
 - semantic evidence states, causal restraint, and no fake traction;

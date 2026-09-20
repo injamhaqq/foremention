@@ -40,7 +40,7 @@ export default function ProductPage() {
             into an exact company change your team can approve, execute, and verify.
           </p>
           <div className="page-hero__actions">
-            <Link data-design-partner-cta="product_hero" className="button" href="/contact">Apply as a Design Partner <Arrow /></Link>
+            <Link data-design-partner-cta="product_hero" className="button" href="/contact">Apply as Design Partner <Arrow /></Link>
             <Link className="text-link text-link--inverse" href="/#how-it-works">See how it works <Arrow /></Link>
           </div>
         </div>
@@ -85,7 +85,7 @@ export default function ProductPage() {
       <section className="cta-band outreach-product-cta">
         <div className="shell cta-band__inner">
           <div><span className="eyebrow">Founder-led design partner</span><h2>Bring five buyer questions. Test one real company-change cycle.</h2></div>
-          <Link data-design-partner-cta="product_bottom" className="button button--ink button--large" href="/contact">Apply as a Design Partner <Arrow /></Link>
+          <Link data-design-partner-cta="product_bottom" className="button button--ink button--large" href="/contact">Apply as Design Partner <Arrow /></Link>
         </div>
       </section>
     </PublicShell>

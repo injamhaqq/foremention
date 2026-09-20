@@ -12,7 +12,7 @@ Foremention is recommendation intelligence for B2B software. It observes how AI 
 
 No fake reviews. No hidden promotion. No ranking guarantees. No fabricated scores. No causal claims without evidence.
 
-[Apply as a Design Partner](https://foremention.com/contact)
+[Apply as Design Partner](https://foremention.com/contact)
 
 ## Recommendation Record
 
@@ -45,7 +45,7 @@ The current design-partner workflow uses one real B2B software category, up to f
 
 Applying does not create a paid subscription, guarantee an outcome, or authorize a company change.
 
-[Apply as a Design Partner](https://foremention.com/contact)
+[Apply as Design Partner](https://foremention.com/contact)
 
 ## Sitemap
 

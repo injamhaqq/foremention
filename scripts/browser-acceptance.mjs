@@ -18,7 +18,7 @@ const requireAuthenticatedAcceptance = (process.env.FOREMENTION_REQUIRE_AUTHENTI
 const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-acceptance");
 
 const publicPaths = ["/", "/product", "/explore", "/pricing", "/score", "/prompt-check", "/login", "/signup"];
-const authenticatedPaths = ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"];
+const authenticatedPaths = ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/opportunities", "/app/analytics", "/app/tools", "/app/settings"];
 const approvedIdentityPaths = [
   "/brand/foremention-logo-white.svg",
   "/brand/foremention-mark-white.svg",

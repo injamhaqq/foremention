@@ -43,20 +43,20 @@ test("public Evidence Standard accessibility refinements remain explicit", () =>
   assert.match(outreachCss, /min-height:\s*44px/);
 });
 
-test("public navigation is compressed around product understanding and design-partner conversion", () => {
+test("public navigation keeps product understanding concise while exposing commercial and research paths", () => {
   const shell = read("components/public-shell.tsx");
-  for (const item of ["Product", "How it works", "Methodology", "Trust"]) assert.ok(shell.includes('\"' + item + '\"'));
+  for (const item of ["Product", "How it works", "Pricing", "Research", "Trust"]) assert.ok(shell.includes('"' + item + '"'));
   assert.match(shell, /Apply as Design Partner/);
   assert.match(shell, /Sign in/);
   assert.match(shell, /href="\/privacy"/);
   assert.match(shell, /href="\/subprocessors"/);
   assert.match(shell, /public-footer__utility/);
-  assert.doesNotMatch(shell, />Research</);
-  assert.doesNotMatch(shell, />Glossary</);
+  assert.match(shell, />Glossary<\/Link>/);
   assert.doesNotMatch(shell, />Partners</);
   assert.doesNotMatch(shell, />Request a demo</);
   assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
-  assert.doesNotMatch(shell, /\["\/pricing", "Pricing"\]/);
+  assert.match(shell, /\["\/pricing", "Pricing"\]/);
+  assert.match(shell, /\["\/insights", "Research"\]/);
 });
 
 test("public metadata states the company-change value while preserving the evidence boundary", () => {

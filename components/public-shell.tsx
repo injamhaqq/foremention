@@ -6,7 +6,8 @@ import { SiteMotion } from "@/components/site-motion";
 const links = [
   ["/product", "Product"],
   ["/#how-it-works", "How it works"],
-  ["/methodology", "Methodology"],
+  ["/pricing", "Pricing"],
+  ["/insights", "Research"],
   ["/trust", "Trust"],
 ] as const;
 
@@ -49,7 +50,7 @@ export function PublicFooter() {
     </div>
     <div className="shell public-footer__utility">
       <Link href="/recommendation-intelligence">Category definition</Link>
-      <Link href="/glossary">Terms &amp; definitions</Link>
+      <Link href="/glossary">Glossary</Link>
       <Link href="/subprocessors">Subprocessors</Link>
       <span className="sr-only">Analytics settings</span><ExperienceAnalyticsPreferences />
     </div>

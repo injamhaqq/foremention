@@ -16,11 +16,11 @@
 
 ## Product architecture
 
-The primary signed-in product is intentionally constrained to five objects:
+The primary signed-in navigation is intentionally focused on eight destinations:
 
-`Attention -> Questions -> Records -> Comparisons -> Settings`
+`Overview -> Questions -> Records -> Evidence -> Opportunities -> Comparisons -> All tools -> Settings`
 
-Recommendation Record is the canonical object. Evidence inspection is part of the record rather than a separate product surface.
+Recommendation Record is the canonical measurement/evidence object. Evidence inspection remains part of the record; `/app/source-map` is the visible source/evidence inspection destination and does not revive Source X-Ray as a standalone product. `/app/tools` is the directory for specialist capabilities that should remain easy to discover without crowding the primary sidebar.
 
 ## Product truth chain
 

@@ -6,11 +6,11 @@ The product is software, not an agency service. Teams define priority buyer ques
 
 ## Product architecture
 
-The primary signed-in product is deliberately constrained to five objects:
+The primary signed-in navigation is deliberately focused on eight destinations:
 
-`Attention -> Questions -> Records -> Comparisons -> Settings`
+`Overview -> Questions -> Records -> Evidence -> Opportunities -> Comparisons -> All tools -> Settings`
 
-Recommendation Record is the canonical object. Evidence inspection is part of the record, not a separate product surface. Proven specialist capabilities such as competitor tracking, opportunities/actions, the Resolution Center, Outcome Ledger, Vendor Passport, Intelligence Loop, Agent Control Plane, Decision Lab, Evidence Vault, alerts, team controls, and integrations remain available contextually from those five objects rather than competing as global navigation destinations.
+Recommendation Record remains the canonical measurement/evidence object. Evidence inspection remains attached to Recommendation Records; the visible Evidence destination is the source/evidence inspection workspace, not a revival of Source X-Ray. Proven specialist capabilities such as competitor tracking, actions, the Resolution Center, Outcome Ledger, Vendor Passport, Intelligence Loop, Agent Control Plane, Decision Lab, Evidence Vault, alerts, team controls, integrations, search, and support remain intact and are discoverable through `/app/tools` as well as contextual links.
 
 ## Product truth chain
 
@@ -24,7 +24,7 @@ Observed evidence, inference, automated processing, human review, customer decis
 - Recommendation Records with integrated returned-reference, retrievability, observed-evidence, review, limitation, and comparison-eligibility inspection
 - Supabase email/password authentication and organization-scoped row-level security
 - Credential-free, isolated seeded demo
-- Customer workspace centered on Attention, Questions, Records, Comparisons, and Settings, with proven specialist tools retained contextually
+- Customer workspace centered on Overview, Questions, Records, Evidence, Opportunities, Comparisons, All tools, and Settings, with specialist tools discoverable through the tools directory and contextual links
 - Foremention Agent Control Plane with recorded, organization-scoped execution telemetry for collection, mapping, measurement, and human review
 - Foremention Intelligence Loop for reviewed-evidence search, comparable run changes, explicit confidence checks, recorded cost, and one deterministic next action
 - Provider adapters for OpenAI, Gemini, Anthropic, Perplexity, Groq, Cloudflare Workers AI, and configured gateways, with deterministic mock runs
