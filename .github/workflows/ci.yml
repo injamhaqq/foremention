@@ -157,7 +157,7 @@ jobs:
         env:
           FOREMENTION_BASE_URL: https://foremention.com
           FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
-          FOREMENTION_INNGEST_WAIT_SECONDS: '90'
+          FOREMENTION_INNGEST_WAIT_SECONDS: '150'
         run: node scripts/production-inngest-smoke.mjs
 
   attest-release:

@@ -135,6 +135,15 @@
   color: #aeb6af !important;
 }
 
+/* A rate-limited provider is a real warning state. The legacy pale-yellow
+   badge cannot inherit the authenticated shell's reverse text; use a dark
+   warning foreground so "Needs attention" remains WCAG AA readable. */
+.app-frame .provider-state--limited {
+  border-color: #8a7200 !important;
+  background: #fff0a1 !important;
+  color: #493a00 !important;
+}
+
 /* Every inspectable evidence state remains visible at mobile/narrow widths. */
 @media (max-width: 480px) {
   .registered-evidence-shell .registered-record__states > div:nth-child(2) {
