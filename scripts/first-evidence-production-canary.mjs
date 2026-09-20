@@ -228,7 +228,10 @@ async function waitForRun(page, runId) {
 }
 
 async function verifyRunEvidenceAndPublish(page, run) {
-  if (["failed", "cancelled"].includes(run.status)) {\n    const reason = typeof run.errorSummary === "string" && run.errorSummary.trim() ? `: ${run.errorSummary.trim()}` : ".";\n    fail(`First-evidence collection terminated with status ${run.status}${reason}`);\n  }
+  if (["failed", "cancelled"].includes(run.status)) {
+    const reason = typeof run.errorSummary === "string" && run.errorSummary.trim() ? `: ${run.errorSummary.trim()}` : ".";
+    fail(`First-evidence collection terminated with status ${run.status}${reason}`);
+  }
   if (!Number.isFinite(Number(run.answers)) || Number(run.answers) < 1) fail("The real provider run persisted no answer observations.");
   if (!Number.isFinite(Number(run.citations)) || Number(run.citations) < 1) fail("The free grounded canary persisted no provider-returned citations.");
 
