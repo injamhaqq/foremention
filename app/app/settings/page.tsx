@@ -54,7 +54,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       </div>
       <Link className="button button--outline" href="/app/onboarding">Revisit onboarding</Link>
     </div>
-    {settingsReadDegraded && <p className="notice" role="status">Some workspace settings could not be refreshed right now. No values were invented; available controls are shown with conservative defaults. Retry this page to refresh the missing data.</p>}
+    {settingsReadDegraded && <p className="inline-notice" role="status">Some workspace settings could not be refreshed right now. No values were invented; available controls are shown with conservative defaults. Retry this page to refresh the missing data.</p>}
     <div className="settings-grid">
       <section className="panel">
         <span className="eyebrow">Workspace profile</span>
