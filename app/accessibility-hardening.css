@@ -144,6 +144,16 @@
   color: #493a00 !important;
 }
 
+/* Opportunity review cards are deliberately light inspection surfaces inside
+   the dark app shell. Keep their labels and evidence metadata on an ink
+   foreground instead of inheriting reverse workspace text. */
+.app-frame .opportunity-score--review > strong,
+.app-frame .opportunity-score--review > span,
+.app-frame .opportunity-evidence > strong,
+.app-frame .opportunity-evidence > span {
+  color: #173327 !important;
+}
+
 /* Every inspectable evidence state remains visible at mobile/narrow widths. */
 @media (max-width: 480px) {
   .registered-evidence-shell .registered-record__states > div:nth-child(2) {
