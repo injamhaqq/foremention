@@ -1,4 +1,4 @@
-import { FREE_ONLY_COLLECTION_PROVIDER, freeOnlyProviderMode } from "./free-provider-mode.js";
+import { FREE_ONLY_COLLECTION_PROVIDER, freeOnlyProviderMode } from "./free-provider-mode.ts";
 import type { ProviderId, ProviderUsage } from "@/lib/providers/types";
 import { redactOperationalText } from "./operational-error.js";
 
