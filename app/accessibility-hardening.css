@@ -150,3 +150,25 @@
     display: grid;
   }
 }
+
+
+/* Production post-merge accessibility guardrails.
+   Opportunities uses pale review/evidence surfaces, so authenticated-shell
+   reverse/muted colors must not bleed into these light cards. */
+.app-frame .opportunity-score--review > span,
+.app-frame .opportunity-score--review > small,
+.app-frame .opportunity-evidence > span {
+  color: #33463c !important;
+}
+
+.app-frame .opportunity-score--review > strong,
+.app-frame .opportunity-evidence > strong {
+  color: #111412 !important;
+}
+
+/* Horizontal evidence-yield tables must be keyboard reachable when they
+   overflow at mobile widths. */
+.app-frame .question-performance__table:focus-visible {
+  outline: 3px solid var(--marker);
+  outline-offset: 2px;
+}
