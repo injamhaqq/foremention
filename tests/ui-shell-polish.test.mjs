@@ -5,7 +5,9 @@ import test from "node:test";
 const navigation = await readFile(new URL("../components/workspace-navigation.tsx", import.meta.url), "utf8");
 const polish = await readFile(new URL("../app/product-polish.css", import.meta.url), "utf8");
 const analytics = await readFile(new URL("../components/contentsquare-analytics.tsx", import.meta.url), "utf8");
-const publicShell = await readFile(new URL("../components/public-shell.tsx", import.meta.url), "utf8");\nconst accessibility = await readFile(new URL("../app/accessibility-hardening.css", import.meta.url), "utf8");\nconst analyticsPage = await readFile(new URL("../app/app/analytics/page.tsx", import.meta.url), "utf8");
+const publicShell = await readFile(new URL("../components/public-shell.tsx", import.meta.url), "utf8");
+const accessibility = await readFile(new URL("../app/accessibility-hardening.css", import.meta.url), "utf8");
+const analyticsPage = await readFile(new URL("../app/app/analytics/page.tsx", import.meta.url), "utf8");
 
 test("desktop workspace navigation exposes the core workflow plus one complete tools directory", () => {
   assert.match(navigation, /className="app-sidebar__navigation"/);
