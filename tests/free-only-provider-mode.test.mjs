@@ -30,7 +30,10 @@ test("production free-only mode is grounded Cloudflare plus Bing RSS without pai
   assert.match(collection, /inputPerMillionUsd: 0, outputPerMillionUsd: 0, requestUsd: 0/);
   assert.match(cloudflare, /retrieveFreeWebEvidence/);
   assert.match(cloudflare, /grounded: true/);
-  assert.match(cloudflare, /SOURCES:/);
+  assert.match(cloudflare, /recordGroundedAnswer/);
+  assert.match(cloudflare, /tool_choice: "required"/);
+  assert.match(cloudflare, /source_indexes/);
+  assert.doesNotMatch(cloudflare, /SOURCES:/);
   assert.doesNotMatch(cloudflare, /extractUrls/);
   assert.match(retrieval, /https:\/\/www\.bing\.com\/search/);
   assert.match(retrieval, /parseBingSearchRss/);
