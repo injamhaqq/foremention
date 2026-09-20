@@ -1,3 +1,4 @@
+import { FREE_ONLY_COLLECTION_PROVIDER, freeOnlyProviderMode } from "./free-provider-mode.js";
 import type { ProviderId, ProviderUsage } from "@/lib/providers/types";
 import { redactOperationalText } from "./operational-error.js";
 
@@ -47,6 +48,9 @@ function finiteNonNegative(value: string | undefined) {
 }
 
 export function getProviderCostRates(provider: Exclude<ProviderId, "mock">): CostRates | null {
+  if (freeOnlyProviderMode() && provider === FREE_ONLY_COLLECTION_PROVIDER) {
+    return { inputPerMillionUsd: 0, outputPerMillionUsd: 0, requestUsd: 0 };
+  }
   const prefix = providerPrefix[provider];
   const inputPerMillionUsd = finiteNonNegative(process.env[`${prefix}_INPUT_COST_PER_MILLION_USD`]);
   const outputPerMillionUsd = finiteNonNegative(process.env[`${prefix}_OUTPUT_COST_PER_MILLION_USD`]);
