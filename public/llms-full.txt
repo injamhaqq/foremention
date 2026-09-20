@@ -1,0 +1,55 @@
+# Foremention — Full Public Context
+
+> Foremention is recommendation intelligence for B2B software. This file summarizes the public product, workflow, evidence boundaries, and canonical public routes. It is not customer evidence, a benchmark, or a performance guarantee.
+
+## What Foremention does
+
+Foremention starts with real buyer questions. It preserves what an AI provider returned, the provider and model context, returned references, retrievability and review state, and the uncertainty attached to the observation. It then connects that measurement to what the company can actually substantiate and to a human-reviewed company decision.
+
+The canonical measurement object is the Recommendation Record. The canonical decision object is the Change Specification.
+
+## Canonical workflow
+
+1. Buyer question — start with a question that can affect a shortlist or category decision.
+2. Recommendation observation — preserve the provider response and named vendors in context.
+3. Evidence — keep returned references, retrievability, review state, and uncertainty attached.
+4. Company Truth — separate verified company facts from hypotheses or desired claims.
+5. Eligibility — classify the requirement as eligible, partially eligible, structurally ineligible, or unknown.
+6. Change Specification — define an exact customer-owned change with evidence, acceptance criteria, and a verification plan.
+7. Human approval — a person approves, rejects, tests, monitors, or leaves the proposed change unresolved.
+8. Execution — record what the customer actually changed.
+9. Comparable remeasurement — measure later only when the buyer question and relevant conditions remain comparable.
+10. Learning — record observed association and business outcome without manufacturing causality.
+
+## Evidence boundaries
+
+Foremention does not promise rankings, fabricate review evidence, hide promotion, or claim causal impact from a simple before-and-after observation. A returned source does not by itself prove that it caused an AI recommendation. A later movement does not by itself prove that a customer action caused the movement. Public illustrative records are labeled as illustrative rather than customer evidence.
+
+## Design-partner scope
+
+The current public motion is founder-led and deliberately narrow: one real B2B software category, up to five priority buyer questions, a baseline, evidence review, one customer-owned Change Specification, and comparable remeasurement. Applying does not create a paid subscription or authorize an automated company change.
+
+## Public category
+
+Foremention publicly uses the category Recommendation Intelligence. Broader category claims are not treated as established merely because the product can support additional workflows.
+
+## Canonical public routes
+
+- Product: https://foremention.com/product
+- Recommendation Intelligence: https://foremention.com/recommendation-intelligence
+- Recommendation Record: https://foremention.com/recommendation-record
+- Methodology: https://foremention.com/methodology
+- Glossary: https://foremention.com/glossary
+- Research: https://foremention.com/insights
+- Trust Center: https://foremention.com/trust
+- Design Partner Application: https://foremention.com/contact
+- Privacy: https://foremention.com/privacy
+- Subprocessors: https://foremention.com/subprocessors
+- Terms: https://foremention.com/terms
+
+## Agent discovery
+
+- llms.txt: https://foremention.com/llms.txt
+- Markdown sitemap: https://foremention.com/sitemap.md
+- Homepage markdown: https://foremention.com/index.md
+- Agent guide: https://foremention.com/AGENTS.md
