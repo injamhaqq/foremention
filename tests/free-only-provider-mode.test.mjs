@@ -27,7 +27,9 @@ test("production free-only mode is enforced in code without Cloudflare config in
   assert.match(collection, /freeOnlyProviderMode\(\).*provider === FREE_ONLY_COLLECTION_PROVIDER/s);
   assert.match(collection, /inputPerMillionUsd: 0, outputPerMillionUsd: 0, requestUsd: 0/);
   assert.match(gemini, /configuredFreeOnlyGeminiModel/);
+  assert.match(policy, /if \(freeOnlyProviderMode\(\)\) return FREE_ONLY_GEMINI_MODEL/);
   assert.match(worker, /FREE_ONLY_GEMINI_MODEL = "gemini-2\.5-flash-lite"/);
+  assert.match(worker, /if \(freeOnlyWorkerMode\(env\)\) return FREE_ONLY_GEMINI_MODEL/);
   assert.match(worker, /FOREMENTION_FREE_ONLY_MODE !== "0"/);
   assert.match(env, /FOREMENTION_FREE_ONLY_MODE=1/);
   assert.match(env, /OUTREACH_MINI_AUDIT_PROVIDERS=gemini/);

@@ -12,3 +12,11 @@ test("untested provider state keeps readable contrast on the authenticated dark 
     /\.app-frame \.review-action \.provider-state--untested\s*\{[^}]*background:\s*#111412 !important;[^}]*color:\s*#aeb6af !important;[^}]*\}/s,
   );
 });
+
+test("rate-limited provider state uses a dark warning foreground on the pale warning badge", async () => {
+  const css = await text("app/accessibility-hardening.css");
+  assert.match(
+    css,
+    /\.app-frame \.provider-state--limited\s*\{[^}]*background:\s*#fff0a1 !important;[^}]*color:\s*#493a00 !important;[^}]*\}/s,
+  );
+});

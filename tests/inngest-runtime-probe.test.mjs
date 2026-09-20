@@ -79,5 +79,6 @@ test("main CI requires exact release, Inngest sync, and durable execution in ord
   assert.doesNotMatch(probeBlock, /continue-on-error/);
   assert.match(syncBlock, /node scripts\/production-inngest-sync\.mjs/);
   assert.match(probeBlock, /node scripts\/production-inngest-smoke\.mjs/);
+  assert.match(probeBlock, /FOREMENTION_INNGEST_WAIT_SECONDS: '150'/);
   assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ github\.sha \}\}/);
 });

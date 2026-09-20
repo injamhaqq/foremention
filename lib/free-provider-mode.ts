@@ -11,6 +11,7 @@ export function freeOnlyProviderMode() {
 }
 
 export function configuredFreeOnlyGeminiModel() {
+  if (freeOnlyProviderMode()) return FREE_ONLY_GEMINI_MODEL;
   return process.env.GEMINI_MODEL?.trim() || FREE_ONLY_GEMINI_MODEL;
 }
 
