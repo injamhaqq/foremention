@@ -1,4 +1,4 @@
-import { freeOnlyProviderMode, providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
+import { freeOnlyProviderMode, providerAllowedForLiveCollection } from "./free-provider-mode.ts";
 import type { ProviderId } from "@/lib/providers/types";
 
 const ALLOWED_PROVIDERS = new Set<ProviderId>([
