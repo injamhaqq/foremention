@@ -40,10 +40,10 @@ const groups = [
     items: [
       ["/methodology", "Methodology", "Read the measurement and comparison rules behind the product."],
       ["/source-map", "Source Map", "Understand how returned sources are mapped and reviewed."],
-      ["/standards", "Standards", "See the operating rules for evidence, review, and causal restraint."],
       ["/trust", "Trust Center", "Review security, privacy, governance, and operational boundaries."],
-      ["/honesty", "Honesty clause", "See what Foremention will not claim or guarantee."],
+      ["/privacy", "Privacy", "Review how Foremention handles data and privacy boundaries."],
       ["/subprocessors", "Subprocessors", "Review the current service and provider boundary."],
+      ["/terms", "Terms", "Read the current product terms and operating conditions."],
     ],
   },
   {
