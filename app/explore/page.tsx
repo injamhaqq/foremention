@@ -66,7 +66,7 @@ const groups = [
     items: [
       ["/about", "About", "Learn what Foremention is building and why."],
       ["/partners", "Partners", "Review partner and ecosystem information."],
-      ["/api-docs", "API docs", "Explore the documented integration surface."],
+      ["/api-docs/webhooks", "Webhook API docs", "Explore the documented webhook integration surface."],
       ["/source-gap", "Source-gap review", "Submit a category and buyer question for review."],
       ["/contact", "Design partner", "Apply to run a founder-led real-company evidence cycle."],
       ["/compare", "Compare approaches", "See how Foremention differs from adjacent monitoring approaches."],
