@@ -20,3 +20,12 @@ test("horizontally scrollable question performance table is keyboard reachable",
     /className="question-performance__table" tabIndex=\{0\} role="region" aria-label="Question performance table"/,
   );
 });
+
+
+test("analytics baseline card keeps a dark foreground on its pale evidence surface", async () => {
+  const css = await text("app/accessibility-hardening.css");
+  assert.match(
+    css,
+    /\.app-frame \.baseline-record > strong,[\s\S]*\.app-frame \.baseline-record > p\s*\{[^}]*color:\s*#173327 !important;[^}]*\}/,
+  );
+});
