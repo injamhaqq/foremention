@@ -20,11 +20,12 @@ test("public health exposes only boolean Agent OS readiness signals", () => {
 });
 
 
-test("production fail-closes bounded reasoning when OpenAI credit is unavailable", () => {
-  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_ENABLED":\s*"0"/);
-  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_MODEL":\s*"gpt-5\.6-luna"/);
-  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_INPUT_COST_PER_MILLION_USD":\s*"0\.20"/);
-  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_OUTPUT_COST_PER_MILLION_USD":\s*"1\.20"/);
+test("production enables bounded reasoning on the free Cloudflare Workers AI allocation", () => {
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_ENABLED":\s*"1"/);
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_PROVIDER":\s*"cloudflare"/);
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_MODEL":\s*"@cf\/meta\/llama-3\.3-70b-instruct-fp8-fast"/);
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_INPUT_COST_PER_MILLION_USD":\s*"0\.293"/);
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_OUTPUT_COST_PER_MILLION_USD":\s*"2\.253"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_MAX_RUN_COST_USD":\s*"0\.01"/);
-  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_DAILY_COST_CAP_USD":\s*"0\.10"/);
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_DAILY_COST_CAP_USD":\s*"0\.08"/);
 });
