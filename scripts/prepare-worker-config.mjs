@@ -39,12 +39,6 @@ config.ai = { binding: "AI" };
 config.vars = {
   ...(config.vars || {}),
   ...(buildCommit ? { FOREMENTION_BUILD_COMMIT: buildCommit } : {}),
-  FOREMENTION_FREE_ONLY_MODE: "1",
-  GEMINI_MODEL: "gemini-2.5-flash-lite",
-  GEMINI_INPUT_COST_PER_MILLION_USD: "0",
-  GEMINI_OUTPUT_COST_PER_MILLION_USD: "0",
-  GEMINI_REQUEST_COST_USD: "0",
-  OUTREACH_MINI_AUDIT_PROVIDERS: "gemini",
   CLOUDFLARE_MODEL: "@cf/google/gemma-4-26b-a4b-it",
   CLOUDFLARE_INPUT_COST_PER_MILLION_USD: "0.10",
   CLOUDFLARE_OUTPUT_COST_PER_MILLION_USD: "0.30",
