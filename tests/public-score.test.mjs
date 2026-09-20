@@ -5,16 +5,16 @@ import test from "node:test";
 
 const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
 
-test("public visibility score uses five grounded Cloudflare plus Jina answers and never fabricates a fallback", () => {
+test("public visibility score uses five grounded Cloudflare plus Bing RSS answers and never fabricates a fallback", () => {
   const worker = read("worker/index.ts");
   const retrieval = read("lib/free-web-retrieval.ts");
   assert.match(worker, /answers\.length !== 5/);
   assert.match(worker, /No result was invented/);
   assert.match(worker, /runPublicGroundedCloudflare/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
-  assert.match(worker, /provider: "Cloudflare Workers AI \+ Jina Search"/);
-  assert.match(retrieval, /https:\/\/s\.jina\.ai/);
-  assert.match(retrieval, /Jina Search returned no verifiable source URLs/);
+  assert.match(worker, /provider: "Cloudflare Workers AI \+ Bing Search RSS"/);
+  assert.match(retrieval, /https:\/\/www\.bing\.com\/search/);
+  assert.match(retrieval, /Bing RSS returned no verifiable source URLs/);
   assert.match(worker, /appearedIn/);
   assert.match(worker, /methodology/);
   assert.doesNotMatch(worker, /Math\.random/);

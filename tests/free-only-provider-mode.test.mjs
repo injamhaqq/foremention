@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-test("production free-only mode is grounded Cloudflare plus Jina without paid fallback", async () => {
+test("production free-only mode is grounded Cloudflare plus Bing RSS without paid fallback", async () => {
   const [config, prepare, policy, collection, cloudflare, retrieval, worker, env] = await Promise.all([
     text("wrangler.jsonc"),
     text("scripts/prepare-worker-config.mjs"),
@@ -32,9 +32,9 @@ test("production free-only mode is grounded Cloudflare plus Jina without paid fa
   assert.match(cloudflare, /grounded: true/);
   assert.match(cloudflare, /SOURCES:/);
   assert.doesNotMatch(cloudflare, /extractUrls/);
-  assert.match(retrieval, /https:\/\/s\.jina\.ai/);
-  assert.match(retrieval, /parseJinaSearchCitations/);
-  assert.match(retrieval, /Jina Search returned no verifiable source URLs/);
+  assert.match(retrieval, /https:\/\/www\.bing\.com\/search/);
+  assert.match(retrieval, /parseBingSearchRss/);
+  assert.match(retrieval, /Bing RSS returned no verifiable source URLs/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
   assert.match(env, /FOREMENTION_FREE_ONLY_MODE=1/);
 });
@@ -51,14 +51,14 @@ test("only grounded Cloudflare may create customer evidence while free-only mode
   assert.match(policy, /FREE_ONLY_COLLECTION_PROVIDER[^\n]*"cloudflare"/);
   assert.match(policy, /process\.env\.FOREMENTION_FREE_ONLY_MODE !== "0"/);
   for (const source of [route, jobs, schedules]) assert.match(source, /providerAllowedForLiveCollection/);
-  assert.match(route, /Grounded Cloudflare Workers AI with Jina Search/);
-  assert.match(data, /Cloudflare Workers AI \+ Jina Search/);
+  assert.match(route, /Grounded Cloudflare Workers AI with Bing Search RSS/);
+  assert.match(data, /Cloudflare Workers AI \+ Bing Search RSS/);
   assert.match(data, /id: "cloudflare"[\s\S]*supportsCitations: true/);
   assert.match(outreach, /DEFAULT_PROVIDER_ORDER[^\n]*\["cloudflare"/);
-  assert.match(outreach, /free-only mode permits only grounded Cloudflare Workers AI with Jina Search/);
+  assert.match(outreach, /free-only mode permits only grounded Cloudflare Workers AI with Bing Search RSS/);
 });
 
-test("public score and prompt-check use the same free grounded Cloudflare plus Jina path", async () => {
+test("public score and prompt-check use the same free grounded Cloudflare plus Bing RSS path", async () => {
   const worker = await text("worker/index.ts");
   const start = worker.indexOf("async function runPublicGroundedCloudflare");
   const end = worker.indexOf("async function handleSourceGapRequest", start);
@@ -67,7 +67,7 @@ test("public score and prompt-check use the same free grounded Cloudflare plus J
   assert.match(publicAi, /runGroundedCloudflareWithBinding/);
   assert.match(publicAi, /env\.AI/);
   assert.match(publicAi, /env\.CLOUDFLARE_MODEL/);
-  assert.match(publicAi, /provider: "Cloudflare Workers AI \+ Jina Search"/);
+  assert.match(publicAi, /provider: "Cloudflare Workers AI \+ Bing Search RSS"/);
   assert.doesNotMatch(publicAi, /runPublicGroundedGemini|google_search|api\.groq\.com/);
 });
 

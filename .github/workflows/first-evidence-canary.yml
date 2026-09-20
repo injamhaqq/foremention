@@ -64,7 +64,7 @@ jobs:
           FOREMENTION_ACCEPTANCE_EMAIL: ${{ secrets.FOREMENTION_ACCEPTANCE_EMAIL }}
           FOREMENTION_ACCEPTANCE_PASSWORD: ${{ secrets.FOREMENTION_ACCEPTANCE_PASSWORD }}
           FOREMENTION_ACCEPTANCE_CANARY_ENABLED: ${{ secrets.FOREMENTION_ACCEPTANCE_CANARY_ENABLED }}
-          # Free-only production canary: grounded Cloudflare Workers AI + Jina Search is fixed by policy.
+          # Free-only production canary: grounded Cloudflare Workers AI + Bing Search RSS is fixed by policy.
           # The legacy approval flag remains true so the canary executes its real-provider path;
           # this is not authorization to purchase or upgrade provider billing.
           FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: 'true'

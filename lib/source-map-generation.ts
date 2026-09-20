@@ -52,7 +52,7 @@ const engineLabels: Record<string, string> = {
   anthropic: "Claude",
   perplexity: "Perplexity",
   groq: "Groq Compound",
-  cloudflare: "Cloudflare Workers AI + Jina Search",
+  cloudflare: "Cloudflare Workers AI + Bing Search RSS",
   openrouter: "OpenRouter",
   zenmux: "ZenMux",
   omnirouters: "OmniRouters",

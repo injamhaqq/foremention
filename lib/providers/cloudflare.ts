@@ -97,14 +97,14 @@ function citationIndex(citations: ProviderCitation[]) {
 
 function selectedCitations(answer: string, available: ProviderCitation[]) {
   const marker = answer.match(/(?:^|\n)\s*SOURCES:\s*([^\n\r]+)/i);
-  if (!marker) throw new ProviderRequestError("Cloudflare Workers AI + Jina Search", 502, "The grounded answer did not identify which retrieved sources supported it.");
+  if (!marker) throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, "The grounded answer did not identify which retrieved sources supported it.");
 
   const indexes = Array.from(marker[1].matchAll(/\[(\d+)\]/g), (match) => Number(match[1]));
   const unique = Array.from(new Set(indexes)).filter((index) => Number.isInteger(index) && index >= 1 && index <= available.length);
-  if (!unique.length) throw new ProviderRequestError("Cloudflare Workers AI + Jina Search", 502, "The grounded answer selected no valid retrieved source.");
+  if (!unique.length) throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, "The grounded answer selected no valid retrieved source.");
 
   const cleanAnswer = answer.replace(/(?:^|\n)\s*SOURCES:\s*[^\n\r]+/i, "").trim();
-  if (!cleanAnswer) throw new ProviderRequestError("Cloudflare Workers AI + Jina Search", 502, "The grounded answer returned no answer text.");
+  if (!cleanAnswer) throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, "The grounded answer returned no answer text.");
   return { answer: cleanAnswer, citations: unique.map((index) => available[index - 1]) };
 }
 
@@ -210,7 +210,7 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
       if (error instanceof ProviderRequestError) throw error;
       if (error instanceof DOMException && error.name === "AbortError") throw error;
       const detail = error instanceof Error ? error.message : "The grounded retrieval or model request failed.";
-      throw new ProviderRequestError("Cloudflare Workers AI + Jina Search", 502, detail);
+      throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 502, detail);
     }
   },
 };

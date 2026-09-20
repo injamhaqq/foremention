@@ -118,3 +118,12 @@ test("the canary proves ordinary sign-out clears the acceptance session and re-p
   assert.match(canary, /post-logout-workspace-boundary-verified/);
   assert.match(canary, /searchParams\.get\("next"\) !== "\/app"/);
 });
+
+
+test("the canary records the sanitized persisted run failure reason for exact-release diagnosis", () => {
+  assert.match(canary, /errorSummary: null/);
+  assert.match(canary, /run\.errorSummary/);
+  assert.match(canary, /summary\.evidence\.errorSummary/);
+  assert.match(canary, /First-evidence collection terminated with status \$\{run\.status\}\$\{reason\}/);
+  assert.doesNotMatch(canary, /run_attempts\?/);
+});

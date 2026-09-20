@@ -5,16 +5,16 @@ import test from "node:test";
 
 const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
 
-test("public prompt checker exposes one real Cloudflare plus Jina answer with retrieved citations", () => {
+test("public prompt checker exposes one real Cloudflare plus Bing RSS answer with retrieved citations", () => {
   const worker = read("worker/index.ts");
   const retrieval = read("lib/free-web-retrieval.ts");
   const start = worker.indexOf("async function handlePromptCoverage");
   const end = worker.indexOf("async function handleSourceGapRequest", start);
   const promptCheck = worker.slice(start, end);
   assert.match(promptCheck, /runPublicGroundedCloudflare/);
-  assert.match(promptCheck, /provider: "Cloudflare Workers AI \+ Jina Search"/);
-  assert.match(retrieval, /parseJinaSearchCitations/);
-  assert.match(retrieval, /Jina Search returned no verifiable source URLs/);
+  assert.match(promptCheck, /provider: "Cloudflare Workers AI \+ Bing Search RSS"/);
+  assert.match(retrieval, /parseBingSearchRss/);
+  assert.match(retrieval, /Bing RSS returned no verifiable source URLs/);
   assert.match(promptCheck, /No result was invented/);
   assert.doesNotMatch(promptCheck, /GEMINI_API_KEY|api\.groq\.com/);
 });
