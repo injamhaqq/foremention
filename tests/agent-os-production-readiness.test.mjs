@@ -27,5 +27,5 @@ test("production enables bounded reasoning on the free Cloudflare Workers AI all
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_INPUT_COST_PER_MILLION_USD":\s*"0\.293"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_OUTPUT_COST_PER_MILLION_USD":\s*"2\.253"/);
   assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_MAX_RUN_COST_USD":\s*"0\.01"/);
-  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_DAILY_COST_CAP_USD":\s*"0\.08"/);
+  assert.match(wrangler, /"FOREMENTION_AGENT_REASONING_DAILY_COST_CAP_USD":\s*"0\.01"/);
 });
