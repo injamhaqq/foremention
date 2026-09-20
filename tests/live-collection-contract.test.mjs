@@ -174,7 +174,7 @@ test("Groq Browser Search is a first-class, citation-preserving provider", async
   assert.match(sourceMap, /groq:/);
 });
 
-test("Cloudflare Workers AI uses fixed-origin search evidence and persists only external search-result citations", async () => {
+test("Cloudflare Workers AI uses hardened public source inspection and persists only inspected citations", async () => {
   const [adapter, retrieval, types, registry, data, route, worker, sourceMap, config, prepare] = await Promise.all([
     text("lib/providers/cloudflare.ts"),
     text("lib/free-web-retrieval.ts"),
@@ -197,10 +197,10 @@ test("Cloudflare Workers AI uses fixed-origin search evidence and persists only 
   assert.match(retrieval, /https:\/\/search\.brave\.com/);
   assert.match(retrieval, /https:\/\/html\.duckduckgo\.com/);
   assert.match(retrieval, /https:\/\/www\.bing\.com/);
-  assert.match(retrieval, /searchBrave/);\n  assert.match(retrieval, /searchDuckDuckGo/);\n  assert.match(retrieval, /searchBing/);
+  assert.match(retrieval, /inspectSourceUrl/);\n  assert.match(retrieval, /validatePublicSourceUrl/);\n  assert.match(retrieval, /seedUrlsFromQuery/);
   assert.match(retrieval, /parseSearchHtmlLinks/);
-  assert.match(retrieval, /Keyless web discovery returned no verifiable search-result evidence/);
-  assert.match(retrieval, /keyless-search-evidence/);\n  assert.doesNotMatch(retrieval, /fetchSource|fetch\\(citation\\.url/);
+  assert.match(retrieval, /Keyless web discovery returned no verifiable public source URLs/);
+  assert.match(retrieval, /keyless-web-retrieval/);\n  assert.doesNotMatch(retrieval, /fetch\\(citation\\.url/);
   assert.doesNotMatch(retrieval, /s\.jina\.ai|JINA_API_KEY|quickAction/);
   assert.doesNotMatch(adapter, /CLOUDFLARE_API_(?:KEY|TOKEN)/);
   assert.match(registry, /cloudflareAdapter/);
