@@ -13,7 +13,7 @@ function decodeXml(value: string) {
       if (lower in named) return named[lower];
       const radix = lower.startsWith("#x") ? 16 : 10;
       const numeric = Number.parseInt(lower.replace(/^#x?/, ""), radix);
-      return Number.isFinite(numeric) ? String.fromCodePoint(numeric) : "";
+      return Number.isFinite(numeric) && numeric >= 0 && numeric <= 0x10ffff ? String.fromCodePoint(numeric) : "";
     });
 }
 
