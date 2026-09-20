@@ -70,6 +70,16 @@ interface ExecutionContext {
 }
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const FREE_ONLY_GEMINI_MODEL = "gemini-2.5-flash-lite";
+
+function freeOnlyWorkerMode(env: Env) {
+  return env.FOREMENTION_FREE_ONLY_MODE !== "0";
+}
+
+function workerGeminiModel(env: Env) {
+  return env.GEMINI_MODEL?.trim() || FREE_ONLY_GEMINI_MODEL;
+}
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -229,9 +239,10 @@ type PublicGeminiResponse = {
 };
 
 async function runPublicGroundedGemini(env: Env, prompt: string, maxOutputTokens: number) {
-  if (env.FOREMENTION_FREE_ONLY_MODE !== "1" || !env.GEMINI_API_KEY || !env.GEMINI_MODEL) return null;
+  if (!freeOnlyWorkerMode(env) || !env.GEMINI_API_KEY) return null;
+  const model = workerGeminiModel(env);
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.GEMINI_MODEL)}:generateContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
       method: "POST",
       headers: {
@@ -256,7 +267,7 @@ async function runPublicGroundedGemini(env: Env, prompt: string, maxOutputTokens
       .filter((web): web is { uri: string; title?: string } => Boolean(web?.uri))
       .map((web) => [web.uri, { url: web.uri, title: web.title || null }]),
   ).values()).slice(0, 20);
-  return { answer, citations, model: raw?.modelVersion || env.GEMINI_MODEL };
+  return { answer, citations, model: raw?.modelVersion || model };
 }
 
 async function handleVisibilityScore(request: Request, env: Env) {
@@ -280,7 +291,7 @@ async function handleVisibilityScore(request: Request, env: Env) {
   const limited = await publicRateLimit(request, env, "score", 3, 24 * 60 * 60 * 1000);
   if (!limited.configured) return Response.json({ error: "The public score is not configured safely yet." }, { status: 503 });
   if (!limited.allowed) return Response.json({ error: "Daily score limit reached. Try again tomorrow." }, { status: 429 });
-  if (env.FOREMENTION_FREE_ONLY_MODE !== "1" || !env.GEMINI_API_KEY || !env.GEMINI_MODEL) {
+  if (!freeOnlyWorkerMode(env) || !env.GEMINI_API_KEY) {
     return Response.json({ error: "The free grounded score provider is temporarily unavailable." }, { status: 503 });
   }
   const body = await request.json().catch(() => null) as { brand?: string; category?: string } | null;
@@ -342,7 +353,7 @@ async function handlePromptCoverage(request: Request, env: Env) {
   const limited = await publicRateLimit(request, env, "prompt-check", 5, 24 * 60 * 60 * 1000);
   if (!limited.configured) return Response.json({ error: "The public prompt check is not configured safely yet." }, { status: 503 });
   if (!limited.allowed) return Response.json({ error: "Daily prompt-check limit reached. Try again tomorrow." }, { status: 429 });
-  if (env.FOREMENTION_FREE_ONLY_MODE !== "1" || !env.GEMINI_API_KEY || !env.GEMINI_MODEL) {
+  if (!freeOnlyWorkerMode(env) || !env.GEMINI_API_KEY) {
     return Response.json({ error: "The free grounded prompt provider is temporarily unavailable." }, { status: 503 });
   }
   const body = await request.json().catch(() => null) as { brand?: string; question?: string } | null;
