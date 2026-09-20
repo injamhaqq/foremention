@@ -1,8 +1,8 @@
 # Foremention Stage 0 Customer-Proof Operating Gate — 90 Days
 
-**Status:** ACTIVE operating constraint  
-**Started:** 2026-09-20  
-**Repository baseline at branch point:** `efc450833a863e8801e93decce813628c8aacfce`  
+**Status:** ACTIVE operating constraint
+**Started:** 2026-09-20
+**Repository baseline at branch point:** `efc450833a863e8801e93decce813628c8aacfce`
 **Authority:** customer evidence and first-party production/commercial truth override plans, assumptions, and feature breadth.
 
 ## Stage 0 exit gate
