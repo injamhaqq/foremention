@@ -35,7 +35,9 @@ export function pageMetadata({ title, description, path, noIndex = false }: Page
     title,
     description,
     alternates: { canonical },
-    robots: noIndex ? { index: false, follow: false } : { index: true, follow: true },
+    robots: noIndex
+      ? { index: false, follow: false }
+      : "index, follow, max-snippet:-1, max-image-preview:large",
     openGraph: { title: `${title} | ${SITE_NAME}`, description, url: canonical, type: "website", siteName: SITE_NAME },
     twitter: { card: "summary", title: `${title} | ${SITE_NAME}`, description },
   };
