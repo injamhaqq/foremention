@@ -26,6 +26,20 @@ test("homepage exposes explicit markdown discovery and worker content negotiatio
   assert.match(worker, /<\/index\.md>; rel=\\?"alternate\\?"; type=\\?"text\/markdown\\?"/);
 });
 
+test("direct markdown exposes canonical static headers and freshness metadata", async () => {
+  const [headers, markdown, page] = await Promise.all([
+    read("public/_headers"),
+    read("public/index.md"),
+    read("app/page.tsx"),
+  ]);
+
+  assert.match(headers, /\/index\.md/);
+  assert.match(headers, /<https:\/\/foremention\.com\/>; rel="canonical"/);
+  assert.match(markdown, /last_updated:\s*"2026-09-20"/);
+  assert.match(page, /breadcrumb:[\s\S]*"@type": "BreadcrumbList"/);
+  assert.match(page, /"@type": "ListItem", position: 1, name: "Foremention"/);
+});
+
 test("public agent guide has recognizable usage sections and bounded OpenAPI discovery", async () => {
   const [agents, openapiText] = await Promise.all([
     read("public/AGENTS.md"),
