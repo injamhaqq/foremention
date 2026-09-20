@@ -14,15 +14,14 @@ function switchCaseBody(source, eventName) {
   return nextCase === -1 ? rest : rest.slice(0, nextCase);
 }
 
-test("public navigation is focused on product understanding and design-partner conversion", async () => {
+test("public navigation exposes the shortest useful path to product, pricing, research, trust, and conversion", async () => {
   const shell = await read("components/public-shell.tsx");
 
-  for (const label of ["Product", "How it works", "Methodology", "Trust", "Sign in", "Apply as Design Partner"]) {
+  for (const label of ["Product", "How it works", "Pricing", "Research", "Trust", "Sign in", "Apply as Design Partner"]) {
     assert.match(shell, new RegExp(label));
   }
 
-  assert.doesNotMatch(shell, />Research</);
-  assert.doesNotMatch(shell, />Glossary</);
+  assert.match(shell, />Glossary<\/Link>/);
   assert.doesNotMatch(shell, />Partners</);
   assert.doesNotMatch(shell, />Category</);
   assert.doesNotMatch(shell, />Request a demo</);
@@ -39,7 +38,7 @@ test("homepage leads with the company-change outcome and shows the complete deci
   ]);
 
   assert.match(home, /Know what your company should change next to become the stronger recommendation\./);
-  assert.match(home, /Apply as a Design Partner/);
+  assert.match(home, /Apply as Design Partner/);
   assert.match(home, /See how it works/);
   assert.match(home, /LIVE RECORD \/ ILLUSTRATIVE/);
   assert.match(home, /Evidence inspection/);
@@ -83,7 +82,7 @@ test("design-partner conversion is the primary contact flow and is measured with
     read("lib/product-analytics-contract.ts"),
   ]);
 
-  assert.match(contact, /Apply as a Design Partner/);
+  assert.match(contact, /Apply as Design Partner/);
   assert.match(contact, /Bring 5 priority buyer questions/);
   assert.match(contact, /comparable remeasurement/);
   assert.match(analytics, /design_partner_page_viewed/);
