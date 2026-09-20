@@ -33,9 +33,9 @@ test("production free-only mode uses grounded Cloudflare plus keyless web retrie
   assert.match(cloudflare, /SOURCES:/);
   assert.doesNotMatch(cloudflare, /extractUrls/);
   assert.match(retrieval, /https:\/\/search\.brave\.com/);
-  assert.match(retrieval, /seedUrlsFromQuery/);
+  assert.match(retrieval, /searchBrave/);\n  assert.match(retrieval, /searchDuckDuckGo/);\n  assert.match(retrieval, /searchBing/);
   assert.match(retrieval, /parseSearchHtmlLinks/);
-  assert.match(retrieval, /keyless-web-retrieval/);
+  assert.match(retrieval, /keyless-search-evidence/);\n  assert.doesNotMatch(retrieval, /fetchSource|fetch\\(citation\\.url/);
   assert.doesNotMatch(retrieval, /s\.jina\.ai|JINA_API_KEY|quickAction/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
   assert.doesNotMatch(worker, /setBrowserRunBinding|env\.BROWSER/);
