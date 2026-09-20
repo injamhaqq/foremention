@@ -12,7 +12,7 @@ const ALLOWED_PROVIDERS = new Set<ProviderId>([
   "zenmux",
   "omnirouters",
 ]);
-const DEFAULT_PROVIDER_ORDER: ProviderId[] = ["gemini", "groq", "perplexity", "openai", "openrouter"];
+const DEFAULT_PROVIDER_ORDER: ProviderId[] = ["cloudflare", "gemini", "groq", "perplexity", "openai", "openrouter"];
 const MAX_QUESTIONS = 5;
 const MIN_QUESTIONS = 3;
 const MAX_PROVIDERS = 2;
@@ -99,7 +99,7 @@ export function parseOutreachMiniAuditInput(input: unknown): OutreachMiniAuditIn
     : [];
   const providers = parseProviders(record.providers);
   if (freeOnlyProviderMode() && providers.some((provider) => provider !== "mock" && !providerAllowedForLiveCollection(provider))) {
-    throw new Error("Foremention free-only mode permits only grounded Gemini for outreach mini-audits.");
+    throw new Error("Foremention free-only mode permits only grounded Cloudflare Workers AI with Jina Search for outreach mini-audits.");
   }
   const locale = cleanText(record.locale, 40) || undefined;
   return { brand, domain, questions, competitors, providers, locale };
