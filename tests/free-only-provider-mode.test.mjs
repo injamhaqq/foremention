@@ -47,6 +47,8 @@ test("only Gemini may create customer evidence while free-only mode is enabled",
   assert.match(policy, /FREE_ONLY_COLLECTION_PROVIDER[^\n]*"gemini"/);
   assert.match(policy, /process\.env\.FOREMENTION_FREE_ONLY_MODE !== "0"/);
   for (const source of [route, jobs, schedules]) assert.match(source, /providerAllowedForLiveCollection/);
+  assert.match(jobs, /configuredFreeOnlyGeminiModel/);
+  assert.match(jobs, /providerId === "gemini"[\s\S]*configuredFreeOnlyGeminiModel\(\)/);
   assert.match(route, /Production is in free-only mode/);
   assert.match(data, /providerAllowedForLiveCollection/);
   assert.match(outreach, /DEFAULT_PROVIDER_ORDER[^\n]*\["gemini"/);
