@@ -60,7 +60,7 @@ function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigat
   return <nav className="sidebar-nav sidebar-nav--primary" aria-label="Main workspace">
     {primaryNav.map(([href, label]) => {
       const current = isCurrent(pathname, href);
-      return <Link className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
+      return <Link prefetch={false} className={current ? "is-current" : ""} aria-current={current ? "page" : undefined} key={href} href={href} onClick={onNavigate}>{label}<span aria-hidden="true">&rarr;</span></Link>;
     })}
   </nav>;
 }
@@ -98,7 +98,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
       <summary ref={summaryRef}><ForementionMark /><span>Workspace menu</span></summary>
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
-        <Link className="app-mobile-nav__search" href="/app/search" onClick={() => closeMenu()}>Search workspace <span aria-hidden="true">&rarr;</span></Link>
+        <Link prefetch={false} className="app-mobile-nav__search" href="/app/search" onClick={() => closeMenu()}>Search workspace <span aria-hidden="true">&rarr;</span></Link>
         <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>
