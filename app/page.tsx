@@ -14,25 +14,25 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function HomePage() {
-  const structuredData = {
-    ...webPageJsonLd({
-      name: "Foremention — Recommendation Intelligence for B2B Software",
-      description,
-      path: "/",
-    }),
-    breadcrumb: {
-      "@type": "BreadcrumbList",
-      name: "Foremention home breadcrumb",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Foremention", item: "https://foremention.com/" },
-      ],
-    },
+  const structuredData = webPageJsonLd({
+    name: "Foremention — Recommendation Intelligence for B2B Software",
+    description,
+    path: "/",
+  });
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    name: "Foremention home breadcrumb",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Foremention", item: "https://foremention.com/" },
+    ],
   };
 
   return (
     <PublicShell>
       <link rel="alternate" type="text/markdown" href="/index.md" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }} />
       <MissingAnswerExperience />
     </PublicShell>
   );
