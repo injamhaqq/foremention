@@ -106,11 +106,11 @@ test("homepage uses the approved outreach composition while retaining lightweigh
   assert.match(layout, /Recommendation intelligence for B2B software/);
 });
 
-test("signed-in primary IA remains exactly five product objects", async () => {
+test("signed-in primary IA exposes the eight core destinations without reviving specialist clutter", async () => {
   const nav = await text("components/workspace-navigation.tsx");
   const primary = nav.slice(nav.indexOf("const primaryNav"), nav.indexOf("export const CONTEXTUAL_WORKSPACE_ROUTES"));
-  for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) assert.match(primary, new RegExp(`"${label}"`));
-  assert.doesNotMatch(primary, /Source X-Ray|Evidence Vault|Competitors|Actions/);
+  for (const label of ["Overview", "Questions", "Records", "Evidence", "Opportunities", "Comparisons", "All tools", "Settings"]) assert.match(primary, new RegExp(`"${label}"`));
+  assert.doesNotMatch(primary, /Source X-Ray|Evidence Vault|Competitors|Actions|Agent Control Plane/);
   assert.match(nav, /CONTEXTUAL_WORKSPACE_ROUTES/);
 });
 
