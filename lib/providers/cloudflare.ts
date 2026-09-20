@@ -17,11 +17,15 @@ export interface CloudflareAiBinding {
     max_tokens?: number;
     temperature?: number;
     stream?: false;
+    response_format?: {
+      type: "json_schema";
+      json_schema: Record<string, unknown>;
+    };
   }): Promise<unknown>;
 }
 
 type CloudflareTextResponse = {
-  response?: string;
+  response?: unknown;
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -41,12 +45,18 @@ export function setCloudflareAiBinding(binding?: CloudflareAiBinding) {
   runtime.__FOREMENTION_CLOUDFLARE_AI__ = binding;
 }
 
+export function getCloudflareAiBinding() {
+  return runtime.__FOREMENTION_CLOUDFLARE_AI__;
+}
+
 export function cloudflareAiConfigured() {
   return Boolean(runtime.__FOREMENTION_CLOUDFLARE_AI__ && process.env.CLOUDFLARE_MODEL);
 }
 
 function contentFrom(raw: CloudflareTextResponse) {
-  return raw.response?.trim() || raw.choices?.[0]?.message?.content?.trim() || "";
+  if (typeof raw.response === "string" && raw.response.trim()) return raw.response.trim();
+  if (raw.response && typeof raw.response === "object") return JSON.stringify(raw.response);
+  return raw.choices?.[0]?.message?.content?.trim() || "";
 }
 
 function usageFrom(raw: CloudflareTextResponse): ProviderUsage | undefined {
