@@ -10,6 +10,7 @@ export const metadata: Metadata = pageMetadata({
   title: "Recommendation Intelligence for B2B Software",
   description,
   path: "/",
+  markdownPath: "/index.md",
 });
 
 export default function HomePage() {
