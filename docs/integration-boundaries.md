@@ -11,7 +11,7 @@ product advantage by itself.
 | --- | --- | --- |
 | Gemini | Grounded answer collection | Provider-returned citations only |
 | Groq Compound | Grounded answer collection | Structured search results only |
-| Cloudflare Workers AI + Jina Search | Free-only grounded answer collection | Jina-returned source URLs only; Workers AI may select only retrieved source indexes |
+| Cloudflare Workers AI + Browser Run | Free-only grounded answer collection | Browser Run-discovered public URLs that Foremention successfully fetches; Workers AI may select only retrieved source indexes |
 | OpenRouter with explicit GLM 5.2 | Additional model perspective | Answer-only; low-cost, not free |
 | ZenMux | Optional explicit-model gateway | Structured provider URLs only; otherwise answer-only |
 | OmniRouters | Optional explicit-model gateway | Structured provider URLs only; otherwise answer-only |
