@@ -26,7 +26,7 @@ test("Bing RSS citations are parsed only from structured retrieval items and ded
     {
       url: "https://openai.com/news/example",
       title: "OpenAI News & Updates",
-      snippet: "Current result snippet with evidence .",
+      snippet: "Current result snippet with evidence.",
     },
     {
       url: "https://example.com/reference",
