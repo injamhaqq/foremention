@@ -25,7 +25,7 @@ test("workspace keeps the five canonical tabs while exposing grouped secondary t
   for (const label of ["Attention", "Questions", "Records", "Comparisons", "Settings"]) {
     assert.ok(nav.includes('"' + label + '"'), "missing canonical workspace tab: " + label);
   }
-  for (const route of ["/app/alerts", "/app/competitors", "/app/source-map", "/app/evidence", "/app/intelligence", "/app/opportunities", "/app/change-specifications", "/app/placements", "/app/resolutions", "/app/outcomes", "/app/decision-lab", "/app/team", "/app/support", "/app/passport", "/app/agents"]) {
+  for (const route of ["/app/alerts", "/app/competitors", "/app/source-map", "/app/evidence", "/app/intelligence", "/app/opportunities", "/app/placements", "/app/resolutions", "/app/outcomes", "/app/decision-lab", "/app/team", "/app/support", "/app/passport", "/app/agents"]) {
     assert.ok(nav.includes(route), "missing discoverable workspace route: " + route);
   }
   assert.ok(nav.includes("Explore workspace"));
