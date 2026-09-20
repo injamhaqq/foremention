@@ -13,6 +13,7 @@ export {
   resolveReasoningPricing,
 } from "@/lib/agent-os/reasoning-core";
 import { safeOperationalError } from "@/lib/collection-policy";
+import { getCloudflareAiBinding } from "@/lib/providers/cloudflare";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type ReservationResult = {
@@ -55,6 +56,16 @@ type OpenAIResponse = {
   };
 };
 
+type CloudflareReasoningResponse = {
+  response?: unknown;
+  choices?: Array<{ message?: { content?: string } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+};
+
 export type StructuredReasoningSuccess<T> = {
   skipped: false;
   reasoningRunId: string;
@@ -71,7 +82,9 @@ export type StructuredReasoningSkipped = {
   skipped: true;
   reason:
     | "disabled"
+    | "provider_not_configured"
     | "openai_not_configured"
+    | "cloudflare_not_configured"
     | "pricing_not_configured"
     | "input_too_large"
     | "run_cost_cap"
@@ -89,6 +102,12 @@ function positiveNumber(value: string | undefined, fallback: number) {
 
 export function reasoningEnabled() {
   return process.env.FOREMENTION_AGENT_REASONING_ENABLED === "1";
+}
+
+export function reasoningProvider() {
+  const provider = String(process.env.FOREMENTION_AGENT_REASONING_PROVIDER || "openai").trim().toLowerCase();
+  if (provider === "openai" || provider === "cloudflare") return provider;
+  return null;
 }
 
 export function reasoningModel() {
@@ -163,7 +182,14 @@ export async function runStructuredReasoning<T>(input: StructuredReasoningContex
   maxOutputTokens?: number;
 }): Promise<StructuredReasoningResult<T>> {
   if (!reasoningEnabled()) return { skipped: true, reason: "disabled" };
-  if (!process.env.OPENAI_API_KEY) return { skipped: true, reason: "openai_not_configured" };
+  const provider = reasoningProvider();
+  if (!provider) return { skipped: true, reason: "provider_not_configured" };
+  if (provider === "openai" && !process.env.OPENAI_API_KEY) {
+    return { skipped: true, reason: "openai_not_configured" };
+  }
+  if (provider === "cloudflare" && !getCloudflareAiBinding()) {
+    return { skipped: true, reason: "cloudflare_not_configured" };
+  }
 
   const model = reasoningModel();
   const pricing = resolveReasoningPricing(model);
@@ -251,61 +277,117 @@ export async function runStructuredReasoning<T>(input: StructuredReasoningContex
   const timeout = setTimeout(() => controller.abort(), 30_000);
   const started = Date.now();
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        instructions: input.instructions,
-        input: input.inputText,
-        max_output_tokens: maxOutputTokens,
-        store: false,
-        reasoning: { effort: "low" },
-        text: {
-          verbosity: "low",
-          format: {
+    let output: T;
+    let providerModel = model;
+    let responseId: string | null = null;
+    let inputTokens: number | null = null;
+    let outputTokens: number | null = null;
+
+    if (provider === "cloudflare") {
+      const binding = getCloudflareAiBinding();
+      if (!binding) return { skipped: true, reason: "cloudflare_not_configured" };
+
+      const aborted = new Promise<never>((_, reject) => {
+        controller.signal.addEventListener(
+          "abort",
+          () => reject(new DOMException("The provider request timed out.", "AbortError")),
+          { once: true },
+        );
+      });
+
+      const raw = await Promise.race([
+        binding.run(model, {
+          messages: [
+            { role: "system", content: input.instructions },
+            { role: "user", content: input.inputText },
+          ],
+          max_tokens: maxOutputTokens,
+          temperature: 0.1,
+          stream: false,
+          response_format: {
             type: "json_schema",
-            name: input.schemaName,
-            strict: true,
-            schema: input.schema,
+            json_schema: input.schema,
           },
-        },
-        safety_identifier: input.organizationId,
-        prompt_cache_key: `foremention:${input.taskType}:${input.promptVersion}`,
-        metadata: {
-          agent_id: input.agentId,
-          task_type: input.taskType.slice(0, 64),
-          ...(runId ? { run_id: runId } : {}),
-          ...(supportTicketId ? { support_ticket_id: supportTicketId } : {}),
-        },
-      }),
-    });
-    const raw = await response.json() as OpenAIResponse;
-    if (!response.ok) {
-      throw new Error(formatOpenAIReasoningError(response.status, raw, response.headers.get("x-request-id")));
-    }
-    const outputText = extractOutputText(raw);
-    if (!outputText) throw new Error("OpenAI reasoning response contained no structured text output.");
+        }) as Promise<CloudflareReasoningResponse>,
+        aborted,
+      ]);
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(outputText);
-    } catch {
-      throw new Error("OpenAI reasoning response was not valid JSON.");
-    }
-    const output = input.validate(parsed);
-    if (!output) throw new Error("OpenAI reasoning response failed Foremention schema validation.");
+      const candidate = raw.response ?? raw.choices?.[0]?.message?.content;
+      let parsed: unknown;
+      if (typeof candidate === "string") {
+        try {
+          parsed = JSON.parse(candidate);
+        } catch {
+          throw new Error("Cloudflare reasoning response was not valid JSON.");
+        }
+      } else {
+        parsed = candidate;
+      }
 
-    const inputTokens = raw.usage?.input_tokens ?? null;
-    const outputTokens = raw.usage?.output_tokens ?? null;
+      const validated = input.validate(parsed);
+      if (!validated) throw new Error("Cloudflare reasoning response failed Foremention schema validation.");
+      output = validated;
+      inputTokens = raw.usage?.prompt_tokens ?? null;
+      outputTokens = raw.usage?.completion_tokens ?? null;
+    } else {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          instructions: input.instructions,
+          input: input.inputText,
+          max_output_tokens: maxOutputTokens,
+          store: false,
+          reasoning: { effort: "low" },
+          text: {
+            verbosity: "low",
+            format: {
+              type: "json_schema",
+              name: input.schemaName,
+              strict: true,
+              schema: input.schema,
+            },
+          },
+          safety_identifier: input.organizationId,
+          prompt_cache_key: `foremention:${input.taskType}:${input.promptVersion}`,
+          metadata: {
+            agent_id: input.agentId,
+            task_type: input.taskType.slice(0, 64),
+            ...(runId ? { run_id: runId } : {}),
+            ...(supportTicketId ? { support_ticket_id: supportTicketId } : {}),
+          },
+        }),
+      });
+      const raw = await response.json() as OpenAIResponse;
+      if (!response.ok) {
+        throw new Error(formatOpenAIReasoningError(response.status, raw, response.headers.get("x-request-id")));
+      }
+      const outputText = extractOutputText(raw);
+      if (!outputText) throw new Error("OpenAI reasoning response contained no structured text output.");
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(outputText);
+      } catch {
+        throw new Error("OpenAI reasoning response was not valid JSON.");
+      }
+      const validated = input.validate(parsed);
+      if (!validated) throw new Error("OpenAI reasoning response failed Foremention schema validation.");
+      output = validated;
+      inputTokens = raw.usage?.input_tokens ?? null;
+      outputTokens = raw.usage?.output_tokens ?? null;
+      responseId = response.headers.get("x-request-id") || raw.id || null;
+      providerModel = raw.model || model;
+    }
+
     const actualCostUsd = inputTokens !== null && outputTokens !== null
       ? estimateReasoningCostUsd(inputTokens, outputTokens, pricing)
       : null;
-    const responseId = response.headers.get("x-request-id") || raw.id || null;
 
     await supabaseRest(`agent_reasoning_runs?id=eq.${encodeURIComponent(persisted.id)}`, {
       method: "PATCH",
@@ -313,7 +395,7 @@ export async function runStructuredReasoning<T>(input: StructuredReasoningContex
       prefer: "return=minimal",
       body: {
         status: "complete",
-        model: raw.model || model,
+        model: providerModel,
         response_id: responseId,
         output_json: output,
         input_tokens: inputTokens,
@@ -329,7 +411,7 @@ export async function runStructuredReasoning<T>(input: StructuredReasoningContex
       skipped: false,
       reasoningRunId: persisted.id,
       output,
-      model: raw.model || model,
+      model: providerModel,
       responseId,
       inputTokens,
       outputTokens,
