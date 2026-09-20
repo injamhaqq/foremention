@@ -22,6 +22,7 @@ export default function HomePage() {
 
   return (
     <PublicShell>
+      <link rel="alternate" type="text/markdown" href="/index.md" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <MissingAnswerExperience />
     </PublicShell>
