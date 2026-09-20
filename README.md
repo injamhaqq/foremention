@@ -101,7 +101,7 @@ Before enabling paid checkout in production, approve real Stripe Prices, refund/
 | `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_MODEL_VERSION` | Optional Groq Compound adapter with structured web-search citations |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Optional Anthropic adapter |
 | `PERPLEXITY_API_KEY`, `PERPLEXITY_MODEL` | Optional Perplexity adapter |
-| `CLOUDFLARE_MODEL` and `CLOUDFLARE_*_COST_*` | Free-only customer-evidence adapter: Cloudflare Browser Run discovers current public sources and Workers AI synthesizes only from fetched source content; fails closed without real source URLs |
+| `CLOUDFLARE_MODEL` and `CLOUDFLARE_*_COST_*` | Free-only customer-evidence adapter: keyless web discovery identifies current public sources and Workers AI synthesizes only from fetched source content; fails closed without real source URLs |
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_*_COST_*` | Optional explicit-model OpenRouter adapter; availability and cost depend on configured model |
 | `ZENMUX_API_KEY`, `ZENMUX_MODEL`, and `ZENMUX_*_COST_*` | Optional fixed-endpoint ZenMux gateway; unavailable until an explicit model and current cost rates are configured |
 | `OMNIROUTERS_API_KEY`, `OMNIROUTERS_MODEL`, and `OMNIROUTERS_*_COST_*` | Optional fixed-endpoint OmniRouters gateway; unavailable until an explicit model and current cost rates are configured |
