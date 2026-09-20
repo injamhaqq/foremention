@@ -5,6 +5,7 @@ import {
   DEFAULT_REASONING_MODEL,
   DEFAULT_REASONING_OUTPUT_COST_PER_MILLION_USD,
   estimateReasoningCostUsd,
+  formatOpenAIReasoningError,
   resolveReasoningPricing,
   validateCustomerSuccessDraftOutput,
   validateResearchInsightReasoningOutput,
@@ -88,5 +89,17 @@ test("support reply draft preserves bounded human-investigation state", () => {
   assert.deepEqual(
     validateSupportReplyDraftOutput(output, new Set(["ticket:request", "workspace:latest_run_status"])),
     output,
+  );
+});
+
+
+test("reasoning error diagnostics preserve only sanitized OpenAI metadata", () => {
+  assert.equal(
+    formatOpenAIReasoningError(
+      429,
+      { error: { code: "credit_balance_exhausted", type: "insufficient_quota" } },
+      "req_123",
+    ),
+    "OpenAI reasoning request failed with status 429 code=credit_balance_exhausted type=insufficient_quota request_id=req_123.",
   );
 });
