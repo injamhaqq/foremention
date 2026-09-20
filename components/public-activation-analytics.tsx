@@ -30,6 +30,33 @@ export function PublicActivationAnalytics() {
   }, [pathname]);
 
   useEffect(() => {
+    if (pathname !== "/") return;
+    const primaryCta = document.querySelector<HTMLElement>('[data-design-partner-cta="home_hero"]');
+    if (!primaryCta) return;
+
+    let captured = false;
+    const capture = () => {
+      if (captured) return;
+      captured = true;
+      captureProductEvent("design_partner_cta_impression", { surface: "home" });
+    };
+
+    if (!("IntersectionObserver" in window)) {
+      capture();
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return;
+      capture();
+      observer.disconnect();
+    }, { threshold: 0.5 });
+
+    observer.observe(primaryCta);
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  useEffect(() => {
     if (pathname === "/recommendation-intelligence") {
       captureProductEvent("category_page_viewed");
       return;
