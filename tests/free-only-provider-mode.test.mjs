@@ -51,6 +51,7 @@ test("public score and prompt-check use grounded Gemini and contain no direct Gr
   assert.match(publicAi, /generativelanguage\.googleapis\.com/);
   assert.match(publicAi, /google_search/);
   assert.match(publicAi, /groundingChunks/);
+  assert.match(publicAi, /if \(!citations\.length\) return null/);
   assert.match(publicAi, /provider: "Google Gemini"/);
   assert.match(publicAi, /FOREMENTION_FREE_ONLY_MODE/);
   assert.doesNotMatch(publicAi, /api\.groq\.com/);

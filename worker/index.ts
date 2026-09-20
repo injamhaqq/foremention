@@ -256,6 +256,7 @@ async function runPublicGroundedGemini(env: Env, prompt: string, maxOutputTokens
       .filter((web): web is { uri: string; title?: string } => Boolean(web?.uri))
       .map((web) => [web.uri, { url: web.uri, title: web.title || null }]),
   ).values()).slice(0, 20);
+  if (!citations.length) return null;
   return { answer, citations, model: raw?.modelVersion || env.GEMINI_MODEL };
 }
 
