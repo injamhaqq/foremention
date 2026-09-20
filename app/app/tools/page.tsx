@@ -43,6 +43,7 @@ const toolGroups = [
     title: "Run the workspace",
     description: "Manage people, integrations, agents, support, and workspace configuration.",
     tools: [
+      ["/app/onboarding", "Setup", "Return to guided workspace setup and buyer-question configuration."],
       ["/app/agents", "Agent Control Plane", "Inspect agent status and approved execution boundaries."],
       ["/app/team", "Team", "Manage workspace membership and access."],
       ["/app/settings#integrations", "Integrations", "Configure supported workspace connections."],
