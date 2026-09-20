@@ -38,12 +38,10 @@ interface Env {
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
   GROQ_API_KEY?: string;
   GEMINI_API_KEY?: string;
-  GEMINI_MODEL?: string;
   OPENROUTER_API_KEY?: string;
   OPENAI_API_KEY?: string;
   FOREMENTION_AGENT_OS_ENABLED?: string;
   FOREMENTION_AGENT_REASONING_ENABLED?: string;
-  FOREMENTION_FREE_ONLY_MODE?: string;
   FOREMENTION_COMPANY_OPERATOR_EMAILS?: string;
   RESEND_API_KEY?: string;
   RESEND_FROM_EMAIL?: string;
@@ -218,47 +216,6 @@ function scoreQuestions(category: string) {
   ];
 }
 
-type PublicGeminiResponse = {
-  modelVersion?: string;
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-    groundingMetadata?: {
-      groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
-    };
-  }>;
-};
-
-async function runPublicGroundedGemini(env: Env, prompt: string, maxOutputTokens: number) {
-  if (env.FOREMENTION_FREE_ONLY_MODE !== "1" || !env.GEMINI_API_KEY || !env.GEMINI_MODEL) return null;
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.GEMINI_MODEL)}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": env.GEMINI_API_KEY,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ google_search: {} }],
-        generationConfig: { maxOutputTokens },
-      }),
-      signal: AbortSignal.timeout(25_000),
-    },
-  );
-  const raw = await response.json().catch(() => null) as PublicGeminiResponse | null;
-  const candidate = raw?.candidates?.[0];
-  const answer = (candidate?.content?.parts || []).map((part) => part.text || "").join("\n").trim();
-  if (!response.ok || !answer) return null;
-  const citations = Array.from(new Map(
-    (candidate?.groundingMetadata?.groundingChunks || [])
-      .map((chunk) => chunk.web)
-      .filter((web): web is { uri: string; title?: string } => Boolean(web?.uri))
-      .map((web) => [web.uri, { url: web.uri, title: web.title || null }]),
-  ).values()).slice(0, 20);
-  return { answer, citations, model: raw?.modelVersion || env.GEMINI_MODEL };
-}
-
 async function handleVisibilityScore(request: Request, env: Env) {
   if (!env.DB) return Response.json({ error: "The score store is unavailable." }, { status: 503 });
   await initializeD1(env.DB);
@@ -280,60 +237,26 @@ async function handleVisibilityScore(request: Request, env: Env) {
   const limited = await publicRateLimit(request, env, "score", 3, 24 * 60 * 60 * 1000);
   if (!limited.configured) return Response.json({ error: "The public score is not configured safely yet." }, { status: 503 });
   if (!limited.allowed) return Response.json({ error: "Daily score limit reached. Try again tomorrow." }, { status: 429 });
-  if (env.FOREMENTION_FREE_ONLY_MODE !== "1" || !env.GEMINI_API_KEY || !env.GEMINI_MODEL) {
-    return Response.json({ error: "The free grounded score provider is temporarily unavailable." }, { status: 503 });
-  }
+  if (!env.GROQ_API_KEY || !env.GROQ_MODEL) return Response.json({ error: "The live score provider is temporarily unavailable." }, { status: 503 });
+  const estimatedRequestCost = Number(env.GROQ_REQUEST_COST_USD || "0"); const maxCost = Number(env.PUBLIC_TOOL_MAX_REQUEST_COST_USD || "0.04");
+  if (!Number.isFinite(estimatedRequestCost) || !Number.isFinite(maxCost) || estimatedRequestCost > maxCost) return Response.json({ error: "The public score cost ceiling prevents this request." }, { status: 503 });
   const body = await request.json().catch(() => null) as { brand?: string; category?: string } | null;
-  const brand = String(body?.brand || "").trim();
-  const category = String(body?.category || "").trim();
-  if (brand.length < 2 || brand.length > 80 || category.length < 3 || category.length > 160) {
-    return Response.json({ error: "Enter a brand and a specific category." }, { status: 400 });
-  }
+  const brand = String(body?.brand || "").trim(); const category = String(body?.category || "").trim();
+  if (brand.length < 2 || brand.length > 80 || category.length < 3 || category.length > 160) return Response.json({ error: "Enter a brand and a specific category." }, { status: 400 });
   const questions = scoreQuestions(category);
-  const grounded = await runPublicGroundedGemini(
-    env,
-    [
-      "Use Google Search grounding to answer each supplied buyer question independently.",
-      'Return valid JSON only in the form {"answers":[{"question_number":1,"answer":"..."}]}.',
-      "Include exactly five answers. Do not invent companies, claims, sources, or URLs.",
-      ...questions.map((question, index) => `${index + 1}. ${question}`),
-    ].join("\n"),
-    1800,
-  );
-  if (!grounded) return Response.json({ error: "The live provider did not complete the score. No result was invented." }, { status: 502 });
+  const provider = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { authorization: `Bearer ${env.GROQ_API_KEY}`, "content-type": "application/json", "Groq-Model-Version": env.GROQ_MODEL_VERSION || "2025-07-23" }, body: JSON.stringify({ model: env.GROQ_MODEL, compound_custom: { tools: { enabled_tools: ["web_search"] } }, messages: [{ role: "system", content: "Answer each supplied buyer question independently using web search. Return valid JSON only in the form {\"answers\":[{\"question_number\":1,\"answer\":\"...\"}]}. Include exactly five answers. Do not invent companies, claims, or URLs." }, { role: "user", content: questions.map((question, index) => `${index + 1}. ${question}`).join("\n") }], max_completion_tokens: 1800 }), signal: AbortSignal.timeout(25_000) });
+  const raw = await provider.json().catch(() => null) as { model?: string; choices?: Array<{ message?: { content?: string; executed_tools?: Array<{ search_results?: { results?: Array<{ url?: string }> } }> } }> } | null;
+  if (!provider.ok || !raw?.choices?.[0]?.message?.content) return Response.json({ error: "The live provider did not complete the score. No result was invented." }, { status: 502 });
   let parsed: { answers?: Array<{ question_number?: number; answer?: string }> } = {};
-  try {
-    const jsonStart = grounded.answer.indexOf("{");
-    const jsonEnd = grounded.answer.lastIndexOf("}");
-    parsed = JSON.parse(grounded.answer.slice(jsonStart, jsonEnd + 1));
-  } catch {
-    return Response.json({ error: "The provider response could not be verified as five separate answers." }, { status: 502 });
-  }
-  const answers = (parsed.answers || [])
-    .filter((answer) => Number.isInteger(answer.question_number) && typeof answer.answer === "string")
-    .slice(0, 5);
+  try { const content = raw.choices[0].message?.content || ""; const start = content.indexOf("{"); const end = content.lastIndexOf("}"); parsed = JSON.parse(content.slice(start, end + 1)); } catch { return Response.json({ error: "The provider response could not be verified as five separate answers." }, { status: 502 }); }
+  const answers = (parsed.answers || []).filter((answer) => Number.isInteger(answer.question_number) && typeof answer.answer === "string").slice(0, 5);
   if (answers.length !== 5) return Response.json({ error: "The provider did not return five comparable answers." }, { status: 502 });
-  const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const brandPattern = new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i");
+  const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); const brandPattern = new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i");
   const observations = answers.map((answer, index) => ({ question: questions[index], appeared: brandPattern.test(answer.answer || "") }));
-  const score = observations.filter((item) => item.appeared).length * 20;
-  const id = crypto.randomUUID();
-  const createdAt = new Date().toISOString();
-  const result = {
-    id,
-    brand,
-    category,
-    score,
-    appearedIn: observations.filter((item) => item.appeared).length,
-    questions: observations,
-    citations: grounded.citations.map((citation) => citation.url),
-    provider: "Google Gemini",
-    model: grounded.model,
-    observedAt: createdAt,
-    methodology: "One dated grounded provider collection across five deterministic category questions. This is not a market-wide rank or outcome guarantee.",
-  };
-  await env.DB.prepare("INSERT INTO public_visibility_scores (id, brand, category, score, model, result_json, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-    .bind(id, brand, category, score, result.model, JSON.stringify(result), createdAt, Date.now() + 7 * 24 * 60 * 60 * 1000).run();
+  const citations = Array.from(new Set((raw.choices[0].message?.executed_tools || []).flatMap((tool) => tool.search_results?.results || []).map((item) => item.url).filter((value): value is string => Boolean(value)))).slice(0, 20);
+  const score = observations.filter((item) => item.appeared).length * 20; const id = crypto.randomUUID(); const createdAt = new Date().toISOString();
+  const result = { id, brand, category, score, appearedIn: observations.filter((item) => item.appeared).length, questions: observations, citations, provider: "Groq", model: raw.model || env.GROQ_MODEL, observedAt: createdAt, methodology: "One dated provider collection across five deterministic category questions. This is not a market-wide rank or outcome guarantee." };
+  await env.DB.prepare("INSERT INTO public_visibility_scores (id, brand, category, score, model, result_json, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(id, brand, category, score, result.model, JSON.stringify(result), createdAt, Date.now() + 7 * 24 * 60 * 60 * 1000).run();
   return Response.json({ data: result }, { status: 201 });
 }
 
@@ -342,36 +265,17 @@ async function handlePromptCoverage(request: Request, env: Env) {
   const limited = await publicRateLimit(request, env, "prompt-check", 5, 24 * 60 * 60 * 1000);
   if (!limited.configured) return Response.json({ error: "The public prompt check is not configured safely yet." }, { status: 503 });
   if (!limited.allowed) return Response.json({ error: "Daily prompt-check limit reached. Try again tomorrow." }, { status: 429 });
-  if (env.FOREMENTION_FREE_ONLY_MODE !== "1" || !env.GEMINI_API_KEY || !env.GEMINI_MODEL) {
-    return Response.json({ error: "The free grounded prompt provider is temporarily unavailable." }, { status: 503 });
-  }
-  const body = await request.json().catch(() => null) as { brand?: string; question?: string } | null;
-  const brand = String(body?.brand || "").trim();
-  const question = String(body?.question || "").trim();
-  if (brand.length < 2 || brand.length > 80 || question.length < 8 || question.length > 500) {
-    return Response.json({ error: "Enter a brand and one complete buyer question." }, { status: 400 });
-  }
-  const grounded = await runPublicGroundedGemini(
-    env,
-    `Use Google Search grounding. Answer this buyer question directly, preserve uncertainty, and do not invent companies, claims, sources, or URLs.\n\n${question}`,
-    1000,
-  );
-  if (!grounded) return Response.json({ error: "The live provider did not complete the check. No result was invented." }, { status: 502 });
-  const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const appeared = new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i").test(grounded.answer);
-  return Response.json({
-    data: {
-      brand,
-      question,
-      appeared,
-      answer: grounded.answer,
-      citations: grounded.citations,
-      provider: "Google Gemini",
-      model: grounded.model,
-      observedAt: new Date().toISOString(),
-      methodology: "One dated grounded provider answer. Presence does not establish ranking, buyer behavior, or future visibility.",
-    },
-  });
+  if (!env.GROQ_API_KEY || !env.GROQ_MODEL) return Response.json({ error: "The live prompt provider is temporarily unavailable." }, { status: 503 });
+  const estimatedRequestCost = Number(env.GROQ_REQUEST_COST_USD || "0"); const maxCost = Number(env.PUBLIC_TOOL_MAX_REQUEST_COST_USD || "0.04");
+  if (!Number.isFinite(estimatedRequestCost) || !Number.isFinite(maxCost) || estimatedRequestCost > maxCost) return Response.json({ error: "The public tool cost ceiling prevents this request." }, { status: 503 });
+  const body = await request.json().catch(() => null) as { brand?: string; question?: string } | null; const brand = String(body?.brand || "").trim(); const question = String(body?.question || "").trim();
+  if (brand.length < 2 || brand.length > 80 || question.length < 8 || question.length > 500) return Response.json({ error: "Enter a brand and one complete buyer question." }, { status: 400 });
+  const provider = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { authorization: `Bearer ${env.GROQ_API_KEY}`, "content-type": "application/json", "Groq-Model-Version": env.GROQ_MODEL_VERSION || "2025-07-23" }, body: JSON.stringify({ model: env.GROQ_MODEL, compound_custom: { tools: { enabled_tools: ["web_search"] } }, messages: [{ role: "system", content: "Use web search. Answer this buyer question directly, preserve uncertainty, and do not invent companies, claims, or URLs." }, { role: "user", content: question }], max_completion_tokens: 1000 }), signal: AbortSignal.timeout(25_000) });
+  const raw = await provider.json().catch(() => null) as { model?: string; choices?: Array<{ message?: { content?: string; executed_tools?: Array<{ search_results?: { results?: Array<{ url?: string; title?: string }> } }> } }> } | null; const answer = raw?.choices?.[0]?.message?.content || "";
+  if (!provider.ok || !answer) return Response.json({ error: "The live provider did not complete the check. No result was invented." }, { status: 502 });
+  const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); const appeared = new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i").test(answer);
+  const citations = Array.from(new Map((raw?.choices?.[0]?.message?.executed_tools || []).flatMap((tool) => tool.search_results?.results || []).filter((item) => item.url).map((item) => [item.url, { url: item.url, title: item.title || null }])).values()).slice(0, 20);
+  return Response.json({ data: { brand, question, appeared, answer, citations, provider: "Groq", model: raw?.model || env.GROQ_MODEL, observedAt: new Date().toISOString(), methodology: "One dated provider answer. Presence does not establish ranking, buyer behavior, or future visibility." } });
 }
 
 async function handleSourceGapRequest(request: Request, env: Env) {
