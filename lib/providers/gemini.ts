@@ -1,4 +1,4 @@
-import { extractUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
+import { ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
 
 type GeminiResponse = {
   modelVersion?: string;
@@ -38,7 +38,7 @@ export const geminiAdapter: AnswerProviderAdapter = {
     try {
       raw = responseText ? JSON.parse(responseText) as GeminiResponse : {};
     } catch {
-      if (response.ok) throw new Error("Gemini returned an unreadable success response.");
+      if (response.ok) throw new ProviderRequestError("Gemini", 502, "Grounded response body was unreadable.");
     }
     if (!response.ok) {
       const statusLabel = raw.error?.status?.trim();
@@ -47,12 +47,19 @@ export const geminiAdapter: AnswerProviderAdapter = {
       throw new ProviderRequestError("Gemini", response.status, detail);
     }
     const candidate = raw.candidates?.[0];
-    const answer = (candidate?.content?.parts || []).map((part) => part.text || "").join("\n");
-    const citations: ProviderCitation[] = (candidate?.groundingMetadata?.groundingChunks || [])
-      .map((chunk) => chunk.web)
-      .filter((web): web is { uri: string; title?: string } => Boolean(web?.uri))
-      .map((web) => ({ url: web.uri, title: web.title }));
-    const normalizedCitations = citations.length ? citations : extractUrls(answer);
+    const answer = (candidate?.content?.parts || []).map((part) => part.text || "").join("\n").trim();
+    if (!answer) throw new ProviderRequestError("Gemini", 502, "Grounded response returned no answer text.");
+
+    const citations: ProviderCitation[] = Array.from(new Map(
+      (candidate?.groundingMetadata?.groundingChunks || [])
+        .map((chunk) => chunk.web)
+        .filter((web): web is { uri: string; title?: string } => Boolean(web?.uri))
+        .map((web) => [web.uri, { url: web.uri, title: web.title }]),
+    ).values());
+    if (!citations.length) {
+      throw new ProviderRequestError("Gemini", 502, "Grounded response returned no provider citation metadata.");
+    }
+
     const usage = raw.usageMetadata ? {
       inputTokens: raw.usageMetadata.promptTokenCount,
       outputTokens: raw.usageMetadata.candidatesTokenCount,
@@ -63,8 +70,8 @@ export const geminiAdapter: AnswerProviderAdapter = {
       model: raw.modelVersion || model,
       promptId: prompt.promptId,
       answer,
-      citations: normalizedCitations,
-      raw: { model: raw.modelVersion || model, finishReason: candidate?.finishReason, usage, citationCount: normalizedCitations.length },
+      citations,
+      raw: { model: raw.modelVersion || model, finishReason: candidate?.finishReason, usage, citationCount: citations.length },
       collectedAt: new Date().toISOString(),
       latencyMs: Date.now() - started,
       usage,

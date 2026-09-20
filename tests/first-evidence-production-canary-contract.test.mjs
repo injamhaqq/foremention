@@ -30,6 +30,7 @@ test("the production canary is trusted-main only and exact releases require expl
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_CANARY_ENABLED: \$\{\{ secrets\.FOREMENTION_ACCEPTANCE_CANARY_ENABLED \}\}/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED: 'true'/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER: 'gemini'/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_EXPECTED_MODEL: 'gemini-2\.5-flash-lite'/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_MAX_COST_USD: '0\.01'/);
 });
 
@@ -89,9 +90,14 @@ test("the dedicated synthetic canary maintains a freshness-dependent web-evidenc
   assert.match(canary, /fresh-web-evidence-question-verified/);
 });
 
-test("the release canary proves persisted answer, model, review publication and contained Recommendation Record evidence inspection when citations exist", () => {
+test("the release canary requires grounded citations, the pinned Gemini model, review publication and contained Recommendation Record evidence inspection", () => {
   assert.match(canary, /The real provider run persisted no answer observations/);
+  assert.match(canary, /The grounded Gemini canary persisted no provider-returned citations/);
+  assert.match(canary, /FOREMENTION_ACCEPTANCE_EXPECTED_MODEL/);
+  assert.match(canary, /gemini-2\.5-flash-lite/);
+  assert.match(canary, /The persisted provider answer did not expose the expected model/);
   assert.match(canary, /Recorded model/);
+  assert.doesNotMatch(canary, /contained-evidence-not-required-no-provider-citations/);
   assert.match(canary, /human-review-publication-gate-exercised/);
   assert.match(canary, /details\.canonical-contained-evidence/);
   assert.match(canary, /contained-evidence-inspection-opened-from-exact-run-citation/);

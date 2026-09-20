@@ -16,6 +16,7 @@ const enabled = (process.env.FOREMENTION_ACCEPTANCE_CANARY_ENABLED || "").trim()
 const spendApproved = (process.env.FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED || "").trim().toLowerCase() === "true";
 const canaryRequired = (process.env.FOREMENTION_ACCEPTANCE_CANARY_REQUIRED || "").trim().toLowerCase() === "true";
 const provider = (process.env.FOREMENTION_ACCEPTANCE_PROVIDER || "").trim().toLowerCase();
+const expectedModel = (process.env.FOREMENTION_ACCEPTANCE_EXPECTED_MODEL || "").trim();
 const maxCostUsd = Number(process.env.FOREMENTION_ACCEPTANCE_MAX_COST_USD || "");
 const timeoutMs = Math.max(60_000, Math.min(Number(process.env.FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS || 1_200_000), 1_200_000));
 const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-acceptance");
@@ -31,6 +32,7 @@ const summary = {
   spendApproved,
   required: canaryRequired,
   provider: provider || null,
+  expectedModel: expectedModel || null,
   maxCostUsd: Number.isFinite(maxCostUsd) && maxCostUsd > 0 ? maxCostUsd : null,
   skipped: false,
   skipReason: null,
@@ -226,11 +228,15 @@ async function waitForRun(page, runId) {
 async function verifyRunEvidenceAndPublish(page, run) {
   if (["failed", "cancelled"].includes(run.status)) fail(`First-evidence collection terminated with status ${run.status}.`);
   if (!Number.isFinite(Number(run.answers)) || Number(run.answers) < 1) fail("The real provider run persisted no answer observations.");
+  if (!Number.isFinite(Number(run.citations)) || Number(run.citations) < 1) fail("The grounded Gemini canary persisted no provider-returned citations.");
 
   await page.goto(new URL(`/app/runs/${run.id}?first_evidence=1`, baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
   if (await page.getByText("Your first real evidence", { exact: false }).count() === 0) fail("The first-evidence guidance was not rendered on the exact run.");
   if (await page.getByText("Recorded model", { exact: true }).count() > 0) fail("The persisted provider answer is missing its exact model identifier.");
+  if (expectedModel && await page.getByText(expectedModel, { exact: false }).count() === 0) {
+    fail(`The persisted provider answer did not expose the expected model ${expectedModel}.`);
+  }
   if (await page.getByText(provider, { exact: false }).count() === 0) fail("The run detail did not expose the configured canary provider identifier.");
 
   if (provider === "groq") {
@@ -258,11 +264,6 @@ async function verifyRunEvidenceAndPublish(page, run) {
   } else {
     summary.evidence.runReviewPublished = true;
     stage("run-was-already-published", { status: run.status });
-  }
-
-  if (Number(run.citations || 0) < 1) {
-    stage("contained-evidence-not-required-no-provider-citations");
-    return;
   }
 
   const evidenceDetails = page.locator("details.canonical-contained-evidence").first();
@@ -319,6 +320,9 @@ async function run() {
   }
   if (!acceptanceEmail || !acceptancePassword) fail("Dedicated production acceptance credentials are required when the first-evidence canary is enabled.");
   if (!liveProviders.has(provider)) fail("FOREMENTION_ACCEPTANCE_PROVIDER must name exactly one supported live provider; mock is never allowed in the production canary.");
+  if (provider === "gemini" && expectedModel !== "gemini-2.5-flash-lite") {
+    fail("The free-only Gemini canary must explicitly pin gemini-2.5-flash-lite.");
+  }
   if (!Number.isFinite(maxCostUsd) || maxCostUsd <= 0 || maxCostUsd > 1) fail("FOREMENTION_ACCEPTANCE_MAX_COST_USD must be an explicit positive ceiling no greater than $1.00.");
   if (baseUrl.protocol !== "https:" || baseUrl.hostname !== "foremention.com") fail("The authenticated production canary is restricted to https://foremention.com.");
 
