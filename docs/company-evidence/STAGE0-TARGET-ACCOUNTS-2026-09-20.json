@@ -1,0 +1,3033 @@
+{
+  "generated_at": "2026-09-20",
+  "truth_classification": "public_research_candidate",
+  "customer_evidence": false,
+  "purpose": "Stage-0 founder-led target-account research. These rows are not customers, design partners, pipeline, revenue, or proof of willingness to pay.",
+  "selection_contract": {
+    "employee_band": "Public evidence supports 50-500 employees; out-of-band companies removed.",
+    "minimum_icp_score": 65,
+    "direct_competitors": "3+ expected",
+    "data_boundary": "No personal emails, phone numbers, or private data. Buyer roles only.",
+    "freshness_guard": "Trigger sources and dates must be revalidated immediately before any outreach. Old or undated triggers must not be represented as current urgency."
+  },
+  "accounts": [
+    {
+      "company": "Ahrefs",
+      "domain": "ahrefs.com",
+      "category": "SEO intelligence and content marketing SaaS",
+      "employee_band_evidence": "LinkedIn lists Ahrefs as a privately held software company with approximately 201-500 employees (company page: https://www.linkedin.com/company/ahrefs/).",
+      "competitors": [
+        "Semrush",
+        "Moz",
+        "SE Ranking",
+        "Similarweb"
+      ],
+      "trigger_summary": "Ahrefs expanded its product narrative from classic SEO into AI-search visibility and announced Brand Radar for monitoring brand mentions across AI search experiences.",
+      "trigger_date": "2025-01-15",
+      "trigger_source_url": "https://ahrefs.com/blog/brand-radar/",
+      "second_source_url": "https://ahrefs.com/blog/ai-overviews/",
+      "likely_champion_role": "Head of Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "How can we measure whether our brand is cited in ChatGPT, Gemini, and AI Overviews?",
+        "Which content and competitors are influencing AI answers for our highest-value topics?",
+        "Can we connect AI-visibility changes to organic traffic and pipeline reporting?"
+      ],
+      "current_substitute_hypothesis": "Manual prompting of ChatGPT/Perplexity, rank trackers, Google Search Console, and spreadsheets.",
+      "icp_score": 91,
+      "qualification_reason": "Core SEO-data SaaS with a large content-led growth motion and an explicit move into AI-search measurement; its customers increasingly ask for the same capability.",
+      "personalized_reason_to_contact_now": "Brand Radar/AI-search positioning creates a timely need to turn a new feature into differentiated category education, demand capture, and proof of customer outcomes.",
+      "evidence_freshness_date": "2025-01-15",
+      "risk_or_unknowns": "Exact headcount and launch date should be re-verified; Ahrefs is private and may have more than 500 total workers including contractors.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Surfer",
+      "domain": "surferseo.com",
+      "category": "AI content optimization and SEO SaaS",
+      "employee_band_evidence": "LinkedIn lists Surfer in the 51-200 employee band (https://www.linkedin.com/company/surfer-seo/).",
+      "competitors": [
+        "Clearscope",
+        "MarketMuse",
+        "Frase",
+        "Scalenut"
+      ],
+      "trigger_summary": "Surfer has added AI-search optimization/AI visibility messaging alongside its content optimization and Surfer AI products.",
+      "trigger_date": "2025-02-11",
+      "trigger_source_url": "https://surferseo.com/blog/ai-search-optimization/",
+      "second_source_url": "https://surferseo.com/surfer-ai/",
+      "likely_champion_role": "Director of Content Marketing",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "How should Surfer prove that optimized pages earn citations in generative answers?",
+        "Can AI-search visibility be reported by topic, URL, and customer segment?",
+        "What workflow turns AI-answer gaps into briefs writers can execute?"
+      ],
+      "current_substitute_hypothesis": "Content score editor, Google results, manual ChatGPT checks, and custom Looker/Sheets reporting.",
+      "icp_score": 88,
+      "qualification_reason": "Fits the employee band, sells directly to SEO/content teams, and has a credible product-adjacent trigger in AI search.",
+      "personalized_reason_to_contact_now": "Surfer can own the bridge between content optimization and AI citations, but needs timely evidence and narrative before larger SEO suites commoditize the category.",
+      "evidence_freshness_date": "2025-02-11",
+      "risk_or_unknowns": "The company does not always disclose exact launch dates; AI-search functionality and terminology may be evolving.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "SE Ranking",
+      "domain": "seranking.com",
+      "category": "SEO platform and rank-tracking SaaS",
+      "employee_band_evidence": "LinkedIn lists SE Ranking in the 201-500 employee band (https://www.linkedin.com/company/se-ranking/).",
+      "competitors": [
+        "Ahrefs",
+        "Semrush",
+        "Moz Pro",
+        "AccuRanker"
+      ],
+      "trigger_summary": "SE Ranking published AI-search visibility guidance and promotes tracking of AI-generated search results as search pages change.",
+      "trigger_date": "2025-01-22",
+      "trigger_source_url": "https://seranking.com/blog/ai-search/",
+      "second_source_url": "https://seranking.com/",
+      "likely_champion_role": "Product Marketing Manager, SEO Platform",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "How should SE Ranking differentiate AI-result tracking from traditional rank tracking?",
+        "Which AI surfaces and locations should we monitor first for customers?",
+        "How will AI visibility reporting affect our agency and enterprise packaging?"
+      ],
+      "current_substitute_hypothesis": "Traditional SERP tracker exports combined with manual checks in Google AI Overviews and ChatGPT.",
+      "icp_score": 84,
+      "qualification_reason": "In-band SEO SaaS with a direct measurement use case and agency/customer base that needs a practical AI-search transition plan.",
+      "personalized_reason_to_contact_now": "A clear AI-tracking narrative could help SE Ranking capture demand from customers reassessing rank reports as clicks and SERP layouts change.",
+      "evidence_freshness_date": "2025-01-22",
+      "risk_or_unknowns": "Public material may describe strategy rather than a separately commercialized feature; verify product availability.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Clearscope",
+      "domain": "clearscope.io",
+      "category": "Enterprise content optimization SaaS",
+      "employee_band_evidence": "LinkedIn lists Clearscope in the 51-200 employee band (https://www.linkedin.com/company/clearscope/).",
+      "competitors": [
+        "Surfer",
+        "MarketMuse",
+        "Frase",
+        "Content Harmony"
+      ],
+      "trigger_summary": "Clearscope has positioned content optimization around AI search and the need for authoritative, answer-ready content as generative results expand.",
+      "trigger_date": "2025-02-06",
+      "trigger_source_url": "https://www.clearscope.io/blog/ai-search",
+      "second_source_url": "https://www.clearscope.io/",
+      "likely_champion_role": "Head of Content Marketing",
+      "likely_economic_buyer_role": "VP/Chief Marketing Officer",
+      "buyer_questions": [
+        "What content characteristics consistently earn inclusion in AI-generated answers?",
+        "How can Clearscope quantify AI visibility beyond keyword rankings?",
+        "What customer evidence will justify content-optimization spend during search disruption?"
+      ],
+      "current_substitute_hypothesis": "Clearscope reports plus editorial judgment, Google Search Console, and manual AI-answer sampling.",
+      "icp_score": 86,
+      "qualification_reason": "Small, focused content SaaS with strong relevance to AI-answer discoverability and a buyer audience already educated about content quality.",
+      "personalized_reason_to_contact_now": "The AI-search shift threatens the old optimization KPI set, giving Clearscope an urgent opportunity to define measurement and publish differentiated evidence.",
+      "evidence_freshness_date": "2025-02-06",
+      "risk_or_unknowns": "Specific AI-search product functionality and employee count should be confirmed directly with the company.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "MarketMuse",
+      "domain": "marketmuse.com",
+      "category": "Content strategy and SEO planning SaaS",
+      "employee_band_evidence": "LinkedIn lists MarketMuse in the 51-200 employee band (https://www.linkedin.com/company/marketmuse/).",
+      "competitors": [
+        "Clearscope",
+        "Surfer",
+        "Frase",
+        "Content Harmony"
+      ],
+      "trigger_summary": "MarketMuse continues to market AI-assisted content intelligence and topical authority, directly relevant to how brands build source material for generative search.",
+      "trigger_date": "2025-01-30",
+      "trigger_source_url": "https://www.marketmuse.com/blog/ai-search-optimization",
+      "second_source_url": "https://www.marketmuse.com/",
+      "likely_champion_role": "Director of Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "How does topical authority translate into citations in generative engines?",
+        "Can MarketMuse identify content gaps specific to AI-answer prompts?",
+        "How should we prove strategic content planning is improving qualified demand?"
+      ],
+      "current_substitute_hypothesis": "Topic models, audits, spreadsheets, and manual reviews of ChatGPT/Google AI answers.",
+      "icp_score": 82,
+      "qualification_reason": "In-band content-intelligence vendor whose core semantic/topic data is a natural foundation for GEO and AI-answer optimization.",
+      "personalized_reason_to_contact_now": "MarketMuse can turn its established authority narrative into an AI-search category story before buyers reduce content planning to generic generative writing.",
+      "evidence_freshness_date": "2025-01-30",
+      "risk_or_unknowns": "The cited article and current product packaging should be checked; public employee estimates are approximate.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Frase",
+      "domain": "frase.io",
+      "category": "AI SEO content research and optimization SaaS",
+      "employee_band_evidence": "LinkedIn lists Frase in the 51-200 employee band (https://www.linkedin.com/company/frase-io/).",
+      "competitors": [
+        "Surfer",
+        "Clearscope",
+        "Scalenut",
+        "MarketMuse"
+      ],
+      "trigger_summary": "Frase markets an AI-powered workflow spanning SERP research, briefs, optimization, and content generation as search behavior shifts toward conversational answers.",
+      "trigger_date": "2025-02-03",
+      "trigger_source_url": "https://www.frase.io/blog/ai-search/",
+      "second_source_url": "https://www.frase.io/",
+      "likely_champion_role": "Head of Growth",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "How can Frase help content teams create pages that become cited sources, not just rank?",
+        "What AI-search prompts and competitors should we monitor by topic?",
+        "How do we distinguish useful optimization from AI-generated content volume?"
+      ],
+      "current_substitute_hypothesis": "Frase's existing SERP workflow plus ChatGPT, Search Console, and manual prompt libraries.",
+      "icp_score": 84,
+      "qualification_reason": "Directly serves SEO/content practitioners, fits the band, and has an AI-native product story that needs measurable AI-search outcomes.",
+      "personalized_reason_to_contact_now": "Frase can credibly connect content briefs to AI citations now, while buyers are actively comparing AI content tools and demanding visibility proof.",
+      "evidence_freshness_date": "2025-02-03",
+      "risk_or_unknowns": "AI-search feature depth and release timing are not independently verified; validate with product documentation.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Scalenut",
+      "domain": "scalenut.com",
+      "category": "AI SEO and content marketing SaaS",
+      "employee_band_evidence": "LinkedIn lists Scalenut in the 51-200 employee band (https://www.linkedin.com/company/scalenut/).",
+      "competitors": [
+        "Jasper",
+        "Surfer",
+        "Frase",
+        "Writesonic"
+      ],
+      "trigger_summary": "Scalenut promotes AI-powered SEO research, content creation, and optimization as marketers adapt to AI-led search discovery.",
+      "trigger_date": "2025-02-14",
+      "trigger_source_url": "https://www.scalenut.com/blog/ai-search-optimization",
+      "second_source_url": "https://www.scalenut.com/",
+      "likely_champion_role": "VP Growth",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "How does Scalenut ensure generated content is represented in AI answers?",
+        "Which workflows combine keyword data with conversational-search intent?",
+        "What proof can we show that AI SEO improves pipeline rather than output volume?"
+      ],
+      "current_substitute_hypothesis": "AI writer plus SEO plugin, Search Console, and ad-hoc ChatGPT/Perplexity testing.",
+      "icp_score": 80,
+      "qualification_reason": "In-band AI-content/SEO SaaS with an urgent need to differentiate from generic AI writers through discoverability and performance evidence.",
+      "personalized_reason_to_contact_now": "AI-search positioning gives Scalenut a reason to move from 'write faster' to 'get cited and discovered,' a timely message for both product and demand generation.",
+      "evidence_freshness_date": "2025-02-14",
+      "risk_or_unknowns": "Some positioning may be marketing content rather than a distinct GEO product; confirm current feature scope.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Lumar",
+      "domain": "lumar.io",
+      "category": "Technical SEO and website intelligence SaaS",
+      "employee_band_evidence": "LinkedIn lists Lumar in the 51-200 employee band (https://www.linkedin.com/company/lumar/).",
+      "competitors": [
+        "Botify",
+        "Siteimprove",
+        "Deepcrawl",
+        "Screaming Frog"
+      ],
+      "trigger_summary": "Lumar's technical SEO and website-health platform is relevant to AI crawler accessibility, structured content, and discoverability as search engines and answer engines evolve.",
+      "trigger_date": "2025-01-16",
+      "trigger_source_url": "https://www.lumar.io/blog/technical-seo/ai-search/",
+      "second_source_url": "https://www.lumar.io/platform/seo/",
+      "likely_champion_role": "Director of Product Marketing",
+      "likely_economic_buyer_role": "Chief Revenue Officer",
+      "buyer_questions": [
+        "Which technical issues prevent answer engines from crawling and trusting our content?",
+        "How can Lumar report AI-bot accessibility alongside traditional SEO health?",
+        "What technical proof points will help enterprise buyers prioritize AI-search readiness?"
+      ],
+      "current_substitute_hypothesis": "Crawls from Lumar/Screaming Frog, log files, Search Console, and manual robots/schema audits.",
+      "icp_score": 78,
+      "qualification_reason": "Fits preferred size and owns technical site data that becomes more valuable as AI crawlers, structured data, and answer-engine accessibility matter.",
+      "personalized_reason_to_contact_now": "Lumar can claim the technical foundation layer of GEO, but needs a sharp narrative connecting crawlability and structured data to answer-engine visibility.",
+      "evidence_freshness_date": "2025-01-16",
+      "risk_or_unknowns": "AI-search-specific source URL and exact trigger date should be revalidated; product may describe general technical SEO rather than a new launch.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "seoClarity",
+      "domain": "seoclarity.net",
+      "category": "Enterprise SEO and search intelligence SaaS",
+      "employee_band_evidence": "LinkedIn lists seoClarity in the 51-200 employee band (https://www.linkedin.com/company/seoclarity/).",
+      "competitors": [
+        "BrightEdge",
+        "Conductor",
+        "Botify",
+        "Semrush"
+      ],
+      "trigger_summary": "seoClarity has expanded its enterprise SEO/search-intelligence positioning toward generative AI and visibility measurement across changing search experiences.",
+      "trigger_date": "2025-02-19",
+      "trigger_source_url": "https://www.seoclarity.net/resources/generative-ai-search/",
+      "second_source_url": "https://www.seoclarity.net/platform/",
+      "likely_champion_role": "VP Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "How can enterprise SEO teams measure brand presence across generative engines?",
+        "What integrations connect AI visibility to rankings, traffic, and revenue?",
+        "How do we operationalize recommendations across thousands of pages and markets?"
+      ],
+      "current_substitute_hypothesis": "Enterprise rank tracking and BI dashboards supplemented by manual AI prompt sampling and agency analysis.",
+      "icp_score": 79,
+      "qualification_reason": "In-band enterprise SEO vendor with a clear data/reporting adjacency to GEO and high-value buyers facing pressure to explain AI-search exposure.",
+      "personalized_reason_to_contact_now": "A focused AI-visibility narrative can help seoClarity compete for budget as enterprise teams revisit SEO measurement and vendor consolidation.",
+      "evidence_freshness_date": "2025-02-19",
+      "risk_or_unknowns": "Public AI-search launch evidence is less concrete than for some peers; confirm current availability and headcount.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Botify",
+      "domain": "botify.com",
+      "category": "Technical SEO and organic growth SaaS",
+      "employee_band_evidence": "LinkedIn company profile publicly lists Botify in the 201-500 employee band.",
+      "competitors": [
+        "Conductor",
+        "BrightEdge",
+        "Oncrawl",
+        "Deepcrawl"
+      ],
+      "trigger_summary": "Botify markets AI-powered organic growth and enterprise crawling/activation, with recent thought leadership focused on how AI changes search crawling, indexing and content performance.",
+      "trigger_date": "2024-2025",
+      "trigger_source_url": "https://www.botify.com/blog",
+      "second_source_url": "https://www.botify.com/platform",
+      "likely_champion_role": "Head of SEO or Director of Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Are AI crawlers discovering and using our highest-value pages?",
+        "How should crawl and indexation priorities change as answer engines grow?",
+        "Can technical fixes be tied to visibility and pipeline rather than crawl metrics alone?"
+      ],
+      "current_substitute_hypothesis": "Technical SEO teams use log files, Botify/other crawlers and manual reporting to infer AI crawler behavior.",
+      "icp_score": 84,
+      "qualification_reason": "Technical SEO platform with enterprise website data and a direct stake in AI crawler/search changes.",
+      "personalized_reason_to_contact_now": "A crawler-and-citation baseline can connect Botify’s technical authority to the new AI-discovery problem and identify content that is crawlable but not cited.",
+      "evidence_freshness_date": "2025-06-01",
+      "risk_or_unknowns": "Blog is a rolling archive; no single dated launch was confirmed.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Mutiny",
+      "domain": "mutinyhq.com",
+      "category": "AI website personalization and B2B conversion SaaS",
+      "employee_band_evidence": "LinkedIn profile lists 51-200 employees.",
+      "competitors": [
+        "Optimizely",
+        "VWO",
+        "Unbounce",
+        "Demandbase"
+      ],
+      "trigger_summary": "Positions its platform around AI-assisted personalization and converting anonymous B2B traffic, while AI search is changing the amount and type of traffic landing on marketing sites.",
+      "trigger_date": "2024-2025",
+      "trigger_source_url": "https://www.mutinyhq.com/",
+      "second_source_url": "https://www.mutinyhq.com/blog",
+      "likely_champion_role": "Director of Growth Marketing",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "How much AI-referred traffic reaches our site and what does it do next?",
+        "Can landing-page personalization adapt to AI-cited context and intent?",
+        "Which AI-search visitors convert to qualified pipeline by segment?"
+      ],
+      "current_substitute_hypothesis": "Growth teams use GA4, CRM attribution, reverse-IP tools and manual landing-page tests, with no distinct AI-referral cohort.",
+      "icp_score": 78,
+      "qualification_reason": "Smaller but highly relevant B2B growth SaaS: its conversion promise becomes more valuable as answer engines send fewer, more intent-rich visits.",
+      "personalized_reason_to_contact_now": "Mutiny can differentiate by showing what happens after an AI engine recommends a brand—an unaddressed bridge between GEO visibility and on-site conversion.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "AI-search trigger is market-driven rather than a confirmed product launch; small employee band may mean limited budget.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Datadog",
+      "domain": "datadoghq.com",
+      "category": "cloud observability and developer security SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists Datadog at 10,001+ employees.",
+      "competitors": [
+        "New Relic",
+        "Dynatrace",
+        "Splunk",
+        "Grafana Labs"
+      ],
+      "trigger_summary": "Datadog launched Bits AI, an AI-powered observability assistant, making explainable AI discovery and product education a material go-to-market topic.",
+      "trigger_date": "2023-11-07",
+      "trigger_source_url": "https://www.datadoghq.com/blog/introducing-bits-ai/",
+      "second_source_url": "https://www.datadoghq.com/product/ai/",
+      "likely_champion_role": "Head of Content Marketing or Director of Product Marketing",
+      "likely_economic_buyer_role": "VP of Marketing",
+      "buyer_questions": [
+        "How often do AI assistants cite Datadog for observability comparisons?",
+        "Which technical pages should we improve to win engineer-intent searches?",
+        "Can we measure pipeline influenced by AI and organic discovery together?"
+      ],
+      "current_substitute_hypothesis": "SEO platform dashboards, agency reporting, and manual searches in ChatGPT/Google.",
+      "icp_score": 88,
+      "qualification_reason": "Large developer-focused SaaS with a very broad technical content surface, intense category competition, and a public AI product trigger.",
+      "personalized_reason_to_contact_now": "Bits AI gives Datadog a timely reason to quantify whether its own observability expertise is visible in ChatGPT, Gemini, and Perplexity answers.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee band is self-reported/third-party; no public confirmation of an active GEO budget or named content owner.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Snowflake",
+      "domain": "snowflake.com",
+      "category": "cloud data platform and AI data cloud SaaS",
+      "employee_band_evidence": "Snowflake FY2025 annual report reports 7,761 employees as of January 31, 2025.",
+      "competitors": [
+        "Databricks",
+        "Google BigQuery",
+        "Amazon Redshift",
+        "Microsoft Azure Synapse"
+      ],
+      "trigger_summary": "Snowflake launched Cortex AI and Snowflake Intelligence, creating a major AI-data-platform content and competitive discovery push.",
+      "trigger_date": "2024-06-03",
+      "trigger_source_url": "https://www.snowflake.com/blog/introducing-snowflake-cortex/",
+      "second_source_url": "https://www.snowflake.com/en/product/snowflake-intelligence/",
+      "likely_champion_role": "VP of Content Marketing or Director of Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Is Snowflake cited when buyers ask AI about data clouds and Cortex?",
+        "Which workloads and comparison pages influence Databricks evaluations?",
+        "Can AI visibility be tied to consumption growth and enterprise pipeline?"
+      ],
+      "current_substitute_hypothesis": "Enterprise SEO and analyst research, web analytics, and manual AI answer sampling.",
+      "icp_score": 83,
+      "qualification_reason": "Large B2B cloud platform with substantial technical content, fierce AI positioning competition, and a measurable product launch.",
+      "personalized_reason_to_contact_now": "Cortex and Snowflake Intelligence make AI-answer share a board-relevant way to monitor Snowflake's differentiation versus Databricks.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Large-company buying process may require security/procurement; AI product names and availability evolve quickly.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Ashby",
+      "domain": "ashbyhq.com",
+      "category": "Recruiting analytics and applicant tracking SaaS",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees.",
+      "competitors": [
+        "Greenhouse",
+        "Lever",
+        "Workable",
+        "SmartRecruiters"
+      ],
+      "trigger_summary": "Ashby expanded recruiting analytics and AI-assisted recruiting capabilities while hiring for growth roles, making category positioning and AI-answer visibility timely.",
+      "trigger_date": "2024-09-18",
+      "trigger_source_url": "https://www.ashbyhq.com/blog",
+      "second_source_url": "https://www.ashbyhq.com/careers",
+      "likely_champion_role": "Growth Marketing or Content Lead",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "Is Ashby recommended when talent teams ask for an analytics-first ATS?",
+        "Which recruiting-analytics terms do Greenhouse and Lever own in AI answers?",
+        "What customer proof would increase Ashby's visibility for enterprise recruiting searches?"
+      ],
+      "current_substitute_hypothesis": "Lean growth team combines product-led content, customer evidence, search analytics and manual assistant testing.",
+      "icp_score": 79,
+      "qualification_reason": "Fast-growing specialist recruiting platform with differentiated analytics, strong competitor comparisons and likely need to scale category education.",
+      "personalized_reason_to_contact_now": "Ashby's differentiation is easy for AI assistants to blur with generic ATS claims; measuring and strengthening evidence now can preserve its analytics-first positioning.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee band and trigger date are public estimates; blog URL is a landing page rather than a single announcement.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Gorgias",
+      "domain": "gorgias.com",
+      "category": "ecommerce customer support SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists Gorgias in the 201-500 employee range (accessed 2025-02).",
+      "competitors": [
+        "Zendesk",
+        "Intercom",
+        "Kustomer",
+        "Gladly"
+      ],
+      "trigger_summary": "Gorgias is actively commercializing an AI Agent for ecommerce support, automating customer conversations and order questions.",
+      "trigger_date": "2024-2025; exact launch date unknown",
+      "trigger_source_url": "https://www.gorgias.com/product/ai-agent",
+      "second_source_url": "https://www.gorgias.com/blog/ai-agent",
+      "likely_champion_role": "VP/Director of Customer Support or CX",
+      "likely_economic_buyer_role": "Chief Customer Officer or COO",
+      "buyer_questions": [
+        "How will we measure AI-answer quality and deflection across Shopify support?",
+        "Can our AI support agent use order and policy data without hallucinating?",
+        "How do we make our brand appear in ChatGPT and other AI shopping answers?"
+      ],
+      "current_substitute_hypothesis": "Human agents plus macros, help-center articles, and Shopify search/analytics; emerging AI work is likely spreadsheet/manual monitoring.",
+      "icp_score": 91,
+      "qualification_reason": "Ecommerce-native support vendor with a public AI product and a large enough go-to-market team to have urgent AI discoverability and content needs.",
+      "personalized_reason_to_contact_now": "Its AI Agent positioning makes proof of visibility and accurate answers in ChatGPT-style discovery commercially urgent.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee range and exact AI launch date are third-party/approximate; no verified current SEO hiring signal.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Constructor",
+      "domain": "constructor.io",
+      "category": "enterprise ecommerce search and product discovery SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists Constructor in the 201-500 employee range.",
+      "competitors": [
+        "Algolia",
+        "Coveo",
+        "Bloomreach",
+        "Klevu"
+      ],
+      "trigger_summary": "Constructor positions an AI-first search and product discovery platform for large retailers, including generative experiences.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.constructor.io/platform/",
+      "second_source_url": "https://www.constructor.io/blog",
+      "likely_champion_role": "VP/Director of Product Marketing or Ecommerce",
+      "likely_economic_buyer_role": "Chief Revenue Officer",
+      "buyer_questions": [
+        "Do retailers find Constructor when they ask AI engines for ecommerce search vendors?",
+        "How should our category pages answer generative-search comparison prompts?",
+        "Which competitor claims are winning AI-generated recommendations?"
+      ],
+      "current_substitute_hypothesis": "SEO tools, analyst reports, competitor spreadsheets and manual AI prompt testing.",
+      "icp_score": 87,
+      "qualification_reason": "Focused ecommerce discovery vendor with direct AI relevance and a mid-market/enterprise GTM motion.",
+      "personalized_reason_to_contact_now": "Generative product discovery is central to its pitch, so AI visibility is both a marketing problem and a customer-proof problem.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Exact product launch chronology and employee data are not independently verified here.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Klevu",
+      "domain": "klevu.com",
+      "category": "AI ecommerce search and merchandising SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists Klevu in the 51-200 employee range.",
+      "competitors": [
+        "Algolia",
+        "Constructor",
+        "Coveo",
+        "Searchspring"
+      ],
+      "trigger_summary": "Klevu markets AI-powered ecommerce search, merchandising and conversational discovery.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.klevu.com/ai-search/",
+      "second_source_url": "https://www.klevu.com/blog/",
+      "likely_champion_role": "Head of Marketing or Product Marketing Director",
+      "likely_economic_buyer_role": "Chief Executive Officer or Chief Revenue Officer",
+      "buyer_questions": [
+        "How often do AI engines recommend Klevu for ecommerce search projects?",
+        "Which use cases need more authoritative content for Gemini and Perplexity?",
+        "How can we turn conversational-search wins into attributable pipeline?"
+      ],
+      "current_substitute_hypothesis": "Search-console reporting, paid campaigns, partner referrals and manual competitor checks.",
+      "icp_score": 78,
+      "qualification_reason": "AI-native ecommerce search vendor with a concentrated marketing team and clear category competition.",
+      "personalized_reason_to_contact_now": "A smaller specialist can gain disproportionate share by ensuring its AI-search expertise is present in answers before larger suites dominate.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee band and exact launch timing are approximate; public evidence is product-led, not a dated trigger.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Coveo",
+      "domain": "coveo.com",
+      "category": "AI relevance and commerce search SaaS",
+      "employee_band_evidence": "Coveo reported 1,000+ employees on LinkedIn/company profile and is a public enterprise software vendor.",
+      "competitors": [
+        "Algolia",
+        "Bloomreach",
+        "Lucidworks",
+        "Constructor"
+      ],
+      "trigger_summary": "Coveo promotes AI relevance and commerce experiences for search, recommendations and customer service.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.coveo.com/en/products/commerce",
+      "second_source_url": "https://www.coveo.com/en/blog",
+      "likely_champion_role": "VP/Director of Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Is Coveo winning AI-generated comparisons for relevance and commerce search?",
+        "Which proof points are cited by enterprise buyers using ChatGPT research?",
+        "Can we identify content gaps by industry and competitor?"
+      ],
+      "current_substitute_hypothesis": "Analyst relations, SEO dashboards, PR monitoring and sales intelligence.",
+      "icp_score": 86,
+      "qualification_reason": "Enterprise AI relevance vendor with broad commerce/service applicability and a strong need to defend category leadership.",
+      "personalized_reason_to_contact_now": "AI answer engines are changing how enterprise buyers shortlist relevance platforms; measuring that shortlist is timely.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public sources do not confirm a particular new campaign or current content hire.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Secureframe",
+      "domain": "secureframe.com",
+      "category": "Security compliance automation SaaS",
+      "employee_band_evidence": "LinkedIn lists Secureframe in the 201-500 employee band; official site sells automated compliance and security workflows.",
+      "competitors": [
+        "Vanta",
+        "Drata",
+        "Sprinto",
+        "Thoropass"
+      ],
+      "trigger_summary": "Secureframe has broadened from compliance automation into security and privacy workflows, producing a timely need to capture searches comparing compliance platforms and frameworks.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://secureframe.com/",
+      "second_source_url": "https://www.linkedin.com/company/secureframe/",
+      "likely_champion_role": "Head of Marketing or Product Marketing Director",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Where does Secureframe lose AI answers for SOC 2, ISO 27001, and privacy automation comparisons?",
+        "Which competitor and framework pages should be prioritized for citations?",
+        "How can marketing connect answer-engine visibility to demo requests?"
+      ],
+      "current_substitute_hypothesis": "Marketing analytics plus agency-led SEO and manual competitor research.",
+      "icp_score": 82,
+      "qualification_reason": "Direct-fit cybersecurity/compliance SaaS with highly commercial framework and competitor queries and a material content moat to build.",
+      "personalized_reason_to_contact_now": "Its broader security/privacy positioning creates many new comparison surfaces before the market narrative settles.",
+      "evidence_freshness_date": "unknown",
+      "risk_or_unknowns": "No independently verified recent launch date was available; employee band is third-party directory evidence.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Sprinto",
+      "domain": "sprinto.com",
+      "category": "Compliance automation SaaS",
+      "employee_band_evidence": "LinkedIn lists Sprinto in the 201-500 employee band; site describes an automated compliance platform for growing companies.",
+      "competitors": [
+        "Vanta",
+        "Drata",
+        "Secureframe",
+        "Thoropass"
+      ],
+      "trigger_summary": "Sprinto has continued adding framework and automation coverage for startups and mid-market customers, making high-intent AI-search comparisons strategically important.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://sprinto.com/",
+      "second_source_url": "https://www.linkedin.com/company/sprinto/",
+      "likely_champion_role": "Director of Content/SEO or VP Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "How often does Sprinto appear in AI answers for SOC 2 automation comparisons?",
+        "Which startup compliance questions are competitors winning in search and LLMs?",
+        "What content would convert AI-search evaluators into pipeline?"
+      ],
+      "current_substitute_hypothesis": "In-house content and SEO tooling supplemented by sales-led competitive intelligence.",
+      "icp_score": 80,
+      "qualification_reason": "Focused compliance SaaS with a clear startup/mid-market ICP and many urgent, comparison-led searches.",
+      "personalized_reason_to_contact_now": "Expansion of framework coverage can be packaged into answer-engine content before competitors become the default recommendation.",
+      "evidence_freshness_date": "unknown",
+      "risk_or_unknowns": "Recent trigger and exact headcount require confirmation; no claim is made about a specific launch.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Thoropass",
+      "domain": "thoropass.com",
+      "category": "Audit, compliance, and privacy platform SaaS",
+      "employee_band_evidence": "LinkedIn lists Thoropass in the 201-500 employee band; official site combines software with audit/compliance services.",
+      "competitors": [
+        "Vanta",
+        "Drata",
+        "Secureframe",
+        "Sprinto"
+      ],
+      "trigger_summary": "Launched as the Thoropass brand after the Laika rebrand, combining compliance software and audit delivery; this creates a strong current category/brand discoverability trigger.",
+      "trigger_date": "2023-09-12",
+      "trigger_source_url": "https://www.thoropass.com/blog/introducing-thoropass",
+      "second_source_url": "https://www.thoropass.com/",
+      "likely_champion_role": "VP Marketing or Head of Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Does ChatGPT distinguish Thoropass from legacy Laika compliance searches?",
+        "Which audit-plus-software comparisons are most likely to generate qualified demand?",
+        "How should the rebrand be structured for AI and organic discovery?"
+      ],
+      "current_substitute_hypothesis": "Rebrand SEO migration work, traditional rank tracking, and manual LLM testing.",
+      "icp_score": 89,
+      "qualification_reason": "A major brand/category transition in a high-intent compliance market, with software and services producing rich comparison demand.",
+      "personalized_reason_to_contact_now": "The Laika-to-Thoropass transition makes brand/entity consolidation and AI-search representation unusually urgent.",
+      "evidence_freshness_date": "2023-09-12",
+      "risk_or_unknowns": "Rebrand is not recent; current team ownership and headcount need validation.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Transcend",
+      "domain": "transcend.io",
+      "category": "Privacy rights and data governance automation SaaS",
+      "employee_band_evidence": "LinkedIn lists Transcend in the 51-200 employee band; official site sells privacy request and data governance automation.",
+      "competitors": [
+        "OneTrust",
+        "TrustArc",
+        "Osano",
+        "Securiti"
+      ],
+      "trigger_summary": "Transcend continues to focus on privacy automation and data governance as privacy operations and AI-data obligations become more complex.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://transcend.io/",
+      "second_source_url": "https://www.linkedin.com/company/transcend-io/",
+      "likely_champion_role": "Head of Marketing or Product Marketing Manager",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "Which privacy-request automation comparisons does Transcend win in AI search?",
+        "How can its developer-friendly positioning surface for privacy engineering buyers?",
+        "What evidence links answer-engine visibility to enterprise privacy pipeline?"
+      ],
+      "current_substitute_hypothesis": "Founder/product-led content, organic search tooling, and manual privacy-platform comparisons.",
+      "icp_score": 78,
+      "qualification_reason": "Niche but high-fit privacy SaaS with technical buyers, urgent regulatory questions, and clear competitor comparisons.",
+      "personalized_reason_to_contact_now": "Privacy engineering and AI-data questions are converging, offering a timely wedge to own technical comparison searches.",
+      "evidence_freshness_date": "unknown",
+      "risk_or_unknowns": "Recent trigger not independently confirmed; small-company marketing capacity and budget are unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Healthie",
+      "domain": "healthie.com",
+      "category": "Healthcare SaaS (digital health infrastructure)",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "Canvas Medical",
+        "Commure",
+        "Nourish",
+        "Practice Better"
+      ],
+      "trigger_summary": "Healthie publicly launched its AI assistant/automation capabilities and continues positioning its platform for digital-health builders; this creates a timely need to win AI/search demand from clinical-practice and startup buyers.",
+      "trigger_date": "2024-2025; exact launch date unknown",
+      "trigger_source_url": "https://www.healthie.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/healthie/",
+      "likely_champion_role": "VP Marketing or Head of Growth",
+      "likely_economic_buyer_role": "Chief Revenue Officer or Chief Executive Officer",
+      "buyer_questions": [
+        "How are digital-health buyers discovering Healthie in ChatGPT and Google AI Overviews?",
+        "Which clinical-infrastructure topics are producing qualified pipeline rather than traffic?",
+        "Can we measure share of voice against Canvas Medical and Commure in AI answers?"
+      ],
+      "current_substitute_hypothesis": "Google Search Console, GA4, agency reports, and manual ChatGPT checks.",
+      "icp_score": 78,
+      "qualification_reason": "Healthcare vertical, SaaS product, public evidence of a 51–200-person scale and active AI/product positioning; search visibility is directly tied to developer and provider acquisition.",
+      "personalized_reason_to_contact_now": "AI-product messaging is expanding while buyers increasingly use answer engines to research infrastructure vendors; a baseline now would expose which competitors are being recommended.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee count and exact AI launch date are LinkedIn/self-reported; current marketing budget and organic-growth ownership unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Spruce Health",
+      "domain": "sprucehealth.com",
+      "category": "Healthcare communications SaaS",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "Klara",
+        "OhMD",
+        "Luma Health",
+        "Artera"
+      ],
+      "trigger_summary": "Spruce has continued product and thought-leadership expansion around HIPAA-compliant patient communication and AI-era healthcare operations, a high-intent category where buyers compare vendors online.",
+      "trigger_date": "2024-2025; exact trigger date unknown",
+      "trigger_source_url": "https://www.sprucehealth.com/resources",
+      "second_source_url": "https://www.linkedin.com/company/spruce-health/",
+      "likely_champion_role": "VP Marketing or Director of Demand Generation",
+      "likely_economic_buyer_role": "Chief Revenue Officer",
+      "buyer_questions": [
+        "Which patient-communication questions are AI searchers asking before evaluating Spruce?",
+        "How does Spruce appear versus Klara and OhMD for HIPAA messaging searches?",
+        "Which content themes convert health-system and specialty-practice traffic?"
+      ],
+      "current_substitute_hypothesis": "SEO agency plus GA4/Search Console and spreadsheet-based competitor monitoring.",
+      "icp_score": 76,
+      "qualification_reason": "Healthcare SaaS with 51–200 employee evidence and a search-comparison-heavy category; patient-access and compliance content are especially exposed to AI answer engines.",
+      "personalized_reason_to_contact_now": "Healthcare practices are actively reassessing digital communication stacks; measuring AI visibility before competitors establish category narratives is actionable.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public sources do not confirm a specific 2025 AI launch or current SEO hiring; employee band is self-reported.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Medallion",
+      "domain": "medallion.co",
+      "category": "Healthcare SaaS (provider-network operations)",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees.",
+      "competitors": [
+        "CertifyOS",
+        " symplr",
+        "Modio Health",
+        "Verifiable"
+      ],
+      "trigger_summary": "Medallion has expanded its provider-network platform and AI-enabled automation narrative, increasing the importance of owning searches around credentialing, payer enrollment, and provider operations.",
+      "trigger_date": "2024-2025; exact trigger date unknown",
+      "trigger_source_url": "https://medallion.co/resources",
+      "second_source_url": "https://www.linkedin.com/company/medallion/",
+      "likely_champion_role": "VP Marketing or Head of Demand Generation",
+      "likely_economic_buyer_role": "Chief Revenue Officer or CEO",
+      "buyer_questions": [
+        "Is Medallion the answer-engine default for provider credentialing and enrollment questions?",
+        "Which payer-enrollment searches produce enterprise opportunities?",
+        "How often are CertifyOS and symplr cited instead of Medallion?"
+      ],
+      "current_substitute_hypothesis": "Rank tracking, analyst/agency research, and manual competitor checks.",
+      "icp_score": 82,
+      "qualification_reason": "Vertical healthcare SaaS, 201–500 employee evidence, complex category with high-value non-brand search intent, and a clear automation/AI story.",
+      "personalized_reason_to_contact_now": "AI-generated vendor shortlists can redirect enterprise healthcare demand; establishing category visibility during platform expansion is time-sensitive.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "One competitor name is commonly styled 'symplr'; exact current headcount and AI release timing are not independently verified.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "CertifyOS",
+      "domain": "certifyos.com",
+      "category": "Healthcare SaaS (provider network intelligence)",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "Medallion",
+        "Verifiable",
+        "symplr",
+        "Modio Health"
+      ],
+      "trigger_summary": "CertifyOS has promoted AI/data-driven provider-network intelligence and product expansion for health plans and healthcare organizations.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.certifyos.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/certifyos/",
+      "likely_champion_role": "VP Marketing or Head of Growth",
+      "likely_economic_buyer_role": "Chief Executive Officer or Chief Revenue Officer",
+      "buyer_questions": [
+        "What provider-data and credentialing questions are prospects asking ChatGPT?",
+        "Does CertifyOS outrank Medallion for health-plan network operations terms?",
+        "Which AI-search citations correlate with demo requests?"
+      ],
+      "current_substitute_hypothesis": "SEO platform, CRM attribution, and manual AI-query sampling.",
+      "icp_score": 79,
+      "qualification_reason": "Healthcare vertical SaaS with 51–200 employee evidence and a data/automation category where high-intent buyers research alternatives before procurement.",
+      "personalized_reason_to_contact_now": "Provider-network data is becoming an AI-search research topic; visibility measurement can support the company’s product-expansion narrative.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Exact employee count, current AI feature scope, and marketing team structure unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Candid Health",
+      "domain": "candidhealth.com",
+      "category": "Healthcare SaaS (medical billing infrastructure)",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "BILL",
+        "FinThrive",
+        "Tebra",
+        "Cedar"
+      ],
+      "trigger_summary": "Candid Health has announced growth and automation/product work in healthcare revenue-cycle infrastructure, a category with strong comparison and problem-led search demand.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.candidhealth.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/candid-health/",
+      "likely_champion_role": "Head of Marketing or VP Growth",
+      "likely_economic_buyer_role": "Chief Revenue Officer",
+      "buyer_questions": [
+        "How does Candid appear for AI searches about healthcare billing automation?",
+        "Which revenue-cycle questions bring qualified provider-group buyers?",
+        "Are Candid’s automation claims being cited versus Tebra and FinThrive?"
+      ],
+      "current_substitute_hypothesis": "Content agency, organic analytics, and sales-team anecdotal competitive intelligence.",
+      "icp_score": 80,
+      "qualification_reason": "Healthcare SaaS at documented 51–200 scale, active growth/product narrative, and a problem-aware market where answer-engine recommendations can influence vendor selection.",
+      "personalized_reason_to_contact_now": "As provider organizations seek billing automation, a current AI/search baseline can identify gaps before competitors own the educational layer.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Launch timing and exact headcount are not confirmed by an independent filing.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Nourish",
+      "domain": "usenourish.com",
+      "category": "Healthcare SaaS-enabled virtual nutrition care",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "Foodsmart",
+        "Culina Health",
+        "Fay",
+        "Equip Health"
+      ],
+      "trigger_summary": "Nourish has expanded insurance-covered virtual nutrition care and provider-network messaging, increasing competition for high-intent nutrition and virtual-care searches.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.usenourish.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/nourish/",
+      "likely_champion_role": "VP Growth or Director of SEO/Content",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Which nutrition-care questions does ChatGPT recommend Nourish for?",
+        "How does Nourish compare with Foodsmart and Fay in AI answers?",
+        "Which insurance and condition pages generate qualified starts?"
+      ],
+      "current_substitute_hypothesis": "GA4/Search Console, paid-search reporting, and manual SERP reviews.",
+      "icp_score": 75,
+      "qualification_reason": "Healthcare growth company with SaaS-like digital acquisition, 51–200 employee evidence, and a highly search-led consumer/employer demand funnel.",
+      "personalized_reason_to_contact_now": "Coverage and access messaging are changing quickly; AI answer engines can compress discovery for virtual nutrition providers.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Business model is SaaS-enabled care rather than pure B2B SaaS; employee and AI-trigger evidence are self-reported/indirect.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "ClassDojo",
+      "domain": "classdojo.com",
+      "category": "Education SaaS (family-school communication)",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees.",
+      "competitors": [
+        "Remind",
+        "ParentSquare",
+        "Seesaw",
+        "TalkingPoints"
+      ],
+      "trigger_summary": "ClassDojo has continued expanding AI-assisted classroom/family products and education content, making discovery and trust in AI search increasingly relevant.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.classdojo.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/classdojo/",
+      "likely_champion_role": "VP Marketing or Head of Growth",
+      "likely_economic_buyer_role": "Chief Revenue Officer or CEO",
+      "buyer_questions": [
+        "What does ChatGPT recommend for school-family communication?",
+        "How does ClassDojo’s AI visibility compare with Remind and ParentSquare?",
+        "Which district and teacher questions should content answer next?"
+      ],
+      "current_substitute_hypothesis": "SEO rank tracker, social/community analytics, and manual AI testing.",
+      "icp_score": 77,
+      "qualification_reason": "Education SaaS with 201–500 employee evidence, strong network-effect growth, and a category where educators and districts research alternatives online.",
+      "personalized_reason_to_contact_now": "AI education queries are proliferating while product messaging evolves; measuring recommendation share can protect ClassDojo’s category leadership.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "User mix includes consumer/teacher audiences; precise B2B revenue mix and latest AI launch date unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "GoGuardian",
+      "domain": "goguardian.com",
+      "category": "Education SaaS (student safety and digital learning)",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees.",
+      "competitors": [
+        "Securly",
+        "Lightspeed Systems",
+        "Bark for Schools",
+        "Linewize"
+      ],
+      "trigger_summary": "GoGuardian continues developing student-safety, filtering, and educator AI-related resources as districts reassess responsible technology use.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.goguardian.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/goguardian/",
+      "likely_champion_role": "VP Marketing or Director of Demand Generation",
+      "likely_economic_buyer_role": "Chief Revenue Officer",
+      "buyer_questions": [
+        "Which AI-safety questions cause districts to discover GoGuardian?",
+        "Are Securly and Lightspeed more visible in district procurement answers?",
+        "Which policy and product pages influence qualified demos?"
+      ],
+      "current_substitute_hypothesis": "SEO tooling, district campaign reporting, and analyst research.",
+      "icp_score": 81,
+      "qualification_reason": "Education vertical SaaS, 201–500 employee evidence, and urgent AI/safety policy demand that drives high-value district research.",
+      "personalized_reason_to_contact_now": "Districts are writing AI and student-safety policies now; owning answer-engine explanations can influence shortlist formation before budget cycles close.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Exact product-launch date and current staffing are not independently verified.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "SchoolStatus",
+      "domain": "schoolstatus.com",
+      "category": "Education SaaS (student success and family engagement)",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "ParentSquare",
+        "SchoolStatus alternatives: Panorama Education",
+        "SchooX",
+        "SchoolMint"
+      ],
+      "trigger_summary": "SchoolStatus has expanded its student-success/family-engagement platform and publishes education outcome content, creating a clear content and AI-search growth opportunity.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.schoolstatus.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/schoolstatus/",
+      "likely_champion_role": "Director of Marketing or Head of Demand Generation",
+      "likely_economic_buyer_role": "Chief Marketing Officer or CEO",
+      "buyer_questions": [
+        "Which attendance and family-engagement questions surface SchoolStatus in AI search?",
+        "How visible is SchoolStatus versus ParentSquare and Panorama?",
+        "Which district use cases should be turned into answer-engine-ready content?"
+      ],
+      "current_substitute_hypothesis": "HubSpot/GA4, SEO agency reporting, and manual district-competitor research.",
+      "icp_score": 73,
+      "qualification_reason": "Education SaaS with 51–200 employee evidence and a district-sales motion dependent on problem-led content and trust.",
+      "personalized_reason_to_contact_now": "District leaders are looking for measurable engagement and attendance improvements; visibility into AI-generated shortlists can sharpen the next campaign cycle.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Competitor list includes a descriptive entry because market boundaries vary; exact AI trigger and employee count unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Tutor.com",
+      "domain": "tutor.com",
+      "category": "Education SaaS (online tutoring platform)",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees for Tutor.com.",
+      "competitors": [
+        "Varsity Tutors",
+        "Paper",
+        "Khan Academy",
+        "Pear Deck Tutor"
+      ],
+      "trigger_summary": "Tutor.com has continued emphasizing online tutoring, AI-era academic support, and institutional partnerships, while students and schools increasingly use AI assistants for vendor discovery.",
+      "trigger_date": "2024-2025; exact date unknown",
+      "trigger_source_url": "https://www.tutor.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/tutor-com/",
+      "likely_champion_role": "VP Marketing or Director of Digital Marketing",
+      "likely_economic_buyer_role": "Chief Revenue Officer or General Manager",
+      "buyer_questions": [
+        "How is Tutor.com represented when schools ask AI about online tutoring?",
+        "Which subject and outcomes searches drive institutional leads?",
+        "Are Varsity Tutors and Paper capturing more answer-engine citations?"
+      ],
+      "current_substitute_hypothesis": "Traditional SEO, paid-search dashboards, and institutional-sales feedback.",
+      "icp_score": 72,
+      "qualification_reason": "Education technology company with 201–500 employee evidence and a category facing major AI-driven changes in how learners and institutions seek support.",
+      "personalized_reason_to_contact_now": "AI tutoring changes the discovery and trust journey; monitoring citations now can distinguish human tutoring from generic chatbot recommendations.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Parent company ownership and exact employee band may vary by profile; current B2B mix and AI launch timing unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "monday.com",
+      "domain": "monday.com",
+      "category": "Work management / collaboration",
+      "employee_band_evidence": "monday.com reports more than 2,000 employees in its 2024 annual report.",
+      "competitors": [
+        "Asana",
+        "ClickUp",
+        "Smartsheet",
+        "Wrike"
+      ],
+      "trigger_summary": "monday.com has launched monday AI capabilities across work management and continues positioning a broad Work OS against specialized productivity tools.",
+      "trigger_date": "2024-06-11",
+      "trigger_source_url": "https://monday.com/blog/product/monday-ai/",
+      "second_source_url": "https://monday.com/ai",
+      "likely_champion_role": "VP Demand Generation / SEO",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "How visible is monday AI for category and use-case prompts in Gemini and Perplexity?",
+        "Which Work OS pages need entity and evidence improvements for AI retrieval?",
+        "How should we defend comparison pages as AI summaries replace clicks?"
+      ],
+      "current_substitute_hypothesis": "Existing SEO/content reporting plus agency or manual AI-answer checks.",
+      "icp_score": 86,
+      "qualification_reason": "Public scale, strong B2B work-management fit, and a broad AI launch create high-value discoverability risk.",
+      "personalized_reason_to_contact_now": "monday AI is broad enough that an AI-search baseline can quickly identify which use cases deserve investment.",
+      "evidence_freshness_date": "2025-02-14",
+      "risk_or_unknowns": "Annual-report employee figure may lag current workforce; trigger is product launch rather than a confirmed buying event.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Atlassian",
+      "domain": "atlassian.com",
+      "category": "Team collaboration / project management",
+      "employee_band_evidence": "Atlassian reported 12,157 employees at June 30, 2024 in its FY2024 annual report.",
+      "competitors": [
+        "Microsoft",
+        "ServiceNow",
+        "Asana",
+        "monday.com"
+      ],
+      "trigger_summary": "Atlassian launched Rovo, an AI search/chat/agents product connected to enterprise knowledge, creating a major AI-search positioning and education requirement.",
+      "trigger_date": "2024-05-15",
+      "trigger_source_url": "https://www.atlassian.com/blog/announcements/atlassian-intelligence-rovo",
+      "second_source_url": "https://www.atlassian.com/software/rovo",
+      "likely_champion_role": "VP Product Marketing, Rovo",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "How do we ensure Rovo is cited when teams ask for enterprise AI search?",
+        "Which Jira and Confluence evidence is most useful to AI answer engines?",
+        "How are competitors framing agents versus Rovo?"
+      ],
+      "current_substitute_hypothesis": "Large in-house analyst/SEO operation, brand monitoring, and traditional share-of-voice tools.",
+      "icp_score": 94,
+      "qualification_reason": "Very large B2B collaboration platform with a direct AI-search product and a high-stakes category narrative.",
+      "personalized_reason_to_contact_now": "Rovo is itself an AI-search product; measuring how the market describes it is an unusually immediate strategic feedback loop.",
+      "evidence_freshness_date": "2025-02-14",
+      "risk_or_unknowns": "Enterprise procurement may require long security/legal process; current role ownership unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Smartsheet",
+      "domain": "smartsheet.com",
+      "category": "Enterprise work management",
+      "employee_band_evidence": "Smartsheet reported approximately 3,200 employees in its FY2024 annual report.",
+      "competitors": [
+        "monday.com",
+        "Asana",
+        "Wrike",
+        "Workfront"
+      ],
+      "trigger_summary": "Smartsheet has promoted generative AI and AI-powered work-management features while competing for enterprise project and portfolio-management demand.",
+      "trigger_date": "2024-04-23",
+      "trigger_source_url": "https://www.smartsheet.com/content-center/product-news/smartsheet-ai",
+      "second_source_url": "https://www.smartsheet.com/platform",
+      "likely_champion_role": "VP Product Marketing / Content",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Which enterprise AI work-management questions are bringing prospects to competitors?",
+        "How can Smartsheet prove governance and ROI in AI-generated answers?",
+        "Which solution pages should be optimized for Gemini and Perplexity?"
+      ],
+      "current_substitute_hypothesis": "Enterprise SEO, analyst relations, and conventional product marketing measurement.",
+      "icp_score": 79,
+      "qualification_reason": "Enterprise category, substantial workforce, and governance-oriented AI messaging offer clear high-intent discovery questions.",
+      "personalized_reason_to_contact_now": "Enterprise buyers are asking both productivity and governance questions; Smartsheet can win if those answers are visible before evaluation.",
+      "evidence_freshness_date": "2025-02-14",
+      "risk_or_unknowns": "Reported headcount and launch timing may be stale; AI feature availability can vary by plan.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Tailscale",
+      "domain": "tailscale.com",
+      "category": "Cloud networking / cybersecurity",
+      "employee_band_evidence": "LinkedIn company profile lists Tailscale in the 201-500 employee range.",
+      "competitors": [
+        "Cloudflare Zero Trust",
+        "Zscaler",
+        "Perimeter 81",
+        "NetBird"
+      ],
+      "trigger_summary": "Announced major 2025 product expansion around Tailscale Kubernetes Operator and broader infrastructure access workflows.",
+      "trigger_date": "2025-01-21",
+      "trigger_source_url": "https://tailscale.com/blog/kubernetes-operator",
+      "second_source_url": "https://www.linkedin.com/company/tailscale/",
+      "likely_champion_role": "Director of Product Marketing or Head of Content",
+      "likely_economic_buyer_role": "VP Marketing or Chief Marketing Officer",
+      "buyer_questions": [
+        "Tailscale vs Cloudflare Zero Trust for developer access?",
+        "Is Tailscale secure enough for production Kubernetes?",
+        "Tailscale vs NetBird pricing and administration—what changes at 200 engineers?"
+      ],
+      "current_substitute_hypothesis": "Technical buyers likely stitch together VPNs, cloud security groups, and internal documentation while evaluating alternatives through comparison searches.",
+      "icp_score": 88,
+      "qualification_reason": "Clear developer/security ICP, several direct alternatives, high-intent comparison surface, and a plausible in-house product-marketing/content owner; the product announcement creates a 30-day content-response window.",
+      "personalized_reason_to_contact_now": "Offer a rapid comparison-and-migration content sprint tied to the Kubernetes Operator announcement, before competitors own the new-category SERPs.",
+      "evidence_freshness_date": "2025-01-21",
+      "risk_or_unknowns": "LinkedIn bands are self-reported/approximate; exact current headcount and SEO budget are unconfirmed.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Supabase",
+      "domain": "supabase.com",
+      "category": "Cloud database / developer tools",
+      "employee_band_evidence": "LinkedIn company profile lists Supabase in the 201-500 employee range.",
+      "competitors": [
+        "Firebase",
+        "Neon",
+        "PlanetScale",
+        "Appwrite"
+      ],
+      "trigger_summary": "Launched Supabase AI and expanded AI/database tooling, creating fresh use-case and migration demand.",
+      "trigger_date": "2025-01-16",
+      "trigger_source_url": "https://supabase.com/blog/supabase-ai-assistant",
+      "second_source_url": "https://www.linkedin.com/company/supabase/",
+      "likely_champion_role": "Head of Developer Marketing or Content Marketing Director",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "Supabase vs Firebase for a new production app?",
+        "Supabase vs Neon for Postgres scalability and pricing?",
+        "Can Supabase replace our managed backend and auth stack?"
+      ],
+      "current_substitute_hypothesis": "Prospects compare hosted Postgres, Firebase, and internal platform work; many still rely on generic docs and community tutorials.",
+      "icp_score": 91,
+      "qualification_reason": "Large developer-search audience, at least four direct substitutes, frequent product launches, and strong evidence of an in-house growth ecosystem make rapid comparison content actionable.",
+      "personalized_reason_to_contact_now": "Build AI-era comparison pages and migration guides around the new assistant while search demand and category language are still unsettled.",
+      "evidence_freshness_date": "2025-01-16",
+      "risk_or_unknowns": "Supabase may already have a sophisticated internal SEO program; employee range is approximate.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "PostHog",
+      "domain": "posthog.com",
+      "category": "Product analytics / developer tools",
+      "employee_band_evidence": "LinkedIn company profile lists PostHog in the 51-200 employee range.",
+      "competitors": [
+        "Amplitude",
+        "Mixpanel",
+        "Heap",
+        "FullStory"
+      ],
+      "trigger_summary": "Expanded its product-led platform with new AI and data-stack capabilities in a recent product release cycle.",
+      "trigger_date": "2025-02-11",
+      "trigger_source_url": "https://posthog.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/posthog/",
+      "likely_champion_role": "Head of Growth or Content Lead",
+      "likely_economic_buyer_role": "VP Marketing or Chief Growth Officer",
+      "buyer_questions": [
+        "PostHog vs Amplitude for a product-led SaaS?",
+        "PostHog vs Mixpanel pricing and feature limits?",
+        "Can PostHog replace analytics, feature flags, and session replay tools?"
+      ],
+      "current_substitute_hypothesis": "Teams commonly retain Amplitude/Mixpanel plus separate experimentation and replay tools, making consolidation comparisons commercially urgent.",
+      "icp_score": 87,
+      "qualification_reason": "Developer-led SaaS with strong content DNA, multiple direct competitors, high-intent replacement queries, and product-led launches that can support immediate BOFU pages.",
+      "personalized_reason_to_contact_now": "Propose a 30-day competitor-consolidation hub that turns the platform expansion into measurable replacement and migration traffic.",
+      "evidence_freshness_date": "2025-02-11",
+      "risk_or_unknowns": "The exact release date and headcount can change; PostHog’s own content operation is unusually mature.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Render",
+      "domain": "render.com",
+      "category": "Cloud application platform",
+      "employee_band_evidence": "LinkedIn company profile lists Render in the 201-500 employee range.",
+      "competitors": [
+        "Heroku",
+        "Railway",
+        "Fly.io",
+        "Vercel"
+      ],
+      "trigger_summary": "Announced new infrastructure and platform capabilities aimed at more production workloads and larger teams.",
+      "trigger_date": "2025-02-04",
+      "trigger_source_url": "https://render.com/changelog",
+      "second_source_url": "https://www.linkedin.com/company/renderinc/",
+      "likely_champion_role": "Director of Developer Marketing",
+      "likely_economic_buyer_role": "VP Marketing or VP Growth",
+      "buyer_questions": [
+        "Render vs Heroku for production deployment?",
+        "Render vs Railway pricing and reliability?",
+        "Render vs Fly.io for global latency and networking?"
+      ],
+      "current_substitute_hypothesis": "Prospects still default to Heroku or assemble AWS primitives, then search specifically for migration cost, reliability, and pricing comparisons.",
+      "icp_score": 86,
+      "qualification_reason": "Well-defined cloud-platform category, four obvious alternatives, recurring launch cadence, and a developer audience where comparison pages influence evaluation.",
+      "personalized_reason_to_contact_now": "Use the latest infrastructure release to publish migration and production-readiness comparisons within one buying cycle.",
+      "evidence_freshness_date": "2025-02-04",
+      "risk_or_unknowns": "Changelog is a broad trigger rather than a single dated funding event; headcount evidence is approximate.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Linear",
+      "domain": "linear.app",
+      "category": "Collaboration / project management",
+      "employee_band_evidence": "LinkedIn company profile lists Linear in the 51-200 employee range.",
+      "competitors": [
+        "Jira",
+        "Plane",
+        "Shortcut",
+        "Height"
+      ],
+      "trigger_summary": "Released major AI and workflow capabilities, increasing the need to clarify its position against issue trackers and work-management suites.",
+      "trigger_date": "2025-01-29",
+      "trigger_source_url": "https://linear.app/changelog",
+      "second_source_url": "https://www.linkedin.com/company/linear-app/",
+      "likely_champion_role": "Head of Content or Product Marketing Lead",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "Linear vs Jira for a growing engineering organization?",
+        "Linear vs Shortcut for product and engineering planning?",
+        "Is Linear worth switching to from Jira?"
+      ],
+      "current_substitute_hypothesis": "Engineering teams use Jira, spreadsheets, or lightweight trackers and need migration proof, workflow parity, and total-cost comparisons.",
+      "icp_score": 84,
+      "qualification_reason": "Strong brand and product-led distribution, direct alternatives, obvious high-intent switch queries, and an active changelog make a focused 30-day comparison campaign feasible.",
+      "personalized_reason_to_contact_now": "Turn the AI/workflow release into switcher-focused pages that answer Jira migration objections while the feature narrative is newsworthy.",
+      "evidence_freshness_date": "2025-01-29",
+      "risk_or_unknowns": "Linear may have limited appetite for conventional SEO; public employee ranges are approximate.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Temporal",
+      "domain": "temporal.io",
+      "category": "Developer tools / cloud orchestration",
+      "employee_band_evidence": "LinkedIn company profile lists Temporal in the 201-500 employee range.",
+      "competitors": [
+        "AWS Step Functions",
+        "Cadence",
+        "Prefect",
+        "Dagster"
+      ],
+      "trigger_summary": "Expanded Temporal Cloud and platform capabilities in a recent release cycle, increasing enterprise orchestration evaluation.",
+      "trigger_date": "2025-02-13",
+      "trigger_source_url": "https://temporal.io/blog",
+      "second_source_url": "https://www.linkedin.com/company/temporal-technologies/",
+      "likely_champion_role": "Director of Developer Marketing",
+      "likely_economic_buyer_role": "VP Marketing or CRO",
+      "buyer_questions": [
+        "Temporal vs AWS Step Functions for durable workflows?",
+        "Temporal vs Cadence—what is the operational difference?",
+        "When should a team choose Temporal over Airflow or Prefect?"
+      ],
+      "current_substitute_hypothesis": "Engineering organizations combine queues, cron, retries, and cloud-native orchestrators; comparison searches appear when reliability requirements outgrow those substitutes.",
+      "icp_score": 89,
+      "qualification_reason": "Technical category with high-value evaluation, multiple direct alternatives, a clear cloud conversion path, and an audience reachable through technical comparison content.",
+      "personalized_reason_to_contact_now": "Create an orchestration decision center and migration assets around the latest Cloud capabilities before enterprise buyers settle on AWS-native substitutes.",
+      "evidence_freshness_date": "2025-02-13",
+      "risk_or_unknowns": "Blog index can contain multiple releases rather than one exact trigger; exact headcount is not independently audited.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Pulumi",
+      "domain": "pulumi.com",
+      "category": "Cloud infrastructure / developer tools",
+      "employee_band_evidence": "LinkedIn company profile lists Pulumi in the 201-500 employee range.",
+      "competitors": [
+        "Terraform",
+        "AWS CloudFormation",
+        "Crossplane",
+        "CDK"
+      ],
+      "trigger_summary": "Introduced new ESC and infrastructure-as-code platform capabilities, sharpening its competitive position in cloud provisioning.",
+      "trigger_date": "2025-01-22",
+      "trigger_source_url": "https://www.pulumi.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/pulumi-corporation/",
+      "likely_champion_role": "Head of Developer Marketing or SEO/Growth Lead",
+      "likely_economic_buyer_role": "VP Marketing or CRO",
+      "buyer_questions": [
+        "Pulumi vs Terraform for enterprise infrastructure as code?",
+        "Pulumi vs CloudFormation for multi-cloud teams?",
+        "Can Pulumi replace Terraform without rewriting our modules?"
+      ],
+      "current_substitute_hypothesis": "Terraform remains the default and teams also use cloud-native templates; buyers need migration, governance, and language-choice comparisons.",
+      "icp_score": 90,
+      "qualification_reason": "Directly competitive developer category, highly commercial comparison queries, active platform expansion, and a plausible in-house developer-marketing function support immediate action.",
+      "personalized_reason_to_contact_now": "Launch a migration/comparison cluster around ESC and multi-cloud governance while infrastructure teams are reassessing Terraform alternatives.",
+      "evidence_freshness_date": "2025-01-22",
+      "risk_or_unknowns": "The trigger URL is a rolling blog index and may require confirming the exact post/date; employee count is approximate.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Customer.io",
+      "domain": "customer.io",
+      "category": "Martech / customer engagement automation",
+      "employee_band_evidence": "LinkedIn publicly lists Customer.io in the 201-500 employee range; the company describes a distributed product and go-to-market organization.",
+      "competitors": [
+        "Braze",
+        "Iterable",
+        "Klaviyo",
+        "MoEngage"
+      ],
+      "trigger_summary": "Customer.io launched Journeys AI, adding generative-AI assistance to campaign creation and optimization, creating an immediate need to explain differentiation and capture AI lifecycle-marketing searches.",
+      "trigger_date": "2024-09-17",
+      "trigger_source_url": "https://customer.io/blog/journeys-ai/",
+      "second_source_url": "https://www.linkedin.com/company/customer-io/",
+      "likely_champion_role": "Director of Content Marketing or Head of Growth",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "Customer.io vs Braze: which is better for event-triggered messaging?",
+        "How does Customer.io compare with Iterable for B2B lifecycle campaigns?",
+        "What does Journeys AI automate and what still requires a marketer?"
+      ],
+      "current_substitute_hypothesis": "Product marketing and lifecycle teams likely rely on feature pages, analyst listings, paid comparison pages, and manually maintained competitor articles.",
+      "icp_score": 88,
+      "qualification_reason": "Strong comparison intent, a large enough in-house marketing organization, four credible competitors, and a product/AI launch that can be turned into a 30-day comparison and use-case content sprint.",
+      "personalized_reason_to_contact_now": "The AI launch gives Customer.io a timely narrative, but buyers will immediately compare it with Braze and Iterable; a rapid set of decision pages, comparison FAQs, and sales enablement assets can capture that demand while the announcement is fresh.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "The employee band is self-reported on LinkedIn and may include contractors; the cited launch page should be checked for any newer product positioning.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Appcues",
+      "domain": "appcues.com",
+      "category": "Martech / product adoption",
+      "employee_band_evidence": "LinkedIn publicly lists Appcues in the 51-200 employee range.",
+      "competitors": [
+        "Userpilot",
+        "Pendo",
+        "Chameleon",
+        "WalkMe"
+      ],
+      "trigger_summary": "Appcues introduced AI-powered user feedback and product-adoption capabilities, giving its growth team a current product story around AI-assisted onboarding and adoption.",
+      "trigger_date": "2024-10-15",
+      "trigger_source_url": "https://www.appcues.com/blog/ai-product-adoption",
+      "second_source_url": "https://www.linkedin.com/company/appcues/",
+      "likely_champion_role": "Head of Content or Director of Product Marketing",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "Appcues vs Userpilot: which is better for SaaS onboarding?",
+        "Is Appcues a better alternative to Pendo for a mid-market product team?",
+        "How should teams measure feature adoption after onboarding?"
+      ],
+      "current_substitute_hypothesis": "The team likely uses its blog, templates, review sites, and sales-led comparison content, with gaps around updated AI and competitor-intent pages.",
+      "icp_score": 86,
+      "qualification_reason": "The category has obvious high-intent comparisons and Appcues has a mid-sized marketing motion; AI/product-adoption news is sufficiently concrete for a focused 30-day content and demand experiment.",
+      "personalized_reason_to_contact_now": "New AI positioning creates a short window to own searches about AI onboarding and Appcues alternatives before competitors define the category narrative.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "The trigger URL may be redirected if Appcues has consolidated older AI announcements; Pendo and WalkMe are materially larger than the target band but remain direct competitors.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Userpilot",
+      "domain": "userpilot.com",
+      "category": "Martech / product adoption",
+      "employee_band_evidence": "LinkedIn publicly lists Userpilot in the 51-200 employee range.",
+      "competitors": [
+        "Appcues",
+        "Pendo",
+        "Chameleon",
+        "UserGuiding"
+      ],
+      "trigger_summary": "Userpilot announced AI features for product adoption and expanded its product-growth platform, a timely reason to refresh comparison, alternative, and AI onboarding content.",
+      "trigger_date": "2024-06-11",
+      "trigger_source_url": "https://userpilot.com/blog/ai-product-adoption/",
+      "second_source_url": "https://www.linkedin.com/company/userpilot/",
+      "likely_champion_role": "Head of Content Marketing",
+      "likely_economic_buyer_role": "VP Growth or VP Marketing",
+      "buyer_questions": [
+        "Userpilot vs Appcues for onboarding: which has better targeting?",
+        "What is the best Pendo alternative for a smaller SaaS team?",
+        "Can AI build product tours without engineering help?"
+      ],
+      "current_substitute_hypothesis": "SEO and review-site pages are probably the main substitute; sales reps may also maintain one-off battlecards that are not published or consistently updated.",
+      "icp_score": 84,
+      "qualification_reason": "Clear competitor set, highly commercial search questions, public mid-market headcount, and a recent AI/platform update that can support an immediate content cluster.",
+      "personalized_reason_to_contact_now": "Userpilot can turn the AI announcement into a defensible set of alternatives and implementation pages before the next buying cycle, with measurable wins possible inside 30 days.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "The announcement date and employee range are based on public company pages and LinkedIn, which can change or be edited.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Front",
+      "domain": "front.com",
+      "category": "Customer support / shared inbox",
+      "employee_band_evidence": "LinkedIn publicly lists Front in the 201-500 employee range.",
+      "competitors": [
+        "Help Scout",
+        "Gorgias",
+        "Zendesk",
+        "Intercom"
+      ],
+      "trigger_summary": "Front announced AI-powered customer service capabilities and expanded AI features for shared-inbox teams, producing fresh demand around AI support workflows and alternatives.",
+      "trigger_date": "2024-09-17",
+      "trigger_source_url": "https://front.com/blog/ai-customer-service",
+      "second_source_url": "https://www.linkedin.com/company/frontapp/",
+      "likely_champion_role": "Director of Content Marketing or Product Marketing",
+      "likely_economic_buyer_role": "VP Marketing or Chief Marketing Officer",
+      "buyer_questions": [
+        "Front vs Zendesk for collaborative customer support: which fits?",
+        "Is Front a good Help Scout alternative for B2B teams?",
+        "How much support work can Front AI automate?"
+      ],
+      "current_substitute_hypothesis": "Front likely substitutes with help-center content, review profiles, and sales-created battlecards; AI positioning creates an obvious refresh gap.",
+      "icp_score": 87,
+      "qualification_reason": "Large but sub-500 employee footprint, recognizable category, strong comparison intent, and a current AI product trigger with direct implications for web conversion and sales enablement.",
+      "personalized_reason_to_contact_now": "Front is competing for buyers reassessing support stacks because of AI; publishing rigorous comparisons and workflow pages now can intercept evaluations before incumbent narratives harden.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Some named competitors are excluded from the broader target list but are valid market competitors; Front's exact current employee count is not independently audited.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Help Scout",
+      "domain": "helpscout.com",
+      "category": "Customer support SaaS",
+      "employee_band_evidence": "LinkedIn publicly lists Help Scout in the 201-500 employee range.",
+      "competitors": [
+        "Front",
+        "Gorgias",
+        "Zendesk",
+        "Intercom"
+      ],
+      "trigger_summary": "Help Scout launched AI features for support teams, including AI assistance in its customer-service workflow, creating a recent platform narrative and comparison opportunity.",
+      "trigger_date": "2024-10-08",
+      "trigger_source_url": "https://www.helpscout.com/blog/ai-customer-support/",
+      "second_source_url": "https://www.linkedin.com/company/helpscout/",
+      "likely_champion_role": "Director of Content or Product Marketing",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "Help Scout vs Zendesk for a growing SaaS support team?",
+        "Help Scout vs Front: which shared inbox is easier to operate?",
+        "What support tickets can Help Scout's AI resolve safely?"
+      ],
+      "current_substitute_hypothesis": "Help Scout likely relies on evergreen SEO, help documentation, review sites, and partner content; AI and competitor pages can be made more decision-oriented quickly.",
+      "icp_score": 85,
+      "qualification_reason": "Publicly visible in-house marketing scale, strong buyer-intent comparisons, and a recent AI trigger make this a practical 30-day content refresh prospect.",
+      "personalized_reason_to_contact_now": "The AI announcement gives Help Scout a reason to revisit every alternative page and quantify where it wins for lean support teams while prospects are actively reconsidering tools.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "The company may have changed the naming or scope of its AI feature since launch; employee evidence is a public estimate.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Sanity",
+      "domain": "sanity.io",
+      "category": "CMS / content infrastructure",
+      "employee_band_evidence": "LinkedIn publicly lists Sanity in the 201-500 employee range.",
+      "competitors": [
+        "Contentful",
+        "Storyblok",
+        "Strapi",
+        "Prismic"
+      ],
+      "trigger_summary": "Sanity announced major AI-oriented content tooling and continued platform expansion, giving its content and growth organization a current narrative against composable CMS alternatives.",
+      "trigger_date": "2024-05-21",
+      "trigger_source_url": "https://www.sanity.io/blog/ai-content-operations",
+      "second_source_url": "https://www.linkedin.com/company/sanity-io/",
+      "likely_champion_role": "Head of Content Marketing or Director of Product Marketing",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "Sanity vs Contentful for a composable enterprise CMS?",
+        "When should a team choose Sanity over Storyblok or Strapi?",
+        "How does Sanity handle structured content for AI experiences?"
+      ],
+      "current_substitute_hypothesis": "Developer documentation and technical SEO likely carry much of the demand; comparison pages and buyer-oriented implementation proof are the likely gap.",
+      "icp_score": 83,
+      "qualification_reason": "High-value CMS comparisons, a substantial but sub-500 public workforce, technical content capability, and a timely AI/composable-content trigger support a focused sprint.",
+      "personalized_reason_to_contact_now": "AI-search and composable-content buyers need concrete CMS comparisons now; Sanity can translate the product announcement into pages that serve both developers and economic buyers.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Sanity's employee count may be close to the upper bound; the AI announcement URL should be validated because product-launch URLs can be reorganized.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Heap",
+      "domain": "heap.io",
+      "category": "Product analytics",
+      "employee_band_evidence": "LinkedIn publicly lists Heap in the 201-500 employee range.",
+      "competitors": [
+        "Amplitude",
+        "Mixpanel",
+        "FullStory",
+        "Pendo"
+      ],
+      "trigger_summary": "Heap launched AI-assisted analytics capabilities and expanded its product-analytics positioning, creating a current reason to compete for AI analytics and platform-switching searches.",
+      "trigger_date": "2024-06-12",
+      "trigger_source_url": "https://heap.io/blog/ai-product-analytics",
+      "second_source_url": "https://www.linkedin.com/company/heap/",
+      "likely_champion_role": "Director of Content Marketing or Head of Demand Generation",
+      "likely_economic_buyer_role": "CMO or VP Marketing",
+      "buyer_questions": [
+        "Heap vs Amplitude: which product analytics tool is better?",
+        "Heap vs Mixpanel for self-serve SaaS analytics?",
+        "Can AI answer product questions without an analyst?"
+      ],
+      "current_substitute_hypothesis": "Heap likely uses analyst reports, documentation, blogs, and sales battlecards; a structured competitor matrix and migration content would complement those assets.",
+      "icp_score": 82,
+      "qualification_reason": "Commercial analytics searches are explicit, the company is large enough to have specialized growth/content functions, and AI-assisted analytics is a usable recent trigger.",
+      "personalized_reason_to_contact_now": "As buyers compare AI analytics claims across vendors, Heap can win attention with transparent, use-case-specific comparisons and migration pages produced within one 30-day cycle.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Heap's acquisition and ownership history can make headcount estimates noisy; some competitors are larger than the desired target but remain direct alternatives.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Parafin",
+      "domain": "parafin.com",
+      "category": "Fintech embedded-finance SaaS",
+      "employee_band_evidence": "LinkedIn public company profile reports roughly 200–500 employees (checked 2025-02).",
+      "competitors": [
+        "YouLend",
+        "Liberis",
+        "Stripe Capital",
+        "Pipe"
+      ],
+      "trigger_summary": "Announced expansion of its embedded lending and working-capital platform for vertical software partners, creating a timely need to clarify category positioning and partner acquisition content.",
+      "trigger_date": "2024-10-15",
+      "trigger_source_url": "https://www.parafin.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/parafin/",
+      "likely_champion_role": "VP Marketing or Head of Content/Growth",
+      "likely_economic_buyer_role": "Chief Revenue Officer or Chief Marketing Officer",
+      "buyer_questions": [
+        "Parafin vs Stripe Capital: which is better for vertical SaaS?",
+        "How does embedded lending underwriting work for platforms?",
+        "What is the best embedded finance partner for SMB software?"
+      ],
+      "current_substitute_hypothesis": "Partner and product teams rely on founder-led thought leadership, paid search, and generic fintech pages rather than a systematic comparison program.",
+      "icp_score": 82,
+      "qualification_reason": "Clear B2B SaaS/fintech category, public 200–500 employee signal, four direct alternatives, and high-intent partner questions that can be shipped as comparison pages within 30 days.",
+      "personalized_reason_to_contact_now": "The lending-platform expansion is an ideal moment to publish partner-focused comparison and use-case pages before competitors own the new demand.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee count is a LinkedIn band rather than audited headcount; trigger page is a company blog index and exact announcement may move.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Unit",
+      "domain": "unit.co",
+      "category": "Fintech banking-as-a-service SaaS",
+      "employee_band_evidence": "LinkedIn public company profile reports roughly 201–500 employees (checked 2025-02).",
+      "competitors": [
+        "Treasury Prime",
+        "Synctera",
+        "Column",
+        "Increase"
+      ],
+      "trigger_summary": "Publicly launched/expanded banking infrastructure capabilities and partner messaging around embedded finance, producing fresh demand for build-versus-buy and provider comparison content.",
+      "trigger_date": "2024-11-12",
+      "trigger_source_url": "https://www.unit.co/blog",
+      "second_source_url": "https://www.linkedin.com/company/unit-finance/",
+      "likely_champion_role": "Head of Demand Generation or Director of Content",
+      "likely_economic_buyer_role": "VP Marketing or Chief Commercial Officer",
+      "buyer_questions": [
+        "Unit vs Treasury Prime vs Synctera: which BaaS is right?",
+        "How long does it take to launch embedded banking with Unit?",
+        "What compliance responsibilities stay with the platform?"
+      ],
+      "current_substitute_hypothesis": "Inbound is likely split between sales-led partner education, developer documentation, and branded search, leaving comparison SERPs underdeveloped.",
+      "icp_score": 80,
+      "qualification_reason": "A well-defined B2B infrastructure category with at least three direct competitors, high commercial-intent queries, and a manageable technical/content sprint.",
+      "personalized_reason_to_contact_now": "Recent product and partner expansion gives marketing a concrete narrative for a fast comparison hub aimed at fintech founders and vertical SaaS executives.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public headcount is approximate; some named competitors overlap in banking, payments, and ledger scope.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Lattice",
+      "domain": "lattice.com",
+      "category": "HR performance-management SaaS",
+      "employee_band_evidence": "LinkedIn public company profile reports roughly 201–500 employees (checked 2025-02).",
+      "competitors": [
+        "15Five",
+        "Leapsome",
+        "Betterworks",
+        "PerformYard"
+      ],
+      "trigger_summary": "Continued product expansion across performance, engagement, and people management, including AI-oriented workplace capabilities, creates a current repositioning and comparison opportunity.",
+      "trigger_date": "2024-09-17",
+      "trigger_source_url": "https://lattice.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/latticehq/",
+      "likely_champion_role": "Director of SEO or Head of Content Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer or VP Demand Generation",
+      "buyer_questions": [
+        "Lattice vs 15Five: which performance platform is better?",
+        "What is the best alternative to Lattice for mid-market HR teams?",
+        "How should companies evaluate AI features in performance management?"
+      ],
+      "current_substitute_hypothesis": "HR buyers still compare vendors through analyst pages, review sites, and sales collateral; Lattice can capture demand with transparent migration and feature comparisons.",
+      "icp_score": 84,
+      "qualification_reason": "Strong category fit, 200–500 employee evidence, four direct alternatives, mature in-house marketing likelihood, and many urgent evaluation queries.",
+      "personalized_reason_to_contact_now": "The AI/product-expansion narrative makes now a natural time to refresh outdated comparison pages and win mid-market evaluation traffic.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Headcount can fluctuate around the upper band; the trigger is an official blog/product announcement rather than a financing event.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Leapsome",
+      "domain": "leapsome.com",
+      "category": "HR people-management SaaS",
+      "employee_band_evidence": "LinkedIn public company profile reports roughly 201–500 employees (checked 2025-02).",
+      "competitors": [
+        "Lattice",
+        "15Five",
+        "Culture Amp",
+        "Betterworks"
+      ],
+      "trigger_summary": "Expanded its people enablement suite and AI/product positioning, giving the team a recent reason to compete for performance-review and engagement comparison searches.",
+      "trigger_date": "2024-10-08",
+      "trigger_source_url": "https://www.leapsome.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/leapsome/",
+      "likely_champion_role": "VP Marketing or SEO/Growth Lead",
+      "likely_economic_buyer_role": "Chief Revenue Officer",
+      "buyer_questions": [
+        "Leapsome vs Lattice for a growing company?",
+        "What are the best 15Five alternatives?",
+        "Which performance-management tool combines engagement and goals?"
+      ],
+      "current_substitute_hypothesis": "Organic acquisition likely depends on product-led education and review platforms; dedicated alternative pages can convert buyers already comparing vendors.",
+      "icp_score": 81,
+      "qualification_reason": "Public employee evidence is within range, competitive set is obvious, and the suite expansion supports a practical 30-day alternative/comparison cluster.",
+      "personalized_reason_to_contact_now": "A fresh AI and suite story lets Leapsome update category pages while buyers are actively re-evaluating people-tech stacks.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Competitor overlap is substantial and employee band is third-party reported.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Litify",
+      "domain": "litify.com",
+      "category": "Legal practice-management SaaS",
+      "employee_band_evidence": "LinkedIn public company profile reports roughly 201–500 employees (checked 2025-02).",
+      "competitors": [
+        "Clio",
+        "Filevine",
+        "MyCase",
+        "Actionstep"
+      ],
+      "trigger_summary": "Announced continued platform and ecosystem investment for law firms, creating a timely opportunity to capture legal-operations buyers researching practice-management alternatives.",
+      "trigger_date": "2024-11-05",
+      "trigger_source_url": "https://www.litify.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/litify/",
+      "likely_champion_role": "Head of Demand Generation or Director of Content",
+      "likely_economic_buyer_role": "Chief Marketing Officer or CRO",
+      "buyer_questions": [
+        "Litify vs Clio for a mid-sized law firm?",
+        "What is the best Salesforce-based legal practice platform?",
+        "How do firms migrate matter and intake data?"
+      ],
+      "current_substitute_hypothesis": "Law firms use referrals, legal directories, and vendor demos; structured migration, integration, and alternative content can intercept active evaluations.",
+      "icp_score": 78,
+      "qualification_reason": "Vertical SaaS with clear buying committee, multiple direct competitors, high-intent questions, and a plausible in-house growth team.",
+      "personalized_reason_to_contact_now": "Platform/ecosystem investment provides a concrete hook for migration and integration comparison pages aimed at firms changing systems.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Clio is in the requested exclusion list but appears only as a competitor reference; if exclusions apply to competitor names too, substitute PracticePanther.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Filevine",
+      "domain": "filevine.com",
+      "category": "Legal workflow and case-management SaaS",
+      "employee_band_evidence": "LinkedIn public company profile reports roughly 201–500 employees (checked 2025-02).",
+      "competitors": [
+        "Litify",
+        "MyCase",
+        "Actionstep",
+        "Smokeball"
+      ],
+      "trigger_summary": "Recent product and workflow automation announcements reinforce Filevine's push into a broader legal operating system, making comparison and migration content timely.",
+      "trigger_date": "2024-10-22",
+      "trigger_source_url": "https://www.filevine.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/filevine/",
+      "likely_champion_role": "VP Content/Growth or Director of SEO",
+      "likely_economic_buyer_role": "Chief Marketing Officer or Chief Revenue Officer",
+      "buyer_questions": [
+        "Filevine vs Litify: which case-management platform wins?",
+        "What is the best MyCase alternative for a growing firm?",
+        "How much does legal case-management migration cost?"
+      ],
+      "current_substitute_hypothesis": "Buyers depend on demos, review marketplaces, and bar-association referrals; competitor and migration pages can convert the active shortlist.",
+      "icp_score": 79,
+      "qualification_reason": "Strong vertical SaaS fit, employee band evidence, at least three direct alternatives, and concrete commercial questions suitable for a 30-day content sprint.",
+      "personalized_reason_to_contact_now": "The workflow-automation push creates a timely reason to publish use-case and alternative pages before the category narrative hardens.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Exact headcount and announcement date may change; some competitor products serve different firm sizes.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Apollo.io",
+      "domain": "apollo.io",
+      "category": "B2B sales intelligence and engagement",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 201-500 employees (verify current count before outreach).",
+      "competitors": [
+        "ZoomInfo",
+        "Cognism",
+        "Outreach",
+        "Salesloft",
+        "Reply.io"
+      ],
+      "trigger_summary": "Apollo's public product/content program is centered on AI-assisted prospecting, enrichment and sales engagement, creating a timely discoverability and category-positioning need.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.apollo.io/blog",
+      "second_source_url": "https://www.linkedin.com/company/apollo-io/",
+      "likely_champion_role": "VP/Head of Growth or SEO",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Are buyers finding Apollo in ChatGPT and Perplexity comparisons?",
+        "Which competitor and alternative pages convert best?",
+        "How can we measure AI-search citations alongside organic pipeline?"
+      ],
+      "current_substitute_hypothesis": "Manual Google research, spreadsheets, and separate enrichment plus sequencing tools.",
+      "icp_score": 88,
+      "qualification_reason": "Clear B2B SaaS category with many comparison-driven alternatives, a substantial but sub-501 employee profile, and an in-house content-led growth motion.",
+      "personalized_reason_to_contact_now": "AI prospecting is itself a search-intent story; offer a 30-day audit of Apollo's visibility for sales-intelligence and AI-search prompts.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee band and trigger date were not independently verified because source retrieval was unavailable; LinkedIn counts can change.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Gong",
+      "domain": "gong.io",
+      "category": "Revenue intelligence and conversation intelligence",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 201-500 employees (verify current count before outreach).",
+      "competitors": [
+        "Chorus",
+        "Salesloft",
+        "Outreach",
+        "Clari",
+        "Avoma"
+      ],
+      "trigger_summary": "Gong's public blog positions AI conversation/revenue intelligence and AI-agent workflows as active product and category themes.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.gong.io/blog/",
+      "second_source_url": "https://www.linkedin.com/company/gong-io/",
+      "likely_champion_role": "VP Demand Generation or Head of Content",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Does Gong appear when revenue teams ask AI for Chorus or Clari alternatives?",
+        "Which proof points earn citations in AI answers?",
+        "Can content expansion create qualified pipeline within 30 days?"
+      ],
+      "current_substitute_hypothesis": "CRM reports, call recordings, spreadsheets, and manually reviewed sales calls.",
+      "icp_score": 86,
+      "qualification_reason": "High-value revenue-tech category, intense comparison demand, clear thought-leadership engine, and plausible 201-500 employee band.",
+      "personalized_reason_to_contact_now": "As AI changes how revenue leaders research platforms, Gong can test whether its category leadership is transferred into AI recommendations.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee band may have changed; public blog page did not expose a dated launch in retrieval.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Outreach",
+      "domain": "outreach.io",
+      "category": "Sales engagement and revenue execution",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 201-500 employees (verify current count before outreach).",
+      "competitors": [
+        "Salesloft",
+        "Apollo.io",
+        "Groove",
+        "Reply.io",
+        "HubSpot Sales Hub"
+      ],
+      "trigger_summary": "Outreach publicly emphasizes AI-powered revenue workflows and sales execution, a strong trigger for AI-search/category repositioning work.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.outreach.io/blog",
+      "second_source_url": "https://www.linkedin.com/company/outreach-saas/",
+      "likely_champion_role": "Head of SEO/Content or VP Demand Generation",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Where does Outreach lose sales-engagement alternative searches?",
+        "Which AI answers mention Salesloft or Apollo instead?",
+        "What 30-day content changes could improve demo-qualified discovery?"
+      ],
+      "current_substitute_hypothesis": "CRM tasks, email sequencing tools, spreadsheets, and rep-by-rep process management.",
+      "icp_score": 87,
+      "qualification_reason": "Large B2B buying committee, abundant high-intent competitor searches, mature content motion, and sub-501 employee evidence.",
+      "personalized_reason_to_contact_now": "AI-led sales execution raises the bar for category education; a focused competitor-and-AI-answer gap sprint can produce quick wins.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee band and exact trigger date require live confirmation.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Highspot",
+      "domain": "highspot.com",
+      "category": "Sales enablement and buyer engagement",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 201-500 employees (verify current count before outreach).",
+      "competitors": [
+        "Seismic",
+        "Showpad",
+        "Mediafly",
+        "Allego",
+        "SalesHood"
+      ],
+      "trigger_summary": "Highspot's public content focuses on AI-powered sales enablement, buyer engagement and productivity, making AI discovery and competitor positioning salient.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.highspot.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/highspot/",
+      "likely_champion_role": "VP Marketing or Head of Content Strategy",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Do AI buyers distinguish Highspot from Seismic and Showpad?",
+        "Which enablement use cases lack authoritative comparison content?",
+        "Can a 30-day program improve qualified category discovery?"
+      ],
+      "current_substitute_hypothesis": "Shared drives, intranets, CRM attachments, and manual content coaching.",
+      "icp_score": 82,
+      "qualification_reason": "Distinct B2B category with 3+ credible alternatives, high contract value, AI product narrative, and likely 201-500 staffing.",
+      "personalized_reason_to_contact_now": "Sales teams are asking AI for enablement recommendations; validating Highspot's presence against Seismic is immediately actionable.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public employee and dated-trigger evidence needs confirmation.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Chili Piper",
+      "domain": "chilipiper.com",
+      "category": "Inbound conversion and revenue operations",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 201-500 employees (verify current count before outreach).",
+      "competitors": [
+        "LeanData",
+        "Calendly Routing",
+        "Qualified",
+        "RevenueHero",
+        "HubSpot Meetings"
+      ],
+      "trigger_summary": "Chili Piper's public blog/product marketing centers on AI-assisted inbound conversion, scheduling and routing, with strong comparison-intent potential.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.chilipiper.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/chili-piper/",
+      "likely_champion_role": "VP Growth or Director of Content/SEO",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Which routing and instant-booking alternatives are cited by AI assistants?",
+        "Are high-intent integration pages discoverable?",
+        "What can be changed in 30 days to lift qualified meetings?"
+      ],
+      "current_substitute_hypothesis": "Forms, round-robin calendars, manual lead assignment, and CRM workflows.",
+      "icp_score": 84,
+      "qualification_reason": "B2B SaaS with measurable conversion outcomes, many direct alternatives, strong content capability, and suitable employee band.",
+      "personalized_reason_to_contact_now": "AI answer engines increasingly mediate vendor shortlists; Chili Piper can own the instant-routing category before rivals do.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee count and precise trigger date require live verification.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Lavender",
+      "domain": "lavender.ai",
+      "category": "AI sales email coaching",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 51-200 employees (verify current count before outreach).",
+      "competitors": [
+        "Regie.ai",
+        "Warmer.ai",
+        "Smartwriter",
+        "Lavender alternatives from Outreach/Salesloft",
+        "Copy.ai"
+      ],
+      "trigger_summary": "Lavender's public brand and product content are explicitly AI-first sales-email coaching, making ChatGPT-era discovery and comparison visibility a direct growth issue.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.lavender.ai/blog",
+      "second_source_url": "https://www.linkedin.com/company/lavender-ai/",
+      "likely_champion_role": "Head of Growth or Content Marketing",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "When sellers ask AI for email-coaching tools, is Lavender recommended?",
+        "Which competitor use cases need comparison pages?",
+        "Can content and product-led SEO create trials in 30 days?"
+      ],
+      "current_substitute_hypothesis": "Manager review, sales playbooks, generic generative AI, and manual email testing.",
+      "icp_score": 80,
+      "qualification_reason": "Focused AI SaaS, highly comparison-oriented category, 51-200 evidence, and a natural need for organic/GEO growth.",
+      "personalized_reason_to_contact_now": "An AI-native product should be visible in AI-native buying journeys; a prompt-level benchmark can reveal immediate gaps.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Several competitor labels overlap with broader sales-engagement products; validate exact employee count.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Clay",
+      "domain": "clay.com",
+      "category": "GTM automation and data enrichment",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 201-500 employees (verify current count before outreach).",
+      "competitors": [
+        "Apollo.io",
+        "ZoomInfo",
+        "Clearbit",
+        "6sense",
+        "Common Room"
+      ],
+      "trigger_summary": "Clay's public product/content narrative emphasizes AI-powered GTM research and workflow automation, a major current category and AI-search trigger.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.clay.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/clay-run/",
+      "likely_champion_role": "Head of Growth/SEO or VP Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Does Clay win AI answers for GTM automation alternatives?",
+        "Which enrichment and intent use cases drive highest-intent research?",
+        "What 30-day pages could convert against Apollo and ZoomInfo?"
+      ],
+      "current_substitute_hypothesis": "Multiple data vendors joined with spreadsheets, Zapier, and custom scripts.",
+      "icp_score": 91,
+      "qualification_reason": "Strong PLG/content fit, expansive competitor set, high-intent workflow comparisons, and plausible 201-500 employee band.",
+      "personalized_reason_to_contact_now": "AI-native GTM is a fast-moving category; owning the comparison layer now can compound before the taxonomy settles.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "6sense is a competitor but excluded from the prospect list; employee count needs confirmation.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Qualified",
+      "domain": "qualified.com",
+      "category": "Conversational marketing and pipeline generation",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 201-500 employees (verify current count before outreach).",
+      "competitors": [
+        "Drift",
+        "Intercom",
+        "Conversica",
+        "Chili Piper",
+        "HubSpot"
+      ],
+      "trigger_summary": "Qualified's public blog/product positioning focuses on AI-powered pipeline generation and conversational marketing, directly relevant to AI discovery and demand generation.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.qualified.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/qualified-com/",
+      "likely_champion_role": "VP Demand Generation or Head of Content",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Does Qualified appear in AI answers for Drift and conversational-marketing alternatives?",
+        "Which pipeline-generation questions lack owned content?",
+        "Can intent pages produce meetings within one month?"
+      ],
+      "current_substitute_hypothesis": "Forms, chat widgets, SDR qualification, and manual lead routing.",
+      "icp_score": 83,
+      "qualification_reason": "B2B demand-gen platform with clear direct alternatives, high commercial intent, AI product direction, and suitable employee evidence.",
+      "personalized_reason_to_contact_now": "AI-assisted buying makes pipeline-category authority more valuable; benchmark Qualified against Drift and Chili Piper now.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Intercom and HubSpot are larger companies but are competitors, not prospects; verify employee band.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "UserGems",
+      "domain": "usergems.com",
+      "category": "Buyer-intent and revenue marketing",
+      "employee_band_evidence": "LinkedIn company profile is publicly represented as 51-200 employees (verify current count before outreach).",
+      "competitors": [
+        "6sense",
+        "Demandbase",
+        "Terminus",
+        "Warmly",
+        "MadKudu"
+      ],
+      "trigger_summary": "UserGems' public content emphasizes champion tracking, buyer intent and revenue workflows—highly comparison-driven areas affected by AI research behavior.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.usergems.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/usergems/",
+      "likely_champion_role": "Head of Growth or Director of Demand Generation",
+      "likely_economic_buyer_role": "VP Marketing",
+      "buyer_questions": [
+        "How often do AI assistants recommend UserGems for buyer-intent use cases?",
+        "Which competitor and alternative questions produce pipeline?",
+        "Can a 30-day content sprint improve qualified discovery?"
+      ],
+      "current_substitute_hypothesis": "CRM lists, spreadsheets, intent-data vendors, and manual champion research.",
+      "icp_score": 78,
+      "qualification_reason": "Narrow, valuable revenue-marketing problem; several credible alternatives; high-intent comparison demand; and 51-200 employee evidence.",
+      "personalized_reason_to_contact_now": "As AI answers compress vendor discovery, UserGems can turn its distinctive champion-tracking data into authoritative category content.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Demandbase and 6sense are excluded prospects but valid competitors; employee band and trigger date require confirmation.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Weaviate",
+      "domain": "weaviate.io",
+      "category": "Vector database / AI search",
+      "employee_band_evidence": "LinkedIn company page lists 51-200 employees.",
+      "competitors": [
+        "Pinecone",
+        "Milvus",
+        "Qdrant",
+        "Chroma"
+      ],
+      "trigger_summary": "Weaviate's product and content focus is explicitly on vector search, generative AI and retrieval-augmented generation, creating an urgent AI-search discovery narrative.",
+      "trigger_date": "2025-01-01",
+      "trigger_source_url": "https://weaviate.io/blog",
+      "second_source_url": "https://www.linkedin.com/company/weaviate/",
+      "likely_champion_role": "Head of Content or VP Marketing",
+      "likely_economic_buyer_role": "CMO or Chief Revenue Officer",
+      "buyer_questions": [
+        "How are we being discovered in ChatGPT and other answer engines?",
+        "Which vector-database comparison pages are winning qualified demand?",
+        "Can we measure citations and pipeline from AI answers alongside organic search?"
+      ],
+      "current_substitute_hypothesis": "In-house SEO plus generic rank tracking and manually maintained comparison pages.",
+      "icp_score": 88,
+      "qualification_reason": "B2B developer infrastructure SaaS with several credible substitutes, high-intent category comparisons, and a clear need to explain technical differentiation in both search and AI answers.",
+      "personalized_reason_to_contact_now": "As AI retrieval becomes the buying interface, Weaviate can turn its technical authority into measurable visibility across comparison searches and answer engines.",
+      "evidence_freshness_date": "2025-01-01",
+      "risk_or_unknowns": "LinkedIn employee band and blog chronology should be revalidated; trigger date is approximate.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Pinecone",
+      "domain": "pinecone.io",
+      "category": "Vector database / AI infrastructure",
+      "employee_band_evidence": "LinkedIn company page lists 201-500 employees.",
+      "competitors": [
+        "Weaviate",
+        "Milvus",
+        "Qdrant",
+        "Redis Vector Search"
+      ],
+      "trigger_summary": "Pinecone's ongoing AI infrastructure and vector-database publishing provides a strong product-category and AI-search visibility trigger.",
+      "trigger_date": "2025-02-01",
+      "trigger_source_url": "https://www.pinecone.io/blog/",
+      "second_source_url": "https://www.linkedin.com/company/pinecone-io/",
+      "likely_champion_role": "Director of Content Marketing or Head of Developer Marketing",
+      "likely_economic_buyer_role": "VP Marketing or CMO",
+      "buyer_questions": [
+        "Which AI infrastructure terms produce enterprise pipeline today?",
+        "How do we defend Pinecone against vector-database alternatives in AI answers?",
+        "Can content teams identify and close citation gaps at scale?"
+      ],
+      "current_substitute_hypothesis": "SEO agency, editorial calendar, and spreadsheet-based competitor monitoring.",
+      "icp_score": 90,
+      "qualification_reason": "Well-funded B2B developer platform in a crowded comparison-heavy category; its audience researches alternatives deeply and the company has resources for an in-house growth program.",
+      "personalized_reason_to_contact_now": "The vector database category is consolidating around AI-search recommendations; owning comparison and use-case answers now can influence architecture choices before procurement.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public employee bands may lag hiring changes; exact campaign trigger requires confirmation with marketing.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Prefect",
+      "domain": "prefect.io",
+      "category": "Data workflow orchestration",
+      "employee_band_evidence": "LinkedIn company page lists 201-500 employees.",
+      "competitors": [
+        "Dagster",
+        "Apache Airflow",
+        "Kestra",
+        "Mage"
+      ],
+      "trigger_summary": "Prefect's product-led workflow orchestration positioning and AI/data engineering content create an active alternative and category-education demand surface.",
+      "trigger_date": "2025-01-15",
+      "trigger_source_url": "https://www.prefect.io/blog",
+      "second_source_url": "https://www.linkedin.com/company/prefect-io/",
+      "likely_champion_role": "Head of Developer Marketing",
+      "likely_economic_buyer_role": "VP Marketing or CRO",
+      "buyer_questions": [
+        "Which orchestration alternatives are prospects comparing this quarter?",
+        "Where do our Airflow and Dagster pages lose answer-engine visibility?",
+        "What technical questions should Prefect answer to create qualified pipeline?"
+      ],
+      "current_substitute_hypothesis": "Developer relations content, organic search reporting, and manual competitor research.",
+      "icp_score": 84,
+      "qualification_reason": "B2B infrastructure software with obvious direct competitors, technical high-intent searches, and a developer audience that increasingly uses AI assistants for tool selection.",
+      "personalized_reason_to_contact_now": "Orchestration evaluations happen before implementation; a focused comparison and AI-answer program can capture demand while teams revisit data stacks.",
+      "evidence_freshness_date": "2025-01-15",
+      "risk_or_unknowns": "Trigger is inferred from current blog/product positioning rather than a single dated launch.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Tines",
+      "domain": "tines.com",
+      "category": "Security automation",
+      "employee_band_evidence": "LinkedIn company page lists 201-500 employees.",
+      "competitors": [
+        "Torq",
+        "Swimlane",
+        "Cortex XSOAR",
+        "Splunk SOAR"
+      ],
+      "trigger_summary": "Tines is competing in security automation/SOAR, a comparison-led category where its AI and automation narrative must be discoverable to security buyers.",
+      "trigger_date": "2025-02-10",
+      "trigger_source_url": "https://www.tines.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/tines/",
+      "likely_champion_role": "Director of Demand Generation or Content Marketing",
+      "likely_economic_buyer_role": "CMO or CRO",
+      "buyer_questions": [
+        "Which SOAR and security-automation alternatives appear in AI recommendations?",
+        "How can we prove differentiated time-to-value in comparison content?",
+        "What analyst, SEO and answer-engine signals correlate with pipeline?"
+      ],
+      "current_substitute_hypothesis": "Security marketing content plus paid search and analyst relations.",
+      "icp_score": 86,
+      "qualification_reason": "Enterprise B2B cybersecurity SaaS with multiple direct competitors and high-value evaluation queries; security teams increasingly use AI-assisted research.",
+      "personalized_reason_to_contact_now": "Security automation buyers are actively comparing platforms; making Tines' automation outcomes legible in AI answers can shorten competitive evaluations.",
+      "evidence_freshness_date": "2025-02-10",
+      "risk_or_unknowns": "Employee count is based on public LinkedIn range and should be checked before outreach.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Chainguard",
+      "domain": "chainguard.dev",
+      "category": "Software supply-chain security",
+      "employee_band_evidence": "LinkedIn company page lists 201-500 employees.",
+      "competitors": [
+        "Snyk",
+        "Aqua Security",
+        "Sysdig",
+        "JFrog"
+      ],
+      "trigger_summary": "Chainguard's secure software supply-chain and container-image positioning is a fast-growing, comparison-heavy security category with active technical education.",
+      "trigger_date": "2025-02-20",
+      "trigger_source_url": "https://www.chainguard.dev/blog",
+      "second_source_url": "https://www.linkedin.com/company/chainguard/",
+      "likely_champion_role": "VP Product Marketing or Head of Developer Marketing",
+      "likely_economic_buyer_role": "CMO or CRO",
+      "buyer_questions": [
+        "Which supply-chain security questions are producing enterprise research?",
+        "How do we win comparisons against Snyk, Aqua and JFrog in AI answers?",
+        "Can we connect technical content visibility to security pipeline?"
+      ],
+      "current_substitute_hypothesis": "Developer security content, analyst coverage, and paid category campaigns.",
+      "icp_score": 89,
+      "qualification_reason": "B2B cybersecurity platform with strong technical differentiation, several substitutes, and a category where buyers need trusted educational and comparison content.",
+      "personalized_reason_to_contact_now": "Supply-chain security standards and AI-generated recommendations are accelerating category formation; Chainguard should own the explanatory layer before rivals do.",
+      "evidence_freshness_date": "2025-02-20",
+      "risk_or_unknowns": "Competitor overlap varies by product module; employee band may change rapidly.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Modal",
+      "domain": "modal.com",
+      "category": "Serverless cloud for AI workloads",
+      "employee_band_evidence": "LinkedIn company page lists 51-200 employees.",
+      "competitors": [
+        "Replicate",
+        "Baseten",
+        "RunPod",
+        "AWS SageMaker"
+      ],
+      "trigger_summary": "Modal's AI compute/serverless positioning and developer-focused publishing align with surging demand for model deployment and inference infrastructure.",
+      "trigger_date": "2025-02-25",
+      "trigger_source_url": "https://modal.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/modal-labs/",
+      "likely_champion_role": "Head of Growth or Developer Marketing Lead",
+      "likely_economic_buyer_role": "VP Marketing or CEO",
+      "buyer_questions": [
+        "Which inference and GPU-cloud comparisons drive evaluation?",
+        "How are developers discovering Modal through ChatGPT and Perplexity?",
+        "Which use-case pages can convert model teams before they request a demo?"
+      ],
+      "current_substitute_hypothesis": "Founder-led technical content, community posts, and paid developer acquisition.",
+      "icp_score": 91,
+      "qualification_reason": "Developer-first B2B cloud platform in an exceptionally active AI infrastructure category, with clear direct substitutes and high-intent technical queries.",
+      "personalized_reason_to_contact_now": "AI teams are choosing inference infrastructure quickly; owning answer-engine comparisons now can make Modal the default recommendation for new workloads.",
+      "evidence_freshness_date": "2025-02-25",
+      "risk_or_unknowns": "Public employee range and trigger timing require verification; AWS is a broad substitute rather than a direct product match.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Convex",
+      "domain": "convex.dev",
+      "category": "Backend-as-a-service for TypeScript apps",
+      "employee_band_evidence": "LinkedIn company page lists 51-200 employees.",
+      "competitors": [
+        "Supabase",
+        "Firebase",
+        "Appwrite",
+        "Hasura"
+      ],
+      "trigger_summary": "Convex's developer backend platform and technical publishing compete for high-intent backend-as-a-service and TypeScript developer discovery.",
+      "trigger_date": "2025-02-18",
+      "trigger_source_url": "https://stack.convex.dev/",
+      "second_source_url": "https://www.linkedin.com/company/convex-dev/",
+      "likely_champion_role": "Developer Marketing Lead or Head of Growth",
+      "likely_economic_buyer_role": "VP Marketing or CEO",
+      "buyer_questions": [
+        "Which backend-as-a-service alternatives are developers comparing?",
+        "What technical answers cause a developer to choose Convex over Supabase or Firebase?",
+        "Can we measure AI-assistant referrals and citations to docs and guides?"
+      ],
+      "current_substitute_hypothesis": "Engineering-led documentation, community content, and organic product education.",
+      "icp_score": 82,
+      "qualification_reason": "B2B developer SaaS with clear substitutes and strong content-led acquisition potential; product choice is frequently researched through tutorials and comparison pages.",
+      "personalized_reason_to_contact_now": "Backend decisions are increasingly made from AI-assisted coding and research workflows, making discoverable, citable technical guidance strategically urgent.",
+      "evidence_freshness_date": "2025-02-18",
+      "risk_or_unknowns": "The employee band is public LinkedIn evidence but may be stale; category boundaries with frameworks are fluid.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Axiom",
+      "domain": "axiom.co",
+      "category": "Cloud observability / log analytics",
+      "employee_band_evidence": "LinkedIn company page lists 51-200 employees.",
+      "competitors": [
+        "Datadog",
+        "Grafana Loki",
+        "New Relic",
+        "Elastic Observability"
+      ],
+      "trigger_summary": "Axiom's developer-first observability and log analytics positioning competes in a high-intent monitoring market with strong alternative-search demand.",
+      "trigger_date": "2025-02-12",
+      "trigger_source_url": "https://axiom.co/blog",
+      "second_source_url": "https://www.linkedin.com/company/axiom/",
+      "likely_champion_role": "Head of Developer Marketing or Content Director",
+      "likely_economic_buyer_role": "VP Marketing or CRO",
+      "buyer_questions": [
+        "Which observability alternatives are generating qualified demand?",
+        "How does Axiom appear for cost, scale and developer-experience questions in AI search?",
+        "Which migration and comparison content should we prioritize?"
+      ],
+      "current_substitute_hypothesis": "Technical SEO, docs, community advocacy, and analyst/paid programs.",
+      "icp_score": 85,
+      "qualification_reason": "B2B observability SaaS with many direct alternatives and expensive, research-heavy buying decisions; strong fit for organic and answer-engine intelligence.",
+      "personalized_reason_to_contact_now": "Observability buyers increasingly ask AI systems to shortlist tools; Axiom can shape those shortlists around its cost and developer-experience differentiation.",
+      "evidence_freshness_date": "2025-02-12",
+      "risk_or_unknowns": "Datadog is excluded by the user as a target but remains a market competitor; Axiom's exact headcount should be rechecked.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Semgrep",
+      "domain": "semgrep.dev",
+      "category": "Application security / SAST",
+      "employee_band_evidence": "LinkedIn company page lists 201-500 employees.",
+      "competitors": [
+        "Checkmarx",
+        "Veracode",
+        "SonarQube",
+        "Mend.io"
+      ],
+      "trigger_summary": "Semgrep's developer-first application security platform and AI/code-security publishing create strong category and competitor-comparison demand.",
+      "trigger_date": "2025-02-05",
+      "trigger_source_url": "https://semgrep.dev/blog/",
+      "second_source_url": "https://www.linkedin.com/company/semgrep/",
+      "likely_champion_role": "Director of Product Marketing or Head of Demand Generation",
+      "likely_economic_buyer_role": "CMO or CRO",
+      "buyer_questions": [
+        "Which AppSec and SAST comparisons influence security-platform evaluations?",
+        "How do developers discover Semgrep in AI answers versus legacy vendors?",
+        "Which proof points turn technical content into pipeline?"
+      ],
+      "current_substitute_hypothesis": "Developer relations, technical SEO, review sites, and paid demand generation.",
+      "icp_score": 88,
+      "qualification_reason": "B2B cybersecurity SaaS with numerous direct competitors, high-value evaluation queries, and a technical audience that rewards authoritative content.",
+      "personalized_reason_to_contact_now": "AI-assisted code and security research is changing shortlist formation; Semgrep can capture that shift by making differentiated developer workflows highly citable.",
+      "evidence_freshness_date": "2025-02-05",
+      "risk_or_unknowns": "Employee range can change; some competitors overlap only in specific SAST/SCA/CNAPP modules.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Nosto",
+      "domain": "nosto.com",
+      "category": "ecommerce personalization and merchandising SaaS",
+      "employee_band_evidence": "LinkedIn company page reports 201-500 employees (public company-size band).",
+      "competitors": [
+        "Kibo Personalization",
+        "Dynamic Yield",
+        "Constructor",
+        "Algolia",
+        "Bloomreach"
+      ],
+      "trigger_summary": "Nosto's public blog and product messaging emphasize AI-powered personalization, merchandising and search/discovery for commerce teams, creating a timely AI-search/GEO narrative opportunity.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.nosto.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/nosto/",
+      "likely_champion_role": "VP/Director of Ecommerce or Head of Digital Experience",
+      "likely_economic_buyer_role": "Chief Marketing Officer or Chief Digital Officer",
+      "buyer_questions": [
+        "How are ecommerce brands being discovered in AI answers and shopping assistants?",
+        "Which category and competitor pages should our team prioritize?",
+        "Can we measure whether content improves qualified product discovery and revenue?"
+      ],
+      "current_substitute_hypothesis": "Internal ecommerce/content team using GA4, platform reports, spreadsheets and generic SEO tools.",
+      "icp_score": 88,
+      "qualification_reason": "B2B commerce SaaS with a dense competitive set, high-intent alternative searches and a sufficiently large public employee band; its buyer audience directly owns discovery and conversion.",
+      "personalized_reason_to_contact_now": "AI shopping and answer engines are changing product discovery; Nosto can turn its personalization/search authority into measurable GEO and comparison content before competitors do.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Trigger date and exact headcount are based on public pages whose update cadence is not guaranteed; Bloomreach is a competitor but is excluded from the prospect list only.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Rebuy",
+      "domain": "rebuyengine.com",
+      "category": "ecommerce upsell, cross-sell and personalization SaaS",
+      "employee_band_evidence": "LinkedIn company page reports 51-200 employees.",
+      "competitors": [
+        "Zipify OneClickUpsell",
+        "Honeycomb Upsell Funnels",
+        "In Cart Upsell",
+        "Klaviyo",
+        "Nosto"
+      ],
+      "trigger_summary": "Rebuy's blog and product positioning focus on AI-assisted Shopify merchandising, upsells and conversion optimization, a strong basis for content around AI commerce discovery and alternatives.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.rebuyengine.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/rebuyengine/",
+      "likely_champion_role": "Head of Marketing or Director of Content/SEO",
+      "likely_economic_buyer_role": "VP Marketing or Chief Revenue Officer",
+      "buyer_questions": [
+        "Which upsell and personalization questions are merchants asking ChatGPT and Gemini?",
+        "How do we win comparison searches against Shopify-app alternatives?",
+        "What proof points will make AI-generated recommendations cite Rebuy?"
+      ],
+      "current_substitute_hypothesis": "Founder-led content, Shopify app-store optimization, paid acquisition and agency-written comparison pages.",
+      "icp_score": 86,
+      "qualification_reason": "Focused B2B SaaS with clear alternatives, strong buyer-intent queries and an ecommerce merchant ICP; 51-200 employees implies enough marketing capacity for a 30-day pilot.",
+      "personalized_reason_to_contact_now": "Shopify merchants are increasingly using AI to evaluate apps; an evidence-led alternative and integration-content sprint could capture demand while the category is still unsettled.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public sources do not establish a dated launch; employee band and trigger should be revalidated during outreach.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Omnisend",
+      "domain": "omnisend.com",
+      "category": " ecommerce marketing automation SaaS",
+      "employee_band_evidence": "LinkedIn company page reports 201-500 employees.",
+      "competitors": [
+        "Klaviyo",
+        "Mailchimp",
+        "ActiveCampaign",
+        "Drip",
+        "Attentive"
+      ],
+      "trigger_summary": "Omnisend's public content centers on ecommerce automation, SMS/email and AI-assisted marketing, making AI-search visibility and competitor comparison a timely growth angle.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.omnisend.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/omnisend/",
+      "likely_champion_role": "VP Content, SEO or Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Which lifecycle-marketing topics generate qualified pipeline from AI answers?",
+        "How do we differentiate Omnisend from Klaviyo in comparison journeys?",
+        "Can content and product evidence be structured for citations and conversions?"
+      ],
+      "current_substitute_hypothesis": "Large editorial program plus paid search, affiliate content and product-led email acquisition.",
+      "icp_score": 91,
+      "qualification_reason": "Large enough to execute, highly competitive category, abundant comparison demand and a direct ecommerce revenue use case.",
+      "personalized_reason_to_contact_now": "AI-generated vendor shortlists compress the marketing-automation funnel; Omnisend can defend branded and alternative demand with structured proof-led pages now.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Exact dated AI launch was not confirmed in the available public pages; Attentive is listed as a competitor despite its larger size.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Jasper",
+      "domain": "jasper.ai",
+      "category": "enterprise AI content and marketing platform",
+      "employee_band_evidence": "LinkedIn company page reports 201-500 employees.",
+      "competitors": [
+        "Writer",
+        "Copy.ai",
+        "Anyword",
+        "Typeface",
+        "Grammarly"
+      ],
+      "trigger_summary": "Jasper publicly positions its platform around enterprise marketing content and brand-governed generative AI, directly aligning with AI-search, GEO and content-operations demand.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.jasper.ai/blog",
+      "second_source_url": "https://www.linkedin.com/company/heyjasperai/",
+      "likely_champion_role": "VP Content Marketing or Head of SEO/Growth",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "How should Jasper's own category pages appear in AI-generated vendor recommendations?",
+        "Which use-case and competitor pages are most likely to create pipeline?",
+        "How can we prove governed content quality rather than just AI output volume?"
+      ],
+      "current_substitute_hypothesis": "In-house content strategy, PR, paid search and conventional SEO suites.",
+      "icp_score": 94,
+      "qualification_reason": "Clear B2B SaaS category, intense alternatives, exceptional comparison demand and an obvious internal content/marketing buyer.",
+      "personalized_reason_to_contact_now": "Jasper sells AI for marketing while AI answer engines reshape its own category; demonstrating measurable citation and pipeline gains would be especially resonant.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee band is a public LinkedIn estimate; trigger page may contain undated evergreen material.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Writer",
+      "domain": "writer.com",
+      "category": "enterprise generative AI platform and content governance SaaS",
+      "employee_band_evidence": "LinkedIn company page reports 201-500 employees.",
+      "competitors": [
+        "Jasper",
+        "Cohere",
+        "Writer.com competitors such as Glean",
+        "Copy.ai",
+        "Typeface"
+      ],
+      "trigger_summary": "Writer's public blog focuses on enterprise generative AI, agents and governed business content, providing a timely AI-search and category-education trigger.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.writer.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/writer-com/",
+      "likely_champion_role": "Head of Content/GEO or VP Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer or Chief Revenue Officer",
+      "buyer_questions": [
+        "What evidence makes enterprise buyers choose Writer over foundation-model platforms?",
+        "Which agent, governance and industry queries are appearing in AI answers?",
+        "How can technical proof be turned into cited, conversion-ready content?"
+      ],
+      "current_substitute_hypothesis": "Product marketing and developer-relations content supported by PR, analysts and generic SEO tooling.",
+      "icp_score": 93,
+      "qualification_reason": "Enterprise AI is a high-intent, highly contested software category; the company has the scale and content complexity to benefit from a focused 30-day discovery program.",
+      "personalized_reason_to_contact_now": "As buyers ask AI assistants to compare enterprise AI platforms, Writer needs authoritative differentiation around governance, agents and deployment.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "One competitor label is broad; exact headcount and dated trigger should be verified in qualification.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Typeface",
+      "domain": "typeface.ai",
+      "category": "generative AI creative and brand content SaaS",
+      "employee_band_evidence": "LinkedIn company page reports 51-200 employees.",
+      "competitors": [
+        "Canva",
+        "Adobe Firefly",
+        "Jasper",
+        "Writer",
+        "Synthesia"
+      ],
+      "trigger_summary": "Typeface's public materials emphasize enterprise brand-safe generative creative workflows, making brand-content search and AI-discovery positioning immediately relevant.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.typeface.ai/blog",
+      "second_source_url": "https://www.linkedin.com/company/typeface-ai/",
+      "likely_champion_role": "VP Marketing or Head of Content/SEO",
+      "likely_economic_buyer_role": "Chief Marketing Officer",
+      "buyer_questions": [
+        "Which creative-AI alternatives do enterprise buyers compare in AI assistants?",
+        "How do we make brand safety and workflow differentiation discoverable?",
+        "Which use-case pages can produce qualified design and marketing pipeline in 30 days?"
+      ],
+      "current_substitute_hypothesis": "Brand marketing, agency content, paid social and conventional search/content tools.",
+      "icp_score": 89,
+      "qualification_reason": "B2B creative software with obvious alternatives, large comparison demand and a compact but adequate employee band for rapid experimentation.",
+      "personalized_reason_to_contact_now": "Generative creative is crowded and fast-moving; owning evidence-led comparisons and brand-safety queries can help Typeface avoid being flattened into generic image-generation results.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public employee estimate may lag hiring changes; no dated trigger was confirmed.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Anyword",
+      "domain": "anyword.com",
+      "category": "AI copywriting and marketing performance SaaS",
+      "employee_band_evidence": "LinkedIn company page reports 51-200 employees.",
+      "competitors": [
+        "Jasper",
+        "Copy.ai",
+        "Writesonic",
+        "Rytr",
+        "Writer"
+      ],
+      "trigger_summary": "Anyword's public blog and product positioning emphasize performance-oriented AI marketing copy, giving it a strong opening to target AI-search and marketing-use-case discovery.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.anyword.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/anyword/",
+      "likely_champion_role": "Head of Growth/SEO or Director of Product Marketing",
+      "likely_economic_buyer_role": "VP Marketing or CMO",
+      "buyer_questions": [
+        "Can performance claims and benchmark evidence earn citations in AI answers?",
+        "Which copywriting alternatives and use cases drive the highest-intent searches?",
+        "How do we connect AI-discovery visibility to trial and pipeline?"
+      ],
+      "current_substitute_hypothesis": "Editorial SEO, paid acquisition, affiliate reviews and internal performance-marketing analysis.",
+      "icp_score": 87,
+      "qualification_reason": "Clear SaaS category and alternative demand, with a measurable performance proposition and 51-200 employee scale.",
+      "personalized_reason_to_contact_now": "AI-copy vendors are increasingly evaluated by AI assistants; Anyword's performance-data angle can become differentiated answer-engine evidence rather than generic feature copy.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Trigger timing and exact headcount require confirmation; public blog may mix evergreen and current posts.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Wunderkind",
+      "domain": "wunderkind.co",
+      "category": "commerce performance marketing and personalization SaaS",
+      "employee_band_evidence": "LinkedIn company page reports 201-500 employees.",
+      "competitors": [
+        "Gupshup",
+        "Klaviyo",
+        "Attentive",
+        "Iterable",
+        "Bloomreach"
+      ],
+      "trigger_summary": "Wunderkind's public site/blog focuses on ecommerce personalization, messaging and performance marketing, supporting a current demand-gen and AI-discovery conversation.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.wunderkind.co/blog/",
+      "second_source_url": "https://www.linkedin.com/company/wunderkind/",
+      "likely_champion_role": "VP Demand Generation or Head of Content/SEO",
+      "likely_economic_buyer_role": "Chief Revenue Officer or CMO",
+      "buyer_questions": [
+        "How are retail buyers discovering personalization and messaging vendors through AI?",
+        "Which proof points distinguish Wunderkind from lifecycle and CDP alternatives?",
+        "Can comparison content be tied to retailer pipeline and revenue outcomes?"
+      ],
+      "current_substitute_hypothesis": "Enterprise sales enablement, analyst relations, paid media and agency-produced retail content.",
+      "icp_score": 84,
+      "qualification_reason": "Retail-focused B2B SaaS with multiple credible competitors, substantial buyer-intent demand and sufficient public employee scale.",
+      "personalized_reason_to_contact_now": "Retail software evaluation is moving toward AI-assisted shortlists; Wunderkind can package performance proof into pages that answer specific retailer buying questions.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Category boundaries overlap with agencies and messaging platforms; current employee band should be reconfirmed.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Marpipe",
+      "domain": "marpipe.com",
+      "category": "advertising experimentation and creative intelligence SaaS",
+      "employee_band_evidence": "LinkedIn company page reports 51-200 employees.",
+      "competitors": [
+        "Smartly.io",
+        "Celtra",
+        "VidMob",
+        "Hunch",
+        "Pathmatics"
+      ],
+      "trigger_summary": "Marpipe's public content centers on creative testing, advertising experimentation and performance intelligence—an actionable basis for AI-search visibility around creative measurement.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.marpipe.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/marpipe/",
+      "likely_champion_role": "Head of Growth or VP Content/Product Marketing",
+      "likely_economic_buyer_role": "Chief Marketing Officer or Chief Revenue Officer",
+      "buyer_questions": [
+        "Which creative-testing and ad-intelligence questions are buyers asking AI assistants?",
+        "How do we win comparisons against larger ad-creative platforms?",
+        "What experiment evidence can become citation-worthy demand content?"
+      ],
+      "current_substitute_hypothesis": "Agency expertise, spreadsheets, ad-platform reporting and generic BI/SEO tooling.",
+      "icp_score": 82,
+      "qualification_reason": "Narrow B2B adtech category with clear alternatives, high commercial intent and a 51-200 employee band compatible with a focused pilot.",
+      "personalized_reason_to_contact_now": "As generative creative multiplies ad variants, buyers need credible testing guidance; Marpipe can own that emerging question set before broad adtech suites do.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public blog and LinkedIn evidence may not provide a dated product trigger; verify current GTM ownership and employee count.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Lawmatics",
+      "domain": "lawmatics.com",
+      "category": "Legal practice management SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 51–200 employees (public company-size band).",
+      "competitors": [
+        "Clio Grow",
+        "Law Ruler",
+        "Dubsado",
+        "Lone Wolf Transact"
+      ],
+      "trigger_summary": "The company continues positioning its legal CRM and intake automation around competing for prospective-client demand; this creates a timely need to measure visibility in AI-assisted search and comparison journeys.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.lawmatics.com/",
+      "second_source_url": "https://www.linkedin.com/company/lawmatics/",
+      "likely_champion_role": "VP/Director of Marketing or Head of Demand Generation",
+      "likely_economic_buyer_role": "Chief Marketing Officer or Chief Revenue Officer",
+      "buyer_questions": [
+        "Which legal-CRM alternatives are prospects comparing in ChatGPT and Google?",
+        "Can we attribute organic and AI-discovery leads to intake conversion?",
+        "Where are competitors winning category and practice-area queries?"
+      ],
+      "current_substitute_hypothesis": "Google Search Console, GA4, agency reporting, and manual searches of ChatGPT/Google.",
+      "icp_score": 78,
+      "qualification_reason": "Vertical B2B SaaS with a clear comparison set, high-value law-firm ICP, and a product category where organic demand and trust strongly influence pipeline; public LinkedIn evidence places it in the requested employee band.",
+      "personalized_reason_to_contact_now": "Legal buyers increasingly research software through summarized answers and comparison pages; Lawmatics can identify which intake/CRM claims and competitors are being surfaced before the next budget cycle.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public employee band is self-reported and may lag current headcount; no verified public announcement specifically naming GEO/AEO.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "EvenUp",
+      "domain": "evenuplaw.com",
+      "category": "AI legal technology SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 201–500 employees.",
+      "competitors": [
+        "Clio",
+        "Litify",
+        "Filevine",
+        "CloudLex"
+      ],
+      "trigger_summary": "EvenUp publicly markets AI-powered personal-injury case preparation and workflow software, a category undergoing rapid AI repositioning and competitive discovery.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.evenuplaw.com/",
+      "second_source_url": "https://www.linkedin.com/company/evenup/",
+      "likely_champion_role": "Head of Marketing or Director of Growth",
+      "likely_economic_buyer_role": "Chief Revenue Officer or Chief Marketing Officer",
+      "buyer_questions": [
+        "How is EvenUp represented against legal-AI alternatives in AI answers?",
+        "Which practice-area pages generate qualified law-firm demand?",
+        "What proof points should be reinforced for comparison shoppers?"
+      ],
+      "current_substitute_hypothesis": "SEO agency dashboards, CRM attribution, and manual competitor/AI-search checks.",
+      "icp_score": 82,
+      "qualification_reason": "AI-native legal B2B software, strong commercial intent around legal-tech comparisons, 201–500 public employee band, and a fast-moving category where category education and organic authority matter.",
+      "personalized_reason_to_contact_now": "AI legal software buyers are evaluating trust, outcomes, and workflow breadth in compressed research journeys; measuring those surfaces now can protect EvenUp's category leadership.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Competitor overlap varies by module; public sources do not disclose internal marketing-stack ownership.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Rho",
+      "domain": "rho.co",
+      "category": "Business finance and spend-management SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 201–500 employees.",
+      "competitors": [
+        "Ramp",
+        "Brex",
+        "Airbase",
+        "Navan"
+      ],
+      "trigger_summary": "Rho positions an integrated corporate finance platform spanning banking, cards, spend, and AP, putting it in a high-intent category with frequent alternative and comparison searches.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.rho.co/",
+      "second_source_url": "https://www.linkedin.com/company/rho/",
+      "likely_champion_role": "VP Marketing or Head of Content/Growth",
+      "likely_economic_buyer_role": "CMO or CRO",
+      "buyer_questions": [
+        "Which finance-platform alternatives appear for CFO-led searches?",
+        "Where do Ramp and Brex win AI-generated recommendations?",
+        "Which product pages most efficiently convert comparison traffic?"
+      ],
+      "current_substitute_hypothesis": "Paid search, GA4/CRM attribution, and spreadsheets tracking competitor visibility.",
+      "icp_score": 84,
+      "qualification_reason": "B2B financial-workflow SaaS with clear enterprise buying intent, 3+ direct competitors, 201–500 public employee band, and a broad category where demand capture is measurable.",
+      "personalized_reason_to_contact_now": "CFO software research is increasingly condensed into AI summaries; Rho can benchmark its integrated-finance narrative against the alternatives buyers see before signing.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "LinkedIn size is a range rather than audited headcount; banking products may create regulated-claims review requirements.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Mesh Payments",
+      "domain": "meshpayments.com",
+      "category": "Spend management and AP automation SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 51–200 employees.",
+      "competitors": [
+        "Ramp",
+        "Brex",
+        "Airbase",
+        "BILL"
+      ],
+      "trigger_summary": "Mesh markets automated spend controls, cards, and accounts payable for businesses, an active category where buyers explicitly compare platforms and feature coverage.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://meshpayments.com/",
+      "second_source_url": "https://www.linkedin.com/company/meshpayments/",
+      "likely_champion_role": "Director of Demand Generation or Content Marketing",
+      "likely_economic_buyer_role": "CMO or CRO",
+      "buyer_questions": [
+        "Which spend-management comparisons drive qualified pipeline?",
+        "Is Mesh cited accurately in AI answers for AP and card automation?",
+        "Which competitor gaps should comparison content address first?"
+      ],
+      "current_substitute_hypothesis": "Keyword-rank tools, paid acquisition reports, and manual SERP reviews.",
+      "icp_score": 80,
+      "qualification_reason": "Focused B2B spend SaaS, clear alternatives, high commercial-intent category, and 51–200 public employee band make it a plausible Stage 0 fit.",
+      "personalized_reason_to_contact_now": "Spend-management categories are crowded and AI answers can flatten product differences; a current visibility baseline would sharpen Mesh's comparison and demand-gen priorities.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "The requested exclusion list includes BILL but not Mesh; company-size evidence is self-reported.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Certa",
+      "domain": "certa.ai",
+      "category": "Third-party risk and procurement SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 51–200 employees.",
+      "competitors": [
+        "OneTrust Third-Party Risk Management",
+        "Prevalent",
+        "ProcessUnity",
+        "Aravo"
+      ],
+      "trigger_summary": "Certa presents an AI-enabled third-party management and procurement platform, aligning with current AI/GRC and supplier-risk buying research.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.certa.ai/",
+      "second_source_url": "https://www.linkedin.com/company/certa-ai/",
+      "likely_champion_role": "Head of Marketing or Director of Demand Generation",
+      "likely_economic_buyer_role": "CMO or Chief Revenue Officer",
+      "buyer_questions": [
+        "Which supplier-risk alternatives are surfaced by AI search?",
+        "What evidence convinces procurement and risk teams to switch?",
+        "Where do Certa's category pages lose comparison traffic?"
+      ],
+      "current_substitute_hypothesis": "SEO platform reports, analyst content, and CRM campaign attribution.",
+      "icp_score": 79,
+      "qualification_reason": "B2B procurement/risk SaaS with multiple credible competitors and high-value enterprise buyers; public 51–200 size fits the requested qualification band.",
+      "personalized_reason_to_contact_now": "AI-assisted procurement research is making trust and category proof discoverable before sales contact; Certa can test whether its AI and workflow differentiation survives that journey.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Product positioning spans procurement and risk, so the best initial category may require discovery.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "ChartHop",
+      "domain": "charthop.com",
+      "category": "People analytics and HR planning SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 51–200 employees.",
+      "competitors": [
+        "Visier",
+        "One Model",
+        "Peakon",
+        "Culture Amp"
+      ],
+      "trigger_summary": "ChartHop markets people analytics, org planning, and workforce insights; HR leaders commonly research these products through category and alternative queries.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.charthop.com/",
+      "second_source_url": "https://www.linkedin.com/company/charthop/",
+      "likely_champion_role": "VP Marketing or Head of Content/Growth",
+      "likely_economic_buyer_role": "CMO or CRO",
+      "buyer_questions": [
+        "Which people-analytics vendors are recommended in AI answers?",
+        "Can workforce-planning content be tied to qualified opportunities?",
+        "Which comparison pages should be refreshed for current HR priorities?"
+      ],
+      "current_substitute_hypothesis": "Organic analytics, HR analyst reports, and manual competitor monitoring.",
+      "icp_score": 77,
+      "qualification_reason": "B2B HR SaaS with substantial comparison demand, three-plus direct competitors, and public 51–200 employee evidence.",
+      "personalized_reason_to_contact_now": "HR technology evaluation is shifting toward concise AI-generated vendor shortlists; ChartHop can validate its differentiation before competitors define the category narrative.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Some listed competitors overlap only in modules; no public proof of a dedicated GEO team.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Ribbon Health",
+      "domain": "ribbonhealth.com",
+      "category": "Healthcare data and provider-network API SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 51–200 employees.",
+      "competitors": [
+        "Kyruus Health",
+        "Trilliant Health",
+        "DexCare",
+        "Healthcare Bluebook"
+      ],
+      "trigger_summary": "Ribbon provides healthcare-provider data and APIs for digital health and payer use cases, where accuracy, category authority, and technical discovery affect enterprise pipeline.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.ribbonhealth.com/",
+      "second_source_url": "https://www.linkedin.com/company/ribbon-health/",
+      "likely_champion_role": "VP Marketing or Head of Growth",
+      "likely_economic_buyer_role": "CMO or CRO",
+      "buyer_questions": [
+        "Which healthcare-data alternatives surface for API and provider-directory queries?",
+        "Can technical content demonstrate data quality to AI-assisted researchers?",
+        "Which integrations and use cases deserve demand-gen investment?"
+      ],
+      "current_substitute_hypothesis": "Developer SEO analytics, analyst relations, and CRM attribution.",
+      "icp_score": 81,
+      "qualification_reason": "Healthcare infrastructure SaaS with technical, high-intent buyers and several credible alternatives; public 51–200 employee evidence supports ability to execute.",
+      "personalized_reason_to_contact_now": "AI search is increasingly used to shortlist infrastructure vendors, while healthcare buyers need authoritative evidence; Ribbon can measure and improve that first impression.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Healthcare terminology and competitor boundaries differ across payer, provider, and digital-health segments.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Zus Health",
+      "domain": "zushealth.com",
+      "category": "Healthcare data platform SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 51–200 employees.",
+      "competitors": [
+        "Health Gorilla",
+        "Particle Health",
+        "Redox",
+        "1upHealth"
+      ],
+      "trigger_summary": "Zus Health markets a shared health-data and infrastructure platform for healthcare builders, a differentiated but comparison-heavy API/data category.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://zushealth.com/",
+      "second_source_url": "https://www.linkedin.com/company/zus-health/",
+      "likely_champion_role": "Head of Marketing or Director of Growth",
+      "likely_economic_buyer_role": "Chief Commercial Officer or CEO",
+      "buyer_questions": [
+        "How does Zus appear against health-data API alternatives in AI search?",
+        "Which developer and buyer questions create qualified demand?",
+        "What proof of interoperability should comparison content emphasize?"
+      ],
+      "current_substitute_hypothesis": "Developer documentation analytics, content marketing, and founder-led demand generation.",
+      "icp_score": 78,
+      "qualification_reason": "Vertical healthcare infrastructure SaaS, 3+ direct competitors, technical high-intent use cases, and public 51–200 employee evidence.",
+      "personalized_reason_to_contact_now": "Healthcare platform buyers increasingly use AI to compress vendor discovery; Zus can ensure its interoperability and care-infrastructure narrative is represented accurately.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Headcount and marketing ownership are not independently audited; category is specialized and may require segment-specific benchmarking.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Float",
+      "domain": "floatfinancial.com",
+      "category": "Corporate card and expense-management SaaS",
+      "employee_band_evidence": "LinkedIn company profile lists 51–200 employees.",
+      "competitors": [
+        "Ramp",
+        "Brex",
+        "Airbase",
+        "Emburse"
+      ],
+      "trigger_summary": "Float markets Canadian business cards, expense management, and spend controls, placing it in a high-intent category with strong alternative-search behavior.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://floatfinancial.com/",
+      "second_source_url": "https://www.linkedin.com/company/floatfinancial/",
+      "likely_champion_role": "Director of Marketing or Demand Generation",
+      "likely_economic_buyer_role": "CMO or CRO",
+      "buyer_questions": [
+        "Which spend platforms do Canadian buyers compare with Float?",
+        "How often is Float present in AI-generated finance recommendations?",
+        "Which industry and use-case pages produce pipeline?"
+      ],
+      "current_substitute_hypothesis": "SEO rank tracking, paid media dashboards, and sales-reported competitive intelligence.",
+      "icp_score": 76,
+      "qualification_reason": "B2B finance SaaS with clear competitive alternatives and regional high-intent demand; public 51–200 employee band fits the brief.",
+      "personalized_reason_to_contact_now": "AI-assisted finance research can erase regional differentiation; Float can benchmark Canadian category visibility and strengthen the pages that influence shortlist formation.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Some competitors have broader geographies and product scope; employee band is self-reported.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Mural",
+      "domain": "mural.co",
+      "category": "Visual collaboration and workshop software",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees (public company-page band).",
+      "competitors": [
+        "Miro",
+        "FigJam",
+        "Lucidspark",
+        "Stormboard"
+      ],
+      "trigger_summary": "Mural's public blog and product materials emphasize AI-assisted visual collaboration and facilitation, creating a timely discovery/GEO and category-positioning opportunity.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.mural.co/blog",
+      "second_source_url": "https://www.linkedin.com/company/mural-co/",
+      "likely_champion_role": "VP/Director of Content Marketing or SEO",
+      "likely_economic_buyer_role": "CMO or VP Marketing",
+      "buyer_questions": [
+        "Are buyers finding Mural when they ask ChatGPT or Perplexity for workshop and whiteboard tools?",
+        "Which competitor and alternative pages generate qualified pipeline today?",
+        "How will we measure AI-search visibility separately from conventional organic traffic?"
+      ],
+      "current_substitute_hypothesis": "Mural likely relies on internal content/SEO reporting plus paid and partner channels, with no unified comparison/GEO intelligence layer.",
+      "icp_score": 88,
+      "qualification_reason": "Horizontal B2B SaaS with strong comparison intent, multiple credible competitors, substantial content surface area, and a public 201–500 employee band.",
+      "personalized_reason_to_contact_now": "AI-assisted collaboration is changing how teams evaluate whiteboard/workshop software; a visibility benchmark can show whether Mural is being recommended against Miro and FigJam.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Employee band and AI emphasis are based on public profile/blog pages; exact SEO team size and launch date are not confirmed.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Productboard",
+      "domain": "productboard.com",
+      "category": "Product management and product discovery software",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees.",
+      "competitors": [
+        "Aha!",
+        "ProductPlan",
+        "Pendo",
+        "Dragonboat"
+      ],
+      "trigger_summary": "Productboard's product blog documents AI/product-management capabilities and continued category education, a natural trigger for AI-search and competitor-discovery monitoring.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.productboard.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/productboard/",
+      "likely_champion_role": "Head of Content, SEO, or Product Marketing",
+      "likely_economic_buyer_role": "VP Marketing or CMO",
+      "buyer_questions": [
+        "Which product-management questions now produce competitor recommendations in AI answers?",
+        "Where do Aha!, Pendo, and ProductPlan outrank us in high-intent comparisons?",
+        "Can we connect category-content changes to demo pipeline within 30 days?"
+      ],
+      "current_substitute_hypothesis": "Productboard likely uses a conventional SEO stack and analyst/category programs, leaving AI answer citations and comparison coverage fragmented.",
+      "icp_score": 90,
+      "qualification_reason": "Clear B2B category, high-value evaluation journeys, 3+ direct competitors, and employee evidence in the requested 50–500 range.",
+      "personalized_reason_to_contact_now": "Product-management buyers increasingly research through AI summaries; Productboard can protect discovery leadership while its AI/product narrative is active.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public sources do not establish the exact current marketing org or a dated AI-search campaign.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Dovetail",
+      "domain": "dovetail.com",
+      "category": "Customer research and insights repository",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees.",
+      "competitors": [
+        "UserTesting",
+        "Condens",
+        "EnjoyHQ",
+        "Notion"
+      ],
+      "trigger_summary": "Dovetail's blog publicly promotes AI-powered research analysis and insight workflows, making AI discovery and category authority an immediate growth issue.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://dovetail.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/dovetail-research/",
+      "likely_champion_role": "Director of Content/SEO or Product Marketing",
+      "likely_economic_buyer_role": "VP Marketing or Chief Marketing Officer",
+      "buyer_questions": [
+        "When a research leader asks an AI engine for a Dovetail alternative, are we present?",
+        "Which evidence and research-workflow pages are cited in AI answers?",
+        "What 30-day content changes could increase qualified research-platform discovery?"
+      ],
+      "current_substitute_hypothesis": "Dovetail likely combines editorial SEO, product-led content, and analyst coverage without dedicated AI-answer monitoring.",
+      "icp_score": 89,
+      "qualification_reason": "High-intent B2B research software with clear alternatives, strong educational content needs, and a public 201–500 employee band.",
+      "personalized_reason_to_contact_now": "AI research features are changing both the product story and the way researchers discover tools; measuring citation/share-of-answer now can guide the next content sprint.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Competitor overlap varies by use case; exact employee count and current SEO ownership are not publicly verified.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Coda",
+      "domain": "coda.io",
+      "category": "Collaborative docs and workspace software",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees.",
+      "competitors": [
+        "Notion",
+        "Airtable",
+        "Confluence",
+        "Slite"
+      ],
+      "trigger_summary": "Coda's public blog and product ecosystem position AI-powered docs and workflows, producing an active opportunity to win AI-search comparisons and alternative demand.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://coda.io/blog",
+      "second_source_url": "https://www.linkedin.com/company/coda-inc/",
+      "likely_champion_role": "VP/Director of Growth, SEO, or Content",
+      "likely_economic_buyer_role": "CMO or VP Growth",
+      "buyer_questions": [
+        "Which AI-workspace prompts recommend Coda versus Notion and Airtable?",
+        "Do our alternative and migration pages answer current buyer objections?",
+        "Can we identify fast content wins across docs, wikis, and workflow use cases?"
+      ],
+      "current_substitute_hypothesis": "Coda likely has strong product/community content but fragmented visibility into AI answers and competitor substitution journeys.",
+      "icp_score": 91,
+      "qualification_reason": "Large horizontal SaaS category, exceptionally strong comparison demand, many adjacent competitors, and public 201–500 employee evidence.",
+      "personalized_reason_to_contact_now": "AI-native workspace positioning makes Coda particularly exposed to rapidly changing answer-engine recommendations and comparison language.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Coda's category spans several substitutes, so ICP fit may differ by use case; exact trigger date is unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Doist",
+      "domain": "doist.com",
+      "category": "Task management and team productivity software",
+      "employee_band_evidence": "LinkedIn company profile reports 201–500 employees.",
+      "competitors": [
+        "Todoist alternatives: TickTick",
+        "Microsoft To Do",
+        "Any.do",
+        "Things"
+      ],
+      "trigger_summary": "Doist's public blog continues to discuss productivity, remote work, and Todoist product development, creating ongoing search demand around task-management alternatives and AI productivity.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://doist.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/doist/",
+      "likely_champion_role": "Head of Growth/SEO or Content Marketing Lead",
+      "likely_economic_buyer_role": "VP Marketing or General Manager",
+      "buyer_questions": [
+        "How often do AI assistants recommend Todoist for team versus personal task management?",
+        "Which alternative and use-case pages convert searchers today?",
+        "What can a 30-day content experiment change in qualified signups?"
+      ],
+      "current_substitute_hypothesis": "Doist likely depends on product-led organic content and brand demand, with limited visibility into AI recommendation share.",
+      "icp_score": 82,
+      "qualification_reason": "B2B-capable productivity SaaS with very strong alternative intent, broad international content needs, and a public 201–500 band.",
+      "personalized_reason_to_contact_now": "Productivity queries are increasingly answered conversationally; Doist can defend brand and team-use discovery before competitors define the AI comparison set.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Doist also serves consumers, and the cited sources do not prove a dedicated B2B demand-gen team.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Slite",
+      "domain": "slite.com",
+      "category": "Knowledge base and collaborative documentation",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "Confluence",
+        "Notion",
+        "Guru",
+        "Slab"
+      ],
+      "trigger_summary": "Slite's public blog/product positioning focuses on AI-assisted knowledge management and team docs, an active trigger for GEO and alternative-page optimization.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://slite.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/slite/",
+      "likely_champion_role": "Head of Marketing or Content/SEO Lead",
+      "likely_economic_buyer_role": "CMO or VP Marketing",
+      "buyer_questions": [
+        "Is Slite cited when teams ask AI tools for a Notion or Confluence alternative?",
+        "Which knowledge-base use cases lack authoritative comparison content?",
+        "Can we turn AI visibility findings into a 30-day editorial backlog?"
+      ],
+      "current_substitute_hypothesis": "Slite likely uses a lean product-led marketing team and conventional SEO, without systematic answer-engine measurement.",
+      "icp_score": 86,
+      "qualification_reason": "Focused B2B knowledge software, numerous direct alternatives, high evaluation intent, and public 51–200 employee evidence.",
+      "personalized_reason_to_contact_now": "AI knowledge-base messaging makes answer-engine discoverability strategically urgent for a focused challenger like Slite.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public employee band may lag hiring changes; exact AI launch date and internal SEO ownership are unknown.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Fibery",
+      "domain": "fibery.io",
+      "category": "Work management and connected workspace software",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "Coda",
+        "Notion",
+        "Airtable",
+        "ClickUp"
+      ],
+      "trigger_summary": "Fibery's public blog presents its connected-workspace and AI capabilities, supporting a timely category/alternative discovery campaign.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://fibery.io/blog/",
+      "second_source_url": "https://www.linkedin.com/company/fibery/",
+      "likely_champion_role": "Founder/Head of Growth or Content Lead",
+      "likely_economic_buyer_role": "VP Marketing or Chief Revenue Officer",
+      "buyer_questions": [
+        "Which connected-workspace prompts cause AI engines to mention Fibery?",
+        "Where should Fibery build comparison pages against Coda, Notion, and Airtable?",
+        "What proof points can improve conversion from alternative searches this month?"
+      ],
+      "current_substitute_hypothesis": "Fibery likely relies on founder-led/product-led content and lacks the monitoring scale of larger workspace competitors.",
+      "icp_score": 80,
+      "qualification_reason": "B2B work-management platform with clear substitute set, comparison-heavy buying process, and public 51–200 employee evidence.",
+      "personalized_reason_to_contact_now": "A smaller challenger can win AI answer citations quickly by identifying uncovered workflow and integration questions before incumbents fill them.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "The company may be toward the lower end of the band; direct B2B demand-gen staffing is not confirmed.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Nuclino",
+      "domain": "nuclino.com",
+      "category": "Team wiki and knowledge management",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "Notion",
+        "Confluence",
+        "Slite",
+        "Slab"
+      ],
+      "trigger_summary": "Nuclino's public product/blog materials emphasize fast team knowledge sharing and modern workspace use cases, supporting high-intent alternative and AI-discovery work.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://www.nuclino.com/blog",
+      "second_source_url": "https://www.linkedin.com/company/nuclino/",
+      "likely_champion_role": "Head of Marketing/SEO or Growth Lead",
+      "likely_economic_buyer_role": "CMO or VP Growth",
+      "buyer_questions": [
+        "How visible is Nuclino for AI-generated team-wiki recommendations?",
+        "Which competitor migrations and use cases deserve new landing pages?",
+        "What content changes could produce measurable qualified signups in 30 days?"
+      ],
+      "current_substitute_hypothesis": "Nuclino likely depends on focused organic/product-led acquisition and may not systematically track AI citations or competitor narratives.",
+      "icp_score": 79,
+      "qualification_reason": "Clear B2B wiki category, four credible alternatives, strong evaluation intent, and public 51–200 employee evidence.",
+      "personalized_reason_to_contact_now": "Knowledge-workspace buyers increasingly ask conversational tools to shortlist products; a lean team can act quickly on citation and comparison gaps.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Public pages do not confirm a recent AI-specific launch or exact internal marketing capacity.",
+      "revalidate_before_outreach": true
+    },
+    {
+      "company": "Slab",
+      "domain": "slab.com",
+      "category": "Team knowledge base and internal documentation",
+      "employee_band_evidence": "LinkedIn company profile reports 51–200 employees.",
+      "competitors": [
+        "Confluence",
+        "Notion",
+        "Guru",
+        "Nuclino"
+      ],
+      "trigger_summary": "Slab's public blog positions structured team knowledge and documentation for modern companies, creating active comparison and answer-engine discovery demand.",
+      "trigger_date": "unknown",
+      "trigger_source_url": "https://slab.com/blog/",
+      "second_source_url": "https://www.linkedin.com/company/slab/",
+      "likely_champion_role": "Director of Marketing or SEO/Content Lead",
+      "likely_economic_buyer_role": "CMO or VP Marketing",
+      "buyer_questions": [
+        "Does Slab appear in AI answers for best internal wiki and knowledge-base tools?",
+        "Which competitor alternatives and integrations are missing from our organic coverage?",
+        "Can we prioritize three pages that improve qualified pipeline within 30 days?"
+      ],
+      "current_substitute_hypothesis": "Slab likely has strong product expertise but a smaller content operation than Confluence or Notion and limited GEO instrumentation.",
+      "icp_score": 78,
+      "qualification_reason": "B2B knowledge-base SaaS with clear alternatives and high-intent comparison demand, plus public 51–200 employee evidence.",
+      "personalized_reason_to_contact_now": "The knowledge-base category is being redefined by AI answers and agentic retrieval; Slab can sharpen its differentiated narrative before larger suites dominate recommendations.",
+      "evidence_freshness_date": "2025-02-01",
+      "risk_or_unknowns": "Exact headcount, current trigger date, and dedicated SEO/GEO ownership are not confirmed by the public sources.",
+      "revalidate_before_outreach": true
+    }
+  ]
+}
