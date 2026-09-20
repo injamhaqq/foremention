@@ -13,9 +13,9 @@ test("public prompt checker exposes one real web-retrieval-grounded answer with 
   const promptCheck = worker.slice(start, end);
   assert.match(promptCheck, /runPublicGroundedCloudflare/);
   assert.match(promptCheck, /provider: "Cloudflare Workers AI \+ Web Retrieval"/);
-  assert.match(retrieval, /seedUrlsFromQuery/);
+  assert.match(retrieval, /searchBrave/);\n  assert.match(retrieval, /searchDuckDuckGo/);\n  assert.match(retrieval, /searchBing/);
   assert.match(retrieval, /parseSearchHtmlLinks/);
-  assert.match(retrieval, /keyless-web-retrieval/);
+  assert.match(retrieval, /keyless-search-evidence/);\n  assert.doesNotMatch(retrieval, /fetchSource|fetch\\(citation\\.url/);
   assert.match(promptCheck, /No result was invented/);
   assert.doesNotMatch(promptCheck, /env\.BROWSER|GEMINI_API_KEY|api\.groq\.com|s\.jina\.ai/);
 });
