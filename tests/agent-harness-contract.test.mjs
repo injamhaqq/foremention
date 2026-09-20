@@ -71,8 +71,8 @@ test("release and specialist review primitives are present", () => {
 test("CLAUDE.md carries the founder workflow and canonical-identity constitution", () => {
   const constitution = read("CLAUDE.md");
   assert.match(constitution, /Show the intended visual first/i);
-  assert.match(constitution, /Foremention 5/);
-  assert.match(constitution, /Attention[\s\S]*Questions[\s\S]*Records[\s\S]*Comparisons[\s\S]*Settings/);
+  assert.match(constitution, /Signed-in navigation/i);
+  assert.match(constitution, /Overview[\s\S]*Questions[\s\S]*Records[\s\S]*Evidence[\s\S]*Opportunities[\s\S]*Comparisons[\s\S]*All tools[\s\S]*Settings/);
   assert.match(constitution, /Source X-Ray is retired as a standalone feature/i);
   assert.match(constitution, /approved canonical Foremention logo\/mark\/wordmark identity is locked/i);
   assert.match(constitution, /Do not redraw, trace, recolor, derive, replace, or invent logo\/mark\/wordmark variants/i);
