@@ -104,6 +104,14 @@ function secureResponse(response: Response, url: URL, correlationId?: string) {
   if (url.pathname.startsWith("/app") || url.pathname.startsWith("/api/auth")) {
     secured.headers.set("Cache-Control", "private, no-store, max-age=0");
   }
+  if (url.pathname === "/") {
+    secured.headers.append("Link", "</index.md>; rel=\"alternate\"; type=\"text/markdown\"");
+    secured.headers.append("Link", "</llms.txt>; rel=\"describedby\"");
+  }
+  if (url.pathname === "/index.md") {
+    secured.headers.set("Content-Type", "text/markdown; charset=utf-8");
+    secured.headers.set("Link", "<https://foremention.com/>; rel=\"canonical\"");
+  }
   if (correlationId) secured.headers.set("X-Correlation-ID", correlationId);
   return secured;
 }
@@ -351,6 +359,22 @@ const worker = {
     logOperationalEvent("request_started", { correlationId, route: url.pathname, method: request.method });
 
     if (url.pathname === "/api/health" && request.method === "GET") return complete(await handleHealth(env));
+
+    if (
+      url.pathname === "/" &&
+      request.method === "GET" &&
+      (request.headers.get("accept") || "").toLowerCase().includes("text/markdown")
+    ) {
+      const markdownRequest = new Request(new URL("/index.md", request.url), {
+        method: "GET",
+        headers: request.headers,
+      });
+      const markdown = await env.ASSETS.fetch(markdownRequest);
+      const response = new Response(markdown.body, markdown);
+      response.headers.set("Content-Type", "text/markdown; charset=utf-8");
+      response.headers.set("Link", "<https://foremention.com/>; rel=\"canonical\"");
+      return complete(response);
+    }
 
     const publicRateLimited = await enforcePublicRouteLimit(correlatedRequest, env, url.pathname);
     if (publicRateLimited) return complete(publicRateLimited);
