@@ -16,6 +16,10 @@
   gap: 24px;
 }
 
+.outreach-footer-links {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .explore-directory {
   scroll-margin-top: 88px;
 }
@@ -93,6 +97,7 @@
 
 .app-sidebar__home {
   flex: 0 0 auto;
+  margin-bottom: 28px;
 }
 
 .workspace-explorer {
@@ -171,9 +176,17 @@
     gap: 16px;
     font-size: 12px;
   }
+
+  .outreach-footer-links {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
+  .outreach-footer-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .explore-directory__links {
     grid-template-columns: 1fr;
   }
