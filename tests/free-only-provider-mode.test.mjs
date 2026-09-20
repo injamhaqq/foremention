@@ -57,9 +57,19 @@ test("public score and prompt-check use grounded Gemini and contain no direct Gr
   assert.doesNotMatch(publicAi, /OPENAI_API_KEY|OPENROUTER_API_KEY|PERPLEXITY_API_KEY|ANTHROPIC_API_KEY/);
 });
 
+
+test("Gemini customer evidence fails closed without structured provider grounding citations", async () => {
+  const gemini = await text("lib/providers/gemini.ts");
+  assert.match(gemini, /tools: \[\{ google_search: \{\} \}\]/);
+  assert.match(gemini, /groundingChunks/);
+  assert.match(gemini, /Grounded response returned no provider citation metadata/);
+  assert.doesNotMatch(gemini, /extractUrls/);
+});
+
 test("trusted-main acceptance canary is fixed to free-only Gemini", async () => {
   const workflow = await text(".github/workflows/first-evidence-canary.yml");
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER: 'gemini'/);
+  assert.match(workflow, /FOREMENTION_ACCEPTANCE_EXPECTED_MODEL: 'gemini-2\.5-flash-lite'/);
   assert.match(workflow, /FOREMENTION_ACCEPTANCE_MAX_COST_USD: '0\.01'/);
   assert.doesNotMatch(workflow, /FOREMENTION_ACCEPTANCE_PROVIDER:\s*\$\{\{\s*secrets\./);
 });
