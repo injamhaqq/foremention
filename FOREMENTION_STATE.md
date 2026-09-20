@@ -1,80 +1,130 @@
 # Foremention Autonomous Execution State
 
-This file is a compact handoff ledger for autonomous workers. It is not a substitute for live verification. Every worker must re-check material facts against GitHub, code, CI, migrations, and production evidence before acting.
+This is a compact handoff ledger, not a substitute for live verification. Re-check GitHub, production health, code, migrations, customer evidence, and current commercial data before acting.
 
-## Last bootstrap verification
+## Current authority — Stage 0 Customer Proof
 
-- Verified on: 2026-09-01
-- Repository: `injamhaqq/foremention`
-- Default branch: `main`
-- Current canonical main SHA at bootstrap: `2c306677e7e7b318c955d4ec81e99679129bf6c7`
-- Repository visibility at bootstrap: public
-- Canonical autonomous engine: GitHub Copilot CLI running inside GitHub Actions.
-- Authentication: workflow-provided short-lived `GITHUB_TOKEN`; no OpenAI/model API key and no stored GitHub PAT in the canonical path.
-- Copilot usage boundary: billed against the repository owner's Copilot seat/AI-credit allowance; Copilot Student is not unlimited.
-- Production deployment SHA/health for this bootstrap: UNKNOWN; not independently inspected as part of this control-plane change.
-
-## Recommendation Engineering build authority — 2026-09-01
-
-- Long-term destination: **Category Leadership OS** — not claimed as achieved.
-- Core product category being built: **Recommendation Engineering**.
-- Measurement + diagnosis subsystem: **Recommendation Intelligence**.
+- Verified operating reset: 2026-09-20.
+- Repository: `injamhaqq/foremention`.
+- Default branch: `main`.
+- Verified main SHA before this hardening cycle: `8fce4b27e8bf6a17c3d0e8ecc7895706dfc44daa`.
+- Production health at that SHA: `status=ok`, worker reachable, D1 reachable, Supabase reachable.
+- Public category: **Recommendation Intelligence for B2B software**.
+- Canonical measurement object: **Recommendation Record**.
 - Canonical company-decision object: **Change Specification**.
-- Execution artifacts are subordinate to Change Specifications.
-- Public positioning remains **Recommendation Intelligence** until the Recommendation Engineering core path is shipped and separately approved for public migration.
-- PR #200 merged the approved architecture/specification, but the four authority files are updated by the first Slice A implementation rather than treated as already complete.
-- PR #197 is directionally useful but **do not merge #197 as-is**. Reconcile it only after the first-class Change Specification domain exists; `controlSurface` belongs to Change Specification, not `ResolutionProposal`.
-- Historical `resolution_assets` remain valid and must not be backfilled with fabricated Change Specifications.
-- Production reliability issue #202 was completed only after exact production SHA `3256b9fd6e2c99e40f1667b81778915fff620ba6` passed Cloudflare release verification, live Inngest sync/probe, and the authenticated first-evidence canary.
-- No customer, PMF, revenue, retention, willingness-to-pay, category-leadership, benchmark, ROI, or causal claim is implied by the Recommendation Engineering architecture or its implementation.
+- Governing company constraint: customer proof, not additional product breadth.
 
-## Operating objective
+Do not declare Stage 0 complete until first-party evidence supports all three conditions:
 
-Advance Foremention through small, evidence-based, reviewable engineering cycles without requiring the founder to repeatedly type “continue.” Each cycle must recover reality, choose one justified task, implement the smallest complete solution, verify it, open a review-only PR, and leave an evidence-backed handoff.
+1. 3–5 qualified external B2B SaaS design partners actively complete the agreed workflow.
+2. At least 1 verified paid pilot or signed commercial commitment exists.
+3. At least 2 organizations complete a second comparable reviewed cycle.
 
-## Open autonomous work
+Unknown remains Unknown. Pipeline is not revenue. List price is not payment. A before/after observation is not causal proof.
 
-- Autopilot bootstrap PR #192 was merged to `main` as `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc` on 2026-09-01.
-- AI-credit-floor repair PR #194 was merged to `main` as `9b93b5515f6d71e5ac0811a10b92eec1b8de6dd2` on 2026-09-01.
-- Foremention Autopilot Controller run #2 (`33482925005`) succeeded with preflight, keyless Copilot execution, `--max-ai-credits 30`, bounded agent cycle completion, packaging/upload, and publisher validation.
-- Run #2 intentionally produced no patch because no additional justified repository-safe work was present; it correctly skipped PR publication and did not manufacture a product change.
-- Before selecting new product work, inspect all current open PRs and avoid duplicate implementation.
-- Recommendation Engineering Core Loop v1 must follow the approved spec/plan and exact-head gates. Do not start Slice B until Slice A is merged and independently production-verified.
+## Stage 0 execution priority
 
-## Founder-decision queue
+P0 work is limited to:
 
-1. One-time repository setting may be required: allow GitHub Actions to create pull requests under repository Actions workflow permissions. The connected GitHub API tooling cannot read or change that administrative setting. Browser automation was attempted on 2026-09-01 but could not start because the external automation wallet had insufficient balance. The publisher path itself remains the authoritative test of whether this setting is already enabled.
-2. Auto-merge remains intentionally disabled. Autonomous workers may create and repair local proposals/PRs, but merges stay founder-controlled unless a separate, explicitly approved publication identity and merge policy are introduced.
-3. GitHub may require a maintainer to approve workflows on pull requests created by `GITHUB_TOKEN`; this is a GitHub recursion/security safeguard. A separate GitHub App/PAT could remove that click later, but is intentionally not required for the keyless baseline.
+- qualified target-account research;
+- customer interviews and founder-led sales;
+- design-partner conversion;
+- activation and Recommendation Record review;
+- customer-owned Change Specification assignment;
+- comparable second cycles;
+- paid-pilot and continuation evidence;
+- real production/security/reliability defects;
+- pilot blockers;
+- measurement of the full funnel.
+
+Broad marketplace, public benchmark, international expansion, large sales-team buildout, additional product lines, broad autonomous-agent breadth, and unsupported leadership/ROI/customer-logo claims remain frozen.
+
+The detailed operating gate is `docs/STAGE-0-CUSTOMER-PROOF-90-DAY.md`. The founder motion is `docs/FOUNDER-CUSTOMER-PROOF-PLAYBOOK.md`. GitHub issue #283 is the live Stage-0 tracker.
+
+## Production and public-funnel state
+
+- Stage-0 funnel PR #282 merged to `main` as `8fce4b27e8bf6a17c3d0e8ecc7895706dfc44daa`.
+- Primary design-partner CTA is deliberately pulled earlier into the hero.
+- Public funnel analytics now covers CTA impression -> CTA click -> application page -> application start -> application submit.
+- Commercial stages after submission remain first-party commercial truth; do not infer them from web analytics.
+- `/llms.txt`, `/llms-full.txt`, `/sitemap.md`, `/index.md`, and `/AGENTS.md` are public agent-readable resources.
+- Production `llms.txt` independently scored 100/100 in the 2026-09-20 Agent Ready scan.
+- Remaining agent-readability hardening is allowed only when it does not distract from Stage 0 or weaken security.
+
+## Agent OS state
+
+Production health at the verified Stage-0 SHA reported:
+
+- `enabled=true`;
+- `reasoningEnabled=false`;
+- operator configured;
+- OpenAI credential configured;
+- application email configured.
+
+Do not represent disabled reasoning as active. Re-enable only after the provider/quota/error condition that caused fail-closed behavior is independently cleared and a production-risk justification exists.
+
+## GitHub Autopilot state
+
+The keyless GitHub Copilot controller architecture remains privilege-separated:
+
+- AI job: repository read + `copilot-requests: write`;
+- publisher job: repository write, no model execution;
+- exact-base refusal;
+- protected-path validation;
+- no auto-merge;
+- no stored OpenAI/model API key in the canonical Autopilot path.
+
+Historical live proof:
+
+- bootstrap PR #192 merged;
+- AI-credit-floor repair PR #194 merged;
+- Autopilot Controller run #2 (`33482925005`) completed a bounded keyless cycle safely;
+- a later verified failure was caused by the GitHub Copilot account reporting **monthly quota exceeded**, not by a repository-permission or workflow-security defect.
+
+**Stage 0 override:** automatic Autopilot push/schedule cadence is paused. The controller is manual-dispatch only so quota noise and autonomous engineering do not outrank customer proof. Use it only for a specific production, security, reliability, or pilot-blocker task after checking quota availability.
+
+## Open work selection rule
+
+Before changing code:
+
+1. Check issue #283 and current customer/prod evidence.
+2. Inspect current open PRs and avoid duplicate/stale implementation.
+3. Choose one bounded task tied to customer evidence, production risk, security, reliability, or a real pilot blocker.
+4. Preserve tenant isolation, RLS, evidence boundaries, exact comparability, and human approval.
+5. Run the relevant tests and exact-SHA production verification.
+6. Do not manufacture traction, customer evidence, revenue, ROI, category leadership, benchmark results, or causality.
+
+## Founder-decision boundary
+
+Require explicit founder approval before:
+
+- sending customer/prospect communications through a new or unverified transport;
+- material public pricing changes;
+- destructive production/database operations;
+- secret changes;
+- weakening authentication, authorization, RLS, or security controls;
+- legal commitments;
+- material paid spend;
+- publishing customer identity, logos, testimonials, case studies, or outcome claims.
+
+Research, qualification, evidence preservation, draft preparation, regression fixes, and non-destructive production verification may proceed when they remain within the established Stage-0 scope.
 
 ## Execution ledger
 
-### 2026-09-01 — Autopilot control-plane bootstrap
+### 2026-09-20 — Stage-0 operating reset
 
-- Starting main SHA: `2c306677e7e7b318c955d4ec81e99679129bf6c7`
-- Purpose: create a repository-native continuation loop using GitHub Student's Copilot CLI capability rather than ChatGPT/Codex session allowance.
-- Added/expected controls: repository Copilot instructions, dedicated Foremention Autopilot custom agent, bounded cycle prompt, persistent state ledger, issue template, two-job privilege-separated controller, deterministic self-modification/sensitive-path guard, documentation, and contract tests.
-- Agent privilege: repository read + `copilot-requests: write`; no repository write permission.
-- Publisher privilege: repository write, no AI execution; applies only the artifacted patch after exact-base and deterministic path validation.
-- Cost controls: 30 AI-credit soft cap per objective (current Copilot CLI minimum), 8 maximum autopilot continuations, 12-hour fallback schedule, one concurrent controller run.
-- Safety posture: no auto-merge; no destructive production/database actions or security/business-truth changes without founder approval.
-- Continuation behavior: normal merge/push to `main` triggers the next bounded cycle; schedule is a fallback.
+- Customer proof became the governing 90-day constraint.
+- PR #282 moved the homepage CTA earlier, reduced design-partner form friction, added funnel analytics, added agent-readable public resources, and codified the Stage-0 operating gate.
+- Production health subsequently reported exact build SHA `8fce4b27e8bf6a17c3d0e8ecc7895706dfc44daa` with Worker, D1, and Supabase reachable.
+- No design partner, paid pilot, second cycle, renewal, PMF, or pricing validation was invented.
 
-### 2026-09-01 — First live activation run
+### 2026-09-01 — Autopilot live proof
 
-- Triggering main SHA: `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc`.
-- GitHub Actions run: Foremention Autopilot Controller #1 (`33481511405`).
-- Verified working: trigger, serialized preflight, read-only checkout, pnpm/Node setup, repository dependency install, current Copilot CLI install, `GITHUB_TOKEN` with `CopilotRequests: write`.
-- Observed failure: CLI rejected `--max-ai-credits 10` with the explicit requirement to use at least 30 AI credits.
-- Repair: set `--max-ai-credits 30`; keep all other privilege, continuation, timeout, no-auto-merge, stale-patch, and protected-path controls unchanged.
-
-### 2026-09-01 — Recommendation Engineering unblocked
-
-- Verified production base: `3256b9fd6e2c99e40f1667b81778915fff620ba6`.
-- Runtime hardening PRs: #204 workflow envelope; #205 collection runtime/canary envelope.
-- Production verification: exact release, live Inngest sync, live Inngest execution probe, authenticated first-evidence canary, and evidence archival all succeeded before Change Specification implementation began.
-- Approved architecture authority: PR #200 plus `docs/superpowers/specs/2026-09-01-recommendation-engineering-core-loop-design.md` and its implementation plan.
+- Autopilot bootstrap PR #192 merged as `0e0dcb823e16ed2b2483fcb3a8233d4db748b5bc`.
+- AI-credit-floor repair PR #194 merged as `9b93b5515f6d71e5ac0811a10b92eec1b8de6dd2`.
+- Controller run #2 (`33482925005`) completed preflight, keyless Copilot execution, packaging/upload, and publisher validation.
+- It deliberately produced no patch when no justified change existed.
 
 ## How to update this file
 
-Append only durable handoff facts that materially help the next autonomous worker. Prefer links/SHAs/issue or PR numbers over prose. Do not store secrets, raw customer data, invented commercial metrics, or temporary speculation here.
+Append only durable, verified handoff facts that materially change what the next operator should do. Prefer exact SHAs, issue/PR numbers, workflow run IDs, and production evidence. Never store secrets, raw customer data, invented metrics, or temporary speculation.
