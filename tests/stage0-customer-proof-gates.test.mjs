@@ -56,6 +56,8 @@ test("public agent discovery exposes evidence-bound markdown resources", async (
   assert.match(layout, /rel="describedby" href="\/llms\.txt"/);
   assert.match(seo, /max-snippet:-1/);
   assert.match(seo, /max-image-preview:large/);
+  assert.match(seo, /"text\/markdown"/);
+  assert.match(homePage, /markdownPath: "\/index\.md"/);
   assert.match(homePage, /webPageJsonLd/);
   assert.match(homePage, /Recommendation Intelligence for B2B Software/);
   assert.match(llms, /^# Foremention/m);
