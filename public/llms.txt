@@ -1,0 +1,32 @@
+# Foremention
+
+> Foremention is recommendation intelligence for B2B software. It preserves buyer-question observations and evidence, separates what a company can prove from what it cannot, turns reviewed gaps into customer-owned Change Specifications, and supports comparable later measurement without inventing causal claims.
+
+## Core
+
+- [Product](https://foremention.com/product): Product workflow and decision boundaries.
+- [Recommendation Intelligence](https://foremention.com/recommendation-intelligence): Public category definition.
+- [Recommendation Record](https://foremention.com/recommendation-record): Canonical measurement object and evidence-chain explanation.
+- [Methodology](https://foremention.com/methodology): Measurement, evidence, review, and comparability methodology.
+- [Glossary](https://foremention.com/glossary): Canonical product and evidence terminology.
+- [Trust Center](https://foremention.com/trust): Security, privacy, reliability, and evidence boundaries.
+- [Design Partner Application](https://foremention.com/contact): Founder-led design-partner application.
+
+## Research
+
+- [Research and evidence](https://foremention.com/insights): Public research index.
+- [AI visibility measurement](https://foremention.com/insights/ai-visibility-measurement): Measurement limits and interpretation.
+- [SEO and GEO technical checklist](https://foremention.com/insights/seo-geo-technical-checklist): Public technical guidance.
+
+## Company
+
+- [About](https://foremention.com/about): Company and product purpose.
+- [Privacy](https://foremention.com/privacy): Privacy practices.
+- [Subprocessors](https://foremention.com/subprocessors): Subprocessor information.
+- [Terms](https://foremention.com/terms): Terms of use.
+
+## Optional
+
+- [Full LLM context](https://foremention.com/llms-full.txt): Expanded product and evidence context.
+- [Markdown sitemap](https://foremention.com/sitemap.md): Human- and agent-readable public site map.
+- [Homepage markdown](https://foremention.com/index.md): Markdown mirror of the homepage's core public claims and workflow.
