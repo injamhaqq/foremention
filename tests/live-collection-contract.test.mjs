@@ -193,6 +193,12 @@ test("Cloudflare Workers AI uses keyless Bing RSS web retrieval and persists onl
   assert.match(adapter, /SOURCES:/);
   assert.match(adapter, /grounded: true/);
   assert.match(adapter, /retrievalProvider/);
+  assert.match(adapter, /selectRetrievedCitations/);
+  assert.match(adapter, /citationSelection: "model-selected"/);
+  assert.match(adapter, /citationSelection: "retrieved-evidence-set"/);
+  assert.match(adapter, /citations: available/);
+  assert.match(adapter, /if \(!available\.length\)/);
+  assert.match(adapter, /unique\.map\(\(index\) => available\[index - 1\]\)/);
   assert.doesNotMatch(adapter, /extractUrls/);
   assert.match(retrieval, /https:\/\/www\.bing\.com\/search/);
   assert.match(retrieval, /parseBingSearchRss/);
