@@ -9,16 +9,18 @@ import type { Viewer } from "@/lib/auth";
 import { resetProductAnalytics } from "@/lib/product-analytics";
 
 const primaryNav = [
-  ["/app", "Attention"],
+  ["/app", "Overview"],
   ["/app/prompts", "Questions"],
   ["/app/runs", "Records"],
+  ["/app/source-map", "Evidence"],
+  ["/app/opportunities", "Opportunities"],
   ["/app/analytics", "Comparisons"],
+  ["/app/tools", "All tools"],
   ["/app/settings", "Settings"],
 ] as const;
 
-// These proven capabilities remain part of the product contract, but they are
-// intentionally not rendered as global navigation. RetentionSurfaceBridge
-// exposes them contextually from the five canonical objects instead.
+// These capabilities remain available contextually and are also indexed from
+// /app/tools so no important product area is hidden from navigation.
 export const CONTEXTUAL_WORKSPACE_ROUTES = [
   ["/app/alerts", "Alerts"],
   ["/app/team", "Team"],
