@@ -73,7 +73,7 @@ function textFromXml(value: string) {
   if (normalized.startsWith("<![CDATA[") && normalized.endsWith("]]>")) {
     normalized = normalized.slice(9, -3);
   }
-  return decodeXml(stripTags(normalized)).split(/s+/).filter(Boolean).join(" ");
+  return decodeXml(stripTags(normalized)).split(/\s+/).filter(Boolean).join(" ");
 }
 
 function extractTagValue(fragment: string, tagName: string) {
@@ -142,7 +142,7 @@ export type FreeWebEvidence = {
 };
 
 export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal): Promise<FreeWebEvidence> {
-  const normalized = query.normalize("NFKC").split(/s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
+  const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
   const url = new URL(BING_SEARCH_ENDPOINT);
