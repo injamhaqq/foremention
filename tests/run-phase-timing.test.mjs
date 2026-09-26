@@ -43,9 +43,9 @@ test("failed timed step propagates its original error and emits failure metadata
   assert.doesNotMatch(JSON.stringify(lines), /SECRET|synthetic-only/);
 });
 
-test("the seven timing markers remain entirely within existing durable step callbacks", async () => {
+test("the fourteen timing markers remain entirely inside existing durable step callbacks", async () => {
   const code = await readFile(new URL("../lib/jobs/inngest.ts", import.meta.url), "utf8");
-  for (const phase of ["load_run", "load_prompts", "load_identity", "check_provider_circuit", "mark_running", "count_sources", "mark_for_review"]) {
+  for (const phase of ["load_run", "start_supervisor", "load_prompts", "load_identity", "record_question_scout", "check_provider_circuit", "mark_running", "start_collector", "persist_answer", "record_collector", "count_sources", "mark_for_review", "generate_source_map", "notify_owner"]) {
     assert.ok(code.includes(`measureRunPhase("${phase}"`), `missing ${phase}`);
   }
   assert.match(code, /step\.run\("load-and-revalidate-run", \(\) =>\s*measureRunPhase/);
@@ -53,5 +53,10 @@ test("the seven timing markers remain entirely within existing durable step call
   assert.match(code, /step\.run\("mark-run-for-human-review", \(\) =>\s*measureRunPhase/);
   assert.match(code, /step\.run\(`collect-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
   assert.match(code, /step\.run\(\s*`persist-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
+  // Time only the independent persistence step body, not provider collection or function replay.
+  assert.match(code, /measureRunPhase\("persist_answer", run\.id, \(\) =>\s*persistAnswer\(/);
+  assert.match(code, /step\.run\("generate-observed-source-map", \(\) =>\s*measureRunPhase\("generate_source_map"/);
+  assert.match(code, /step\.run\("notify-run-owner", \(\) =>\s*measureRunPhase\("notify_owner"/);
+  assert.doesNotMatch(code, /measureRunPhase\("persist_answer",[^]*?adapter\.run\(/);
   assert.doesNotMatch(code, /step\.run\("combined-provider-and-persistence/);
 });

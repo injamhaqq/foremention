@@ -5,12 +5,19 @@ import { logOperationalEvent } from "../structured-logger.ts";
 // Phase names are fixed constants: no prompt, email, URL or provider response.
 export type RunPhase =
   | "load_run"
+  | "start_supervisor"
   | "load_prompts"
   | "load_identity"
+  | "record_question_scout"
   | "check_provider_circuit"
   | "mark_running"
+  | "start_collector"
+  | "persist_answer"
+  | "record_collector"
   | "count_sources"
-  | "mark_for_review";
+  | "mark_for_review"
+  | "generate_source_map"
+  | "notify_owner";
 
 export async function measureRunPhase<T>(
   phase: RunPhase,
