@@ -9,6 +9,10 @@ last_updated: "2026-09-26"
 
 This page describes Foremention's product methodology and evidence boundaries; it is not a report of verified customer results.
 
+## Provider-surface measurement boundary
+
+The current free-only live collection path is **Cloudflare Workers AI with independently retrieved Bing Search RSS sources and grounded synthesis**. It is **not a native ChatGPT, Gemini, or Perplexity consumer-app observation**. A model-vendor API is also not presumed equivalent to its consumer app. When a separately authorized direct API is used, record and verify the exact API surface, model, retrieval and citation metadata, locale, versioned buyer question and measurement protocol; preserve unavailable and uncertified surfaces as unknown rather than implying coverage. Do not merge differing surface families into one comparable cohort.
+
 ## The recorded evidence sequence
 
 Buyer question → provider observation → returned reference → distinct source → retrievability → evidence → human review → decision → comparable later measurement.

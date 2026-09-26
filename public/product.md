@@ -9,6 +9,10 @@ last_updated: "2026-09-26"
 
 Foremention is a B2B software product for preserving AI buyer-question observations and supporting human-reviewed company decisions. It does not promise AI rankings, citations, sales or causation.
 
+## Current measured provider surface
+
+In the current free-only live collection path, Foremention uses **Cloudflare Workers AI + Bing Search RSS grounded synthesis**. This is a defined hosted-model and independently retrieved-web-evidence observation, **not** direct monitoring of ChatGPT, Gemini, or Perplexity consumer-app responses. A separately configured model-vendor API also does not automatically represent that vendor's consumer application. Each Record preserves the actual provider, exact model, question version, retrieval method and relevant measurement context; other surfaces require their own independent validation before coverage or cross-surface comparison claims.
+
 ## Product workflow
 
 1. **Observe.** Version a buyer question and store the provider, exact model, measurement context, returned answer, brand mentions, returned citations where present, failures and collection timestamp.

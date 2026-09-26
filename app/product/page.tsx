@@ -37,9 +37,13 @@ export default function ProductPage() {
           <span className="eyebrow eyebrow--on-ink">Recommendation Intelligence</span>
           <h1>From recommendation evidence to what your company should change next.</h1>
           <p>
-            Foremention starts with the AI answers buyers may see, keeps the supporting evidence inspectable,
-            checks what your company can genuinely substantiate, and turns the strongest decision-relevant gap
+            Foremention starts with a recorded answer from a defined AI measurement method, keeps its evidence
+            inspectable, checks what your company can substantiate, and turns a reviewed, decision-relevant gap
             into an exact company change your team can approve, execute, and verify.
+          </p>
+          <p>
+            Current free-only live collection uses Cloudflare Workers AI with Bing Search RSS and grounded
+            synthesis. It does not directly monitor ChatGPT, Gemini, or Perplexity consumer-app responses.
           </p>
           <div className="page-hero__actions">
             <Link data-design-partner-cta="product_hero" className="button" href="/contact">Apply as Design Partner <Arrow /></Link>
@@ -81,6 +85,22 @@ export default function ProductPage() {
             <div><span>03</span><p><strong>No automatic company decision.</strong> Human approval remains required for material changes.</p></div>
             <div><span>04</span><p><strong>No causal shortcut.</strong> Before-and-after association remains distinct from proof that a company change caused the result.</p></div>
           </div>
+        </div>
+      </section>
+
+      <section className="section section--surface">
+        <div className="shell narrow-heading">
+          <h2>Know exactly which AI surface was observed.</h2>
+          <p>
+            A Cloudflare-hosted grounded answer with independently retrieved Bing RSS sources is a specific
+            measurement, not a native observation of a competing AI assistant&apos;s consumer interface. A separate
+            provider API may also behave differently from its consumer application.
+          </p>
+          <p>
+            Foremention retains the observed provider, exact model, buyer-question version, retrieval method
+            and material measurement context. Other provider surfaces are not promised or compared until
+            they are independently validated with genuine provider-returned evidence.
+          </p>
         </div>
       </section>
 
