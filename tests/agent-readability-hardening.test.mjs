@@ -88,3 +88,18 @@ test("Stage-0 Autopilot is manual-only while customer proof is the company gate"
   assert.match(state, /Current authority — Stage 0 Customer Proof/i);
   assert.match(state, /manual-dispatch only/i);
 });
+
+test("curated public markdown mirrors expose a sitemap section and canonical metadata", async () => {
+  const [indexMarkdown, productMarkdown, methodologyMarkdown] = await Promise.all([
+    read("public/index.md"),
+    read("public/product.md"),
+    read("public/methodology.md"),
+  ]);
+  for (const markdown of [indexMarkdown, productMarkdown, methodologyMarkdown]) {
+    assert.match(markdown, /^---\n[\s\S]*?\ncanonical: "https:\/\/foremention\.com\//);
+    assert.match(markdown, /^## Sitemap$/m);
+    assert.match(markdown, /https:\/\/foremention\.com\/sitemap\.md/);
+  }
+  assert.match(productMarkdown, /last_updated: "2026-09-26"/);
+  assert.match(methodologyMarkdown, /last_updated: "2026-09-26"/);
+});
