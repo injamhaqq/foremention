@@ -480,7 +480,7 @@ export const runMultiEngineScan = inngest.createFunction(
     const run = await step.run("load-and-revalidate-run", () =>
       measureRunPhase("load_run", data.runId, () => loadRun(data)));
     if (!run) return { runId: data.runId, skipped: true };
-    await step.run("start-run-supervisor", () =>
+    await step.run("start-run-supervisor", () => measureRunPhase("start_supervisor", run.id, () =>
       recordAgentExecution({
         runId: run.id,
         organizationId: run.organization_id,
@@ -488,7 +488,7 @@ export const runMultiEngineScan = inngest.createFunction(
         agentId: "run-supervisor",
         status: "running",
         attemptCount: attempt + 1,
-      }));
+      })));
 
     const [prompts, identity] = await Promise.all([
       step.run("load-run-prompt-snapshots", () => measureRunPhase("load_prompts", run.id, () =>
@@ -514,7 +514,7 @@ export const runMultiEngineScan = inngest.createFunction(
     if (!prompts.length || prompts.length > LIVE_COLLECTION_LIMITS.maxPromptsPerRun) {
       throw new Error("The queued run has an invalid prompt snapshot.");
     }
-    await step.run("record-question-scout", () =>
+    await step.run("record-question-scout", () => measureRunPhase("record_question_scout", run.id, () =>
       recordAgentExecution({
         runId: run.id,
         organizationId: run.organization_id,
@@ -527,7 +527,7 @@ export const runMultiEngineScan = inngest.createFunction(
           competitorCount: identity.competitors.length,
           brandConfigured: Boolean(identity.brand),
         },
-      }));
+      })));
 
 
     const providerId = run.provider_ids[0];
@@ -589,7 +589,7 @@ export const runMultiEngineScan = inngest.createFunction(
         prefer: "return=minimal",
         body: { status: "running", started_at: new Date().toISOString() },
       })));
-    await step.run("start-answer-collector", () =>
+    await step.run("start-answer-collector", () => measureRunPhase("start_collector", run.id, () =>
       recordAgentExecution({
         runId: run.id,
         organizationId: run.organization_id,
@@ -597,7 +597,7 @@ export const runMultiEngineScan = inngest.createFunction(
         agentId: "answer-collector",
         status: "running",
         attemptCount: attempt + 1,
-      }));
+      })));
 
     const results: Array<{ answer: ProviderAnswer; citationCount: number; estimatedCost: number }> = [];
     const failures: Array<{ promptId: string; error: string }> = [];
@@ -673,7 +673,8 @@ export const runMultiEngineScan = inngest.createFunction(
       // recover an interrupted evidence or cost-ledger write.
       const result = await step.run(
         `persist-${providerId}-${prompt.prompt_key}`,
-        () => persistAnswer(run, prompt, providerId, successfulReceipt.answer, identity, successfulReceipt.attemptNumber),
+        () => measureRunPhase("persist_answer", run.id, () =>
+          persistAnswer(run, prompt, providerId, successfulReceipt.answer, identity, successfulReceipt.attemptNumber)),
       );
       results.push(result);
     }
@@ -706,7 +707,7 @@ export const runMultiEngineScan = inngest.createFunction(
       );
       return { runId: run.id, answers: 0, citations: 0, failures: failures.length };
     }
-    await step.run("record-answer-collector", () =>
+    await step.run("record-answer-collector", () => measureRunPhase("record_collector", run.id, () =>
       recordAgentExecution({
         runId: run.id,
         organizationId: run.organization_id,
@@ -715,7 +716,7 @@ export const runMultiEngineScan = inngest.createFunction(
         status: "complete",
         attemptCount: attempt + 1,
         result: { answerCount, failureCount: failures.length },
-      }));
+      })));
 
     const presenceAnswers = results.filter((result) => includesName(result.answer.answer, identity.brand));
     const firstMentionAnswers = results.filter((result) => {
@@ -784,18 +785,19 @@ export const runMultiEngineScan = inngest.createFunction(
       })));
     let mappedSourceCount = 0;
     try {
-      const generated = await step.run("generate-observed-source-map", () => generateObservedSourceMap(run));
+      const generated = await step.run("generate-observed-source-map", () =>
+        measureRunPhase("generate_source_map", run.id, () => generateObservedSourceMap(run)));
       mappedSourceCount = generated.sourceCount;
     } catch (error) {
       console.warn("Observed Source Map generation will be retried after review.", safeOperationalError(error));
     }
-    await step.run("notify-run-owner", () =>
+    await step.run("notify-run-owner", () => measureRunPhase("notify_owner", run.id, () =>
       notifyRunOwner(
         run,
         "run_ready",
         "Collection is ready for review",
         `${answerCount} real answer${answerCount === 1 ? "" : "s"} and ${citationCount} returned citation${citationCount === 1 ? "" : "s"} are ready for human review.`,
-      ));
+      )));
     await step.run("email-first-run-owner", () => notifyFirstCompletedRun(run, answerCount, citationCount, mappedSourceCount));
     await step.sendEvent("deliver-collection-webhooks", {
       id: `workspace-event-collection-${run.id}`,
