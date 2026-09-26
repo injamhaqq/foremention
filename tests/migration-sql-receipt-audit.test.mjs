@@ -21,7 +21,7 @@ test('exact identity with modified SQL bytes cannot be treated as a match', () =
   const r = compareMigrationSqlReceipts([source], [{ version: source.version, name: source.name }],
     [{ version: source.version, name: source.name, statement_count: 1, ...migrationSqlDigests(source.sql + ' ') }]);
   assert.equal(r.counts.byte_matched_remote, 0);
-  assert.equal(r.unresolved[0].reason, 'NO_BYTE_IDENTICAL_LOCAL_FILE');
+  assert.equal(r.unresolved[0].reason, 'NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF');
 });
 
 test('incomplete and multi-statement receipts remain unresolved', () => {
@@ -59,14 +59,36 @@ test('26 September pinned stored SQL receipt snapshot reproduces measured eviden
   assert.equal(fixture.observed_date, evidence.observed_date);
   assert.equal(evidence.repo_migrations_at_sha, '3d3b4cc6f063d46f34e0b2dc49aec222a309b5d2');
   const root = fileURLToPath(new URL('../supabase/migrations/', import.meta.url));
-  const files = (await readdir(root)).filter(name => /^\\d{14}_[a-z0-9_]+\\.sql$/.test(name));
+  const files = (await readdir(root)).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name));
   assert.equal(files.length, 93, 'historical proof fixture must be explicitly refreshed after migration changes');
   const sources = await Promise.all(files.map(async name => ({
     version: name.slice(0, 14), name: name.slice(15, -4), path: name, sql: await readFile(join(root, name), 'utf8')
   })));
   const r = compareMigrationSqlReceipts(sources, fixture.migrations, evidence.receipts);
   assert.deepEqual({ remote: r.counts.remote, byteMatched: r.counts.byte_matched_remote,
-    drift: r.counts.byte_matched_but_metadata_drift, unresolved: r.counts.unresolved_remote,
-    localUnmatched: r.counts.local_without_byte_match, duplicate: r.counts.identical_sql_multiple_remote_versions_groups },
-    { remote: 96, byteMatched: 36, drift: 9, unresolved: 60, localUnmatched: 57, duplicate: 2 });
+    drift: r.counts.byte_matched_but_metadata_drift, terminalLf: r.counts.terminal_lf_only_remote,
+    unresolved: r.counts.unresolved_remote, localUnmatchedExact: r.counts.local_without_byte_match,
+    localUnmatchedAfterLf: r.counts.local_without_byte_or_terminal_lf_match,
+    duplicate: r.counts.identical_sql_multiple_remote_versions_groups },
+    { remote: 96, byteMatched: 36, drift: 9, terminalLf: 33, unresolved: 27,
+      localUnmatchedExact: 57, localUnmatchedAfterLf: 26, duplicate: 2 });
+});
+
+
+test('single terminal LF discrepancy is separately reported and never labeled byte-identical', () => {
+  const withoutLf = [{ ...remote[0], statement_count: 1, ...migrationSqlDigests(source.sql.slice(0, -1)) }];
+  const r = compareMigrationSqlReceipts([source], remote, withoutLf);
+  assert.equal(r.counts.byte_matched_remote, 0);
+  assert.equal(r.counts.terminal_lf_only_remote, 1);
+  assert.equal(r.counts.unresolved_remote, 0);
+  assert.equal(r.counts.local_without_byte_match, 1);
+  assert.equal(r.counts.local_without_byte_or_terminal_lf_match, 0);
+});
+
+test('non-terminal SQL edits cannot be silently counted as whitespace-equivalent', () => {
+  const changed = [{ ...remote[0], statement_count: 1,
+    ...migrationSqlDigests(source.sql.replace('select', ' select').slice(0, -1)) }];
+  const r = compareMigrationSqlReceipts([source], remote, changed);
+  assert.equal(r.counts.terminal_lf_only_remote, 0);
+  assert.equal(r.counts.unresolved_remote, 1);
 });
