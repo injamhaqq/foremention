@@ -32,4 +32,6 @@ A run may yield no citation, no retrievable source, partial failure, an inconclu
 - [Methodology page](https://foremention.com/methodology)
 - [Product workflow](https://foremention.com/product)
 - [Trust center](https://foremention.com/trust)
-- [Public sitemap](https://foremention.com/sitemap.md)
+## Sitemap
+
+See the complete [Markdown sitemap](https://foremention.com/sitemap.md) for linked product, methodology, trust and reference pages.

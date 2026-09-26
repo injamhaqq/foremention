@@ -39,4 +39,6 @@ A Recommendation Record keeps a dated question, provider/model identity, the obs
 - [Measurement methodology](https://foremention.com/methodology)
 - [Recommendation Record](https://foremention.com/recommendation-record)
 - [Design-partner application](https://foremention.com/contact)
-- [Sitemap](https://foremention.com/sitemap.md)
+## Sitemap
+
+The full, maintained [Markdown sitemap](https://foremention.com/sitemap.md) covers the public Foremention documentation and product pages.
