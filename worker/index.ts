@@ -70,6 +70,15 @@ interface ExecutionContext {
   passThroughOnException(): void;
 }
 
+const PUBLIC_MARKDOWN_MIRRORS: Record<string, string> = {
+  "/product": "/product.md",
+  "/methodology": "/methodology.md",
+};
+const PUBLIC_MARKDOWN_CANONICALS: Record<string, string> = {
+  "/product.md": "/product",
+  "/methodology.md": "/methodology",
+};
+
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function freeOnlyWorkerMode(env: Env) {
@@ -110,6 +119,15 @@ function secureResponse(response: Response, url: URL, correlationId?: string) {
   }
   if (url.pathname.startsWith("/app") || url.pathname.startsWith("/api/auth")) {
     secured.headers.set("Cache-Control", "private, no-store, max-age=0");
+  }
+  const publicMarkdownPath = PUBLIC_MARKDOWN_MIRRORS[url.pathname];
+  if (publicMarkdownPath && url.pathname !== "/") {
+    secured.headers.append("Link", `<${publicMarkdownPath}>; rel="alternate"; type="text/markdown"`);
+  }
+  const publicCanonicalPath = PUBLIC_MARKDOWN_CANONICALS[url.pathname];
+  if (publicCanonicalPath) {
+    secured.headers.set("Content-Type", "text/markdown; charset=utf-8");
+    secured.headers.set("Link", `<https://foremention.com${publicCanonicalPath}>; rel="canonical"`);
   }
   if (url.pathname === "/") {
     secured.headers.append("Link", "</index.md>; rel=\"alternate\"; type=\"text/markdown\"");
@@ -453,6 +471,23 @@ const worker = {
       response.headers.set("Content-Type", "text/markdown; charset=utf-8");
       response.headers.set("Link", "<https://foremention.com/>; rel=\"canonical\"");
       return complete(response);
+    }
+
+    const publicMarkdownPath = PUBLIC_MARKDOWN_MIRRORS[url.pathname];
+    if (
+      publicMarkdownPath &&
+      request.method === "GET" &&
+      (request.headers.get("accept") || "").toLowerCase().includes("text/markdown")
+    ) {
+      const mirror = await env.ASSETS.fetch(new Request(new URL(publicMarkdownPath, request.url), {
+        method: "GET",
+        headers: request.headers,
+      }));
+      if (mirror.ok) {
+        return complete(new Response(mirror.body, mirror));
+      }
+      // Never silently serve HTML as a Markdown mirror if the declared asset is missing.
+      return complete(new Response("Declared Markdown mirror unavailable.", { status: 503 }));
     }
 
     const publicRateLimited = await enforcePublicRouteLimit(correlatedRequest, env, url.pathname);
