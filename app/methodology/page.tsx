@@ -62,6 +62,24 @@ export default function MethodologyPage() {
       </div>
     </section>
 
+    <section className="section section--surface">
+      <div className="shell narrow-heading">
+        <span className="eyebrow">Provider-surface provenance</span>
+        <h2>A provider name does not prove consumer-app coverage.</h2>
+        <p>
+          In the current free-only live collection path, the observed surface is Cloudflare Workers AI
+          using independently retrieved Bing Search RSS sources and grounded synthesis. It is not a
+          native ChatGPT, Gemini, or Perplexity consumer-app observation.
+        </p>
+        <p>
+          Direct provider API observations, where separately authorized and validated, must retain
+          their exact model, API surface, grounding and citation metadata, question version, locale
+          and collection method. They must not be labeled as equivalent to consumer-app answers
+          or compared across materially different measurement methods.
+        </p>
+      </div>
+    </section>
+
     <section className="section section--ink">
       <div className="shell split-section">
         <div><span className="eyebrow eyebrow--on-ink">Register. Prove. Prepare.</span><h2>“Prove” means inspect what can actually be substantiated.</h2></div>
