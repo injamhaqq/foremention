@@ -484,7 +484,10 @@ const worker = {
         headers: request.headers,
       }));
       if (mirror.ok) {
-        return complete(new Response(mirror.body, mirror));
+        const response = new Response(mirror.body, mirror);
+        response.headers.set("Content-Type", "text/markdown; charset=utf-8");
+        response.headers.set("Link", `<https://foremention.com${url.pathname}>; rel="canonical"`);
+        return complete(response);
       }
       // Never silently serve HTML as a Markdown mirror if the declared asset is missing.
       return complete(new Response("Declared Markdown mirror unavailable.", { status: 503 }));
