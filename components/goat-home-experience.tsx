@@ -55,6 +55,7 @@ export function MissingAnswerExperience() {
           <Link className="canonical-button canonical-button--secondary" href="#recommendation-record">See example Recommendation Record <Arrow /></Link>
         </div>
         <p className="outreach-hero__boundary">No fake reviews. No hidden promotion. No ranking guarantees. No fabricated scores. No causal claims without evidence.</p>
+        <p className="outreach-hero__boundary">Current free-only observations use Cloudflare Workers AI with Bing Search RSS grounded synthesis, not direct monitoring of ChatGPT, Gemini, or Perplexity consumer apps.</p>
       </div>
       <div className="outreach-hero__visual"><CanonicalSignalField compact /></div>
     </section>
