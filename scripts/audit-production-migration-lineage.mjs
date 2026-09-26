@@ -7,6 +7,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compareMigrationLedger } from "../lib/migration-lineage-audit.mjs";
+import { compareMigrationSqlReceipts } from "../lib/migration-sql-receipt-audit.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const snapshotFlag = process.argv.indexOf("--snapshot");
@@ -23,12 +24,31 @@ if (snapshotFlag < 0 || !process.argv[snapshotFlag + 1]) {
     .filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name))
     .map(name => { const m = name.match(/^(\d{14})_(.+)\.sql$/); return { version: m[1], name: m[2], path: "supabase/migrations/" + name }; });
   const report = compareMigrationLedger(entries, fixture.migrations);
+  // Optional hash-only ledger SQL receipts are a separate, read-only evidence tier.
+  // Require the same observed date; never silently infer SQL equivalence from names.
+  let sqlAudit = null;
+  const receiptFlag = process.argv.indexOf("--sql-receipts");
+  if (receiptFlag >= 0) {
+    if (!process.argv[receiptFlag + 1] || process.argv[receiptFlag + 1].startsWith("--")) {
+      throw new Error("--sql-receipts requires a dated hash-only JSON file");
+    }
+    const evidence = JSON.parse(await readFile(resolve(process.argv[receiptFlag + 1]), "utf8"));
+    if (evidence.observed_date !== fixture.observed_date || !Array.isArray(evidence.receipts)) {
+      throw new Error("SQL receipts and migration metadata must share an observed_date and contain a receipts array");
+    }
+    const localSources = await Promise.all(entries.map(async entry => ({
+      ...entry, sql: await readFile(join(root, entry.path), "utf8")
+    })));
+    sqlAudit = compareMigrationSqlReceipts(localSources, fixture.migrations, evidence.receipts);
+  }
   process.stdout.write(JSON.stringify({
     snapshot_observed_date: fixture.observed_date,
     snapshot_is_historical: true,
+    sql_receipts: sqlAudit ? { status: "HASH_ONLY_LEDGER_TEXT_COMPARISON", ...sqlAudit } : { status: "NOT_CHECKED" },
     counts: report.counts,
     warnings: [
       "A metadata match does not prove SQL equivalence or execution.",
+      "Matching stored ledger SQL bytes does not prove successful execution or unchanged production schema.",
       "A dated snapshot is not a live comparison. Re-export before a proposed change.",
       "NEVER run blanket production db push or edit schema_migrations from this report."
     ],
@@ -42,5 +62,5 @@ if (snapshotFlag < 0 || !process.argv[snapshotFlag + 1]) {
   }, null, 2) + "\n");
   const unresolved = report.counts.name_match_version_drift
     + report.counts.remote_without_name_match + report.counts.local_without_name_match;
-  if (process.argv.includes("--fail-on-unresolved") && unresolved > 0) process.exitCode = 1;
+  if (process.argv.includes("--fail-on-unresolved") && (unresolved > 0 || (sqlAudit && sqlAudit.counts.unresolved_remote > 0))) process.exitCode = 1;
 }
