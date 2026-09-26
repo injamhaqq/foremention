@@ -1,0 +1,391 @@
+{
+  "observed_date": "2026-09-26",
+  "status": "historical_read_only_metadata_snapshot",
+  "source": "authorized Supabase list_migrations against existing Foremention production; metadata only; no executed SQL stored in this export",
+  "migrations": [
+    {
+      "version": "20260719000100",
+      "name": "initial_schema"
+    },
+    {
+      "version": "20260722000100",
+      "name": "recommendation_graph"
+    },
+    {
+      "version": "20260724000100",
+      "name": "free_beta_usage_controls"
+    },
+    {
+      "version": "20260728000100",
+      "name": "live_collection_hardening"
+    },
+    {
+      "version": "20260729000100",
+      "name": "collaboration_lifecycle_alerts"
+    },
+    {
+      "version": "20260729000110",
+      "name": "collaboration_lifecycle_alerts"
+    },
+    {
+      "version": "20260729000200",
+      "name": "service_role_background_permissions"
+    },
+    {
+      "version": "20260729000300",
+      "name": "source_observation_upsert_fix"
+    },
+    {
+      "version": "20260802000100",
+      "name": "active_run_duplicate_prevention"
+    },
+    {
+      "version": "20260802000200",
+      "name": "source_monitoring"
+    },
+    {
+      "version": "20260802000300",
+      "name": "claim_evidence_links"
+    },
+    {
+      "version": "20260802000400",
+      "name": "claim_verification_workflow"
+    },
+    {
+      "version": "20260802000500",
+      "name": "application_email_alerts"
+    },
+    {
+      "version": "20260802000600",
+      "name": "workspace_webhooks"
+    },
+    {
+      "version": "20260802000700",
+      "name": "workspace_comments"
+    },
+    {
+      "version": "20260802000800",
+      "name": "hubspot_activity_connector"
+    },
+    {
+      "version": "20260802000900",
+      "name": "public_visibility_reports"
+    },
+    {
+      "version": "20260802001000",
+      "name": "gdpr_data_deletion"
+    },
+    {
+      "version": "20260804000100",
+      "name": "resolution_engine"
+    },
+    {
+      "version": "20260810142217",
+      "name": "production_drift_hardening"
+    },
+    {
+      "version": "20260810142520",
+      "name": "production_drift_performance_cleanup"
+    },
+    {
+      "version": "20260811044941",
+      "name": "tenant_relation_integrity"
+    },
+    {
+      "version": "20260811045535",
+      "name": "verified_claim_evidence_delete_semantics"
+    },
+    {
+      "version": "20260813010016",
+      "name": "rls_auth_initplan_hardening"
+    },
+    {
+      "version": "20260813015442",
+      "name": "source_snapshot_engine"
+    },
+    {
+      "version": "20260813023904",
+      "name": "source_snapshot_admin_policy"
+    },
+    {
+      "version": "20260813025319",
+      "name": "source_snapshot_privilege_hardening"
+    },
+    {
+      "version": "20260813025339",
+      "name": "source_snapshot_privilege_hardening"
+    },
+    {
+      "version": "20260813033833",
+      "name": "suppress_legacy_ungated_movement_alerts"
+    },
+    {
+      "version": "20260813053302",
+      "name": "foreign_key_performance_indexes"
+    },
+    {
+      "version": "20260813075322",
+      "name": "provider_cost_event_guard"
+    },
+    {
+      "version": "20260813084219",
+      "name": "reviewed_opportunity_bridge_unique"
+    },
+    {
+      "version": "20260813085445",
+      "name": "resolution_exact_comparability"
+    },
+    {
+      "version": "20260813090712",
+      "name": "resolution_evidence_snapshot_provenance"
+    },
+    {
+      "version": "20260813105817",
+      "name": "inngest_runtime_probe"
+    },
+    {
+      "version": "20260813124156",
+      "name": "signup_security_attestation"
+    },
+    {
+      "version": "20260814002421",
+      "name": "placement_events_org_fk_index_20260814"
+    },
+    {
+      "version": "20260814034305",
+      "name": "operator_alert_monitoring"
+    },
+    {
+      "version": "20260814085609",
+      "name": "live_foreign_key_indexes"
+    },
+    {
+      "version": "20260816192504",
+      "name": "tighten_service_only_run_rpcs"
+    },
+    {
+      "version": "20260819171845",
+      "name": "source_review_truth_release_9b335547"
+    },
+    {
+      "version": "20260819173416",
+      "name": "service_only_run_rpc_actor_context"
+    },
+    {
+      "version": "20260901064255",
+      "name": "security_performance_advisor_hardening_main_2c306677"
+    },
+    {
+      "version": "20260901064346",
+      "name": "company_customer_proof_main_2c306677"
+    },
+    {
+      "version": "20260901064411",
+      "name": "retention_loop_v1_main_2c306677"
+    },
+    {
+      "version": "20260901064423",
+      "name": "design_partner_applications_main_2c306677"
+    },
+    {
+      "version": "20260901064848",
+      "name": "billing_webhook_events_main_2c306677"
+    },
+    {
+      "version": "20260901064908",
+      "name": "design_partner_submission_limits_main_2c306677"
+    },
+    {
+      "version": "20260901064926",
+      "name": "apply_billing_event_atomic_main_2c306677"
+    },
+    {
+      "version": "20260901064937",
+      "name": "customer_proof_research_events_main_2c306677"
+    },
+    {
+      "version": "20260901065011",
+      "name": "commercial_engine_main_2c306677"
+    },
+    {
+      "version": "20260901065043",
+      "name": "billing_commercial_hardening_main_2c306677"
+    },
+    {
+      "version": "20260901071944",
+      "name": "icp_category_evidence_main_7f591ad4"
+    },
+    {
+      "version": "20260901072125",
+      "name": "outcomes_value_customer_success_main_7f591ad4"
+    },
+    {
+      "version": "20260901072159",
+      "name": "outcome_ledger_backfill_main_7f591ad4"
+    },
+    {
+      "version": "20260901072600",
+      "name": "ai_measurement_context_main_7f591ad4"
+    },
+    {
+      "version": "20260901073304",
+      "name": "enterprise_security_governance_main_0e0dcb82"
+    },
+    {
+      "version": "20260901073317",
+      "name": "audit_log_hardening_main_0e0dcb82"
+    },
+    {
+      "version": "20260901073330",
+      "name": "enterprise_fail_closed_hardening_main_0e0dcb82"
+    },
+    {
+      "version": "20260901073349",
+      "name": "scale_unit_economics_observability_main_0e0dcb82"
+    },
+    {
+      "version": "20260901090148",
+      "name": "measurement_moat_foundation_main_893e850c"
+    },
+    {
+      "version": "20260901113706",
+      "name": "change_specification_domain_main_4139f817"
+    },
+    {
+      "version": "20260902000100",
+      "name": "decision_intelligence_v1"
+    },
+    {
+      "version": "20260902000200",
+      "name": "next_best_design_partner_learning_v1"
+    },
+    {
+      "version": "20260904115039",
+      "name": "acquisition_research_provenance"
+    },
+    {
+      "version": "20260904121425",
+      "name": "acquisition_outreach_control"
+    },
+    {
+      "version": "20260904121942",
+      "name": "acquisition_outreach_control"
+    },
+    {
+      "version": "20260905083931",
+      "name": "acquisition_zoho_mail_canaries"
+    },
+    {
+      "version": "20260914000100",
+      "name": "core_tenant_relation_integrity"
+    },
+    {
+      "version": "20260914000200",
+      "name": "foundation_budget_alignment"
+    },
+    {
+      "version": "20260914000300",
+      "name": "run_accounting_role_alignment"
+    },
+    {
+      "version": "20260914000400",
+      "name": "security_definer_execute_hardening"
+    },
+    {
+      "version": "20260915000100",
+      "name": "source_map_review_state"
+    },
+    {
+      "version": "20260915000200",
+      "name": "private_org_permission_helper"
+    },
+    {
+      "version": "20260915000300",
+      "name": "performance_advisor_cleanup"
+    },
+    {
+      "version": "20260915000400",
+      "name": "decision_learning_production_parity"
+    },
+    {
+      "version": "20260915000500",
+      "name": "design_partner_trigger_execute_hardening"
+    },
+    {
+      "version": "20260915121058",
+      "name": "remove_redundant_single_tenant_fks"
+    },
+    {
+      "version": "20260915134115",
+      "name": "source_snapshot_evidence_excerpt"
+    },
+    {
+      "version": "20260915153758",
+      "name": "workspace_deletion_graph_hardening"
+    },
+    {
+      "version": "20260915153822",
+      "name": "workspace_deletion_remaining_check_fix"
+    },
+    {
+      "version": "20260915160402",
+      "name": "atomic_prompt_versioning"
+    },
+    {
+      "version": "20260915184755",
+      "name": "evidence_semantics_hardening"
+    },
+    {
+      "version": "20260915184808",
+      "name": "comparability_context_hardening"
+    },
+    {
+      "version": "20260915184822",
+      "name": "operator_run_diagnostics"
+    },
+    {
+      "version": "20260915184836",
+      "name": "provider_attempt_cost_ledger"
+    },
+    {
+      "version": "20260915185110",
+      "name": "qualified_paid_pilot_evidence_view"
+    },
+    {
+      "version": "20260915185158",
+      "name": "customer_value_validation_evidence_compat"
+    },
+    {
+      "version": "20260918000100",
+      "name": "operating_agent_action_ledger"
+    },
+    {
+      "version": "20260918000200",
+      "name": "agent_reasoning_runtime"
+    },
+    {
+      "version": "20260918000300",
+      "name": "agent_action_execution"
+    },
+    {
+      "version": "20260918000400",
+      "name": "support_agent"
+    },
+    {
+      "version": "20260919223104",
+      "name": "source_map_review_monotonicity"
+    },
+    {
+      "version": "20260926063633",
+      "name": "company_operational_cost_readiness_20260926"
+    },
+    {
+      "version": "20260926064502",
+      "name": "company_cost_view_read_grants_20260926"
+    },
+    {
+      "version": "20260926071020",
+      "name": "support_ticket_auth_rls_initplan_20260926"
+    }
+  ]
+}
