@@ -16,4 +16,6 @@ test("authentication form never exposes credentials via native GET navigation du
   assert.ok(canary.includes('form[data-auth-hydrated="true"]'), "Acceptance must wait for hydration before submitting a credential");
   assert.ok(form.includes('method: "POST"'), "Hydrated login must use credential-bearing POST");
   assert.ok(form.includes("event.preventDefault()"), "Hydrated handler must disable native navigation");
+  assert.ok(canary.includes("sanitizeAcceptanceFailure("), "Acceptance logs must redact auth URL data");
+  assert.ok(canary.includes("summary.failure = sanitizeAcceptanceFailure("), "Artifacts must not persist raw browser navigation errors");
 });
