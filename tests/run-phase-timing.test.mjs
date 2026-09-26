@@ -52,6 +52,6 @@ test("the seven timing markers remain entirely within existing durable step call
   assert.match(code, /step\.run\("count-run-sources", \(\) =>\s*measureRunPhase/);
   assert.match(code, /step\.run\("mark-run-for-human-review", \(\) =>\s*measureRunPhase/);
   assert.match(code, /step\.run\(`collect-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
-  assert.match(code, /step\.run\(`persist-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
+  assert.match(code, /step\.run\(\s*`persist-\$\{providerId\}-\$\{prompt\.prompt_key\}`/);
   assert.doesNotMatch(code, /step\.run\("combined-provider-and-persistence/);
 });
