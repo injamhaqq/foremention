@@ -60,6 +60,24 @@ function stage(name, detail = {}) {
   console.log(`[first-evidence-canary] ${name}`);
 }
 
+function sanitizeAcceptanceFailure(message) {
+  // Playwright's navigation timeout diagnostics may contain browser URLs.
+  // Never write user emails, auth tokens or passwords into Actions logs/artifacts.
+  return String(message)
+    .replace(/https?:\/\/[^\s"'<>]+/gi, (value) => {
+      try {
+        const url = new URL(value);
+        if (url.pathname === "/login" || url.pathname === "/signup" || url.pathname.startsWith("/api/auth")) {
+          url.search = url.search ? "?REDACTED" : "";
+        }
+        return url.toString();
+      } catch {
+        return "[redacted-navigation-url]";
+      }
+    })
+    .replace(/([?&](?:password|confirmation|email|token|code)=)[^\s&"'<>]*/gi, "$1[REDACTED]");
+}
+
 async function persist() {
   await mkdir(outputRoot, { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(summary, null, 2)}\n`);
@@ -358,7 +376,7 @@ async function run() {
 try {
   await run();
 } catch (error) {
-  summary.failure = error instanceof Error ? error.message : String(error);
+  summary.failure = sanitizeAcceptanceFailure(error instanceof Error ? error.message : String(error));
   console.error(`[first-evidence-canary] FAIL: ${summary.failure}`);
   process.exitCode = 1;
 } finally {
