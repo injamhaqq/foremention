@@ -7,4 +7,4 @@ This change extends existing valid /index.md, /product.md and /methodology.md co
 - Both have frontmatter, canonical metadata, last_updated, an explicit sitemap section, no manufactured results, declared alternate links and direct Worker Accept:text/markdown negotiation.
 - Existing public product pages and styling remain unchanged.
 
-This is a useful public interoperability improvement independent of the AgentReady external score. The five-page 88/100 scan still aggregated failures for unknown other pages; do not assume these two mirrors will eliminate every tool-specific detection error, and do not add filler HTML to game the text/HTML ratio. Verify direct routes and headers after production deploy. 
+This is a useful public interoperability improvement independent of the AgentReady external score. The five-page 88/100 scan still aggregated failures for unknown other pages; do not assume these two mirrors will eliminate every tool-specific detection error, and do not add filler HTML to game the text/HTML ratio. Verify direct routes and headers after production deploy.
