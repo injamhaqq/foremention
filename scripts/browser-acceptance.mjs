@@ -3,6 +3,7 @@
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { verifyBoundedReleaseHealth } from "./bounded-release-health.mjs";
 
 const toolRequire = createRequire(new URL("../.ci-tools/package.json", import.meta.url));
 const { chromium, firefox } = toolRequire("playwright");
@@ -111,26 +112,57 @@ async function verifyExactHealth() {
     recordFailure("FOREMENTION_EXPECTED_BUILD_COMMIT must be a full 40-character Git SHA.");
     return;
   }
-  try {
-    const response = await fetch(new URL(`/api/health?browser_acceptance=${Date.now()}`, baseUrl), {
-      headers: { accept: "application/json", "cache-control": "no-cache" },
-      cache: "no-store",
-    });
-    const body = await response.json().catch(() => ({}));
-    const observed = typeof body?.buildCommit === "string" ? body.buildCommit.trim().toLowerCase() : "";
-    summary.health = { status: response.status, buildCommit: observed || null };
-    if (!response.ok) recordFailure("Production health endpoint was not healthy during browser acceptance.", { status: response.status });
-    if (observed !== expectedBuildCommit) {
-      recordFailure("Browser acceptance observed a different production build than the exact main release.", {
-        expectedBuildCommit,
-        observedBuildCommit: observed || null,
+  const result = await verifyBoundedReleaseHealth({
+    expectedBuildCommit,
+    request: async () => {
+      const response = await fetch(new URL(`/api/health?browser_acceptance=${Date.now()}`, baseUrl), {
+        headers: { accept: "application/json", "cache-control": "no-cache" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(5_000),
+      });
+      const body = await response.json().catch(() => ({}));
+      return {
+        status: response.status,
+        buildCommit: typeof body?.buildCommit === "string" ? body.buildCommit : null,
+        d1: body?.d1,
+        supabase: body?.supabase,
+      };
+    },
+    pause: () => new Promise((resolve) => setTimeout(resolve, 2_000)),
+  });
+  const observed = result.receipts.at(-1);
+  // Preserve all safe status-only receipts when an early dependency probe degrades.
+  summary.health = {
+    status: observed?.status || 0,
+    buildCommit: observed?.buildCommit || null,
+    attempts: result.receipts.length,
+    transientStatuses: result.receipts.slice(0, -1).map((receipt) => receipt.status),
+    componentStates: result.receipts.map(({ d1, supabase }) => ({ d1, supabase })),
+  };
+  if (result.ok) {
+    if (result.receipts.length > 1) {
+      console.warn("[browser-acceptance] Production health transient recovered.", {
+        attempts: result.receipts.length,
+        transientStatuses: summary.health.transientStatuses,
       });
     }
-  } catch (error) {
-    recordFailure("Browser acceptance could not read the exact production health contract.", {
-      error: error instanceof Error ? error.message : String(error),
-    });
+    return;
   }
+  if (result.reason === "wrong_sha" || result.reason === "missing_build_sha") {
+    recordFailure("Browser acceptance observed a different or missing production build than the exact main release.", {
+      expectedBuildCommit,
+      observedBuildCommit: observed?.buildCommit || null,
+      attempts: result.receipts.length,
+      statuses: result.receipts.map((receipt) => receipt.status),
+      components: summary.health.componentStates,
+    });
+    return;
+  }
+  recordFailure("Production health endpoint was not healthy during browser acceptance.", {
+    statuses: result.receipts.map((receipt) => receipt.status),
+    components: summary.health.componentStates,
+    attempts: result.receipts.length,
+  });
 }
 
 function attachRuntimeObservers(page) {
