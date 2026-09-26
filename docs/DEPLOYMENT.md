@@ -13,7 +13,7 @@ This runbook takes Foremention from the fictional seeded demo to a private produ
 ## 2. Configure Supabase
 
 1. Use the production project in an appropriate region.
-2. Apply every file in `supabase/migrations/` in timestamp order.
+2. On a **brand-new empty database only**, apply approved migrations in timestamp order. For the **existing Foremention production project**, do **not** replay all repository migrations or run a blanket CLI migration push: applied remote history and repository filenames currently differ. Follow [the production migration-lineage audit](operations/PRODUCTION-MIGRATION-LINEAGE-2026-09-26.md), independently review each forward-only migration, and require a separately approved history-reconciliation plan.
 3. Do not load `supabase/seed.sql` into live customer data unless the fictional demo organization is explicitly required.
 4. Set the production Site URL and approved redirect URLs in Supabase Auth.
 5. Create the first account and organization owner.

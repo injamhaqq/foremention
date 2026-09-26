@@ -1,3 +1,5 @@
+> **HISTORICAL HANDOFF — NOT A CURRENT PRODUCTION MIGRATION INSTRUCTION (verified 2026-09-26).** The live Foremention project now contains all three Resolution Engine tables described below, and the connected project is reachable. Do **not** repeat these dashboard SQL steps or run a blanket `supabase db push` on this existing project. Its recorded migration versions differ extensively from the checked-in filename versions. See [Production migration lineage and reconciliation](operations/PRODUCTION-MIGRATION-LINEAGE-2026-09-26.md) before making **any** migration-history repair or global CLI push.
+
 # Applying the Resolution Engine migration
 
 The Resolution Center and Outcome Ledger read three tables that do not exist in
@@ -32,18 +34,9 @@ their indexes, validation triggers, and row-level-security policies. It contains
 no `drop`, no `delete`, no `update` of existing rows, and no change to any
 existing table.
 
-## Option B — Supabase CLI
+## Option B — Supabase CLI (**BLOCKED FOR THIS EXISTING PRODUCTION HISTORY**)
 
-```bash
-npx supabase link --project-ref vuujwdxivjsdikdstwib
-```
-
-```bash
-npx supabase db push
-```
-
-`db push` applies every migration in `supabase/migrations/` that the project has
-not recorded yet.
+Do not run a blanket migration push: repository timestamps and applied remote history are not aligned, and some remote entries are aliases or duplicates. A command that appears to apply only pending migrations may replay earlier SQL. Follow the [lineage audit and controlled reconciliation procedure](operations/PRODUCTION-MIGRATION-LINEAGE-2026-09-26.md) instead. This warning does **not** block isolated local CI migration replay or independently reviewed forward-only migrations against the known connected project.
 
 ## Option C — reconnect the MCP connector
 
