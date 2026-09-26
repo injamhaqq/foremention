@@ -124,6 +124,8 @@ async function verifyExactHealth() {
       return {
         status: response.status,
         buildCommit: typeof body?.buildCommit === "string" ? body.buildCommit : null,
+        d1: body?.d1,
+        supabase: body?.supabase,
       };
     },
     pause: () => new Promise((resolve) => setTimeout(resolve, 2_000)),
@@ -135,6 +137,7 @@ async function verifyExactHealth() {
     buildCommit: observed?.buildCommit || null,
     attempts: result.receipts.length,
     transientStatuses: result.receipts.slice(0, -1).map((receipt) => receipt.status),
+    componentStates: result.receipts.map(({ d1, supabase }) => ({ d1, supabase })),
   };
   if (result.ok) {
     if (result.receipts.length > 1) {
@@ -151,11 +154,13 @@ async function verifyExactHealth() {
       observedBuildCommit: observed?.buildCommit || null,
       attempts: result.receipts.length,
       statuses: result.receipts.map((receipt) => receipt.status),
+      components: summary.health.componentStates,
     });
     return;
   }
   recordFailure("Production health endpoint was not healthy during browser acceptance.", {
     statuses: result.receipts.map((receipt) => receipt.status),
+    components: summary.health.componentStates,
     attempts: result.receipts.length,
   });
 }
