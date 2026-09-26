@@ -14,6 +14,7 @@ overrides:
   nanoid@<3.3.17: ^3.3.17
   undici@>=7.0.0 <7.29.0: ^7.29.0
   fast-uri@>=3.0.0 <3.1.6: 3.1.6
+  image-size: 2.0.4
 
 importers:
 
@@ -2513,9 +2514,9 @@ packages:
     resolution: {integrity: sha512-BAg6QkE8W+TuQLrrw0Ugr7HegXduRuuj8/ti2kSOc+jz1dmx8/WNcjr6XGnq5YpDWxFwwaavqD0+jIUOKelTsw==}
     engines: {node: '>= 4'}
 
-  image-size@2.0.2:
-    resolution: {integrity: sha512-IRqXKlaXwgSMAMtpNzZa1ZAe8m+Sa1770Dhk8VkSsP9LS+iHD62Zd8FQKs8fbPiagBE7BzoFX23cxFnwshpV6w==}
-    engines: {node: '>=16.x'}
+  image-size@2.0.4:
+    resolution: {integrity: sha512-QRUkFFsRV/6fuESxb9Vkq+a0LkSrgKXuc2NEqfikiXxxN/G3tjWt5EVUlMaImRBZRZK/jRBEbYvpPYZL8t08Zw==}
+    engines: {node: '>=18'}
     hasBin: true
 
   import-fresh@3.3.1:
@@ -6555,7 +6556,7 @@ snapshots:
 
   ignore@7.0.6: {}
 
-  image-size@2.0.2: {}
+  image-size@2.0.4: {}
 
   import-fresh@3.3.1:
     dependencies:
@@ -7720,7 +7721,7 @@ snapshots:
       '@unpic/react': 1.0.2(next@16.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@vercel/og': 0.8.6
       '@vitejs/plugin-react': 6.0.2(vite@8.2.0(@types/node@22.19.19)(esbuild@0.28.1)(terser@5.49.0)(yaml@2.9.0))
-      image-size: 2.0.2
+      image-size: 2.0.4
       ipaddr.js: 2.4.0
       magic-string: 0.30.21
       react: 19.2.8
