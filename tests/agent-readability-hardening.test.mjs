@@ -35,7 +35,7 @@ test("direct markdown exposes canonical static headers and freshness metadata", 
 
   assert.match(headers, /\/index\.md/);
   assert.match(headers, /<https:\/\/foremention\.com\/>; rel="canonical"/);
-  assert.match(markdown, /last_updated:\s*"2026-09-20"/);
+  assert.match(markdown, /last_updated:\s*"2026-09-26"/);
   assert.match(page, /const breadcrumbData = \{[\s\S]*"@type": "BreadcrumbList"/);
   assert.match(page, /JSON\.stringify\(breadcrumbData\)/);
   assert.match(page, /"@type": "ListItem", position: 1, name: "Foremention"/);
