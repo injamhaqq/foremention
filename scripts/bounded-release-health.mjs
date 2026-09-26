@@ -2,6 +2,7 @@
 // build SHA are surfaced to browser acceptance; never log response bodies.
 const MAX_ATTEMPTS = 3;
 const RETRYABLE_STATUSES = new Set([0, 502, 503, 504]);
+const COMPONENT_STATES = new Set(["reachable", "unavailable", "not_configured"]);
 const validSha = (value) => typeof value === "string" && /^[0-9a-f]{40}$/.test(value);
 
 export function classifyHealthObservation(status, buildCommit, expectedBuildCommit) {
@@ -25,15 +26,20 @@ export async function verifyBoundedReleaseHealth({ expectedBuildCommit, request,
   for (let index = 0; index < attempts; index += 1) {
     let status = 0;
     let buildCommit = null;
+    let d1 = null;
+    let supabase = null;
     try {
       const response = await request();
       status = Number.isInteger(response?.status) ? response.status : 0;
       buildCommit = typeof response?.buildCommit === "string" ? response.buildCommit.trim().toLowerCase() : null;
+      // Public health endpoint exposes these finite values; never store raw error messages.
+      d1 = COMPONENT_STATES.has(response?.d1) ? response.d1 : null;
+      supabase = COMPONENT_STATES.has(response?.supabase) ? response.supabase : null;
     } catch {
       // No exception string or request URL can reach the operational receipt.
     }
     const decision = classifyHealthObservation(status, buildCommit, expectedBuildCommit);
-    receipts.push({ status, buildCommit: validSha(buildCommit) ? buildCommit : null });
+    receipts.push({ status, buildCommit: validSha(buildCommit) ? buildCommit : null, d1, supabase });
     if (decision.action === "pass") return { ok: true, reason: null, receipts };
     if (decision.action !== "retry" || index === attempts - 1) return { ok: false, reason: decision.reason, receipts };
     await pause();
