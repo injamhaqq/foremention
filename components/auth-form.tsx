@@ -11,7 +11,10 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
   googleEnabled?: boolean;
 }) {
   const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setHydrated(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [noticeEmail, setNoticeEmail] = useState("");
