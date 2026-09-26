@@ -20,7 +20,7 @@ test("first exact healthy release succeeds with a single request", async () => {
   assert.equal(results.ok, true);
   assert.equal(calls, 1);
   assert.equal(pauses, 0);
-  assert.deepEqual(results.receipts, [{ status: 200, buildCommit: exact }]);
+  assert.deepEqual(results.receipts, [{ status: 200, buildCommit: exact, d1: null, supabase: null }]);
 });
 
 test("bounded transient dependency 503 is retried and explicitly retained as evidence", async () => {
@@ -65,3 +65,15 @@ test("network exceptions never disclose raw URL, token or error strings", async 
   assert.doesNotMatch(JSON.stringify(results), /SECRET|never-log-this|password|example\.com/);
 });
 
+
+test("health component receipts only carry allow-listed public state values", async () => {
+  const { results } = await sample([
+    { status: 503, buildCommit: exact, d1: "reachable", supabase: "unavailable" },
+    { status: 200, buildCommit: exact, d1: "reachable", supabase: "reachable" },
+  ]);
+  assert.deepEqual(results.receipts[0], { status: 503, buildCommit: exact, d1: "reachable", supabase: "unavailable" });
+  assert.deepEqual(results.receipts[1], { status: 200, buildCommit: exact, d1: "reachable", supabase: "reachable" });
+  const poisoned = await sample([{ status: 503, buildCommit: exact, d1: "SECRET=must-not-leak", supabase: "unavailable" }, { status: 200, buildCommit: exact }]);
+  assert.equal(poisoned.results.receipts[0].d1, null);
+  assert.doesNotMatch(JSON.stringify(poisoned.results), /SECRET|must-not-leak/);
+});
