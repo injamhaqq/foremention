@@ -93,7 +93,7 @@ export default function ProductPage() {
           <h2>Know exactly which AI surface was observed.</h2>
           <p>
             A Cloudflare-hosted grounded answer with independently retrieved Bing RSS sources is a specific
-            measurement, not a native observation of a competing AI assistant's consumer interface. A separate
+            measurement, not a native observation of a competing AI assistant&apos;s consumer interface. A separate
             provider API may also behave differently from its consumer application.
           </p>
           <p>
