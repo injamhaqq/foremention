@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { safeAuthNext } from "@/lib/google-auth";
 import { captureProductEvent } from "@/lib/product-analytics";
 
@@ -10,6 +10,11 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
   statusMessage?: string;
   googleEnabled?: boolean;
 }) {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setHydrated(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [noticeEmail, setNoticeEmail] = useState("");
@@ -127,7 +132,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
         <a className="button button--outline button--wide" href={googleHref}>{isLogin ? "Continue with Google" : "Sign up with Google"}</a>
         <p className="auth-switch">or continue with email</p>
       </>}
-      <form onSubmit={submit} aria-busy={busy}>
+      <form action={`/api/auth/${mode}`} method="post" onSubmit={submit} aria-busy={busy} data-auth-hydrated={hydrated ? "true" : "false"}>
         {!isLogin && <label>Full name<input name="full_name" required autoComplete="name" placeholder="Your name" /></label>}
         <label>Email<input type="email" name="email" required autoComplete="email" placeholder="you@example.com" /></label>
         <label>
@@ -142,7 +147,7 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
         {statusMessage && !error && <p className="auth-session-notice" role="status">{statusMessage}</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {error && accountHelp && <p className="auth-inline-help">Go to <a href={loginHref}>sign in</a>, or <a href="/forgot-password">reset your password</a>.</p>}
-        <button className="button button--ink button--wide" type="submit" disabled={busy}>{busy ? "Working..." : isLogin ? "Sign in" : "Create workspace"}</button>
+        <button className="button button--ink button--wide" type="submit" disabled={busy || !hydrated}>{busy ? "Working..." : isLogin ? "Sign in" : "Create workspace"}</button>
       </form>
       {isLogin && <a className="auth-recovery" href="/forgot-password">Forgot password?</a>}
       <p className="auth-switch">{isLogin ? <>No account? <a href={signupHref}>Create a workspace</a></> : <>Already have an account? <a href={loginHref}>Sign in</a></>}</p>
