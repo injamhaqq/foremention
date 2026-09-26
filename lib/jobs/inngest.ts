@@ -1,5 +1,6 @@
 import { Inngest } from "inngest";
 import { toInngestProviderStepError } from "./provider-step-error";
+import { attachProviderAttempt, resolveProviderAttempt, type ProviderAttemptReceipt } from "./provider-attempt-receipt";
 import { recordAgentExecution } from "@/lib/agent-control-plane";
 import {
   canonicalizeEvidenceUrl,
@@ -319,6 +320,10 @@ const providerReportedCost = typeof answer.billedCostUsd === "number" && Number.
       model: answer.model,
       attempt_number: attemptNumber,
       status: "complete",
+      // MERGE must clear transient failure details if the same compound row
+      // eventually succeeds; otherwise analytics show success plus timeout.
+      error_code: null,
+      error_detail: null,
       raw_response: answer.raw,
       provider_request_id: answer.requestId,
       usage_input_tokens: answer.usage?.inputTokens,
@@ -601,10 +606,11 @@ export const runMultiEngineScan = inngest.createFunction(
           { serviceRole: true },
         ));
       if (runState[0]?.status === "cancelled") return { runId: run.id, cancelled: true };
-      let answer: ProviderAnswer;
+      let collected: ProviderAnswer | ProviderAttemptReceipt<ProviderAnswer>;
       try {
-        answer = await step.run(`collect-${providerId}-${prompt.prompt_key}`, async () => {
+        collected = await step.run(`collect-${providerId}-${prompt.prompt_key}`, async () => {
           const startedAt = new Date().toISOString();
+          const recordedAttemptNumber = attempt + 1;
           await supabaseRest("run_attempts?on_conflict=run_id,prompt_id,provider,attempt_number", {
             method: "POST",
             serviceRole: true,
@@ -616,7 +622,7 @@ export const runMultiEngineScan = inngest.createFunction(
               prompt_key: prompt.prompt_key,
               provider: providerId,
               model,
-              attempt_number: attempt + 1,
+              attempt_number: recordedAttemptNumber,
               status: "running",
               started_at: startedAt,
             },
@@ -624,7 +630,7 @@ export const runMultiEngineScan = inngest.createFunction(
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), LIVE_COLLECTION_LIMITS.providerTimeoutMs);
           try {
-            logOperationalEvent("provider_request_started", { runId: run.id, provider: providerId, attempt: attempt + 1 });
+            logOperationalEvent("provider_request_started", { runId: run.id, provider: providerId, attempt: recordedAttemptNumber });
             const budget = providerId === "groq"
               ? await Promise.all([recordedRunCost(data), recordedOrganizationMonthlyCost(data)]).then(([runSpendSoFarUsd, monthlySpendSoFarUsd]) => ({
                 runSpendSoFarUsd,
@@ -638,11 +644,11 @@ export const runMultiEngineScan = inngest.createFunction(
               { signal: controller.signal, maxOutputTokens: LIVE_COLLECTION_LIMITS.maxOutputTokensPerAnswer, budget },
             );
             if (!answer.answer.trim()) throw new Error("The provider returned an empty answer.");
-            logOperationalEvent("provider_request_completed", { runId: run.id, provider: providerId, attempt: attempt + 1, status: 200, durationMs: answer.latencyMs });
-            return answer;
+            logOperationalEvent("provider_request_completed", { runId: run.id, provider: providerId, attempt: recordedAttemptNumber, status: 200, durationMs: answer.latencyMs });
+            return attachProviderAttempt(answer, recordedAttemptNumber);
           } catch (error) {
-            logOperationalEvent("provider_request_failed", { runId: run.id, provider: providerId, attempt: attempt + 1, errorCode: error instanceof ProviderRequestError ? error.code : "provider_failure" });
-            await persistFailureAttempt(run, prompt, providerId, model, attempt + 1, error);
+            logOperationalEvent("provider_request_failed", { runId: run.id, provider: providerId, attempt: recordedAttemptNumber, errorCode: error instanceof ProviderRequestError ? error.code : "provider_failure" });
+            await persistFailureAttempt(run, prompt, providerId, model, recordedAttemptNumber, error);
             throw toInngestProviderStepError(error);
           } finally {
             clearTimeout(timer);
@@ -652,11 +658,20 @@ export const runMultiEngineScan = inngest.createFunction(
         failures.push({ promptId: prompt.prompt_id, error: safeOperationalError(error) });
         continue;
       }
-      // Persistence is a separate durable step so a database retry cannot
-      // issue and bill a second provider request.
+      // The successful attempt number is serialized inside the collection
+      // step result. The function-level "attempt" can change if Inngest
+      // replays this separate persistence step, without a fresh provider call.
+      const successfulReceipt = resolveProviderAttempt<ProviderAnswer>(collected, attempt + 1);
+      if (successfulReceipt.legacy) {
+        // In-flight steps from the previous deployment have no stable receipt.
+        // Preserve the compatibility path without pretending to know history.
+        logOperationalEvent("provider_attempt_legacy_receipt", { runId: run.id, provider: providerId });
+      }
+      // Persistence stays separate: never re-run a paid provider request to
+      // recover an interrupted evidence or cost-ledger write.
       const result = await step.run(
         `persist-${providerId}-${prompt.prompt_key}`,
-        () => persistAnswer(run, prompt, providerId, answer, identity, attempt + 1),
+        () => persistAnswer(run, prompt, providerId, successfulReceipt.answer, identity, successfulReceipt.attemptNumber),
       );
       results.push(result);
     }
