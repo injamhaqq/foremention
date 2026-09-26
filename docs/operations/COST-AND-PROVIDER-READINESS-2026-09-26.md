@@ -47,3 +47,11 @@ Acceptance: values reconcile with separate SQL counts on `ai_cost_events`, `infr
 3. Reconcile 17 historical attempt-ledger gaps against original attempt timestamps and idempotency receipt evidence. Do not double-book retries or resurrect spend based on unmatched rows alone.
 4. Add source-backed, reconciled provider-invoice expense and labor/service-delivery cost to the accounting model before allowing verified all-in per-decision cost or gross margin.
 5. Re-run a **new-build**, budget-limited Cloudflare provider canary on the current deployed SHA. Keep optional Gemini disabled for paid/customer promises until the separately verified deployed model setting and quota are demonstrated with observed source-citation output.
+
+### Founder workspace visibility and least-privilege follow-up
+
+The founder-only `/app/agents` page now reads this existing company aggregate **server-side**, only after `isCompanyOperatorEmail` approves an authenticated Supabase viewer. A normal customer session cannot load or render its cross-organization diagnostics. No client analytics or additional AI provider calls are introduced.
+
+The panel intentionally displays recorded AI accounting **including internal/QA traffic**, shows unclassified workspaces and ledger gaps, and withholds verified all-in cost. When the service aggregate is unavailable, the panel shows **unavailable**, not zero.
+
+The follow-up `20260926081000_company_cost_view_read_grants.sql` additionally revokes Supabase's default `service_role` ALL privileges on the new view, then explicitly grants SELECT only. This is a least-privilege improvement, not a grant to customers.
