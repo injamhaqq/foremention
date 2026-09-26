@@ -36,3 +36,6 @@
 - [llms-full.txt](https://foremention.com/llms-full.txt) — expanded public context.
 - [Homepage markdown](https://foremention.com/index.md) — markdown mirror of the homepage's core content.
 - [AGENTS.md](https://foremention.com/AGENTS.md) — evidence and navigation guidance for agents.
+
+- [Product markdown](https://foremention.com/product.md) — canonical product summary with explicit evidence boundaries.
+- [Methodology markdown](https://foremention.com/methodology.md) — inspectable measurement and comparability principles.

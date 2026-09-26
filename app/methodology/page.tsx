@@ -9,6 +9,7 @@ export const metadata: Metadata = pageMetadata({
   description:
     "How Foremention versions buyer questions, records provider/model context, preserves recommendation observations and returned references, reviews retrievable evidence, handles uncertainty, and gates comparable later measurement.",
   path: "/methodology",
+  markdownPath: "/methodology.md",
 });
 
 const steps = [
@@ -25,6 +26,7 @@ const steps = [
 
 export default function MethodologyPage() {
   return <PublicShell>
+    <link rel="alternate" type="text/markdown" href="/methodology.md" />
     <section className="page-hero page-hero--ink">
       <div className="shell narrow-heading">
         <span className="eyebrow eyebrow--on-ink">Recommendation Intelligence methodology</span>

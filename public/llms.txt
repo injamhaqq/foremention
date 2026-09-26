@@ -30,3 +30,6 @@
 - [Full LLM context](https://foremention.com/llms-full.txt): Expanded product and evidence context.
 - [Markdown sitemap](https://foremention.com/sitemap.md): Human- and agent-readable public site map.
 - [Homepage markdown](https://foremention.com/index.md): Markdown mirror of the homepage's core public claims and workflow.
+
+- [Product Markdown](https://foremention.com/product.md): Structured public product workflow and honest constraints.
+- [Methodology Markdown](https://foremention.com/methodology.md): Structured measurement and comparability methodology.

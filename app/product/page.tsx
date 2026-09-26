@@ -9,6 +9,7 @@ export const metadata: Metadata = pageMetadata({
   description:
     "See how Foremention connects AI recommendation observations to verified company truth, eligibility, exact Change Specifications, execution, and comparable verification.",
   path: "/product",
+  markdownPath: "/product.md",
 });
 
 const stages = [
@@ -30,6 +31,7 @@ const decisionLayers = [
 export default function ProductPage() {
   return (
     <PublicShell>
+      <link rel="alternate" type="text/markdown" href="/product.md" />
       <section className="page-hero page-hero--ink outreach-product-hero">
         <div className="shell narrow-heading">
           <span className="eyebrow eyebrow--on-ink">Recommendation Intelligence</span>

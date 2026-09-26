@@ -1,2 +1,8 @@
 /index.md
   Link: <https://foremention.com/>; rel="canonical"
+
+/product.md
+  Link: <https://foremention.com/product>; rel="canonical"
+
+/methodology.md
+  Link: <https://foremention.com/methodology>; rel="canonical"
