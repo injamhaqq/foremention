@@ -33,3 +33,6 @@
 
 - [Product Markdown](https://foremention.com/product.md): Structured public product workflow and honest constraints.
 - [Methodology Markdown](https://foremention.com/methodology.md): Structured measurement and comparability methodology.
+
+- [Recommendation Record Markdown](https://foremention.com/recommendation-record.md): Canonical record identity, evidence stages and comparison gate.
+- [Recommendation Intelligence Markdown](https://foremention.com/recommendation-intelligence.md): Category scope and evidence-first terminology.

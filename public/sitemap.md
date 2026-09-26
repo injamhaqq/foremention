@@ -39,3 +39,6 @@
 
 - [Product markdown](https://foremention.com/product.md) — canonical product summary with explicit evidence boundaries.
 - [Methodology markdown](https://foremention.com/methodology.md) — inspectable measurement and comparability principles.
+
+- [Recommendation Record Markdown](https://foremention.com/recommendation-record.md) — explicit record schema, inspected evidence stages, review limitations and comparison conditions.
+- [Recommendation Intelligence Markdown](https://foremention.com/recommendation-intelligence.md) — exact category definition and transparent distinction from generic AI visibility.

@@ -73,10 +73,14 @@ interface ExecutionContext {
 const PUBLIC_MARKDOWN_MIRRORS: Record<string, string> = {
   "/product": "/product.md",
   "/methodology": "/methodology.md",
+  "/recommendation-record": "/recommendation-record.md",
+  "/recommendation-intelligence": "/recommendation-intelligence.md",
 };
 const PUBLIC_MARKDOWN_CANONICALS: Record<string, string> = {
   "/product.md": "/product",
   "/methodology.md": "/methodology",
+  "/recommendation-record.md": "/recommendation-record",
+  "/recommendation-intelligence.md": "/recommendation-intelligence",
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -9,6 +9,7 @@ export const metadata: Metadata = pageMetadata({
   description:
     "Recommendation Intelligence observes the AI recommendations buyers receive, preserves the evidence returned with them, and compares equivalent observations over time without confusing presence with proof.",
   path: "/recommendation-intelligence",
+  markdownPath: "/recommendation-intelligence.md",
 });
 
 const differences = [
@@ -55,6 +56,7 @@ export default function RecommendationIntelligencePage() {
   };
 
   return <PublicShell>
+    <link rel="alternate" type="text/markdown" href="/recommendation-intelligence.md" />
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
     <section className="page-hero page-hero--ink">

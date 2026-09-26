@@ -9,6 +9,7 @@ export const metadata: Metadata = pageMetadata({
   description:
     "A Foremention Recommendation Record is the canonical, inspectable record of one AI recommendation observation: question identity, provider/model, answer, named brands, returned references, source retrieval, review state, limitations, and comparison eligibility.",
   path: "/recommendation-record",
+  markdownPath: "/recommendation-record.md",
 });
 
 const fields = [
@@ -44,6 +45,7 @@ export default function RecommendationRecordPage() {
 
   return (
     <PublicShell>
+      <link rel="alternate" type="text/markdown" href="/recommendation-record.md" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <section className="page-hero page-hero--ink">
         <div className="shell narrow-heading">
