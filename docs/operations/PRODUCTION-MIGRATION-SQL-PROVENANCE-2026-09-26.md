@@ -18,7 +18,9 @@ The live `supabase_migrations.schema_migrations` ledger exposes a `statements` a
 | Local SQL files without a remote match even after the one-terminal-LF test | 26 |
 | Distinct recorded SQL bodies appearing under two remote ledger versions | 2 |
 
-The 33 terminal-LF-only matches were independently corroborated by read-only live SQL hashing and must not be called strictly byte-identical. An additional one-terminal-LF check is intentionally narrow; it does not normalize whitespace, comments, statements or line endings generally.\n\nThe two duplicated ledger SQL bodies have the names `source_snapshot_privilege_hardening` and `acquisition_outreach_control`. Exact stored-text matches also confirm all three latest production cost/support policy migrations, despite their different recorded versions/names. Their full SHA-256 and Git-blob hash receipts are in `PRODUCTION-MIGRATION-SQL-RECEIPTS-2026-09-26.json`.
+The 33 terminal-LF-only matches were independently corroborated by read-only live SQL hashing and must not be called strictly byte-identical. An additional one-terminal-LF check is intentionally narrow; it does not normalize whitespace, comments, statements or line endings generally.
+
+The two duplicated ledger SQL bodies have the names `source_snapshot_privilege_hardening` and `acquisition_outreach_control`. Exact stored-text matches also confirm all three latest production cost/support policy migrations, despite their different recorded versions/names. Their full SHA-256 and Git-blob hash receipts are in `PRODUCTION-MIGRATION-SQL-RECEIPTS-2026-09-26.json`.
 
 A strict matching receipt means **stored SQL text equals repository SQL bytes**. A terminal-LF-only candidate means **stored SQL plus exactly one final line feed equals the repository file**, with all other bytes unchanged. Neither tier proves every statement was executed successfully, that later operations did not change the production schema, or that it is safe to rewrite any migration history. Nonmatching SQL may differ solely in formatting or reflect historical file revisions, consolidated migrations, or materially different SQL; it is not proof of a missing schema operation.
 
