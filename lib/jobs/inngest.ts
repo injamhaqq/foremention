@@ -1,5 +1,6 @@
 import { Inngest } from "inngest";
 import { toInngestProviderStepError } from "./provider-step-error";
+import { measureRunPhase } from "./run-phase-timing";
 import { recordAgentExecution } from "@/lib/agent-control-plane";
 import {
   canonicalizeEvidenceUrl,
@@ -471,7 +472,8 @@ export const runMultiEngineScan = inngest.createFunction(
   },
   async ({ event, step, attempt }) => {
     const data = event.data as RunRequestedData;
-    const run = await step.run("load-and-revalidate-run", () => loadRun(data));
+    const run = await step.run("load-and-revalidate-run", () =>
+      measureRunPhase("load_run", data.runId, () => loadRun(data)));
     if (!run) return { runId: data.runId, skipped: true };
     await step.run("start-run-supervisor", () =>
       recordAgentExecution({
@@ -484,12 +486,12 @@ export const runMultiEngineScan = inngest.createFunction(
       }));
 
     const [prompts, identity] = await Promise.all([
-      step.run("load-run-prompt-snapshots", () =>
+      step.run("load-run-prompt-snapshots", () => measureRunPhase("load_prompts", run.id, () =>
         supabaseRest<PromptSelection[]>(
           `run_prompt_selections?select=prompt_id,prompt_key,prompt_text,locale&organization_id=eq.${run.organization_id}&run_id=eq.${run.id}&order=created_at.asc`,
           { serviceRole: true },
-        )),
-      step.run("load-workspace-identity", async () => {
+        ))),
+      step.run("load-workspace-identity", () => measureRunPhase("load_identity", run.id, async () => {
         const [projects, competitors] = await Promise.all([
           supabaseRest<Array<{ client_brand: string }>>(
             `projects?select=client_brand&id=eq.${run.project_id}&organization_id=eq.${run.organization_id}&status=eq.active&limit=1`,
@@ -502,7 +504,7 @@ export const runMultiEngineScan = inngest.createFunction(
         ]);
         if (!projects[0]) throw new Error("The validated project is not active.");
         return { brand: projects[0].client_brand, competitors: competitors.map((row) => row.name) };
-      }),
+      })),
     ]);
     if (!prompts.length || prompts.length > LIVE_COLLECTION_LIMITS.maxPromptsPerRun) {
       throw new Error("The queued run has an invalid prompt snapshot.");
@@ -533,11 +535,11 @@ export const runMultiEngineScan = inngest.createFunction(
     const providerRates = getProviderCostRates(providerId);
     if (!model || !providerRates) throw new Error("The selected provider model or cost ceiling is not configured.");
     const recentFailureWindow = new Date(Date.now() - LIVE_COLLECTION_LIMITS.circuitWindowMinutes * 60_000).toISOString();
-    const recentFailures = await step.run("check-provider-circuit", () =>
+    const recentFailures = await step.run("check-provider-circuit", () => measureRunPhase("check_provider_circuit", run.id, () =>
       supabaseRest<Array<{ run_id: string }>>(
         `run_attempts?select=run_id&organization_id=eq.${run.organization_id}&provider=eq.${providerId}&status=in.(failed,rate_limited)&created_at=gte.${encodeURIComponent(recentFailureWindow)}&order=created_at.desc&limit=${LIVE_COLLECTION_LIMITS.circuitFailureThreshold * (LIVE_COLLECTION_LIMITS.providerRetries + 1)}`,
         { serviceRole: true },
-      ));
+      )));
     if (hasOpenProviderCircuit(recentFailures)) {
       for (const prompt of prompts) {
         await supabaseRest("run_attempts", {
@@ -575,13 +577,13 @@ export const runMultiEngineScan = inngest.createFunction(
       return { runId: run.id, answers: 0, citations: 0, failures: prompts.length };
     }
 
-    await step.run("mark-run-running", () =>
+    await step.run("mark-run-running", () => measureRunPhase("mark_running", run.id, () =>
       supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${run.organization_id}&status=eq.queued`, {
         method: "PATCH",
         serviceRole: true,
         prefer: "return=minimal",
         body: { status: "running", started_at: new Date().toISOString() },
-      }));
+      })));
     await step.run("start-answer-collector", () =>
       recordAgentExecution({
         runId: run.id,
@@ -709,7 +711,7 @@ export const runMultiEngineScan = inngest.createFunction(
         .filter((index) => index >= 0);
       return brandIndex >= 0 && (!competitorIndexes.length || brandIndex < Math.min(...competitorIndexes));
     });
-    const uniqueSources = await step.run("count-run-sources", async () => {
+    const uniqueSources = await step.run("count-run-sources", () => measureRunPhase("count_sources", run.id, async () => {
       const answerRows = await supabaseRest<Array<{ id: string }>>(
         `run_answers?select=id&organization_id=eq.${run.organization_id}&run_id=eq.${run.id}`,
         { serviceRole: true },
@@ -720,7 +722,7 @@ export const runMultiEngineScan = inngest.createFunction(
         { serviceRole: true },
       );
       return new Set(citationRows.map((row) => row.source_id)).size;
-    });
+    }));
     await Promise.all([
       step.run("record-evidence-mapper", () =>
         recordAgentExecution({
@@ -748,7 +750,7 @@ export const runMultiEngineScan = inngest.createFunction(
     ]);
 
     const completedAt = new Date().toISOString();
-    await step.run("mark-run-for-human-review", () =>
+    await step.run("mark-run-for-human-review", () => measureRunPhase("mark_for_review", run.id, () =>
       supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${run.organization_id}`, {
         method: "PATCH",
         serviceRole: true,
@@ -764,7 +766,7 @@ export const runMultiEngineScan = inngest.createFunction(
           completed_at: completedAt,
           error_summary: failures.length ? `${failures.length} provider attempt(s) failed. Review the successful evidence before publishing.` : null,
         },
-      }));
+      })));
     let mappedSourceCount = 0;
     try {
       const generated = await step.run("generate-observed-source-map", () => generateObservedSourceMap(run));
