@@ -40,8 +40,8 @@ test("collection and persistence keep their independent durable steps and propag
   assert.match(code, /return attachProviderAttempt\(answer, recordedAttemptNumber\)/);
   assert.match(code, /resolveProviderAttempt<ProviderAnswer>\(collected, attempt \+ 1\)/);
   assert.match(code, /persistAnswer\(run, prompt, providerId, successfulReceipt\.answer, identity, successfulReceipt\.attemptNumber\)/);
-  assert.match(code, /\`collect-\$\{providerId\}-\$\{prompt\.prompt_key\}\`/);
-  assert.match(code, /\`persist-\$\{providerId\}-\$\{prompt\.prompt_key\}\`/);
+  assert.ok(code.includes("`collect-${providerId}-${prompt.prompt_key}`"));
+  assert.ok(code.includes("`persist-${providerId}-${prompt.prompt_key}`"));
   assert.doesNotMatch(code, /persistAnswer\(run, prompt, providerId, answer, identity, attempt \+ 1\)/);
   const persistAnswerSegment = code.slice(code.indexOf("async function persistAnswer("), code.indexOf("export const runMultiEngineScan"));
   assert.match(persistAnswerSegment, /status: "complete",[\s\S]*?error_code: null,[\s\S]*?error_detail: null,/);
