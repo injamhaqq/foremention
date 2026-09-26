@@ -10,12 +10,12 @@ test("patched image-size dependency is consistently locked and cannot regress si
   const [workspace, lock, config] = await Promise.all([
     read("pnpm-workspace.yaml"), read("pnpm-lock.yaml"), read("osv-scanner.toml"),
   ]);
-  assert.match(workspace, /^  image-size: 2\\.0\\.4$/m);
-  assert.match(lock, /^  image-size: 2\\.0\\.4$/m);
-  assert.match(lock, /^  image-size@2\\.0\\.4:$/m);
-  assert.match(lock, /^      image-size: 2\\.0\\.4$/m);
-  assert.doesNotMatch(lock, /image-size(?:@|: )2\\.0\\.2/);
+  assert.match(workspace, /^  image-size: 2\.0\.4$/m);
+  assert.match(lock, /^  image-size: 2\.0\.4$/m);
+  assert.match(lock, /^  image-size@2\.0\.4:$/m);
+  assert.match(lock, /^      image-size: 2\.0\.4$/m);
+  assert.doesNotMatch(lock, /image-size(?:@|: )2\.0\.2/);
   for (const id of advisories) {
-    assert.doesNotMatch(config, new RegExp(`id\\s*=\\s*"${id}"`), `cannot suppress ${id}`);
+    assert.equal(config.includes(`id = "${id}"`), false, `cannot suppress ${id}`);
   }
 });
