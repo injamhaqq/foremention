@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { migrationSqlDigests, compareMigrationSqlReceipts } from '../lib/migration-sql-receipt-audit.mjs';
 
 const source = { version: '20260901010000', name: 'safe_example', path: 'supabase/migrations/safe.sql', sql: '-- example\nselect 1;\n' };
@@ -47,4 +50,23 @@ test('hashing preserves SQL bytes, including line endings', () => {
   assert.equal(same.sql_sha256.length, 64);
   assert.equal(same.git_blob_sha.length, 40);
   assert.notDeepEqual(same, migrationSqlDigests('-- a\r\n'));
+});
+
+// Historical fixture corroboration only: this dated audit is never a live parity check.
+test('26 September pinned stored SQL receipt snapshot reproduces measured evidence bounds', async () => {
+  const fixture = JSON.parse(await readFile(new URL('../docs/operations/PRODUCTION-MIGRATION-LEDGER-METADATA-SNAPSHOT-2026-09-26.json', import.meta.url), 'utf8'));
+  const evidence = JSON.parse(await readFile(new URL('../docs/operations/PRODUCTION-MIGRATION-SQL-RECEIPTS-2026-09-26.json', import.meta.url), 'utf8'));
+  assert.equal(fixture.observed_date, evidence.observed_date);
+  assert.equal(evidence.repo_migrations_at_sha, '3d3b4cc6f063d46f34e0b2dc49aec222a309b5d2');
+  const root = fileURLToPath(new URL('../supabase/migrations/', import.meta.url));
+  const files = (await readdir(root)).filter(name => /^\\d{14}_[a-z0-9_]+\\.sql$/.test(name));
+  assert.equal(files.length, 93, 'historical proof fixture must be explicitly refreshed after migration changes');
+  const sources = await Promise.all(files.map(async name => ({
+    version: name.slice(0, 14), name: name.slice(15, -4), path: name, sql: await readFile(join(root, name), 'utf8')
+  })));
+  const r = compareMigrationSqlReceipts(sources, fixture.migrations, evidence.receipts);
+  assert.deepEqual({ remote: r.counts.remote, byteMatched: r.counts.byte_matched_remote,
+    drift: r.counts.byte_matched_but_metadata_drift, unresolved: r.counts.unresolved_remote,
+    localUnmatched: r.counts.local_without_byte_match, duplicate: r.counts.identical_sql_multiple_remote_versions_groups },
+    { remote: 96, byteMatched: 36, drift: 9, unresolved: 60, localUnmatched: 57, duplicate: 2 });
 });
