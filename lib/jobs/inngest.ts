@@ -1,6 +1,6 @@
 import { Inngest } from "inngest";
 import { toInngestProviderStepError } from "./provider-step-error";
-import { attachProviderAttempt, resolveProviderAttempt } from "./provider-attempt-receipt";
+import { attachProviderAttempt, resolveProviderAttempt, type ProviderAttemptReceipt } from "./provider-attempt-receipt";
 import { recordAgentExecution } from "@/lib/agent-control-plane";
 import {
   canonicalizeEvidenceUrl,
@@ -606,7 +606,7 @@ export const runMultiEngineScan = inngest.createFunction(
           { serviceRole: true },
         ));
       if (runState[0]?.status === "cancelled") return { runId: run.id, cancelled: true };
-      let collected: ProviderAnswer | ReturnType<typeof attachProviderAttempt<ProviderAnswer>>;
+      let collected: ProviderAnswer | ProviderAttemptReceipt<ProviderAnswer>;
       try {
         collected = await step.run(`collect-${providerId}-${prompt.prompt_key}`, async () => {
           const startedAt = new Date().toISOString();
