@@ -163,6 +163,51 @@ These are byte-level candidate matches under exactly one documented formatting c
 - `20260915170000_evidence_semantics_hardening.sql`
 - `20260915172000_customer_value_pilot_evidence_gates.sql`
 
+## Restricted second-pass **candidate triage** — 27 September 2026
+
+This step read only the **27 strict-unmatched ledger statements** through the authorized connector, compared them transiently with the **26 strict-unmatched checked-in file bodies**, and emitted **no raw remote SQL or stored secret-bearing exports**. A conservative lexical normalization removed comments and collapsed whitespace **outside quoted SQL content**, preserving quoted strings and dollar-quoted blocks. This is a *candidate-finding heuristic*, not formal SQL parsing, proof of semantic equivalence, or permission to modify the database.
+
+**12 further remote-to-local pairs** had identical text after that conservative normalization. They remain in the strict-unmatched inventory above until a separate reviewer validates their statements and actual effects.
+
+| Remote ledger entry | Local SQL with comment/whitespace-normalized candidate identity |
+| --- | --- |
+| `20260811045535_verified_claim_evidence_delete_semantics` | `20260811045535_verified_claim_evidence_delete_semantics.sql` |
+| `20260813033833_suppress_legacy_ungated_movement_alerts` | `20260813033833_suppress_legacy_ungated_movement_alerts.sql` |
+| `20260813053302_foreign_key_performance_indexes` | `20260813055000_foreign_key_performance_indexes.sql` |
+| `20260813084219_reviewed_opportunity_bridge_unique` | `20260813153000_reviewed_opportunity_bridge_unique.sql` |
+| `20260813085445_resolution_exact_comparability` | `20260813160000_resolution_exact_comparability.sql` |
+| `20260813090712_resolution_evidence_snapshot_provenance` | `20260813163000_resolution_evidence_snapshot_provenance.sql` |
+| `20260814002421_placement_events_org_fk_index_20260814` | `20260814060000_placement_events_organization_index.sql` |
+| `20260901064423_design_partner_applications_main_2c306677` | `20260829000200_design_partner_applications.sql` |
+| `20260901064848_billing_webhook_events_main_2c306677` | `20260829000300_billing_webhook_events.sql` |
+| `20260904115039_acquisition_research_provenance` | `20260904000100_acquisition_research_provenance.sql` |
+| `20260914000400_security_definer_execute_hardening` | `20260914000400_security_definer_execute_hardening.sql` |
+| `20260915000200_private_org_permission_helper` | `20260915000200_private_org_permission_helper.sql` |
+
+**15 residual remote ledger entries** and **14 residual local files** still lack such a normalized equality match. The table below shows **triage hints only**, ordered by migration date. The percentages are overlapping *three-token shingle sets* after comment filtering, **not equivalence scores, success probabilities, approvals or confidence in execution**. Even 100% set overlap can conceal changed literals, added conditions, changed ordering or materially different SQL.
+
+| Residual remote ledger entry | Candidate repository file for reviewer | Shared token shingles |
+| --- | --- | ---: |
+| `20260813010016_rls_auth_initplan_hardening` | `20260813023000_rls_auth_initplan_hardening.sql` | 83% |
+| `20260816192504_tighten_service_only_run_rpcs` | `20260816192504_tighten_service_only_run_rpcs.sql` | 91% |
+| `20260901064346_company_customer_proof_main_2c306677` | `20260818000100_company_customer_proof.sql` | 100% |
+| `20260901064411_retention_loop_v1_main_2c306677` | `20260829000100_retention_loop_v1.sql` | 98% |
+| `20260901064908_design_partner_submission_limits_main_2c306677` | `20260830000100_design_partner_submission_limits.sql` | 92% |
+| `20260901064926_apply_billing_event_atomic_main_2c306677` | `20260830000200_apply_billing_event_atomic.sql` | 100% |
+| `20260901064937_customer_proof_research_events_main_2c306677` | `20260830000300_customer_proof_research_events.sql` | 100% |
+| `20260901065011_commercial_engine_main_2c306677` | `20260830000400_commercial_engine.sql` | 100% |
+| `20260901065043_billing_commercial_hardening_main_2c306677` | `20260830000500_billing_commercial_hardening.sql` | 97% |
+| `20260901073304_enterprise_security_governance_main_0e0dcb82` | `20260830000800_enterprise_security_governance.sql` | 99% |
+| `20260915153758_workspace_deletion_graph_hardening` | `20260915144000_workspace_deletion_graph_hardening.sql` | 97% |
+| `20260915153822_workspace_deletion_remaining_check_fix` | `20260915144600_workspace_deletion_remaining_check_fix.sql` | 96% |
+| `20260915184755_evidence_semantics_hardening` | `20260915170000_evidence_semantics_hardening.sql` | 87% |
+| `20260915185110_qualified_paid_pilot_evidence_view` | `20260915172000_customer_value_pilot_evidence_gates.sql` | 29% |
+| `20260915185158_customer_value_validation_evidence_compat` | `20260915172000_customer_value_pilot_evidence_gates.sql` | 24% |
+
+The two final standalone production view statements may relate to sections of the combined `customer_value_pilot_evidence_gates.sql` migration. Their low whole-file overlap is consistent with a possible split or later correction, **not proof** of it. No 15-row automatic match or migration-history repair is proposed.
+
+**Independent live-view guard, read-only:** The current `public.customer_value_validation_evidence` and `public.qualified_paid_pilot_evidence` views both advertise `security_invoker=true`; `anon` and `authenticated` lack SELECT, while `service_role` has SELECT. These are verified **current effects**, not retrospective proof that any particular historical ledger statement produced them. All 15 residual remote entries still require actual statement-by-statement and current-object review, including functions, grants, RLS and triggers rather than view existence alone.
+
 ## Evidence required before reconciliation
 
 1. Privately preserve the **versioned 96-row ledger snapshot with actual statement text** and source/extraction attestations in access-controlled backup storage; this public review contains only hashes, names, and classification. Do not treat GitHub as that private snapshot.
