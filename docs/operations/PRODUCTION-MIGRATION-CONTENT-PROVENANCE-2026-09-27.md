@@ -100,6 +100,8 @@ These are byte-level candidate matches under exactly one documented formatting c
 
 ## Unmatched production ledger records (27)
 
+**27 unmatched remote** entries and **26 unmatched local** files remain for manual statement-level and resulting-schema investigation.
+
 **UNRESOLVED:** A shared title below is only a search hint. Different statement length or name cannot establish execution equivalence.
 
 | Recorded production version and name | Candidate local filename(s) by name only |
@@ -180,12 +182,14 @@ select version,name,
    ||decode('00','hex')||convert_to(statements[1],'UTF8'),'sha1'),'hex')
    as raw_git_blob_sha,
  encode(extensions.digest(
-   convert_to('blob '||octet_length(statements[1]||E'\\n')::text,'UTF8')
-   ||decode('00','hex')||convert_to(statements[1]||E'\\n','UTF8'),'sha1'),'hex')
+   convert_to('blob '||octet_length(statements[1]||E'\n')::text,'UTF8')
+   ||decode('00','hex')||convert_to(statements[1]||E'\n','UTF8'),'sha1'),'hex')
    as append_lf_git_blob_sha
 from supabase_migrations.schema_migrations
 order by version;
 ```
+
+Store a **private hash-only** JSON snapshot **outside the repository** in the shape `{ "schemaVersion": 1, "records": [{ "version": "...", "name": "...", "raw_git_blob_sha": "...", "append_lf_git_blob_sha": "..." }] }` (fill with the authorized read-only query results, never raw statements). In a checkout of the pinned commit, run `node scripts/audit/compare-migration-fingerprints.mjs --snapshot /private/ledger-hashes.local.json` to regenerate deterministic classifications. The script does not connect to production, accept raw SQL, or authorize repair.
 
 Compare only against Git blob `sha` values at the pinned commit above. **Do not publish the ledger's raw SQL** and do not grant new database rights merely to run this audit.
 
