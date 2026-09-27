@@ -237,18 +237,21 @@ async function loadAsset(viewer: Viewer, context: WorkspaceContext, id: string) 
   return rows[0] || null;
 }
 
-function isolatedResolutionReadStage(stage: "entry" | "viewer" | "workspace" | "loaded" | "catch") {
-  // Test-only fixed-label observation; cannot log JWTs, evidence or tenant IDs.
+function isolatedResolutionReadStage(stage: "entry" | "viewer" | "workspace" | "loaded" | "catch", finalProbe = false) {
+  // Fixed-label observation only. The final-probe header is ignored unless
+  // disposable local CI explicitly enables diagnostics.
   if (process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1") {
-    console.info("isolated-resolution-read-stage", stage);
+    console.info(finalProbe ? "isolated-final-resolution-read-stage" : "isolated-resolution-read-stage", stage);
   }
 }
 
-export async function GET() {
-  isolatedResolutionReadStage("entry");
+export async function GET(request: Request) {
+  const finalProbe = process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1"
+    && request.headers.get("x-foremention-isolated-final-read") === "1";
+  isolatedResolutionReadStage("entry", finalProbe);
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  isolatedResolutionReadStage("viewer");
+  isolatedResolutionReadStage("viewer", finalProbe);
   if (viewer.mode === "demo") return NextResponse.json({ data: { resolutions: [] }, mode: "demo" });
   try {
     // Workspace resolution can itself issue authenticated PostgREST reads.
@@ -256,12 +259,12 @@ export async function GET() {
     // distinguish local JWT validation failure from resolution aggregation.
     const { context } = await resolveWorkspace(viewer);
     if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-    isolatedResolutionReadStage("workspace");
+    isolatedResolutionReadStage("workspace", finalProbe);
     const records = await loadResolutionRecords(viewer, context);
-    isolatedResolutionReadStage("loaded");
+    isolatedResolutionReadStage("loaded", finalProbe);
     return NextResponse.json({ data: { resolutions: records } });
   } catch (error) {
-    isolatedResolutionReadStage("catch");
+    isolatedResolutionReadStage("catch", finalProbe);
     if (isMissingRelationError(error)) return pendingMigrationResponse();
     // Only categorize server-side failure; never log evidence excerpts,
     // Supabase credentials, source URLs, queries or user identifiers.

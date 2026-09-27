@@ -10,6 +10,11 @@ const lines=log.split(/\r?\n/);
 const diagnostics=[];
 for(let i=0;i<lines.length;i++){
  const line=lines[i];
+ const finalPhase=/isolated-final-resolution-read-stage[^\n]*\b(entry|viewer|workspace|loaded|catch)\b/.exec(line);
+ if(finalPhase){
+   diagnostics.push({kind:"isolated-final-resolution-read-stage",stage:finalPhase[1]});
+   continue;
+ }
  const phase=/isolated-resolution-read-stage[^\n]*\b(entry|viewer|workspace|loaded|catch)\b/.exec(line);
  if(phase){
    diagnostics.push({kind:"isolated-resolution-read-stage",stage:phase[1]});

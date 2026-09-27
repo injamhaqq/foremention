@@ -12,12 +12,14 @@ test("isolated GET phase traces are fixed-label and strictly disabled unless dis
  assert.match(route,/process\.env\.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1"/);
  assert.match(env,/FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS:"1"/);
  assert.match(route,/stage: "entry" \| "viewer" \| "workspace" \| "loaded" \| "catch"/);
- assert.match(route,/isolatedResolutionReadStage\("entry"\)/);
- assert.match(route,/isolatedResolutionReadStage\("workspace"\)/);
- assert.match(route,/isolatedResolutionReadStage\("loaded"\)/);
- assert.match(route,/isolatedResolutionReadStage\("catch"\)/);
+ assert.match(route,/isolatedResolutionReadStage\("entry", finalProbe\)/);
+ assert.match(route,/isolatedResolutionReadStage\("workspace", finalProbe\)/);
+ assert.match(route,/isolatedResolutionReadStage\("loaded", finalProbe\)/);
+ assert.match(route,/isolatedResolutionReadStage\("catch", finalProbe\)/);
  assert.match(summarizer,/isolated-resolution-read-stage/);
+ assert.match(summarizer,/isolated-final-resolution-read-stage/);
+ assert.match(route,/request\.headers\.get\("x-foremention-isolated-final-read"\)/);
  const helper=route.slice(route.indexOf("function isolatedResolutionReadStage("),
-                         route.indexOf("export async function GET()"));
+                         route.indexOf("export async function GET(request: Request)"));
  assert.doesNotMatch(helper,/viewer\.id|accessToken|source_url|JSON\.stringify|process\.env\.SUPABASE/);
 });

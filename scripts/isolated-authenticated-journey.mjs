@@ -57,13 +57,13 @@ async function db(method,resource,body) {
   if (response.status===204) return [];
   return response.json();
 }
-async function appCall(ctx,method,path,data) {
+async function appCall(ctx,method,path,data,extraHeaders={}) {
   // Never allow Playwright's exception renderer to print request headers:
   // transport errors can otherwise echo LOCAL synthetic auth cookies.
   let response;
   try {
     response=await ctx.request.fetch(new URL(path,app).toString(),{
-      method,headers:{origin:app.origin,accept:"application/json"},
+      method,headers:{origin:app.origin,accept:"application/json",...extraHeaders},
       ...(data===undefined?{}:{data}),
     });
   } catch {
@@ -378,7 +378,28 @@ async function main() {
     const persisted=await db("GET","resolution_follow_ups?select=status,outcome&resolution_asset_id=eq."+generated.id+"&organization_id=eq."+tenant.org);
     assert.equal(persisted.length,1,"exactly one synthetic follow-up");
     step("post-review-persisted-followup-state-"+persisted[0].status+"-"+(typeof persisted[0].outcome?.interpretation==="string"));
-    const state=must(await appCall(ownerCtx,"GET","/api/resolutions"),200,"final audited resolution read").data.resolutions;
+    // Tag only this GET: earlier successful GET stage labels do not tell us
+    // whether the final failing request reached the Worker route at all.
+    // Preserve strict first-request acceptance; a diagnostic retry never
+    // converts a failed 500 into a passing test.
+    const finalRead=await appCall(ownerCtx,"GET","/api/resolutions",undefined,{"x-foremention-isolated-final-read":"1"});
+    if(finalRead.status!==200){
+      const session=(await ownerCtx.cookies()).find(c=>c.name==="foremention-session");
+      if(!session)throw Error("Final local diagnostic lost its synthetic session.");
+      const auth=await fetch(new URL("/rest/v1/organization_members?select=user_id&limit=0",supabase),{
+        headers:{apikey:anon,authorization:"Bearer "+session.value},
+      });
+      let authCode="none";
+      if(!auth.ok){
+        try {authCode=(await auth.json()).code==="PGRST303"?"PGRST303":"other";}catch{authCode="other";}
+      }
+      step("final-local-postgrest-status-"+auth.status+"-code-"+authCode);
+      const localHealth=await appCall(publicCtx,"GET","/api/health");
+      step("final-local-worker-health-"+localHealth.status);
+      const repeat=await appCall(ownerCtx,"GET","/api/resolutions");
+      step("final-diagnostic-repeat-read-status-"+repeat.status);
+    }
+    const state=must(finalRead,200,"final audited resolution read").data.resolutions;
     const record=state.find(x=>x.id===generated.id);
     assert.equal(record?.followUp?.status,"complete");
     assert.match(record?.followUp?.summary||"",/does not establish|association/i);
