@@ -139,7 +139,7 @@ insert into public.run_attempts (
   4, 'failed', now(), null
 );
 
-do $
+do $ledger_diagnostic$
 declare
   actual_count integer;
 begin
@@ -163,7 +163,7 @@ begin
     raise exception 'Retry, explicit zero or unknown-cost treatment was incorrect';
   end if;
 end
-$$;
+$ledger_diagnostic$;
 
 -- When cost is later legitimately established, the same terminal attempt
 -- receives exactly one receipt. Do not perform equivalent retroactive updates
