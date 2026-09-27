@@ -139,11 +139,18 @@ insert into public.run_attempts (
   4, 'failed', now(), null
 );
 
-do $$
+do $
+declare
+  actual_count integer;
 begin
-  if (select count(*) from public.ai_cost_events
-      where run_id='f1300000-0000-4000-8000-000000000050'::uuid) <> 3 then
-    raise exception 'Expected exactly three receipts, including a distinct retry and zero-estimate failure';
+  select count(*) into actual_count from public.ai_cost_events
+  where run_id='f1300000-0000-4000-8000-000000000050'::uuid;
+  if actual_count <> 3 then
+    raise exception 'Expected exactly three receipts, got % (retry2 %, zero3 %, unknown4 %)',
+      actual_count,
+      exists (select 1 from public.ai_cost_events where run_attempt_id='f1300000-0000-4000-8000-000000000062'::uuid),
+      exists (select 1 from public.ai_cost_events where run_attempt_id='f1300000-0000-4000-8000-000000000063'::uuid),
+      exists (select 1 from public.ai_cost_events where run_attempt_id='f1300000-0000-4000-8000-000000000064'::uuid);
   end if;
   if not exists (select 1 from public.ai_cost_events
       where run_attempt_id='f1300000-0000-4000-8000-000000000062'::uuid
