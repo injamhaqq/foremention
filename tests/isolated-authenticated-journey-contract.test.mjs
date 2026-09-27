@@ -10,6 +10,11 @@ test("real authenticated customer acceptance must only run against local ephemer
     read("../scripts/prepare-isolated-local-env.mjs")
   ]);
   assert.match(journey,/Refusing any non-local authenticated acceptance target/);
+  assert.match(journey,/awaitLocalPostgrestJwt\(sessionValue\)/);
+  assert.match(journey,/response\.status!==401\|\|code!==\"PGRST303\"/);
+  assert.match(journey,/attempt<12/);
+  assert.match(journey,/if\(\+\+successes>=2\)return/);
+  assert.match(journey,/throw Error\(\"Isolated local PostgREST JWT preflight rejected/);
   assert.match(journey,/three-ephemeral-local-auth-users-created/);
   assert.match(journey,/ordinary-run-review-published-one-citation-four-zero-citation-questions/);
   assert.match(journey,/real-change-spec-review-role-gates-and-manager-approval/);
