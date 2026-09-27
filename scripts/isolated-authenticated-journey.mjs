@@ -171,6 +171,13 @@ async function main() {
     const tenant=await onboard(ownerCtx,"Tenant A");
     const other=await onboard(otherCtx,"Tenant B");
     assert.notEqual(tenant.org,other.org);
+    // Compare both empty, authenticated GET routes before any reviewer action.
+    // Only status counts are emitted; never expose synthetic Auth responses.
+    const [ownerEmpty,otherEmpty]=await Promise.all([
+      appCall(ownerCtx,"GET","/api/resolutions"),
+      appCall(otherCtx,"GET","/api/resolutions"),
+    ]);
+    step("baseline-isolated-resolution-read-status-"+ownerEmpty.status+"-"+otherEmpty.status);
     await db("POST","organization_members",[{
       organization_id:tenant.org,user_id:analyst.id,role:"analyst"
     }]);
