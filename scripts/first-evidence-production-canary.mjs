@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
+import { explicitOfficialSourceRequirement, assessExplicitOfficialSourceAnswer } from "../lib/official-source-relevance.mjs";
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -274,6 +275,27 @@ async function verifyRunEvidenceAndPublish(page, run) {
     summary.evidence.providerSearchResultCount = parsedSearchResultCount;
     stage("provider-search-diagnostics-recorded", { searchUsed: summary.evidence.providerSearchUsed, searchResultCount: parsedSearchResultCount });
   }
+
+  // The pinned freshness question explicitly requires an official-domain
+  // citation. A refusal with eight unrelated RSS links must not be counted as
+  // verified first evidence or automatically published by this synthetic user.
+  const requiredOfficialSource = explicitOfficialSourceRequirement(freshWebEvidenceQuestion);
+  if (!requiredOfficialSource) fail("Pinned official-domain qualification policy was not recognized.");
+  const record = page.locator("article.canonical-answer-record").filter({
+    hasText: "most recently published post on openai.com/news",
+  }).first();
+  if (await record.count() !== 1) fail("Pinned official-domain Recommendation Record was not rendered.");
+  const displayedAnswer = await record.locator(":scope > p").first().innerText();
+  const displayedCitations = await record.locator(".canonical-citation-record > a").evaluateAll(
+    (anchors) => anchors.map(anchor => ({ url: anchor.href })),
+  );
+  const officialAssessment = assessExplicitOfficialSourceAnswer(
+    displayedAnswer, displayedCitations, requiredOfficialSource,
+  );
+  if (!officialAssessment.ok) {
+    fail(`The official-domain first-evidence qualification gate failed: ${officialAssessment.reason}. A generic refusal or unrelated returned link is not verified source evidence.`);
+  }
+  stage("official-source-provenance-minimum-verified");
 
   stage("persisted-provider-answer-verified", { answers: Number(run.answers), citations: Number(run.citations || 0) });
 
