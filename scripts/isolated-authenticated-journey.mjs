@@ -213,7 +213,33 @@ async function main() {
     step("ordinary-run-review-published-one-citation-four-zero-citation-questions");
 
     // Reader isolation and mutation authorization apply to the same real app.
-    const outsiderData=must(await appCall(otherCtx,"GET","/api/resolutions"),200,"other-tenant resolution read");
+    const [ownerAfterReview,otherAfterReview]=await Promise.all([
+      appCall(ownerCtx,"GET","/api/resolutions"),
+      appCall(otherCtx,"GET","/api/resolutions"),
+    ]);
+    step("reviewed-resolution-read-status-owner-"+ownerAfterReview.status+"-other-"+otherAfterReview.status);
+    if (ownerAfterReview.status!==200 || otherAfterReview.status!==200) {
+      const [ownerOpportunityRows,otherOpportunityRows,otherAssetRows]=await Promise.all([
+        db("GET","opportunities?select=id&organization_id=eq."+tenant.org),
+        db("GET","opportunities?select=id&organization_id=eq."+other.org),
+        db("GET","resolution_assets?select=id&organization_id=eq."+other.org),
+      ]);
+      // Only anonymous status and COUNT diagnostics. Never render Auth
+      // cookies, tokens, SQL payloads, workspace IDs or raw worker logs.
+      step("reviewed-resolution-isolation-fixture-counts-"+ownerOpportunityRows.length+
+        "-"+otherOpportunityRows.length+"-"+otherAssetRows.length);
+      const category = value => {
+        const text=String(value?.body?.error||"");
+        if (/database/i.test(text)) return "database";
+        if (/workspace/i.test(text)) return "workspace";
+        if (/auth|session/i.test(text)) return "auth";
+        return "opaque";
+      };
+      step("reviewed-resolution-safe-error-category-owner-"+category(ownerAfterReview)+"-other-"+category(otherAfterReview));
+    }
+    const ownerRecords=must(ownerAfterReview,200,"owner resolution read after source review").data.resolutions;
+    assert.ok(Array.isArray(ownerRecords));
+    const outsiderData=must(otherAfterReview,200,"other-tenant resolution read");
     assert.equal(outsiderData.data.resolutions.length,0);
     must(await appCall(analystCtx,"PATCH","/api/sources/"+entries[0].id+"/review",{
       crawlerAccess:"blocked",feasibility:"high",influence:"high",route:"editorial outreach",clientPresent:false,
