@@ -346,7 +346,7 @@ end $$;
 -- Change one of the five synthetic answer slots while leaving exact persisted
 -- prompts, provider, model, locale/market snapshots and methodology identical.
 -- The existing run-status trigger must write INCOMPARABLE without any delta.
-do $
+do $fm_context_cases$
 declare
   names text[] := array['locale','market','buyerStage','promptVersion',
     'parserVersion','retrievalVersion','policyVersion','schemaVersion','evaluationVersion'];
@@ -437,7 +437,7 @@ begin
       if sqlerrm not ilike '%immutable%' then raise; end if;
     end;
   end loop;
-end $;
+end $fm_context_cases$;
 
 rollback;
 select 'isolated nine-field material-context follow-up parity passed' AS result;
