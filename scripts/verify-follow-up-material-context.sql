@@ -342,6 +342,14 @@ begin
 end $$;
 
 
+-- The prior incompatible-market attachment left its synthetic follow-up
+-- REQUESTED; clean this negative-only fixture before looping because the
+-- real schema enforces one active follow-up per resolution.
+delete from public.resolution_follow_ups
+ where id='f1400000-0000-4000-8000-000000000091'::uuid
+   and status='requested'
+   and rerun_id is null;
+
 -- Each one of nine material context properties is independently required.
 -- Change one of the five synthetic answer slots while leaving exact persisted
 -- prompts, provider, model, locale/market snapshots and methodology identical.
