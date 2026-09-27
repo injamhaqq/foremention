@@ -163,7 +163,13 @@ async function main() {
     clients.push(publicCtx);
     must(await appCall(publicCtx,"GET","/api/resolutions"),401,"anonymous resolution access");
     must(await appCall(publicCtx,"POST","/api/change-specifications",{action:"create_from_opportunity"}),401,"anonymous decision mutation");
-    const [tenant,other]=await Promise.all([onboard(ownerCtx,"Tenant A"),onboard(otherCtx,"Tenant B")]);
+    // Preflight the ordinary route before a valid workspace request. This
+    // distinguishes an auth/routing 500 from later RPC/validation failures.
+    const blank=await appCall(ownerCtx,"POST","/api/onboarding",{});
+    must(blank,400,"authenticated invalid onboarding payload boundary");
+    step("authenticated-onboarding-invalid-payload-rejected");
+    const tenant=await onboard(ownerCtx,"Tenant A");
+    const other=await onboard(otherCtx,"Tenant B");
     assert.notEqual(tenant.org,other.org);
     await db("POST","organization_members",[{
       organization_id:tenant.org,user_id:analyst.id,role:"analyst"
