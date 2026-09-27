@@ -261,6 +261,23 @@ async function main() {
     // Run post-review tenant reads serially to distinguish a real read
     // error from a dev Worker transport crash caused by overlapping requests.
     // Both must return 200 independently: there is no 500/503 allowance.
+    // Independent local PostgREST read separates transient PGRST303 JWT
+    // validation from an application-owned Resolution aggregation failure.
+    // Emit only HTTP status and one allowlisted code. Do not output JWTs,
+    // raw database errors, org IDs or any synthetic user-identifying data.
+    const ownerCookie=(await ownerCtx.cookies()).find(c=>c.name==="foremention-session");
+    if(!ownerCookie) throw Error("Authenticated post-review fixture lost its local session cookie.");
+    const probe=await fetch(new URL("/rest/v1/organization_members?select=user_id&limit=0",supabase),{
+      headers:{apikey:anon,authorization:"Bearer "+ownerCookie.value},
+    });
+    let probeCode="none";
+    if(!probe.ok){
+      try {
+        const candidate=String((await probe.json()).code||"");
+        probeCode=candidate==="PGRST303"?"PGRST303":"other";
+      } catch {probeCode="other";}
+    }
+    step("post-review-local-postgrest-status-"+probe.status+"-code-"+probeCode);
     const ownerAfterReview=await appCall(ownerCtx,"GET","/api/resolutions");
     const localHealthAfterReview=await appCall(publicCtx,"GET","/api/health");
     const otherAfterReview=await appCall(otherCtx,"GET","/api/resolutions");
