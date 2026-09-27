@@ -25,7 +25,7 @@ test("isolated ledger fixture covers success, distinct retry, zero estimate, unk
   ]);
   for (const caseText of [
     "status='complete'", "cost_source='provider_reported'",
-    "2, 'failed', 0.000023", "3, 'rate_limited', 0.000000",
+    "status='failed', estimated_cost_usd=0.000023", "status='rate_limited', estimated_cost_usd=0.000000",
     "4, 'failed', now(), null", "estimated_cost_usd=0.000007",
     "premature ledger charge", "exactly three receipts",
   ]) {
