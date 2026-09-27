@@ -87,7 +87,13 @@ jobs:
           npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
           .ci-tools/node_modules/.bin/playwright install --with-deps chromium
 
-          pnpm exec wrangler dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
+          # Isolated acceptance only: repository-pinned Wrangler 4.114.0 is
+          # within a documented upstream local-dev network-drop regression
+          # window (cloudflare/workers-sdk#15002). Test the independently
+          # reported last-clean 4.113.0 WITHOUT changing the production build,
+          # application dependency graph or the frozen repository lockfile.
+          # This does not excuse any HTTP 500 in customer-route assertions.
+          pnpm dlx wrangler@4.113.0 dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
           server_pid=$!
           ready=false
           for attempt in $(seq 1 90); do
