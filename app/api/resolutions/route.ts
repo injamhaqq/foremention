@@ -321,7 +321,7 @@ async function handleCreate(request: Request) {
       await supabaseRest(`resolution_assets?id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "DELETE", token: viewer.accessToken }).catch(() => undefined);
       throw error;
     }
-    await supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "resolution.generated", entity_type: "resolution_asset", entity_id: asset.id, after_state: { asset_type: assetType, opportunity_id: problem.id, evidence_count: evidence.length, baseline_run_id: baselineRunId, change_specification_id: changeSpecification.id } } }).catch(() => undefined);
+    await supabaseRest("audit_logs", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "resolution.generated", entity_type: "resolution_asset", entity_id: asset.id, after_state: { asset_type: assetType, opportunity_id: problem.id, evidence_count: evidence.length, baseline_run_id: baselineRunId, change_specification_id: changeSpecification.id } } }).catch(() => undefined);
     const resolutions = await loadResolutionRecords(viewer, context);
     return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } }, { status: 201 });
   }
@@ -447,7 +447,7 @@ async function handleChange(request: Request) {
   } else return NextResponse.json({ error: "Choose update_draft, decision, or mark_applied." }, { status: 400 });
 
   await supabaseRest(`resolution_assets?id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: update });
-  await supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: `resolution.${action}`, entity_type: "resolution_asset", entity_id: asset.id, before_state: { status: asset.status, decision: asset.review_decision }, after_state: { action, ...update } } }).catch(() => undefined);
+  await supabaseRest("audit_logs", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: `resolution.${action}`, entity_type: "resolution_asset", entity_id: asset.id, before_state: { status: asset.status, decision: asset.review_decision }, after_state: { action, ...update } } }).catch(() => undefined);
   const resolutions = await loadResolutionRecords(viewer, context);
   return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } });
 }
