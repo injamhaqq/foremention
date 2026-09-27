@@ -77,6 +77,36 @@ function must(actual,status,stepName) {
   if(actual.status!==status) throw Error("Isolated "+stepName+" returned HTTP "+actual.status+" (expected "+status+").");
   return actual.body;
 }
+// Bound the *local test fixture's* initial JWT readiness only. Supabase's
+// PostgREST can transiently report PGRST303 (fresh token issued in the future)
+// even when GoTrue accepted it. This is not a production auth workaround and
+// never retries a permission denial, an unknown 401, or a later app API failure.
+async function awaitLocalPostgrestJwt(jwt) {
+  const target=new URL("/rest/v1/organization_members?select=user_id&limit=0",supabase);
+  let successes=0;
+  for(let attempt=0;attempt<12;attempt++){
+    let response;
+    try {
+      response=await fetch(target,{headers:{apikey:anon,authorization:"Bearer "+jwt}});
+    } catch {
+      throw Error("Isolated local PostgREST fixture transport unavailable.");
+    }
+    if(response.ok){
+      if(++successes>=2)return;
+    } else {
+      let code="";
+      try { code=String((await response.json()).code||""); } catch {}
+      if(response.status!==401||code!=="PGRST303"){
+        throw Error("Isolated local PostgREST JWT preflight rejected: HTTP "+
+          response.status+" code "+(code||"unknown")+".");
+      }
+      successes=0;
+    }
+    await new Promise(resolve=>setTimeout(resolve,750));
+  }
+  throw Error("Local Auth/PostgREST JWT PGRST303 did not stabilize within the bounded fixture budget.");
+}
+
 async function login(browser,user) {
   const ctx=await browser.newContext({baseURL:app.origin,serviceWorkers:"block"});
   let response;
@@ -107,6 +137,9 @@ async function login(browser,user) {
   if(!localhostCookies.some(x=>x.name==="foremention-session"))
     throw Error("Local synthetic login did not set its expected auth-session cookie.");
   await ctx.addCookies(localhostCookies);
+  const sessionValue=localhostCookies.find(c=>c.name==="foremention-session")?.value;
+  if(!sessionValue)throw Error("Isolated auth-session value missing from loopback cookie fixture.");
+  await awaitLocalPostgrestJwt(sessionValue);
   // The local Auth and PostgREST containers can cross their JWT issued-at
   // second boundary at different instants; avoid flaking the VERY FIRST
   // protected database request, without relaxing or retrying auth failures.
