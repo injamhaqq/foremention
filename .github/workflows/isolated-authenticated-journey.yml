@@ -99,6 +99,7 @@ jobs:
               echo "Local Worker stopped before readiness."
               exit 1
             fi
+            echo "Waiting for isolated local Worker ($attempt/90)"
             sleep 1
           done
           if [ "$ready" != "true" ]; then
