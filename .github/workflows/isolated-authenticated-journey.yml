@@ -91,7 +91,8 @@ jobs:
           server_pid=$!
           ready=false
           for attempt in $(seq 1 90); do
-            if curl --fail --silent --show-error --max-time 4 http://127.0.0.1:4174/api/health 2>/dev/null | grep -q '"status":"ok"'; then
+            health_response="$(curl --fail --silent --show-error --max-time 4 http://127.0.0.1:4174/api/health 2>/dev/null || true)"
+            if [[ "$health_response" == *'"status":"ok"'* ]]; then
               ready=true
               break
             fi
