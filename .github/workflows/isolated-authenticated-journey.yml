@@ -107,7 +107,10 @@ jobs:
             exit 1
           fi
 
-          node scripts/isolated-authenticated-journey.mjs
+          if ! node scripts/isolated-authenticated-journey.mjs; then
+            node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
+            exit 1
+          fi
           echo "Isolated authenticated acceptance succeeded without any external provider request."
 
       - name: Verify no test secrets or artifacts remain
