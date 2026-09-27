@@ -75,7 +75,7 @@ jobs:
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-terminal-attempt-ledger.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-workspace-export-delete-restore.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-isolated-reviewed-second-cycle.sql
-          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-follow-up-material-context.sql
+          node scripts/expand-isolated-context-sql.mjs | docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres
 
       - name: Run tests
         shell: bash
