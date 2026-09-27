@@ -158,6 +158,21 @@ begin
   select count(*) into actual_count from public.ai_cost_events
   where run_id='f1300000-0000-4000-8000-000000000050'::uuid;
   if actual_count <> 3 then
+    raise notice 'Synthetic fixture only: attempts=%',
+      (select jsonb_agg(jsonb_build_object(
+        'n', a.attempt_number, 's', a.status,
+        'cost_null', a.estimated_cost_usd is null,
+        'completed_null', a.completed_at is null,
+        'event_id_present', e.run_attempt_id is not null
+      ) order by a.attempt_number)
+       from public.run_attempts a
+       left join public.ai_cost_events e on e.run_attempt_id=a.id
+       where a.run_id='f1300000-0000-4000-8000-000000000050'::uuid);
+    raise notice 'Synthetic fixture only: trigger=%',
+      (select pg_get_triggerdef(oid) from pg_trigger where tgrelid='public.run_attempts'::regclass
+        and tgname='ledger_run_attempt_cost_after_write');
+    raise notice 'Synthetic fixture only: active function MD5=%',
+      md5(pg_get_functiondef('public.ledger_run_attempt_cost()'::regprocedure));
     raise exception 'Expected exactly three receipts, got % (retry2 %, zero3 %, unknown4 %)',
       actual_count,
       exists (select 1 from public.ai_cost_events where run_attempt_id='f1300000-0000-4000-8000-000000000062'::uuid),
