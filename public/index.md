@@ -2,8 +2,8 @@
 title: "Recommendation Intelligence for B2B Software | Foremention"
 description: "Understand why competitors are being recommended, what your company should change next, and how to verify what happened after the change."
 canonical: "https://foremention.com/"
-updated: "2026-09-20"
-last_updated: "2026-09-20"
+updated: "2026-09-26"
+last_updated: "2026-09-26"
 ---
 
 # Know what your company should change next to become the stronger recommendation.
@@ -13,6 +13,10 @@ Foremention is recommendation intelligence for B2B software. It observes how AI 
 No fake reviews. No hidden promotion. No ranking guarantees. No fabricated scores. No causal claims without evidence.
 
 [Apply as Design Partner](https://foremention.com/contact)
+
+## Current live measurement surface
+
+The current free-only collection path observes **Cloudflare Workers AI + independently retrieved Bing Search RSS grounded synthesis**. It does **not** directly monitor ChatGPT, Gemini, or Perplexity consumer-app responses, and a hosted or model-vendor API cannot be assumed equivalent to its consumer application. Each observation must retain its actual provider, model, question version, retrieval method, citation provenance and comparison limits. Broader native surfaces require separate verification before any coverage claim. See the [measurement methodology](https://foremention.com/methodology).
 
 ## Recommendation Record
 
