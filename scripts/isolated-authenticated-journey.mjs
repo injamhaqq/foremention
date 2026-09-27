@@ -58,10 +58,17 @@ async function db(method,resource,body) {
   return response.json();
 }
 async function appCall(ctx,method,path,data) {
-  const response=await ctx.request.fetch(new URL(path,app).toString(),{
-    method,headers:{origin:app.origin,accept:"application/json"},
-    ...(data===undefined?{}:{data}),
-  });
+  // Never allow Playwright's exception renderer to print request headers:
+  // transport errors can otherwise echo LOCAL synthetic auth cookies.
+  let response;
+  try {
+    response=await ctx.request.fetch(new URL(path,app).toString(),{
+      method,headers:{origin:app.origin,accept:"application/json"},
+      ...(data===undefined?{}:{data}),
+    });
+  } catch {
+    return {status:0,body:null};
+  }
   let body=null;
   try {body=await response.json();}catch{}
   return {status:response.status(),body};
@@ -72,10 +79,15 @@ function must(actual,status,stepName) {
 }
 async function login(browser,user) {
   const ctx=await browser.newContext({baseURL:app.origin,serviceWorkers:"block"});
-  const response=await ctx.request.post(new URL("/api/auth/login",app).toString(),{
-    headers:{origin:app.origin,accept:"application/json"},
-    data:{email:user.email,password:user.password},
-  });
+  let response;
+  try {
+    response=await ctx.request.post(new URL("/api/auth/login",app).toString(),{
+      headers:{origin:app.origin,accept:"application/json"},
+      data:{email:user.email,password:user.password},
+    });
+  } catch {
+    throw Error("Isolated local sign-in transport failed; no request headers were logged.");
+  }
   if(response.status()!==200)throw Error("Isolated synthetic sign-in returned HTTP "+response.status());
   // Production correctly marks authentication cookies Secure over HTTPS.
   // Wrangler's isolated HTTP loopback cannot transport Secure cookies.
@@ -213,10 +225,13 @@ async function main() {
     step("ordinary-run-review-published-one-citation-four-zero-citation-questions");
 
     // Reader isolation and mutation authorization apply to the same real app.
-    const [ownerAfterReview,otherAfterReview]=await Promise.all([
-      appCall(ownerCtx,"GET","/api/resolutions"),
-      appCall(otherCtx,"GET","/api/resolutions"),
-    ]);
+    // Run post-review tenant reads serially to distinguish a real read
+    // error from a dev Worker transport crash caused by overlapping requests.
+    // Both must return 200 independently: there is no 500/503 allowance.
+    const ownerAfterReview=await appCall(ownerCtx,"GET","/api/resolutions");
+    const localHealthAfterReview=await appCall(publicCtx,"GET","/api/health");
+    const otherAfterReview=await appCall(otherCtx,"GET","/api/resolutions");
+    step("reviewed-local-worker-health-"+localHealthAfterReview.status);
     step("reviewed-resolution-read-status-owner-"+ownerAfterReview.status+"-other-"+otherAfterReview.status);
     if (ownerAfterReview.status!==200 || otherAfterReview.status!==200) {
       const [ownerOpportunityRows,otherOpportunityRows,otherAssetRows]=await Promise.all([
