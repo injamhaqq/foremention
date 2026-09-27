@@ -1,5 +1,5 @@
 import type { ProviderCitation } from "@/lib/providers/types";
-import { explicitOfficialSourceRequirement, boundedOfficialSiteQuery, filterOfficialDomainCitations } from "@/lib/official-source-relevance.mjs";
+import { explicitOfficialSourceRequirement, boundedOfficialSiteQuery, filterOfficialDomainCitations } from "./official-source-relevance.mjs";
 
 const BING_SEARCH_ENDPOINT = "https://www.bing.com/search";
 const MAX_RSS_CHARS = 256_000;
