@@ -422,6 +422,22 @@ begin
     from public.prompts p
     where p.organization_id='f1400000-0000-4000-8000-000000000010';
 
+    -- The production BEFORE INSERT stamp_run_answer_measurement_context trigger
+    -- deliberately rewrites caller-supplied context from approved prompt and
+    -- current registry versions. Reproduce an actual *persisted* mismatch
+    -- AFTER that stamp in this rollback-only fixture, never in production.
+    update public.run_answers
+       set measurement_context_json = case
+         when case_number=10 then measurement_context_json - field_name
+         else jsonb_set(measurement_context_json, array[field_name],
+                        '"fixture-other"'::jsonb)
+       end
+     where run_id=bad_run and prompt_key='q1';
+    get diagnostics n = row_count;
+    if n <> 1 then
+       raise exception 'Exactly one isolated fixture answer must have its stamped material context changed; case %, updated %',case_number,n;
+    end if;
+
     update public.resolution_follow_ups
       set rerun_id=bad_run,status='queued' where id=measurement;
     update public.runs
