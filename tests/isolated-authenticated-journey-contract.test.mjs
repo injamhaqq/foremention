@@ -36,3 +36,19 @@ test("test-only provider seeding cannot be represented as real provider measurem
   assert.match(text,/no providers, no production, no customer-value claim/);
   assert.doesNotMatch(text, /POST.*\/api\/runs(?:\x60|["'])/i);
 });
+
+test("analyst-scoped source and change writes preserve admin-write-only audit receipts", async () => {
+  const [sourceReview,changes,resolutions] = await Promise.all([
+    read("../app/api/sources/[id]/review/route.ts"),
+    read("../app/api/change-specifications/route.ts"),
+    read("../app/api/resolutions/route.ts"),
+  ]);
+  for (const code of [sourceReview,changes,resolutions]) {
+    assert.match(code, /supabaseRest\("audit_logs",\s*\{[\s\S]*?serviceRole: true/);
+    assert.match(code, /actor_id: viewer\.id/);
+  }
+  assert.match(sourceReview, /source_map_entries\?id=eq\.\$\{entry\.id\}[\s\S]*?method: "PATCH",[\s\S]*?token: accessToken/);
+  assert.match(sourceReview, /if \(!role \|\| role === "viewer"\)/);
+  assert.match(changes, /if \(!writable\(role\)\)/);
+  assert.match(resolutions, /if \(!writable\(role\)\)/);
+});
