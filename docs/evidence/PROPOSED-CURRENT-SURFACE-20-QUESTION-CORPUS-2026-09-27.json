@@ -1,0 +1,194 @@
+{
+  "schema_version": "1.0",
+  "status": "proposed_not_human_approved",
+  "observed_snapshot_date": "2026-09-27",
+  "purpose": "No-cost candidate corpus for controlled current-surface provider qualification; not proof of native or consumer-app observation.",
+  "surface": {
+    "provider": "cloudflare",
+    "model": "@cf/google/gemma-4-26b-a4b-it",
+    "method": "Cloudflare Workers AI grounded synthesis using independently retrieved Bing Search RSS",
+    "locale": "en-US",
+    "market": "US",
+    "question_version": "provider-qual-2026-09-27-v1",
+    "retrieval_provenance": "independent_rss_not_provider_native_web_search",
+    "consumer_app_equivalent": false
+  },
+  "questions": [
+    {
+      "id": "pq-01",
+      "persona": "seo",
+      "intent": "category-discovery",
+      "question": "Which tools can a B2B SaaS SEO team use to observe how AI-assisted buyers discover competing software, and what evidence describes each tool's measurement method?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-02",
+      "persona": "seo",
+      "intent": "provider-coverage",
+      "question": "Which B2B recommendation monitoring products disclose whether they query a native model API, a third-party hosted model, or a consumer application?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-03",
+      "persona": "seo",
+      "intent": "source-provenance",
+      "question": "Which recommendation monitoring platforms preserve the actual source URLs returned by their measurement provider rather than generated or inferred citations?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-04",
+      "persona": "seo",
+      "intent": "historical-comparison",
+      "question": "Which tools let a B2B SaaS team compare a fixed buyer question over time while preserving the original model, retrieval method, and question version?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-05",
+      "persona": "seo",
+      "intent": "content-diagnostics",
+      "question": "How can a SaaS SEO lead distinguish a missing brand mention from a gap in the underlying content sources used by an AI answer?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-06",
+      "persona": "marketing",
+      "intent": "competitive-workflow",
+      "question": "What evidence should a VP of Marketing inspect before choosing software to monitor AI-generated comparisons involving their company?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-07",
+      "persona": "marketing",
+      "intent": "actionability",
+      "question": "Which platforms connect a reviewed recommendation gap to a documented company-owned change and a later comparable measurement?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-08",
+      "persona": "marketing",
+      "intent": "decision-quality",
+      "question": "How should a marketing team evaluate an AI visibility dashboard that reports brand rankings without exposing its sample size or individual answers?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-09",
+      "persona": "marketing",
+      "intent": "geo-segmentation",
+      "question": "What should a global SaaS marketing team verify before interpreting AI recommendation differences across the US and UK?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-10",
+      "persona": "marketing",
+      "intent": "reporting",
+      "question": "What evidence and limitations should appear in a stakeholder-ready report about changes in AI recommendation observations?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-11",
+      "persona": "product",
+      "intent": "integration-claims",
+      "question": "How should a buyer verify whether a recommendation monitoring platform can substantiate its stated analytics and CRM integrations?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-12",
+      "persona": "product",
+      "intent": "onboarding",
+      "question": "What setup, question versioning, and baseline evidence does a SaaS team need before comparing future AI recommendation results?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-13",
+      "persona": "product",
+      "intent": "source-review",
+      "question": "What review controls help product marketers distinguish provider-returned citations from verified page content?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-14",
+      "persona": "product",
+      "intent": "model-updates",
+      "question": "How should an AI observation platform handle changes to the underlying model or retrieval pipeline without producing misleading trend charts?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-15",
+      "persona": "product",
+      "intent": "data-export",
+      "question": "Which evidence fields must a recommendation intelligence platform export so a customer can independently audit one observation?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-16",
+      "persona": "procurement",
+      "intent": "privacy",
+      "question": "What security and data-retention questions should a software procurement team ask before supplying buyer questions to an AI monitoring vendor?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-17",
+      "persona": "procurement",
+      "intent": "billing",
+      "question": "What components should a procurement team request in an AI recommendation monitoring quote beyond provider token prices?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-18",
+      "persona": "procurement",
+      "intent": "verification",
+      "question": "What proof should a buyer require before accepting a vendor's claim that a recommended change improved AI visibility?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-19",
+      "persona": "procurement",
+      "intent": "usage-limits",
+      "question": "How can a buyer compare the practical coverage of two AI monitoring subscriptions with different question limits and collection frequencies?",
+      "review_status": "proposed"
+    },
+    {
+      "id": "pq-20",
+      "persona": "procurement",
+      "intent": "third-party-evidence",
+      "question": "Which independent records can help a procurement team verify a recommendation monitoring vendor's public security and product claims?",
+      "review_status": "proposed"
+    }
+  ],
+  "execution_guard": {
+    "approved_for_live_calls": false,
+    "owner_approved_total_spend_ceiling_usd": null,
+    "max_parallel_live_calls": 1,
+    "record_each_attempt_and_retries": true,
+    "require_exact_release_sha": true,
+    "require_current_surface_identity": true,
+    "never_run_on_the_exposed_synthetic_acceptance_credential": true
+  },
+  "source_inspection_template": {
+    "minimum_distinct_checked_source_urls": 10,
+    "required_fields": [
+      "question_id",
+      "run_receipt_id",
+      "exact_build_sha",
+      "provider_id",
+      "model_id",
+      "retrieval_method",
+      "returned_citation_url",
+      "retrieved_url",
+      "http_retrieval_result",
+      "page_claim_support",
+      "reviewer_id",
+      "reviewed_at",
+      "limitations"
+    ],
+    "status": "not_started",
+    "allow_fabricated_or_inferred_citation": false
+  },
+  "limitations": [
+    "Candidate buyer-question coverage has not been validated by external target customers.",
+    "Repeated completions for one acceptance question do not count as twenty representative questions.",
+    "Presence of a returned citation is not proof that the page caused the answer.",
+    "This corpus has never been executed; no reliability, citation quality or product coverage score is claimed.",
+    "Cloudflare plus independently retrieved Bing RSS is not direct monitoring of ChatGPT, Gemini or Perplexity consumer applications."
+  ]
+}
