@@ -237,9 +237,18 @@ async function loadAsset(viewer: Viewer, context: WorkspaceContext, id: string) 
   return rows[0] || null;
 }
 
+function isolatedResolutionReadStage(stage: "entry" | "viewer" | "workspace" | "loaded" | "catch") {
+  // Test-only fixed-label observation; cannot log JWTs, evidence or tenant IDs.
+  if (process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1") {
+    console.info("isolated-resolution-read-stage", stage);
+  }
+}
+
 export async function GET() {
+  isolatedResolutionReadStage("entry");
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  isolatedResolutionReadStage("viewer");
   if (viewer.mode === "demo") return NextResponse.json({ data: { resolutions: [] }, mode: "demo" });
   try {
     // Workspace resolution can itself issue authenticated PostgREST reads.
@@ -247,8 +256,12 @@ export async function GET() {
     // distinguish local JWT validation failure from resolution aggregation.
     const { context } = await resolveWorkspace(viewer);
     if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-    return NextResponse.json({ data: { resolutions: await loadResolutionRecords(viewer, context) } });
+    isolatedResolutionReadStage("workspace");
+    const records = await loadResolutionRecords(viewer, context);
+    isolatedResolutionReadStage("loaded");
+    return NextResponse.json({ data: { resolutions: records } });
   } catch (error) {
+    isolatedResolutionReadStage("catch");
     if (isMissingRelationError(error)) return pendingMigrationResponse();
     // Only categorize server-side failure; never log evidence excerpts,
     // Supabase credentials, source URLs, queries or user identifiers.
