@@ -241,10 +241,14 @@ export async function GET() {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (viewer.mode === "demo") return NextResponse.json({ data: { resolutions: [] }, mode: "demo" });
-  const { context } = await resolveWorkspace(viewer);
-  if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  try { return NextResponse.json({ data: { resolutions: await loadResolutionRecords(viewer, context) } }); }
-  catch (error) {
+  try {
+    // Workspace resolution can itself issue authenticated PostgREST reads.
+    // Keep it inside this category-only catch, so the isolated test can
+    // distinguish local JWT validation failure from resolution aggregation.
+    const { context } = await resolveWorkspace(viewer);
+    if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+    return NextResponse.json({ data: { resolutions: await loadResolutionRecords(viewer, context) } });
+  } catch (error) {
     if (isMissingRelationError(error)) return pendingMigrationResponse();
     // Only categorize server-side failure; never log evidence excerpts,
     // Supabase credentials, source URLs, queries or user identifiers.
