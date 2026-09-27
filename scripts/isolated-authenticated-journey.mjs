@@ -222,6 +222,7 @@ async function main() {
       baselineRunId:initial.run.id,sourceObservationIds:[observation.id]
     });
     assert.equal(wrong.status,404,"other tenant cannot create this decision");
+    must(await appCall(ownerCtx,"GET","/api/resolutions"),200,"reviewed-source observed-problem read");
     step("reviewed-source-opportunity-cross-tenant-denial");
 
     const spec=must(await appCall(ownerCtx,"POST","/api/change-specifications",{
@@ -254,6 +255,7 @@ async function main() {
       sourceObservationIds:[observation.id]
     }),201,"evidence-linked solution generated").data.resolution;
     assert.ok(generated.id);
+    must(await appCall(ownerCtx,"GET","/api/resolutions"),200,"new evidence-linked asset read before follow-up");
     must(await appCall(ownerCtx,"PATCH","/api/resolutions",{
       action:"decision",resolutionId:generated.id,decision:"submit"
     }),200,"resolution submission");
@@ -270,6 +272,7 @@ async function main() {
       action:"remeasure",resolutionId:generated.id
     }),202,"governed follow-up request").data;
     assert.ok(request.measurementRequestId);
+    must(await appCall(ownerCtx,"GET","/api/resolutions"),200,"pending follow-up read");
     const second=await seedLocalRun(tenant,owner.id,"second",{review:true,cited:false,metrics:[40,20,0,0]});
     must(await appCall(ownerCtx,"POST","/api/resolutions",{
       action:"remeasure",resolutionId:generated.id,rerunId:second.run.id,
@@ -277,6 +280,9 @@ async function main() {
     }),200,"attach exact five-question fixture run");
     const secondReview=must(await appCall(ownerCtx,"POST","/api/runs/"+second.run.id+"/review",{}),200,"second customer-visible review");
     assert.equal(secondReview.sourceCount,0,"zero-citation follow-up generated no fake sources");
+    const persisted=await db("GET","resolution_follow_ups?select=status,outcome&resolution_asset_id=eq."+generated.id+"&organization_id=eq."+tenant.org);
+    assert.equal(persisted.length,1,"exactly one synthetic follow-up");
+    step("post-review-persisted-followup-state-"+persisted[0].status+"-"+(typeof persisted[0].outcome?.interpretation==="string"));
     const state=must(await appCall(ownerCtx,"GET","/api/resolutions"),200,"final audited resolution read").data.resolutions;
     const record=state.find(x=>x.id===generated.id);
     assert.equal(record?.followUp?.status,"complete");
