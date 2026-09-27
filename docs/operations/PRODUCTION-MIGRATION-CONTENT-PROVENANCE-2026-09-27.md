@@ -208,6 +208,25 @@ The two final standalone production view statements may relate to sections of th
 
 **Independent live-view guard, read-only:** The current `public.customer_value_validation_evidence` and `public.qualified_paid_pilot_evidence` views both advertise `security_invoker=true`; `anon` and `authenticated` lack SELECT, while `service_role` has SELECT. These are verified **current effects**, not retrospective proof that any particular historical ledger statement produced them. All 15 residual remote entries still require actual statement-by-statement and current-object review, including functions, grants, RLS and triggers rather than view existence alone.
 
+## Targeted production pre-migration receipt (read-only)
+
+This independent observation records the **current live schema** before PR #352's proposed forward migration. PostgreSQL function/view serialization hashes are **object-state receipts**, not source migration-content hashes and not a production backup.
+
+- `public.validate_resolution_follow_up()`: `md5(pg_get_functiondef(...)) = 49b671f5f496678c30f096bec0759fd8`; `SECURITY INVOKER` (not definer); configured empty search path; **does not inspect `run_answers.measurement_context_json`**.
+- `public.validate_resolution_follow_up_context()`: function-definition MD5 `5ab15c1cce5fcac3769c69c489fdb92d`; also invoker with empty search path.
+- Existing `resolution_follow_ups` user triggers are **enabled**: `validate_resolution_follow_up_before_write`, `validate_resolution_follow_up_context_before_write`, `resolution_follow_ups_capture_outcome_event`, and `resolution_follow_ups_updated_at`. This is existence/enabled-status verification only, not a full isolation proof.
+
+| Current live table | RLS enabled | Policy count | Anon SELECT | Authenticated SELECT | Policy-expression MD5 receipt |
+| --- | --- | ---: | --- | --- | --- |
+| `resolution_asset_evidence` | Yes | 2 | No | Yes (subject to RLS) | `78c0a299a565a9252fc7ea388935763a` |
+| `resolution_assets` | Yes | 5 | No | Yes (subject to RLS) | `615b1f2e40c30b81dcbd967c50070c8d` |
+| `resolution_follow_ups` | Yes | 3 | No | Yes (subject to RLS) | `887d5e9d5acfa34a9bd882c6e3108b84` |
+| `run_answers` | Yes | 1 | No | Yes (subject to RLS) | `b58686eec4778f45fe613c63d9e47b20` |
+
+All four above tables have `FORCE ROW LEVEL SECURITY` disabled. These RLS/access facts alone **do not** establish tenant isolation; compare actual policy predicates and test cross-tenant reads in restored staging before approval. Both production customer-value evidence views currently have `security_invoker=true` and service-role SELECT only, as independently checked above.
+
+**PR #352 acceptance preflight:** After an independently authorized forward migration is generated from the reviewed staging SQL, the validator must inspect all nine required nonempty per-answer context fields, reject context mismatches as incomparable without a directional metric, and preserve terminal immutability. Compare the policy/grant/trigger receipts above *before and after* on a restored nonproduction instance, and rerun authenticated customer routes. Require proof of backup and tested restore, owner approval, exact release SHA, and #323/#346 gates before production deployment. Do not use an exact PostgreSQL pretty-printer MD5 match as a substitute for functional tests.
+
 ## Evidence required before reconciliation
 
 1. Privately preserve the **versioned 96-row ledger snapshot with actual statement text** and source/extraction attestations in access-controlled backup storage; this public review contains only hashes, names, and classification. Do not treat GitHub as that private snapshot.
