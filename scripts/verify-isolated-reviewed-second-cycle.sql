@@ -26,7 +26,7 @@ select ('f1400000-0000-4000-8000-'||lpad((100+n)::text,12,'0'))::uuid,
  'f1400000-0000-4000-8000-000000000010'::uuid,
  'f1400000-0000-4000-8000-000000000020'::uuid,
  'f1400000-0000-4000-8000-000000000030'::uuid,
- 'synthetic-question-'||n::text,
+ 'q'||n::text,
  'Which synthetic evidence standard applies to B2B fixture decision '||n::text||'?',
  'consideration','en-US','fixture-market'
 from generate_series(1,5) n;
@@ -56,7 +56,7 @@ insert into public.run_answers
 select ('f1400000-0000-4000-8000-'||lpad((200+row_number() over(order by p.prompt_key))::text,12,'0'))::uuid,
  p.organization_id,'f1400000-0000-4000-8000-000000000041',p.id,p.prompt_key,p.prompt_text,
  'fixture-mock','no-cost-model-v1','Synthetic baseline only, no external observation.',
- case when p.prompt_key='synthetic-question-1'
+ case when p.prompt_key='q1'
   then '[{"url":"https://fixture.invalid/source","title":"Fixture only"}]'::jsonb else '[]'::jsonb end,
  'unreviewed',now()-interval '2 days',
  '{"locale":"en-US","market":"fixture-market","retrievalVersion":"fixture-1","policyVersion":"fixture-1"}'::jsonb
@@ -319,7 +319,7 @@ insert into public.run_prompt_selections
  (organization_id,run_id,prompt_id,prompt_key,prompt_text,locale,market)
 select p.organization_id,'f1400000-0000-4000-8000-000000000043',
  p.id,p.prompt_key,p.prompt_text,'en-US',
- case when p.prompt_key='synthetic-question-1' then 'incompatible-market' else 'fixture-market' end
+ case when p.prompt_key='q1' then 'incompatible-market' else 'fixture-market' end
 from public.prompts p where p.organization_id='f1400000-0000-4000-8000-000000000010';
 do $$
 declare rejected boolean:=false;
