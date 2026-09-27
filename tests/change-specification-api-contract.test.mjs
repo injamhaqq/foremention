@@ -18,10 +18,10 @@ test("Change Specification route is tenant-scoped and uses canonical states", as
   assert.ok(auditStart > 0 && auditEnd > auditStart, "audit helper is scoped");
   const auditOnly = route.slice(auditStart, auditEnd);
   const userScopedRoute = route.slice(0, auditStart) + route.slice(auditEnd);
-  assert.match(auditOnly, /supabaseRest\\("audit_logs",[\\s\\S]*?serviceRole\\s*:\\s*true/);
-  assert.match(auditOnly, /organization_id: context\\.organizationId/);
-  assert.match(auditOnly, /actor_id: viewer\\.id/);
-  assert.doesNotMatch(userScopedRoute, /serviceRole\\s*:\\s*true/,
+  assert.match(auditOnly, /supabaseRest\("audit_logs",[\s\S]*?serviceRole\s*:\s*true/);
+  assert.match(auditOnly, /organization_id: context\.organizationId/);
+  assert.match(auditOnly, /actor_id: viewer\.id/);
+  assert.doesNotMatch(userScopedRoute, /serviceRole\s*:\s*true/,
     "only the already-authorized append-only audit helper can use server authority");
   assert.doesNotMatch(route, /confidence.*\d+%/i);
 });
