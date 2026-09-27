@@ -172,7 +172,7 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const unqualifiedResults = parseBingSearchRss(raw);
   // Never label another site as an official citation when the question demands
   // an exact official source. Fail before calling a model if nothing qualifies.
-  const results = filterOfficialDomainCitations(unqualifiedResults, officialRequirement);
+  const results = filterOfficialDomainCitations(unqualifiedResults, officialRequirement) as BingSearchResult[];
   if (!results.length) {
     throw new Error(officialRequirement
       ? "Official-domain evidence was unavailable from the selected retrieval surface; no official citation was invented."
