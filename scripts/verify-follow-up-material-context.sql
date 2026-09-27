@@ -65,6 +65,33 @@ select ('f1400000-0000-4000-8000-'||lpad((200+row_number() over(order by p.promp
  '{"locale":"en-US","market":"fixture-market","buyerStage":"consideration","promptVersion":"fixture-1","parserVersion":"fixture-1","retrievalVersion":"fixture-1","policyVersion":"fixture-1","schemaVersion":"fixture-1","evaluationVersion":"fixture-1"}'::jsonb
 from public.prompts p where p.organization_id='f1400000-0000-4000-8000-000000000010';
 
+-- Duplicate exact question/provider slots must fail at the persistence
+-- boundary, even before the staged multi-cycle comparator runs.
+do $fm_duplicate_answer_slot$
+declare
+  rejected boolean := false;
+  rejected_constraint text := '';
+begin
+  begin
+    insert into public.run_answers
+      (organization_id,run_id,prompt_id,prompt_key,prompt_text,provider,model,
+       answer_text,citations_json,review_status,collected_at,measurement_context_json)
+    select organization_id,run_id,prompt_id,prompt_key,prompt_text,provider,model,
+      'Duplicate fixture-only answer must not persist', '[]'::jsonb,
+      review_status,collected_at,measurement_context_json
+    from public.run_answers
+    where run_id='f1400000-0000-4000-8000-000000000041'::uuid
+      and prompt_key='q1'
+    limit 1;
+  exception when unique_violation then
+    get stacked diagnostics rejected_constraint = constraint_name;
+    rejected := rejected_constraint='run_answers_run_id_prompt_key_provider_key';
+  end;
+  if not rejected then
+    raise exception 'Duplicate fixture answer slot was not rejected by the run/question/provider uniqueness boundary';
+  end if;
+end $fm_duplicate_answer_slot$;
+
 insert into public.sources (id,organization_id,canonical_url,domain,page_title) values
  ('f1400000-0000-4000-8000-000000000060',
   'f1400000-0000-4000-8000-000000000010','https://fixture.invalid/source',

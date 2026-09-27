@@ -31,6 +31,8 @@ test("app comparator and staged database follow-up guard enumerate identical nin
   assert.match(staged, /except all/i);
   assert.ok(sql.includes(String.raw`\i scripts/staging/resolution-material-context-parity.sql`));
   assert.match(sql, /for case_number in 1\.\.10 loop/);
+  assert.match(sql, /fm_duplicate_answer_slot/);
+  assert.match(sql, /run_answers_run_id_prompt_key_provider_key/);
   assert.match(sql, /incomparable/);
   assert.match(sql, /did not calculate/);
   assert.match(sql, /rollback;/);
