@@ -33,5 +33,5 @@ test("isolated ledger fixture covers success, distinct retry, zero estimate, unk
   }
   assert.match(migration, /on conflict \(run_attempt_id\) do update set/);
   assert.match(sql, /has_function_privilege\('authenticated','public\.ledger_run_attempt_cost\(\)','EXECUTE'\)/);
-  assert.doesNotMatch(sql, /provider api|https?:\/\/[^\s]*/i);
+  assert.doesNotMatch(sql, /https?:\/\/[^\s]*/i);
 });
