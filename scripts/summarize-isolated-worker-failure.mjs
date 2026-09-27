@@ -10,6 +10,11 @@ const lines=log.split(/\r?\n/);
 const diagnostics=[];
 for(let i=0;i<lines.length;i++){
  const line=lines[i];
+ const postReviewPhase=/isolated-post-review-resolution-read-stage[^\n]*\b(entry|viewer|workspace|loaded|catch)\b/.exec(line);
+ if(postReviewPhase){
+   diagnostics.push({kind:"isolated-post-review-resolution-read-stage",stage:postReviewPhase[1]});
+   continue;
+ }
  const finalPhase=/isolated-final-resolution-read-stage[^\n]*\b(entry|viewer|workspace|loaded|catch)\b/.exec(line);
  if(finalPhase){
    diagnostics.push({kind:"isolated-final-resolution-read-stage",stage:finalPhase[1]});

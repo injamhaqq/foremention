@@ -278,7 +278,7 @@ async function main() {
       } catch {probeCode="other";}
     }
     step("post-review-local-postgrest-status-"+probe.status+"-code-"+probeCode);
-    const ownerAfterReview=await appCall(ownerCtx,"GET","/api/resolutions");
+    const ownerAfterReview=await appCall(ownerCtx,"GET","/api/resolutions",undefined,{"x-foremention-isolated-post-review-read":"1"});
     const localHealthAfterReview=await appCall(publicCtx,"GET","/api/health");
     const otherAfterReview=await appCall(otherCtx,"GET","/api/resolutions");
     step("reviewed-local-worker-health-"+localHealthAfterReview.status);

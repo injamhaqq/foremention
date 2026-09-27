@@ -237,21 +237,24 @@ async function loadAsset(viewer: Viewer, context: WorkspaceContext, id: string) 
   return rows[0] || null;
 }
 
-function isolatedResolutionReadStage(stage: "entry" | "viewer" | "workspace" | "loaded" | "catch", finalProbe = false) {
-  // Fixed-label observation only. The final-probe header is ignored unless
-  // disposable local CI explicitly enables diagnostics.
+function isolatedResolutionReadStage(stage: "entry" | "viewer" | "workspace" | "loaded" | "catch", finalProbe = false, postReviewProbe = false) {
+  // Fixed-label observation only. Probe headers are ignored unless local CI
+  // explicitly enables diagnostics; no tokens or tenant data are logged.
   if (process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1") {
-    console.info(finalProbe ? "isolated-final-resolution-read-stage" : "isolated-resolution-read-stage", stage);
+    const label = finalProbe ? "isolated-final-resolution-read-stage"
+      : postReviewProbe ? "isolated-post-review-resolution-read-stage" : "isolated-resolution-read-stage";
+    console.info(label, stage);
   }
 }
 
 export async function GET(request: Request) {
-  const finalProbe = process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1"
-    && request.headers.get("x-foremention-isolated-final-read") === "1";
-  isolatedResolutionReadStage("entry", finalProbe);
+  const diagnostics = process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1";
+  const finalProbe = diagnostics && request.headers.get("x-foremention-isolated-final-read") === "1";
+  const postReviewProbe = diagnostics && request.headers.get("x-foremention-isolated-post-review-read") === "1";
+  isolatedResolutionReadStage("entry", finalProbe, postReviewProbe);
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  isolatedResolutionReadStage("viewer", finalProbe);
+  isolatedResolutionReadStage("viewer", finalProbe, postReviewProbe);
   if (viewer.mode === "demo") return NextResponse.json({ data: { resolutions: [] }, mode: "demo" });
   try {
     // Workspace resolution can itself issue authenticated PostgREST reads.
@@ -259,12 +262,12 @@ export async function GET(request: Request) {
     // distinguish local JWT validation failure from resolution aggregation.
     const { context } = await resolveWorkspace(viewer);
     if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-    isolatedResolutionReadStage("workspace", finalProbe);
+    isolatedResolutionReadStage("workspace", finalProbe, postReviewProbe);
     const records = await loadResolutionRecords(viewer, context);
-    isolatedResolutionReadStage("loaded", finalProbe);
+    isolatedResolutionReadStage("loaded", finalProbe, postReviewProbe);
     return NextResponse.json({ data: { resolutions: records } });
   } catch (error) {
-    isolatedResolutionReadStage("catch", finalProbe);
+    isolatedResolutionReadStage("catch", finalProbe, postReviewProbe);
     if (isMissingRelationError(error)) return pendingMigrationResponse();
     // Only categorize server-side failure; never log evidence excerpts,
     // Supabase credentials, source URLs, queries or user identifiers.

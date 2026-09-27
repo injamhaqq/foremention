@@ -109,6 +109,18 @@ jobs:
           fi
 
           if ! node scripts/isolated-authenticated-journey.mjs; then
+            # Fixed-label runner diagnostics only: never print local Worker
+            # logs, generated credentials, request bodies or environment.
+            if kill -0 "$server_pid" 2>/dev/null; then
+              echo "[isolated-server] wrangler-process-alive"
+            else
+              echo "[isolated-server] wrangler-process-exited"
+            fi
+            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:4174/api/health >/dev/null 2>&1; then
+              echo "[isolated-server] post-failure-worker-health-200"
+            else
+              echo "[isolated-server] post-failure-worker-health-unavailable"
+            fi
             node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
             exit 1
           fi
