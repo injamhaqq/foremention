@@ -15,7 +15,7 @@
 -- be proven, keep the observations but mark the follow-up incomparable rather
 -- than calculating a before/after outcome.
 create or replace function public.validate_resolution_follow_up() returns trigger
-language plpgsql security invoker set search_path = '' as $$
+language plpgsql security invoker set search_path = '' as $fm_followup_context$
 declare
   asset public.resolution_assets%rowtype;
   baseline_provider_ids text[];
@@ -202,4 +202,4 @@ begin
   ) then raise exception 'Follow-up state transition is not valid'; end if;
   return new;
 end;
-$$;
+$fm_followup_context$;
