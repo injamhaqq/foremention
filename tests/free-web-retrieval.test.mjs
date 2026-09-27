@@ -68,11 +68,11 @@ test("explicit official-source question uses bounded scoped search and excludes 
     const evidence = await retrieveFreeWebEvidence(question);
     assert.equal(calls.length, 1);
     const query = new URL(calls[0]).searchParams.get("q");
-    assert.match(query, /^site:openai\\.com news /);
+    assert.match(query, /^site:openai\.com news /);
     assert.doesNotMatch(query, /Use web search now/);
     assert.equal(evidence.citations.length, 1);
     assert.equal(evidence.citations[0].url, "https://openai.com/news/synthetic-example");
-    assert.doesNotMatch(evidence.content, /dictionary\\.example|attacker\\.example/);
+    assert.doesNotMatch(evidence.content, /dictionary\.example|attacker\.example/);
   });
 });
 
