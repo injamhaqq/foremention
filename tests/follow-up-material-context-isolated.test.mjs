@@ -29,7 +29,7 @@ test("app comparator and staged database follow-up guard enumerate identical nin
   assert.match(staged, /jsonb_typeof\(a\.measurement_context_json\) is distinct from 'object'/);
   assert.match(staged, /jsonb_typeof\(a\.measurement_context_json -> required\.field\) is distinct from 'string'/);
   assert.match(staged, /except all/i);
-  assert.match(sql, /\i scripts\/staging\/resolution-material-context-parity\.sql/);
+  assert.ok(sql.includes(String.raw`\i scripts/staging/resolution-material-context-parity.sql`));
   assert.match(sql, /for case_number in 1\.\.10 loop/);
   assert.match(sql, /incomparable/);
   assert.match(sql, /did not calculate/);
