@@ -432,7 +432,13 @@ begin
       or observed.outcome ? 'brandPresencePct'
       or observed.outcome->>'interpretation' not ilike '%did not calculate%'
     then
-      raise exception 'Material-context case % incorrectly yielded a directional outcome',case_number;
+      raise exception 'Synthetic context case %: status %, directional %, limitation_match %, baseline_locale %, after_locale %',
+        case_number, observed.status, observed.outcome ? 'brandPresencePct',
+        coalesce(observed.outcome->>'interpretation','') ilike '%did not calculate%',
+        (select measurement_context_json->>'locale' from public.run_answers
+          where run_id='f1400000-0000-4000-8000-000000000041'::uuid and prompt_key='q1' limit 1),
+        (select measurement_context_json->>'locale' from public.run_answers
+          where run_id=bad_run and prompt_key='q1' limit 1);
     end if;
     -- Terminal outcome must be idempotent and immutable even with repeated
     -- service worker completion or stale client attempts.
