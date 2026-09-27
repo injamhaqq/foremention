@@ -10,6 +10,11 @@ const lines=log.split(/\r?\n/);
 const diagnostics=[];
 for(let i=0;i<lines.length;i++){
  const line=lines[i];
+ const phase=/isolated-resolution-read-stage[^\n]*\b(entry|viewer|workspace|loaded|catch)\b/.exec(line);
+ if(phase){
+   diagnostics.push({kind:"isolated-resolution-read-stage",stage:phase[1]});
+   continue;
+ }
  if(line.includes("Resolution read failed")){
    const block=lines.slice(i+1,i+7).join("\n");
    const category=/category:\s*['"]?(database|type|other)/.exec(block)?.[1]||"unknown";
