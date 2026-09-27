@@ -1,4 +1,5 @@
 import type { ProviderCitation } from "@/lib/providers/types";
+import { explicitOfficialSourceRequirement, boundedOfficialSiteQuery, filterOfficialDomainCitations } from "@/lib/official-source-relevance.mjs";
 
 const BING_SEARCH_ENDPOINT = "https://www.bing.com/search";
 const MAX_RSS_CHARS = 256_000;
@@ -145,9 +146,13 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
+  // Only explicit official-domain + exact-citation requests are site-scoped.
+  // This controls provenance; it does NOT establish commercial retrieval rights.
+  const officialRequirement = explicitOfficialSourceRequirement(normalized);
+  const searchQuery = officialRequirement ? boundedOfficialSiteQuery(normalized, officialRequirement) : normalized;
   const url = new URL(BING_SEARCH_ENDPOINT);
   url.searchParams.set("format", "rss");
-  url.searchParams.set("q", normalized);
+  url.searchParams.set("q", searchQuery);
   url.searchParams.set("count", String(MAX_CITATIONS));
   url.searchParams.set("setlang", "en-US");
 
@@ -164,8 +169,15 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const raw = (await response.text()).slice(0, MAX_RSS_CHARS).trim();
   if (!raw) throw new Error("Bing RSS returned no evidence content.");
 
-  const results = parseBingSearchRss(raw);
-  if (!results.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+  const unqualifiedResults = parseBingSearchRss(raw);
+  // Never label another site as an official citation when the question demands
+  // an exact official source. Fail before calling a model if nothing qualifies.
+  const results = filterOfficialDomainCitations(unqualifiedResults, officialRequirement);
+  if (!results.length) {
+    throw new Error(officialRequirement
+      ? "Official-domain evidence was unavailable from the selected retrieval surface; no official citation was invented."
+      : "Bing RSS returned no verifiable source URLs.");
+  }
 
   const evidenceText = results.map((result, index) => [
     `SOURCE [${index + 1}]`,
