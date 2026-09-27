@@ -55,7 +55,10 @@ test("staged SQL remains strictly nonproduction, no silent backfill or history r
     read("../.github/workflows/ci.yml"),
   ]);
   assert.match(ci, /supabase db reset/);
-  assert.match(ci, /docker exec -i supabase_db_foremention-mvp psql[^\n]*< scripts\/verify-follow-up-material-context\.sql/);
+  assert.match(ci, /node scripts\/expand-isolated-context-sql\.mjs \| docker exec -i supabase_db_foremention-mvp psql/);
+  const expander = await read("../scripts/expand-isolated-context-sql.mjs");
+  assert.match(expander, /fixture\.split\(directive\)\.length !== 2/);
+  assert.match(expander, /fixture\.replace\(directive, staged\)/);
   assert.match(sql, /^begin;$/m);
   assert.match(sql, /^rollback;$/m);
   assert.match(sql, /no provider is called/i);
