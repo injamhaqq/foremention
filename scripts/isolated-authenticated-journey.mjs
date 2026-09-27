@@ -95,6 +95,10 @@ async function login(browser,user) {
   if(!localhostCookies.some(x=>x.name==="foremention-session"))
     throw Error("Local synthetic login did not set its expected auth-session cookie.");
   await ctx.addCookies(localhostCookies);
+  // The local Auth and PostgREST containers can cross their JWT issued-at
+  // second boundary at different instants; avoid flaking the VERY FIRST
+  // protected database request, without relaxing or retrying auth failures.
+  await new Promise(resolve=>setTimeout(resolve,1250));
   const ready=await appCall(ctx,"GET","/api/prompts");
   must(ready,200,"local authenticated prompt route after loopback cookie adaptation");
   return ctx;
