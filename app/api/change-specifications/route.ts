@@ -171,7 +171,9 @@ async function recordAudit(viewer: Viewer, context: WorkspaceContext, input: {
 }) {
   await supabaseRest("audit_logs", {
     method: "POST",
-    token: viewer.accessToken,
+    // Actor and workspace are resolved from the authenticated route; the
+    // audit table is intentionally admin-write-only under client RLS.
+    serviceRole: true,
     prefer: "return=minimal",
     body: {
       organization_id: context.organizationId,
