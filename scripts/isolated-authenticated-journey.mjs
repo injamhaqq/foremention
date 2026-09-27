@@ -72,7 +72,31 @@ function must(actual,status,stepName) {
 }
 async function login(browser,user) {
   const ctx=await browser.newContext({baseURL:app.origin,serviceWorkers:"block"});
-  must(await appCall(ctx,"POST","/api/auth/login",{email:user.email,password:user.password}),200,"synthetic sign-in");
+  const response=await ctx.request.post(new URL("/api/auth/login",app).toString(),{
+    headers:{origin:app.origin,accept:"application/json"},
+    data:{email:user.email,password:user.password},
+  });
+  if(response.status()!==200)throw Error("Isolated synthetic sign-in returned HTTP "+response.status());
+  // Production correctly marks authentication cookies Secure over HTTPS.
+  // Wrangler's isolated HTTP loopback cannot transport Secure cookies.
+  // Reinsert ONLY local synthetic cookies as insecure transport for this
+  // test harness; the live app's production cookie policy stays unchanged.
+  const rawCookies=response.headersArray()
+    .filter(header=>header.name.toLowerCase()==="set-cookie")
+    .map(header=>header.value);
+  const localhostCookies=[];
+  for(const raw of rawCookies){
+    const first=raw.split(";")[0],separator=first.indexOf("=");
+    if(separator<1)continue;
+    const name=first.slice(0,separator),value=first.slice(separator+1);
+    if(!["foremention-session","foremention-refresh"].includes(name))continue;
+    localhostCookies.push({name,value,url:app.origin,httpOnly:true,secure:false,sameSite:"Lax"});
+  }
+  if(!localhostCookies.some(x=>x.name==="foremention-session"))
+    throw Error("Local synthetic login did not set its expected auth-session cookie.");
+  await ctx.addCookies(localhostCookies);
+  const ready=await appCall(ctx,"GET","/api/prompts");
+  must(ready,200,"local authenticated prompt route after loopback cookie adaptation");
   return ctx;
 }
 async function onboard(ctx,label) {
