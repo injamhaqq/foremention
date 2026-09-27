@@ -24,6 +24,13 @@ const pair = [
 test("exact comparability accepts only the same persisted question/provider/model/measurement matrix", () => {
   assert.deepEqual(assessExactQuestionComparability("latest", "previous", pair), { comparable: true, reason: null });
 
+  // Identical duplicates in BOTH cycles are not made legitimate by matching
+  // sorted arrays. Query/join corruption must never create movement claims.
+  const identicalDuplicates = [...pair, { ...pair[0] }, { ...pair[1] }];
+  const duplicates = assessExactQuestionComparability("latest", "previous", identicalDuplicates);
+  assert.equal(duplicates.comparable, false);
+  assert.match(duplicates.reason || "", /duplicate/i);
+
   const changedQuestion = pair.map((slot) => ({ ...slot }));
   changedQuestion[0].promptText = "Which evidence platform should a buyer choose?";
   assert.equal(assessExactQuestionComparability("latest", "previous", changedQuestion).comparable, false);
