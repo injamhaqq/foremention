@@ -37,12 +37,12 @@ test("isolated fixture proves both conservative tokenless suppression and separa
   ]) {
     assert.ok(sql.includes(caseText), `missing ledger scenario: ${caseText}`);
   }
-  assert.match(ledger, /on conflict \\(run_attempt_id\\) do update set/);
-  assert.match(guard, /linked_attempt_status in \\('failed', 'rate_limited'\\)/);
-  assert.match(guard, /new\\.cost_source = 'estimated'/);
-  assert.match(guard, /new\\.input_tokens is null/);
+  assert.match(ledger, /on conflict \(run_attempt_id\) do update set/);
+  assert.match(guard, /linked_attempt_status in \('failed', 'rate_limited'\)/);
+  assert.match(guard, /new\.cost_source = 'estimated'/);
+  assert.match(guard, /new\.input_tokens is null/);
   assert.match(guard, /return null;/);
-  assert.match(sql, /has_function_privilege\\('authenticated','public\\.ledger_run_attempt_cost\\(\\)','EXECUTE'\\)/);
-  assert.match(sql, /has_function_privilege\\('authenticated','public\\.guard_provider_cost_event\\(\\)','EXECUTE'\\)/);
-  assert.doesNotMatch(sql, /https?:\\/\\/[^\\s]*/i);
+  assert.match(sql, /has_function_privilege\('authenticated','public\.ledger_run_attempt_cost\(\)','EXECUTE'\)/);
+  assert.match(sql, /has_function_privilege\('authenticated','public\.guard_provider_cost_event\(\)','EXECUTE'\)/);
+  assert.doesNotMatch(sql, /https?:\/\/[^\s]*/i);
 });
