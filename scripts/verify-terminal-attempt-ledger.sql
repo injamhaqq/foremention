@@ -104,26 +104,38 @@ begin
 end
 $$;
 
--- Distinct retries are distinct attempts and must not be suppressed by
--- the unique (run_id,prompt_id,provider,attempt_number) contract.
+-- Distinct retries are distinct attempts. Mirror the real collection write
+-- path: record the running attempt first, then terminalize by UPDATE.
+-- Direct terminal-INSERT semantics are separately investigated as an isolated
+-- fixture anomaly; do not silently claim that path is proven by this test.
 insert into public.run_attempts (
   id, organization_id, run_id, prompt_id, prompt_key, provider, model,
-  attempt_number, status, estimated_cost_usd, cost_source, completed_at
+  attempt_number, status, started_at
 ) values (
   'f1300000-0000-4000-8000-000000000062'::uuid,
   'f1300000-0000-4000-8000-000000000010'::uuid,
   'f1300000-0000-4000-8000-000000000050'::uuid,
   'f1300000-0000-4000-8000-000000000040'::uuid,
   'synthetic-ledger-q1', 'cloudflare', 'synthetic-fixture-model',
-  2, 'failed', 0.000023, 'estimated', now()
+  2, 'running', now()
 ), (
   'f1300000-0000-4000-8000-000000000063'::uuid,
   'f1300000-0000-4000-8000-000000000010'::uuid,
   'f1300000-0000-4000-8000-000000000050'::uuid,
   'f1300000-0000-4000-8000-000000000040'::uuid,
   'synthetic-ledger-q1', 'cloudflare', 'synthetic-fixture-model',
-  3, 'rate_limited', 0.000000, 'estimated', now()
+  3, 'running', now()
 );
+
+update public.run_attempts
+set status='failed', estimated_cost_usd=0.000023,
+    cost_source='estimated', completed_at=now()
+where id='f1300000-0000-4000-8000-000000000062'::uuid;
+
+update public.run_attempts
+set status='rate_limited', estimated_cost_usd=0.000000,
+    cost_source='estimated', completed_at=now()
+where id='f1300000-0000-4000-8000-000000000063'::uuid;
 
 -- Cost unknown != cost zero: a terminal attempt with NULL cost must be
 -- explicitly unaccounted until a truthful value and completion exist.
