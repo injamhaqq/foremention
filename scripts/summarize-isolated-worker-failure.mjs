@@ -11,10 +11,10 @@ const diagnostics=[];
 for(let i=0;i<lines.length;i++){
  const line=lines[i];
  if(line.includes("Resolution read failed")){
-   const block=lines.slice(i+1,i+7).join("\\n");
-   const category=/category:\\s*['"]?(database|type|other)/.exec(block)?.[1]||"unknown";
-   const status=/status:\\s*(\\d{3})/.exec(block)?.[1]||"unknown";
-   const code=/code:\\s*['"]?([A-Z0-9_]+)/.exec(block)?.[1]||"unknown";
+   const block=lines.slice(i+1,i+7).join("\n");
+   const category=/category:\s*['"]?(database|type|other)/.exec(block)?.[1]||"unknown";
+   const status=/status:\s*(\d{3})/.exec(block)?.[1]||"unknown";
+   const code=/code:\s*['"]?([A-Z0-9_]+)/.exec(block)?.[1]||"unknown";
    diagnostics.push({kind:"sanitized-resolution-read",category,status,code});
    continue;
  }
