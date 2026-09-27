@@ -1,6 +1,8 @@
 # Foremention production Supabase migration lineage: drift and safe path
 
 **Read-only observed on 26 September 2026. This document does not authorize mutation of production migration history.**
+> **Evidence update, 27 September 2026:** [content-fingerprint mapping at pinned main](PRODUCTION-MIGRATION-CONTENT-PROVENANCE-2026-09-27.md) establishes 36 byte-identical ledger/repository SQL records and 33 additional records that match after appending precisely one final LF. Another 27 remote ledger rows and 26 local files remain unmatched and require semantic review. This is additional read-only evidence; every production-history repair remains blocked pending private statement provenance and verified restore preparedness.
+
 
 ## Verified scope
 
