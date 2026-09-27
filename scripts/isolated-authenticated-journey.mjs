@@ -1,0 +1,263 @@
+#!/usr/bin/env node
+// PR-only LOCAL authenticated browser/API acceptance. Never targets production;
+// no external provider calls, scraped pages, static credentials or artifact logs.
+import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
+import { createRequire } from "node:module";
+
+const requireLocal = createRequire(new URL("../.ci-tools/package.json", import.meta.url));
+const { chromium } = requireLocal("playwright");
+
+const app = new URL(process.env.FOREMENTION_ISOLATED_APP_URL || "http://127.0.0.1:4174");
+const supabase = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321");
+const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const service = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+for (const url of [app, supabase]) {
+  if (!["127.0.0.1", "localhost"].includes(url.hostname) || url.protocol !== "http:") {
+    throw Error("Refusing any non-local authenticated acceptance target.");
+  }
+}
+if (!anon || !service) throw Error("Isolated local Supabase credentials are missing.");
+const stages = [];
+const step = label => { stages.push(label); process.stdout.write("[isolated-journey] " + label + "\n"); };
+const identity = prefix => prefix + "-" + randomBytes(7).toString("hex") + "@example.invalid";
+const password = () => randomBytes(36).toString("base64url");
+const requestHeaders = { apikey:service,authorization:"Bearer "+service,"content-type":"application/json" };
+const projectQuestions = [
+  "Which synthetic source should this fixture buyer independently inspect?",
+  "What hypothetical evidence is needed for this fixture comparison?",
+  "How should a synthetic buyer interpret a zero-citation answer?",
+  "What makes two fictional recommendation observations comparable?",
+  "Which assumptions should the synthetic decision record disclose?",
+];
+const context = {
+  locale:"en-US",market:"Global",buyerStage:"consideration",
+  promptVersion:"fixture-1",parserVersion:"fixture-1",retrievalVersion:"fixture-1",
+  policyVersion:"fixture-1",schemaVersion:"fixture-1",evaluationVersion:"fixture-1",
+};
+const iso = () => new Date().toISOString();
+
+async function localAdminUser() {
+  const email = identity("review-test"), pass = password();
+  const response=await fetch(new URL("/auth/v1/admin/users",supabase),{
+    method:"POST",headers:requestHeaders,
+    body:JSON.stringify({email,password:pass,email_confirm:true}),
+  });
+  if (!response.ok) throw Error("Local Auth Admin creation rejected: HTTP "+response.status);
+  const body=await response.json();
+  assert.match(body.id,/^[0-9a-f-]{36}$/i);
+  return {id:body.id,email,password:pass};
+}
+async function db(method,resource,body) {
+  const response=await fetch(new URL("/rest/v1/"+resource,supabase),{
+    method,headers:{...requestHeaders,prefer:"return=representation"},
+    ...(body===undefined?{}:{body:JSON.stringify(body)}),
+  });
+  if (!response.ok) throw Error("Isolated PostgREST fixture "+method+" "+resource.split("?")[0]+" rejected: HTTP "+response.status);
+  if (response.status===204) return [];
+  return response.json();
+}
+async function appCall(ctx,method,path,data) {
+  const response=await ctx.request.fetch(new URL(path,app).toString(),{
+    method,headers:{origin:app.origin,accept:"application/json"},
+    ...(data===undefined?{}:{data}),
+  });
+  let body=null;
+  try {body=await response.json();}catch{}
+  return {status:response.status(),body};
+}
+function must(actual,status,stepName) {
+  if(actual.status!==status) throw Error("Isolated "+stepName+" returned HTTP "+actual.status+" (expected "+status+").");
+  return actual.body;
+}
+async function login(browser,user) {
+  const ctx=await browser.newContext({baseURL:app.origin,serviceWorkers:"block"});
+  must(await appCall(ctx,"POST","/api/auth/login",{email:user.email,password:user.password}),200,"synthetic sign-in");
+  return ctx;
+}
+async function onboard(ctx,label) {
+  const payload={
+    companyName:"Local "+label,
+    domain:"https://fixture.invalid",
+    market:"Global",
+    category:"Synthetic B2B evidence fixture",
+    categoryDescription:"Isolated tenant boundary verification only",
+    competitors:["Example A","Example B"],
+    goal:"Verify isolated human-controlled decision workflow",
+    constraint:"This is synthetic, not commercial or externally verified.",
+    prompts:projectQuestions,locale:"en-US",
+  };
+  const body=must(await appCall(ctx,"POST","/api/onboarding",payload),201,"synthetic onboarding");
+  for(const field of ["organizationId","projectId","categoryId"])assert.match(body[field]||"",/^[0-9a-f-]{36}$/i,field);
+  const prompts=must(await appCall(ctx,"GET","/api/prompts"),200,"buyer questions").data;
+  assert.equal(prompts.filter(x=>x.approved).length,5);
+  return {org:body.organizationId,project:body.projectId,category:body.categoryId,prompts};
+}
+
+async function seedLocalRun(tenant,userId,label,{review=true,cited=false,metrics=[20,0,1,1]}={}) {
+  const created = iso();
+  const run=(await db("POST","runs",[{
+    organization_id:tenant.org,project_id:tenant.project,category_id:tenant.category,
+    created_by:userId,status:review?"review":"queued",provider_ids:["fixture-mock"],
+    prompt_count:5,answer_count:5,citation_count:metrics[2],
+    brand_presence_pct:metrics[0],first_mention_pct:metrics[1],
+    new_source_count:metrics[3],requested_units:5,methodology_version:"fixture-methodology-v1",
+    started_at:created, ...(review?{completed_at:created}:{}),
+  }]))[0];
+  assert.ok(run?.id,"mock run saved");
+  // Read original onboarding prompt keys, not client-generated guesses.
+  const prompts=await db("GET","prompts?select=id,prompt_key,prompt_text,locale,market&id=in.("+tenant.prompts.map(p=>p.id).join(",")+")");
+  assert.equal(prompts.length,5);
+  await db("POST","run_prompt_selections",prompts.map(p=>({
+    organization_id:tenant.org,run_id:run.id,prompt_id:p.id,
+    prompt_key:p.prompt_key,prompt_text:p.prompt_text,locale:"en-US",market:"Global",
+  })));
+  const answers=await db("POST","run_answers",prompts.map((p,index)=>({
+    organization_id:tenant.org,run_id:run.id,prompt_id:p.id,
+    prompt_key:p.prompt_key,prompt_text:p.prompt_text,
+    provider:"fixture-mock",model:"no-cost-model-v1",
+    answer_text:"Synthetic "+label+" observation only; it does not establish real source support or causality.",
+    citations_json:cited&&index===0?[{url:"https://fixture.invalid/source",title:"Synthetic fixture-only source"}]:[],
+    review_status:review?"unreviewed":"verified",collected_at:created,
+    measurement_context_json:context,
+  })));
+  assert.equal(answers.length,5);
+  return {run,answers,prompts};
+}
+
+async function main() {
+  const browser=await chromium.launch({headless:true});
+  const clients=[];
+  try {
+    const [owner,outsider,analyst]=await Promise.all([localAdminUser(),localAdminUser(),localAdminUser()]);
+    step("three-ephemeral-local-auth-users-created");
+    const [ownerCtx,otherCtx,analystCtx]=await Promise.all([
+      login(browser,owner),login(browser,outsider),login(browser,analyst)
+    ]);
+    clients.push(ownerCtx,otherCtx,analystCtx);
+    const publicCtx=await browser.newContext({baseURL:app.origin});
+    clients.push(publicCtx);
+    must(await appCall(publicCtx,"GET","/api/resolutions"),401,"anonymous resolution access");
+    must(await appCall(publicCtx,"POST","/api/change-specifications",{action:"create_from_opportunity"}),401,"anonymous decision mutation");
+    const [tenant,other]=await Promise.all([onboard(ownerCtx,"Tenant A"),onboard(otherCtx,"Tenant B")]);
+    assert.notEqual(tenant.org,other.org);
+    await db("POST","organization_members",[{
+      organization_id:tenant.org,user_id:analyst.id,role:"analyst"
+    }]);
+    step("real-app-onboarding-five-questions-and-tenant-sessions");
+
+    const initial=await seedLocalRun(tenant,owner.id,"first",{review:true,cited:true});
+    const beforeReview=await db("GET","source_observations?select=id&organization_id=eq."+tenant.org);
+    assert.equal(beforeReview.length,0);
+    const source=(await db("POST","sources",[{
+      organization_id:tenant.org,canonical_url:"https://fixture.invalid/source",
+      domain:"fixture.invalid",page_title:"Synthetic-only returned reference"
+    }]))[0];
+    const observation=(await db("POST","source_observations",[{
+      organization_id:tenant.org,source_id:source.id,run_answer_id:initial.answers[0].id,
+      prompt_id:initial.prompts[0].id,provider:"fixture-mock",
+      citation_ordinal:1,observed_at:iso(),review_status:"unreviewed",
+    }]))[0];
+    // The browser application's ordinary review API must make a returned
+    // citation reviewable; four zero-citation questions get NO fake sources.
+    const review=must(await appCall(ownerCtx,"POST","/api/runs/"+initial.run.id+"/review",{}),200,"human-gated run publication");
+    assert.equal(review.status,"complete");
+    assert.equal(review.sourceCount,1);
+    const verifiedObs=await db("GET","source_observations?select=review_status,reviewer_id&id=eq."+observation.id);
+    assert.equal(verifiedObs[0].review_status,"verified");
+    assert.equal(verifiedObs[0].reviewer_id,owner.id);
+    const entries=await db("GET","source_map_entries?select=id,source_id,client_present,reviewed_at&organization_id=eq."+tenant.org);
+    assert.equal(entries.length,1);
+    assert.equal(entries[0].reviewed_at,null);
+    step("ordinary-run-review-published-one-citation-four-zero-citation-questions");
+
+    // Reader isolation and mutation authorization apply to the same real app.
+    const outsiderData=must(await appCall(otherCtx,"GET","/api/resolutions"),200,"other-tenant resolution read");
+    assert.equal(outsiderData.data.resolutions.length,0);
+    must(await appCall(analystCtx,"PATCH","/api/sources/"+entries[0].id+"/review",{
+      crawlerAccess:"blocked",feasibility:"high",influence:"high",route:"editorial outreach",clientPresent:false,
+      competitors:[],note:"Fictional local-only human route review."
+    }),200,"analyst source-map review");
+    const opps=await db("GET","opportunities?select=id&organization_id=eq."+tenant.org);
+    assert.equal(opps.length,1);
+    const wrong=await appCall(otherCtx,"POST","/api/change-specifications",{
+      action:"create_from_opportunity",opportunityId:opps[0].id,
+      baselineRunId:initial.run.id,sourceObservationIds:[observation.id]
+    });
+    assert.equal(wrong.status,404,"other tenant cannot create this decision");
+    step("reviewed-source-opportunity-cross-tenant-denial");
+
+    const spec=must(await appCall(ownerCtx,"POST","/api/change-specifications",{
+      action:"create_from_opportunity",opportunityId:opps[0].id,
+      baselineRunId:initial.run.id,sourceObservationIds:[observation.id]
+    }),201,"evidenced change-specification creation").data;
+    assert.ok(spec.id);
+    const premature=await appCall(ownerCtx,"PATCH","/api/change-specifications",{action:"submit",id:spec.id});
+    assert.equal(premature.status,409,"incomplete decision must fail closed");
+    must(await appCall(ownerCtx,"PATCH","/api/change-specifications",{
+      action:"update_draft",id:spec.id,controlClass:"CONTROLLABLE",controlSurface:"synthetic-owned documentation",
+      eligibilityState:"ELIGIBLE",decisionState:"TEST_FIRST",truthState:"HYPOTHESIS",
+      confidenceState:"LOW",exactChange:"Add a fixture-only source disclosure",
+      ownerRole:"synthetic owner",effort:"LOW",
+      acceptanceCriteria:["Test reviewer confirms local-only example"],
+      verificationPlan:{intent:"repeat five unchanged fictional questions"},
+    }),200,"customer-authored exact change");
+    must(await appCall(ownerCtx,"PATCH","/api/change-specifications",{action:"submit",id:spec.id}),200,"decision submitted");
+    const forbidden=await appCall(analystCtx,"PATCH","/api/change-specifications",{
+      action:"decision",id:spec.id,decision:"approved"
+    });
+    assert.equal(forbidden.status,403,"analyst cannot authorize manager decision");
+    must(await appCall(ownerCtx,"PATCH","/api/change-specifications",{
+      action:"decision",id:spec.id,decision:"approved",approvalNote:"Synthetic owner approval only"
+    }),200,"owner manager approval");
+    step("real-change-spec-review-role-gates-and-manager-approval");
+
+    const generated=must(await appCall(ownerCtx,"POST","/api/resolutions",{
+      action:"generate",changeSpecificationId:spec.id,assetType:"source_page_brief",
+      sourceObservationIds:[observation.id]
+    }),201,"evidence-linked solution generated").data.resolution;
+    assert.ok(generated.id);
+    must(await appCall(ownerCtx,"PATCH","/api/resolutions",{
+      action:"decision",resolutionId:generated.id,decision:"submit"
+    }),200,"resolution submission");
+    must(await appCall(ownerCtx,"PATCH","/api/resolutions",{
+      action:"decision",resolutionId:generated.id,decision:"approved",note:"Local owner acceptance only"
+    }),200,"resolution review approval");
+    must(await appCall(ownerCtx,"PATCH","/api/resolutions",{
+      action:"mark_applied",resolutionId:generated.id,
+      reference:"fixture-only:local-documentation",note:"No real external publication"
+    }),200,"owned execution recorded");
+    step("evidence-linked-resolution-and-company-controlled-execution");
+
+    const request=must(await appCall(ownerCtx,"POST","/api/resolutions",{
+      action:"remeasure",resolutionId:generated.id
+    }),202,"governed follow-up request").data;
+    assert.ok(request.measurementRequestId);
+    const second=await seedLocalRun(tenant,owner.id,"second",{review:true,cited:false,metrics:[40,20,2,2]});
+    must(await appCall(ownerCtx,"POST","/api/resolutions",{
+      action:"remeasure",resolutionId:generated.id,rerunId:second.run.id,
+      measurementId:request.measurementRequestId
+    }),200,"attach exact five-question fixture run");
+    const secondReview=must(await appCall(ownerCtx,"POST","/api/runs/"+second.run.id+"/review",{}),200,"second customer-visible review");
+    assert.equal(secondReview.sourceCount,0,"zero-citation follow-up generated no fake sources");
+    const state=must(await appCall(ownerCtx,"GET","/api/resolutions"),200,"final audited resolution read").data.resolutions;
+    const record=state.find(x=>x.id===generated.id);
+    assert.equal(record?.followUp?.status,"complete");
+    assert.match(record?.followUp?.summary||"",/does not establish|association/i);
+    const absent=must(await appCall(otherCtx,"GET","/api/resolutions"),200,"other tenant cannot read completed solution").data.resolutions;
+    assert.ok(!absent.some(x=>x.id===generated.id),"cross-tenant answer must be absent");
+    step("ordinary-reviewed-zero-citation-second-cycle-noncausal-tenant-scoped-result");
+
+    const page=await ownerCtx.newPage();
+    await page.goto(new URL("/app/resolutions",app).toString(),{waitUntil:"domcontentloaded",timeout:30000});
+    await page.waitForTimeout(600);
+    const rendered=await page.locator("body").innerText();
+    assert.match(rendered,/resolution|evidence/i,"authenticated customer UI must render");
+    step("real-authenticated-browser-rendered-isolated-audited-journey");
+    process.stdout.write("[isolated-journey] PASSED "+stages.length+" synthetic-only stages; no providers, no production, no customer-value claim.\n");
+  } finally {
+    await Promise.all(clients.map(async c => c.close().catch(()=>{})));
+    await browser.close();
+  }
+}
+await main();
