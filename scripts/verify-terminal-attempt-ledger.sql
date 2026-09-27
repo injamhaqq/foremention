@@ -104,10 +104,10 @@ begin
 end
 $$;
 
--- Distinct retries are distinct attempts. Mirror the real collection write
--- path: record the running attempt first, then terminalize by UPDATE.
--- Direct terminal-INSERT semantics are separately investigated as an isolated
--- fixture anomaly; do not silently claim that path is proven by this test.
+-- The guard is an intentional conservative accounting policy: tokenless
+-- failed/rate-limited ESTIMATES remain on attempt rows for circuit/budget
+-- safety, but MUST NOT be booked into ai_cost_events or actual run cost.
+-- Earlier isolated CI "missing retry receipts" were this expected guard.
 insert into public.run_attempts (
   id, organization_id, run_id, prompt_id, prompt_key, provider, model,
   attempt_number, status, started_at
@@ -137,8 +137,8 @@ set status='rate_limited', estimated_cost_usd=0.000000,
     cost_source='estimated', completed_at=now()
 where id='f1300000-0000-4000-8000-000000000063'::uuid;
 
--- Cost unknown != cost zero: a terminal attempt with NULL cost must be
--- explicitly unaccounted until a truthful value and completion exist.
+-- NULL means unknown. Neither unknown nor tokenless estimated failure is a
+-- billable observation, even if the system recorded a conservative ceiling.
 insert into public.run_attempts (
   id, organization_id, run_id, prompt_id, prompt_key, provider, model,
   attempt_number, status, completed_at, estimated_cost_usd
@@ -151,68 +151,117 @@ insert into public.run_attempts (
   4, 'failed', now(), null
 );
 
-do $ledger_diagnostic$
-declare
-  actual_count integer;
+do $$
 begin
-  select count(*) into actual_count from public.ai_cost_events
-  where run_id='f1300000-0000-4000-8000-000000000050'::uuid;
-  if actual_count <> 3 then
-    raise notice 'Synthetic fixture only: attempts=%',
-      (select jsonb_agg(jsonb_build_object(
-        'n', a.attempt_number, 's', a.status,
-        'cost_null', a.estimated_cost_usd is null,
-        'completed_null', a.completed_at is null,
-        'event_id_present', e.run_attempt_id is not null
-      ) order by a.attempt_number)
-       from public.run_attempts a
-       left join public.ai_cost_events e on e.run_attempt_id=a.id
-       where a.run_id='f1300000-0000-4000-8000-000000000050'::uuid);
-    raise notice 'Synthetic fixture only: trigger=%',
-      (select pg_get_triggerdef(oid) from pg_trigger where tgrelid='public.run_attempts'::regclass
-        and tgname='ledger_run_attempt_cost_after_write');
-    raise notice 'Synthetic fixture only: active function MD5=%',
-      md5(pg_get_functiondef('public.ledger_run_attempt_cost()'::regprocedure));
-    raise exception 'Expected exactly three receipts, got % (retry2 %, zero3 %, unknown4 %)',
-      actual_count,
-      exists (select 1 from public.ai_cost_events where run_attempt_id='f1300000-0000-4000-8000-000000000062'::uuid),
-      exists (select 1 from public.ai_cost_events where run_attempt_id='f1300000-0000-4000-8000-000000000063'::uuid),
-      exists (select 1 from public.ai_cost_events where run_attempt_id='f1300000-0000-4000-8000-000000000064'::uuid);
+  if (select count(*) from public.ai_cost_events
+      where run_id='f1300000-0000-4000-8000-000000000050'::uuid) <> 1
+     or exists (select 1 from public.ai_cost_events
+      where run_attempt_id in (
+        'f1300000-0000-4000-8000-000000000062'::uuid,
+        'f1300000-0000-4000-8000-000000000063'::uuid,
+        'f1300000-0000-4000-8000-000000000064'::uuid
+      )) then
+    raise exception 'Guard incorrectly booked tokenless failed estimates or a NULL estimate';
   end if;
-  if not exists (select 1 from public.ai_cost_events
-      where run_attempt_id='f1300000-0000-4000-8000-000000000062'::uuid
-        and estimated_cost_usd=0.000023 and cost_source='estimated')
-    or not exists (select 1 from public.ai_cost_events
-      where run_attempt_id='f1300000-0000-4000-8000-000000000063'::uuid
-        and estimated_cost_usd=0)
-    or exists (select 1 from public.ai_cost_events
-      where run_attempt_id='f1300000-0000-4000-8000-000000000064'::uuid) then
-    raise exception 'Retry, explicit zero or unknown-cost treatment was incorrect';
+  if not exists (select 1 from public.run_attempts
+      where id='f1300000-0000-4000-8000-000000000062'::uuid
+        and status='failed' and estimated_cost_usd=0.000023
+        and usage_input_tokens is null and completed_at is not null)
+     or not exists (select 1 from public.run_attempts
+      where id='f1300000-0000-4000-8000-000000000063'::uuid
+        and status='rate_limited' and estimated_cost_usd=0
+        and usage_total_tokens is null) then
+    raise exception 'Conservative budget estimates were erased or fixture inputs changed';
   end if;
 end
-$ledger_diagnostic$;
+$$;
 
--- When cost is later legitimately established, the same terminal attempt
--- receives exactly one receipt. Do not perform equivalent retroactive updates
--- on historical production rows without independently verified billing.
+-- Failure with newly documented metered usage is different from an
+-- unsubstantiated retry ceiling. The trigger must now create a receipt.
+update public.run_attempts
+set usage_input_tokens=2, usage_total_tokens=2, estimated_cost_usd=0.000023
+where id='f1300000-0000-4000-8000-000000000062'::uuid;
+
+do $$
+begin
+  if (select count(*) from public.ai_cost_events
+      where run_attempt_id='f1300000-0000-4000-8000-000000000062'::uuid) <> 1
+    or not exists (select 1 from public.ai_cost_events
+      where run_attempt_id='f1300000-0000-4000-8000-000000000062'::uuid
+        and estimated_cost_usd=0.000023 and input_tokens=2 and total_tokens=2)
+  then raise exception 'Metered failed retry did not receive its own ledger receipt'; end if;
+end
+$$;
+
+-- Synthetic provider-reported ZERO (NOT a real invoice) is eligible as a
+-- distinct cost receipt even without tokens; estimated tokenless zero was not.
+update public.run_attempts
+set cost_source='provider_reported'
+where id='f1300000-0000-4000-8000-000000000063'::uuid;
+
+do $$
+begin
+  if (select count(*) from public.ai_cost_events
+      where run_attempt_id='f1300000-0000-4000-8000-000000000063'::uuid) <> 1
+    or not exists (select 1 from public.ai_cost_events
+      where run_attempt_id='f1300000-0000-4000-8000-000000000063'::uuid
+        and cost_source='provider_reported' and estimated_cost_usd=0)
+  then raise exception 'Provider-reported synthetic zero was not retained as a distinct receipt'; end if;
+end
+$$;
+
+-- Updating cost alone on a failed tokenless attempt must remain excluded;
+-- later adding supported metering and repeating a cost-column update may
+-- legitimately produce a new receipt. Never infer external invoice evidence.
 update public.run_attempts
 set estimated_cost_usd=0.000007, cost_source='estimated'
 where id='f1300000-0000-4000-8000-000000000064'::uuid;
 
 do $$
 begin
+  if exists (select 1 from public.ai_cost_events
+      where run_attempt_id='f1300000-0000-4000-8000-000000000064'::uuid)
+  then raise exception 'Late tokenless estimate incorrectly became booked spend'; end if;
+end
+$$;
+
+update public.run_attempts
+set usage_input_tokens=1, usage_total_tokens=1, estimated_cost_usd=0.000007
+where id='f1300000-0000-4000-8000-000000000064'::uuid;
+
+-- A direct terminal INSERT with metered input is eligible as well; it is
+-- the guard, not terminal INSERT vs UPDATE syntax, that controls booking.
+insert into public.run_attempts (
+  id, organization_id, run_id, prompt_id, prompt_key, provider, model,
+  attempt_number, status, usage_input_tokens, usage_total_tokens,
+  estimated_cost_usd, cost_source, completed_at
+) values (
+  'f1300000-0000-4000-8000-000000000065'::uuid,
+  'f1300000-0000-4000-8000-000000000010'::uuid,
+  'f1300000-0000-4000-8000-000000000050'::uuid,
+  'f1300000-0000-4000-8000-000000000040'::uuid,
+  'synthetic-ledger-q1', 'cloudflare', 'synthetic-fixture-model',
+  5, 'failed', 3, 3, 0.000005, 'estimated', now()
+);
+
+do $$
+begin
   if (select count(*) from public.ai_cost_events
-      where run_id='f1300000-0000-4000-8000-000000000050'::uuid) <> 4
+      where run_id='f1300000-0000-4000-8000-000000000050'::uuid) <> 5
+    or (select count(distinct run_attempt_id) from public.ai_cost_events
+      where run_id='f1300000-0000-4000-8000-000000000050'::uuid) <> 5
     or not exists (select 1 from public.ai_cost_events
       where run_attempt_id='f1300000-0000-4000-8000-000000000064'::uuid
-        and estimated_cost_usd=0.000007) then
-    raise exception 'Legitimate late cost recording was lost or double-counted';
-  end if;
-  if has_function_privilege('authenticated','public.ledger_run_attempt_cost()','EXECUTE') then
-    raise exception 'Customer-authenticated role can execute internal ledger trigger directly';
-  end if;
+        and estimated_cost_usd=0.000007 and input_tokens=1)
+    or not exists (select 1 from public.ai_cost_events
+      where run_attempt_id='f1300000-0000-4000-8000-000000000065'::uuid
+        and estimated_cost_usd=0.000005 and input_tokens=3)
+  then raise exception 'Five distinct eligible metered or provider-reported cost receipts were not produced'; end if;
+  if has_function_privilege('authenticated','public.ledger_run_attempt_cost()','EXECUTE')
+    or has_function_privilege('authenticated','public.guard_provider_cost_event()','EXECUTE')
+  then raise exception 'Authenticated customer can directly execute internal ledger guards'; end if;
 end
 $$;
 
 rollback;
-select 'isolated terminal-attempt ledger invariant passed' as result;
+select 'isolated terminal-attempt guarded ledger invariant passed' as result;
