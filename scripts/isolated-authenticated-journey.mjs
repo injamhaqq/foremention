@@ -233,7 +233,7 @@ async function main() {
       action:"remeasure",resolutionId:generated.id
     }),202,"governed follow-up request").data;
     assert.ok(request.measurementRequestId);
-    const second=await seedLocalRun(tenant,owner.id,"second",{review:true,cited:false,metrics:[40,20,2,2]});
+    const second=await seedLocalRun(tenant,owner.id,"second",{review:true,cited:false,metrics:[40,20,0,0]});
     must(await appCall(ownerCtx,"POST","/api/resolutions",{
       action:"remeasure",resolutionId:generated.id,rerunId:second.run.id,
       measurementId:request.measurementRequestId
