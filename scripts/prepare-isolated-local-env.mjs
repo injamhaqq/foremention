@@ -26,6 +26,7 @@ const entries={
   NEXT_PUBLIC_SUPABASE_ANON_KEY:anon,
   SUPABASE_SERVICE_ROLE_KEY:service,
   FOREMENTION_ISOLATED_APP_URL:"http://127.0.0.1:4174",
+  FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS:"1",
 };
 const content=Object.entries(entries).map(([k,v])=>k+"="+v).join("\n")+"\n";
 await writeFile(".isolated-local-env",content,{mode:0o600});
