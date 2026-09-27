@@ -149,17 +149,17 @@ values
     "excerpt":"Synthetic only; reviewer has NOT confirmed external facts."}'::jsonb);
 update public.resolution_assets
  set status='in_review',submitted_by='f1400000-0000-4000-8000-000000000001',
-     submitted_at=now()
+     submitted_at=now()-interval '8 hours'
  where id='f1400000-0000-4000-8000-000000000080';
 update public.resolution_assets
  set status='approved',review_decision='approved',
      approved_by='f1400000-0000-4000-8000-000000000001',
-     approved_at=now(),decision_by='f1400000-0000-4000-8000-000000000001',
-     decision_at=now(),approval_note='Synthetic approval only'
+     approved_at=now()-interval '7 hours',decision_by='f1400000-0000-4000-8000-000000000001',
+     decision_at=now()-interval '7 hours',approval_note='Synthetic approval only'
  where id='f1400000-0000-4000-8000-000000000080';
 update public.resolution_assets
  set status='applied',applied_by='f1400000-0000-4000-8000-000000000001',
-     applied_at=now(),application_reference='fixture-only:approved-change-record'
+     applied_at=now()-interval '6 hours',application_reference='fixture-only:approved-change-record'
  where id='f1400000-0000-4000-8000-000000000080';
 
 -- Change Specification has a *separate* manager decision and cannot be
@@ -206,11 +206,11 @@ values
   'f1400000-0000-4000-8000-000000000061',
   '{"verification":"verified","id":"fixture-source","kind":"source_observation","provider":"fixture-mock"}'::jsonb);
 update public.change_specifications
- set status='in_review',submitted_by='f1400000-0000-4000-8000-000000000001',submitted_at=now()
+ set status='in_review',submitted_by='f1400000-0000-4000-8000-000000000001',submitted_at=now()-interval '7 hours'
  where id='f1400000-0000-4000-8000-000000000081';
 update public.change_specifications
  set status='approved',decision_by='f1400000-0000-4000-8000-000000000001',
-  decision_at=now(),approval_note='Fixture-only approval'
+  decision_at=now()-interval '6 hours',approval_note='Fixture-only approval'
  where id='f1400000-0000-4000-8000-000000000081';
 update public.change_specifications set status='in_execution'
  where id='f1400000-0000-4000-8000-000000000081';
