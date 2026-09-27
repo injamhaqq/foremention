@@ -342,13 +342,9 @@ begin
 end $$;
 
 
--- The prior incompatible-market attachment left its synthetic follow-up
--- REQUESTED; clean this negative-only fixture before looping because the
--- real schema enforces one active follow-up per resolution.
-delete from public.resolution_follow_ups
- where id='f1400000-0000-4000-8000-000000000091'::uuid
-   and status='requested'
-   and rerun_id is null;
+-- The invalid-market test left one active request with immutable downstream
+-- ledger history. Re-use it for the first eligible comparison rather than
+-- deleting or rewriting a durable audit-linked request.
 
 -- Each one of nine material context properties is independently required.
 -- Change one of the five synthetic answer slots while leaving exact persisted
@@ -371,16 +367,20 @@ begin
                        else names[case_number] end;
     n := 500+case_number;
     bad_run := ('f1400000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid;
-    measurement := ('f1400000-0000-4000-8000-'||lpad((700+case_number)::text,12,'0'))::uuid;
+    measurement := case when case_number=1
+      then 'f1400000-0000-4000-8000-000000000091'::uuid
+      else ('f1400000-0000-4000-8000-'||lpad((700+case_number)::text,12,'0'))::uuid end;
 
-    insert into public.resolution_follow_ups
-      (id,organization_id,project_id,resolution_asset_id,baseline_run_id,status,requested_by,requested_at)
-    values
-      (measurement,'f1400000-0000-4000-8000-000000000010',
-       'f1400000-0000-4000-8000-000000000020',
-       'f1400000-0000-4000-8000-000000000080',
-       'f1400000-0000-4000-8000-000000000041',
-       'requested','f1400000-0000-4000-8000-000000000001',now()-interval '2 hours');
+    if case_number > 1 then
+      insert into public.resolution_follow_ups
+        (id,organization_id,project_id,resolution_asset_id,baseline_run_id,status,requested_by,requested_at)
+      values
+        (measurement,'f1400000-0000-4000-8000-000000000010',
+         'f1400000-0000-4000-8000-000000000020',
+         'f1400000-0000-4000-8000-000000000080',
+         'f1400000-0000-4000-8000-000000000041',
+         'requested','f1400000-0000-4000-8000-000000000001',now()-interval '2 hours');
+    end if;
 
     insert into public.runs
       (id,organization_id,project_id,category_id,status,provider_ids,prompt_count,
