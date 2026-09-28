@@ -46,7 +46,7 @@ export async function loadBuyerQuestionBrief(viewer: Viewer): Promise<BuyerQuest
       run, verifiedAnswers: answers, competitors,
       // Only annotations attached to a published Source Map for this exact run.
       reviewedSources: sources.map(source => ({
-        url: source.url, reviewedAt: source.reviewedAt,
+        url: source.url, reviewedAt: source.reviewedAt ?? null,
         clientPresent: source.clientPresent, competitors: source.competitors,
       })),
     });
