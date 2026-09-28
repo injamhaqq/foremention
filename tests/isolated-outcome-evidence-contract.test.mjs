@@ -29,7 +29,7 @@ test("required PR evidence workflow executes real local Auth/PostgREST with stri
  assert.match(script,/evaluateFollowUpContextParity/);
  assert.match(script,/new Set\(\["127\.0\.0\.1","localhost"\]\)/);
  assert.match(script,/actual.*persisted|actually persisted|persisted.*single-answer/i);
- assert.match(script,/stranger\.token/);
+ assert.match(script,/scopedRead\(stranger,ownOrg,ownedIds\)/);
  assert.match(script,/assert\.equal\(outsider\.answers\.length,0/);
  assert.match(script,/evaluationVersion:"changed-evaluator-v2"/);
  assert.doesNotMatch(script,/https?:\/\/(?:api\.openai\.com|www\.bing\.com|foremention\.com|supabase\.com)/);
