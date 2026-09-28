@@ -14,6 +14,10 @@
 
 **Research standard:** Publicly described features are not independently measured performance, pricing, retention, or outcome success. Avoid self-serving claims, fabricated benchmark comparisons or assumptions about unreleased roadmaps. Recheck dated official sources before making claims in public.
 
+## Product-surface honesty is non-negotiable
+
+Foremention's documented current production free-only surface is **Cloudflare Workers AI hosted Gemma 4 plus independent Bing RSS retrieval**. It does **not** measure native consumer ChatGPT, Gemini, or Perplexity. The new evidence packet exposes the actual persisted provider and model on each buyer question so an independent hosted-model proxy can never silently become a consumer-platform visibility claim. Broader licensed, independently validated observation surfaces and their retention permissions are prerequisites—not assumptions—for direct consumer-platform positioning. Commercial Bing RSS rights (#346) and live provider quality/reliability (#324) are material release gates. A customer pilot must clearly distinguish a method test from actual buyer-facing product visibility.
+
 ## 2. What Foremention will *not* race incumbents to build during Stage 0
 
 Do not compete first on the size of a scraped prompt index, a generic chat-based marketing agent, rendering different pages to AI crawlers, unauthorized third-party content redistribution, brand-perception vanity scoring, or every possible provider integration. Large competitors can replicate UI and spend on distribution. Those features cannot substitute for Foremention's present proof gaps.
