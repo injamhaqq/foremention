@@ -17,6 +17,7 @@ export async function loadOutcomeContextParity(input: {
   runs: OutcomeContextRun[];
   followUps: OutcomeLedgerFollowUpRow[];
 }) {
+  if (!input.accessToken) throw new Error("Authenticated workspace access is required for outcome context verification.");
   const scopedRuns = input.runs.filter((run) => run.id);
   const accessibleRunIds = new Set(scopedRuns.map((run) => run.id));
   const pairedRunIds = Array.from(new Set(input.followUps
