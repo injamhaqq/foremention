@@ -72,8 +72,14 @@ jobs:
           source .isolated-local-env
           set +a
 
-          pnpm build
-          cp .dev.vars dist/server/.dev.vars
+          # Compile Next's independent local Node runtime for the private
+          # Auth/PostgREST application-route acceptance. The production
+          # Cloudflare/Vinext build and Worker are validated separately by
+          # exact-head CI and PR browser acceptance. Running the heavy,
+          # authenticated chain inside Wrangler's local-dev network proxy
+          # repeatedly produced synthetic 503/connection drops even when
+          # its health and direct PostgREST probes stayed 200.
+          pnpm run build:next
 
           mkdir -p .ci-tools
           cat > .ci-tools/package.json <<'JSON'
@@ -87,13 +93,11 @@ jobs:
           npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
           .ci-tools/node_modules/.bin/playwright install --with-deps chromium
 
-          # Isolated acceptance only: repository-pinned Wrangler 4.114.0 is
-          # within a documented upstream local-dev network-drop regression
-          # window (cloudflare/workers-sdk#15002). Test the independently
-          # reported last-clean 4.113.0 WITHOUT changing the production build,
-          # application dependency graph or the frozen repository lockfile.
-          # This does not excuse any HTTP 500 in customer-route assertions.
-          pnpm dlx wrangler@4.113.0 dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
+          # Launch the real authenticated application as a loopback-only
+          # Next production server. No external provider is configured.
+          # Do not use this to claim a Cloudflare authenticated rollout;
+          # that requires a later separately authorized environment test.
+          pnpm run start:next -- -H 127.0.0.1 -p 4174 > .isolated-browser-server.log 2>&1 &
           server_pid=$!
           ready=false
           for attempt in $(seq 1 90); do
@@ -103,14 +107,14 @@ jobs:
               break
             fi
             if ! kill -0 "$server_pid" 2>/dev/null; then
-              echo "Local Worker stopped before readiness."
+              echo "Local application stopped before readiness."
               exit 1
             fi
-            echo "Waiting for isolated local Worker ($attempt/90)"
+            echo "Waiting for isolated local application ($attempt/90)"
             sleep 1
           done
           if [ "$ready" != "true" ]; then
-            echo "Local Worker did not become ready."
+            echo "Local application did not become ready."
             exit 1
           fi
 
@@ -123,14 +127,14 @@ jobs:
               echo "[isolated-server] wrangler-process-exited"
             fi
             if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:4174/api/health >/dev/null 2>&1; then
-              echo "[isolated-server] post-failure-worker-health-200"
+              echo "[isolated-server] post-failure-local-application-health-200"
             else
-              echo "[isolated-server] post-failure-worker-health-unavailable"
+              echo "[isolated-server] post-failure-local-application-health-unavailable"
             fi
             node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
             exit 1
           fi
-          echo "Isolated authenticated acceptance succeeded without any external provider request."
+          echo "Isolated Next/DB authenticated acceptance succeeded without any external provider request. Cloudflare Worker build/browser verification is a separate PR gate."
 
       - name: Verify no test secrets or artifacts remain
         if: always()
