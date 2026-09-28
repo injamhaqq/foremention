@@ -35,11 +35,12 @@ export default async function CompetitorsPage() {
         <p className="table-caption"><strong>{productStateLabel(state)}</strong> · {stateNote} · {comparablePair ? "Exact comparable pair available" : "No exact comparable pair"}</p>
       </div>
     </div>
+    {brief.state === "available" && <BuyerQuestionBriefPanel brief={brief} />}
     <LazyCompetitorTracker
       initial={competitors}
       canManage={viewer.mode === "demo" || role !== "viewer"}
       demo={viewer.mode === "demo"}
     />
-    <BuyerQuestionBriefPanel brief={brief} />
+    {brief.state !== "available" && <BuyerQuestionBriefPanel brief={brief} />}
   </main>;
 }
