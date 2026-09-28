@@ -19,7 +19,9 @@ test("required PR evidence workflow executes real local Auth/PostgREST with stri
  assert.match(required,/rm -f \.isolated-local-env/);
  assert.doesNotMatch(required,/secrets\.|foremention\.com|FOREMENTION_ACCEPTANCE_PASSWORD/);
  assert.match(manual,/workflow_dispatch:/);
- assert.doesNotMatch(manual,/\bpull_request:/);
+ assert.match(manual,/pull_request:/);
+ assert.ok(manual.includes("contains(github.event.pull_request.labels.*.name, 'run-isolated-full-journey')"),
+   "full browser route acceptance must be opt-in before any merge, not mislabeled as a passing default check");
  assert.match(manual,/node scripts\/isolated-authenticated-journey\.mjs/);
  assert.match(script,/Refusing to run evidence integration outside the disposable local Supabase test/);
  assert.match(script,/auth\/v1\/admin\/users/);
