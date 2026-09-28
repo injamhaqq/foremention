@@ -9,7 +9,7 @@ import {
   type OutcomeLedgerOpportunityRow,
   type OutcomeLedgerRunRow,
 } from "@/lib/outcome-ledger";
-import { buildBusinessValueReport, buildExecutiveDigest, buildPeriodSummaries } from "@/lib/value-report";
+import { buildBusinessValueReport, buildDecisionEvidenceSummary, buildExecutiveDigest, buildPeriodSummaries } from "@/lib/value-report";
 import { isMissingRelationError, supabaseRest } from "@/lib/supabase-rest";
 
 const formatDate = (value: string | null) => {
@@ -81,6 +81,7 @@ export default async function OutcomesPage() {
 
   const records = buildOutcomeLedger({ assets: assetsWithChange, evidence, opportunities, followUps, runs });
   const value = buildBusinessValueReport(records);
+  const decisionEvidence = buildDecisionEvidenceSummary(records);
   const digest = buildExecutiveDigest(records);
   const periods = buildPeriodSummaries(records);
   const eligibleComparisons = records.filter((record) => record.comparisonEligible === true && record.comparison).length;
@@ -92,6 +93,8 @@ export default async function OutcomesPage() {
     {pending.value && <section className="panel outcome-ledger__pending" role="status"><strong>Outcome records are not fully enabled yet</strong><p>This workspace is missing one or more Foremention outcome/resolution tables, so the page is withholding affected records instead of estimating them. A workspace owner must apply the pending database migration.</p></section>}
 
     <section className="panel"><div className="panel-heading"><div><span className="eyebrow">Executive digest</span><h2>The CMO view, grounded in the ledger.</h2></div><Link href="/app/analytics">Open exact Comparisons →</Link></div><div className="system-grid"><article><span>01</span><h3>What changed?</h3><p>{digest.whatChanged}</p></article><article><span>02</span><h3>What needs attention?</h3><p>{digest.needsAttention}</p></article><article><span>03</span><h3>Where are competitors moving?</h3><p>{digest.competitorMovement}</p></article><article><span>04</span><h3>What actions are open?</h3><p>{digest.openActions}</p></article><article><span>05</span><h3>Did an intervention coincide with change?</h3><p>{digest.interventionObservation}</p></article><article><span>06</span><h3>What should we review next?</h3><p>{digest.reviewNext}</p></article></div></section>
+
+    <section className="panel"><div className="panel-heading"><div><span className="eyebrow">Decision evidence</span><h2>Is there a complete inspectable decision chain?</h2></div><Link href="/app/outcomes/print">Open evidence export →</Link></div><p>{decisionEvidence.statement}</p><div className="metric-grid metric-grid--compact"><article><span>Complete chains</span><strong>{decisionEvidence.completeDecisionChains}</strong><small>reviewed evidence → decision → execution → eligible later outcome</small></article><article><span>Executed, awaiting measurement</span><strong>{decisionEvidence.executedAwaitingMeasurement}</strong><small>application recorded; later measurement not complete</small></article><article><span>Incomparable measurements</span><strong>{decisionEvidence.incomparableMeasurements}</strong><small>remeasurement retained; directional conclusion withheld</small></article><article><span>Approved, still open</span><strong>{decisionEvidence.openApprovedActions}</strong><small>decision recorded; execution not yet complete</small></article></div><div className="inline-notice" role="note"><strong>Proof boundary.</strong><p>{decisionEvidence.limitation}</p></div></section>
 
     <section className="panel"><div className="panel-heading"><div><span className="eyebrow">Business value report</span><h2>Operational value first. Economic attribution only when verified.</h2></div></div><div className="metric-grid metric-grid--compact"><article><span>Issues identified</span><strong>{value.issuesIdentified}</strong><small>reviewed baselines attached</small></article><article><span>Actions approved</span><strong>{value.actionsApproved}</strong><small>human decision recorded</small></article><article><span>Actions completed</span><strong>{value.actionsCompleted}</strong><small>application recorded</small></article><article><span>Items remeasured</span><strong>{value.itemsRemeasured}</strong><small>later measurement completed</small></article><article><span>Higher-direction observations</span><strong>{value.higherObserved}</strong><small>eligible directional movement; not inferred business value</small></article><article><span>Lower-direction observations</span><strong>{value.lowerObserved}</strong><small>eligible directional movement; not inferred business value</small></article><article><span>Competitive gaps addressed</span><strong>{value.competitiveGapsAddressed}</strong><small>completed comparison interventions</small></article><article><span>Unresolved items</span><strong>{value.unresolvedItems}</strong><small>completion or eligible comparison still open</small></article></div><div className="inline-notice" role="note"><strong>Economic ROI: not demonstrated.</strong><p>{value.economicValue.basis} Current operational value: {value.operationalValue}</p></div></section>
 

@@ -74,6 +74,9 @@ test("the board export carries the same truth boundary", async () => {
   const page = await text("app/app/outcomes/print/page.tsx");
   assert.match(page, /Board-ready Business Value Review/);
   assert.match(page, /Economic ROI is not demonstrated/);
+  assert.match(page, /Decision evidence standard/);
+  assert.match(page, /Complete evidence chains/);
+  assert.match(page, /Proof boundary/);
   assert.match(page, /not causal attribution/i);
   assert.match(page, /Operational value is not automatically economic ROI/i);
   assert.doesNotMatch(page, /guaranteed|caused the improvement|increase revenue/i);

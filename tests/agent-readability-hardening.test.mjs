@@ -100,6 +100,6 @@ test("curated public markdown mirrors expose a sitemap section and canonical met
     assert.match(markdown, /^## Sitemap$/m);
     assert.match(markdown, /https:\/\/foremention\.com\/sitemap\.md/);
   }
-  assert.match(productMarkdown, /last_updated: "2026-09-26"/);
+  assert.match(productMarkdown, /last_updated: "2026-09-28"/);
   assert.match(methodologyMarkdown, /last_updated: "2026-09-26"/);
 });

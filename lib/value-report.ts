@@ -37,6 +37,17 @@ export type PeriodSummary = {
   report: ValueReport;
 };
 
+export type DecisionEvidenceSummary = {
+  totalRecords: number;
+  completeDecisionChains: number;
+  executedAwaitingMeasurement: number;
+  incomparableMeasurements: number;
+  openApprovedActions: number;
+  status: "no_chain" | "chain_in_progress" | "inspectable_chain_available";
+  statement: string;
+  limitation: string;
+};
+
 const step = (record: OutcomeLedgerRecord, key: OutcomeLedgerStep["key"]) => record.steps.find((item) => item.key === key);
 const validTime = (value: string | null | undefined) => value && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;
 
@@ -114,6 +125,39 @@ export function buildBusinessValueReport(
       basis: "The Outcome Ledger contains operational evidence and eligible before-and-after observations, not verified economic attribution. No dollar ROI is inferred.",
     },
     operationalValue: `${actionsCompleted} completed action${actionsCompleted === 1 ? "" : "s"}; ${itemsRemeasured} later measurement${itemsRemeasured === 1 ? "" : "s"}; ${higherObserved} higher-direction observation${higherObserved === 1 ? "" : "s"}; ${lowerObserved} lower-direction observation${lowerObserved === 1 ? "" : "s"}.`,
+  };
+}
+
+export function buildDecisionEvidenceSummary(records: OutcomeLedgerRecord[]): DecisionEvidenceSummary {
+  const completeDecisionChains = records.filter((record) => (
+    record.comparisonEligible === true
+    && ["observation","evidence","recommendation","decision","action","owner","completion","measurement","outcome"]
+      .every((key) => step(record, key as OutcomeLedgerStep["key"])?.done)
+  )).length;
+  const executedAwaitingMeasurement = records.filter((record) => step(record, "completion")?.done && !step(record, "measurement")?.done).length;
+  const incomparableMeasurements = records.filter((record) => step(record, "measurement")?.done && record.outcomeState === "incomparable").length;
+  const openApprovedActions = records.filter((record) => step(record, "action")?.done && !step(record, "completion")?.done).length;
+  const status: DecisionEvidenceSummary["status"] = completeDecisionChains
+    ? "inspectable_chain_available"
+    : records.length
+      ? "chain_in_progress"
+      : "no_chain";
+
+  const statement = status === "inspectable_chain_available"
+    ? `${completeDecisionChains} inspectable decision-evidence chain${completeDecisionChains === 1 ? "" : "s"} currently include reviewed evidence, a recorded decision, execution evidence, and an eligible later outcome observation.`
+    : status === "chain_in_progress"
+      ? "No complete decision-evidence chain is available yet. Foremention keeps unfinished, awaiting-measurement, and incomparable states visible instead of converting them into an impact claim."
+      : "No decision-evidence chain exists yet. Start with a reviewed Recommendation Record before approving company work.";
+
+  return {
+    totalRecords: records.length,
+    completeDecisionChains,
+    executedAwaitingMeasurement,
+    incomparableMeasurements,
+    openApprovedActions,
+    status,
+    statement,
+    limitation: "A complete chain proves only that the observation, human decision, recorded execution, and eligible later measurement are inspectable together. It does not prove causation, economic ROI, or independent customer value.",
   };
 }
 
