@@ -209,9 +209,13 @@ async function main() {
   try {
     const [owner,outsider,analyst]=await Promise.all([localAdminUser(),localAdminUser(),localAdminUser()]);
     step("three-ephemeral-local-auth-users-created");
-    const [ownerCtx,otherCtx,analystCtx]=await Promise.all([
-      login(browser,owner),login(browser,outsider),login(browser,analyst)
-    ]);
+    // Cold LOCAL Wrangler + PostgREST on a disposable runner can overload
+    // while three first-ever authenticated login/prompt route compilations
+    // race. Serialize only fixture setup; real customer permission checks
+    // below remain independent and fail immediately on 5xx.
+    const ownerCtx=await login(browser,owner);
+    const otherCtx=await login(browser,outsider);
+    const analystCtx=await login(browser,analyst);
     clients.push(ownerCtx,otherCtx,analystCtx);
     const publicCtx=await browser.newContext({baseURL:app.origin});
     clients.push(publicCtx);
