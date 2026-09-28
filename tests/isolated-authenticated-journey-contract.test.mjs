@@ -30,7 +30,7 @@ test("real authenticated customer acceptance must only run against local ephemer
   assert.match(workflow,/supabase start/);
   assert.match(workflow,/supabase db reset/);
   assert.ok(workflow.includes("pnpm build"),"must compile production Vinext/Worker artifact");
-  assert.ok(workflow.includes("pnpm exec vite dev --host 127.0.0.1 --port 4174"),
+  assert.ok(workflow.includes("pnpm run dev -- --host 127.0.0.1 --port 4174"),
     "isolated real application routes must run under Vite native Cloudflare workerd");
   assert.ok(workflow.includes("CI and Browser Acceptance independently verify"),
     "independent production Worker verification remains explicit");
