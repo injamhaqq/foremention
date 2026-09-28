@@ -148,7 +148,7 @@ export function buildOutcomeLedger(input: {
   opportunities?: OutcomeLedgerOpportunityRow[];
   followUps: OutcomeLedgerFollowUpRow[];
   runs: OutcomeLedgerRunRow[];
-  contextParityByFollowUp?: ReadonlyMap<string, ExactComparability>;
+  contextParityByFollowUp: ReadonlyMap<string, ExactComparability>;
 }): OutcomeLedgerRecord[] {
   const evidence = input.evidence || [];
   const opportunities = input.opportunities || [];
@@ -165,12 +165,11 @@ export function buildOutcomeLedger(input: {
     const opportunity = opportunityById.get(asset.opportunity_id) || null;
     const baseline = asset.baseline_run_id ? runById.get(asset.baseline_run_id) : undefined;
     const rerun = followUp?.rerun_id ? runById.get(followUp.rerun_id) : undefined;
-    const contextCheck = followUp?.status === "complete" && input.contextParityByFollowUp
+    const contextCheck = followUp?.status === "complete"
       ? input.contextParityByFollowUp.get(followUp.id)
         || { comparable: false, reason: "Independent material-context verification was unavailable." }
       : null;
-    const pairMatchesAsset = !input.contextParityByFollowUp
-      || Boolean(followUp && asset.baseline_run_id === followUp.baseline_run_id && followUp.rerun_id);
+    const pairMatchesAsset = Boolean(followUp && asset.baseline_run_id === followUp.baseline_run_id && followUp.rerun_id);
     const contextBlocked = followUp?.status === "complete" && (!pairMatchesAsset || contextCheck?.comparable === false);
     const contextLimitation = !pairMatchesAsset
       ? "The follow-up baseline does not match this resolution asset."
