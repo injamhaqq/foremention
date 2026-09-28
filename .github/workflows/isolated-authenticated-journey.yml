@@ -94,7 +94,7 @@ jobs:
 
           # Native Vite+Cloudflare workerd local server. No external
           # account, deployed Worker, or paid provider is used.
-          pnpm dev -- --host 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
+          pnpm exec vite dev --host 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
           server_pid=$!
           ready=false
           for attempt in $(seq 1 90); do
