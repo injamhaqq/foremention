@@ -166,7 +166,7 @@ export function buildOutcomeLedger(input: {
     const baseline = asset.baseline_run_id ? runById.get(asset.baseline_run_id) : undefined;
     const rerun = followUp?.rerun_id ? runById.get(followUp.rerun_id) : undefined;
     const contextCheck = followUp?.status === "complete"
-      ? input.contextParityByFollowUp.get(followUp.id)
+      ? input.contextParityByFollowUp?.get(followUp.id)
         || { comparable: false, reason: "Independent material-context verification was unavailable." }
       : null;
     const pairMatchesAsset = Boolean(followUp && asset.baseline_run_id === followUp.baseline_run_id && followUp.rerun_id);
