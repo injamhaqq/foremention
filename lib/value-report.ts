@@ -131,6 +131,9 @@ export function buildBusinessValueReport(
 export function buildDecisionEvidenceSummary(records: OutcomeLedgerRecord[]): DecisionEvidenceSummary {
   const completeDecisionChains = records.filter((record) => (
     record.comparisonEligible === true
+    && Boolean(record.changeSpecificationId)
+    && Boolean(record.applicationReference?.trim())
+    && record.status === "applied"
     && ["observation","evidence","recommendation","decision","action","owner","completion","measurement","outcome"]
       .every((key) => step(record, key as OutcomeLedgerStep["key"])?.done)
   )).length;
