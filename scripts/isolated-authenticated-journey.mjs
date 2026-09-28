@@ -429,14 +429,20 @@ async function main() {
     });
     assert.equal(boardResponse?.status(),200,"owner board export must load with exact-context proof");
     assert.match(await boardPage.locator(".print-record__states").innerText(),
-      /Complete evidence chains\\s+1/i,"board export must reflect the independently verified chain");
+      /Complete evidence chains\s+1/i,"board export must reflect the independently verified chain");
     const otherPage=await otherCtx.newPage();
     const otherResponse=await otherPage.goto(new URL("/app/outcomes",app).toString(),{
       waitUntil:"domcontentloaded",timeout:30000,
     });
     assert.equal(otherResponse?.status(),200,"other tenant's empty Outcome Ledger must render");
-    assert.doesNotMatch(await otherPage.locator("main").innerText(),
-      new RegExp(generated.id.slice(0,8),"i"),"other tenant must not see the owner's intervention");
+    assert.equal(await otherPage.getByText(record.title,{exact:true}).count(),0,
+      "other tenant must not see the owner's intervention title");
+    const anonymousPage=await publicCtx.newPage();
+    await anonymousPage.goto(new URL("/app/outcomes",app).toString(),{
+      waitUntil:"domcontentloaded",timeout:30000,
+    });
+    assert.match(anonymousPage.url(),/\\/login(?:\\?|$)/,
+      "anonymous viewers must be redirected away from the private Outcome Ledger");
     step("authenticated-outcome-ledger-and-board-exact-context-chain-owner-only");
 
     // Create a genuinely later third fixture with the exact same five frozen
@@ -482,7 +488,7 @@ async function main() {
     });
     assert.equal(withheldBoard?.status(),200,"protocol-drift board export must still render");
     assert.match(await boardPage.locator(".print-record__states").innerText(),
-      /Complete evidence chains\\s+0/i,"board export must independently suppress drifted chain");
+      /Complete evidence chains\s+0/i,"board export must independently suppress drifted chain");
     step("real-authenticated-protocol-drift-fail-closed-in-page-and-board-export");
 
     process.stdout.write("[isolated-journey] PASSED "+stages.length+" synthetic-only stages; no providers, no production, no customer-value claim.\n");
