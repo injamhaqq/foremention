@@ -8,6 +8,27 @@ if(path!==".isolated-browser-server.log")throw Error("Only the ephemeral local W
 const log=await readFile(path,"utf8").catch(()=> "");
 const lines=log.split(/\r?\n/);
 const diagnostics=[];
+const markers = [
+  ["empty-log",/^\\s*$/],
+  ["pnpm-launch-error",/ERR_PNPM|Command .* not found/i],
+  ["vite-started",/VITE v\\d|Local:\\s+http/i],
+  ["vite-config-failure",/failed to load config|Error when evaluating SSR module/i],
+  ["missing-module",/Cannot find module|Cannot find package|Failed to resolve import|ERR_MODULE_NOT_FOUND/i],
+  ["cloudflare-binding",/cloudflare:workers/i],
+  ["workerd-startup",/workerd|Miniflare/i],
+  ["listener-conflict",/EADDRINUSE|address already in use/i],
+  ["runtime-version",/Unsupported engine|Node.js version|requires Node/i],
+  ["memory-failure",/JavaScript heap out of memory|Allocation failed|Killed/i],
+  ["syntax-failure",/SyntaxError|Unexpected token/i],
+  ["generic-error-line",/\\b(?:error|failed|exception)\\b/i],
+];
+for(const [label,pattern] of markers){
+  if(label==="empty-log" ? pattern.test(log) : pattern.test(log)){
+    diagnostics.push({kind:"safe-startup-marker",label});
+  }
+}
+diagnostics.push({kind:"safe-startup-log-range",bucket:lines.length>100?"100+":lines.length>20?"21-100":lines.length>3?"4-20":"0-3"});
+
 for(let i=0;i<lines.length;i++){
  const line=lines[i];
  const postReviewPhase=/isolated-post-review-resolution-read-stage[^\n]*\b(entry|viewer|workspace|loaded|catch)\b/.exec(line);
