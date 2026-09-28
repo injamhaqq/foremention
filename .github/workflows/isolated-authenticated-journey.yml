@@ -95,11 +95,13 @@ jobs:
           npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
           .ci-tools/node_modules/.bin/playwright install --with-deps chromium
 
-          # Exercise the built Vinext production artifact locally instead
-          # of spinning up a second dev-mode compiler alongside Playwright.
-          # The independent Worker dry-run and browser PR gates validate the
-          # Cloudflare build. This requires no deployment or provider calls.
-          pnpm run start -- --host 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
+          # Manual full authenticated gate uses the exact pinned local Worker
+          # runner that previously passed #353's standalone journey. Its
+          # combined-branch outcome UI extension is intentionally UNPROVEN;
+          # success must be demonstrated on the final exact release commit.
+          # Never substitute its intermittent local 503 with a diagnostic
+          # retry or present the PR's DB-only test as a browser test.
+          pnpm dlx wrangler@4.113.0 dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
           server_pid=$!
           ready=false
           for attempt in $(seq 1 90); do
