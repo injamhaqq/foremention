@@ -59,7 +59,7 @@ export type BuyerQuestionEvidence = {
   returnedCitationUrls: number;
   /** Literal, boundary-matched names observed in answer text; identity isn't verified. */
   competitorNameCandidates: Array<{ name: string; observedAnswerSlots: number }>;
-  /** A same-run citation also explicitly reviewed as mentioning the competitor and excluding the customer. */
+  /** A same-run selected reference also explicitly reviewed as mentioning the competitor and excluding the customer. */
   reviewedCitationGaps: QuestionSourceReview[];
   attention: "reviewed_source_to_inspect" | "candidate_answer_gap" | "observation_only" | "undetermined";
 };
@@ -76,7 +76,7 @@ export type BuyerQuestionBrief = {
   limitation: string;
 };
 
-const LIMITATION = "This is one human-reviewed collection, not market share, buyer demand, model intent, causal attribution, or a cross-run trend. Competitor names are literal candidates in verified answer text; only explicitly reviewed cited pages are described as page-level gaps. A returned URL alone does not verify a page's contents.";
+const LIMITATION = "This is one human-reviewed collection, not market share, buyer demand, model intent, causal attribution, or a cross-run trend. Competitor names are literal candidates in verified answer text; only explicitly reviewed cited pages are described as page-level gaps. A stored reference can be a model-selected result from independent retrieval rather than a native consumer-platform citation, and a URL alone does not verify page contents.";
 const empty = (state: BuyerQuestionBrief["state"], reason: string, run: BuyerBriefRun | null): BuyerQuestionBrief => ({
   state, reason, runId: run?.id || null, runCreatedAt: run?.created_at || null,
   methodologyVersion: run?.methodology_version || null, questions: [], verifiedAnswerSlots: 0,
