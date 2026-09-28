@@ -1,15 +1,18 @@
 import { LazyCompetitorTracker } from "@/components/lazy-workspace-panels";
+import { BuyerQuestionBriefPanel } from "@/components/buyer-question-brief";
 import { requireViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole } from "@/lib/data";
 import { loadTruthfulCompetitorTracking } from "@/lib/evidence-integrity-data";
 import { productStateLabel, stateForCompetitors } from "@/lib/product-state";
 import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
+import { loadBuyerQuestionBrief } from "@/lib/buyer-question-brief";
 
 export default async function CompetitorsPage() {
   const viewer = await requireViewer("/app/competitors");
-  const [intelligence, role] = await Promise.all([
+  const [intelligence, role, brief] = await Promise.all([
     loadSafeWeeklyIntelligence(viewer),
     getPrimaryWorkspaceRole(viewer),
+    loadBuyerQuestionBrief(viewer),
   ]);
   const comparablePair = intelligence.latest && intelligence.previous
     ? { latestId: intelligence.latest.id, previousId: intelligence.previous.id }
@@ -37,5 +40,6 @@ export default async function CompetitorsPage() {
       canManage={viewer.mode === "demo" || role !== "viewer"}
       demo={viewer.mode === "demo"}
     />
+    <BuyerQuestionBriefPanel brief={brief} />
   </main>;
 }
