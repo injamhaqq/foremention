@@ -56,6 +56,7 @@ const build = (overrides = {}) => buildOutcomeLedger({
   opportunities: overrides.opportunities ?? opportunity,
   followUps: overrides.followUps ?? [followUp],
   runs: overrides.runs ?? [baselineRun, followUpRun],
+  contextParityByFollowUp: overrides.contextParityByFollowUp ?? new Map([[followUp.id, { comparable: true, reason: null }]]),
 });
 
 test("the outcome ledger preserves the complete decision-to-outcome chain in order", () => {
