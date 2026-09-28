@@ -142,9 +142,10 @@ export function buildBuyerQuestionBrief(input: {
   }
   if (verifiedAnswers.some(a => a.run_id !== run.id || a.review_status !== "verified" ||
       !clean(a.prompt_key || "") || !clean(a.prompt_text || "") || !clean(a.provider || "") ||
-      !clean(a.model || "") || typeof a.answer_text !== "string" ||
+      !clean(a.model || "") || typeof a.answer_text !== "string" || a.answer_text.length > 24_000 ||
       ![true, false, null].includes(a.brand_present) ||
-      (a.citations_json !== null && !Array.isArray(a.citations_json)))) {
+      (a.citations_json !== null && !Array.isArray(a.citations_json)) ||
+      (Array.isArray(a.citations_json) && a.citations_json.length > 50))) {
     return empty("withheld", "Verified answer provenance is missing, unreviewed, or does not belong to this finalized run.", run);
   }
   if (!verifiedAnswers.length) {
@@ -161,6 +162,7 @@ export function buildBuyerQuestionBrief(input: {
     if (old && old !== question) return empty("withheld", "One buyer-question key has inconsistent recorded wording in the selected run.", run);
     promptKeys.set(answer.prompt_key, question);
   }
+  if (promptKeys.size > 10) return empty("withheld", "A buyer-question packet is limited to ten distinct recorded questions; inspect the collection instead.", run);
   const active = competitors.filter(c => c.active && clean(c.name).length >= 2 && clean(c.name).length <= 120);
   const byName = new Map<string, BuyerBriefCompetitor>();
   for (const c of active) {
