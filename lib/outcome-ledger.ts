@@ -1,6 +1,7 @@
 // Relative .ts import so the node test runner can strip types and load this
 // module directly, exactly as it already does for lib/resolution-engine.ts.
 import { compareResolutionRuns, type ResolutionAssetType, type RunMeasurement } from "./resolution-engine.ts";
+import type { ExactComparability } from "./intelligence-comparability.ts";
 
 export type OutcomeLedgerAssetRow = {
   id: string;
@@ -147,6 +148,7 @@ export function buildOutcomeLedger(input: {
   opportunities?: OutcomeLedgerOpportunityRow[];
   followUps: OutcomeLedgerFollowUpRow[];
   runs: OutcomeLedgerRunRow[];
+  contextParityByFollowUp?: ReadonlyMap<string, ExactComparability>;
 }): OutcomeLedgerRecord[] {
   const evidence = input.evidence || [];
   const opportunities = input.opportunities || [];
@@ -163,18 +165,29 @@ export function buildOutcomeLedger(input: {
     const opportunity = opportunityById.get(asset.opportunity_id) || null;
     const baseline = asset.baseline_run_id ? runById.get(asset.baseline_run_id) : undefined;
     const rerun = followUp?.rerun_id ? runById.get(followUp.rerun_id) : undefined;
-    const storedCandidate = followUp?.status === "complete" ? readStoredComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
+    const contextCheck = followUp?.status === "complete" && input.contextParityByFollowUp
+      ? input.contextParityByFollowUp.get(followUp.id)
+        || { comparable: false, reason: "Independent material-context verification was unavailable." }
+      : null;
+    const pairMatchesAsset = !input.contextParityByFollowUp
+      || Boolean(followUp && asset.baseline_run_id === followUp.baseline_run_id && followUp.rerun_id);
+    const contextBlocked = followUp?.status === "complete" && (!pairMatchesAsset || contextCheck?.comparable === false);
+    const contextLimitation = !pairMatchesAsset
+      ? "The follow-up baseline does not match this resolution asset."
+      : contextCheck?.comparable === false ? contextCheck.reason || "Material measurement context could not be independently verified." : null;
+    const storedCandidate = followUp?.status === "complete" && !contextBlocked
+      ? readStoredComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
     const storedComparison = storedCandidate && (!baseline || isComparableBaselineRun(baseline)) && (!rerun || isComparableFollowUpRun(rerun)) ? storedCandidate : null;
-    const comparison = storedComparison || (followUp?.status === "complete" && isComparableBaselineRun(baseline) && isComparableFollowUpRun(rerun) ? compareResolutionRuns(toMeasurement(baseline as OutcomeLedgerRunRow), toMeasurement(rerun as OutcomeLedgerRunRow)) : null);
+    const comparison = storedComparison || (followUp?.status === "complete" && !contextBlocked && isComparableBaselineRun(baseline) && isComparableFollowUpRun(rerun) ? compareResolutionRuns(toMeasurement(baseline as OutcomeLedgerRunRow), toMeasurement(rerun as OutcomeLedgerRunRow)) : null);
     const baselineMeasured = isComparableBaselineRun(baseline) || Boolean(storedComparison);
     const evidenceReviewed = linkedEvidence.length > 0;
-    const comparisonEligible = comparison ? true : followUp?.status === "incomparable" ? false : null;
+    const comparisonEligible = comparison ? true : (followUp?.status === "incomparable" || contextBlocked) ? false : null;
     const measurementComplete = Boolean(followUp && ["complete", "incomparable"].includes(followUp.status));
-    const outcomeState = classifyOutcome(comparison, followUp);
+    const outcomeState = contextBlocked ? "incomparable" : classifyOutcome(comparison, followUp);
     const linkedChange = Boolean(asset.change_specification_id);
     const decisionDetail = asset.review_decision === "changes_requested" ? "Reviewer requested changes." : asset.review_decision === "rejected" ? "Reviewer rejected this draft." : asset.approved_at ? asset.approval_note || "Approved by the workspace reviewer." : asset.submitted_at ? "Waiting for a reviewer decision." : "Not submitted for review yet.";
     const latestEvidenceAt = linkedEvidence.map((row) => row.created_at).filter(Boolean).sort().at(-1) || null;
-    const limitations = uniqueLimitations(asset.limitations || [], [followUp?.limitation, DEFAULT_LIMITATION]);
+    const limitations = uniqueLimitations(asset.limitations || [], [followUp?.limitation, DEFAULT_LIMITATION, contextLimitation]);
     const confidence: OutcomeLedgerRecord["confidence"] = comparison && evidenceReviewed ? "reviewed" : baselineMeasured || evidenceReviewed ? "limited" : "not_assessed";
     const confidenceBasis = comparison && evidenceReviewed
       ? "Verified linked evidence and an eligible exact-protocol remeasurement are present. This supports an observed association, not causation."
@@ -192,8 +205,8 @@ export function buildOutcomeLedger(input: {
       { key: "action", label: "Action", done: Boolean(asset.approved_at), at: asset.approved_at, actorId: asset.approved_by || null, detail: asset.approved_at ? linkedChange ? "The reviewed execution artifact was approved as an action beneath the Change Specification." : "The reviewed recommendation was approved as an action." : "No approved action is recorded yet." },
       { key: "owner", label: "Owner", done: Boolean(opportunity?.owner_id), at: opportunity?.updated_at || null, actorId: opportunity?.owner_id || null, detail: opportunity?.owner_id ? `Assigned owner${opportunity.due_at ? ` · due ${opportunity.due_at}` : ""}${opportunity.next_action ? ` · ${opportunity.next_action}` : ""}` : "No action owner is assigned." },
       { key: "completion", label: "Completion", done: Boolean(asset.applied_at), at: asset.applied_at, actorId: asset.applied_by || null, detail: asset.application_reference || "Not recorded as applied yet." },
-      { key: "measurement", label: "Later measurement", done: measurementComplete, at: measurementComplete ? followUp?.completed_at || null : followUp?.requested_at || null, actorId: followUp?.recorded_by || followUp?.requested_by || null, detail: followUp ? (measurementComplete ? followUp.status === "incomparable" ? "A later measurement finished, but exact comparison eligibility failed closed." : "The same eligible measurement protocol was completed again." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
-      { key: "outcome", label: "Observed direction", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, actorId: followUp?.recorded_by || null, detail: comparison ? `${outcomeState.replaceAll("_", " ")}. ${comparison.interpretation}` : followUp?.status === "incomparable" ? "Directional comparison withheld because the later observation was not eligible for exact comparison." : "No eligible directional comparison is available yet." },
+      { key: "measurement", label: "Later measurement", done: measurementComplete, at: measurementComplete ? followUp?.completed_at || null : followUp?.requested_at || null, actorId: followUp?.recorded_by || followUp?.requested_by || null, detail: followUp ? (measurementComplete ? (followUp.status === "incomparable" || contextBlocked) ? "A later measurement finished, but independently checked exact comparison eligibility failed closed." : "The same eligible measurement protocol was completed again." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
+      { key: "outcome", label: "Observed direction", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, actorId: followUp?.recorded_by || null, detail: comparison ? `${outcomeState.replaceAll("_", " ")}. ${comparison.interpretation}` : (followUp?.status === "incomparable" || contextBlocked) ? "Directional comparison withheld because the later observation was not eligible for independently verified exact comparison." : "No eligible directional comparison is available yet." },
     ];
 
     return {
@@ -220,7 +233,7 @@ export function buildOutcomeLedger(input: {
       confidence,
       confidenceBasis,
       limitations,
-      limitation: followUp?.limitation || DEFAULT_LIMITATION,
+      limitation: [followUp?.limitation || DEFAULT_LIMITATION, contextLimitation].filter(Boolean).join(" "),
     };
   });
 }
