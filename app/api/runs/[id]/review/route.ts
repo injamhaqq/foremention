@@ -87,7 +87,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const sideEffects = await Promise.allSettled([
     supabaseRest("audit_logs", {
       method: "POST",
-      token: viewer.accessToken,
+      // Only after tenant-scoped owner/analyst review, evidence persistence
+      // and run-status transition have succeeded. audit_logs is deliberately
+      // append-only and admin-write-only under customer RLS.
+      serviceRole: true,
       prefer: "return=minimal",
       body: {
         organization_id: context.organizationId,
