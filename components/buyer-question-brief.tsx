@@ -34,7 +34,7 @@ export function BuyerQuestionBriefPanel({ brief }: { brief: BuyerQuestionBrief }
             <div><dt>Your brand present / absent / undetermined</dt><dd>{q.customerPresent} / {q.customerAbsent} / {q.presenceUndetermined}</dd></div>
             <div><dt>Distinct provider-returned citation URLs</dt><dd>{q.returnedCitationUrls}</dd></div>
           </dl>
-          <p><strong>Recorded observation surface:</strong> {q.observedSurfaces.map(surface => surface.provider + " / " + surface.model + " (" + surface.verifiedAnswerSlots + " verified slot" + (surface.verifiedAnswerSlots === 1 ? "" : "s") + ")").join(", ")}. A hosted model or independent retrieval process is not equivalent to its developer\'s consumer AI application.</p>
+          <p><strong>Recorded observation surface:</strong> {q.observedSurfaces.map(surface => surface.provider + " / " + surface.model + " (" + surface.verifiedAnswerSlots + " verified slot" + (surface.verifiedAnswerSlots === 1 ? "" : "s") + ")").join(", ")}. A hosted model or independent retrieval process is not equivalent to the model developer’s consumer AI application.</p>
           {q.competitorNameCandidates.length ? <p><strong>Literal competitor-name candidates:</strong> {q.competitorNameCandidates.map(c => c.name + " (" + c.observedAnswerSlots + " answer slot" + (c.observedAnswerSlots === 1 ? "" : "s") + ")").join(", ")}. These are text matches, not verified brand identity or market share.</p> : <p>No configured competitor name was detected in the verified answer text for this question.</p>}
           {q.reviewedCitationGaps.length ? <div>
             <strong>Same-run citations with explicit page review:</strong>
