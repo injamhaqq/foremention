@@ -171,9 +171,11 @@ export function buildOutcomeLedger(input: {
       : null;
     const pairMatchesAsset = Boolean(followUp && asset.baseline_run_id === followUp.baseline_run_id && followUp.rerun_id);
     const contextBlocked = followUp?.status === "complete" && (!pairMatchesAsset || contextCheck?.comparable === false);
-    const contextLimitation = !pairMatchesAsset
-      ? "The follow-up baseline does not match this resolution asset."
-      : contextCheck?.comparable === false ? contextCheck.reason || "Material measurement context could not be independently verified." : null;
+    const contextLimitation = !contextBlocked
+      ? null
+      : !pairMatchesAsset
+        ? "The follow-up baseline does not match this resolution asset."
+        : contextCheck?.reason || "Material measurement context could not be independently verified.";
     const storedCandidate = followUp?.status === "complete" && !contextBlocked
       ? readStoredComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
     const storedComparison = storedCandidate && (!baseline || isComparableBaselineRun(baseline)) && (!rerun || isComparableFollowUpRun(rerun)) ? storedCandidate : null;
