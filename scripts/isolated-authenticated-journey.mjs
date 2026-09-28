@@ -441,7 +441,7 @@ async function main() {
     await anonymousPage.goto(new URL("/app/outcomes",app).toString(),{
       waitUntil:"domcontentloaded",timeout:30000,
     });
-    assert.match(anonymousPage.url(),/\\/login(?:\\?|$)/,
+    assert.equal(new URL(anonymousPage.url()).pathname,"/login",
       "anonymous viewers must be redirected away from the private Outcome Ledger");
     step("authenticated-outcome-ledger-and-board-exact-context-chain-owner-only");
 
