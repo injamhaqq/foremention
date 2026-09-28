@@ -29,9 +29,11 @@ test("real authenticated customer acceptance must only run against local ephemer
   assert.match(journey,/real-authenticated-browser-rendered-isolated-audited-journey/);
   assert.match(workflow,/supabase start/);
   assert.match(workflow,/supabase db reset/);
-  assert.match(workflow,/pnpm run build:next/);
-  assert.match(workflow,/pnpm run start:next -- -H 127\\.0\\.0\\.1 -p 4174/);
-  assert.match(workflow,/Cloudflare\\/Vinext build and Worker are validated separately/);
+  assert.ok(workflow.includes("pnpm build"),"must compile production Vinext/Worker artifact");
+  assert.ok(workflow.includes("pnpm dev -- --host 127.0.0.1 --port 4174"),
+    "isolated real application routes must run under Vite native Cloudflare workerd");
+  assert.ok(workflow.includes("CI and Browser Acceptance independently verify"),
+    "independent production Worker verification remains explicit");
   assert.match(workflow,/node scripts\/isolated-authenticated-journey\.mjs/);
   assert.match(workflow,/rm -f \.isolated-local-env \.dev.vars/);
   assert.doesNotMatch(workflow,/secrets\.|foremention\.com|FOREMENTION_ACCEPTANCE_EMAIL|FOREMENTION_ACCEPTANCE_PASSWORD/);
