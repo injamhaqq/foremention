@@ -26,6 +26,7 @@ test("verified answer and same-run human-reviewed cited page produce inspectable
   const q = result.questions[0];
   assert.equal(q.attention, "reviewed_source_to_inspect");
   assert.deepEqual(q.competitorNameCandidates, [{ name: "Alpha", observedAnswerSlots: 1 }]);
+  assert.deepEqual(q.observedSurfaces, [{ provider: "test-provider", model: "test-model", verifiedAnswerSlots: 1 }]);
   assert.equal(q.reviewedCitationGaps[0].url, "https://research.example/compared");
   assert.equal(q.reviewedCitationGaps[0].reviewBasis, "human_reviewed_cited_page");
   assert.match(result.limitation, /not market share/);
@@ -123,5 +124,7 @@ test("private loader enforces scoped read-only, no service bypass, demo isolatio
   assert.match(page, /loadBuyerQuestionBrief\(viewer\)/);
   assert.match(page, /BuyerQuestionBriefPanel brief=\{brief\}/);
   assert.match(panel, /not a cross-run trend|Not a cross-run trend/);
+  assert.match(panel, /Recorded observation surface/);
+  assert.match(panel, /not equivalent to the model developer/);
   assert.match(panel, /noopener noreferrer/);
 });
