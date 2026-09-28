@@ -64,3 +64,17 @@ test("analyst-scoped source and change writes preserve admin-write-only audit re
   assert.match(changes, /if \(!writable\(role\)\)/);
   assert.match(resolutions, /if \(!writable\(role\)\)/);
 });
+
+test("isolated authenticated acceptance exercises positive and drifted nine-field outcome reports without secrets", async () => {
+  const journey=await read("../scripts/isolated-authenticated-journey.mjs");
+  for(const route of ["/app/outcomes","/app/outcomes/print"]){
+    assert.ok(journey.includes(route),route+" must be read via the actual browser");
+  }
+  assert.match(journey,/authenticated-outcome-ledger-and-board-exact-context-chain-owner-only/);
+  assert.match(journey,/real-authenticated-protocol-drift-fail-closed-in-page-and-board-export/);
+  assert.match(journey,/contextOverride:\{evaluationVersion:"fixture-different-evaluation-v2"\}/);
+  assert.match(journey,/assert\.equal\(persistedDrift\[0\]\.status,"complete"/);
+  assert.match(journey,/new URL\(anonymousPage\.url\(\)\)\.pathname/);
+  assert.match(journey,/getByText\(record\.title,\{exact:true\}\)\.count\(\)/);
+  assert.doesNotMatch(journey,/foremention\.com|FOREMENTION_ACCEPTANCE_PASSWORD|www\.bing\.com/);
+});
