@@ -30,8 +30,8 @@ test("real authenticated customer acceptance must only run against local ephemer
   assert.match(workflow,/supabase start/);
   assert.match(workflow,/supabase db reset/);
   assert.ok(workflow.includes("pnpm build"),"must compile production Vinext/Worker artifact");
-  assert.ok(workflow.includes("pnpm run start -- --host 127.0.0.1 --port 4174"),
-    "isolated real routes must run against the compiled Vinext application");
+  assert.ok(workflow.includes("pnpm dlx wrangler@4.113.0 dev --local --config dist/server/wrangler.json"),
+    "manual signed-in route acceptance must retain the pinned local Worker runner");
   assert.ok(workflow.includes("CI and Browser Acceptance independently verify"),
     "independent production Worker verification remains explicit");
   assert.match(workflow,/node scripts\/isolated-authenticated-journey\.mjs/);
