@@ -44,7 +44,17 @@ for(let i=0;i<lines.length;i++){
   diagnostics.push({kind:"sanitized-supabase-request",resource,method,status,code});
   continue;
  }
- if(/\b(?:uncaught|error|exception|database)\b/i.test(line)){
+ if(/\b(?:uncaught|error|exception|database|failed|unable|unexpected)\b/i.test(line)){
+  // Only fixed, allowlisted categories. Never render the raw local log.
+  for(const [pattern,label] of [
+    [/Cannot find module.*cloudflare:workers/i,"node-cannot-load-cloudflare-worker-module"],
+    [/Cannot find package|Cannot find module|Failed to resolve/i,"missing-build-module"],
+    [/ERR_UNKNOWN_FILE_EXTENSION/i,"unsupported-runtime-module"],
+    [/EADDRINUSE|port.*already in use/i,"local-listener-conflict"],
+    [/Command.*not found|Unknown command|ERR_PNPM/i,"local-cli-invocation-error"],
+    [/SyntaxError|Unexpected token/i,"runtime-syntax-error"],
+    [/Vite|Cloudflare Vite Plugin|Miniflare|workerd/i,"native-workerd-startup-error"],
+  ]) if(pattern.test(line)){diagnostics.push({kind:"isolated-startup-error",category:label});break}
   // Fixed labels only. Keep all raw text private: could contain user input or
   // auth errors returned by local GoTrue, never safe to print verbatim.
   for(const [pattern,label] of [
