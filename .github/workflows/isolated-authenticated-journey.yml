@@ -1,10 +1,13 @@
 name: Isolated Authenticated Journey
 
-# The full browser/Worker chain remains a MANUAL pre-release gate while
-# the local development runtime's intermittent startup failures are triaged.
-# The separate PR-required Isolated Outcome Evidence workflow exercises real
-# local Auth/PostgREST/RLS and stored parity without pretending to verify UI.
+# The full browser/Worker chain is an OPT-IN pre-release check while the
+# combined local runtime's intermittent startup failures are triaged.
+# Apply the 'run-isolated-full-journey' label on the open PR to execute this
+# BEFORE merge. The separate always-required Isolated Outcome Evidence gate
+# tests real local Auth/PostgREST/RLS and stored parity, never the actual UI.
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +20,7 @@ concurrency:
 jobs:
   isolated-journey:
     name: Isolated Authenticated Journey
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-isolated-full-journey')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
