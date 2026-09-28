@@ -51,6 +51,8 @@ export type BuyerQuestionEvidence = {
   key: string;
   question: string;
   verifiedAnswerSlots: number;
+  /** Actual persisted observation surface, never relabeled as a consumer app. */
+  observedSurfaces: Array<{ provider: string; model: string; verifiedAnswerSlots: number }>;
   customerPresent: number;
   customerAbsent: number;
   presenceUndetermined: number;
@@ -212,6 +214,12 @@ export function buildBuyerQuestionBrief(input: {
         }
       }
     }
+    const surfaces = new Map<string, { provider: string; model: string; verifiedAnswerSlots: number }>();
+    for (const a of answers) {
+      const id = JSON.stringify([a.provider, a.model]);
+      const existing = surfaces.get(id);
+      surfaces.set(id, { provider: a.provider, model: a.model!, verifiedAnswerSlots: (existing?.verifiedAnswerSlots || 0) + 1 });
+    }
     const absent = answers.filter(a => a.brand_present === false).length;
     const unknown = answers.filter(a => a.brand_present === null).length;
     const candidates = [...observed.entries()].map(([name, observedAnswerSlots]) => ({ name, observedAnswerSlots })).sort((a,b) => a.name.localeCompare(b.name));
@@ -221,6 +229,7 @@ export function buildBuyerQuestionBrief(input: {
       unknown === answers.length ? "undetermined" : "observation_only";
     return {
       key, question: promptKeys.get(key)!, verifiedAnswerSlots: answers.length,
+      observedSurfaces: [...surfaces.values()].sort((a,b) => a.provider.localeCompare(b.provider) || a.model.localeCompare(b.model)),
       customerPresent: answers.filter(a => a.brand_present === true).length,
       customerAbsent: absent, presenceUndetermined: unknown,
       returnedCitationUrls: citations.size,
