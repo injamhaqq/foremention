@@ -12,12 +12,13 @@ const record = (overrides = {}) => ({
   title: overrides.title || "Reviewed comparison gap",
   problemStatement: "A reviewed gap",
   assetType: overrides.assetType || "comparison_brief",
-  status: "applied",
+  changeSpecificationId: overrides.changeSpecificationId === undefined ? "change-1" : overrides.changeSpecificationId,
+  status: overrides.status || "applied",
   steps: overrides.steps || ["observation","evidence","recommendation","decision","action","owner","completion","measurement","outcome"].map((key) => step(key)),
   ownerId: overrides.ownerId === undefined ? "user-1" : overrides.ownerId,
   dueAt: overrides.dueAt || "2026-09-01T12:00:00.000Z",
   nextAction: "Review",
-  applicationReference: "https://example.com/change",
+  applicationReference: overrides.applicationReference === undefined ? "https://example.com/change" : overrides.applicationReference,
   applicationNote: null,
   comparison: overrides.comparison === undefined ? {} : overrides.comparison,
   comparisonEligible: overrides.comparisonEligible === undefined ? true : overrides.comparisonEligible,
@@ -162,4 +163,17 @@ test("decision evidence summary refuses to call incomplete work proof", () => {
   assert.equal(summary.status, "chain_in_progress");
   assert.match(summary.statement, /No complete decision-evidence chain/i);
   assert.doesNotMatch(summary.statement, /impact achieved|ROI demonstrated|caused/i);
+});
+
+
+test("a legacy recommendation or missing execution reference cannot be counted as a complete customer-owned decision chain", () => {
+  for (const incomplete of [
+    record({changeSpecificationId:null}),
+    record({applicationReference:null}),
+    record({status:"approved"}),
+  ]) {
+    const report=buildDecisionEvidenceSummary([incomplete]);
+    assert.equal(report.completeDecisionChains,0);
+    assert.equal(report.status,"chain_in_progress");
+  }
 });
