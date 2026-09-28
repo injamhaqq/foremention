@@ -53,6 +53,7 @@ test("literal-name candidates require exact Unicode word boundaries, never subst
   assert.equal(containsLiteralCompetitorName("SAP is compared", "SAP"), true);
   assert.equal(containsLiteralCompetitorName("Notionable isn't a brand", "Notion"), false);
   assert.equal(containsLiteralCompetitorName("The reviewer considered C++ today", "C++"), true);
+  assert.equal(containsLiteralCompetitorName("We evaluated Alpha-Beta", "Alpha-Beta"), true);
   assert.equal(containsLiteralCompetitorName("The brand is Acme   Cloud", "Acme Cloud"), true);
   assert.equal(containsLiteralCompetitorName("আমরা বাংলা পণ্য", "বাংলা"), true);
 });
@@ -61,7 +62,8 @@ test("malformed, credential-bearing, private loopback and non-web URLs cannot be
   for (const url of ["javascript:alert(1)", "file:///etc/secret", "https://user:pass@example.com/", "http://localhost:8080/", "https://127.0.0.1/", "http://[::1]/"]) {
     assert.equal(canonicalBriefCitation(url), null);
   }
-  assert.equal(canonicalBriefCitation("https://RESEARCH.EXAMPLE/compared/#fragment"), "https://research.example/compared");
+  assert.equal(canonicalBriefCitation("https://WWW.RESEARCH.EXAMPLE/compared/?utm_source=email#fragment"), "https://research.example/compared");
+  assert.equal(canonicalBriefCitation("https://research.example/secret?access_token=sensitive"), null);
   const q = runBrief({ verifiedAnswers: [answer({ citations_json: [{ url: "javascript:alert(1)" }] })] }).questions[0];
   assert.equal(q.returnedCitationUrls, 0);
 });
