@@ -74,6 +74,8 @@ test("cross-run, unverified, duplicate, missing-model and conflicting question p
   assert.equal(runBrief({ verifiedAnswers: [answer(), answer()] }).state, "withheld");
   assert.equal(runBrief({ verifiedAnswers: [answer(), answer({ model: "alternate-model", prompt_text: "Other question" })] }).state, "withheld");
   assert.equal(runBrief({ verifiedAnswers: [answer({ model: null })] }).state, "withheld");
+  assert.equal(runBrief({ verifiedAnswers: [answer({ answer_text: "A".repeat(24001) })] }).state, "withheld");
+  assert.equal(runBrief({ verifiedAnswers: [answer({ citations_json: Array.from({ length: 51 }, () => ({ url: "https://research.example/a" })) })] }).state, "withheld");
   assert.equal(runBrief({ competitors: [competitor[0], { ...competitor[0], id: "conflict" }] }).state, "withheld");
 });
 
