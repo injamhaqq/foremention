@@ -7,9 +7,10 @@ import {
   type OutcomeLedgerEvidenceRow,
   type OutcomeLedgerFollowUpRow,
   type OutcomeLedgerOpportunityRow,
-  type OutcomeLedgerRunRow,
 } from "@/lib/outcome-ledger";
 import { buildBusinessValueReport, buildDecisionEvidenceSummary, buildExecutiveDigest, buildPeriodSummaries } from "@/lib/value-report";
+import { loadOutcomeContextParity } from "@/lib/outcome-context-read";
+import type { OutcomeContextRun } from "@/lib/outcome-context-gate";
 import { isMissingRelationError, supabaseRest } from "@/lib/supabase-rest";
 
 const formatDate = (value: string | null) => {
@@ -77,9 +78,15 @@ export default async function OutcomesPage() {
   });
 
   const runIds = Array.from(new Set([...assetsWithChange.map((row) => row.baseline_run_id), ...followUps.map((row) => row.rerun_id)].filter((id): id is string => Boolean(id))));
-  const runs = runIds.length ? await readLedgerTable(supabaseRest<OutcomeLedgerRunRow[]>(`runs?select=id,status,brand_presence_pct,first_mention_pct,citation_count,new_source_count,completed_at&id=in.(${runIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { token: viewer.accessToken }), pending) : [];
+  const runs = runIds.length ? await readLedgerTable(supabaseRest<OutcomeContextRun[]>(`runs?select=id,status,methodology_version,answer_count,brand_presence_pct,first_mention_pct,citation_count,new_source_count,completed_at&id=in.(${runIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { token: viewer.accessToken }), pending) : [];
 
-  const records = buildOutcomeLedger({ assets: assetsWithChange, evidence, opportunities, followUps, runs });
+  const contextParityByFollowUp = await loadOutcomeContextParity({
+    accessToken: viewer.accessToken || "",
+    organizationId: context.organizationId,
+    runs,
+    followUps,
+  });
+  const records = buildOutcomeLedger({ assets: assetsWithChange, evidence, opportunities, followUps, runs, contextParityByFollowUp });
   const value = buildBusinessValueReport(records);
   const decisionEvidence = buildDecisionEvidenceSummary(records);
   const digest = buildExecutiveDigest(records);
