@@ -104,14 +104,16 @@ jobs:
               break
             fi
             if ! kill -0 "$server_pid" 2>/dev/null; then
-              echo "Local application stopped before readiness."
+              echo "[isolated-server] local-application-stopped-before-readiness"
+              node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
               exit 1
             fi
             echo "Waiting for isolated local application ($attempt/90)"
             sleep 1
           done
           if [ "$ready" != "true" ]; then
-            echo "Local application did not become ready."
+            echo "[isolated-server] local-application-readiness-timeout"
+            node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
             exit 1
           fi
 
