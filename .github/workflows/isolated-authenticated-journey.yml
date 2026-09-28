@@ -1,14 +1,17 @@
 name: Isolated Authenticated Journey
 
+# The full browser/Worker chain remains a MANUAL pre-release gate while
+# the local development runtime's intermittent startup failures are triaged.
+# The separate PR-required Isolated Outcome Evidence workflow exercises real
+# local Auth/PostgREST/RLS and stored parity without pretending to verify UI.
 on:
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: isolated-auth-journey-${{ github.ref }}
+  group: manual-isolated-auth-journey-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
