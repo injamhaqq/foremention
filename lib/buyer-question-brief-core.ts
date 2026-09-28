@@ -82,7 +82,14 @@ const empty = (state: BuyerQuestionBrief["state"], reason: string, run: BuyerBri
 });
 const clean = (value: string) => value.replace(/\s+/gu, " ").trim();
 const fold = (value: string) => clean(value).toLocaleLowerCase("en-US");
-const escapeRegex = (value: string) => value.replace(/[^\p{L}\p{N}]/gu, "\\$&");
+function escapeRegex(value: string) {
+  let escaped = "";
+  for (const char of value) {
+    if (["\\", ".", "*", "+", "?", "^", "$", "{", "}", "(", ")", "|", "[", "]"].includes(char)) escaped += "\\" + char;
+    else escaped += char;
+  }
+  return escaped;
+}
 
 /** Only a text-matching candidate: punctuation/case/brand-name ambiguity remains. */
 export function containsLiteralCompetitorName(answerText: string, competitorName: string) {
@@ -99,9 +106,17 @@ export function canonicalBriefCitation(raw: unknown): string | null {
     const url = new URL(raw);
     if ((url.protocol !== "http:" && url.protocol !== "https:") || url.username || url.password) return null;
     if (!url.hostname || /^(?:localhost|127\.|0\.|10\.|192\.168\.|169\.254\.|\[::1\]$)/i.test(url.hostname)) return null;
+    // Align with the existing provider-returned citation canonicalization policy.
     url.hash = "";
-    url.hostname = url.hostname.toLowerCase();
-    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/u, "");
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    if ((url.protocol === "https:" && url.port === "443") || (url.protocol === "http:" && url.port === "80")) url.port = "";
+    for (const key of Array.from(url.searchParams.keys())) {
+      // Refuse to expose credential-bearing query links.
+      if (/^(?:access_token|api_?key|token|password|secret|sig|signature|auth|session|code|state)$/i.test(key)) return null;
+      if (/^(utm_.+|gclid|dclid|fbclid|msclkid|mc_cid|mc_eid|ref|referrer|source)$/i.test(key)) url.searchParams.delete(key);
+    }
+    url.searchParams.sort();
+    url.pathname = url.pathname.replace(/\/{2,}/g, "/").replace(/\/$/, "") || "/";
     return url.toString();
   } catch {
     return null;
