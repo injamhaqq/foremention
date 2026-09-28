@@ -167,7 +167,7 @@ async function onboard(ctx,label) {
   return {org:body.organizationId,project:body.projectId,category:body.categoryId,prompts};
 }
 
-async function seedLocalRun(tenant,userId,label,{review=true,cited=false,metrics=[20,0,1,1]}={}) {
+async function seedLocalRun(tenant,userId,label,{review=true,cited=false,metrics=[20,0,1,1],contextOverride=null}={}) {
   const created = iso();
   const run=(await db("POST","runs",[{
     organization_id:tenant.org,project_id:tenant.project,category_id:tenant.category,
@@ -192,7 +192,7 @@ async function seedLocalRun(tenant,userId,label,{review=true,cited=false,metrics
     answer_text:"Synthetic "+label+" observation only; it does not establish real source support or causality.",
     citations_json:cited&&index===0?[{url:"https://fixture.invalid/source",title:"Synthetic fixture-only source"}]:[],
     review_status:review?"unreviewed":"verified",collected_at:created,
-    measurement_context_json:context,
+    measurement_context_json:index===0 && contextOverride ? {...context,...contextOverride} : context,
   })));
   assert.equal(answers.length,5);
   return {run,answers,prompts};
@@ -413,6 +413,78 @@ async function main() {
     const rendered=await page.locator("body").innerText();
     assert.match(rendered,/resolution|evidence/i,"authenticated customer UI must render");
     step("real-authenticated-browser-rendered-isolated-audited-journey");
+    // True authenticated page/print acceptance of the strategic Outcome Ledger.
+    // This is not merely a mocked helper test: both routes execute signed-in
+    // PostgREST/RLS reads against the disposable local database.
+    const outcomePage=await ownerCtx.newPage();
+    const outcomeResponse=await outcomePage.goto(new URL("/app/outcomes",app).toString(),{
+      waitUntil:"domcontentloaded",timeout:30000,
+    });
+    assert.equal(outcomeResponse?.status(),200,"owner Outcome Ledger must render the completed local chain");
+    const exactChain=outcomePage.locator("article").filter({hasText:"Complete chains"}).first().locator("strong");
+    assert.equal((await exactChain.innerText()).trim(),"1","owner's exact-context change must count exactly once");
+    const boardPage=await ownerCtx.newPage();
+    const boardResponse=await boardPage.goto(new URL("/app/outcomes/print",app).toString(),{
+      waitUntil:"domcontentloaded",timeout:30000,
+    });
+    assert.equal(boardResponse?.status(),200,"owner board export must load with exact-context proof");
+    assert.match(await boardPage.locator(".print-record__states").innerText(),
+      /Complete evidence chains\\s+1/i,"board export must reflect the independently verified chain");
+    const otherPage=await otherCtx.newPage();
+    const otherResponse=await otherPage.goto(new URL("/app/outcomes",app).toString(),{
+      waitUntil:"domcontentloaded",timeout:30000,
+    });
+    assert.equal(otherResponse?.status(),200,"other tenant's empty Outcome Ledger must render");
+    assert.doesNotMatch(await otherPage.locator("main").innerText(),
+      new RegExp(generated.id.slice(0,8),"i"),"other tenant must not see the owner's intervention");
+    step("authenticated-outcome-ledger-and-board-exact-context-chain-owner-only");
+
+    // Create a genuinely later third fixture with the exact same five frozen
+    // questions/provider/model but a different evaluation version on ONE
+    // answer. The pre-release production DB trigger (#351) may finalize this
+    // weakly comparable pair; the independent report gate MUST still withhold
+    // direction. This remains zero-cost local test data only.
+    const driftRequest=must(await appCall(ownerCtx,"POST","/api/resolutions",{
+      action:"remeasure",resolutionId:generated.id
+    }),202,"new independent drift-verification request").data;
+    const drift=await seedLocalRun(tenant,owner.id,"changed evaluation protocol",{
+      review:true,cited:false,metrics:[60,40,0,0],
+      contextOverride:{evaluationVersion:"fixture-different-evaluation-v2"},
+    });
+    must(await appCall(ownerCtx,"POST","/api/resolutions",{
+      action:"remeasure",resolutionId:generated.id,rerunId:drift.run.id,
+      measurementId:driftRequest.measurementRequestId
+    }),200,"attach later protocol-drift fixture");
+    must(await appCall(ownerCtx,"POST","/api/runs/"+drift.run.id+"/review",{}),
+      200,"finalize later protocol-drift fixture");
+    const persistedDrift=await db("GET",
+      "resolution_follow_ups?select=status&organization_id=eq."+tenant.org+
+      "&id=eq."+driftRequest.measurementRequestId);
+    assert.equal(persistedDrift.length,1,"the later measurement must be retained");
+    assert.equal(persistedDrift[0].status,"complete",
+      "the local pre-migration database should expose the very overclaim the independent gate prevents");
+
+    const withheldResponse=await outcomePage.goto(new URL("/app/outcomes",app).toString(),{
+      waitUntil:"domcontentloaded",timeout:30000,
+    });
+    assert.equal(withheldResponse?.status(),200,"protocol-drift Outcome Ledger must still render");
+    const withheldText=await outcomePage.locator("main").innerText();
+    assert.equal((await outcomePage.locator("article").filter({hasText:"Complete chains"})
+      .first().locator("strong").innerText()).trim(),"0",
+      "protocol drift must not count as a complete inspectable chain");
+    assert.equal((await outcomePage.locator("article").filter({hasText:"Eligible comparisons"})
+      .first().locator("strong").innerText()).trim(),"0",
+      "protocol drift must suppress the old directional comparison");
+    assert.match(withheldText,/incomparable/i,
+      "the customer-facing report must visibly retain uncertainty");
+    const withheldBoard=await boardPage.goto(new URL("/app/outcomes/print",app).toString(),{
+      waitUntil:"domcontentloaded",timeout:30000,
+    });
+    assert.equal(withheldBoard?.status(),200,"protocol-drift board export must still render");
+    assert.match(await boardPage.locator(".print-record__states").innerText(),
+      /Complete evidence chains\\s+0/i,"board export must independently suppress drifted chain");
+    step("real-authenticated-protocol-drift-fail-closed-in-page-and-board-export");
+
     process.stdout.write("[isolated-journey] PASSED "+stages.length+" synthetic-only stages; no providers, no production, no customer-value claim.\n");
   } finally {
     await Promise.all(clients.map(async c => c.close().catch(()=>{})));
