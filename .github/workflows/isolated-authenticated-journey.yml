@@ -92,12 +92,11 @@ jobs:
           npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
           .ci-tools/node_modules/.bin/playwright install --with-deps chromium
 
-          # Native Vite+Cloudflare workerd local server. No external
-          # account, deployed Worker, or paid provider is used.
-          # Use vinext's project-local dotenv/config preloader (rather than
-          # direct Vite) so static Cloudflare config imports see the same
-          # environment at module-evaluation time as the production adapter.
-          pnpm run dev -- --host 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
+          # Exercise the built Vinext production artifact locally instead
+          # of spinning up a second dev-mode compiler alongside Playwright.
+          # The independent Worker dry-run and browser PR gates validate the
+          # Cloudflare build. This requires no deployment or provider calls.
+          pnpm run start -- --host 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
           server_pid=$!
           ready=false
           for attempt in $(seq 1 90); do
