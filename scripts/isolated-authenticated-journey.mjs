@@ -64,11 +64,12 @@ async function appCall(ctx,method,path,data,extraHeaders={}) {
   try {
     response=await ctx.request.fetch(new URL(path,app).toString(),{
       method,headers:{origin:app.origin,accept:"application/json",...extraHeaders},
-      // Local Worker cold-route compilation can exceed Playwright's default
-      // 30s on the final fully linked resolution read. Allow 75s only for
-      // this tagged first attempt; never retry a failed 500 or count the
-      // later diagnostic repeat as a passing acceptance request.
-      timeout:extraHeaders["x-foremention-isolated-final-read"]==="1" ? 75_000 : 30_000,
+      // Local Worker cold-route compilation can exceed Playwright's 30s
+      // default on the first authenticated post-review or final fully linked
+      // Resolution read. Only those TWO tagged first attempts get 75s. Never
+      // retry a failed 500 or count a diagnostic repeat as passing acceptance.
+      timeout:extraHeaders["x-foremention-isolated-final-read"]==="1"
+        || extraHeaders["x-foremention-isolated-post-review-read"]==="1" ? 75_000 : 30_000,
       ...(data===undefined?{}:{data}),
     });
   } catch {
