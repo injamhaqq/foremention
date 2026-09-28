@@ -64,6 +64,11 @@ async function appCall(ctx,method,path,data,extraHeaders={}) {
   try {
     response=await ctx.request.fetch(new URL(path,app).toString(),{
       method,headers:{origin:app.origin,accept:"application/json",...extraHeaders},
+      // Local Worker cold-route compilation can exceed Playwright's default
+      // 30s on the final fully linked resolution read. Allow 75s only for
+      // this tagged first attempt; never retry a failed 500 or count the
+      // later diagnostic repeat as a passing acceptance request.
+      timeout:extraHeaders["x-foremention-isolated-final-read"]==="1" ? 75_000 : 30_000,
       ...(data===undefined?{}:{data}),
     });
   } catch {
@@ -418,21 +423,21 @@ async function main() {
     // PostgREST/RLS reads against the disposable local database.
     const outcomePage=await ownerCtx.newPage();
     const outcomeResponse=await outcomePage.goto(new URL("/app/outcomes",app).toString(),{
-      waitUntil:"domcontentloaded",timeout:30000,
+      waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(outcomeResponse?.status(),200,"owner Outcome Ledger must render the completed local chain");
     const exactChain=outcomePage.locator("article").filter({hasText:"Complete chains"}).first().locator("strong");
     assert.equal((await exactChain.innerText()).trim(),"1","owner's exact-context change must count exactly once");
     const boardPage=await ownerCtx.newPage();
     const boardResponse=await boardPage.goto(new URL("/app/outcomes/print",app).toString(),{
-      waitUntil:"domcontentloaded",timeout:30000,
+      waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(boardResponse?.status(),200,"owner board export must load with exact-context proof");
     assert.match(await boardPage.locator(".print-record__states").innerText(),
       /Complete evidence chains\s+1/i,"board export must reflect the independently verified chain");
     const otherPage=await otherCtx.newPage();
     const otherResponse=await otherPage.goto(new URL("/app/outcomes",app).toString(),{
-      waitUntil:"domcontentloaded",timeout:30000,
+      waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(otherResponse?.status(),200,"other tenant's empty Outcome Ledger must render");
     assert.equal(await otherPage.getByText(record.title,{exact:true}).count(),0,
@@ -471,7 +476,7 @@ async function main() {
       "the local pre-migration database should expose the very overclaim the independent gate prevents");
 
     const withheldResponse=await outcomePage.goto(new URL("/app/outcomes",app).toString(),{
-      waitUntil:"domcontentloaded",timeout:30000,
+      waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(withheldResponse?.status(),200,"protocol-drift Outcome Ledger must still render");
     const withheldText=await outcomePage.locator("main").innerText();
@@ -484,7 +489,7 @@ async function main() {
     assert.match(withheldText,/incomparable/i,
       "the customer-facing report must visibly retain uncertainty");
     const withheldBoard=await boardPage.goto(new URL("/app/outcomes/print",app).toString(),{
-      waitUntil:"domcontentloaded",timeout:30000,
+      waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(withheldBoard?.status(),200,"protocol-drift board export must still render");
     assert.match(await boardPage.locator(".print-record__states").innerText(),
