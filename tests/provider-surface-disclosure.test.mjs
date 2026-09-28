@@ -30,8 +30,11 @@ test("public Markdown mirrors disclose the exact same provider-surface boundarie
     assert.match(page, /consumer-app/);
     assert.match(page, /Gemini/);
     assert.match(page, /Perplexity/);
-    assert.match(page, /last_updated:\s*"2026-09-26"/);
   }
+  assert.match(product, /last_updated:\s*"2026-09-28"/);
+  assert.match(method, /last_updated:\s*"2026-09-26"/);
+  assert.match(product, /Decision evidence standard/);
+  assert.match(product, /incomparable/i);
   assert.match(product, /not\*\* direct monitoring of ChatGPT/i);
   assert.match(method, /not a native ChatGPT/i);
 });
