@@ -14,7 +14,6 @@ import { supabaseRest } from "./supabase-rest";
 export async function loadOutcomeContextParity(input: {
   accessToken: string;
   organizationId: string;
-  projectId: string;
   runs: OutcomeContextRun[];
   followUps: OutcomeLedgerFollowUpRow[];
 }) {
@@ -33,7 +32,7 @@ export async function loadOutcomeContextParity(input: {
   for (let i = 0; i < pairedRunIds.length; i += batchSize) {
     const batch = pairedRunIds.slice(i, i + batchSize);
     const rows = await supabaseRest<OutcomeContextAnswer[]>(
-      `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json&organization_id=eq.${input.organizationId}&project_id=eq.${input.projectId}&run_id=in.(${batch.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=1000`,
+      `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json&organization_id=eq.${input.organizationId}&run_id=in.(${batch.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=1000`,
       { token: input.accessToken },
     );
     if (rows.length >= 1000) {
