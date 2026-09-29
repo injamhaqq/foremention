@@ -13,12 +13,12 @@ test("compiled production Worker experiment uses isolated programmatic Workerd a
   for(const required of [
     "createTestHarness", "configPath:isolatedConfig",
     "delete original.ai", 'original.ai?.binding,"AI"',
-    "wrangler.local-harness.json", "await harness.listen()",
+    "wrangler.local-harness.json", "await harness.listen()", "harness.getWorker()",
     "await harness.fetch(", "await harness.close()",
     "Refusing programmatic acceptance without disposable local Supabase",
     'process.env.FOREMENTION_ISOLATED_APP_URL=url.href',
     'await import("./isolated-customer-api.mjs")',
-    "harness.fetch(input,init)","target.origin!==appOrigin",
+    "directWorker.fetch(input,init)","target.origin!==appOrigin",
   ])assert.ok(script.includes(required),"Missing strict harness condition: "+required);
   for(const required of [
     "real-change-spec-review-role-gates-and-manager-approval",

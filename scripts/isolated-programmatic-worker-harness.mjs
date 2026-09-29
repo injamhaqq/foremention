@@ -34,6 +34,7 @@ const harness = createTestHarness({
 });
 try {
   const {url} = await harness.listen();
+  const directWorker=harness.getWorker();
   assert.ok(local(url.href),"Programmatic Worker harness must bind loopback only.");
   const health = await harness.fetch(new URL("/api/health",url).toString());
   assert.equal(health.status,200,"The real compiled Worker must answer its first health request.");
@@ -52,7 +53,9 @@ try {
     const target=new URL(typeof input==="string"||input instanceof URL ? input : input.url);
     if(target.origin!==appOrigin) return originalFetch(input,init);
     const beforeLogs=harness.getLogs().length;
-    const first=harness.fetch(input,init).then(response=>{
+    // Dispatch the route straight to the compiled Worker, bypassing even
+    // the harness routing/server adapter used by harness.fetch.
+    const first=directWorker.fetch(input,init).then(response=>{
       if(response.status>=500){
         // Inspect only known fixed-stage markers and approved opaque failure
         // categories. NEVER emit raw Worker log messages, request headers,
