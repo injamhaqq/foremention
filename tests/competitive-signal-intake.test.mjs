@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { HOSTS, validatePublicSignal, parsePublicSignals } from "../scripts/competitive-signal-intake.mjs";
 
@@ -89,4 +93,27 @@ test("dated internal radar preserves source-first claims and isolates response h
     assert.ok(row.published_on<=radar.as_of);
     assert.ok(row.observed_on===radar.as_of);
   }
+});
+
+
+test("public intake CLI consumes explicit local export only and never leaks rejected data",async()=>{
+  const temp=await mkdtemp(join(tmpdir(),"foremention-research-"));
+  const input=join(temp,"research.ndjson");
+  try {
+    await writeFile(input,JSON.stringify(valid)+"\\n","utf8");
+    const script=fileURLToPath(new URL("../scripts/competitive-signal-intake.mjs",import.meta.url));
+    const args=[script,"--input",input,"--as-of","2026-09-30"];
+    const ok=spawnSync(process.execPath,args,{encoding:"utf8",timeout:10000,maxBuffer:500000});
+    assert.equal(ok.status,0,ok.stderr);
+    assert.equal(ok.stderr,"");
+    const result=JSON.parse(ok.stdout);
+    assert.equal(result.records.length,1);
+    assert.equal(result.records[0].review_status,"NEEDS_HUMAN_SOURCE_VERIFICATION");
+    assert.match(result.source_tool_claim,/does not attest that Agent Reach ran/);
+    const invalid=spawnSync(process.execPath,
+      [script,"--input",input,"--as-of","2026-02-30"],
+      {encoding:"utf8",timeout:10000,maxBuffer:500000});
+    assert.notEqual(invalid.status,0);
+    assert.doesNotMatch(invalid.stderr,/peec\\.ai|Public release of AI referral analytics|token/);
+  } finally {await rm(temp,{recursive:true,force:true});}
 });
