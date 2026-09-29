@@ -109,7 +109,7 @@ export type BingSearchResult = ProviderCitation & {
   snippet: string;
 };
 
-export function parseBingSearchRss(input: string): BingSearchResult[] {
+export function parseBingSearchRss(input: string, allowedUrl?: (url: string) => boolean): BingSearchResult[] {
   const raw = input.slice(0, MAX_RSS_CHARS);
   const lower = raw.toLowerCase();
   const results = new Map<string, BingSearchResult>();
@@ -128,7 +128,7 @@ export function parseBingSearchRss(input: string): BingSearchResult[] {
     const url = normalizeHttpUrl(extractTagValue(item, "link"));
     const snippet = textFromXml(extractTagValue(item, "description")).slice(0, 1_200);
 
-    if (url && !results.has(url)) {
+    if (url && (!allowedUrl || allowedUrl(url)) && !results.has(url)) {
       results.set(url, { url, title: title || undefined, snippet });
     }
     cursor = itemEnd + 7;
@@ -170,7 +170,16 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const raw = (await response.text()).slice(0, MAX_RSS_CHARS).trim();
   if (!raw) throw new Error("Bing RSS returned no evidence content.");
 
-  const unqualifiedResults = parseBingSearchRss(raw);
+  // Filter BEFORE the bounded eight-result limit. Otherwise eight irrelevant
+  // RSS items at the top can hide a later, explicitly requested official
+  // article even though it is present in the same bounded response.
+  // Recheck below before constructing any model context (defense in depth).
+  const unqualifiedResults = parseBingSearchRss(
+    raw,
+    officialRequirement
+      ? (candidateUrl) => filterOfficialDomainCitations([{ url: candidateUrl }], officialRequirement).length === 1
+      : undefined,
+  );
   // Never label another site as an official citation when the question demands
   // an exact official source. Fail before calling a model if nothing qualifies.
   const results = filterOfficialDomainCitations(unqualifiedResults, officialRequirement) as BingSearchResult[];
