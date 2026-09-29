@@ -18,7 +18,9 @@ const answer = (run_id, overrides={}) => ({
   provider:"cloudflare", model:"model-id-pinned", measurement_context_json:{...context}, ...overrides,
 });
 const followUp = {id:"followup-1", resolution_asset_id:"asset-1", baseline_run_id:"base", rerun_id:"later", status:"complete",
-  requested_at:"2026-09-02T00:00:00Z", completed_at:"2026-09-08T00:00:00Z", outcome:{}, limitation:"Observed association only." };
+  // A real database follow-up can be requested only after the asset is applied
+  // (this file's applied fixture is dated 5 September); 2 September was never valid.
+  requested_at:"2026-09-06T00:00:00Z", completed_at:"2026-09-08T00:00:00Z", outcome:{}, limitation:"Observed association only." };
 const evaluate = (options={}) => evaluateFollowUpContextParity({
   followUps:[followUp], runs:[base,later], verifiedAnswers:[answer("base"),answer("later")], ...options,
 }).get(followUp.id);
