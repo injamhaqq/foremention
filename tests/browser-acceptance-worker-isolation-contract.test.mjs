@@ -11,7 +11,11 @@ test("public browser suites use distinct local Workers and fail if a suite kills
   const stop=workflow.indexOf("          stop_worker",canonical);
   assert.ok(start>0 && first>start && zoom>first && canonical>zoom && stop>canonical);
   assert.match(workflow.slice(start,first),/kill -0 "\$server_pid"/);
-  assert.match(workflow.slice(start,first),/\/api\/health/);
+  // Public-only PR acceptance intentionally has no isolated Supabase;
+  // /api/health must return 503 in that environment and is not liveness.
+  // Require the same dependency-free root readiness endpoint instead.
+  assert.match(workflow.slice(start,first),/127\\.0\\.0\\.1:4173\\/ >/);
+  assert.doesNotMatch(workflow.slice(start,first),/127\\.0\\.0\\.1:4173\\/api\\/health/);
   assert.match(workflow.slice(first,zoom),
     /browser-acceptance\.mjs\s+assert_worker_healthy\s+start_worker\s+/);
   assert.match(workflow.slice(zoom,canonical),
