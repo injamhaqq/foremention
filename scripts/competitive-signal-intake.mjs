@@ -8,7 +8,7 @@
  * The entire output stays human-review-pending until source verification.
  */
 import { createHash } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 export const HOSTS = Object.freeze({
