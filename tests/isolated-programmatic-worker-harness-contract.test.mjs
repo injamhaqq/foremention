@@ -11,7 +11,10 @@ test("compiled Worker harness eliminates the wrangler dev proxy without replacin
     read("../scripts/isolated-customer-api.mjs"),
   ]);
   assert.match(script,/createTestHarness/);
-  assert.match(script,/configPath:"dist\\/server\\/wrangler.json"/);
+  assert.match(script,/configPath:isolatedConfig/);
+  assert.match(script,/delete original.ai/);
+  assert.match(script,/original.ai\\?\\.binding,"AI"/);
+  assert.match(script,/wrangler.local-harness.json/);
   assert.match(script,/await harness.listen\\(\\)/);
   assert.match(script,/await harness.fetch\\(/);
   assert.match(script,/await harness.close\\(\\)/);
