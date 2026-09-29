@@ -34,6 +34,10 @@ test("experimental real Chromium transport uses only a disposable compiled Worke
   assert.match(browser,/newPage\(\)/);
   assert.match(browser,/\/app\/outcomes\/print/);
   assert.match(browser,/fixture-different-evaluation-v2/);
+  assert.match(browser,/realAssetTitle=record\?\.proposal\?\.title/);
+  assert.match(browser,/realAssetTitle\.trim\(\)\.length>5/);
+  assert.match(browser,/otherPage\.getByText\(realAssetTitle/);
+  assert.doesNotMatch(browser,/getByText\(record\.title/,"never pass an undefined display selector");
   assert.match(regularHarness,/directWorker\.fetch\(input,init\)/,
     "independent, already proven API harness is untouched");
 });
