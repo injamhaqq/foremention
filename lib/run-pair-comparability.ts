@@ -1,17 +1,15 @@
 import type { Viewer } from "@/lib/auth";
 import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
 import { loadWorkspaceContext } from "@/lib/data";
-import {
-  assessExactQuestionComparability,
-  coerceComparableMeasurementContext,
-  type ComparableQuestionSlot,
-} from "@/lib/intelligence-comparability";
+import { coerceComparableMeasurementContext } from "@/lib/intelligence-comparability";
+import { assessCompleteVerifiedRunPair, validPairedRunAnswerBudget } from "@/lib/run-pair-answer-gate";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type RunRow = {
   id: string;
   status: string;
   methodology_version: string | null;
+  answer_count: number | null;
   created_at: string;
 };
 
@@ -92,7 +90,7 @@ export async function assessWorkspaceRunPairComparability(
   if (!context) return withheld("The active workspace could not be verified.");
 
   const runs = await supabaseRest<RunRow[]>(
-    `runs?select=id,status,methodology_version,created_at&organization_id=eq.${context.organizationId}&id=in.(${earlierRunId},${laterRunId})&limit=2`,
+    `runs?select=id,status,methodology_version,answer_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${earlierRunId},${laterRunId})&limit=2`,
     { token: viewer.accessToken },
   );
   const byId = new Map(runs.map((run) => [run.id, run]));
@@ -104,7 +102,9 @@ export async function assessWorkspaceRunPairComparability(
   if (!terminalReviewedStates.has(earlier.status) || !terminalReviewedStates.has(later.status)) {
     return withheld("Both runs must have completed human review before movement can be compared.");
   }
-  if (new Date(earlier.created_at).getTime() >= new Date(later.created_at).getTime()) {
+  if (!Number.isFinite(new Date(earlier.created_at).getTime())
+    || !Number.isFinite(new Date(later.created_at).getTime())
+    || new Date(earlier.created_at).getTime() >= new Date(later.created_at).getTime()) {
     return withheld("Choose the older reviewed collection as Earlier and the newer reviewed collection as Later.");
   }
   if (!earlier.methodology_version || !later.methodology_version) {
@@ -114,19 +114,16 @@ export async function assessWorkspaceRunPairComparability(
     return withheld("The methodology version changed between these reviewed collections.");
   }
 
+  // Protect the network boundary BEFORE fetching: the page and the notification
+  // writer must never interpret a PostgREST-limited subset as a full run.
+  const budget = validPairedRunAnswerBudget(earlier, later);
+  if (!budget.comparable) return withheld(budget.reason || "Complete run answer counts are unavailable.");
+
   const rows = await supabaseRest<VerifiedAnswerRow[]>(
     `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
     { token: viewer.accessToken },
   );
-  const slots: ComparableQuestionSlot[] = rows.map((row) => ({
-    runId: row.run_id,
-    promptKey: row.prompt_key,
-    promptText: row.prompt_text,
-    provider: row.provider,
-    model: row.model,
-    measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
-  }));
-  const assessment = assessExactQuestionComparability(laterRunId, earlierRunId, slots);
+  const assessment = assessCompleteVerifiedRunPair(earlier, later, rows);
   if (!assessment.comparable) return withheld(assessment.reason || "The reviewed collections are not exactly comparable.");
 
   const answers = rows.map(answerView).filter((answer): answer is VerifiedRunComparisonAnswer => Boolean(answer));
