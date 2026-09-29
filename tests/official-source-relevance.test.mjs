@@ -28,6 +28,9 @@ test("the domain gate rejects unrelated, tracking and fake suffix hosts instead 
     { url: "https://www.bing.com/ck/a?url=https://openai.com/news" },
     { url: "https://openai.com/index/example" },
     { url: "https://www.openai.com/news/example" },
+    { url: "http://openai.com/news/plaintext" },
+    { url: "https://attacker.invalid@openai.com/news/credential-bait" },
+    { url: "https://openai.com:8443/news/unverified-service" },
     { url: "https://notopenai.com/news" },
     { url: "javascript:alert(1)" },
   ];
