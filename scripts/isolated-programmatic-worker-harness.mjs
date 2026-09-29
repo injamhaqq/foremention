@@ -5,7 +5,7 @@
 // The separate browser/Worker proof and owner production gates remain intact.
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access } from "node:fs/promises";
+import { access, readFile, writeFile, unlink } from "node:fs/promises";
 import { createTestHarness } from "wrangler";
 
 const local = value => {
@@ -20,8 +20,18 @@ if (!local(supabase) || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
 await access("dist/server/wrangler.json");
 await access("dist/server/.dev.vars");
 
+// Workers AI cannot run in the offline test harness: leaving config.ai
+// enabled requests Cloudflare's remote binding proxy and a real API token.
+// The tested app routes NEVER invoke AI. Remove only this optional binding in
+// an ephemeral copy of the exact generated production build configuration;
+// preserve the production config, module bundle, D1 and static assets as-is.
+const original=JSON.parse(await readFile("dist/server/wrangler.json","utf8"));
+assert.equal(original.ai?.binding,"AI","Only the known optional provider binding may be stripped.");
+delete original.ai;
+const isolatedConfig="dist/server/wrangler.local-harness.json";
+await writeFile(isolatedConfig,JSON.stringify(original),"utf8");
 const harness = createTestHarness({
-  workers: [{configPath:"dist/server/wrangler.json"}],
+  workers: [{configPath:isolatedConfig}],
 });
 try {
   const {url} = await harness.listen();
@@ -44,4 +54,5 @@ try {
   process.stdout.write("[programmatic-harness] authenticated-customer-API-acceptance-passed-without-wrangler-dev-proxy\\n");
 } finally {
   await harness.close();
+  await unlink(isolatedConfig);
 }
