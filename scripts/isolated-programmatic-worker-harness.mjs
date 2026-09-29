@@ -51,7 +51,32 @@ try {
   globalThis.fetch=async (input,init)=>{
     const target=new URL(typeof input==="string"||input instanceof URL ? input : input.url);
     if(target.origin!==appOrigin) return originalFetch(input,init);
-    const first=harness.fetch(input,init);
+    const beforeLogs=harness.getLogs().length;
+    const first=harness.fetch(input,init).then(response=>{
+      if(response.status>=500){
+        // Inspect only known fixed-stage markers and approved opaque failure
+        // categories. NEVER emit raw Worker log messages, request headers,
+        // potentially sensitive response bodies, or environment values.
+        const collected=harness.getLogs().slice(beforeLogs);
+        const serialized=collected.map(log=>JSON.stringify(log));
+        const labels=["entry","origin","viewer","payload","invalid","db"];
+        const reached=labels.filter(label=>serialized.some(line=>
+          line.includes("isolated-onboarding-stage") && line.includes(label)
+        ));
+        const safeCategories={
+          outbound_fetch:serialized.some(line=>/fetch failed|Network connection lost|ECONNREFUSED/i.test(line)),
+          unhandled_exception:serialized.some(line=>/uncaught|unhandled|exception/i.test(line)),
+          runtime_limit:serialized.some(line=>/limits exceeded|execution context|out of memory/i.test(line)),
+          worker_transport:serialized.some(line=>/worker script error|internal error|disconnected/i.test(line)),
+        };
+        process.stdout.write("[programmatic-harness] sanitized-failed-route="+
+          new URL(typeof input==="string"||input instanceof URL? input : input.url).pathname+
+          " status="+response.status+" fixed-stages="+reached.join(",")+
+          " log-events="+collected.length+" categories="+
+          Object.entries(safeCategories).filter(([,v])=>v).map(([k])=>k).join(",")+"\\n");
+      }
+      return response;
+    });
     const deadline=new Promise((_,reject)=>{
       const timer=setTimeout(()=>reject(Error("First direct compiled-Worker request exceeded isolated 75s deadline.")),75_000);
       first.finally(()=>clearTimeout(timer)).catch(()=>{});
