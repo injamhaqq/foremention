@@ -190,6 +190,25 @@ const readStoredComparison = (
  * source of truth to display in an executive report. Never silently choose the
  * favorable side of contradictory persisted evidence.
  */
+function storedMatchesSourceTimestamps(
+  outcome: Record<string, unknown>,
+  baseline: OutcomeLedgerRunRow | undefined,
+  rerun: OutcomeLedgerRunRow | undefined,
+): boolean {
+  // Independently compare even when old runs have NULL aggregate columns.
+  // A malformed *present* saved timestamp is a conflict, not an omitted date.
+  return ([
+    ["baselineCompletedAt", baseline?.completed_at],
+    ["followUpCompletedAt", rerun?.completed_at],
+  ] as const).every(([key, runTimestamp]) => {
+    const saved = outcome[key];
+    if (saved === undefined || saved === null) return true; // older saved outcomes omitted timestamps
+    return typeof saved === "string"
+      && parsedCompletedAt(saved) !== null
+      && parsedCompletedAt(saved) === parsedCompletedAt(runTimestamp);
+  });
+}
+
 function storedMatchesRunAggregates(
   stored: ReturnType<typeof compareResolutionRuns>,
   current: ReturnType<typeof compareResolutionRuns>,
@@ -283,7 +302,10 @@ export function buildOutcomeLedger(input: {
     const aggregateComparison = metricReady
       ? compareResolutionRuns(toMeasurement(baseline as OutcomeLedgerRunRow), toMeasurement(rerun as OutcomeLedgerRunRow))
       : null;
-    const aggregateConflict = Boolean(storedComparison && aggregateComparison
+    const sourceTimestampConflict = Boolean(storedComparison && !storedMatchesSourceTimestamps(
+      followUp?.outcome || {}, baseline, rerun,
+    ));
+    const aggregateConflict = sourceTimestampConflict || Boolean(storedComparison && aggregateComparison
       && !storedMatchesRunAggregates(storedComparison, aggregateComparison));
     const metricsBlocked = followUp?.status === "complete" && !contextBlocked
       && !storedComparison && !metricReady;
@@ -291,7 +313,7 @@ export function buildOutcomeLedger(input: {
       ? "Complete, valid baseline and follow-up aggregate metrics were unavailable; a directional comparison was withheld."
       : null;
     const conflictLimitation = aggregateConflict
-      ? "The stored follow-up outcome conflicts with independently readable run aggregates; directional evidence was withheld pending an integrity review."
+      ? "The stored follow-up outcome conflicts with independently readable run aggregates or source completion timestamps; directional evidence was withheld pending an integrity review."
       : null;
     // A conflicting persisted outcome must not be replaced by a potentially
     // favorable fresh calculation or vice versa; surface the conflict.
