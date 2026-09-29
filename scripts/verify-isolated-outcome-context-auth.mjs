@@ -241,7 +241,7 @@ async function readLocalUi(actor,path){
 function requireCounter(html,label,value) {
   // These fixed-label UI counters contain no regex metacharacters.
   const expression = new RegExp("<span>"+label+"<\\/span>(?:\\s|<!--.*?-->)*<strong>"+value+"<\\/strong>","i");
-  assert.match(html,expression,label+" must be "+value+" in the authenticated server-rendered view");
+  assert.ok(expression.test(html),label+" must be "+value+" in the authenticated server-rendered view");
 }
 
 const owner=await user();
@@ -298,7 +298,7 @@ if(uiMode){
   requireCounter(ownerExport.body,"Complete evidence chains",1);
   const otherPage=await readLocalUi(stranger,"/app/outcomes");
   assert.equal(otherPage.status,200,"other tenant has private empty report");
-  assert.doesNotMatch(otherPage.body,/Fixture documentation intervention/);
+  assert.ok(!/Fixture documentation intervention/.test(otherPage.body),"cross-tenant outcome page must not disclose the owner title");
   requireCounter(otherPage.body,"Complete chains",0);
   step("signed-in-server-rendered-owner-board-and-tenant-isolation");
 }
