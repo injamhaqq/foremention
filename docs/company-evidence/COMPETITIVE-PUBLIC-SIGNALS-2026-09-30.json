@@ -2,7 +2,7 @@
   "schema_version": "foremention.public-competitive-signals.v1",
   "as_of": "2026-09-30",
   "scope": "Internal research only; not client-facing collection and not first-party customer proof.",
-  "collector_status": "Public official URLs independently read through web and TinyFish; Agent Reach CLI unavailable in this runtime and was NOT executed.",
+  "collector_status": "Official sources checked through public web and TinyFish research on 2026-09-30; standalone Agent Reach CLI was not executed in this hosted runtime. No private/social platform or customer data was acquired.",
   "evidence_classes": [
     "PUBLIC_COMPANY_CLAIM",
     "VENDOR_PUBLISHED_STUDY"
@@ -78,7 +78,7 @@
       "competitor": "Peec AI",
       "published_on": "2026-09-16",
       "observed_on": "2026-09-30",
-      "claim": "Announced brand-perception analysis of AI descriptions and underlying sources.",
+      "claim": "Published a September explainer of brand perception, objection analysis and linked-source fact checking; its changelog records earlier general availability on 3 August 2026.",
       "source_url": "https://peec.ai/blog/introducing-brand-perception",
       "evidence_class": "PUBLIC_COMPANY_CLAIM",
       "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
@@ -117,12 +117,12 @@
       "competitor": "OtterlyAI",
       "published_on": "2026-09-11",
       "observed_on": "2026-09-30",
-      "claim": "Reported a company-run sample of 252,407 answers showing cited sources were less stable than mentions.",
+      "claim": "Published a vendor-run US study of 252,407 answers from 520 prompts, seven engines and three industries; reported generally more stable brand mentions than cited sources.",
       "source_url": "https://otterly.ai/blog/ai-search-visibility-stability/",
       "evidence_class": "VENDOR_PUBLISHED_STUDY",
       "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
       "theme": "measurement_stability",
-      "foremention_response_hypothesis": "Test 5-question activation as an individual decision case, not a statistically stable market-wide visibility benchmark.",
+      "foremention_response_hypothesis": "Five buyer questions support an auditable individual decision workflow, NOT a statistically stable visibility benchmark; scope every trend claim and consider repeat sampling only after research and budget consent.",
       "review_status": "PUBLIC_SOURCE_REVIEWED"
     }
   ]
