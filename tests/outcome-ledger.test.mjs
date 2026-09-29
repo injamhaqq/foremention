@@ -385,3 +385,31 @@ test("newest contradictory follow-up is not concealed by an older eligible measu
   assert.equal(record.comparisonEligible,false);
   assert.equal(record.outcomeState,"incomparable");
 });
+
+
+test("forged saved completion dates are rejected even when legacy run aggregate columns are unreadable",()=>{
+  const saved={
+    baselineRunId:baselineRun.id,followUpRunId:followUpRun.id,
+    baselineCompletedAt:"2035-08-01T00:00:00.000Z",
+    followUpCompletedAt:followUpRun.completed_at,
+    brandPresencePct:{before:20,after:35,delta:15},
+    firstMentionPct:{before:10,after:12,delta:2},
+    citationCount:{before:4,after:6,delta:2},
+    newSourceCount:{before:1,after:3,delta:2},
+  };
+  for(const timestamp of ["2035-08-01T00:00:00.000Z","invalid-date",24]){
+    const [record]=build({
+      runs:[{...baselineRun,brand_presence_pct:null},followUpRun],
+      followUps:[{...followUp,outcome:{...saved,baselineCompletedAt:timestamp}}],
+    });
+    assert.equal(record.comparison,null,String(timestamp));
+    assert.equal(record.comparisonEligible,false,String(timestamp));
+    assert.match(record.limitation,/source completion timestamps/i,String(timestamp));
+  }
+  const [valid]=build({
+    runs:[{...baselineRun,brand_presence_pct:null},followUpRun],
+    followUps:[{...followUp,outcome:{...saved,baselineCompletedAt:baselineRun.completed_at}}],
+  });
+  assert.equal(valid.comparisonEligible,true);
+  assert.equal(valid.comparison.baselineCompletedAt,baselineRun.completed_at);
+});
