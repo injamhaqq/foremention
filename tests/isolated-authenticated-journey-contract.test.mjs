@@ -78,6 +78,9 @@ test("isolated authenticated acceptance exercises positive and drifted nine-fiel
   assert.match(journey,/contextOverride:\{evaluationVersion:"fixture-different-evaluation-v2"\}/);
   assert.match(journey,/assert\.equal\(persistedDrift\[0\]\.status,"complete"/);
   assert.match(journey,/new URL\(anonymousPage\.url\(\)\)\.pathname/);
-  assert.match(journey,/getByText\(record\.title,\{exact:true\}\)\.count\(\)/);
+  assert.match(journey,/realAssetTitle=record\?\.proposal\?\.title/);
+  assert.match(journey,/realAssetTitle\.trim\(\)\.length>5/);
+  assert.match(journey,/otherPage\.getByText\(realAssetTitle,\{exact:true\}\)\.count\(\)/);
+  assert.doesNotMatch(journey,/getByText\(record\.title/);
   assert.doesNotMatch(journey,/foremention\.com|FOREMENTION_ACCEPTANCE_PASSWORD|www\.bing\.com/);
 });
