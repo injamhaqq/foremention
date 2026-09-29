@@ -4,6 +4,7 @@ name: Isolated Customer APIs
 # server-rendered UI proof in Isolated Outcome UI. No browser/dev proxy.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 permissions:
@@ -16,6 +17,11 @@ concurrency:
 jobs:
   isolated-journey:
     name: Signed-in customer review-to-second-cycle API
+    # Legacy Wrangler-dev HTTP proxy diagnostic only. Its intermittent 503
+    # transport is not the product release gate: the same strict 14-stage
+    # API assertions now run by default on the BUILT Worker under
+    # Isolated Programmatic Worker via getWorker().fetch().
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-isolated-legacy-dev-proxy')
 
     runs-on: ubuntu-latest
     timeout-minutes: 35
