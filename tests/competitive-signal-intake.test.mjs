@@ -100,7 +100,7 @@ test("public intake CLI consumes explicit local export only and never leaks reje
   const temp=await mkdtemp(join(tmpdir(),"foremention-research-"));
   const input=join(temp,"research.ndjson");
   try {
-    await writeFile(input,JSON.stringify(valid)+"\\n","utf8");
+    await writeFile(input,JSON.stringify(valid)+"\n","utf8");
     const script=fileURLToPath(new URL("../scripts/competitive-signal-intake.mjs",import.meta.url));
     const args=[script,"--input",input,"--as-of","2026-09-30"];
     const ok=spawnSync(process.execPath,args,{encoding:"utf8",timeout:10000,maxBuffer:500000});
