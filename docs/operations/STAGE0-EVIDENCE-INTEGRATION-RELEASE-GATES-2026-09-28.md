@@ -1,6 +1,20 @@
 # Foremention Stage-0 evidence integration: verification and release boundary
 
-**Status 29 September 2026:** Implementation staged in PR #356 (product differentiation), PR #357 (independent reporting parity) and stacked PR #358 (authenticated API/audit fixes + isolated RLS and evidence-integrity verification). **The three parent PRs remain unmerged to auto-deploying main; local sub-PR #364/#365/#366 are now integrated into #358 staging only. None is certified as paying customer proof.**
+## Latest staged engineering receipt — 30 September 2026
+
+**This is an unmerged NONPRODUCTION integration branch, not a release.** The three stacked product PRs #356 → #357 → #358 remain outside auto-deploying `main`. Production/commercial launch blockers #323/#346/#332/#351/#334 and real customer milestones #283 are explicitly unchanged.
+
+Two additional fully source-backed isolated patches now reside in the combined #358 integration branch:
+
+1. **PR #369 — independently verified source/outcome integrity fix:** Branch head `acd7d288f2c978302e88d9cb8558c221d753e27d` passed **10/10 exact-head mandatory workflows**, then merged only to #358 staging as `c532cd6a18ad84ba7bf684017b2b4bb6a675e766`. The combined **new stage** at `c532cd6a18ad84ba7bf684017b2b4bb6a675e766` independently passed **10/10 again**. A validly shaped saved outcome previously could override complete source-run aggregates (synthetic regression: stored brand 99 versus readable run 35). All four before/after/deltas are now cross-checked whenever both source aggregates are present; contradictions withhold direction with a visible integrity warning. A historical shaped saved comparison with incomplete aggregate fields still requires **both source run rows to exist and be finalized**, plus independent nine-field per-answer parity. This does not rewrite stored history or prove the external source supports the factual claim.
+
+2. **PR #370 — independently verified isolated deployed-stage preflight scaffold:** Branch head `08638cb5927cb17483cc5e12ea8fe3eb0daa5800` passed **10/10 exact-head mandatory workflows** and **nine no-cost mocked stage/host/security regressions**, then merged only to #358 staging as `62e3808b8845b79bbbaec0b06f1a9374bdb5b83c`. The *manual script* `scripts/isolated-staging-preflight.mjs` rejects unapproved/prod hosts and reused production **project-ref declarations**, requires a different exact staging SHA, validates first-attempt healthy deployed Worker/D1/Supabase, checks HTML root and the actual anonymous login boundary for the app, Outcome Ledger and print report. No staging URL/credentials were guessed and **no real external stage was exercised**. Operator declarations cannot independently prove actual Cloudflare/D1/Supabase bindings. See `docs/operations/ISOLATED-STAGING-OWNER-PREFLIGHT-2026-09-30.md`.
+
+**Critical combined gate after this documentation commit:** The *newest* #358 SHA must independently rerun and pass **all ten** required workflows. Never reuse #369/#370 individual pass receipts or the prior `c532...` combined result as proof of the final new HEAD. The two older opt-in `wrangler dev` suites remain SKIPPED rather than success. #334 still requires separately authorized real deployed-stage Chromium form clicks, real auth/RLS, exact candidate staging receipt and exercised rollback; this no-secret phase-zero preflight alone cannot close it.
+
+## Prior 29 September integration history
+
+**Historical status 29 September 2026:** Implementation staged in PR #356 (product differentiation), PR #357 (independent reporting parity) and stacked PR #358 (authenticated API/audit fixes + isolated RLS and evidence-integrity verification). **The three parent PRs remain unmerged to auto-deploying main; local sub-PR #364/#365/#366 are now integrated into #358 staging only. None is certified as paying customer proof.**
 
 ## Verified and independently checkable
 
