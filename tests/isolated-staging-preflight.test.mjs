@@ -89,6 +89,22 @@ test('503 then recovery is recorded as degraded-first-attempt failure, never an 
   assert.equal(result.routeChecks.length,0);
 });
 
+test('matching SHA with missing or degraded D1/Auth components fails closed',async()=>{
+  for(const data of [
+    {buildCommit:config.expectedSha,d1:'reachable'},
+    {buildCommit:config.expectedSha,d1:'unavailable',supabase:'reachable'},
+    {buildCommit:config.expectedSha,d1:'reachable',supabase:'not_configured'},
+  ]){
+    const result=await runIsolatedStagePreflight(config,{request:async v=>
+      new URL(v.url).pathname==='/api/health'
+        ? new Response(JSON.stringify(data),{status:200,headers:{'content-type':'application/json'}})
+        :fakeReq(v)});
+    assert.equal(result.ok,false);
+    assert.equal(result.reason,'stage_dependencies_unverified');
+    assert.equal(result.routeChecks.length,0);
+  }
+});
+
 test('root must serve HTML on exact candidate; landing page may not be replaced with an API body',async()=>{
   const result=await runIsolatedStagePreflight(config,{request:async v=>new URL(v.url).pathname==='/'
     ? new Response('{}',{status:200,headers:{'content-type':'application/json'}}):fakeReq(v)});
