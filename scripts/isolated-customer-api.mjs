@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PR-only LOCAL authenticated browser/API acceptance. Never targets production;
+// PR-only native HTTP authenticated application API acceptance. Never targets production;
 // no external provider calls, scraped pages, static credentials or artifact logs.
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
@@ -14,7 +14,7 @@ class LocalContext {
       const target=new URL(url);
       if(target.origin!==app.origin)throw Error("Refusing non-local application API target.");
       const cookie=this.localCookies.map(c=>c.name+"="+c.value).join("; ");
-      const headers={...options.headers,...(cookie?{cookie}:{})};
+      const headers={...options.headers,...(options.data===undefined?{}:{"content-type":"application/json"}),...(cookie?{cookie}:{})};
       const result=await fetch(target,{
         method:options.method||"GET",
         headers,
