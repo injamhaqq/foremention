@@ -14,7 +14,7 @@ overrides:
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
   nanoid@<3.3.17: ^3.3.17
   undici@>=7.0.0 <7.29.1: 7.29.1
-  fast-uri@>=3.0.0 <3.1.6: 3.1.6
+  fast-uri@>=3.0.0 <3.1.7: 3.1.7
   # Patched JXL/HEIF and ICNS parser DoS (two published OSV advisories).
   image-size: 2.0.4
 onlyBuiltDependencies:
@@ -29,4 +29,3 @@ minimumReleaseAgeExclude:
   - js-yaml@4.3.2
   - dompurify@3.4.13
   - nanoid@3.3.17
-  - fast-uri@3.1.6
