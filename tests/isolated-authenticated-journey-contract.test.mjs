@@ -75,9 +75,17 @@ test("isolated authenticated acceptance exercises positive and drifted nine-fiel
   }
   assert.match(journey,/authenticated-outcome-ledger-and-board-exact-context-chain-owner-only/);
   assert.match(journey,/real-authenticated-protocol-drift-fail-closed-in-page-and-board-export/);
-  assert.match(journey,/contextOverride:\{evaluationVersion:"fixture-different-evaluation-v2"\}/);
+  assert.ok(journey.includes("const savedContext=beforeDrift[0].measurement_context_json"));
+  assert.ok(journey.includes("measurement_context_json:{"));
+  assert.ok(journey.includes('evaluationVersion:"fixture-different-evaluation-v2"'));
+  assert.ok(journey.includes("patched.length,1"));
+  assert.ok(journey.indexOf("finalize later protocol-drift fixture") < journey.indexOf("const beforeDrift=await db"),
+    "the real review must run before any deliberate local DB context mutation");
   assert.match(journey,/assert\.equal\(persistedDrift\[0\]\.status,"complete"/);
   assert.match(journey,/new URL\(anonymousPage\.url\(\)\)\.pathname/);
-  assert.match(journey,/getByText\(record\.title,\{exact:true\}\)\.count\(\)/);
+  assert.match(journey,/realAssetTitle=record\?\.proposal\?\.title/);
+  assert.match(journey,/realAssetTitle\.trim\(\)\.length>5/);
+  assert.match(journey,/otherPage\.getByText\(realAssetTitle,\{exact:true\}\)\.count\(\)/);
+  assert.doesNotMatch(journey,/getByText\(record\.title/);
   assert.doesNotMatch(journey,/foremention\.com|FOREMENTION_ACCEPTANCE_PASSWORD|www\.bing\.com/);
 });

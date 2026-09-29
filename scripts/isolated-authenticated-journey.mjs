@@ -478,8 +478,17 @@ async function main() {
       waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(otherResponse?.status(),200,"other tenant's empty Outcome Ledger must render");
-    assert.equal(await otherPage.getByText(record.title,{exact:true}).count(),0,
-      "other tenant must not see the owner's intervention title");
+    // The real resolution response stores its display title in proposal.title,
+    // not at record.title. An undefined Playwright getByText selector is
+    // invalid and can produce a false security-test failure. Require a
+    // concrete nonempty persisted title before asserting browser isolation.
+    const realAssetTitle=record?.proposal?.title;
+    assert.equal(typeof realAssetTitle,"string","owner's audited record must supply its actual display title");
+    assert.ok(realAssetTitle.trim().length>5,"the browser isolation target cannot be empty");
+    assert.equal(await outcomePage.getByText(realAssetTitle,{exact:true}).count()>0,true,
+      "the owner's actual intervention title must be visible in the Outcome Ledger");
+    assert.equal(await otherPage.getByText(realAssetTitle,{exact:true}).count(),0,
+      "other tenant must not see the owner's actual intervention title");
     const anonymousPage=await publicCtx.newPage();
     await anonymousPage.goto(new URL("/app/outcomes",app).toString(),{
       waitUntil:"domcontentloaded",timeout:30000,
@@ -496,9 +505,12 @@ async function main() {
     const driftRequest=must(await appCall(ownerCtx,"POST","/api/resolutions",{
       action:"remeasure",resolutionId:generated.id
     }),202,"new independent drift-verification request").data;
+    // The ordinary run-review API replaces fixture-supplied metadata with
+    // its real canonical evaluationVersion. Creating a drifted run BEFORE
+    // review cannot test report drift; apply exactly one saved-field mutation
+    // only AFTER that ordinary review has completed.
     const drift=await seedLocalRun(tenant,owner.id,"changed evaluation protocol",{
       review:true,cited:false,metrics:[60,40,0,0],
-      contextOverride:{evaluationVersion:"fixture-different-evaluation-v2"},
     });
     must(await appCall(ownerCtx,"POST","/api/resolutions",{
       action:"remeasure",resolutionId:generated.id,rerunId:drift.run.id,
@@ -506,12 +518,54 @@ async function main() {
     }),200,"attach later protocol-drift fixture");
     must(await appCall(ownerCtx,"POST","/api/runs/"+drift.run.id+"/review",{}),
       200,"finalize later protocol-drift fixture");
+    // Read the canonical review-produced persisted context. Preserve all its
+    // other versions and modify only the independently verified later
+    // evaluationVersion in disposable Postgres, just as unified proof does.
+    const beforeDrift=await db("GET","run_answers?select=id,review_status,measurement_context_json"+
+      "&organization_id=eq."+tenant.org+"&id=eq."+drift.answers[0].id);
+    assert.equal(beforeDrift.length,1,"the reviewed later answer must exist");
+    assert.equal(beforeDrift[0].review_status,"verified");
+    const savedContext=beforeDrift[0].measurement_context_json;
+    assert.ok(savedContext && typeof savedContext==="object" &&
+      typeof savedContext.evaluationVersion==="string" &&
+      savedContext.evaluationVersion.trim(),
+      "the actual reviewed answer must have an existing evaluation version");
+    const patched=await db("PATCH","run_answers?id=eq."+drift.answers[0].id+
+      "&organization_id=eq."+tenant.org,{
+        measurement_context_json:{
+          ...savedContext,evaluationVersion:"fixture-different-evaluation-v2",
+        },
+      });
+    assert.equal(patched.length,1,"exactly one persisted answer must be mutated");
+    assert.equal(patched[0].id,drift.answers[0].id);
     const persistedDrift=await db("GET",
       "resolution_follow_ups?select=status&organization_id=eq."+tenant.org+
       "&id=eq."+driftRequest.measurementRequestId);
     assert.equal(persistedDrift.length,1,"the later measurement must be retained");
     assert.equal(persistedDrift[0].status,"complete",
       "the local pre-migration database should expose the very overclaim the independent gate prevents");
+
+    // This third-cycle negative test is different from the unified one-field
+    // existing-run mutation: here the newest independent follow-up must take
+    // priority over a previously eligible earlier cycle. Confirm source DB
+    // chronology AND the saved verified drift before attributing failure to UI.
+    const ordered=await db("GET",
+      "resolution_follow_ups?select=id,requested_at,status,rerun_id"+
+      "&organization_id=eq."+tenant.org+
+      "&resolution_asset_id=eq."+generated.id+"&order=requested_at.desc,id.desc");
+    assert.equal(ordered.length,2,"exactly two persisted follow-ups are required");
+    assert.equal(ordered[0].id,driftRequest.measurementRequestId,
+      "newest stored follow-up must be the protocol-drift cycle");
+    assert.notEqual(ordered[0].requested_at,ordered[1].requested_at,
+      "separate remeasurement requests must have distinct persisted timestamps");
+    const storedDrift=await db("GET","run_answers?select=review_status,measurement_context_json"+
+      "&organization_id=eq."+tenant.org+"&id=eq."+drift.answers[0].id);
+    assert.equal(storedDrift.length,1);
+    assert.equal(storedDrift[0].review_status,"verified");
+    assert.equal(storedDrift[0].measurement_context_json?.evaluationVersion,
+      "fixture-different-evaluation-v2",
+      "the deliberate context drift must survive real review and be persisted");
+    step("newest-drift-cycle-and-verified-saved-context-confirmed");
 
     const withheldResponse=await outcomePage.goto(new URL("/app/outcomes",app).toString(),{
       waitUntil:"domcontentloaded",timeout:60000,
