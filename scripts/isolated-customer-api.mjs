@@ -161,8 +161,9 @@ async function readSignedInServerPage(ctx,path) {
   }
 }
 function requireServerCounter(html,label,value) {
-  const escaped=label.replace(/[.*+?^${}()|[\]\\]/g,"\\function must(actual,status,stepName) {");
-  const matcher=new RegExp("<span>"+escaped+"<\\/span>(?:\\s|<!--.*?-->)*<strong>"+value+"<\\/strong>","i");
+  // Only four static label values from the actual product UI are passed.
+  // The separate required UI suite uses this same fixed-label HTML contract.
+  const matcher=new RegExp("<span>"+label+"<\\/span>(?:\\s|<!--.*?-->)*<strong>"+value+"<\\/strong>","i");
   assert.ok(matcher.test(html),"The real authenticated "+label+" count must equal "+value+".");
 }
 function must(actual,status,stepName) {
