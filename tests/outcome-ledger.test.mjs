@@ -314,3 +314,74 @@ test("Outcome Ledger remains discoverable through All tools and keeps an accessi
   assert.match(loading, /WorkspaceListSkeleton/);
   assert.match(await text("app/app/outcomes/page.tsx"), /aria-label=\{`\$\{step\.label\}/);
 });
+
+
+test("a terminal follow-up cannot claim post-action results when persisted chronology is contradictory", () => {
+  const cases = [
+    ["later run completed before approved action was applied", {}, [{...baselineRun}, {...followUpRun, completed_at:"2026-08-03T15:00:00.000Z"}], {}],
+    ["baseline completed after action was applied", {}, [{...baselineRun,completed_at:"2026-08-05T00:00:00.000Z"},followUpRun], {}],
+    ["later run completed before follow-up was requested", {}, [baselineRun,{...followUpRun,completed_at:"2026-08-04T20:00:00.000Z"}], {}],
+    ["follow-up row was completed before the later run actually finished", {}, [baselineRun,followUpRun], {completed_at:"2026-08-10T00:00:00.000Z"}],
+    ["missing source run completion timestamp", {}, [baselineRun,{...followUpRun,completed_at:null}], {}],
+    ["missing applied action timestamp", {applied_at:null}, [baselineRun,followUpRun], {}],
+    ["non-applied resolution claims an eligible terminal follow-up", {status:"approved",applied_at:null,applied_by:null}, [baselineRun,followUpRun], {}],
+    ["unparseable approval timestamp", {approved_at:"not-a-date"}, [baselineRun,followUpRun], {}],
+  ];
+  for (const [label, alteredAsset, runs, alteredFollowUp] of cases) {
+    const [record] = build({ assets:[{...asset,...alteredAsset}],runs,
+      followUps:[{...followUp,...alteredFollowUp}] });
+    assert.equal(record.measurementStatus,"complete",label);
+    assert.equal(record.comparison,null,label);
+    assert.equal(record.comparisonEligible,false,label);
+    assert.equal(record.outcomeState,"incomparable",label);
+    assert.equal(record.steps.find(step=>step.key==="outcome").done,false,label);
+    assert.match(record.limitation,/chronolog|applied|timestamps/i,label);
+    assert.doesNotMatch(record.confidenceBasis,/^Verified linked evidence and an eligible/i,label);
+  }
+});
+
+test("stored follow-up outcome timestamps must agree with source run timestamps when independently readable", () => {
+  const valid = {
+    baselineRunId:baselineRun.id,followUpRunId:followUpRun.id,
+    baselineCompletedAt:baselineRun.completed_at,followUpCompletedAt:followUpRun.completed_at,
+    brandPresencePct:{before:20,after:35,delta:15},
+    firstMentionPct:{before:10,after:12,delta:2},
+    citationCount:{before:4,after:6,delta:2},
+    newSourceCount:{before:1,after:3,delta:2},
+  };
+  for (const [label, alteredStored] of [
+    ["future saved later-run timestamp",{followUpCompletedAt:"2030-08-11T00:00:00.000Z"}],
+    ["wrong stored baseline timestamp",{baselineCompletedAt:"2026-08-09T00:00:00.000Z"}],
+  ]) {
+    const [record]=build({followUps:[{...followUp,outcome:{...valid,...alteredStored}}]});
+    assert.equal(record.comparison,null,label);
+    assert.equal(record.comparisonEligible,false,label);
+    assert.match(record.limitation,/stored follow-up outcome conflicts/i,label);
+  }
+  const [validRecord]=build({followUps:[{...followUp,outcome:valid}]});
+  assert.equal(validRecord.comparisonEligible,true);
+  assert.equal(validRecord.comparison.baselineCompletedAt,baselineRun.completed_at);
+  assert.equal(validRecord.comparison.followUpCompletedAt,followUpRun.completed_at);
+  // Legacy stored rows without dates use the independently readable run dates.
+  const {baselineCompletedAt,followUpCompletedAt,...legacy}=valid;
+  const [legacyRecord]=build({followUps:[{...followUp,outcome:legacy}]});
+  assert.equal(legacyRecord.comparisonEligible,true);
+  assert.equal(legacyRecord.comparison.baselineCompletedAt,baselineRun.completed_at);
+  assert.equal(legacyRecord.comparison.followUpCompletedAt,followUpRun.completed_at);
+});
+
+test("newest contradictory follow-up is not concealed by an older eligible measurement",()=>{
+  const earlier={...followUp,id:"00000000-0000-4000-8000-0000000000e2",
+    requested_at:"2026-08-05T00:00:00.000Z"};
+  const latest={...followUp,id:"00000000-0000-4000-8000-0000000000e3",
+    requested_at:"2026-08-12T00:00:00.000Z",
+    completed_at:"2026-08-13T00:00:00.000Z",
+    rerun_id:"00000000-0000-4000-8000-0000000000d3"};
+  const badRun={...followUpRun,id:latest.rerun_id,completed_at:"2026-08-11T00:00:00.000Z"};
+  const [record]=build({followUps:[earlier,latest],
+    runs:[baselineRun,followUpRun,badRun],
+    contextParityByFollowUp:new Map([[earlier.id,{comparable:true,reason:null}],[latest.id,{comparable:true,reason:null}]])});
+  assert.equal(record.comparison,null);
+  assert.equal(record.comparisonEligible,false);
+  assert.equal(record.outcomeState,"incomparable");
+});
