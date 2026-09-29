@@ -143,14 +143,16 @@ export type FreeWebEvidence = {
   retrievalProvider: "bing-rss";
 };
 
-export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal): Promise<FreeWebEvidence> {
+export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal, originalBuyerQuestion: string = query): Promise<FreeWebEvidence> {
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
   // Only explicit official-domain + exact-citation requests are site-scoped.
   // This controls provenance; it does NOT establish commercial retrieval rights.
-  const officialRequirement = explicitOfficialSourceRequirement(normalized);
-  const searchQuery = officialRequirement ? boundedOfficialSiteQuery(normalized, officialRequirement) : normalized;
+  // A caller may provide a shorter search query, but it may NEVER weaken a
+  // source constraint from the customer's original buyer question.
+  const officialRequirement = explicitOfficialSourceRequirement(originalBuyerQuestion);
+  const searchQuery = officialRequirement ? boundedOfficialSiteQuery(originalBuyerQuestion, officialRequirement) : normalized;
   const url = new URL(BING_SEARCH_ENDPOINT);
   url.searchParams.set("format", "rss");
   url.searchParams.set("q", searchQuery);
