@@ -114,7 +114,7 @@ test("the requested official article can appear after eight off-domain RSS items
     const evidence=await retrieveFreeWebEvidence(question);
     assert.equal(calls.length,1,"offline response is bounded to one synthetic fetch");
     assert.deepEqual(evidence.citations.map(x=>x.url),["https://openai.com/news/synthetic-official"]);
-    assert.doesNotMatch(evidence.content,/dictionary\\.example/);
+    assert.equal(evidence.content.includes("dictionary.example"),false);
   });
   assert.equal(parseBingSearchRss(rss).length,8,
     "ordinary unspecialized parsing retains its existing eight-result cap");
@@ -127,7 +127,7 @@ test("eight same-domain wrong-section items cannot hide an exact requested /news
   await withSyntheticBing(`<rss><channel>${unrelated}${wanted}</channel></rss>`,async()=>{
     const evidence=await retrieveFreeWebEvidence(question);
     assert.deepEqual(evidence.citations.map(x=>x.url),["https://www.openai.com/news/synthetic-article"]);
-    assert.doesNotMatch(evidence.content,/index\\//);
+    assert.equal(evidence.content.includes("/index/"),false);
   });
 });
 test("RSS retrieval fails closed when eight plausible same-host citations point to the wrong requested section",async()=>{
