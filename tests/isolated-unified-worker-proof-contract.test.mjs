@@ -26,7 +26,7 @@ test("unified isolated proof retains successful native API journey and audits SA
   assert.match(bridge,/same-API-owned-verified-decision-chain-visible-only-to-owner-in-ledger-and-board/);
   assert.match(bridge,/same-API-owned-context-drift-suppressed-in-both-authenticated-reports/);
   assert.match(bridge,/evaluationVersion:"synthetic-independent-drift-v2"/);
-  assert.match(bridge,/otherPage\.body\.includes\(record\.title\)/);
+  assert.match(bridge,/otherPage\.body\.includes\(realAssetTitle\)/);\n  assert.match(bridge,/realAssetTitle=record\?\.proposal\?\.title/);
   assert.ok(bridge.includes("return {status:response.status,body,location:response.headers.get"),"uses actual first server response");
   assert.doesNotMatch(bridge,/createRequire|chromium|newPage\(|https?:\/\/(?:api\.openai\.com|www\.bing\.com|foremention\.com)/);
   assert.ok(bridge.length>baseline.length,"unified script adds report proof to unchanged baseline");
