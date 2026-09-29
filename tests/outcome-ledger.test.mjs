@@ -434,3 +434,16 @@ test("impossible calendar dates and future-dated but internally ordered measurem
     assert.match(record.limitation,/timestamp|chronolog/i,label);
   }
 });
+
+
+test("impossible calendar days and future completion dates cannot be approved outcome evidence",()=>{
+  for(const [label,recorded] of [
+    ["normalizable invalid calendar date","2026-08-32T00:00:00.000Z"],
+    ["future recorded completion","2099-08-13T00:00:00.000Z"],
+  ]){
+    const [result]=build({followUps:[{...followUp,completed_at:recorded}]});
+    assert.equal(result.comparison,null,label);
+    assert.equal(result.comparisonEligible,false,label);
+    assert.equal(result.outcomeState,"incomparable",label);
+  }
+});
