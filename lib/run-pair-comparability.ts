@@ -7,6 +7,7 @@ import {
   type ComparableQuestionSlot,
 } from "@/lib/intelligence-comparability";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { assessBoundedVerifiedAnswerCompleteness } from "./verified-run-answer-completeness.ts";
 
 type RunRow = {
   id: string;
@@ -122,21 +123,10 @@ export async function assessWorkspaceRunPairComparability(
     `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
     { token: viewer.accessToken },
   );
-  // PostgREST can truncate at the explicitly bounded response limit. A
-  // perfectly matching *subset* is not complete comparable customer evidence.
-  if (rows.length >= 500 || ![earlier, later].every((run) =>
-    typeof run.answer_count === "number" && Number.isSafeInteger(run.answer_count)
-    && run.answer_count > 0
-    && rows.filter((row) => row.run_id === run.id).length === run.answer_count)) {
-    return withheld("Both reviewed runs require independently readable complete verified answer sets under the bounded read.");
-  }
-  const uniqueSlots = (runId: string) => {
-    const matched = rows.filter((row) => row.run_id === runId);
-    return new Set(matched.map((row) => [row.prompt_key, row.provider].join("\u0000"))).size === matched.length;
-  };
-  if (!uniqueSlots(earlierRunId) || !uniqueSlots(laterRunId)) {
-    return withheld("Duplicate verified buyer-question/provider slots are not independently comparable.");
-  }
+  const completeness = assessBoundedVerifiedAnswerCompleteness([earlier, later], rows, 500);
+  if (!completeness.complete) return withheld(
+    completeness.reason || "Both reviewed runs require independently readable complete verified answer sets.",
+  );
   const slots: ComparableQuestionSlot[] = rows.map((row) => ({
     runId: row.run_id,
     promptKey: row.prompt_key,
