@@ -92,8 +92,9 @@ function normalizeHttpUrl(value: string) {
   try {
     const url = new URL(decodeXml(value).trim());
     if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-    url.username = "";
-    url.password = "";
+    // Reject credential-bearing search links instead of silently rewriting
+    // them into official-looking URLs before provenance checks run.
+    if (url.username || url.password) return null;
     url.hash = "";
     const host = url.hostname.toLowerCase();
     const path = url.pathname.toLowerCase();
