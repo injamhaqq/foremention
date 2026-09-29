@@ -82,11 +82,81 @@ test("eligible deltas are derived only from persisted run metrics and stay non-c
 });
 
 test("a stored database outcome can provide metrics but never its own causal interpretation", () => {
-  const stored = { baselineRunId: baselineRun.id, followUpRunId: followUpRun.id, interpretation: "This asset caused the improvement.", brandPresencePct: { before: 20, after: 99, delta: 79 }, firstMentionPct: { before: 10, after: 12, delta: 2 }, citationCount: { before: 4, after: 6, delta: 2 }, newSourceCount: { before: 1, after: 3, delta: 2 } };
+  const stored = { baselineRunId: baselineRun.id, followUpRunId: followUpRun.id, interpretation: "This asset caused the improvement.", brandPresencePct: { before: 20, after: 35, delta: 15 }, firstMentionPct: { before: 10, after: 12, delta: 2 }, citationCount: { before: 4, after: 6, delta: 2 }, newSourceCount: { before: 1, after: 3, delta: 2 } };
   const [record] = build({ followUps: [{ ...followUp, outcome: stored }] });
-  assert.equal(record.comparison.brandPresencePct.delta, 79);
+  assert.equal(record.comparison.brandPresencePct.delta, 15);
   assert.match(record.comparison.interpretation, /does not establish.*caused/i);
   assert.doesNotMatch(record.comparison.interpretation, /caused the improvement/i);
+});
+
+test("finalized stored outcomes that contradict source run metrics fail closed instead of cherry-picking a delta", () => {
+  const valid = {
+    baselineRunId: baselineRun.id, followUpRunId: followUpRun.id,
+    brandPresencePct: { before: 20, after: 35, delta: 15 },
+    firstMentionPct: { before: 10, after: 12, delta: 2 },
+    citationCount: { before: 4, after: 6, delta: 2 },
+    newSourceCount: { before: 1, after: 3, delta: 2 },
+  };
+  for (const [label, changed] of [
+    ["inflated follow-up brand metric", { brandPresencePct: { before: 20, after: 99, delta: 79 } }],
+    ["inconsistent persisted baseline brand metric", { brandPresencePct: { before: 10, after: 35, delta: 25 } }],
+    ["inflated saved citation count", { citationCount: { before: 4, after: 100, delta: 96 } }],
+    ["incorrect negative change", { firstMentionPct: { before: 10, after: 1, delta: -9 } }],
+    ["incorrect source count", { newSourceCount: { before: 1, after: 100, delta: 99 } }],
+  ]) {
+    const [record] = build({ followUps: [{ ...followUp, outcome: { ...valid, ...changed } }] });
+    assert.equal(record.measurementStatus, "complete", label);
+    assert.equal(record.comparison, null, label);
+    assert.equal(record.comparisonEligible, false, label);
+    assert.equal(record.outcomeState, "incomparable", label);
+    assert.equal(record.steps.find(item => item.key === "measurement").done, true, label);
+    assert.equal(record.steps.find(item => item.key === "outcome").done, false, label);
+    assert.match(record.limitation, /outcome conflicts with independently readable run aggregates/i, label);
+    assert.doesNotMatch(record.confidenceBasis, /^Verified linked evidence and an eligible/i, label);
+  }
+});
+
+test("matching finalized saved outcome reconciles numeric-string aggregates without inheriting causal text", () => {
+  const saved = {
+    baselineRunId: baselineRun.id, followUpRunId: followUpRun.id,
+    interpretation: "This change guaranteed $1000 in revenue.",
+    brandPresencePct: { before: 20, after: 35, delta: 15 },
+    firstMentionPct: { before: 10, after: 12, delta: 2 },
+    citationCount: { before: 4, after: 6, delta: 2 },
+    newSourceCount: { before: 1, after: 3, delta: 2 },
+  };
+  const [record] = build({
+    runs: [
+      {...baselineRun,brand_presence_pct:"20",first_mention_pct:"10",citation_count:"4",new_source_count:"1"},
+      {...followUpRun,brand_presence_pct:"35",first_mention_pct:"12",citation_count:"6",new_source_count:"3"},
+    ],
+    followUps:[{...followUp,outcome:saved}],
+  });
+  assert.equal(record.comparisonEligible,true);
+  assert.equal(record.comparison.brandPresencePct.delta,15);
+  assert.doesNotMatch(record.comparison.interpretation,/guaranteed|\$1000/i);
+});
+
+test("saved metrics cannot fabricate a follow-up when either source run is missing or not finalized", () => {
+  const stored = {
+    baselineRunId: baselineRun.id, followUpRunId: followUpRun.id,
+    brandPresencePct: { before: 20, after: 35, delta: 15 },
+    firstMentionPct: { before: 10, after: 12, delta: 2 },
+    citationCount: { before: 4, after: 6, delta: 2 },
+    newSourceCount: { before: 1, after: 3, delta: 2 },
+  };
+  for (const [label, runs] of [
+    ["missing later source", [baselineRun]],
+    ["missing baseline source", [followUpRun]],
+    ["unfinished later source", [baselineRun, {...followUpRun,status:"queued"}]],
+    ["unfinished baseline source", [{...baselineRun,status:"failed"}, followUpRun]],
+  ]) {
+    const [record] = build({runs,followUps:[{...followUp,outcome:stored}]});
+    assert.equal(record.comparison, null, label);
+    assert.equal(record.comparisonEligible,false,label);
+    assert.equal(record.outcomeState,"incomparable",label);
+    assert.match(record.limitation,/aggregate metrics were unavailable/i,label);
+  }
 });
 
 test("malformed or mismatched stored outcomes never become displayed evidence", () => {
