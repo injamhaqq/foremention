@@ -18,7 +18,7 @@ const fakeReq = async({url,method}) =>{
   assert.equal(u.origin,'https://stage.foremention.com');
   if(u.pathname==='/api/health')return health();
   if(u.pathname==='/')return new Response('<html>safe</html>',{status:200,headers:{'content-type':'text/html'}});
-  return new Response('',{status:307,headers:{location:'/login?next='+encodeURIComponent(u.pathname)}});
+  return new Response('',{status:307,headers:{location:'/login?next='+encodeURIComponent(u.pathname === '/app/outcomes/print' ? '/app/outcomes' : u.pathname)}});
 };
 
 test('accepts explicitly approved isolated stage declaration but does not attest remote bindings',()=>{
