@@ -239,9 +239,12 @@ async function readLocalUi(actor,path){
   return {status:res.status,body,location:res.headers.get("location")};
 }
 function requireCounter(html,label,value) {
-  // The server-rendered RSC HTML must contain the actual report counter, not
-  // a mocked helper output. React may insert harmless whitespace/comments.
-  const escaped=label.replace(/[.*+?^\$\{\}()|[\]\\]/g,"\\const owner=await user();");
+  // These fixed-label UI counters contain no regex metacharacters.
+  const expression = new RegExp("<span>"+label+"<\\/span>(?:\\s|<!--.*?-->)*<strong>"+value+"<\\/strong>","i");
+  assert.match(html,expression,label+" must be "+value+" in the authenticated server-rendered view");
+}
+
+const owner=await user();");
   const regexp=new RegExp("<span>"+escaped+"<\\/span>(?:\\s|<!--.*?-->)*<strong>"+value+"<\\/strong>","i");
   assert.match(html,regexp,label+" must be "+value+" in the authenticated server-rendered view");
 }
