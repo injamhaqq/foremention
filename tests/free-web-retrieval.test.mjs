@@ -40,6 +40,7 @@ test("Bing search and click-tracking URLs are never persisted as customer eviden
   const raw = `<rss><channel>
     <item><title>Search</title><link>https://www.bing.com/search?q=test</link><description>no</description></item>
     <item><title>Tracking</title><link>https://www.bing.com/ck/a?u=abc</link><description>no</description></item>
+    <item><title>Credential bait</title><link>https://attacker.invalid@openai.com/news/bait</link><description>no</description></item>
   </channel></rss>`;
   assert.deepEqual(parseBingSearchRss(raw), []);
 });
@@ -80,6 +81,17 @@ test("explicit official domain with no qualifying sources fails closed before a 
   await withSyntheticBing(`<rss><channel><item><title>Unrelated</title><link>https://dictionary.example/use</link><description>No proof</description></item></channel></rss>`, async calls => {
     await assert.rejects(retrieveFreeWebEvidence("According to the official OpenAI website, what changed on openai.com/news? Cite the exact openai.com source."), /Official-domain evidence was unavailable/);
     assert.equal(calls.length, 1);
+  });
+});
+
+test("plain HTTP cannot satisfy explicit official-domain evidence in the real retrieval adapter", async () => {
+  const rss = `<rss><channel><item><title>Unencrypted citation</title><link>http://openai.com/news/pretend</link><description>Not authenticated evidence</description></item></channel></rss>`;
+  await withSyntheticBing(rss, async calls => {
+    await assert.rejects(
+      retrieveFreeWebEvidence("According to the official OpenAI website, what changed on openai.com/news? Cite the exact openai.com source."),
+      /Official-domain evidence was unavailable/
+    );
+    assert.equal(calls.length, 1, "no extra provider or network fallback");
   });
 });
 
