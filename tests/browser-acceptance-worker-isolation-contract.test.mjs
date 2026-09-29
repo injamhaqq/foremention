@@ -14,8 +14,10 @@ test("public browser suites use distinct local Workers and fail if a suite kills
   // Public-only PR acceptance intentionally has no isolated Supabase;
   // /api/health must return 503 in that environment and is not liveness.
   // Require the same dependency-free root readiness endpoint instead.
-  assert.match(workflow.slice(start,first),/127\\.0\\.0\\.1:4173\\/ >/);
-  assert.doesNotMatch(workflow.slice(start,first),/127\\.0\\.0\\.1:4173\\/api\\/health/);
+  assert.ok(workflow.slice(start,first).includes("http://127.0.0.1:4173/ >/dev/null"),
+    "the post-suite probe must target the public root without dependency checks");
+  assert.ok(!workflow.slice(start,first).includes("http://127.0.0.1:4173/api/health"),
+    "the public-only suite must not require a Supabase-dependent health response");
   assert.match(workflow.slice(first,zoom),
     /browser-acceptance\.mjs\s+assert_worker_healthy\s+start_worker\s+/);
   assert.match(workflow.slice(zoom,canonical),
