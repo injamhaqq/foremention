@@ -19,14 +19,14 @@ export const HOSTS = Object.freeze({
   "OtterlyAI": ["otterly.ai", "www.otterly.ai"],
 });
 const OWN_KEYS = ["url", "title", "summary", "published_on", "observed_on", "competitor", "source_kind"];
-const PII_OR_SECRET = /(?:[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}|(?:api[_-]?key|access[_-]?token|password|authorization|cookie|session)[\\s:="']{1,8}[a-z0-9_-]{6,})/i;
+const PII_OR_SECRET = /(?:[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|(?:api[_-]?key|access[_-]?token|password|authorization|cookie|session)[\s:="']{1,8}[a-z0-9_-]{6,})/i;
 const isoDate = value => typeof value === "string"
-  && /^\\d{4}-\\d{2}-\\d{2}$/.test(value)
+  && /^\d{4}-\d{2}-\d{2}$/.test(value)
   && !Number.isNaN(Date.parse(value + "T00:00:00.000Z"))
   && new Date(value + "T00:00:00.000Z").toISOString().slice(0,10) === value;
 const smallText = (value, max) =>
   typeof value === "string" && value.trim().length > 4 && value.length <= max
-  && !/[\\u0000-\\u001f\\u007f]/.test(value) && !PII_OR_SECRET.test(value);
+  && !/[\u0000-\u001f\u007f]/.test(value) && !PII_OR_SECRET.test(value);
 
 export function validatePublicSignal(input, asOf) {
   if (!isoDate(asOf)) throw Error("The specified evidence cutoff date is invalid.");
@@ -50,7 +50,7 @@ export function validatePublicSignal(input, asOf) {
     throw Error("Publication and observation dates must be real, ordered and not in the future.");
   }
   if (typeof input.url !== "string" || input.url.length > 500 ||
-      /[\\s\\u0000-\\u001f]/.test(input.url)) throw Error("Invalid public source URL.");
+      /[\s\u0000-\u001f]/.test(input.url)) throw Error("Invalid public source URL.");
   let u;
   try { u = new URL(input.url); } catch { throw Error("Unparseable public source URL."); }
   if (u.protocol !== "https:" || u.username || u.password || u.port || u.search || u.hash ||
@@ -77,7 +77,7 @@ export function validatePublicSignal(input, asOf) {
 
 export function parsePublicSignals(ndjson, asOf, maxRecords = 100) {
   if (Buffer.byteLength(ndjson, "utf8") > 500_000) throw Error("Input exceeds the 500 KB safety bound.");
-  const lines = ndjson.split(/\\r?\\n/).filter(x=>x.trim());
+  const lines = ndjson.split(/\r?\n/).filter(x=>x.trim());
   if (lines.length < 1 || lines.length > maxRecords) throw Error("Invalid bounded signal count.");
   const seen = new Set();
   return lines.map((line, index) => {
@@ -107,13 +107,13 @@ async function main() {
     data_use:"Operator-only research candidate; no automatic publication, outreach or product ingestion.",
     source_tool_claim:"Caller-supplied NDJSON; this script does not attest that Agent Reach ran.",
     records,
-  },null,2)+"\\n");
+  },null,2)+"\n");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(() => {
     // Do not echo untrusted supplied content, paths, URLs or secrets into logs.
-    process.stderr.write("Public competitive intake rejected input. Inspect local schema and source permissions.\\n");
+    process.stderr.write("Public competitive intake rejected input. Inspect local schema and source permissions.\n");
     process.exitCode=1;
   });
 }
