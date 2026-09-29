@@ -91,6 +91,28 @@ const toMeasurement = (run: OutcomeLedgerRunRow): RunMeasurement => ({
 
 const isComparableBaselineRun = (run: OutcomeLedgerRunRow | undefined) => Boolean(run && ["complete", "partial"].includes(run.status));
 const isComparableFollowUpRun = (run: OutcomeLedgerRunRow | undefined) => Boolean(run && ["complete", "partial"].includes(run.status));
+
+// A finalized run's aggregate metrics may still be absent or malformed on
+// legacy/partial data. Number(null), Number("") and Number("   ") equal zero:
+// never silently transform missing persisted values into a directional delta.
+// The independent nine-field question/context gate is necessary but does not
+// itself verify completeness of the four aggregate metric columns.
+function validRunMetric(value: number | string | null | undefined, range: "percentage" | "count"): boolean {
+  if ((typeof value !== "number" && typeof value !== "string")
+    || (typeof value === "string" && !value.trim())) return false;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return false;
+  return range === "percentage"
+    ? numeric >= 0 && numeric <= 100
+    : Number.isSafeInteger(numeric) && numeric >= 0;
+}
+function hasCompleteAggregateMetrics(run: OutcomeLedgerRunRow | undefined): boolean {
+  return Boolean(run
+    && validRunMetric(run.brand_presence_pct, "percentage")
+    && validRunMetric(run.first_mention_pct, "percentage")
+    && validRunMetric(run.citation_count, "count")
+    && validRunMetric(run.new_source_count, "count"));
+}
 type MetricDelta = { before: number; after: number; delta: number };
 
 const readMetricDelta = (value: unknown, range: "percentage" | "count"): MetricDelta | null => {
@@ -178,17 +200,27 @@ export function buildOutcomeLedger(input: {
         : contextCheck?.reason || "Material measurement context could not be independently verified.";
     const storedCandidate = followUp?.status === "complete" && !contextBlocked
       ? readStoredComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
+    // Persisted stored outcomes already pass the strict metric-shape check
+    // above. A fallback comparison from run aggregates instead requires all
+    // four independently readable, valid metrics on BOTH finalized runs.
     const storedComparison = storedCandidate && (!baseline || isComparableBaselineRun(baseline)) && (!rerun || isComparableFollowUpRun(rerun)) ? storedCandidate : null;
-    const comparison = storedComparison || (followUp?.status === "complete" && !contextBlocked && isComparableBaselineRun(baseline) && isComparableFollowUpRun(rerun) ? compareResolutionRuns(toMeasurement(baseline as OutcomeLedgerRunRow), toMeasurement(rerun as OutcomeLedgerRunRow)) : null);
+    const metricReady = isComparableBaselineRun(baseline) && isComparableFollowUpRun(rerun)
+      && hasCompleteAggregateMetrics(baseline) && hasCompleteAggregateMetrics(rerun);
+    const metricsBlocked = followUp?.status === "complete" && !contextBlocked && !storedComparison && !metricReady;
+    const metricLimitation = metricsBlocked
+      ? "Complete, valid baseline and follow-up aggregate metrics were unavailable; a directional comparison was withheld."
+      : null;
+    const comparison = storedComparison || (followUp?.status === "complete" && !contextBlocked && metricReady
+      ? compareResolutionRuns(toMeasurement(baseline as OutcomeLedgerRunRow), toMeasurement(rerun as OutcomeLedgerRunRow)) : null);
     const baselineMeasured = isComparableBaselineRun(baseline) || Boolean(storedComparison);
     const evidenceReviewed = linkedEvidence.length > 0;
-    const comparisonEligible = comparison ? true : (followUp?.status === "incomparable" || contextBlocked) ? false : null;
+    const comparisonEligible = comparison ? true : (followUp?.status === "incomparable" || contextBlocked || metricsBlocked) ? false : null;
     const measurementComplete = Boolean(followUp && ["complete", "incomparable"].includes(followUp.status));
-    const outcomeState = contextBlocked ? "incomparable" : classifyOutcome(comparison, followUp);
+    const outcomeState = contextBlocked || metricsBlocked ? "incomparable" : classifyOutcome(comparison, followUp);
     const linkedChange = Boolean(asset.change_specification_id);
     const decisionDetail = asset.review_decision === "changes_requested" ? "Reviewer requested changes." : asset.review_decision === "rejected" ? "Reviewer rejected this draft." : asset.approved_at ? asset.approval_note || "Approved by the workspace reviewer." : asset.submitted_at ? "Waiting for a reviewer decision." : "Not submitted for review yet.";
     const latestEvidenceAt = linkedEvidence.map((row) => row.created_at).filter(Boolean).sort().at(-1) || null;
-    const limitations = uniqueLimitations(asset.limitations || [], [followUp?.limitation, DEFAULT_LIMITATION, contextLimitation]);
+    const limitations = uniqueLimitations(asset.limitations || [], [followUp?.limitation, DEFAULT_LIMITATION, contextLimitation, metricLimitation]);
     const confidence: OutcomeLedgerRecord["confidence"] = comparison && evidenceReviewed ? "reviewed" : baselineMeasured || evidenceReviewed ? "limited" : "not_assessed";
     const confidenceBasis = comparison && evidenceReviewed
       ? "Verified linked evidence and an eligible exact-protocol remeasurement are present. This supports an observed association, not causation."
@@ -206,8 +238,8 @@ export function buildOutcomeLedger(input: {
       { key: "action", label: "Action", done: Boolean(asset.approved_at), at: asset.approved_at, actorId: asset.approved_by || null, detail: asset.approved_at ? linkedChange ? "The reviewed execution artifact was approved as an action beneath the Change Specification." : "The reviewed recommendation was approved as an action." : "No approved action is recorded yet." },
       { key: "owner", label: "Owner", done: Boolean(opportunity?.owner_id), at: opportunity?.updated_at || null, actorId: opportunity?.owner_id || null, detail: opportunity?.owner_id ? `Assigned owner${opportunity.due_at ? ` · due ${opportunity.due_at}` : ""}${opportunity.next_action ? ` · ${opportunity.next_action}` : ""}` : "No action owner is assigned." },
       { key: "completion", label: "Completion", done: Boolean(asset.applied_at), at: asset.applied_at, actorId: asset.applied_by || null, detail: asset.application_reference || "Not recorded as applied yet." },
-      { key: "measurement", label: "Later measurement", done: measurementComplete, at: measurementComplete ? followUp?.completed_at || null : followUp?.requested_at || null, actorId: followUp?.recorded_by || followUp?.requested_by || null, detail: followUp ? (measurementComplete ? (followUp.status === "incomparable" || contextBlocked) ? "A later measurement finished, but independently checked exact comparison eligibility failed closed." : "The same eligible measurement protocol was completed again." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
-      { key: "outcome", label: "Observed direction", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, actorId: followUp?.recorded_by || null, detail: comparison ? `${outcomeState.replaceAll("_", " ")}. ${comparison.interpretation}` : (followUp?.status === "incomparable" || contextBlocked) ? "Directional comparison withheld because the later observation was not eligible for independently verified exact comparison." : "No eligible directional comparison is available yet." },
+      { key: "measurement", label: "Later measurement", done: measurementComplete, at: measurementComplete ? followUp?.completed_at || null : followUp?.requested_at || null, actorId: followUp?.recorded_by || followUp?.requested_by || null, detail: followUp ? (measurementComplete ? (followUp.status === "incomparable" || contextBlocked || metricsBlocked) ? "A later measurement finished, but independently checked exact comparison eligibility failed closed." : "The same eligible measurement protocol was completed again." : `Follow-up measurement is ${followUp.status}.`) : "No follow-up measurement requested yet." },
+      { key: "outcome", label: "Observed direction", done: Boolean(comparison), at: comparison ? followUp?.completed_at || null : null, actorId: followUp?.recorded_by || null, detail: comparison ? `${outcomeState.replaceAll("_", " ")}. ${comparison.interpretation}` : (followUp?.status === "incomparable" || contextBlocked || metricsBlocked) ? "Directional comparison withheld because the later observation was not eligible for independently verified exact comparison." : "No eligible directional comparison is available yet." },
     ];
 
     return {
@@ -234,7 +266,7 @@ export function buildOutcomeLedger(input: {
       confidence,
       confidenceBasis,
       limitations,
-      limitation: [followUp?.limitation || DEFAULT_LIMITATION, contextLimitation].filter(Boolean).join(" "),
+      limitation: [followUp?.limitation || DEFAULT_LIMITATION, contextLimitation, metricLimitation].filter(Boolean).join(" "),
     };
   });
 }
