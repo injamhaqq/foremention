@@ -91,6 +91,7 @@ jobs:
               echo "[isolated-ui] app exited before readiness"
               exit 1
             fi
+            echo "[isolated-ui] waiting for local app ($attempt/75)"
             sleep 1
           done
           if [ "$ready" != "true" ]; then
