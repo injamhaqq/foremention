@@ -522,6 +522,28 @@ async function main() {
     assert.equal(persistedDrift[0].status,"complete",
       "the local pre-migration database should expose the very overclaim the independent gate prevents");
 
+    // This third-cycle negative test is different from the unified one-field
+    // existing-run mutation: here the newest independent follow-up must take
+    // priority over a previously eligible earlier cycle. Confirm source DB
+    // chronology AND the saved verified drift before attributing failure to UI.
+    const ordered=await db("GET",
+      "resolution_follow_ups?select=id,requested_at,status,rerun_id"+
+      "&organization_id=eq."+tenant.org+
+      "&resolution_asset_id=eq."+generated.id+"&order=requested_at.desc,id.desc");
+    assert.equal(ordered.length,2,"exactly two persisted follow-ups are required");
+    assert.equal(ordered[0].id,driftRequest.measurementRequestId,
+      "newest stored follow-up must be the protocol-drift cycle");
+    assert.notEqual(ordered[0].requested_at,ordered[1].requested_at,
+      "separate remeasurement requests must have distinct persisted timestamps");
+    const storedDrift=await db("GET","run_answers?select=review_status,measurement_context_json"+
+      "&organization_id=eq."+tenant.org+"&id=eq."+drift.answers[0].id);
+    assert.equal(storedDrift.length,1);
+    assert.equal(storedDrift[0].review_status,"verified");
+    assert.equal(storedDrift[0].measurement_context_json?.evaluationVersion,
+      "fixture-different-evaluation-v2",
+      "the deliberate context drift must survive real review and be persisted");
+    step("newest-drift-cycle-and-verified-saved-context-confirmed");
+
     const withheldResponse=await outcomePage.goto(new URL("/app/outcomes",app).toString(),{
       waitUntil:"domcontentloaded",timeout:60000,
     });
