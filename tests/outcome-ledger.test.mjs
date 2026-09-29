@@ -437,13 +437,23 @@ test("impossible calendar dates and future-dated but internally ordered measurem
 
 
 test("impossible calendar days and future completion dates cannot be approved outcome evidence",()=>{
-  for(const [label,recorded] of [
-    ["normalizable invalid calendar date","2026-08-32T00:00:00.000Z"],
-    ["future recorded completion","2099-08-13T00:00:00.000Z"],
-  ]){
-    const [result]=build({followUps:[{...followUp,completed_at:recorded}]});
-    assert.equal(result.comparison,null,label);
-    assert.equal(result.comparisonEligible,false,label);
-    assert.equal(result.outcomeState,"incomparable",label);
-  }
+  // Node Date.parse silently normalizes Feb 30 -> March 2: all of these
+  // other milestones deliberately precede that rolled-over day.
+  const febAsset={...asset,
+    created_at:"2026-02-01T00:00:00.000Z",submitted_at:"2026-02-02T00:00:00.000Z",
+    approved_at:"2026-02-03T00:00:00.000Z",decision_at:"2026-02-03T00:00:00.000Z",
+    applied_at:"2026-02-04T00:00:00.000Z"};
+  const [impossible]=build({assets:[febAsset],
+    runs:[{...baselineRun,completed_at:"2026-02-01T00:00:00.000Z"},
+          {...followUpRun,completed_at:"2026-02-11T00:00:00.000Z"}],
+    followUps:[{...followUp,requested_at:"2026-02-05T00:00:00.000Z",
+      completed_at:"2026-02-30T00:00:00.000Z"}]});
+  assert.equal(impossible.comparison,null,"normalizable invalid calendar date");
+  assert.equal(impossible.comparisonEligible,false);
+  assert.equal(impossible.outcomeState,"incomparable");
+
+  const [future]=build({followUps:[{...followUp,completed_at:"2099-08-13T00:00:00.000Z"}]});
+  assert.equal(future.comparison,null,"future recorded completion");
+  assert.equal(future.comparisonEligible,false);
+  assert.equal(future.outcomeState,"incomparable");
 });
