@@ -46,7 +46,9 @@ test("review-time movement remains behind human review and exact run-pair compar
   assert.match(comparability, /methodology_version/);
   assert.match(comparability, /review_status=eq\.verified/);
   assert.match(comparability, /prompt_text,provider,model/);
-  assert.match(comparability, /assessExactQuestionComparability/);
+  assert.match(comparability, /assessCompleteVerifiedRunPair/);
+  assert.match(comparability, /validPairedRunAnswerBudget/);
+  assert.match(comparability, /answer_count/);
 });
 
 test("legacy notification and email suppression guards remain as defense in depth", async () => {
