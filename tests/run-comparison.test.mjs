@@ -36,3 +36,18 @@ test("run inspection withholds movement unless exact reviewed comparability is p
   assert.match(gate, /canonicalizeEvidenceUrl/);
   assert.doesNotMatch(gate, /answer_text|brand_position/);
 });
+test("run-pair comparisons cannot leak adjacent projects or invent movement from truncated verified answer sets",async()=>{
+  const gate=await text("lib/run-pair-comparability.ts");
+  assert.match(gate,/project_id=eq\\.\\$\\{context\\.projectId\\}/);
+  assert.match(gate,/runs\\?select=id,status,methodology_version,answer_count,created_at/);
+  assert.match(gate,/rows\\.length >= 500/);
+  assert.match(gate,/rows\\.filter\\(\\(row\\) => row\\.run_id === run\\.id\\)\\.length === run\\.answer_count/);
+  assert.match(gate,/Number\\.isSafeInteger\\(run\\.answer_count\\)/);
+  assert.match(gate,/Duplicate verified buyer-question\\/provider slots/);
+  assert.match(gate,/Persisted collection creation chronology is unavailable/);
+  const retrieve=gate.indexOf("const rows = await supabaseRest");
+  const completeness=gate.indexOf("rows.length >= 500");
+  const comparability=gate.indexOf("assessExactQuestionComparability(laterRunId, earlierRunId, slots)");
+  assert.ok(retrieve>=0 && completeness>retrieve && comparability>completeness,
+    "reporting must reject truncation before making an exact-comparability claim");
+});
