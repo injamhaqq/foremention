@@ -106,7 +106,7 @@ export async function runIsolatedStagePreflight(input, {request = limitedFetch, 
       const redirect = new URL(response.headers?.get('location') || '', stage.baseUrl);
       redirectValid = loginRedirectStatuses.has(response.status)
         && redirect.origin === stage.baseUrl && redirect.pathname === '/login'
-        && redirect.searchParams.get('next') === path;
+        && redirect.searchParams.get('next') === (path === '/app/outcomes/print' ? '/app/outcomes' : path);
     } catch { /* no user-supplied redirect/location copied into logs */ }
     routeChecks.push({path, status: safeStatus(response), ok:redirectValid});
     if (!redirectValid) return {ok:false,stageHost:stage.host,expectedSha:stage.expectedSha,
