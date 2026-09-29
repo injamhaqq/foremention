@@ -99,6 +99,53 @@ test("malformed or mismatched stored outcomes never become displayed evidence", 
   }
 });
 
+test("missing or malformed aggregate columns cannot silently become zero-valued directional evidence", () => {
+  for (const [label, runs] of [
+    ["null baseline percentage", [{...baselineRun,brand_presence_pct:null}, followUpRun]],
+    ["blank baseline percentage", [{...baselineRun,brand_presence_pct:"  "}, followUpRun]],
+    ["null follow-up count", [baselineRun, {...followUpRun,citation_count:null}]],
+    ["negative follow-up count", [baselineRun, {...followUpRun,new_source_count:-1}]],
+    ["out-of-range follow-up percentage", [baselineRun, {...followUpRun,first_mention_pct:101}]],
+    ["nonfinite follow-up percentage", [baselineRun, {...followUpRun,brand_presence_pct:"Infinity"}]],
+    ["fractional follow-up count", [baselineRun, {...followUpRun,citation_count:1.5}]],
+  ]) {
+    const [record] = build({runs});
+    assert.equal(record.measurementStatus,"complete",label);
+    assert.equal(record.comparison,null,label);
+    assert.equal(record.comparisonEligible,false,label);
+    assert.equal(record.outcomeState,"incomparable",label);
+    assert.equal(record.steps.find(item=>item.key==="measurement").done,true,label);
+    assert.equal(record.steps.find(item=>item.key==="outcome").done,false,label);
+    assert.match(record.limitation,/aggregate metrics were unavailable/i,label);
+  }
+});
+
+test("valid saved numeric-string and legitimate zero metrics remain comparable", () => {
+  const baseline={...baselineRun,brand_presence_pct:"20",first_mention_pct:"0",citation_count:"0",new_source_count:"0"};
+  const later={...followUpRun,brand_presence_pct:"35",first_mention_pct:"5",citation_count:"2",new_source_count:"1"};
+  const [record]=build({runs:[baseline,later]});
+  assert.equal(record.comparisonEligible,true);
+  assert.equal(record.comparison.brandPresencePct.delta,15);
+  assert.equal(record.comparison.citationCount.delta,2);
+});
+
+test("validated independent stored outcome remains usable when run aggregates are incomplete", () => {
+  const stored={
+    baselineRunId:baselineRun.id,followUpRunId:followUpRun.id,
+    brandPresencePct:{before:20,after:35,delta:15},
+    firstMentionPct:{before:10,after:12,delta:2},
+    citationCount:{before:4,after:6,delta:2},
+    newSourceCount:{before:1,after:3,delta:2},
+  };
+  const [record]=build({
+    runs:[{...baselineRun,brand_presence_pct:null},followUpRun],
+    followUps:[{...followUp,outcome:stored}],
+  });
+  assert.equal(record.comparisonEligible,true);
+  assert.equal(record.comparison.brandPresencePct.delta,15);
+  assert.match(record.comparison.interpretation,/not establish/i);
+});
+
 test("an incomparable follow-up remains measured but fails closed before a directional label", () => {
   const incomparable = { ...followUp, status: "incomparable", outcome: { baselineRunId: baselineRun.id, followUpRunId: followUpRun.id, interpretation: "Exact model changed." } };
   const [record] = build({ followUps: [incomparable] });
