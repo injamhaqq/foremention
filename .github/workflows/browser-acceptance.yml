@@ -133,10 +133,32 @@ jobs:
 
           export FOREMENTION_BROWSER_BASE_URL=http://127.0.0.1:4173
 
+          # Avoid carrying cumulative browser-session workload from the
+          # 48-observation public acceptance suite into unrelated zoom and
+          # canonical-brand acceptance. After EACH suite, assert the same
+          # first-attempt Worker remained healthy; a crash is a real failure,
+          # never hidden by restarting or converting a diagnostic repeat.
+          assert_worker_healthy() {
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "Local Worker process exited during an acceptance suite." >&2
+              exit 1
+            fi
+            if ! curl --fail --silent --show-error --max-time 4 \
+                http://127.0.0.1:4173/api/health >/dev/null; then
+              echo "Local Worker failed its post-suite health check." >&2
+              exit 1
+            fi
+          }
+
           start_worker
           node scripts/browser-acceptance.mjs
+          assert_worker_healthy
+          start_worker
           node scripts/browser-zoom-reflow.mjs
+          assert_worker_healthy
+          start_worker
           node scripts/canonical-brand-visual-proof.mjs
+          assert_worker_healthy
           stop_worker
 
           chrome="$(command -v google-chrome || command -v google-chrome-stable || true)"
