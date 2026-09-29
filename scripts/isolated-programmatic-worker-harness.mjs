@@ -87,7 +87,11 @@ try {
     return Promise.race([first,deadline]);
   };
   try {
-    await import("./isolated-customer-api.mjs");
+    if(process.env.FOREMENTION_ISOLATED_FULL_BRIDGE === "1") {
+      await import("./isolated-customer-api-bridge.mjs");
+    } else {
+      await import("./isolated-customer-api.mjs");
+    }
   } finally {
     globalThis.fetch=originalFetch;
   }
