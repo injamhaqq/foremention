@@ -287,7 +287,7 @@ step("persisted-five-question-exact-nine-field-comparison-eligible");
 if(uiMode){
   const anonOutcome=await readLocalUi(null,"/app/outcomes");
   assert.ok([302,303,307,308].includes(anonOutcome.status));
-  assert.match(anonOutcome.location||"",/\\/login/, "anonymous outcome report must require sign-in");
+  assert.ok((anonOutcome.location||"").includes("/login"),"anonymous outcome report must require sign-in");
   const ownerPage=await readLocalUi(owner,"/app/outcomes");
   assert.equal(ownerPage.status,200,"exact-context owner Outcome Ledger returns real HTTP 200");
   assert.match(ownerPage.body,/Fixture documentation intervention/);
