@@ -22,10 +22,16 @@ test("the exact official-domain acceptance gate runs before the canary publishes
 });
 
 test("the scoped official-domain filter runs before the paid model is invoked; generic questions stay supported", () => {
-  assert.match(retrieval, /explicitOfficialSourceRequirement\(normalized\)/);
-  assert.match(retrieval, /boundedOfficialSiteQuery\(normalized, officialRequirement\)/);
+  assert.ok(retrieval.includes("explicitOfficialSourceRequirement(originalBuyerQuestion)"));
+  assert.ok(retrieval.includes("boundedOfficialSiteQuery(originalBuyerQuestion, officialRequirement)"));
   assert.match(retrieval, /filterOfficialDomainCitations\(unqualifiedResults, officialRequirement\)/);
   const filterAt = retrieval.indexOf("filterOfficialDomainCitations(unqualifiedResults");
   const returnAt = retrieval.indexOf("return {\n    content: evidenceText");
   assert.ok(filterAt > 0 && returnAt > filterAt);
+});
+
+
+test("provider custom search terms cannot bypass the original official-domain requirement", async()=>{
+  const adapter=await readFile(new URL("../lib/providers/cloudflare.ts",import.meta.url),"utf8");
+  assert.ok(adapter.includes("retrieveFreeWebEvidence(input.searchQuery || input.prompt, input.signal, input.prompt)"));
 });
