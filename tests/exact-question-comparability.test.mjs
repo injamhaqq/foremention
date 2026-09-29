@@ -86,3 +86,12 @@ test("one collection cannot manufacture its own exact-comparable second cycle",(
   assert.equal(assessExactQuestionComparability("latest","",pair).comparable,false);
   assert.equal(assessExactQuestionComparability("latest","previous",pair).comparable,true);
 });
+
+
+test("two equally blank provider or question keys must never count as exact measurement provenance",()=>{
+  const missingProviders=pair.map(slot=>({...slot,provider:"  "}));
+  const missingKeys=pair.map(slot=>({...slot,promptKey:""}));
+  assert.match(assessExactQuestionComparability("latest","previous",missingProviders).reason||"",/provider provenance/i);
+  assert.match(assessExactQuestionComparability("latest","previous",missingKeys).reason||"",/question identity/i);
+  assert.equal(assessExactQuestionComparability("latest","previous",pair).comparable,true);
+});
