@@ -140,3 +140,19 @@ test("RSS retrieval fails closed when eight plausible same-host citations point 
     );
   });
 });
+
+
+test("a shortened alternate search query cannot override the original official-source section requirement", async()=>{
+  const original="According to the official OpenAI website, which post is on openai.com/news? Cite the exact openai.com source URL.";
+  const xml="<rss><channel>"+
+    '<item><title>Unrelated</title><link>https://dictionary.example/use</link><description>irrelevant</description></item>'+
+    '<item><title>Wrong official path</title><link>https://openai.com/index/outside</link><description>wrong section</description></item>'+
+    '<item><title>Correct fixture</title><link>https://openai.com/news/allowed</link><description>test only</description></item>'+
+    "</channel></rss>";
+  await withSyntheticBing(xml,async calls=>{
+    const evidence=await retrieveFreeWebEvidence("shortened generic query",undefined,original);
+    assert.equal(calls.length,1);
+    assert.equal(new URL(calls[0]).searchParams.get("q").startsWith("site:openai.com news "),true);
+    assert.deepEqual(evidence.citations.map(item=>item.url),["https://openai.com/news/allowed"]);
+  });
+});
