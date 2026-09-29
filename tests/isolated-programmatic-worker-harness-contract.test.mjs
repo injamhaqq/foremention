@@ -16,7 +16,7 @@ test("compiled production Worker experiment uses isolated programmatic Workerd a
     "wrangler.local-harness.json", "await harness.listen()",
     "await harness.fetch(", "await harness.close()",
     "Refusing programmatic acceptance without disposable local Supabase",
-    "FOREMENTION_ISOLATED_APP_URL:url.href",
+    'process.env.FOREMENTION_ISOLATED_APP_URL=url.href',
     "scripts/isolated-customer-api.mjs",'await import("./isolated-customer-api.mjs")',
     "harness.fetch(input,init)","target.origin!==appOrigin",
   ])assert.ok(script.includes(required),"Missing strict harness condition: "+required);
