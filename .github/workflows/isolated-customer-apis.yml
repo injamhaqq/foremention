@@ -1,0 +1,145 @@
+name: Isolated Customer APIs
+
+# The full browser/Worker chain is an OPT-IN pre-release check while the
+# combined local runtime's intermittent startup failures are triaged.
+# Apply the 'run-isolated-full-journey' label on the open PR to execute this
+# BEFORE merge. The separate always-required Isolated Outcome Evidence gate
+# tests real local Auth/PostgREST/RLS and stored parity, never the actual UI.
+# Native HTTP full customer-review API suite, independent of the signed-in
+# server-rendered UI proof in Isolated Outcome UI. No browser/dev proxy.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-customer-apis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-journey:
+    name: Signed-in customer review-to-second-cycle API
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.25.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
+        with:
+          version: 2.111.0
+
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Exercise authenticated local reviewer, manager, follow-up and tenant APIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          server_pid=""
+          cleanup() {
+            if [ -n "$server_pid" ]; then
+              kill "$server_pid" 2>/dev/null || true
+              wait "$server_pid" 2>/dev/null || true
+            fi
+            rm -f .isolated-local-env .dev.vars dist/server/.dev.vars .local-cli-status .isolated-browser-server.log .isolated-supabase-start.log
+            supabase stop --no-backup >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          # All connected services run inside this disposable Actions runner.
+          # Redirect local CLI output since it can contain generated test keys.
+          supabase start > .isolated-supabase-start.log 2>&1
+          supabase db reset >> .isolated-supabase-start.log 2>&1
+          supabase status -o env > .local-cli-status
+          node scripts/prepare-isolated-local-env.mjs .local-cli-status
+          set -a
+          source .isolated-local-env
+          set +a
+
+          # Build the real production Vinext/Cloudflare artifact first.
+          # The isolated integration server uses Vite's native Cloudflare
+          # workerd development runtime, not standalone Wrangler's unstable
+          # local HTTP proxy. CI and Browser Acceptance independently verify
+          # the exact-head production build and deployed Worker entry.
+          pnpm build
+          cp .dev.vars dist/server/.dev.vars
+
+          # No Chromium or Playwright transport here. The separate UI workflow
+          # validates the actual server-rendered owner/outsider/print surfaces.
+          # This suite checks the first authenticated API response over native
+          # loopback HTTP without retries and runs every real app mutation.
+          pnpm dlx wrangler@4.113.0 dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
+          server_pid=$!
+          ready=false
+          for attempt in $(seq 1 90); do
+            health_response="$(curl --fail --silent --show-error --max-time 4 http://127.0.0.1:4174/api/health 2>/dev/null || true)"
+            if [[ "$health_response" == *'"status":"ok"'* ]]; then
+              ready=true
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "[isolated-server] local-application-stopped-before-readiness"
+              node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
+              exit 1
+            fi
+            echo "Waiting for isolated local application ($attempt/90)"
+            sleep 1
+          done
+          if [ "$ready" != "true" ]; then
+            echo "[isolated-server] local-application-readiness-timeout"
+            node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
+            exit 1
+          fi
+
+          if ! node scripts/isolated-customer-api.mjs; then
+            # Fixed-label runner diagnostics only: never print local application
+            # logs, generated credentials, request bodies or environment.
+            if kill -0 "$server_pid" 2>/dev/null; then
+              echo "[isolated-server] local-application-process-alive"
+            else
+              echo "[isolated-server] local-application-process-exited"
+            fi
+            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:4174/api/health >/dev/null 2>&1; then
+              echo "[isolated-server] post-failure-local-application-health-200"
+            else
+              echo "[isolated-server] post-failure-local-application-health-unavailable"
+            fi
+            node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
+            exit 1
+          fi
+          echo "Native local authenticated real reviewer-to-followup API acceptance succeeded. UI is verified independently; neither is production approval."
+
+      - name: Verify no test secrets or artifacts remain
+        if: always()
+        shell: bash
+        run: |
+          for path in .isolated-local-env .dev.vars dist/server/.dev.vars .local-cli-status; do
+            if [ -e "$path" ]; then
+              echo "Sensitive local test file was not cleaned: $path"
+              exit 1
+            fi
+          done
