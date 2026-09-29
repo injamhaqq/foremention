@@ -120,8 +120,19 @@ function hasCompleteAggregateMetrics(run: OutcomeLedgerRunRow | undefined): bool
 // archived rows, imports, stale replicas and executive/print read paths.
 // Only explicitly offset-aware database timestamps count as evidence.
 function parsedCompletedAt(value: string | null | undefined): number | null {
-  if (typeof value !== "string"
-    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return null;
+  if (typeof value !== "string") return null;
+  // Date.parse normalizes impossible days (e.g. Feb 30 into March). Such
+  // normalization must not turn forged source dates into eligible evidence.
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  const hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]);
+  const offsetHours = Number(match[10] || 0), offsetMinutes = Number(match[11] || 0);
+  if (year < 1 || month < 1 || month > 12 || day < 1
+    || day > new Date(Date.UTC(year, month, 0)).getUTCDate()
+    || hour > 23 || minute > 59 || second > 59
+    || offsetHours > 14 || offsetMinutes > 59
+    || (offsetHours === 14 && offsetMinutes !== 0)) return null;
   const millis = Date.parse(value);
   return Number.isFinite(millis) ? millis : null;
 }
@@ -149,6 +160,11 @@ function assessPostActionChronology(
   if (!(before! < applied! && approved! <= applied!
     && applied! <= requested! && requested! <= after! && after! <= recorded!)) {
     return fail("The saved measurement chronology cannot establish a baseline before the approved application and a later run completed after the follow-up request.");
+  }
+  // Never display a 'completed' post-action result whose recorded completion
+  // lies in the future; allow a small operational clock skew.
+  if (recorded! > Date.now() + 5 * 60 * 1000) {
+    return fail("The follow-up completion timestamp is in the future; post-action evidence was withheld.");
   }
   return { eligible: true, reason: null };
 }
