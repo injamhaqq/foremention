@@ -102,3 +102,41 @@ test("ordinary multi-vendor buyer questions are not restricted to one official d
     assert.doesNotMatch(new URL(calls[0]).searchParams.get("q"), /^site:/);
   });
 });
+
+
+test("the requested official article can appear after eight off-domain RSS items without being silently discarded", async () => {
+  const eightUnrelated=Array.from({length:8},(_,i)=>
+    `<item><title>Unrelated ${i}</title><link>https://dictionary.example/${i}</link><description>Off-domain</description></item>`).join("");
+  const ninth=`<item><title>Requested official fixture</title><link>https://openai.com/news/synthetic-official</link><description>Fixture-only</description></item>`;
+  const rss=`<rss><channel>${eightUnrelated}${ninth}</channel></rss>`;
+  const question="According to the official OpenAI website, which post appears on openai.com/news? Cite the exact openai.com source URL.";
+  await withSyntheticBing(rss,async calls=>{
+    const evidence=await retrieveFreeWebEvidence(question);
+    assert.equal(calls.length,1,"offline response is bounded to one synthetic fetch");
+    assert.deepEqual(evidence.citations.map(x=>x.url),["https://openai.com/news/synthetic-official"]);
+    assert.doesNotMatch(evidence.content,/dictionary\\.example/);
+  });
+  assert.equal(parseBingSearchRss(rss).length,8,
+    "ordinary unspecialized parsing retains its existing eight-result cap");
+});
+test("eight same-domain wrong-section items cannot hide an exact requested /news source", async()=>{
+  const unrelated=Array.from({length:8},(_,i)=>
+    `<item><title>Wrong section ${i}</title><link>https://openai.com/index/${i}</link><description>Wrong path</description></item>`).join("");
+  const wanted=`<item><title>News</title><link>https://www.openai.com/news/synthetic-article</link><description>Fixture</description></item>`;
+  const question="According to the official OpenAI website, what is published on openai.com/news? Cite the exact openai.com source URL.";
+  await withSyntheticBing(`<rss><channel>${unrelated}${wanted}</channel></rss>`,async()=>{
+    const evidence=await retrieveFreeWebEvidence(question);
+    assert.deepEqual(evidence.citations.map(x=>x.url),["https://www.openai.com/news/synthetic-article"]);
+    assert.doesNotMatch(evidence.content,/index\\//);
+  });
+});
+test("RSS retrieval fails closed when eight plausible same-host citations point to the wrong requested section",async()=>{
+  const rss="<rss><channel>"+Array.from({length:8},(_,i)=>
+    `<item><title>Wrong section ${i}</title><link>https://openai.com/index/${i}</link><description>Not news</description></item>`).join("")+"</channel></rss>";
+  await withSyntheticBing(rss,async()=>{
+    await assert.rejects(
+      retrieveFreeWebEvidence("According to the official OpenAI website, which title is on openai.com/news? Cite the exact openai.com source URL."),
+      /Official-domain evidence was unavailable/,
+    );
+  });
+});
