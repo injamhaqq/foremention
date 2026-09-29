@@ -48,3 +48,29 @@ test("abstention plus even an official URL is not a passed freshness answer", ()
     ok: false, reason: "ABSTENTION_NOT_VERIFIED_EVIDENCE",
   });
 });
+
+test("an official-looking URL cannot upgrade common explicit abstentions into VERIFIED evidence", () => {
+  const cited = [{ url: "https://openai.com/news/real-but-not-independently-checked" }];
+  for (const answer of [
+    "I don't know which post was published latest.",
+    "I cannot confirm the publication date.",
+    "I couldn't find the latest post on the website.",
+    "I could not access the original page.",
+    "I am unable to locate that article.",
+    "I was unable to verify the title.",
+    "I am not able to confirm the exact publication date.",
+    "Unable to determine which result is most recent.",
+    "There is insufficient current evidence for the date.",
+    "There isn't enough reliable information to establish the title.",
+    "No verifiable information was retrieved.",
+    "The available evidence does not confirm that article.",
+    '"I cannot verify the title or date from the live website."',
+  ]) {
+    assert.deepEqual(assessExplicitOfficialSourceAnswer(answer,cited,req),{
+      ok:false,reason:"ABSTENTION_NOT_VERIFIED_EVIDENCE",
+    },answer);
+  }
+  assert.deepEqual(assessExplicitOfficialSourceAnswer(
+    "A specific official article is observed in the results, but freshness still requires independent inspection.",cited,req,
+  ),{ok:true,reason:null});
+});
