@@ -11,7 +11,9 @@ test("mandatory independent full customer API workflow uses production-built loc
     read("../.github/workflows/isolated-outcome-ui.yml"),
   ]);
   assert.match(workflow,/pull_request:/);
-  assert.doesNotMatch(workflow,/run-isolated-full-journey|if:.*labels/);
+  assert.match(workflow,/run-isolated-legacy-dev-proxy/);
+  assert.match(workflow,/if: github.event_name == 'workflow_dispatch' \|\| contains/);
+  assert.doesNotMatch(workflow,/run-isolated-full-journey/);
   assert.match(workflow,/pnpm build/);
   assert.match(workflow,/pnpm dlx wrangler@4\.113\.0 dev --local/);
   assert.match(workflow,/node scripts\/isolated-customer-api\.mjs/);
