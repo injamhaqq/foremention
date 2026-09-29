@@ -12,6 +12,7 @@ type RunRow = {
   id: string;
   status: string;
   methodology_version: string | null;
+  answer_count: number | null;
   created_at: string;
 };
 
@@ -92,7 +93,7 @@ export async function assessWorkspaceRunPairComparability(
   if (!context) return withheld("The active workspace could not be verified.");
 
   const runs = await supabaseRest<RunRow[]>(
-    `runs?select=id,status,methodology_version,created_at&organization_id=eq.${context.organizationId}&id=in.(${earlierRunId},${laterRunId})&limit=2`,
+    `runs?select=id,status,methodology_version,answer_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${earlierRunId},${laterRunId})&limit=2`,
     { token: viewer.accessToken },
   );
   const byId = new Map(runs.map((run) => [run.id, run]));
@@ -103,6 +104,9 @@ export async function assessWorkspaceRunPairComparability(
   }
   if (!terminalReviewedStates.has(earlier.status) || !terminalReviewedStates.has(later.status)) {
     return withheld("Both runs must have completed human review before movement can be compared.");
+  }
+  if (!Number.isFinite(Date.parse(earlier.created_at)) || !Number.isFinite(Date.parse(later.created_at))) {
+    return withheld("Persisted collection creation chronology is unavailable.");
   }
   if (new Date(earlier.created_at).getTime() >= new Date(later.created_at).getTime()) {
     return withheld("Choose the older reviewed collection as Earlier and the newer reviewed collection as Later.");
@@ -118,6 +122,21 @@ export async function assessWorkspaceRunPairComparability(
     `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
     { token: viewer.accessToken },
   );
+  // PostgREST can truncate at the explicitly bounded response limit. A
+  // perfectly matching *subset* is not complete comparable customer evidence.
+  if (rows.length >= 500 || ![earlier, later].every((run) =>
+    typeof run.answer_count === "number" && Number.isSafeInteger(run.answer_count)
+    && run.answer_count > 0
+    && rows.filter((row) => row.run_id === run.id).length === run.answer_count)) {
+    return withheld("Both reviewed runs require independently readable complete verified answer sets under the bounded read.");
+  }
+  const uniqueSlots = (runId: string) => {
+    const matched = rows.filter((row) => row.run_id === runId);
+    return new Set(matched.map((row) => [row.prompt_key, row.provider].join("\u0000"))).size === matched.length;
+  };
+  if (!uniqueSlots(earlierRunId) || !uniqueSlots(laterRunId)) {
+    return withheld("Duplicate verified buyer-question/provider slots are not independently comparable.");
+  }
   const slots: ComparableQuestionSlot[] = rows.map((row) => ({
     runId: row.run_id,
     promptKey: row.prompt_key,
