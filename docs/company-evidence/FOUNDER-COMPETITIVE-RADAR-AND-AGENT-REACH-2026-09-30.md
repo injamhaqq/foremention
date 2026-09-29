@@ -1,5 +1,5 @@
 # Foremention — Public Competitive Radar and Agent Reach Research Runbook
-**As of:** 2026-09-30 · **Classification:** Internal public-source research; NOT first-party customer evidence  
+**As of:** 2026-09-30 · **Classification:** Internal public-source research; NOT first-party customer evidence
 **Execution status:** Public official sources were read through independent web search and TinyFish public-page extraction. **Agent Reach CLI was NOT run**: it is not installed in the current execution runtime and that runtime cannot access external package hosts. No credentialed social channel was touched. The separate `COMPETITIVE-PUBLIC-SIGNALS-2026-09-30.json` contains nine short source-bound observations, not republished articles or private data.
 
 ## Stage-0 strategic decision
