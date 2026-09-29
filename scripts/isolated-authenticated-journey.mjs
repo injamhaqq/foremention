@@ -79,6 +79,37 @@ async function appCall(ctx,method,path,data,extraHeaders={}) {
   try {body=await response.json();}catch{}
   return {status:response.status(),body};
 }
+// Transport cross-check: the authenticated server-rendered Outcome UI
+// acceptance already uses native fetch for the same disposable Worker and
+// local GoTrue session. Exercise the FINAL real Resolution API read directly
+// rather than routing its full JSON body through Playwright request.fetch,
+// whose proxy intermittently stalled for 75s after the Worker logged "loaded".
+// This performs ONE real request; it is not a retry or a result substitution.
+async function nativeFinalResolutionRead(ctx) {
+  const session=(await ctx.cookies()).find(c=>c.name==="foremention-session");
+  if(!session?.value)throw Error("Local authenticated final read has no signed-in session.");
+  let response;
+  try {
+    response=await fetch(new URL("/api/resolutions",app),{
+      method:"GET",
+      redirect:"manual",
+      headers:{
+        origin:app.origin,
+        accept:"application/json",
+        cookie:"foremention-session="+session.value,
+        "x-foremention-isolated-final-read":"1",
+      },
+      signal:AbortSignal.timeout(75_000),
+    });
+    const json=await response.json().catch(()=>null);
+    if(!json || typeof json!=="object")
+      return {status:0,body:null};
+    return {status:response.status,body:json};
+  } catch {
+    // Never emit a fetch error that might reflect local synthetic JWT headers.
+    return {status:0,body:null};
+  }
+}
 function must(actual,status,stepName) {
   if(actual.status!==status) throw Error("Isolated "+stepName+" returned HTTP "+actual.status+" (expected "+status+").");
   return actual.body;
@@ -392,7 +423,7 @@ async function main() {
     // whether the final failing request reached the Worker route at all.
     // Preserve strict first-request acceptance; a diagnostic retry never
     // converts a failed 500 into a passing test.
-    const finalRead=await appCall(ownerCtx,"GET","/api/resolutions",undefined,{"x-foremention-isolated-final-read":"1"});
+    const finalRead=await nativeFinalResolutionRead(ownerCtx);
     if(finalRead.status!==200){
       const session=(await ownerCtx.cookies()).find(c=>c.name==="foremention-session");
       if(!session)throw Error("Final local diagnostic lost its synthetic session.");
