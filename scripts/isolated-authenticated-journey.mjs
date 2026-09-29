@@ -505,9 +505,12 @@ async function main() {
     const driftRequest=must(await appCall(ownerCtx,"POST","/api/resolutions",{
       action:"remeasure",resolutionId:generated.id
     }),202,"new independent drift-verification request").data;
+    // The ordinary run-review API replaces fixture-supplied metadata with
+    // its real canonical evaluationVersion. Creating a drifted run BEFORE
+    // review cannot test report drift; apply exactly one saved-field mutation
+    // only AFTER that ordinary review has completed.
     const drift=await seedLocalRun(tenant,owner.id,"changed evaluation protocol",{
       review:true,cited:false,metrics:[60,40,0,0],
-      contextOverride:{evaluationVersion:"fixture-different-evaluation-v2"},
     });
     must(await appCall(ownerCtx,"POST","/api/resolutions",{
       action:"remeasure",resolutionId:generated.id,rerunId:drift.run.id,
@@ -515,6 +518,26 @@ async function main() {
     }),200,"attach later protocol-drift fixture");
     must(await appCall(ownerCtx,"POST","/api/runs/"+drift.run.id+"/review",{}),
       200,"finalize later protocol-drift fixture");
+    // Read the canonical review-produced persisted context. Preserve all its
+    // other versions and modify only the independently verified later
+    // evaluationVersion in disposable Postgres, just as unified proof does.
+    const beforeDrift=await db("GET","run_answers?select=id,review_status,measurement_context_json"+
+      "&organization_id=eq."+tenant.org+"&id=eq."+drift.answers[0].id);
+    assert.equal(beforeDrift.length,1,"the reviewed later answer must exist");
+    assert.equal(beforeDrift[0].review_status,"verified");
+    const savedContext=beforeDrift[0].measurement_context_json;
+    assert.ok(savedContext && typeof savedContext==="object" &&
+      typeof savedContext.evaluationVersion==="string" &&
+      savedContext.evaluationVersion.trim(),
+      "the actual reviewed answer must have an existing evaluation version");
+    const patched=await db("PATCH","run_answers?id=eq."+drift.answers[0].id+
+      "&organization_id=eq."+tenant.org,{
+        measurement_context_json:{
+          ...savedContext,evaluationVersion:"fixture-different-evaluation-v2",
+        },
+      });
+    assert.equal(patched.length,1,"exactly one persisted answer must be mutated");
+    assert.equal(patched[0].id,drift.answers[0].id);
     const persistedDrift=await db("GET",
       "resolution_follow_ups?select=status&organization_id=eq."+tenant.org+
       "&id=eq."+driftRequest.measurementRequestId);
