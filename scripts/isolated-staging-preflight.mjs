@@ -86,6 +86,12 @@ export async function runIsolatedStagePreflight(input, {request = limitedFetch, 
   // requires a reliable deployed path, not merely eventual availability.
   if (health.receipts.length !== 1) return {ok:false,stageHost:stage.host,expectedSha:stage.expectedSha,
     reason:'degraded_first_attempt',health:health.receipts,routeChecks:[]};
+  // An HTTP 200 and matching build string alone do not prove the real D1
+  // and Auth dependencies are connected to this stage. Require the real
+  // health contract to report both checks independently reachable.
+  if (health.receipts.some((receipt) => receipt.d1 !== 'reachable' || receipt.supabase !== 'reachable'))
+    return {ok:false,stageHost:stage.host,expectedSha:stage.expectedSha,
+      reason:'stage_dependencies_unverified',health:health.receipts,routeChecks:[]};
 
   const routeChecks = [];
   let root;
