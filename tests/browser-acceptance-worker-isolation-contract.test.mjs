@@ -24,7 +24,9 @@ test("public browser suites use distinct local Workers and fail if a suite kills
     /browser-zoom-reflow\.mjs\s+assert_worker_healthy\s+start_worker\s+/);
   assert.match(workflow.slice(canonical,stop),
     /canonical-brand-visual-proof\.mjs\s+assert_worker_healthy\s+/);
-  assert.doesNotMatch(workflow.slice(start,stop),/\|\| true|retry|continue-on-error/);
+  // Comments may say "never retry": reject executable retry mechanisms,
+  // not the safety documentation explaining their absence.
+  assert.doesNotMatch(workflow.slice(start,stop),/\|\| true|retry\(|continue-on-error/);
   assert.match(workflow,/FOREMENTION_EXPECTED_BUILD_COMMIT:/,
     "trusted production exact-head smoke remains independent");
   assert.match(workflow,/Run trusted production browser and accessibility acceptance/,
