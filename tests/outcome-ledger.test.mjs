@@ -413,3 +413,24 @@ test("forged saved completion dates are rejected even when legacy run aggregate 
   assert.equal(valid.comparisonEligible,true);
   assert.equal(valid.comparison.baselineCompletedAt,baselineRun.completed_at);
 });
+
+
+test("impossible calendar dates and future-dated but internally ordered measurements never enter a board report",()=>{
+  const invalid = [
+    ["normalized nonexistent February date", [{...baselineRun,completed_at:"2026-02-30T00:00:00.000Z"},followUpRun], {}, {}],
+    ["normalized nonexistent approval date", [baselineRun,followUpRun], {approved_at:"2026-02-30T00:00:00.000Z"}, {}],
+    ["future-dated complete measurement", [
+      {...baselineRun,completed_at:"2099-01-01T00:00:00.000Z"},
+      {...followUpRun,completed_at:"2099-01-11T00:00:00.000Z"},
+    ],{approved_at:"2099-01-02T00:00:00.000Z",applied_at:"2099-01-04T00:00:00.000Z"},
+    {requested_at:"2099-01-05T00:00:00.000Z",completed_at:"2099-01-11T00:01:00.000Z"}],
+  ];
+  for(const [label, runs, modifiedAsset, modifiedFollowUp] of invalid){
+    const [record] = build({assets:[{...asset,...modifiedAsset}], runs,
+      followUps:[{...followUp,...modifiedFollowUp}]});
+    assert.equal(record.comparison,null,label);
+    assert.equal(record.comparisonEligible,false,label);
+    assert.equal(record.outcomeState,"incomparable",label);
+    assert.match(record.limitation,/timestamp|chronolog/i,label);
+  }
+});
