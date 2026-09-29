@@ -79,7 +79,7 @@ test("dated internal radar preserves source-first claims and isolates response h
   const raw=await readFile(new URL("../docs/company-evidence/COMPETITIVE-PUBLIC-SIGNALS-2026-09-30.json",import.meta.url),"utf8");
   const radar=JSON.parse(raw);
   assert.equal(radar.schema_version,"foremention.public-competitive-signals.v1");
-  assert.equal(radar.collector_status.includes("NOT executed"),true);
+  assert.match(radar.collector_status,/Agent Reach CLI was not executed/i);
   assert.ok(radar.records.length>=8);
   const ids=new Set();
   for (const row of radar.records) {
