@@ -19,7 +19,7 @@ export const HOSTS = Object.freeze({
   "OtterlyAI": ["otterly.ai", "www.otterly.ai"],
 });
 const OWN_KEYS = ["url", "title", "summary", "published_on", "observed_on", "competitor", "source_kind"];
-const PII_OR_SECRET = /(?:[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|(?:api[_-]?key|access[_-]?token|password|authorization|cookie|session)[\s:="']{1,8}[a-z0-9_-]{6,})/i;
+const PII_OR_SECRET = /(?:[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|(?:api[_-]?key|access[_ -]?token|auth[_ -]?token|password|authorization|cookie|session)[\s:="']{1,8}[a-z0-9_-]{6,})/i;
 const isoDate = value => typeof value === "string"
   && /^\d{4}-\d{2}-\d{2}$/.test(value)
   && !Number.isNaN(Date.parse(value + "T00:00:00.000Z"))
