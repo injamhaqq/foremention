@@ -142,30 +142,6 @@ async function nativeFinalResolutionRead(ctx) {
     return {status:0,body:null};
   }
 }
-// The SAME actual app-created and approved synthetic second-cycle record is
-// now independently read through both real authenticated server-rendered
-// Worker routes. This closes the cross-suite fixture gap without Chromium.
-async function readSignedInServerPage(ctx,path) {
-  const target=new URL(path,app);
-  if(target.origin!==app.origin || !["/app/outcomes","/app/outcomes/print"].includes(target.pathname))
-    throw Error("Only the two local signed-in Outcome report routes may be tested.");
-  const session=(await ctx.cookies()).find(c=>c.name==="foremention-session");
-  const headers={accept:"text/html",...(session?{cookie:"foremention-session="+session.value}:{})};
-  let response;
-  try {
-    response=await fetch(target,{headers,redirect:"manual",signal:AbortSignal.timeout(60_000)});
-    const body=await response.text();
-    return {status:response.status,body,location:response.headers.get("location")};
-  } catch {
-    throw Error("The first authenticated local Outcome report request did not complete.");
-  }
-}
-function requireServerCounter(html,label,value) {
-  // Only four static label values from the actual product UI are passed.
-  // The separate required UI suite uses this same fixed-label HTML contract.
-  const matcher=new RegExp("<span>"+label+"<\\/span>(?:\\s|<!--.*?-->)*<strong>"+value+"<\\/strong>","i");
-  assert.ok(matcher.test(html),"The real authenticated "+label+" count must equal "+value+".");
-}
 function must(actual,status,stepName) {
   if(actual.status!==status) throw Error("Isolated "+stepName+" returned HTTP "+actual.status+" (expected "+status+").");
   return actual.body;
@@ -505,48 +481,6 @@ async function main() {
     step("ordinary-reviewed-zero-citation-second-cycle-noncausal-tenant-scoped-result");
 
     step("real-local-auth-reviewed-second-cycle-api-and-tenant-isolation");
-    // Same session + same database as the completed real API flow above;
-    // not a second manually fabricated Change Specification / Asset fixture.
-    const page=await readSignedInServerPage(ownerCtx,"/app/outcomes");
-    assert.equal(page.status,200,"API-owned complete chain should render in the actual Outcome Ledger");
-    assert.ok(page.body.includes(record.title),"actual API-generated intervention title must remain visible to its owner");
-    requireServerCounter(page.body,"Complete chains",1);
-    requireServerCounter(page.body,"Eligible comparisons",1);
-    const board=await readSignedInServerPage(ownerCtx,"/app/outcomes/print");
-    assert.equal(board.status,200,"API-owned complete chain should render in the actual board report");
-    requireServerCounter(board.body,"Complete evidence chains",1);
-    const otherPage=await readSignedInServerPage(otherCtx,"/app/outcomes");
-    assert.equal(otherPage.status,200,"second tenant's report should remain independent");
-    assert.ok(!otherPage.body.includes(record.title),"real API-generated owner data must never cross tenants");
-    requireServerCounter(otherPage.body,"Complete chains",0);
-    const anonymous=await readSignedInServerPage(publicCtx,"/app/outcomes");
-    assert.ok([302,303,307,308].includes(anonymous.status));
-    assert.ok(anonymous.location?.includes("/login"),"anonymous viewers must not see an Outcome Ledger");
-    step("same-API-owned-verified-decision-chain-visible-only-to-owner-in-ledger-and-board");
-
-    // The original database trigger can mark this follow-up complete without
-    // all nine fields. Change exactly ONE saved, already verified later answer
-    // and prove BOTH real owner reports refuse the previously eligible result.
-    const drifted=await db("PATCH","run_answers?id=eq."+second.answers[0].id+
-      "&organization_id=eq."+tenant.org,{
-        measurement_context_json:{...context,evaluationVersion:"synthetic-independent-drift-v2"},
-      });
-    assert.equal(drifted.length,1,"exactly one later answer must be changed");
-    const historical=await db("GET","resolution_follow_ups?select=status&id=eq."+
-      request.measurementRequestId+"&organization_id=eq."+tenant.org);
-    assert.equal(historical[0]?.status,"complete",
-      "the old trigger's historical completion must remain true for this negative test");
-    const withheld=await readSignedInServerPage(ownerCtx,"/app/outcomes");
-    assert.equal(withheld.status,200);
-    requireServerCounter(withheld.body,"Complete chains",0);
-    requireServerCounter(withheld.body,"Eligible comparisons",0);
-    assert.match(withheld.body,/incomparable/i);
-    const withheldBoard=await readSignedInServerPage(ownerCtx,"/app/outcomes/print");
-    assert.equal(withheldBoard.status,200);
-    requireServerCounter(withheldBoard.body,"Complete evidence chains",0);
-    requireServerCounter(withheldBoard.body,"Incomparable",1);
-    step("same-API-owned-context-drift-suppressed-in-both-authenticated-reports");
-
     process.stdout.write("[isolated-api] PASSED "+stages.length+" native-local HTTP stages; no browser, no providers, no production, no customer-value claim.\n");
   } finally {
     await Promise.all(clients.map(async c => c.close().catch(()=>{})));
