@@ -438,8 +438,10 @@ async function main() {
       waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(boardResponse?.status(),200,"owner board export must load with exact-context proof");
-    assert.match(await boardPage.locator(".print-record__states").innerText(),
-      /Complete evidence chains\s+1/i,"board export must reflect the independently verified chain");
+    const boardChainCount=boardPage.locator(".print-record__states > div")
+      .filter({hasText:"Complete evidence chains"}).locator("strong");
+    assert.equal((await boardChainCount.innerText()).trim(),"1",
+      "board export must reflect the independently verified chain");
     const otherPage=await otherCtx.newPage();
     const otherResponse=await otherPage.goto(new URL("/app/outcomes",app).toString(),{
       waitUntil:"domcontentloaded",timeout:60000,
@@ -497,8 +499,8 @@ async function main() {
       waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(withheldBoard?.status(),200,"protocol-drift board export must still render");
-    assert.match(await boardPage.locator(".print-record__states").innerText(),
-      /Complete evidence chains\s+0/i,"board export must independently suppress drifted chain");
+    assert.equal((await boardChainCount.innerText()).trim(),"0",
+      "board export must independently suppress drifted chain");
     step("real-authenticated-protocol-drift-fail-closed-in-page-and-board-export");
 
     process.stdout.write("[isolated-journey] PASSED "+stages.length+" synthetic-only stages; no providers, no production, no customer-value claim.\n");
