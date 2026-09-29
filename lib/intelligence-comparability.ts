@@ -83,6 +83,11 @@ export function assessExactQuestionComparability(
   previousRunId: string,
   slots: ComparableQuestionSlot[],
 ): ExactComparability {
+  // A single run cannot be its own before-and-after measurement. This pure
+  // safety invariant applies even if a higher-level caller normally guards it.
+  if (!latestRunId || !previousRunId || latestRunId === previousRunId) {
+    return { comparable: false, reason: "A comparable change requires two distinct reviewed runs." };
+  }
   const scoped = slots.filter((slot) => slot.runId === latestRunId || slot.runId === previousRunId);
   if (scoped.some((slot) => !slot.promptText || !normalize(slot.promptText))) {
     return { comparable: false, reason: "Exact buyer-question text is missing from at least one verified answer." };
