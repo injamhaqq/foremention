@@ -89,6 +89,12 @@ export function assessExactQuestionComparability(
     return { comparable: false, reason: "A comparable change requires two distinct reviewed runs." };
   }
   const scoped = slots.filter((slot) => slot.runId === latestRunId || slot.runId === previousRunId);
+  if (scoped.some((slot) => !slot.promptKey || !normalize(slot.promptKey))) {
+    return { comparable: false, reason: "Exact buyer-question identity is missing from at least one verified answer." };
+  }
+  if (scoped.some((slot) => !slot.provider || !normalize(slot.provider))) {
+    return { comparable: false, reason: "Exact provider provenance is missing from at least one verified answer." };
+  }
   if (scoped.some((slot) => !slot.promptText || !normalize(slot.promptText))) {
     return { comparable: false, reason: "Exact buyer-question text is missing from at least one verified answer." };
   }
