@@ -101,10 +101,15 @@ async function seed(actor,org,label,brandPct,verification=context){
     citations_json:[],review_status:"verified",collected_at:now,
     measurement_context_json:i===0?verification:context,
   }));
+  await call("POST","/rest/v1/run_prompt_selections",service,service,p.map(question=>({
+    organization_id:org.organizationId,run_id:run.id,prompt_id:question.id,
+    prompt_key:question.prompt_key,prompt_text:question.prompt_text,
+    locale:"en-US",market:"Global",
+  })));
   const created=await call("POST","/rest/v1/run_answers",service,service,answers);
   assert.equal(created.length,5);
   await call("PATCH","/rest/v1/runs?id=eq."+run.id,service,service,{status:"complete"});
-  return {run,questions:p};
+  return {run,questions:p,answers:created};
 }
 async function scopedRead(actor,org,runIds){
   const ids=runIds.join(",");
@@ -119,6 +124,128 @@ async function scopedRead(actor,org,runIds){
     "&review_status=eq.verified&order=collected_at.asc&limit=1000",anon,actor.token);
   return {runs,answers};
 }
+
+const uiMode = process.env.FOREMENTION_TEST_UI === "1";
+const app = new URL(process.env.FOREMENTION_ISOLATED_APP_URL || "");
+if (uiMode && (app.protocol!=="http:" || !loopback.has(app.hostname) || !["4174","4175"].includes(app.port)))
+  throw Error("Refusing any non-loopback outcome-UI fixture target.");
+
+/**
+ * Synthetic-only persisted decision chain through real tenant-authenticated
+ * PostgREST writes. This is NOT a person approving an actual evidence source;
+ * each actor and document below belongs only to the isolated test database.
+ */
+async function createLocalDecisionChain(actor,org,first){
+  const O=org.organizationId,P=org.projectId,auth=actor.token;
+  const [source]=await call("POST","/rest/v1/sources",service,service,[{
+    organization_id:O,canonical_url:"https://fixture.invalid/source",
+    domain:"fixture.invalid",page_title:"Local synthetic evidence source",
+  }]);
+  const [observation]=await call("POST","/rest/v1/source_observations",service,service,[{
+    organization_id:O,source_id:source.id,
+    run_answer_id:first.answers[0].id,prompt_id:first.questions[0].id,
+    provider:"fixture-mock",citation_ordinal:1,observed_at:new Date().toISOString(),
+    review_status:"unreviewed",
+  }]);
+  await call("PATCH","/rest/v1/source_observations?id=eq."+observation.id,anon,auth,{
+    review_status:"verified",reviewer_id:actor.id,
+  });
+  const [opportunity]=await call("POST","/rest/v1/opportunities",anon,auth,[{
+    organization_id:O,project_id:P,source_id:source.id,
+    title:"Synthetic controllable source gap",owner_id:actor.id,
+    next_action:"Document fictional source context",status:"open",
+  }]);
+  const [spec]=await call("POST","/rest/v1/change_specifications",anon,auth,[{
+    organization_id:O,project_id:P,primary_opportunity_id:opportunity.id,
+    baseline_run_id:first.run.id,title:"Synthetic evidence change",
+    problem_statement:"Fixture-only source gap",created_by:actor.id,
+    control_class:"CONTROLLABLE",control_surface:"Synthetic documentation",
+    eligibility_state:"ELIGIBLE",decision_state:"TEST_FIRST",
+    truth_state:"HYPOTHESIS",confidence_state:"LOW",
+    exact_change:"Write a fictional local-only source note",owner_role:"Fixture owner",
+    effort:"LOW",acceptance_criteria_json:["Synthetic evidence reviewed"],
+    verification_plan_json:{intent:"Repeat same local fixture protocol"},
+  }]);
+  const snapshot={verification:"verified",id:"fixture-observation",kind:"source_observation",
+    provider:"fixture-mock",excerpt:"No real external source has been verified."};
+  await call("POST","/rest/v1/change_specification_evidence",anon,auth,[{
+    organization_id:O,project_id:P,change_specification_id:spec.id,
+    source_observation_id:observation.id,evidence_snapshot:snapshot,
+  }]);
+  const submitAt=new Date().toISOString();
+  await call("PATCH","/rest/v1/change_specifications?id=eq."+spec.id,anon,auth,{
+    status:"in_review",submitted_by:actor.id,submitted_at:submitAt,
+  });
+  await call("PATCH","/rest/v1/change_specifications?id=eq."+spec.id,anon,auth,{
+    status:"approved",decision_by:actor.id,decision_at:new Date().toISOString(),
+    approval_note:"Local synthetic fixture only",
+  });
+  const [asset]=await call("POST","/rest/v1/resolution_assets",anon,auth,[{
+    organization_id:O,project_id:P,opportunity_id:opportunity.id,source_id:source.id,
+    baseline_run_id:first.run.id,asset_type:"source_page_brief",
+    title:"Fixture documentation intervention",
+    problem_statement:"Synthetic source context is absent",
+    proposal:{schemaVersion:"1.0",assetType:"source_page_brief",
+      headline:"Fixture only",objective:"Test isolated proof boundaries",
+      draftSections:[],evidenceBoundary:"No real customer data",
+      nextStep:"Local fixture verification only"},
+    limitations:["Synthetic non-causal acceptance only"],created_by:actor.id,
+  }]);
+  await call("POST","/rest/v1/resolution_asset_evidence",anon,auth,[{
+    organization_id:O,project_id:P,resolution_asset_id:asset.id,
+    source_observation_id:observation.id,evidence_snapshot:snapshot,
+  }]);
+  await call("POST","/rest/v1/change_execution_assets",anon,auth,[{
+    organization_id:O,project_id:P,change_specification_id:spec.id,
+    resolution_asset_id:asset.id,execution_role:"documentation",
+    created_by:actor.id,
+  }]);
+  await call("PATCH","/rest/v1/resolution_assets?id=eq."+asset.id,anon,auth,{
+    status:"in_review",submitted_by:actor.id,submitted_at:new Date().toISOString(),
+  });
+  const approvedAt=new Date().toISOString();
+  await call("PATCH","/rest/v1/resolution_assets?id=eq."+asset.id,anon,auth,{
+    status:"approved",review_decision:"approved",approved_by:actor.id,
+    approved_at:approvedAt,decision_by:actor.id,decision_at:approvedAt,
+    approval_note:"Synthetic fixture acceptance",
+  });
+  await call("PATCH","/rest/v1/resolution_assets?id=eq."+asset.id,anon,auth,{
+    status:"applied",applied_by:actor.id,applied_at:new Date().toISOString(),
+    application_reference:"fixture-only:synthetic-owned-intervention",
+  });
+  const [followUp]=await call("POST","/rest/v1/resolution_follow_ups",anon,auth,[{
+    organization_id:O,project_id:P,resolution_asset_id:asset.id,
+    baseline_run_id:first.run.id,requested_by:actor.id,
+  }]);
+  return {asset,followUp,spec};
+}
+async function completeLocalFollowUp(actor,later,chain) {
+  const id=chain.followUp.id,auth=actor.token;
+  await call("PATCH","/rest/v1/resolution_follow_ups?id=eq."+id,anon,auth,{
+    rerun_id:later.run.id,status:"queued",
+  });
+  const [complete]=await call("PATCH","/rest/v1/resolution_follow_ups?id=eq."+id,anon,auth,{
+    status:"complete",recorded_by:actor.id,
+  });
+  assert.equal(complete.status,"complete",
+    "the disposable pre-correction trigger must finalize a synthetic matching-model follow-up");
+}
+async function readLocalUi(actor,path){
+  const res=await fetch(new URL(path,app),{
+    headers:actor ? {cookie:"foremention-session="+actor.token} : {},
+    redirect:"manual",signal:AbortSignal.timeout(45_000),
+  });
+  const body=await res.text();
+  return {status:res.status,body,location:res.headers.get("location")};
+}
+function requireCounter(html,label,value) {
+  // The server-rendered RSC HTML must contain the actual report counter, not
+  // a mocked helper output. React may insert harmless whitespace/comments.
+  const escaped=label.replace(/[.*+?^\$\{\}()|[\]\\]/g,"\\const owner=await user();");
+  const regexp=new RegExp("<span>"+escaped+"<\\/span>(?:\\s|<!--.*?-->)*<strong>"+value+"<\\/strong>","i");
+  assert.match(html,regexp,label+" must be "+value+" in the authenticated server-rendered view");
+}
+
 const owner=await user();
 const stranger=await user();
 const ownOrg=await onboard(owner,"owner");
@@ -127,7 +254,9 @@ assert.notEqual(ownOrg.organizationId,otherOrg.organizationId);
 step("two-ephemeral-users-and-independent-local-workspaces");
 
 const first=await seed(owner,ownOrg,"baseline",20);
+const chain=uiMode ? await createLocalDecisionChain(owner,ownOrg,first) : null;
 const later=await seed(owner,ownOrg,"follow-up",35);
+if (chain) await completeLocalFollowUp(owner,later,chain);
 const other=await seed(stranger,otherOrg,"other-tenant",40);
 const ownedIds=[first.run.id,later.run.id];
 const initial=await scopedRead(owner,ownOrg,ownedIds);
@@ -157,6 +286,25 @@ function parity(state) {
 assert.deepEqual(parity(initial),{comparable:true,reason:null});
 step("persisted-five-question-exact-nine-field-comparison-eligible");
 
+if(uiMode){
+  const anonOutcome=await readLocalUi(null,"/app/outcomes");
+  assert.ok([302,303,307,308].includes(anonOutcome.status));
+  assert.match(anonOutcome.location||"",/\\/login/, "anonymous outcome report must require sign-in");
+  const ownerPage=await readLocalUi(owner,"/app/outcomes");
+  assert.equal(ownerPage.status,200,"exact-context owner Outcome Ledger returns real HTTP 200");
+  assert.match(ownerPage.body,/Fixture documentation intervention/);
+  requireCounter(ownerPage.body,"Complete chains",1);
+  requireCounter(ownerPage.body,"Eligible comparisons",1);
+  const ownerExport=await readLocalUi(owner,"/app/outcomes/print");
+  assert.equal(ownerExport.status,200,"signed-in board export returns real HTTP 200");
+  requireCounter(ownerExport.body,"Complete evidence chains",1);
+  const otherPage=await readLocalUi(stranger,"/app/outcomes");
+  assert.equal(otherPage.status,200,"other tenant has private empty report");
+  assert.doesNotMatch(otherPage.body,/Fixture documentation intervention/);
+  requireCounter(otherPage.body,"Complete chains",0);
+  step("signed-in-server-rendered-owner-board-and-tenant-isolation");
+}
+
 const changed={...context,evaluationVersion:"changed-evaluator-v2"};
 await call("PATCH",
   "/rest/v1/run_answers?organization_id=eq."+ownOrg.organizationId+
@@ -168,4 +316,17 @@ assert.equal(drifted.answers.length,10);
 assert.equal(parity(drifted).comparable,false,
   "an actually persisted single-answer evaluator-version drift must fail closed");
 step("persisted-one-answer-evaluator-drift-withheld");
+if(uiMode){
+  const ownerPage=await readLocalUi(owner,"/app/outcomes");
+  assert.equal(ownerPage.status,200);
+  requireCounter(ownerPage.body,"Complete chains",0);
+  requireCounter(ownerPage.body,"Eligible comparisons",0);
+  assert.match(ownerPage.body,/incomparable/i);
+  const board=await readLocalUi(owner,"/app/outcomes/print");
+  assert.equal(board.status,200);
+  requireCounter(board.body,"Complete evidence chains",0);
+  requireCounter(board.body,"Incomparable",1);
+  step("signed-in-server-rendered-nine-field-drift-withheld-page-and-board");
+}
+
 process.stdout.write("[isolated-evidence] PASSED; Auth, scoped PostgREST RLS, five frozen questions and true persisted nine-field parity; no external provider or production project.\n");
