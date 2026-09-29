@@ -244,11 +244,6 @@ function requireCounter(html,label,value) {
   assert.match(html,expression,label+" must be "+value+" in the authenticated server-rendered view");
 }
 
-const owner=await user();");
-  const regexp=new RegExp("<span>"+escaped+"<\\/span>(?:\\s|<!--.*?-->)*<strong>"+value+"<\\/strong>","i");
-  assert.match(html,regexp,label+" must be "+value+" in the authenticated server-rendered view");
-}
-
 const owner=await user();
 const stranger=await user();
 const ownOrg=await onboard(owner,"owner");
