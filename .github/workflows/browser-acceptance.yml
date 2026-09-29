@@ -143,9 +143,15 @@ jobs:
               echo "Local Worker process exited during an acceptance suite." >&2
               exit 1
             fi
+            # This job intentionally runs PUBLIC-only browser tests, without
+            # disposable local Supabase. /api/health requires both Supabase and
+            # D1 and deliberately returns HTTP 503 when those are not wired:
+            # it is NOT a valid liveness probe in this job. Reuse the exact
+            # root-page probe that start_worker() uses. A failed first probe
+            # is a real test failure: never retry or restart to mask it.
             if ! curl --fail --silent --show-error --max-time 4 \
-                http://127.0.0.1:4173/api/health >/dev/null; then
-              echo "Local Worker failed its post-suite health check." >&2
+                http://127.0.0.1:4173/ >/dev/null; then
+              echo "Local Worker stopped serving the public route after an acceptance suite." >&2
               exit 1
             fi
           }
