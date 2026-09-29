@@ -27,5 +27,11 @@ test("mandatory independent full customer API workflow uses production-built loc
   assert.match(api,/ordinary-reviewed-zero-citation-second-cycle-noncausal-tenant-scoped-result/);
   assert.match(api,/cross-tenant answer must be absent/);
   assert.match(api,/native-local HTTP stages/);
+  assert.match(api,/readSignedInServerPage\(ownerCtx,"\/app\/outcomes"\)/);
+  assert.match(api,/readSignedInServerPage\(ownerCtx,"\/app\/outcomes\/print"\)/);
+  assert.match(api,/same-API-owned-verified-decision-chain-visible-only-to-owner-in-ledger-and-board/);
+  assert.match(api,/same-API-owned-context-drift-suppressed-in-both-authenticated-reports/);
+  assert.match(api,/drifted\.length,1/);
+
   assert.doesNotMatch(api,/createRequire|chromium|newPage\(|https?:\/\/(?:api\.openai\.com|www\.bing\.com|foremention\.com)/);
 });
