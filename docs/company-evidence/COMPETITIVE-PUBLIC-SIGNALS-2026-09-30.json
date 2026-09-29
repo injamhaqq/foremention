@@ -1,0 +1,129 @@
+{
+  "schema_version": "foremention.public-competitive-signals.v1",
+  "as_of": "2026-09-30",
+  "scope": "Internal research only; not client-facing collection and not first-party customer proof.",
+  "collector_status": "Public official URLs independently read through web and TinyFish; Agent Reach CLI unavailable in this runtime and was NOT executed.",
+  "evidence_classes": [
+    "PUBLIC_COMPANY_CLAIM",
+    "VENDOR_PUBLISHED_STUDY"
+  ],
+  "records": [
+    {
+      "id": "profound-20260929-citation-decay",
+      "competitor": "Profound",
+      "published_on": "2026-09-29",
+      "observed_on": "2026-09-30",
+      "claim": "Published Citation Decay for tracking when cited pages lose citation share over time.",
+      "source_url": "https://www.tryprofound.com/blog/citation-decay",
+      "evidence_class": "PUBLIC_COMPANY_CLAIM",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "citation_lifecycle",
+      "foremention_response_hypothesis": "Test whether buyers will pay for a separately auditable decision and review trail, not for a competing decay chart.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    },
+    {
+      "id": "profound-20260925-insights",
+      "competitor": "Profound",
+      "published_on": "2026-09-25",
+      "observed_on": "2026-09-30",
+      "claim": "Updated Answer Engine Insights with AI Marketer investigation directly from charts and competitor filters.",
+      "source_url": "https://product.tryprofound.com/changelog",
+      "evidence_class": "PUBLIC_COMPANY_CLAIM",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "insight_to_action",
+      "foremention_response_hypothesis": "Do not claim action workflows alone differentiate Foremention; validate audited evidence plus human approval.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    },
+    {
+      "id": "profound-20260918-rendering",
+      "competitor": "Profound",
+      "published_on": "2026-09-18",
+      "observed_on": "2026-09-30",
+      "claim": "Announced Dynamic Bot Rendering for AI crawlers on selected infrastructure.",
+      "source_url": "https://product.tryprofound.com/changelog",
+      "evidence_class": "PUBLIC_COMPANY_CLAIM",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "agent_content_delivery",
+      "foremention_response_hypothesis": "Do not divert Stage 0 into an edge-rendering product; test whether evidence review is independently valuable.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    },
+    {
+      "id": "scrunch-20260922-agent-pages",
+      "competitor": "Scrunch",
+      "published_on": "2026-09-22",
+      "observed_on": "2026-09-30",
+      "claim": "Launched generally available Agent Pages for approved AI-agent-targeted site experiences.",
+      "source_url": "https://scrunch.com/blog/agent-pages-deliver-a-first-class-site-experience-to-ai-agents",
+      "evidence_class": "PUBLIC_COMPANY_CLAIM",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "agent_content_delivery",
+      "foremention_response_hypothesis": "Treat agent-page delivery as an adjacent alternative; test what human reviewers require before making changes.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    },
+    {
+      "id": "peec-20260911-ai-referrals",
+      "competitor": "Peec AI",
+      "published_on": "2026-09-11",
+      "observed_on": "2026-09-30",
+      "claim": "Introduced AI referrals connecting tracked prompts with GA4-derived traffic and conversion reporting.",
+      "source_url": "https://peec.ai/blog/introducing-ai-referrals",
+      "evidence_class": "PUBLIC_COMPANY_CLAIM",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "attribution",
+      "foremention_response_hypothesis": "Do not promise independently attributed ROI; ask customers what decision they cannot make from referral data.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    },
+    {
+      "id": "peec-20260916-brand-perception",
+      "competitor": "Peec AI",
+      "published_on": "2026-09-16",
+      "observed_on": "2026-09-30",
+      "claim": "Announced brand-perception analysis of AI descriptions and underlying sources.",
+      "source_url": "https://peec.ai/blog/introducing-brand-perception",
+      "evidence_class": "PUBLIC_COMPANY_CLAIM",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "brand_perception",
+      "foremention_response_hypothesis": "Differentiate through inspectable source-to-decision audit only if buyers confirm this gap.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    },
+    {
+      "id": "evertune-20260917-marketplace",
+      "competitor": "Evertune",
+      "published_on": "2026-09-17",
+      "observed_on": "2026-09-30",
+      "claim": "Announced Google Cloud Marketplace availability and consolidated billing for its platform.",
+      "source_url": "https://www.evertune.ai/resources/insights-on-ai/evertune-brings-generative-engine-optimization-solution-to-google-cloud-marketplace",
+      "evidence_class": "PUBLIC_COMPANY_CLAIM",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "enterprise_distribution",
+      "foremention_response_hypothesis": "Test founder-led design partners first; defer costly marketplace procurement until retention and security proof.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    },
+    {
+      "id": "otterly-20260813-agent-analytics",
+      "competitor": "OtterlyAI",
+      "published_on": "2026-08-13",
+      "observed_on": "2026-09-30",
+      "claim": "Announced server-log-based Agent Analytics for crawler activity.",
+      "source_url": "https://otterly.ai/blog/agent-analytics/",
+      "evidence_class": "PUBLIC_COMPANY_CLAIM",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "agent_analytics",
+      "foremention_response_hypothesis": "Do not copy server-log pipelines before source quality and comparable repeat cycles work.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    },
+    {
+      "id": "otterly-20260911-stability-study",
+      "competitor": "OtterlyAI",
+      "published_on": "2026-09-11",
+      "observed_on": "2026-09-30",
+      "claim": "Reported a company-run sample of 252,407 answers showing cited sources were less stable than mentions.",
+      "source_url": "https://otterly.ai/blog/ai-search-visibility-stability/",
+      "evidence_class": "VENDOR_PUBLISHED_STUDY",
+      "confidence_scope": "Source confirms publisher's dated public description, not customer adoption or real-world efficacy.",
+      "theme": "measurement_stability",
+      "foremention_response_hypothesis": "Test 5-question activation as an individual decision case, not a statistically stable market-wide visibility benchmark.",
+      "review_status": "PUBLIC_SOURCE_REVIEWED"
+    }
+  ]
+}
