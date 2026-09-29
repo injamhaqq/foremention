@@ -478,8 +478,17 @@ async function main() {
       waitUntil:"domcontentloaded",timeout:60000,
     });
     assert.equal(otherResponse?.status(),200,"other tenant's empty Outcome Ledger must render");
-    assert.equal(await otherPage.getByText(record.title,{exact:true}).count(),0,
-      "other tenant must not see the owner's intervention title");
+    // The real resolution response stores its display title in proposal.title,
+    // not at record.title. An undefined Playwright getByText selector is
+    // invalid and can produce a false security-test failure. Require a
+    // concrete nonempty persisted title before asserting browser isolation.
+    const realAssetTitle=record?.proposal?.title;
+    assert.equal(typeof realAssetTitle,"string","owner's audited record must supply its actual display title");
+    assert.ok(realAssetTitle.trim().length>5,"the browser isolation target cannot be empty");
+    assert.equal(await outcomePage.getByText(realAssetTitle,{exact:true}).count()>0,true,
+      "the owner's actual intervention title must be visible in the Outcome Ledger");
+    assert.equal(await otherPage.getByText(realAssetTitle,{exact:true}).count(),0,
+      "other tenant must not see the owner's actual intervention title");
     const anonymousPage=await publicCtx.newPage();
     await anonymousPage.goto(new URL("/app/outcomes",app).toString(),{
       waitUntil:"domcontentloaded",timeout:30000,
