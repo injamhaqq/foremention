@@ -507,9 +507,16 @@ async function main() {
     step("real-local-auth-reviewed-second-cycle-api-and-tenant-isolation");
     // Same session + same database as the completed real API flow above;
     // not a second manually fabricated Change Specification / Asset fixture.
+    // GET /api/resolutions nests its display title under proposal.title.
+    // Passing undefined to String.includes would spuriously match the
+    // word "undefined" in generic HTML on *both* tenants, causing a false
+    // security-leak diagnosis. Require the exact nonempty persisted title.
+    const realAssetTitle=record?.proposal?.title;
+    assert.equal(typeof realAssetTitle,"string","the authorized API must return its asset display title");
+    assert.ok(realAssetTitle.trim().length>5,"a concrete nonempty title is mandatory for isolation checks");
     const page=await readSignedInServerPage(ownerCtx,"/app/outcomes");
     assert.equal(page.status,200,"API-owned complete chain should render in the actual Outcome Ledger");
-    assert.ok(page.body.includes(record.title),"actual API-generated intervention title must remain visible to its owner");
+    assert.ok(page.body.includes(realAssetTitle),"actual API-generated intervention title must remain visible to its owner");
     requireServerCounter(page.body,"Complete chains",1);
     requireServerCounter(page.body,"Eligible comparisons",1);
     const board=await readSignedInServerPage(ownerCtx,"/app/outcomes/print");
@@ -517,7 +524,7 @@ async function main() {
     requireServerCounter(board.body,"Complete evidence chains",1);
     const otherPage=await readSignedInServerPage(otherCtx,"/app/outcomes");
     assert.equal(otherPage.status,200,"second tenant's report should remain independent");
-    assert.ok(!otherPage.body.includes(record.title),"real API-generated owner data must never cross tenants");
+    assert.ok(!otherPage.body.includes(realAssetTitle),"real API-generated owner data must never cross tenants");
     requireServerCounter(otherPage.body,"Complete chains",0);
     const anonymous=await readSignedInServerPage(publicCtx,"/app/outcomes");
     assert.ok([302,303,307,308].includes(anonymous.status));
