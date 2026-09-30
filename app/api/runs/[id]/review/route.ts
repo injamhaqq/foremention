@@ -8,6 +8,7 @@ import { recordReviewedComparableChangeNotifications } from "@/lib/reviewed-chan
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { generateReviewedSourceMap } from "@/lib/source-map-generation";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
+import { explicitOfficialSourceRequirement, assessExplicitOfficialSourceAnswer } from "@/lib/official-source-relevance.mjs";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -26,11 +27,33 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const run = runs[0];
   if (!run) return NextResponse.json({ error: "Run not found." }, { status: 404 });
   if (run.status !== "review") return NextResponse.json({ error: "Only a run waiting for review can be approved." }, { status: 409 });
-  const answerRows = await supabaseRest<Array<{ id: string }>>(
-    `run_answers?select=id&run_id=eq.${run.id}&organization_id=eq.${context.organizationId}`,
+  const answerRows = await supabaseRest<Array<{
+    id: string; prompt_text: string | null; answer_text: string; citations_json: unknown;
+  }>>(
+    `run_answers?select=id,prompt_text,answer_text,citations_json&run_id=eq.${run.id}&organization_id=eq.${context.organizationId}`,
     { token: viewer.accessToken },
   );
   if (!answerRows.length) return NextResponse.json({ error: "This run has no collected answers to review." }, { status: 409 });
+
+  // A returned URL is not proof of answer support. As a narrow minimum, never
+  // bulk-mark off-domain citations or an abstention as VERIFIED when the
+  // persisted question explicitly demands an exact official-domain source.
+  // Ordinary comparative buyer questions retain the existing human review
+  // workflow; these checks make no unsupported factuality claim.
+  for (const answer of answerRows) {
+    const requirement = explicitOfficialSourceRequirement(answer.prompt_text || "");
+    if (!requirement) continue;
+    const citations = Array.isArray(answer.citations_json)
+      ? answer.citations_json.filter((item): item is { url: string } =>
+        item !== null && typeof item === "object" && typeof item.url === "string")
+      : [];
+    if (!assessExplicitOfficialSourceAnswer(answer.answer_text, citations, requirement).ok) {
+      return NextResponse.json({
+        error: "A required official-source answer lacks qualifying evidence or explicitly abstained. Inspect the result before approving; it cannot be marked verified.",
+      }, { status: 422 });
+    }
+  }
+
   const answerIds = answerRows.map((row) => row.id);
 
   await Promise.all([
@@ -87,10 +110,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const sideEffects = await Promise.allSettled([
     supabaseRest("audit_logs", {
       method: "POST",
-      // Only after tenant-scoped owner/analyst review, evidence persistence
-      // and run-status transition have succeeded. audit_logs is deliberately
-      // append-only and admin-write-only under customer RLS.
-      serviceRole: true,
+      token: viewer.accessToken,
       prefer: "return=minimal",
       body: {
         organization_id: context.organizationId,
