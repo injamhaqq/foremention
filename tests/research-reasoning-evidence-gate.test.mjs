@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   MAX_RESEARCH_REASONING_ANSWERS,
   assessResearchReasoningAnswerSet,
-} from "../lib/agent-os/research-reasoning.ts";
+} from "../lib/agent-os/research-evidence-gate.mjs";
 
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
@@ -61,6 +61,10 @@ test("research reasoning requires the complete independently recorded verified a
 
 test("research reasoner scopes the source run to project and reserves overflow sentinels before any model reasoning", async () => {
   const source = await text("lib/agent-os/research-reasoning.ts");
+  const gate = await text("lib/agent-os/research-evidence-gate.mjs");
+  assert.equal(gate.includes("MAX_RESEARCH_REASONING_ANSWERS = 24"), true);
+  assert.equal(gate.includes("incomplete_verified_answer_set"), true);
+  assert.equal(gate.includes("duplicate_question_provider_slots"), true);
   assert.equal(source.includes("runs?select=id,status,answer_count"), true);
   assert.equal(source.includes("project_id=eq.${encodeURIComponent(input.projectId)}"), true);
   assert.equal(source.includes("status=in.(complete,partial)&limit=1"), true);
