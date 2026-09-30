@@ -89,3 +89,20 @@ test("isolated authenticated acceptance exercises positive and drifted nine-fiel
   assert.doesNotMatch(journey,/getByText\(record\.title/);
   assert.doesNotMatch(journey,/foremention\.com|FOREMENTION_ACCEPTANCE_PASSWORD|www\.bing\.com/);
 });
+
+test("resolution transport diagnostics stay local, bounded and secret-free", async () => {
+  const [journey, route, workflow] = await Promise.all([
+    read("../scripts/isolated-authenticated-journey.mjs"),
+    read("../app/api/resolutions/route.ts"),
+    read("../.github/workflows/isolated-authenticated-journey.yml"),
+  ]);
+  assert.match(journey,/nativeResolutionRead\(ownerCtx,"post-review"\)/);
+  assert.match(journey,/nativeResolutionRead\(ownerCtx,"final"\)/);
+  assert.doesNotMatch(journey,/nativeFinalResolutionRead/);
+  assert.match(route,/type IsolatedResolutionPhase = "base" \| "related" \| "answers" \| "runs" \| "assemble" \| "serialize"/);
+  assert.match(route,/isolated-resolution-read-phase/);
+  assert.match(route,/lt25ms|lt100ms|lt500ms|lt2s|gte2s/);
+  assert.match(route,/FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS/);
+  assert.doesNotMatch(route,/console\.(?:info|warn)\([^\n]*(?:accessToken|organizationId|projectId|canonical_url|answer_text)/);
+  assert.match(workflow,/FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS: "1"/);
+});
