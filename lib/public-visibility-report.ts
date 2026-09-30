@@ -63,6 +63,13 @@ export async function loadPublicVisibilityReport(input: string): Promise<PublicV
     return { available: false, domain, organization: organization.name, methodology };
   }
 
+  // TypeScript's inferred .mjs union widens the discriminant to boolean. An
+  // independent structural gate also fails closed if the public assessment
+  // ever returns an incomplete success object.
+  if (!("providerCoverage" in assessment)) {
+    return { available: false, domain, organization: organization.name, methodology };
+  }
+
   const sources = await supabaseRest<Array<{ id: string }>>(
     `sources?select=id&organization_id=eq.${organization.id}&limit=1000`,
     { serviceRole: true },
