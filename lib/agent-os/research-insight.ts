@@ -1,9 +1,9 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
+import { runResearchInsightReasoner } from "@/lib/agent-os/research-reasoning";
 import {
   MAX_RESEARCH_REASONING_ANSWERS,
   assessResearchReasoningAnswerSet,
-  runResearchInsightReasoner,
-} from "@/lib/agent-os/research-reasoning";
+} from "@/lib/agent-os/research-evidence-gate.mjs";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type ReviewedRunRow = {
