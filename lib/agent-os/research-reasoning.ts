@@ -4,6 +4,10 @@ import {
   validateResearchInsightReasoningOutput,
 } from "@/lib/agent-os/reasoning-core";
 import { runStructuredReasoning } from "@/lib/agent-os/reasoning-runtime";
+import {
+  MAX_RESEARCH_REASONING_ANSWERS,
+  assessResearchReasoningAnswerSet,
+} from "@/lib/agent-os/research-evidence-gate.mjs";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type AnswerRow = {
@@ -38,58 +42,6 @@ type SourceRow = {
     crawler_access: string;
   } | null;
 };
-
-export const MAX_RESEARCH_REASONING_ANSWERS = 24;
-
-export type ResearchReasoningRunGate = {
-  id: string;
-  status: string;
-  answer_count: number | null;
-};
-
-export type ResearchReasoningAnswerGateRow = {
-  id: string;
-  run_id: string;
-  prompt_key: string;
-  provider: string;
-};
-
-export function assessResearchReasoningAnswerSet(
-  run: ResearchReasoningRunGate | null | undefined,
-  answers: ResearchReasoningAnswerGateRow[],
-) {
-  if (!run || !["complete", "partial"].includes(run.status)) {
-    return { ok: false as const, reason: "reviewed_terminal_run_not_found" };
-  }
-  const expected = Number(run.answer_count);
-  if (!Number.isSafeInteger(expected) || expected <= 0) {
-    return { ok: false as const, reason: "invalid_recorded_answer_count" };
-  }
-  if (expected > MAX_RESEARCH_REASONING_ANSWERS) {
-    return { ok: false as const, reason: "recorded_answer_set_exceeds_reasoning_packet" };
-  }
-  if (answers.length !== expected) {
-    return { ok: false as const, reason: "incomplete_verified_answer_set" };
-  }
-  if (answers.some((answer) => answer.run_id !== run.id)) {
-    return { ok: false as const, reason: "cross_run_answer_leakage" };
-  }
-  if (new Set(answers.map((answer) => answer.id)).size !== answers.length) {
-    return { ok: false as const, reason: "duplicate_answer_ids" };
-  }
-  const slots = answers.map((answer) => [
-    String(answer.prompt_key || "").trim().toLowerCase(),
-    String(answer.provider || "").trim().toLowerCase(),
-  ]);
-  if (slots.some(([promptKey, provider]) => !promptKey || !provider)) {
-    return { ok: false as const, reason: "missing_question_or_provider_identity" };
-  }
-  const slotKeys = slots.map(([promptKey, provider]) => `${promptKey}\u0000${provider}`);
-  if (new Set(slotKeys).size !== slotKeys.length) {
-    return { ok: false as const, reason: "duplicate_question_provider_slots" };
-  }
-  return { ok: true as const, reason: null };
-}
 
 const clean = (value: unknown, max: number) => String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
 
