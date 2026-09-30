@@ -1,4 +1,5 @@
 import type { ProviderId } from "@/lib/providers/types";
+import { bingRssCommercialRightsConfirmed } from "@/lib/retrieval-rights";
 
 type LiveProviderId = Exclude<ProviderId, "mock">;
 
@@ -15,6 +16,10 @@ export function configuredGeminiModel() {
 }
 
 export function providerAllowedForLiveCollection(provider: LiveProviderId) {
+  // Cloudflare customer evidence is grounded with the Bing RSS retrieval path.
+  // Reachability/configuration is not commercial permission: keep this path
+  // disabled unless the operator has separately confirmed applicable rights.
+  if (provider === "cloudflare" && !bingRssCommercialRightsConfirmed()) return false;
   return !freeOnlyProviderMode() || provider === FREE_ONLY_COLLECTION_PROVIDER;
 }
 
