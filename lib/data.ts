@@ -670,10 +670,14 @@ export async function loadCompetitorTracking(viewer: Viewer): Promise<Competitor
     const reviewedPages = entries.filter((entry) => entry.crawlerAccess !== "unknown" && entry.competitors.some((name) => name.toLocaleLowerCase() === normalizedName));
     return {
       id: competitor.id, name: competitor.name, website: competitor.website, type: competitor.competitor_type, active: competitor.active,
-      answerMentions: mentions.length, totalAnswers: answers.length, mentionFrequencyPct: answers.length ? Math.round((mentions.length / answers.length) * 100) : null,
-      reviewedCitationPages: reviewedPages.length, sourceOverlap: reviewedPages.filter((entry) => entry.clientPresent).length,
-      trendPoints,
-      trendDelta: trendPoints.length > 1 ? trendPoints.at(-1)!.frequencyPct - trendPoints.at(-2)!.frequencyPct : null,
+      // Legacy live loader is retained only for compatibility. It does not own
+      // the independent full-run evidence gate, so never expose its bounded
+      // answer subset as a complete customer metric. The truthful customer
+      // surface uses loadTruthfulCompetitorTracking instead.
+      answerMentions: 0, totalAnswers: 0, answerHistoryComplete: false, mentionFrequencyPct: null,
+      reviewedCitationPages: 0, sourceOverlap: 0,
+      trendPoints: [],
+      trendDelta: null,
     };
   });
 }
