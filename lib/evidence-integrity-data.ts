@@ -425,7 +425,7 @@ export async function loadExactQuestionPerformance(viewer: Viewer): Promise<Ques
   return Array.from(groups.entries()).map(([identity, answers]) => {
     const citationCount = answers.reduce((sum, answer) => sum + (answer.citations_json || []).filter((citation) => Boolean(citation.url)).length, 0);
     const citedAnswers = answers.filter((answer) => (answer.citations_json || []).some((citation) => Boolean(citation.url))).length;
-    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.organizationName.toLocaleLowerCase())).length;
+    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.projectBrand.toLocaleLowerCase())).length;
     const runCount = new Set(answers.map((answer) => answer.run_id)).size;
     const guidance: QuestionPerformance["guidance"] = runCount < 2 ? "Needs repeat" : citationCount >= answers.length && brandMentionCount > 0 ? "High evidence yield" : citationCount > 0 ? "Keep as baseline" : "Low observed yield";
     return {
