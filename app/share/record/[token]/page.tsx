@@ -51,7 +51,7 @@ export default async function SharedRecordPage({ params, searchParams }: { param
         <p>{answer.answer_text}</p>
         {share.include_evidence && Array.isArray(answer.citations_json) && answer.citations_json.length > 0 && <details><summary>Returned references ({answer.citations_json.length})</summary><ul>{answer.citations_json.map((citation, index) => <li key={`${citation.url || "reference"}-${index}`}>{citation.title || citation.url || `Returned reference ${index + 1}`}{citation.url && <small>{citation.url}</small>}</li>)}</ul><p className="table-caption">A returned reference is evidence of what the provider returned. It does not prove the source caused the recommendation.</p></details>}
       </article>)}
-    </section>}
+    </section> : null}
     <footer className="shared-record-footer"><p>Methodology {run.methodology_version} · Collection {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(run.completed_at || run.created_at))}</p><p>Foremention separates provider output, returned references, observed evidence, human review, and conclusions.</p></footer>
     <SharedRecordActions viewMode={viewMode} includeEvidence={share.include_evidence} />
   </main>;
