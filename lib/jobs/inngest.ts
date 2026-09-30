@@ -113,7 +113,7 @@ async function prepareWeeklyRun(seed: ScheduledRunSeed, weekKey: string) {
   const reservedSpend = monthlyRuns.reduce((sum, row) => sum + (["failed", "cancelled"].includes(row.status) && !row.started_at ? 0 : Number(row.actual_cost_usd || row.estimated_max_cost_usd || 0)), 0);
   if (usedUnits + requestedUnits > entitlement.monthly_run_units || reservedSpend + estimatedMaximumCost > Number(entitlement.monthly_ai_spend_cap_usd)) return null;
   const runId = crypto.randomUUID();
-  const idempotencyKey = `weekly:${seed.organization_id}:${weekKey}`;
+  const idempotencyKey = `weekly:${seed.organization_id}:${seed.project_id}:${weekKey}`;
   const activeRequestKey = `${providerId}:${prompts.map((prompt) => prompt.prompt_id).sort().join(",")}`;
   try {
     await supabaseRest("runs", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { id: runId, organization_id: seed.organization_id, project_id: seed.project_id, category_id: seed.category_id, status: "queued", provider_ids: [providerId], prompt_count: prompts.length, requested_units: requestedUnits, estimated_max_cost_usd: estimatedMaximumCost, idempotency_key: idempotencyKey, active_request_key: activeRequestKey, methodology_version: "3.0", created_by: seed.created_by } });
@@ -886,9 +886,13 @@ export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
         "runs?select=id,organization_id,project_id,category_id,status,provider_ids,created_by,completed_at&status=in.(complete,partial)&order=created_at.desc&limit=1000",
         { serviceRole: true },
       );
-      const byOrganization = new Map<string, ScheduledRunSeed>();
-      for (const row of rows) if (!byOrganization.has(row.organization_id)) byOrganization.set(row.organization_id, row);
-      return Array.from(byOrganization.values());
+      const byWorkspaceProject = new Map<string, ScheduledRunSeed>();
+      for (const row of rows) {
+        if (!row.project_id) continue;
+        const workspaceKey = `${row.organization_id}\u0000${row.project_id}`;
+        if (!byWorkspaceProject.has(workspaceKey)) byWorkspaceProject.set(workspaceKey, row);
+      }
+      return Array.from(byWorkspaceProject.values());
     });
     const weekKey = new Date().toISOString().slice(0, 10);
     const queued: RunRequestedData[] = [];
