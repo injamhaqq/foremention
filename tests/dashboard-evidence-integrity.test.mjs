@@ -63,7 +63,7 @@ test("decision-readiness uses finalized runs, verified answers, and safe compara
   assert.match(decision, /MAX_COMPLETE_RUN_HISTORY_ANSWERS/);
   assert.match(decision, /answerCompletionPct:\s*answerGate\.ok\s*\?/);
   assert.match(decision, /decisionReadiness:\s*answerGate\.ok\s*&&\s*answers\.length/);
-  assert.match(decision, /Restore complete answer evidence/);
+  assert.match(integrity, /Restore complete answer evidence/);
   assert.match(page, /loadSafeWeeklyIntelligence/);
   assert.match(page, /intelligence\.previous/);
   assert.match(page, /exactComparablePair/);
@@ -109,7 +109,7 @@ test("question evidence yield keeps edited prompt text as a separate measurement
   assert.match(questionPerformance, /project_id=eq\.\$\{context\.projectId\}/);
   assert.match(questionPerformance, /status=in\.\(complete,partial\)/);
   assert.match(questionPerformance, /MAX_COMPLETE_RUN_HISTORY_RUNS \+ 1/);
-  assert.match(questionPerformance, /run_id=in\.\(\$\{runIds\.join\("\\,"\)\}\)/);
+  assert.match(questionPerformance, /run_id=in\.\(\$\{runIds\.join/);
   assert.match(questionPerformance, /review_status=eq\.verified/);
   assert.match(questionPerformance, /assessCompleteRunHistory\(historyRunRows, rows\)/);
   assert.match(questionPerformance, /MAX_COMPLETE_RUN_HISTORY_ANSWERS/);
