@@ -361,8 +361,9 @@ export async function loadRuns(viewer: Viewer, options: { limit?: number; offset
   const limit = Math.max(1, Math.min(100, Math.round(options.limit || 100)));
   const offset = Math.max(0, Math.round(options.offset || 0));
   if (viewer.mode === "demo") return demoRuns.slice(offset, offset + limit);
-  const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=${limit}&offset=${offset}`, { token: viewer.accessToken });
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=${limit}&offset=${offset}`, { token: viewer.accessToken });
   return rows.map((row) => ({ id: row.id, date: dateLabel(row.created_at), status: row.status, errorSummary: row.error_summary, prompts: row.prompt_count, answers: row.answer_count, citations: row.citation_count, presence: Number(row.brand_presence_pct), firstMention: Number(row.first_mention_pct), newSources: row.new_source_count }));
 }
 
@@ -477,14 +478,19 @@ export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceCon
   if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return null;
-  const [organizations, projects, categories, clusters] = await Promise.all([
+  const [organizations, projects, categories] = await Promise.all([
     supabaseRest<Array<{ name: string; website: string | null }>>(`organizations?select=name,website&id=eq.${organizationId}&limit=1`, { token: viewer.accessToken }),
     supabaseRest<Array<{ id: string }>>(`projects?select=id&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
     supabaseRest<Array<{ id: string; name: string }>>(`categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string }>>(`prompt_clusters?select=id&organization_id=eq.${organizationId}&order=priority.asc&limit=1`, { token: viewer.accessToken }),
   ]);
-  if (!organizations[0] || !projects[0] || !categories[0]) return null;
-  return { organizationId, projectId: projects[0].id, categoryId: categories[0].id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: organizations[0].website, category: categories[0].name };
+  const project = projects[0];
+  const category = categories[0];
+  if (!organizations[0] || !project || !category) return null;
+  const clusters = await supabaseRest<Array<{ id: string }>>(
+    `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${project.id}&order=priority.asc&limit=1`,
+    { token: viewer.accessToken },
+  );
+  return { organizationId, projectId: project.id, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: organizations[0].website, category: category.name };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
@@ -625,10 +631,10 @@ const demoPrompts: WorkspacePrompt[] = [
 
 export async function loadPrompts(viewer: Viewer): Promise<WorkspacePrompt[]> {
   if (viewer.mode === "demo") return demoPrompts;
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
   const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string; active: boolean; prompt_clusters: { name: string } | null }>>(
-    `prompts?select=id,prompt_key,prompt_text,active,prompt_clusters(name)&organization_id=eq.${organizationId}&order=created_at.asc`,
+    `prompts?select=id,prompt_key,prompt_text,active,prompt_clusters(name)&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.asc`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, cluster: row.prompt_clusters?.name || row.prompt_key || "Baseline", text: row.prompt_text, approved: row.active }));
