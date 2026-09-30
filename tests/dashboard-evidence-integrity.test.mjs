@@ -58,6 +58,12 @@ test("decision-readiness uses finalized runs, verified answers, and safe compara
   assert.doesNotMatch(decision, /status=in\.\(review,complete,partial\)/);
   assert.match(decision, /review_status=eq\.verified/);
   assert.match(decision, /run_id=eq\.\$\{latest\.id\}/);
+  assert.match(decision, /answer_count/);
+  assert.match(decision, /assessCompleteRunHistory\(\[latest\], candidateAnswers\)/);
+  assert.match(decision, /MAX_COMPLETE_RUN_HISTORY_ANSWERS/);
+  assert.match(decision, /answerCompletionPct:\s*answerGate\.ok\s*\?/);
+  assert.match(decision, /decisionReadiness:\s*answerGate\.ok\s*&&\s*answers\.length/);
+  assert.match(decision, /Restore complete answer evidence/);
   assert.match(page, /loadSafeWeeklyIntelligence/);
   assert.match(page, /intelligence\.previous/);
   assert.match(page, /exactComparablePair/);
@@ -100,6 +106,13 @@ test("question evidence yield keeps edited prompt text as a separate measurement
   const questionPerformance = integrity.slice(start);
   assert.match(questionPerformance, /prompt_key,prompt_text/);
   assert.match(questionPerformance, /JSON\.stringify\(\[row\.prompt_key,\s*row\.prompt_text/);
+  assert.match(questionPerformance, /project_id=eq\.\$\{context\.projectId\}/);
+  assert.match(questionPerformance, /status=in\.\(complete,partial\)/);
+  assert.match(questionPerformance, /MAX_COMPLETE_RUN_HISTORY_RUNS \+ 1/);
+  assert.match(questionPerformance, /run_id=in\.\(\$\{runIds\.join\("\\,"\)\}\)/);
+  assert.match(questionPerformance, /review_status=eq\.verified/);
+  assert.match(questionPerformance, /assessCompleteRunHistory\(historyRunRows, rows\)/);
+  assert.match(questionPerformance, /MAX_COMPLETE_RUN_HISTORY_ANSWERS/);
 });
 
 test("Outcome Ledger never treats a pending-review run as a finalized baseline", async () => {
