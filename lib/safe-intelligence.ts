@@ -2,20 +2,18 @@ import type { Viewer } from "@/lib/auth";
 import { loadWorkspaceContext } from "@/lib/data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import {
-  assessExactQuestionComparability,
-  coerceComparableMeasurementContext,
-  type ComparableQuestionSlot,
-} from "@/lib/intelligence-comparability";
+  validPairedRunAnswerBudget,
+  assessCompleteVerifiedRunPair,
+  type ComparableStoredAnswer,
+  type ComparableStoredRun,
+} from "@/lib/run-pair-answer-gate";
 import { loadWeeklyIntelligence, type WeeklyIntelligence } from "@/lib/intelligence-loop";
 import { supabaseRest } from "@/lib/supabase-rest";
 
-type SlotRow = {
-  run_id: string;
-  prompt_key: string;
-  prompt_text: string | null;
-  provider: string;
-  model: string | null;
-  measurement_context_json: unknown;
+type SlotRow = ComparableStoredAnswer;
+type IndependentReviewedRun = ComparableStoredRun & {
+  status: string;
+  methodology_version: string | null;
 };
 
 const exactMeasurementBoundary = "exact persisted buyer-question text, provider, exact model, methodology, locale, market, buyer stage, and measurement context";
@@ -184,22 +182,40 @@ export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<Weekly
       pairSafe = withholdUnsafePair(intelligence, "The active workspace context could not be verified.");
     } else {
       const runIds = [intelligence.latest.id, intelligence.previous.id];
-      const rows = await supabaseRest<SlotRow[]>(
-        `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+      // The older summary engine can select two superficially matching rows
+      // from a truncated 500-answer query. Independently re-read the actual
+      // full-run denominators in this currently active project before showing
+      // a trend, analytics delta or generating a board-facing recommendation.
+      const scopedRuns = await supabaseRest<IndependentReviewedRun[]>(
+        `runs?select=id,answer_count,status,methodology_version&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${runIds.join(",")})&status=in.(complete,partial)&limit=2`,
         { token: viewer.accessToken },
       );
-      const slots: ComparableQuestionSlot[] = rows.map((row) => ({
-        runId: row.run_id,
-        promptKey: row.prompt_key,
-        promptText: row.prompt_text,
-        provider: row.provider,
-        model: row.model,
-        measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
-      }));
-      const assessment = assessExactQuestionComparability(intelligence.latest.id, intelligence.previous.id, slots);
-      pairSafe = assessment.comparable
-        ? intelligence
-        : withholdUnsafePair(intelligence, assessment.reason || "The finalized reviewed collections are not exactly comparable.");
+      const latest = scopedRuns.find((row) => row.id === intelligence.latest?.id);
+      const previous = scopedRuns.find((row) => row.id === intelligence.previous?.id);
+      if (!latest || !previous || !latest.methodology_version
+        || latest.methodology_version !== previous.methodology_version) {
+        pairSafe = withholdUnsafePair(intelligence,
+          "Both completed human-reviewed runs must belong to the active project with identical independently recorded methodology.");
+      } else {
+        const budget = validPairedRunAnswerBudget(previous, latest);
+        if (!budget.comparable) {
+          pairSafe = withholdUnsafePair(intelligence,
+            budget.reason || "The complete independent reviewed-answer set is unavailable.");
+        } else {
+          const rows = await supabaseRest<SlotRow[]>(
+            `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+            { token: viewer.accessToken },
+          );
+          // Positive source-run counts must match ALL returned verified rows.
+          // One read slot is reserved to reveal otherwise hidden overflow at
+          // the PostgREST response cap; two matching subsets prove nothing.
+          const assessment = assessCompleteVerifiedRunPair(previous, latest, rows);
+          pairSafe = assessment.comparable
+            ? intelligence
+            : withholdUnsafePair(intelligence,
+              assessment.reason || "The finalized reviewed collections are not independently complete and comparable.");
+        }
+      }
     }
   }
 

@@ -105,8 +105,19 @@ export function assessExactQuestionComparability(
     return { comparable: false, reason: "Verified measurement context is unavailable for one or more answers, including locale, market, buyer stage, or version identity." };
   }
 
-  const latest = scoped.filter((slot) => slot.runId === latestRunId).map(slotIdentity).sort();
-  const previous = scoped.filter((slot) => slot.runId === previousRunId).map(slotIdentity).sort();
+  const latestSlots = scoped.filter((slot) => slot.runId === latestRunId);
+  const previousSlots = scoped.filter((slot) => slot.runId === previousRunId);
+  // Even two equally malformed duplicate sets are NOT an independent pair:
+  // a map or sorted multiset could otherwise conceal repeated observations
+  // under the same canonical buyer question/provider identity.
+  const hasDuplicateSlots = (rows: ComparableQuestionSlot[]) =>
+    new Set(rows.map((row) =>
+      [normalize(row.promptKey), normalize(row.provider)].join("\u0000"))).size !== rows.length;
+  if (hasDuplicateSlots(latestSlots) || hasDuplicateSlots(previousSlots)) {
+    return { comparable: false, reason: "Duplicate buyer-question/provider observation slots prevent comparable measurement." };
+  }
+  const latest = latestSlots.map(slotIdentity).sort();
+  const previous = previousSlots.map(slotIdentity).sort();
   if (!latest.length || latest.length !== previous.length || latest.some((key, index) => key !== previous[index])) {
     return { comparable: false, reason: "The exact buyer-question/provider/model/measurement context matrix changed between these reviewed collections." };
   }
