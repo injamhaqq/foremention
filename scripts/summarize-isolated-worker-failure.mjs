@@ -31,6 +31,16 @@ diagnostics.push({kind:"safe-startup-log-range",bucket:lines.length>100?"100+":l
 
 for(let i=0;i<lines.length;i++){
  const line=lines[i];
+ const onboardingPhase=/isolated-onboarding-stage[^\n]*\b(entry|origin|viewer|payload|invalid|db)\b/.exec(line);
+ if(onboardingPhase){
+   diagnostics.push({kind:"isolated-onboarding-stage",stage:onboardingPhase[1]});
+   continue;
+ }
+ const resolutionMetric=/isolated-resolution-read-phase[^\n]*phase:\s*['"]?(base|related|answers|runs|assemble|serialize)['"]?[\s\S]*?duration:\s*['"]?(lt25ms|lt100ms|lt500ms|lt2s|gte2s)['"]?[\s\S]*?count:\s*['"]?(0|1-10|11-100|101-500|gt500)['"]?/.exec(line);
+ if(resolutionMetric){
+   diagnostics.push({kind:"isolated-resolution-read-phase",phase:resolutionMetric[1],duration:resolutionMetric[2],count:resolutionMetric[3]});
+   continue;
+ }
  const postReviewPhase=/isolated-post-review-resolution-read-stage[^\n]*\b(entry|viewer|workspace|loaded|catch)\b/.exec(line);
  if(postReviewPhase){
    diagnostics.push({kind:"isolated-post-review-resolution-read-stage",stage:postReviewPhase[1]});
