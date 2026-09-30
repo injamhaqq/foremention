@@ -10,6 +10,8 @@ import {
 } from "@/lib/data";
 import { sourceMapEntries } from "@/lib/demo-data";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { assessCompleteCompetitorHistory, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
+import { assessCompleteVerifiedRunPair, validPairedRunAnswerBudget } from "@/lib/run-pair-answer-gate";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", {
@@ -119,46 +121,146 @@ export async function loadTruthfulCompetitorTracking(
   if (viewer.mode === "demo") return loadCompetitorTracking(viewer);
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const [competitors, runs, entries] = await Promise.all([
+
+  type CompetitorRunEvidenceRow = {
+    id: string;
+    project_id: string | null;
+    status: string;
+    answer_count: number | null;
+    methodology_version: string | null;
+    created_at: string;
+  };
+  type CompetitorAnswerEvidenceRow = {
+    id: string;
+    run_id: string;
+    prompt_key: string;
+    prompt_text: string | null;
+    provider: string;
+    model: string | null;
+    measurement_context_json: unknown;
+    answer_text: string;
+    review_status: string;
+  };
+
+  const [competitors, historyRunRows, entries] = await Promise.all([
     supabaseRest<Array<{ id: string; name: string; website: string | null; competitor_type: CompetitorTracking["type"]; active: boolean }>>(
       `competitors?select=id,name,website,competitor_type,active&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.asc&limit=100`,
       { token: viewer.accessToken },
     ),
-    supabaseRest<Array<{ id: string; created_at: string }>>(
-      `runs?select=id,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.asc&limit=50`,
+    // Fetch one sentinel run. A 50-row cap is not silently described as all
+    // historical reviewed collections when a 51st exists.
+    supabaseRest<CompetitorRunEvidenceRow[]>(
+      `runs?select=id,project_id,status,answer_count,methodology_version,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.asc&limit=${MAX_COMPETITOR_HISTORY_RUNS + 1}`,
       { token: viewer.accessToken },
     ),
     loadTruthfulSourceMap(viewer),
   ]);
-  const runIds = runs.map((run) => run.id);
-  const answers = runIds.length ? await supabaseRest<Array<{ run_id: string; answer_text: string }>>(
-    `run_answers?select=run_id,answer_text&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=2000`,
-    { token: viewer.accessToken },
-  ) : [];
+
+  const historyRuns = historyRunRows.slice(0, MAX_COMPETITOR_HISTORY_RUNS);
+  let historyAnswers: CompetitorAnswerEvidenceRow[] = [];
+  let answerHistoryComplete = historyRunRows.length === 0;
+
+  if (historyRunRows.length > 0 && historyRunRows.length <= MAX_COMPETITOR_HISTORY_RUNS) {
+    const expected = historyRuns.reduce((sum, run) =>
+      sum + (typeof run.answer_count === "number" && Number.isSafeInteger(run.answer_count) ? run.answer_count : 0), 0);
+    if (expected > 0 && expected < MAX_COMPETITOR_HISTORY_ANSWERS) {
+      const runIds = historyRuns.map((run) => run.id);
+      const candidateAnswers = await supabaseRest<CompetitorAnswerEvidenceRow[]>(
+        `run_answers?select=id,run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,review_status&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=${MAX_COMPETITOR_HISTORY_ANSWERS}`,
+        { token: viewer.accessToken },
+      );
+      const historyGate = assessCompleteCompetitorHistory(historyRuns, candidateAnswers);
+      if (historyGate.ok) {
+        historyAnswers = candidateAnswers;
+        answerHistoryComplete = true;
+      }
+    }
+  }
+
+  // Re-read the exact Safe Intelligence pair independently. Its prior success
+  // cannot make this later PostgREST read atomic or complete. No competitor
+  // movement is derived until this loader independently proves both full runs.
+  let pairRuns: { previous: CompetitorRunEvidenceRow; latest: CompetitorRunEvidenceRow } | null = null;
+  let pairAnswers: CompetitorAnswerEvidenceRow[] = [];
+  if (comparablePair && comparablePair.latestId !== comparablePair.previousId) {
+    const pairRunRows = await supabaseRest<CompetitorRunEvidenceRow[]>(
+      `runs?select=id,project_id,status,answer_count,methodology_version,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${comparablePair.previousId},${comparablePair.latestId})&limit=2`,
+      { token: viewer.accessToken },
+    );
+    const previous = pairRunRows.find((run) => run.id === comparablePair.previousId);
+    const latest = pairRunRows.find((run) => run.id === comparablePair.latestId);
+    const previousTime = previous ? new Date(previous.created_at).getTime() : Number.NaN;
+    const latestTime = latest ? new Date(latest.created_at).getTime() : Number.NaN;
+    const runPairIsEligible = Boolean(
+      previous && latest
+      && previous.project_id === context.projectId
+      && latest.project_id === context.projectId
+      && ["complete", "partial"].includes(previous.status)
+      && ["complete", "partial"].includes(latest.status)
+      && previous.methodology_version
+      && previous.methodology_version === latest.methodology_version
+      && Number.isFinite(previousTime)
+      && Number.isFinite(latestTime)
+      && previousTime < latestTime,
+    );
+    if (runPairIsEligible && previous && latest) {
+      const budget = validPairedRunAnswerBudget(previous, latest);
+      if (budget.comparable) {
+        const candidatePairAnswers = await supabaseRest<CompetitorAnswerEvidenceRow[]>(
+          `run_answers?select=id,run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,review_status&organization_id=eq.${context.organizationId}&run_id=in.(${previous.id},${latest.id})&review_status=eq.verified&order=collected_at.asc&limit=501`,
+          { token: viewer.accessToken },
+        );
+        const pairGate = assessCompleteVerifiedRunPair(previous, latest, candidatePairAnswers);
+        if (pairGate.comparable) {
+          pairRuns = { previous, latest };
+          pairAnswers = candidatePairAnswers;
+        }
+      }
+    }
+  }
 
   return competitors.map((competitor) => {
-    const total = mentionFrequency(answers, competitor.name);
-    const trendPoints = runs.map((run) => {
-      const runAnswers = answers.filter((answer) => answer.run_id === run.id);
-      const point = mentionFrequency(runAnswers, competitor.name);
-      return { runId: run.id, date: dateLabel(run.created_at), frequencyPct: point.frequencyPct };
-    });
-    const reviewedPages = entries.filter((entry) => Boolean(entry.reviewedAt) && entry.competitors.some((name) => name.toLocaleLowerCase() === competitor.name.toLocaleLowerCase()));
+    const total = mentionFrequency(historyAnswers, competitor.name);
+    let trendPoints = answerHistoryComplete
+      ? historyRuns.map((run) => {
+        const runAnswers = historyAnswers.filter((answer) => answer.run_id === run.id);
+        const point = mentionFrequency(runAnswers, competitor.name);
+        return { runId: run.id, date: dateLabel(run.created_at), frequencyPct: point.frequencyPct };
+      })
+      : [];
+
+    const reviewedPages = entries.filter((entry) =>
+      Boolean(entry.reviewedAt)
+      && entry.competitors.some((name) => name.toLocaleLowerCase() === competitor.name.toLocaleLowerCase()));
+
     let trendDelta: number | null = null;
-    if (comparablePair) {
-      const latestPoint = trendPoints.find((point) => point.runId === comparablePair.latestId);
-      const previousPoint = trendPoints.find((point) => point.runId === comparablePair.previousId);
-      if (latestPoint && previousPoint) trendDelta = latestPoint.frequencyPct - previousPoint.frequencyPct;
+    if (pairRuns) {
+      const previousAnswers = pairAnswers.filter((answer) => answer.run_id === pairRuns!.previous.id);
+      const latestAnswers = pairAnswers.filter((answer) => answer.run_id === pairRuns!.latest.id);
+      const previousPoint = mentionFrequency(previousAnswers, competitor.name);
+      const latestPoint = mentionFrequency(latestAnswers, competitor.name);
+      trendDelta = latestPoint.frequencyPct - previousPoint.frequencyPct;
+
+      // If the broad historical packet is intentionally withheld, preserve only
+      // the independently complete exact pair rather than inventing a history.
+      if (!answerHistoryComplete) {
+        trendPoints = [
+          { runId: pairRuns.previous.id, date: dateLabel(pairRuns.previous.created_at), frequencyPct: previousPoint.frequencyPct },
+          { runId: pairRuns.latest.id, date: dateLabel(pairRuns.latest.created_at), frequencyPct: latestPoint.frequencyPct },
+        ];
+      }
     }
+
     return {
       id: competitor.id,
       name: competitor.name,
       website: competitor.website,
       type: competitor.competitor_type,
       active: competitor.active,
-      answerMentions: total.mentions,
-      totalAnswers: answers.length,
-      mentionFrequencyPct: answers.length ? total.frequencyPct : null,
+      answerMentions: answerHistoryComplete ? total.mentions : 0,
+      totalAnswers: answerHistoryComplete ? historyAnswers.length : 0,
+      answerHistoryComplete,
+      mentionFrequencyPct: answerHistoryComplete && historyAnswers.length ? total.frequencyPct : null,
       reviewedCitationPages: reviewedPages.length,
       sourceOverlap: reviewedPages.filter((entry) => entry.clientPresent).length,
       trendPoints,

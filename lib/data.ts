@@ -48,6 +48,7 @@ export type CompetitorTracking = {
   active: boolean;
   answerMentions: number;
   totalAnswers: number;
+  answerHistoryComplete: boolean;
   mentionFrequencyPct: number | null;
   reviewedCitationPages: number;
   sourceOverlap: number;
@@ -646,8 +647,8 @@ export async function loadWorkspaceCompetitors(viewer: Viewer): Promise<string[]
 
 export async function loadCompetitorTracking(viewer: Viewer): Promise<CompetitorTracking[]> {
   if (viewer.mode === "demo") return [
-    { id: "demo-competitor-1", name: "Deel", website: "https://deel.example", type: "direct", active: true, answerMentions: 3, totalAnswers: 4, mentionFrequencyPct: 75, reviewedCitationPages: 2, sourceOverlap: 1, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 75 }], trendDelta: 25 },
-    { id: "demo-competitor-2", name: "Rippling", website: "https://rippling.example", type: "leader", active: true, answerMentions: 2, totalAnswers: 4, mentionFrequencyPct: 50, reviewedCitationPages: 1, sourceOverlap: 0, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 50 }], trendDelta: 0 },
+    { id: "demo-competitor-1", name: "Deel", website: "https://deel.example", type: "direct", active: true, answerMentions: 3, totalAnswers: 4, answerHistoryComplete: true, mentionFrequencyPct: 75, reviewedCitationPages: 2, sourceOverlap: 1, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 75 }], trendDelta: 25 },
+    { id: "demo-competitor-2", name: "Rippling", website: "https://rippling.example", type: "leader", active: true, answerMentions: 2, totalAnswers: 4, answerHistoryComplete: true, mentionFrequencyPct: 50, reviewedCitationPages: 1, sourceOverlap: 0, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 50 }], trendDelta: 0 },
   ];
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
@@ -669,10 +670,14 @@ export async function loadCompetitorTracking(viewer: Viewer): Promise<Competitor
     const reviewedPages = entries.filter((entry) => entry.crawlerAccess !== "unknown" && entry.competitors.some((name) => name.toLocaleLowerCase() === normalizedName));
     return {
       id: competitor.id, name: competitor.name, website: competitor.website, type: competitor.competitor_type, active: competitor.active,
-      answerMentions: mentions.length, totalAnswers: answers.length, mentionFrequencyPct: answers.length ? Math.round((mentions.length / answers.length) * 100) : null,
-      reviewedCitationPages: reviewedPages.length, sourceOverlap: reviewedPages.filter((entry) => entry.clientPresent).length,
-      trendPoints,
-      trendDelta: trendPoints.length > 1 ? trendPoints.at(-1)!.frequencyPct - trendPoints.at(-2)!.frequencyPct : null,
+      // Legacy live loader is retained only for compatibility. It does not own
+      // the independent full-run evidence gate, so never expose its bounded
+      // answer subset as a complete customer metric. The truthful customer
+      // surface uses loadTruthfulCompetitorTracking instead.
+      answerMentions: 0, totalAnswers: 0, answerHistoryComplete: false, mentionFrequencyPct: null,
+      reviewedCitationPages: 0, sourceOverlap: 0,
+      trendPoints: [],
+      trendDelta: null,
     };
   });
 }

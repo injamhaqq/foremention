@@ -13,3 +13,24 @@ test("competitor tracking uses organization-scoped answer and reviewed-source ob
   assert.match(bridge, /href="\/app\/competitors"/);
   assert.match(bridge, /Review competitors/);
 });
+
+test("competitor movement independently re-verifies the exact full pair after the safe-intelligence read", async () => {
+  const [integrity, component, data] = await Promise.all([
+    text("lib/evidence-integrity-data.ts"),
+    text("components/competitor-tracker.tsx"),
+    text("lib/data.ts"),
+  ]);
+  assert.equal(integrity.includes("runs?select=id,project_id,status,answer_count,methodology_version,created_at"), true);
+  assert.equal(integrity.includes("project_id=eq.${context.projectId}"), true);
+  assert.equal(integrity.includes("validPairedRunAnswerBudget(previous, latest)"), true);
+  assert.equal(integrity.includes("assessCompleteVerifiedRunPair(previous, latest, candidatePairAnswers)"), true);
+  assert.match(integrity, /measurement_context_json/);
+  assert.match(integrity, /review_status=eq\.verified/);
+  assert.match(integrity, /limit=501/);
+  assert.equal(integrity.includes("MAX_COMPETITOR_HISTORY_RUNS + 1"), true);
+  assert.match(integrity, /MAX_COMPETITOR_HISTORY_ANSWERS/);
+  assert.match(integrity, /assessCompleteCompetitorHistory/);
+  assert.match(data, /answerHistoryComplete: boolean/);
+  assert.match(component, /Historical aggregate withheld/);
+  assert.match(component, /independently re-read exact comparable pair/);
+});
