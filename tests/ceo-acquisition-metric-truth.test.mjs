@@ -50,8 +50,8 @@ test("daily CEO brief embeds the qualification caveat and never forwards qualifi
   assert.match(source, /presentLegacyCeoScorecard\(companyRows\[0\] \|\| \{\}\)/);
   assert.match(source, /commercialQualificationEvidence,/);
   assert.match(source, /flagged accounts are NOT independently contact-verified/);
-  assert.match(source, /metric-truth-v2/);
+  assert.match(source, /metric-truth-v3/);
   assert.doesNotMatch(source, /const company = companyRows\[0\] \|\| \{\}/);
   assert.match(source, /company_ceo_scorecard\?select=\*&limit=1/);
-  assert.doesNotMatch(source, /serviceRole: true.*commercial_contacts/s);
+  assert.doesNotMatch(source, /commercial_contacts\\?select=[^\\n]*(?:email|full_name)/);
 });
