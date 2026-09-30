@@ -48,6 +48,7 @@ export type CompetitorTracking = {
   active: boolean;
   answerMentions: number;
   totalAnswers: number;
+  answerHistoryComplete: boolean;
   mentionFrequencyPct: number | null;
   reviewedCitationPages: number;
   sourceOverlap: number;
@@ -646,8 +647,8 @@ export async function loadWorkspaceCompetitors(viewer: Viewer): Promise<string[]
 
 export async function loadCompetitorTracking(viewer: Viewer): Promise<CompetitorTracking[]> {
   if (viewer.mode === "demo") return [
-    { id: "demo-competitor-1", name: "Deel", website: "https://deel.example", type: "direct", active: true, answerMentions: 3, totalAnswers: 4, mentionFrequencyPct: 75, reviewedCitationPages: 2, sourceOverlap: 1, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 75 }], trendDelta: 25 },
-    { id: "demo-competitor-2", name: "Rippling", website: "https://rippling.example", type: "leader", active: true, answerMentions: 2, totalAnswers: 4, mentionFrequencyPct: 50, reviewedCitationPages: 1, sourceOverlap: 0, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 50 }], trendDelta: 0 },
+    { id: "demo-competitor-1", name: "Deel", website: "https://deel.example", type: "direct", active: true, answerMentions: 3, totalAnswers: 4, answerHistoryComplete: true, mentionFrequencyPct: 75, reviewedCitationPages: 2, sourceOverlap: 1, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 75 }], trendDelta: 25 },
+    { id: "demo-competitor-2", name: "Rippling", website: "https://rippling.example", type: "leader", active: true, answerMentions: 2, totalAnswers: 4, answerHistoryComplete: true, mentionFrequencyPct: 50, reviewedCitationPages: 1, sourceOverlap: 0, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 50 }], trendDelta: 0 },
   ];
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
