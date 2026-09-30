@@ -610,11 +610,11 @@ export async function loadRunConfiguration(viewer: Viewer, runId: string): Promi
 
 export async function loadLatestReviewedAnswers(viewer: Viewer, limit = 12): Promise<WorkspaceRunAnswer[]> {
   if (viewer.mode === "demo") return [];
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
   const safeLimit = Math.max(1, Math.min(50, Math.round(limit)));
   const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string }>>(
-    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${organizationId}&review_status=eq.verified&order=collected_at.desc&limit=${safeLimit}`,
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&order=collected_at.desc&limit=${safeLimit}`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
