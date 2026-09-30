@@ -46,6 +46,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const { id } = await params;
   const body = await request.json().catch(() => ({})) as { shareId?: string };
   if (!body.shareId) return NextResponse.json({ error: "Share id is required." }, { status: 400 });
+  const run = (await loadRuns(viewer)).find((item) => item.id === id);
+  if (!run) return NextResponse.json({ error: "Recommendation Record not found." }, { status: 404 });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   if (viewer.mode !== "demo") {
