@@ -88,8 +88,15 @@ export async function POST(request: Request) {
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before starting a collection run." }, { status: 409 });
   if (!["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can start collection runs." }, { status: 403 });
 
+  // The legacy database uniqueness index is organization-wide. Namespace new
+  // interactive keys by project so sibling projects can safely reuse a client
+  // key without changing the historical database contract. Read both shapes so
+  // retries of pre-hardening runs remain idempotent inside the same project.
+  const persistedIdempotencyKey = `${context.projectId}:${idempotencyKey}`;
+  const idempotencyFilter = [idempotencyKey, persistedIdempotencyKey].map((value) => encodeURIComponent(value)).join(",");
+
   const existingRuns = await supabaseRest<Array<{ id: string; status: string }>>(
-    `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
+    `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=in.(${idempotencyFilter})&limit=1`,
     { token: viewer.accessToken },
   );
   if (existingRuns[0]) {
@@ -166,7 +173,7 @@ export async function POST(request: Request) {
         prompt_count: prompts.length,
         requested_units: requestedUnits,
         estimated_max_cost_usd: 0,
-        idempotency_key: idempotencyKey,
+        idempotency_key: persistedIdempotencyKey,
         active_request_key: activeRequestKey,
         methodology_version: currentObservationMethodologyVersion(),
         created_by: viewer.id,
@@ -213,7 +220,7 @@ export async function POST(request: Request) {
     logOperationalEvent("collection_reservation_failed", { correlationId, route: "/api/runs", errorCode: "capacity_reservation_failed" });
     console.warn(`Collection capacity failed during ${capacityStage}.`, safeOperationalError(error));
     const concurrentDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
-      `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
+      `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=in.(${idempotencyFilter})&limit=1`,
       { token: viewer.accessToken },
     ).catch(() => []);
     if (concurrentDuplicate[0] && concurrentDuplicate[0].id !== runId) {
