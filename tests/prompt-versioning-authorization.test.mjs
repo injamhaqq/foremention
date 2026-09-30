@@ -30,5 +30,6 @@ test("CI proves authorized edit plus cross-tenant, mismatched-org and viewer den
   assert.match(proof, /Authenticated viewer gained definer-RPC write access/);
   assert.match(proof, /Denied RPC path mutated Tenant B prompt state/);
   assert.match(proof, /rollback;/);
-  assert.doesNotMatch(proof, /service_role.*set_config\('request\.jwt\.claim\.sub'/s);
+  assert.doesNotMatch(proof, /set local role service_role/);
+  assert.doesNotMatch(proof, /set role service_role/);
 });
