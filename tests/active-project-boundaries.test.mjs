@@ -56,7 +56,8 @@ test("run and prompt mutations cannot cross the active project boundary", async 
     cancel,
     /id=eq\.\$\{id\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/,
   );
-  assert.match(shares, /const run = \(await loadRuns\(viewer\)\)\.find/);
+  assert.match(shares, /runs\?select=id,status&id=eq\.\$\{encodeURIComponent\(id\)\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&limit=1/);
+  assert.match(shares, /runs\?select=id&id=eq\.\$\{encodeURIComponent\(id\)\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&limit=1/);
   assert.match(shares, /Recommendation Record not found/);
 });
 
