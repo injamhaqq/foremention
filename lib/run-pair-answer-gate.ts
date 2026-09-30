@@ -33,8 +33,11 @@ export function validPairedRunAnswerBudget(
   )) {
     return { comparable: false, reason: "An independently recorded positive answer count is unavailable for at least one reviewed collection." };
   }
-  if ((earlier.answer_count as number) + (later.answer_count as number) > MAX_VERIFIED_RUN_PAIR_ANSWERS) {
-    return { comparable: false, reason: "The pair exceeds the bounded verified-answer reporting read; no partial subset was compared." };
+  // Reserve one observable row under the 500-row PostgREST hard limit.
+  // When exactly 500 rows are expected, an unexpected 501st could otherwise
+  // be silently hidden behind the limit and fabricate complete evidence.
+  if ((earlier.answer_count as number) + (later.answer_count as number) >= MAX_VERIFIED_RUN_PAIR_ANSWERS) {
+    return { comparable: false, reason: "The pair fills or exceeds the bounded verified-answer read, leaving no sentinel to detect truncated extra rows." };
   }
   return { comparable: true, reason: null };
 }
