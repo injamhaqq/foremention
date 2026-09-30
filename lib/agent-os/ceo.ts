@@ -1,4 +1,5 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
+import { presentLegacyCeoScorecard } from "@/lib/ceo-acquisition-metric-truth";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type Scorecard = Record<string, string | number | boolean | null>;
@@ -17,7 +18,7 @@ export async function runCeoBriefAgent(dateKey = new Date().toISOString().slice(
     ),
   ]);
 
-  const company = companyRows[0] || {};
+  const { company, commercialQualificationEvidence } = presentLegacyCeoScorecard(companyRows[0] || {});
   const customerValue = customerRows[0] || {};
   const action = await proposeAgentAction({
     organizationId: null,
@@ -28,14 +29,15 @@ export async function runCeoBriefAgent(dateKey = new Date().toISOString().slice(
     effectClass: "observe",
     riskLevel: "low",
     title: `Foremention CEO brief · ${dateKey}`,
-    rationale: "Compiled from first-party company/customer-value scorecards, the operating-agent approval queue, and recorded run failures. Missing or insufficient values remain missing; this brief does not manufacture revenue, customers, retention, or causal outcomes.",
+    rationale: "Compiled from first-party company/customer-value scorecards, the operating-agent approval queue, and recorded run failures. Missing or insufficient values remain missing; the legacy account qualification flag remains operator triage only. Contact verification, real conversations, buyer qualification, customer status, revenue and causal outcomes must never be inferred from an internal status label.",
     evidence: [
-      { type: "scorecard", id: "company_ceo_scorecard", note: "First-party commercial operating aggregate." },
+      { type: "scorecard", id: "company_ceo_scorecard", note: "Legacy internal commercial status aggregate: flagged accounts are NOT independently contact-verified, sales-qualified or interviewed." },
       { type: "scorecard", id: "company_customer_value_scorecard", note: "KPI-eligible customer-value aggregate." },
     ],
     payload: {
       dateKey,
       company,
+      commercialQualificationEvidence,
       customerValue,
       pendingApprovalCount: pendingApprovals.length,
       pendingApprovals,
@@ -44,7 +46,7 @@ export async function runCeoBriefAgent(dateKey = new Date().toISOString().slice(
     },
     confidence: null,
     estimatedCostUsd: 0,
-    idempotencyKey: `ceo:daily-brief:${dateKey}:v1`,
+    idempotencyKey: `ceo:daily-brief:${dateKey}:metric-truth-v2`,
   });
-  return { action, company, customerValue, pendingApprovals, failedRuns };
+  return { action, company, commercialQualificationEvidence, customerValue, pendingApprovals, failedRuns };
 }
