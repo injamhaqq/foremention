@@ -1,4 +1,5 @@
 import { retrieveFreeWebEvidence } from "@/lib/free-web-retrieval";
+import { bingRssCommercialRightsConfirmed } from "@/lib/retrieval-rights";
 import {
   ProviderRequestError,
   type AnswerProviderAdapter,
@@ -72,7 +73,11 @@ export function getCloudflareAiBinding() {
 }
 
 export function cloudflareAiConfigured() {
-  return Boolean(runtime.__FOREMENTION_CLOUDFLARE_AI__ && process.env.CLOUDFLARE_MODEL);
+  return Boolean(
+    runtime.__FOREMENTION_CLOUDFLARE_AI__
+      && process.env.CLOUDFLARE_MODEL
+      && bingRssCommercialRightsConfirmed(),
+  );
 }
 
 function usageFrom(raw: CloudflareTextResponse): ProviderUsage | undefined {
@@ -157,7 +162,16 @@ export async function runGroundedCloudflareWithBinding(input: {
   searchQuery?: string;
   maxOutputTokens: number;
   signal?: AbortSignal;
+  rightsConfirmed?: boolean;
 }) {
+  const rightsConfirmed = input.rightsConfirmed ?? bingRssCommercialRightsConfirmed();
+  if (!rightsConfirmed) {
+    throw new ProviderRequestError(
+      "Cloudflare Workers AI + Bing Search RSS",
+      503,
+      "Grounded web evidence is unavailable until applicable commercial retrieval rights are explicitly confirmed.",
+    );
+  }
   const evidence = await retrieveFreeWebEvidence(input.searchQuery || input.prompt, input.signal, input.prompt);
   const sourceIndex = citationIndex(evidence.citations);
 
@@ -222,6 +236,13 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
     if (!binding || !model) {
       throw new ProviderRequestError("Cloudflare Workers AI", 503, "The Worker AI binding or explicit model is unavailable.");
     }
+    if (!bingRssCommercialRightsConfirmed()) {
+      throw new ProviderRequestError(
+        "Cloudflare Workers AI + Bing Search RSS",
+        503,
+        "Grounded web evidence is disabled until applicable commercial retrieval rights are explicitly confirmed.",
+      );
+    }
 
     const started = Date.now();
     try {
@@ -231,6 +252,7 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
         prompt: prompt.text,
         maxOutputTokens: options.maxOutputTokens,
         signal: options.signal,
+        rightsConfirmed: true,
       });
       return {
         provider: "cloudflare",
