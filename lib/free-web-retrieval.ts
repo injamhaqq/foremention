@@ -1,4 +1,5 @@
 import type { ProviderCitation } from "@/lib/providers/types";
+import { explicitOfficialSourceRequirement, boundedOfficialSiteQuery, filterOfficialDomainCitations } from "./official-source-relevance.mjs";
 
 const BING_SEARCH_ENDPOINT = "https://www.bing.com/search";
 const MAX_RSS_CHARS = 256_000;
@@ -91,8 +92,9 @@ function normalizeHttpUrl(value: string) {
   try {
     const url = new URL(decodeXml(value).trim());
     if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-    url.username = "";
-    url.password = "";
+    // Reject credential-bearing search links instead of silently rewriting
+    // them into official-looking URLs before provenance checks run.
+    if (url.username || url.password) return null;
     url.hash = "";
     const host = url.hostname.toLowerCase();
     const path = url.pathname.toLowerCase();
@@ -107,7 +109,7 @@ export type BingSearchResult = ProviderCitation & {
   snippet: string;
 };
 
-export function parseBingSearchRss(input: string): BingSearchResult[] {
+export function parseBingSearchRss(input: string, allowedUrl?: (url: string) => boolean): BingSearchResult[] {
   const raw = input.slice(0, MAX_RSS_CHARS);
   const lower = raw.toLowerCase();
   const results = new Map<string, BingSearchResult>();
@@ -126,7 +128,7 @@ export function parseBingSearchRss(input: string): BingSearchResult[] {
     const url = normalizeHttpUrl(extractTagValue(item, "link"));
     const snippet = textFromXml(extractTagValue(item, "description")).slice(0, 1_200);
 
-    if (url && !results.has(url)) {
+    if (url && (!allowedUrl || allowedUrl(url)) && !results.has(url)) {
       results.set(url, { url, title: title || undefined, snippet });
     }
     cursor = itemEnd + 7;
@@ -141,13 +143,19 @@ export type FreeWebEvidence = {
   retrievalProvider: "bing-rss";
 };
 
-export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal): Promise<FreeWebEvidence> {
+export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal, originalBuyerQuestion: string = query): Promise<FreeWebEvidence> {
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
+  // Only explicit official-domain + exact-citation requests are site-scoped.
+  // This controls provenance; it does NOT establish commercial retrieval rights.
+  // A caller may provide a shorter search query, but it may NEVER weaken a
+  // source constraint from the customer's original buyer question.
+  const officialRequirement = explicitOfficialSourceRequirement(originalBuyerQuestion);
+  const searchQuery = officialRequirement ? boundedOfficialSiteQuery(originalBuyerQuestion, officialRequirement) : normalized;
   const url = new URL(BING_SEARCH_ENDPOINT);
   url.searchParams.set("format", "rss");
-  url.searchParams.set("q", normalized);
+  url.searchParams.set("q", searchQuery);
   url.searchParams.set("count", String(MAX_CITATIONS));
   url.searchParams.set("setlang", "en-US");
 
@@ -164,8 +172,24 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const raw = (await response.text()).slice(0, MAX_RSS_CHARS).trim();
   if (!raw) throw new Error("Bing RSS returned no evidence content.");
 
-  const results = parseBingSearchRss(raw);
-  if (!results.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+  // Filter BEFORE the bounded eight-result limit. Otherwise eight irrelevant
+  // RSS items at the top can hide a later, explicitly requested official
+  // article even though it is present in the same bounded response.
+  // Recheck below before constructing any model context (defense in depth).
+  const unqualifiedResults = parseBingSearchRss(
+    raw,
+    officialRequirement
+      ? (candidateUrl) => filterOfficialDomainCitations([{ url: candidateUrl }], officialRequirement).length === 1
+      : undefined,
+  );
+  // Never label another site as an official citation when the question demands
+  // an exact official source. Fail before calling a model if nothing qualifies.
+  const results = filterOfficialDomainCitations(unqualifiedResults, officialRequirement) as BingSearchResult[];
+  if (!results.length) {
+    throw new Error(officialRequirement
+      ? "Official-domain evidence was unavailable from the selected retrieval surface; no official citation was invented."
+      : "Bing RSS returned no verifiable source URLs.");
+  }
 
   const evidenceText = results.map((result, index) => [
     `SOURCE [${index + 1}]`,
