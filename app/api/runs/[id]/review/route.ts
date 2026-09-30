@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can approve collected evidence." }, { status: 403 });
   const { id } = await params;
   const runs = await supabaseRest<Array<{ id: string; status: string; category_id: string; project_id: string; organization_id: string; created_by: string | null }>>(
-    `runs?select=id,status,category_id,project_id,organization_id,created_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&limit=1`,
+    `runs?select=id,status,category_id,project_id,organization_id,created_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   const run = runs[0];
@@ -88,7 +88,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   const finalStatus = failedAttempts.length ? "partial" : "complete";
   try {
-    await supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}`, {
+    await supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
       method: "PATCH",
       token: viewer.accessToken,
       prefer: "return=minimal",

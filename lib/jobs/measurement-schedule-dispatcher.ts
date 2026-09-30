@@ -84,7 +84,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   const [operatorRows, entitlementRows, existingRuns] = await Promise.all([
     supabaseRest<OperatorRow[]>(`organization_members?select=role&organization_id=eq.${schedule.organization_id}&user_id=eq.${schedule.created_by}&limit=1`, { serviceRole: true }),
     supabaseRest<EntitlementRow[]>(`organization_entitlements?select=status,expires_at&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
-    supabaseRest<ExistingRunRow[]>(`runs?select=id,status,estimated_max_cost_usd,requested_units&organization_id=eq.${schedule.organization_id}&idempotency_key=eq.${encodeURIComponent(key)}&limit=1`, { serviceRole: true }),
+    supabaseRest<ExistingRunRow[]>(`runs?select=id,status,estimated_max_cost_usd,requested_units&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&idempotency_key=eq.${encodeURIComponent(key)}&limit=1`, { serviceRole: true }),
   ]);
   const operator = operatorRows[0];
   const entitlement = entitlementRows[0];

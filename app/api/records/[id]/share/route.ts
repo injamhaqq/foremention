@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireViewer } from "@/lib/auth";
-import { getPrimaryWorkspaceRole, loadRuns, loadWorkspaceContext } from "@/lib/data";
+import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { createRecordShareToken, hashRecordShareToken, recordShareExpiry, safeRecordSharePath } from "@/lib/record-sharing";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -18,11 +18,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const body = await request.json().catch(() => ({})) as { includeEvidence?: boolean; expiresInDays?: number; visibility?: ShareVisibility };
   const visibility = body.visibility || "private";
   if (visibility !== "private") return NextResponse.json({ error: "Public Record publishing is not enabled. Create a private expiring link instead." }, { status: 400 });
-  const run = (await loadRuns(viewer)).find((item) => item.id === id);
-  if (!run) return NextResponse.json({ error: "Recommendation Record not found." }, { status: 404 });
-  if (!["complete", "partial", "review"].includes(run.status)) return NextResponse.json({ error: "Only an observed or reviewed Recommendation Record can be shared." }, { status: 409 });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+  const runs = viewer.mode === "demo"
+    ? [{ id, status: "complete" }]
+    : await supabaseRest<Array<{ id: string; status: string }>>(
+      `runs?select=id,status&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+      { token: viewer.accessToken },
+    );
+  const run = runs[0];
+  if (!run) return NextResponse.json({ error: "Recommendation Record not found." }, { status: 404 });
+  if (!["complete", "partial", "review"].includes(run.status)) return NextResponse.json({ error: "Only an observed or reviewed Recommendation Record can be shared." }, { status: 409 });
   const token = createRecordShareToken();
   const tokenHash = await hashRecordShareToken(token);
   const expiresAt = recordShareExpiry(body.expiresInDays).toISOString();
@@ -49,6 +55,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   if (viewer.mode !== "demo") {
+    const runs = await supabaseRest<Array<{ id: string }>>(
+      `runs?select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+      { token: viewer.accessToken },
+    );
+    if (!runs[0]) return NextResponse.json({ error: "Recommendation Record not found." }, { status: 404 });
     const rows = await supabaseRest<ShareRow[]>(`record_shares?id=eq.${encodeURIComponent(body.shareId)}&run_id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=representation", body: { revoked_at: new Date().toISOString() } });
     if (!rows.length) return NextResponse.json({ error: "Share not found." }, { status: 404 });
   }
