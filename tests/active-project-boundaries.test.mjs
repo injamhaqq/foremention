@@ -4,8 +4,12 @@ import test from "node:test";
 
 const text = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("core workspace reads stay inside the active project", async () => {
-  const data = await text("lib/data.ts");
+test("core workspace reads and measurement identity stay inside the active project", async () => {
+  const [data, integrity, passport] = await Promise.all([
+    text("lib/data.ts"),
+    text("lib/evidence-integrity-data.ts"),
+    text("app/app/passport/page.tsx"),
+  ]);
 
   assert.match(
     data,
@@ -15,10 +19,16 @@ test("core workspace reads stay inside the active project", async () => {
     data,
     /prompts\?select=id,prompt_key,prompt_text,active,prompt_clusters\(name\)&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/,
   );
+  assert.match(data, /projects\?select=id,client_brand,website,category&organization_id=eq\.\$\{organizationId\}&status=eq\.active/);
+  assert.match(data, /name=eq\.\$\{encodeURIComponent\(project\.category\.trim\(\)\)\}/);
   assert.match(
     data,
     /prompt_clusters\?select=id&organization_id=eq\.\$\{organizationId\}&project_id=eq\.\$\{project\.id\}/,
   );
+  assert.match(data, /projectBrand: project\.client_brand\.trim\(\)/);
+  assert.match(data, /includes\(context\.projectBrand\.toLocaleLowerCase\(\)\)/);
+  assert.match(integrity, /includes\(context\.projectBrand\.toLocaleLowerCase\(\)\)/);
+  assert.match(passport, /name: context\.projectBrand/);
   assert.match(data, /run:runs!inner\(project_id\)/);
   assert.match(data, /run\.project_id=eq\.\$\{context\.projectId\}/);
 });
