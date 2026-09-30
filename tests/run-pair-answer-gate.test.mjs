@@ -43,6 +43,9 @@ test("a near-response-cap pair is allowed only when both complete recorded sets 
   assert.equal(validPairedRunAnswerBudget({...earlier,answer_count:250},
     {...later,answer_count:251}).comparable,false);
   assert.equal(validPairedRunAnswerBudget({...earlier,answer_count:250},
+    {...later,answer_count:250}).comparable,false,
+    "An exact 500-row response cannot reveal a truncated extra 501st row");
+  assert.equal(validPairedRunAnswerBudget({...earlier,answer_count:249},
     {...later,answer_count:250}).comparable,true);
   for(const count of [0,-1,1.5,Number.MAX_SAFE_INTEGER+1,null]){
     assert.equal(validPairedRunAnswerBudget({...earlier,answer_count:count},later).comparable,false,String(count));
@@ -75,4 +78,20 @@ test("complete counts cannot override mismatched per-answer context or model",()
   const changedText=complete.map(x=>x.run_id===later.id&&x.prompt_key==="question-b"
     ? {...x,prompt_text:"A different buyer question?"}:x);
   assert.equal(assessCompleteVerifiedRunPair(earlier,later,changedText).comparable,false);
+});
+
+
+test("an exact-limit forged complete-looking subset cannot hide an unseen 501st verified answer",()=>{
+  const nearLimit=[...Array.from({length:249},(_,i)=>row(earlier.id,"q"+i)),
+    ...Array.from({length:250},(_,i)=>row(later.id,"q"+i))];
+  const head={...earlier,answer_count:249},second={...later,answer_count:250};
+  const budget=validPairedRunAnswerBudget(head,second);
+  assert.equal(budget.comparable,true,"a 499-row set leaves a sentinel read slot");
+  assert.equal(assessCompleteVerifiedRunPair(head,second,nearLimit).comparable,false,
+    "even full counts are not enough when exact per-question matrices differ");
+  const noSentinel=validPairedRunAnswerBudget({...earlier,answer_count:250},second);
+  assert.equal(noSentinel.comparable,false,"a 500-row pair must be withheld");
+  assert.equal(assessCompleteVerifiedRunPair({...earlier,answer_count:250},second,
+    [...nearLimit,row(earlier.id,"q249")]).comparable,false,
+    "the exact-limit response is never labeled complete");
 });
