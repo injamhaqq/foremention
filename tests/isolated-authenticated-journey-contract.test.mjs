@@ -96,6 +96,7 @@ test("resolution transport diagnostics stay local, bounded and secret-free", asy
     read("../app/api/resolutions/route.ts"),
     read("../.github/workflows/isolated-authenticated-journey.yml"),
   ]);
+  assert.match(journey,/nativeInvalidOnboardingBoundary\(ownerCtx\)/);
   assert.match(journey,/nativeResolutionRead\(ownerCtx,"post-review"\)/);
   assert.match(journey,/nativeResolutionRead\(ownerCtx,"final"\)/);
   assert.doesNotMatch(journey,/nativeFinalResolutionRead/);
