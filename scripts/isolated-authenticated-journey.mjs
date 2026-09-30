@@ -85,6 +85,29 @@ async function appCall(ctx,method,path,data,extraHeaders={}) {
 // rather than routing its full JSON body through Playwright request.fetch,
 // whose proxy intermittently stalled for 75s after the Worker logged "loaded".
 // This performs ONE real request; it is not a retry or a result substitution.
+async function nativeInvalidOnboardingBoundary(ctx) {
+  const session=(await ctx.cookies()).find(c=>c.name==="foremention-session");
+  if(!session?.value)throw Error("Local authenticated onboarding boundary has no signed-in session.");
+  try {
+    const response=await fetch(new URL("/api/onboarding",app),{
+      method:"POST",
+      redirect:"manual",
+      headers:{
+        origin:app.origin,
+        accept:"application/json",
+        "content-type":"application/json",
+        cookie:"foremention-session="+session.value,
+      },
+      body:"{}",
+      signal:AbortSignal.timeout(30_000),
+    });
+    const json=await response.json().catch(()=>null);
+    return {status:response.status,body:json};
+  } catch {
+    return {status:0,body:null};
+  }
+}
+
 async function nativeResolutionRead(ctx, phase) {
   const session=(await ctx.cookies()).find(c=>c.name==="foremention-session");
   if(!session?.value)throw Error("Local authenticated resolution read has no signed-in session.");
@@ -258,7 +281,9 @@ async function main() {
     must(await appCall(publicCtx,"POST","/api/change-specifications",{action:"create_from_opportunity"}),401,"anonymous decision mutation");
     // Preflight the ordinary route before a valid workspace request. This
     // distinguishes an auth/routing 500 from later RPC/validation failures.
-    const blank=await appCall(ownerCtx,"POST","/api/onboarding",{});
+    // One native request avoids treating Playwright request-proxy startup
+    // behavior as an application response while preserving strict HTTP 400.
+    const blank=await nativeInvalidOnboardingBoundary(ownerCtx);
     must(blank,400,"authenticated invalid onboarding payload boundary");
     step("authenticated-onboarding-invalid-payload-rejected");
     const tenant=await onboard(ownerCtx,"Tenant A");
