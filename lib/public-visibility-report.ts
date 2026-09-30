@@ -28,7 +28,7 @@ type PublicAnswerRow = {
 
 export async function loadPublicVisibilityReport(input: string): Promise<PublicVisibilityReport> {
   const domain = canonicalReportDomain(input);
-  const methodology = "Public reports require explicit organization opt-in and independently complete, human-verified answer sets for each included completed run. Recorded source URLs and review status do not independently prove citation relevance, factual accuracy, market coverage or causation.";
+  const methodology = "Public reports require explicit organization opt-in and independently complete, human-verified answer sets for each included completed run. Recorded source URLs and review status do not independently prove citation relevance, factual accuracy, market coverage or causation. No result is estimated from another customer.";
   if (!domain || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { available: false, domain: domain || input, methodology };
   const organizations = await supabaseRest<Array<{ id: string; name: string; website: string | null }>>(
     "organizations?select=id,name,website&public_report_enabled=eq.true&limit=1000",
