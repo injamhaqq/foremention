@@ -85,9 +85,10 @@ async function appCall(ctx,method,path,data,extraHeaders={}) {
 // rather than routing its full JSON body through Playwright request.fetch,
 // whose proxy intermittently stalled for 75s after the Worker logged "loaded".
 // This performs ONE real request; it is not a retry or a result substitution.
-async function nativeFinalResolutionRead(ctx) {
+async function nativeResolutionRead(ctx, phase) {
   const session=(await ctx.cookies()).find(c=>c.name==="foremention-session");
-  if(!session?.value)throw Error("Local authenticated final read has no signed-in session.");
+  if(!session?.value)throw Error("Local authenticated resolution read has no signed-in session.");
+  if(!["post-review","final"].includes(phase)) throw Error("Unknown isolated resolution read phase.");
   let response;
   try {
     response=await fetch(new URL("/api/resolutions",app),{
@@ -97,7 +98,9 @@ async function nativeFinalResolutionRead(ctx) {
         origin:app.origin,
         accept:"application/json",
         cookie:"foremention-session="+session.value,
-        "x-foremention-isolated-final-read":"1",
+        ...(phase==="final"
+          ? {"x-foremention-isolated-final-read":"1"}
+          : {"x-foremention-isolated-post-review-read":"1"}),
       },
       signal:AbortSignal.timeout(75_000),
     });
@@ -319,7 +322,10 @@ async function main() {
       } catch {probeCode="other";}
     }
     step("post-review-local-postgrest-status-"+probe.status+"-code-"+probeCode);
-    const ownerAfterReview=await appCall(ownerCtx,"GET","/api/resolutions",undefined,{"x-foremention-isolated-post-review-read":"1"});
+    // Use ONE native HTTP request for the owner read, matching the final read.
+    // The previous Playwright request proxy could stall after the Worker had
+    // already completed the route. This is not a retry or relaxed assertion.
+    const ownerAfterReview=await nativeResolutionRead(ownerCtx,"post-review");
     const localHealthAfterReview=await appCall(publicCtx,"GET","/api/health");
     const otherAfterReview=await appCall(otherCtx,"GET","/api/resolutions");
     step("reviewed-local-worker-health-"+localHealthAfterReview.status);
@@ -423,7 +429,7 @@ async function main() {
     // whether the final failing request reached the Worker route at all.
     // Preserve strict first-request acceptance; a diagnostic retry never
     // converts a failed 500 into a passing test.
-    const finalRead=await nativeFinalResolutionRead(ownerCtx);
+    const finalRead=await nativeResolutionRead(ownerCtx,"final");
     if(finalRead.status!==200){
       const session=(await ownerCtx.cookies()).find(c=>c.name==="foremention-session");
       if(!session)throw Error("Final local diagnostic lost its synthetic session.");
