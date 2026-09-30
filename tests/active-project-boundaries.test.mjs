@@ -36,10 +36,10 @@ test("run and prompt mutations cannot cross the active project boundary", async 
     prompts,
     /prompts\?select=id&id=eq\.\$\{id\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/,
   );
-  assert.match(
-    runs,
-    /idempotency_key=eq\.\$\{encodeURIComponent\(idempotencyKey\)\}/,
-  );
+  assert.match(runs, /const persistedIdempotencyKey = \`\$\{context\.projectId\}:\$\{idempotencyKey\}\`/);
+  assert.match(runs, /const idempotencyFilter = \[idempotencyKey, persistedIdempotencyKey\]/);
+  assert.match(runs, /idempotency_key=in\.\(\$\{idempotencyFilter\}\)/);
+  assert.match(runs, /idempotency_key: persistedIdempotencyKey/);
   assert.match(
     runs,
     /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&idempotency_key=/,
@@ -73,15 +73,4 @@ test("explicit schedules are project-scoped without expanding legacy weekly bill
   assert.match(inngest, /const byOrganization = new Map/);
   assert.match(inngest, /weekly:\$\{seed\.organization_id\}:\$\{weekKey\}/);
   assert.doesNotMatch(inngest, /byWorkspaceProject/);
-});
-
-test("run idempotency is project-scoped while legacy weekly uniqueness stays organization-wide", async () => {
-  const migration = await text("supabase/migrations/20260930000100_active_project_run_uniqueness.sql");
-
-  assert.match(migration, /drop index if exists public\.runs_organization_idempotency_idx/i);
-  assert.match(migration, /create unique index runs_workspace_idempotency_idx/i);
-  assert.match(migration, /coalesce\(project_id, '00000000-0000-0000-0000-000000000000'::uuid\)/i);
-  assert.match(migration, /create unique index runs_organization_weekly_idempotency_idx/i);
-  assert.match(migration, /idempotency_key like 'weekly:%'/i);
-  assert.doesNotMatch(migration, /drop index if exists public\.runs_organization_active_request_idx/i);
 });
