@@ -60,7 +60,7 @@ test("run and prompt mutations cannot cross the active project boundary", async 
   assert.match(shares, /Recommendation Record not found/);
 });
 
-test("scheduled collection idempotency and weekly selection are project-aware", async () => {
+test("explicit schedules are project-scoped without expanding legacy weekly billing behavior", async () => {
   const [dispatcher, inngest] = await Promise.all([
     text("lib/jobs/measurement-schedule-dispatcher.ts"),
     text("lib/jobs/inngest.ts"),
@@ -70,18 +70,18 @@ test("scheduled collection idempotency and weekly selection are project-aware", 
     dispatcher,
     /organization_id=eq\.\$\{schedule\.organization_id\}&project_id=eq\.\$\{schedule\.project_id\}&idempotency_key=/,
   );
-  assert.match(inngest, /byWorkspaceProject/);
-  assert.match(inngest, /\$\{row\.organization_id\}\\u0000\$\{row\.project_id\}/);
-  assert.match(inngest, /weekly:\$\{seed\.organization_id\}:\$\{seed\.project_id\}:\$\{weekKey\}/);
+  assert.match(inngest, /const byOrganization = new Map/);
+  assert.match(inngest, /weekly:\$\{seed\.organization_id\}:\$\{weekKey\}/);
+  assert.doesNotMatch(inngest, /byWorkspaceProject/);
 });
 
-test("run uniqueness is project-scoped while legacy null-project rows stay isolated", async () => {
+test("run idempotency is project-scoped while legacy weekly uniqueness stays organization-wide", async () => {
   const migration = await text("supabase/migrations/20260930000100_active_project_run_uniqueness.sql");
 
   assert.match(migration, /drop index if exists public\.runs_organization_idempotency_idx/i);
   assert.match(migration, /create unique index runs_workspace_idempotency_idx/i);
   assert.match(migration, /coalesce\(project_id, '00000000-0000-0000-0000-000000000000'::uuid\)/i);
-  assert.match(migration, /drop index if exists public\.runs_organization_active_request_idx/i);
-  assert.match(migration, /create unique index runs_workspace_active_request_idx/i);
-  assert.match(migration, /status in \('queued', 'running'\)/i);
+  assert.match(migration, /create unique index runs_organization_weekly_idempotency_idx/i);
+  assert.match(migration, /idempotency_key like 'weekly:%'/i);
+  assert.doesNotMatch(migration, /drop index if exists public\.runs_organization_active_request_idx/i);
 });
