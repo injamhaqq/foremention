@@ -53,3 +53,12 @@ Additional independent release blocks are unchanged:
 6. #283: At least three actual external design partners, one independently verified paid commitment and two legitimate comparable repeat cycles. Internal synthetic or QA data is never customer evidence.
 
 **Review and deployment sequencing:** review #356 → #357 → #358's current base ancestry and independent urgent #361 security patch, preserving #353 integration history. Do not enable production deployment from main until every applicable release requirement above has owner approval and supporting exact-commit evidence. A green SSR/RLS integration gate does not authorize a live collection run. If CI is green, it means the *staged* checks passed, not that the full app or commercial business has launched.
+
+
+## 30 September 2026 — competitor evidence read-side revalidation receipt
+
+- PR #389 independently passed the ten mandatory pull-request workflows on exact head `dbb9d5c3709ef6400e3e621af62b70af25bac3a8` before stage-only merge.
+- Stage merge commit `2b9a75777f193f8e77832974c0c464504e536cc2` adds complete-answer evidence gates for competitor history and exact-pair deltas. It does not change production `main`.
+- Historical competitor aggregates now require complete saved answer denominators, full verified rows, unique answer IDs and unique question/provider slots with bounded run/answer sentinels. Incomplete bounded reads are disclosed as withheld.
+- Competitor percentage-point movement independently re-reads the exact active-project pair and requires terminal status, chronology, identical methodology, positive answer counts and the full nine-field exact-comparability gate before calculating a delta.
+- Production release remains blocked on owner-controlled credential containment (#323), commercial retrieval/data rights (#346), migration lineage and backup (#332), and a genuine isolated deployed-stage acceptance/rollback proof (#334). This receipt is a staging verification trigger, not evidence those owner gates are resolved.
