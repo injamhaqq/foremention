@@ -62,8 +62,8 @@ test("safe intelligence uses tenant-scoped verified answers and full measurement
   assert.match(safe, /validPairedRunAnswerBudget/);
   assert.match(safe, /assessCompleteVerifiedRunPair/);
   assert.match(safe, /answer_count/);
-  assert.match(safe, /project_id=eq\\.\\$\\{context\\.projectId\\}/);
-  assert.doesNotMatch(safe, /assessExactQuestionComparability\\(intelligence\\.latest\\.id/);
+  assert.equal(safe.includes("project_id=eq.${context.projectId}"),true);
+  assert.equal(safe.includes("assessExactQuestionComparability(intelligence.latest.id"),false);
   assert.match(safe, /previous: null/);
   assert.match(safe, /Cross-collection movement withheld/);
   assert.match(safe, /locale.*market|market.*locale/is);
@@ -118,11 +118,11 @@ test("the shared all-surface comparator rejects matching duplicate observations 
 
 test("weekly reports withhold an incomplete matching subset or wrong-project pair",async()=>{
   const safe=await text("lib/safe-intelligence.ts");
-  assert.match(safe,/runs\\?select=id,answer_count,status,methodology_version/);
-  assert.match(safe,/project_id=eq\\.\\$\\{context\\.projectId\\}/);
-  assert.match(safe,/status=in\\.\\(complete,partial\\)/);
-  assert.match(safe,/const budget = validPairedRunAnswerBudget\\(previous, latest\\)/);
-  assert.match(safe,/assessCompleteVerifiedRunPair\\(previous, latest, rows\\)/);
-  assert.match(safe,/withholdUnsafePair\\(intelligence/);
-  assert.doesNotMatch(safe,/serviceRole:\\s*true/);
+  assert.equal(safe.includes("runs?select=id,answer_count,status,methodology_version"),true);
+  assert.equal(safe.includes("project_id=eq.${context.projectId}"),true);
+  assert.equal(safe.includes("status=in.(complete,partial)"),true);
+  assert.equal(safe.includes("const budget = validPairedRunAnswerBudget(previous, latest)"),true);
+  assert.equal(safe.includes("assessCompleteVerifiedRunPair(previous, latest, rows)"),true);
+  assert.equal(safe.includes("withholdUnsafePair(intelligence"),true);
+  assert.equal(safe.includes("serviceRole: true"),false);
 });
