@@ -1,9 +1,9 @@
 begin;
 
--- Runs belong to a project. The legacy uniqueness indexes were organization-wide,
--- which caused valid requests in sibling projects to collide. Keep historical
--- NULL-project rows in one legacy bucket while making current project rows
--- independently idempotent.
+-- Interactive runs belong to a project, so the same client idempotency key may
+-- legitimately be reused in sibling projects. Historical NULL-project rows stay
+-- in one legacy bucket. The legacy weekly collector remains organization-wide,
+-- so a second partial unique index preserves its existing one-per-org/week rule.
 drop index if exists public.runs_organization_idempotency_idx;
 
 create unique index runs_workspace_idempotency_idx
@@ -14,15 +14,8 @@ create unique index runs_workspace_idempotency_idx
   )
   where idempotency_key is not null;
 
-drop index if exists public.runs_organization_active_request_idx;
-
-create unique index runs_workspace_active_request_idx
-  on public.runs (
-    organization_id,
-    coalesce(project_id, '00000000-0000-0000-0000-000000000000'::uuid),
-    active_request_key
-  )
-  where active_request_key is not null
-    and status in ('queued', 'running');
+create unique index runs_organization_weekly_idempotency_idx
+  on public.runs (organization_id, idempotency_key)
+  where idempotency_key like 'weekly:%';
 
 commit;
