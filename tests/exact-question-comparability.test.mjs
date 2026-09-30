@@ -59,7 +59,11 @@ test("safe intelligence uses tenant-scoped verified answers and full measurement
   assert.match(safe, /organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(safe, /review_status=eq\.verified/);
   assert.match(safe, /measurement_context_json/);
-  assert.match(safe, /assessExactQuestionComparability/);
+  assert.match(safe, /validPairedRunAnswerBudget/);
+  assert.match(safe, /assessCompleteVerifiedRunPair/);
+  assert.match(safe, /answer_count/);
+  assert.match(safe, /project_id=eq\\.\\$\\{context\\.projectId\\}/);
+  assert.doesNotMatch(safe, /assessExactQuestionComparability\\(intelligence\\.latest\\.id/);
   assert.match(safe, /previous: null/);
   assert.match(safe, /Cross-collection movement withheld/);
   assert.match(safe, /locale.*market|market.*locale/is);
@@ -94,4 +98,31 @@ test("two equally blank provider or question keys must never count as exact meas
   assert.match(assessExactQuestionComparability("latest","previous",missingProviders).reason||"",/provider provenance/i);
   assert.match(assessExactQuestionComparability("latest","previous",missingKeys).reason||"",/question identity/i);
   assert.equal(assessExactQuestionComparability("latest","previous",pair).comparable,true);
+});
+
+test("the shared all-surface comparator rejects matching duplicate observations rather than manufacturing a second cycle",()=>{
+  const duplicate=[...pair,{...pair[0]},{...pair[1]}];
+  const result=assessExactQuestionComparability("latest","previous",duplicate);
+  assert.equal(result.comparable,false);
+  assert.match(result.reason||"",/Duplicate/i);
+  const leftOnly=[...pair,{...pair[0]}];
+  assert.equal(assessExactQuestionComparability("latest","previous",leftOnly).comparable,false);
+  const alternative=[
+    pair[0],pair[1],
+    {...pair[0],promptKey:"q2",promptText:"Which independent verification workflow fits?"},
+    {...pair[1],promptKey:"q2",promptText:"Which independent verification workflow fits?"},
+  ];
+  assert.equal(assessExactQuestionComparability("latest","previous",alternative).comparable,true,
+    "two genuinely different but matching per-question slots are not duplicates");
+});
+
+test("weekly reports withhold an incomplete matching subset or wrong-project pair",async()=>{
+  const safe=await text("lib/safe-intelligence.ts");
+  assert.match(safe,/runs\\?select=id,answer_count,status,methodology_version/);
+  assert.match(safe,/project_id=eq\\.\\$\\{context\\.projectId\\}/);
+  assert.match(safe,/status=in\\.\\(complete,partial\\)/);
+  assert.match(safe,/const budget = validPairedRunAnswerBudget\\(previous, latest\\)/);
+  assert.match(safe,/assessCompleteVerifiedRunPair\\(previous, latest, rows\\)/);
+  assert.match(safe,/withholdUnsafePair\\(intelligence/);
+  assert.doesNotMatch(safe,/serviceRole:\\s*true/);
 });
