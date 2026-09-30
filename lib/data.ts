@@ -72,6 +72,7 @@ export type WorkspaceContext = {
   categoryId: string;
   clusterId: string | null;
   organizationName: string;
+  projectBrand: string;
   website: string | null;
   category: string;
 };
@@ -475,22 +476,57 @@ export async function loadProviderStatuses(viewer: Viewer): Promise<ProviderStat
 }
 
 export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceContext | null> {
-  if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
+  if (viewer.mode === "demo") return {
+    organizationId: "10000000-0000-4000-8000-000000000001",
+    projectId: "20000000-0000-4000-8000-000000000001",
+    categoryId: "30000000-0000-4000-8000-000000000001",
+    clusterId: "40000000-0000-4000-8000-000000000001",
+    organizationName: "Northstar HR",
+    projectBrand: "Northstar HR",
+    website: "https://northstarhr.example",
+    category: "HR software for distributed teams",
+  };
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return null;
-  const [organizations, projects, categories] = await Promise.all([
-    supabaseRest<Array<{ name: string; website: string | null }>>(`organizations?select=name,website&id=eq.${organizationId}&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string }>>(`projects?select=id&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string; name: string }>>(`categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
+  const [organizations, projects] = await Promise.all([
+    supabaseRest<Array<{ name: string }>>(
+      `organizations?select=name&id=eq.${organizationId}&limit=1`,
+      { token: viewer.accessToken },
+    ),
+    supabaseRest<Array<{ id: string; client_brand: string; website: string | null; category: string | null }>>(
+      `projects?select=id,client_brand,website,category&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=1`,
+      { token: viewer.accessToken },
+    ),
   ]);
+  const organization = organizations[0];
   const project = projects[0];
+  if (!organization || !project || !project.client_brand?.trim()) return null;
+
+  const categoryQuery = project.category?.trim()
+    ? `categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&name=eq.${encodeURIComponent(project.category.trim())}&limit=1`
+    : `categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=2`;
+  const [categories, clusters] = await Promise.all([
+    supabaseRest<Array<{ id: string; name: string }>>(categoryQuery, { token: viewer.accessToken }),
+    supabaseRest<Array<{ id: string }>>(
+      `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${project.id}&order=priority.asc&limit=1`,
+      { token: viewer.accessToken },
+    ),
+  ]);
+  // A project with an explicit category must resolve that exact category. Older
+  // projects without a category are accepted only when the organization has one
+  // unambiguous active category; never borrow an arbitrary sibling category.
   const category = categories[0];
-  if (!organizations[0] || !project || !category) return null;
-  const clusters = await supabaseRest<Array<{ id: string }>>(
-    `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${project.id}&order=priority.asc&limit=1`,
-    { token: viewer.accessToken },
-  );
-  return { organizationId, projectId: project.id, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: organizations[0].website, category: category.name };
+  if (!category || (!project.category?.trim() && categories.length !== 1)) return null;
+  return {
+    organizationId,
+    projectId: project.id,
+    categoryId: category.id,
+    clusterId: clusters[0]?.id || null,
+    organizationName: organization.name,
+    projectBrand: project.client_brand.trim(),
+    website: project.website,
+    category: project.category?.trim() || category.name,
+  };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
