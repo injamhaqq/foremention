@@ -86,7 +86,25 @@ const parseGenerateAssetType = (value: unknown): ResolutionAssetType | null => {
 };
 const executionRoleFor = (value: ResolutionAssetType) => value === "comparison_brief" ? "comparison" : value === "faq_evidence_brief" ? "faq" : "website";
 
+type IsolatedResolutionPhase = "base" | "related" | "answers" | "runs" | "assemble" | "serialize";
+const isolatedDurationBucket = (elapsedMs: number) =>
+  elapsedMs < 25 ? "lt25ms"
+    : elapsedMs < 100 ? "lt100ms"
+      : elapsedMs < 500 ? "lt500ms"
+        : elapsedMs < 2_000 ? "lt2s" : "gte2s";
+const isolatedCountBucket = (count: number) =>
+  count === 0 ? "0" : count <= 10 ? "1-10" : count <= 100 ? "11-100" : count <= 500 ? "101-500" : "gt500";
+function isolatedResolutionReadPhase(phase: IsolatedResolutionPhase, startedAt: number, count: number) {
+  if (process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS !== "1") return;
+  console.info("isolated-resolution-read-phase", {
+    phase,
+    duration: isolatedDurationBucket(Math.max(0, Date.now() - startedAt)),
+    count: isolatedCountBucket(Math.max(0, Math.trunc(count))),
+  });
+}
+
 async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) {
+  let phaseStartedAt = Date.now();
   const [assets, opportunities] = await Promise.all([
     supabaseRest<AssetRow[]>(
       `resolution_assets?select=id,organization_id,project_id,opportunity_id,source_id,baseline_run_id,asset_type,title,problem_statement,proposal,limitations,generation_version,customer_edited_at,status,review_decision,created_by,submitted_by,submitted_at,approved_by,approved_at,decision_by,decision_at,approval_note,applied_by,applied_at,application_reference,application_note,created_at,updated_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=100`,
@@ -94,6 +112,8 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
     ),
     supabaseRest<OpportunityRow[]>(`opportunities?select=id,title,next_action,source_id,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(open,qualified,approved,in_progress)&order=created_at.desc&limit=100`, { token: viewer.accessToken }),
   ]);
+  isolatedResolutionReadPhase("base", phaseStartedAt, assets.length + opportunities.length);
+  phaseStartedAt = Date.now();
   const assetIds = assets.map((row) => row.id);
   const sourceIds = Array.from(new Set([...assets.map((row) => row.source_id), ...opportunities.map((row) => row.source_id)]));
   const [sources, evidenceLinks, followUps, observations] = await Promise.all([
@@ -102,13 +122,19 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
     assetIds.length ? supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&resolution_asset_id=in.(${inFilter(assetIds)})&organization_id=eq.${context.organizationId}&order=requested_at.desc`, { token: viewer.accessToken }) : [],
     sourceIds.length ? supabaseRest<Array<{ id: string; source_id: string; run_answer_id: string | null; provider: string; observed_at: string }>>(`source_observations?select=id,source_id,run_answer_id,provider,observed_at&organization_id=eq.${context.organizationId}&source_id=in.(${inFilter(sourceIds)})&review_status=eq.verified&order=observed_at.desc&limit=500`, { token: viewer.accessToken }) : [],
   ]);
+  isolatedResolutionReadPhase("related", phaseStartedAt, sources.length + evidenceLinks.length + followUps.length + observations.length);
+  phaseStartedAt = Date.now();
   const observationAnswerIds = observations.map((row) => row.run_answer_id).filter((id): id is string => Boolean(id));
   const observedAnswers = observationAnswerIds.length ? await supabaseRest<Array<{ id: string; run_id: string; provider: string; model: string | null; answer_text: string; review_status: string }>>(`run_answers?select=id,run_id,provider,model,answer_text,review_status&id=in.(${inFilter(observationAnswerIds)})&organization_id=eq.${context.organizationId}&review_status=eq.verified`, { token: viewer.accessToken }) : [];
+  isolatedResolutionReadPhase("answers", phaseStartedAt, observedAnswers.length);
+  phaseStartedAt = Date.now();
   const observedRunIds = Array.from(new Set(observedAnswers.map((row) => row.run_id)));
   const projectRuns = observedRunIds.length ? await supabaseRest<Array<{ id: string }>>(
     `runs?select=id&id=in.(${inFilter(observedRunIds)})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(review,complete,partial)`,
     { token: viewer.accessToken },
   ) : [];
+  isolatedResolutionReadPhase("runs", phaseStartedAt, projectRuns.length);
+  phaseStartedAt = Date.now();
   const projectRunIds = new Set(projectRuns.map((row) => row.id));
   const opportunityById = new Map(opportunities.map((row) => [row.id, row]));
   const sourceById = new Map(sources.map((row) => [row.id, row]));
@@ -163,7 +189,9 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
       followUp: { status: "not_requested", baselineRunId: null, followUpRunId: null, requestedAt: null, completedAt: null, summary: null },
     }];
   });
-  return [...assetRecords, ...problemRecords];
+  const result = [...assetRecords, ...problemRecords];
+  isolatedResolutionReadPhase("assemble", phaseStartedAt, result.length);
+  return result;
 }
 
 async function findProblem(viewer: Viewer, context: WorkspaceContext, problemId: string) {
@@ -265,7 +293,10 @@ export async function GET(request: Request) {
     isolatedResolutionReadStage("workspace", finalProbe, postReviewProbe);
     const records = await loadResolutionRecords(viewer, context);
     isolatedResolutionReadStage("loaded", finalProbe, postReviewProbe);
-    return NextResponse.json({ data: { resolutions: records } });
+    const serializeStartedAt = Date.now();
+    const response = NextResponse.json({ data: { resolutions: records } });
+    isolatedResolutionReadPhase("serialize", serializeStartedAt, records.length);
+    return response;
   } catch (error) {
     isolatedResolutionReadStage("catch", finalProbe, postReviewProbe);
     if (isMissingRelationError(error)) return pendingMigrationResponse();
