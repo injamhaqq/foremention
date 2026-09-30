@@ -64,7 +64,7 @@ export async function loadPublicVisibilityReport(input: string): Promise<PublicV
   }
 
   const sources = await supabaseRest<Array<{ id: string }>>(
-    `sources?select=id&organization_id=eq.${organization.id}&limit=5001`,
+    `sources?select=id&organization_id=eq.${organization.id}&limit=1000`,
     { serviceRole: true },
   );
   return {
@@ -79,7 +79,7 @@ export async function loadPublicVisibilityReport(input: string): Promise<PublicV
     totalCitations: assessment.totalCitations,
     // A full source-table count describes organization records, not the exact
     // 52 included runs. Withhold it if the bounded read saturates.
-    sourceCount: sources.length <= 5000 ? sources.length : undefined,
+    sourceCount: sources.length < 1000 ? sources.length : undefined,
     methodology,
   };
 }
