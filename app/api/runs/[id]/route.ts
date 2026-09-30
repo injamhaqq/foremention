@@ -17,7 +17,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "Invalid run ID." }, { status: 400 });
   const rows = await supabaseRest<Array<{ id: string; status: string; started_at: string | null }>>(
-    `runs?select=id,status,started_at&id=eq.${id}&organization_id=eq.${context.organizationId}&limit=1`,
+    `runs?select=id,status,started_at&id=eq.${id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   const run = rows[0];
@@ -38,7 +38,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       },
     });
   }
-  await supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}`, {
+  await supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
     method: "PATCH",
     token: viewer.accessToken,
     prefer: "return=minimal",
