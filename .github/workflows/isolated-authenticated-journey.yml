@@ -55,6 +55,8 @@ jobs:
 
       - name: Run complete authenticated journey against LOCAL Auth, PostgREST and Worker
         shell: bash
+        env:
+          FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS: "1"
         run: |
           set -euo pipefail
           umask 077
