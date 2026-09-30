@@ -3,11 +3,12 @@ import { buildAiObservationChangeGraph, fictionalAiObservationChangeGraph, type 
 import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
 import { loadWorkspaceContext } from "@/lib/data";
 import { coerceComparableMeasurementContext } from "@/lib/intelligence-comparability";
+import { assessCompleteVerifiedRunPair, validPairedRunAnswerBudget } from "@/lib/run-pair-answer-gate";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export type { AiObservationChangeGraph } from "@/lib/ai-observation-change-core";
 
-type RunRow = { id: string; project_id: string | null; methodology_version: string | null };
+type RunRow = { id: string; project_id: string | null; status: string; answer_count: number | null; methodology_version: string | null; created_at: string };
 type AnswerRow = {
   run_id: string;
   prompt_key: string;
@@ -66,7 +67,7 @@ export async function loadAiObservationChangeGraph(
 
   if (!effectivePreviousRunId) {
     runs = await supabaseRest<RunRow[]>(
-      `runs?select=id,project_id,methodology_version&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=20`,
+      `runs?select=id,project_id,status,answer_count,methodology_version,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=20`,
       { token: viewer.accessToken },
     );
     const latest = runs.find((run) => run.id === latestRunId);
@@ -87,7 +88,7 @@ export async function loadAiObservationChangeGraph(
   } else {
     const requested = [latestRunId, effectivePreviousRunId];
     runs = await supabaseRest<RunRow[]>(
-      `runs?select=id,project_id,methodology_version&organization_id=eq.${context.organizationId}&id=in.(${requested.join(",")})`,
+      `runs?select=id,project_id,status,answer_count,methodology_version,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${requested.join(",")})&limit=2`,
       { token: viewer.accessToken },
     );
   }
@@ -98,12 +99,43 @@ export async function loadAiObservationChangeGraph(
   if (!latest || !previous || latest.project_id !== context.projectId || previous.project_id !== context.projectId) {
     return withheld(latestRunId, effectivePreviousRunId, "The selected reviewed collections are not both inside the active workspace project, so movement is withheld.");
   }
+  // Re-verify this loader independently. A caller's Safe Intelligence gate
+  // cannot prove this second PostgREST read is complete (or that no run was
+  // edited between those separate reads). Matching verified subsets do not
+  // establish movement in any analytics or export surface.
+  if (!["complete", "partial"].includes(latest.status)
+    || !["complete", "partial"].includes(previous.status)) {
+    return withheld(latestRunId, previous.id, "Both collections must have completed their recorded human-review lifecycle.");
+  }
+  const latestTime = new Date(latest.created_at).getTime();
+  const previousTime = new Date(previous.created_at).getTime();
+  if (!Number.isFinite(latestTime) || !Number.isFinite(previousTime) || previousTime >= latestTime) {
+    return withheld(latestRunId, previous.id, "Exact observed movement requires an older and a newer reviewed collection.");
+  }
+  if (!latest.methodology_version || latest.methodology_version !== previous.methodology_version) {
+    return withheld(latestRunId, previous.id, "The reviewed methodology identity is unavailable or changed.");
+  }
+  const answerBudget = validPairedRunAnswerBudget(previous, latest);
+  if (!answerBudget.comparable) {
+    return withheld(latestRunId, previous.id,
+      answerBudget.reason || "The complete recorded answer denominators cannot be independently verified.");
+  }
+
   const requested = [latestRunId, previous.id];
 
   const answers = await supabaseRest<AnswerRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=501`,
     { token: viewer.accessToken },
   );
+
+  // The +1 sentinel exposes unexpected overflow even at a full 500-row cap.
+  // Require both persisted run counts, unique question/provider slots and all
+  // nine independent measurement-context dimensions BEFORE deriving deltas.
+  const completeness = assessCompleteVerifiedRunPair(previous, latest, answers);
+  if (!completeness.comparable) {
+    return withheld(latestRunId, previous.id,
+      completeness.reason || "The full independently verified answer set could not be read for both collections.");
+  }
 
   let competitors: Array<{ runId: string; names: string[] }> = [];
   let competitorContextComparable = false;
