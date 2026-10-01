@@ -13,6 +13,7 @@ import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
 import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
+import { filterPlacementsToProject, loadProjectPlacementScope, MAX_PROJECT_PLACEMENTS } from "@/lib/project-placement-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, Placement, SourceMapEntry, VisibilityRun } from "@/lib/types";
 
@@ -25,7 +26,7 @@ type SourceEntryRow = {
   source: { domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_access: SourceMapEntry["crawlerAccess"]; crawler_checked_at: string | null } | null;
 };
 type RunRow = { id: string; status: VisibilityRun["status"]; error_summary: string | null; prompt_count: number; answer_count: number; citation_count: number; brand_presence_pct: number | string; first_mention_pct: number | string; new_source_count: number; created_at: string };
-type PlacementRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string; target_prompt_ids: string[]; owner_id: string | null };
+type PlacementRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string; target_prompt_ids: string[] | null; baseline_run_id: string | null; remeasurement_run_id: string | null; owner_id: string | null };
 type AgentRunRow = RunRow & { provider_ids: string[]; started_at: string | null; completed_at: string | null };
 type AgentJobRow = {
   id: string;
@@ -414,9 +415,28 @@ export async function loadAgentControlPlane(viewer: Viewer): Promise<AgentContro
 
 export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
   if (viewer.mode === "demo") return demoPlacements;
-  const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const rows = await supabaseRest<PlacementRow[]>(`placements?select=id,source_url,page_title,entry_route,stage,updated_at,target_prompt_ids,owner_id&organization_id=eq.${organizationId}&order=updated_at.desc`, { token: viewer.accessToken });
-  return rows.map((row) => ({ id: row.id, source: hostname(row.source_url), page: row.page_title || row.source_url, route: placementRoute(row.entry_route), owner: row.owner_id ? "Assigned" : "Unassigned", stage: row.stage.replaceAll("_", " ") as Placement["stage"], updated: relativeLabel(row.updated_at), promptImpact: row.target_prompt_ids?.length || 0 }));
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const scope = await loadProjectPlacementScope({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    token: viewer.accessToken,
+  });
+  if (!scope) return [];
+  const rows = await supabaseRest<PlacementRow[]>(
+    `placements?select=id,source_url,page_title,entry_route,stage,updated_at,target_prompt_ids,baseline_run_id,remeasurement_run_id,owner_id&organization_id=eq.${context.organizationId}&order=updated_at.desc&limit=${MAX_PROJECT_PLACEMENTS + 1}`,
+    { token: viewer.accessToken },
+  );
+  return filterPlacementsToProject(rows, scope).map((row) => ({
+    id: row.id,
+    source: hostname(row.source_url),
+    page: row.page_title || row.source_url,
+    route: placementRoute(row.entry_route),
+    owner: row.owner_id ? "Assigned" : "Unassigned",
+    stage: row.stage.replaceAll("_", " ") as Placement["stage"],
+    updated: relativeLabel(row.updated_at),
+    promptImpact: row.target_prompt_ids?.filter((id) => scope.promptIds.has(id)).length || 0,
+  }));
 }
 
 export function getProviderStatuses(): ProviderStatus[] {
