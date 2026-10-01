@@ -11,7 +11,8 @@ test("HubSpot activity delivery is tenant-scoped, encrypted, idempotent, and bac
   const crypto = read("lib/integration-crypto.ts");
   const route = read("app/api/placements/route.ts");
   const migration = read("supabase/migrations/20260802000800_hubspot_activity_connector.sql");
-  assert.match(connector, /organization_id=eq\.\$\{input\.organizationId\}/);\n  assert.match(connector, /project_id=eq\.\$\{input\.projectId\}/);
+  assert.match(connector, /organization_id=eq\.\$\{input\.organizationId\}/);
+  assert.match(connector, /project_id=eq\.\$\{input\.projectId\}/);
   assert.match(connector, /event_key=eq\.\$\{encodeURIComponent\(input\.eventKey\)\}/);
   assert.match(crypto, /AES-GCM/);
   assert.match(route, /foremention\/integration\.hubspot-action/);
