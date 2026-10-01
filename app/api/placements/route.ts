@@ -69,19 +69,32 @@ export async function PATCH(request: Request) {
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo" });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  const current = await supabaseRest<Array<{ id: string; stage: typeof stages[number] }>>(
-    `placements?select=id,stage&id=eq.${body.id}&organization_id=eq.${context.organizationId}&limit=1`,
+  const scope = await loadProjectPlacementScope({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    token: viewer.accessToken,
+  });
+  if (!scope) return NextResponse.json({ error: "Action project scope could not be verified." }, { status: 409 });
+  const current = await supabaseRest<Array<{
+    id: string;
+    stage: typeof stages[number];
+    target_prompt_ids: string[] | null;
+    baseline_run_id: string | null;
+    remeasurement_run_id: string | null;
+  }>>(
+    `placements?select=id,stage,target_prompt_ids,baseline_run_id,remeasurement_run_id&id=eq.${encodeURIComponent(body.id)}&organization_id=eq.${context.organizationId}&limit=1`,
     { token: viewer.accessToken },
   );
-  if (!current[0]) return NextResponse.json({ error: "Action not found." }, { status: 404 });
+  const action = current[0];
+  if (!action || !placementBelongsToScope(action, scope)) return NextResponse.json({ error: "Action not found." }, { status: 404 });
   await Promise.all([
-    supabaseRest(`placements?id=eq.${body.id}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { stage: body.stage } }),
-    supabaseRest("placement_events", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, placement_id: body.id, from_stage: current[0].stage, to_stage: body.stage, note: String(body.note || "").trim().slice(0, 1000) || null, evidence_url: String(body.evidenceUrl || "").trim().slice(0, 1000) || null, actor_id: viewer.id } }),
+    supabaseRest(`placements?id=eq.${encodeURIComponent(action.id)}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { stage: body.stage } }),
+    supabaseRest("placement_events", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, placement_id: action.id, from_stage: action.stage, to_stage: body.stage, note: String(body.note || "").trim().slice(0, 1000) || null, evidence_url: String(body.evidenceUrl || "").trim().slice(0, 1000) || null, actor_id: viewer.id } }),
   ]);
   if (["published", "indexed", "first_cited", "repeatedly_cited", "closed"].includes(body.stage)) {
     const occurredAt = new Date().toISOString();
-    await queueWorkspaceWebhook({ organizationId: context.organizationId, eventKey: `action.completed:${body.id}:${body.stage}`, eventType: "action.completed", occurredAt, href: "/app/placements" }).catch(() => undefined);
-    if (process.env.INNGEST_EVENT_KEY) await inngest.send({ id: `hubspot-action-${body.id}-${body.stage}`, name: "foremention/integration.hubspot-action", data: { organizationId: context.organizationId, placementId: body.id, eventKey: `action.completed:${body.id}:${body.stage}`, stage: body.stage, occurredAt } }).catch(() => undefined);
+    await queueWorkspaceWebhook({ organizationId: context.organizationId, eventKey: `action.completed:${action.id}:${body.stage}`, eventType: "action.completed", occurredAt, href: "/app/placements" }).catch(() => undefined);
+    if (process.env.INNGEST_EVENT_KEY) await inngest.send({ id: `hubspot-action-${action.id}-${body.stage}`, name: "foremention/integration.hubspot-action", data: { organizationId: context.organizationId, placementId: action.id, eventKey: `action.completed:${action.id}:${body.stage}`, stage: body.stage, occurredAt } }).catch(() => undefined);
   }
   return NextResponse.json({ ok: true });
 }
