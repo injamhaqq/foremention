@@ -53,9 +53,10 @@ export async function GET() {
         ),
       ]);
       const actions = scope ? filterPlacementsToProject(organizationActions, scope) : [];
+      const firstAction = actions;
       scheduleEnabled = schedules.length > 0;
-      firstActionCreated = actions.length > 0;
-      firstActionAssigned = actions.some((action) => Boolean(action.owner_id));
+      firstActionCreated = firstAction.length > 0;
+      firstActionAssigned = firstAction.some((action) => Boolean(action.owner_id));
       const now = Date.now();
       dueActions = actions.flatMap((action) => {
         const dueAt = action.remeasurement_due_at || action.due_at;
