@@ -23,6 +23,7 @@ type AnswerRow = { id: string; run_id: string; prompt_text: string | null; promp
 type SourceRow = { id: string; domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_checked_at: string | null };
 type CompetitorRow = { id: string; name: string; website: string | null; competitor_type: string; active: boolean };
 type OpportunityRow = { id: string; citation_observations: number; entry_route: string | null; feasibility: string; influence: string; source: { domain: string; page_title: string | null; canonical_url: string; crawler_checked_at: string | null } | null };
+type ActionRow = Awaited<ReturnType<typeof loadPlacements>>[number];
 
 const PLACEMENT_STAGES = new Set([
   "identified",
@@ -105,14 +106,14 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
   ]);
 
   const failedKinds = searches.filter((item) => item.failed).map((item) => item.kind);
-  const [questions, answers, sources, competitors, opportunities, actions] = searches.map((item) => item.value);
+  const [questions, answers, sources, competitors, opportunities, actions] = searches.map((item) => item.value) as [PromptRow[] | null, AnswerRow[] | null, SourceRow[] | null, CompetitorRow[] | null, OpportunityRow[] | null, ActionRow[] | null];
   const lower = query.toLocaleLowerCase();
-  const opportunityRows = ((opportunities || []) as OpportunityRow[]).filter((item) => {
+  const opportunityRows = (opportunities || []).filter((item) => {
     if (!item.source?.crawler_checked_at) return false;
     const haystack = `${item.source.domain} ${item.source.page_title || ""} ${item.source.canonical_url} ${item.entry_route || ""}`.toLocaleLowerCase();
     return haystack.includes(lower);
   }).slice(0, 12);
-  const actionRows = ((actions || []) as Awaited<ReturnType<typeof loadPlacements>>).filter((item) => {
+  const actionRows = (actions || []).filter((item) => {
     const stage = item.stage.replaceAll(" ", "_").toLowerCase();
     const haystack = `${item.source} ${item.page} ${item.route} ${item.stage}`.toLocaleLowerCase();
     return haystack.includes(lower) || (PLACEMENT_STAGES.has(normalizedStage) && stage === normalizedStage);
