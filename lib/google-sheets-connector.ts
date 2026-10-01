@@ -132,12 +132,47 @@ async function dataset(context: DatasetContext, name: SheetsDataset): Promise<st
 
 async function googleFetch<T>(url: string, token: string, init: RequestInit) { const response = await fetch(url, { ...init, headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(init.headers || {}) }, signal: AbortSignal.timeout(20_000) }); if (!response.ok) throw new Error(`Google Sheets API returned ${response.status}.`); return await response.json() as T; }
 
-export async function exportDatasetToGoogleSheets(organizationId: string, name: SheetsDataset) {
-  const integrations = await supabaseRest<Integration[]>(`integrations?select=id,organization_id,project_id,configuration&organization_id=eq.${organizationId}&provider=eq.google_sheets&status=eq.connected&limit=1`, { serviceRole: true }); const integration = integrations[0]; if (!integration) return { status: "not_configured" as const };
-  const token = await googleAccessToken(integration); const values = await dataset(organizationId, name); const createdAt = new Date().toISOString();
-  const sheet = await googleFetch<{ spreadsheetId: string; spreadsheetUrl: string }>(SHEETS_API, token, { method: "POST", body: JSON.stringify({ properties: { title: `Foremention ${name.replaceAll("_", " ")} · ${createdAt.slice(0, 10)}` }, sheets: [{ properties: { title: name.slice(0, 90) } }] }) });
-  await googleFetch(`${SHEETS_API}/${sheet.spreadsheetId}/values/${encodeURIComponent(`${name}!A1`)}?valueInputOption=RAW`, token, { method: "PUT", body: JSON.stringify({ range: `${name}!A1`, majorDimension: "ROWS", values }) });
-  const eventKey = `google_sheets.export:${name}:${sheet.spreadsheetId}`;
-  await supabaseRest("integration_activity_deliveries?on_conflict=organization_id,provider,event_key", { method: "POST", serviceRole: true, prefer: "resolution=merge-duplicates,return=minimal", body: { organization_id: organizationId, integration_id: integration.id, provider: "google_sheets", event_key: eventKey, status: "delivered", external_id: sheet.spreadsheetId, delivered_at: createdAt } });
+export async function exportDatasetToGoogleSheets(input: DatasetContext & { name: SheetsDataset }) {
+  const integrations = await supabaseRest<Integration[]>(
+    `integrations?select=id,organization_id,project_id,configuration&organization_id=eq.${input.organizationId}&project_id=eq.${input.projectId}&provider=eq.google_sheets&status=eq.connected&limit=1`,
+    { serviceRole: true },
+  );
+  const integration = integrations[0];
+  if (!integration) return { status: "not_configured" as const };
+
+  const googleToken = await googleAccessToken(integration);
+  const values = await dataset(input, input.name);
+  const createdAt = new Date().toISOString();
+  const sheet = await googleFetch<{ spreadsheetId: string; spreadsheetUrl: string }>(
+    SHEETS_API,
+    googleToken,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        properties: { title: `Foremention ${input.name.replaceAll("_", " ")} · ${createdAt.slice(0, 10)}` },
+        sheets: [{ properties: { title: input.name.slice(0, 90) } }],
+      }),
+    },
+  );
+  await googleFetch(
+    `${SHEETS_API}/${sheet.spreadsheetId}/values/${encodeURIComponent(`${input.name}!A1`)}?valueInputOption=RAW`,
+    googleToken,
+    { method: "PUT", body: JSON.stringify({ range: `${input.name}!A1`, majorDimension: "ROWS", values }) },
+  );
+  const eventKey = `google_sheets.export:${input.name}:${sheet.spreadsheetId}`;
+  await supabaseRest("integration_activity_deliveries?on_conflict=organization_id,provider,event_key", {
+    method: "POST",
+    serviceRole: true,
+    prefer: "resolution=merge-duplicates,return=minimal",
+    body: {
+      organization_id: input.organizationId,
+      integration_id: integration.id,
+      provider: "google_sheets",
+      event_key: eventKey,
+      status: "delivered",
+      external_id: sheet.spreadsheetId,
+      delivered_at: createdAt,
+    },
+  });
   return { status: "delivered" as const, spreadsheetId: sheet.spreadsheetId, spreadsheetUrl: sheet.spreadsheetUrl, rows: Math.max(0, values.length - 1) };
 }
