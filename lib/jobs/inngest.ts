@@ -916,5 +916,5 @@ export const deliverWorkspaceWebhookEvents = inngest.createFunction(
 
 export const deliverHubSpotActionEvents = inngest.createFunction(
   { id: "deliver-hubspot-action-events", retries: 3, triggers: { event: "foremention/integration.hubspot-action" } },
-  async ({ event, step }) => step.run("write-hubspot-activity", () => deliverHubSpotCompletedAction(event.data as { organizationId: string; placementId: string; eventKey: string; stage: string; occurredAt: string })),
+  async ({ event, step }) => step.run("write-hubspot-activity", () => deliverHubSpotCompletedAction(event.data as { organizationId: string; projectId: string; placementId: string; eventKey: string; stage: string; occurredAt: string })),
 );
