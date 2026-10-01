@@ -48,7 +48,7 @@ async function accessToken(integration: IntegrationRow) {
   if (Number.isFinite(expiresAt) && expiresAt > Date.now() + 60_000) return decryptIntegrationCredential(credential.encrypted_access_token, encryptionSecret);
   const refreshToken = await decryptIntegrationCredential(credential.encrypted_refresh_token, encryptionSecret);
   const tokens = await tokenRequest({ grant_type: "refresh_token", client_id: process.env.HUBSPOT_CLIENT_ID || "", client_secret: process.env.HUBSPOT_CLIENT_SECRET || "", refresh_token: refreshToken });
-  await saveHubSpotConnection(integration.organization_id, String(integration.configuration.project_id || ""), String(integration.configuration.connected_by || ""), tokens);
+  await saveHubSpotConnection(integration.organization_id, String(integration.project_id || integration.configuration.project_id || ""), String(integration.configuration.connected_by || ""), tokens);
   return tokens.access_token;
 }
 
