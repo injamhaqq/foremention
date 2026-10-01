@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (role !== "owner" && role !== "admin") return NextResponse.json({ error: "Only an owner or admin can connect Notion." }, { status: 403 });
   if (!notionOAuthReady()) return NextResponse.json({ error: "Notion OAuth is not configured for this deployment." }, { status: 503 });
   const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/integrations/notion/callback`;
-  const state = await createOAuthState("notion", context.organizationId, viewer.id, process.env.NOTION_OAUTH_STATE_SECRET || "");
+  const state = await createOAuthState("notion", context.organizationId, viewer.id, process.env.NOTION_OAUTH_STATE_SECRET || "", context.projectId);
   const query = new URLSearchParams({ client_id: process.env.NOTION_CLIENT_ID || "", response_type: "code", owner: "user", redirect_uri: redirectUri, state });
   return NextResponse.json({ data: { authorizationUrl: `https://api.notion.com/v1/oauth/authorize?${query}` } });
 }
