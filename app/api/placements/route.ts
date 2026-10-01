@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { loadPlacements, loadWorkspaceContext } from "@/lib/data";
+import { loadProjectPlacementScope, placementBelongsToScope } from "@/lib/project-placement-scope";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
@@ -8,6 +9,10 @@ import { inngest } from "@/lib/jobs/inngest";
 
 const stages = ["identified", "qualified", "pitched", "accepted", "published", "indexed", "first_cited", "repeatedly_cited", "decayed", "closed"] as const;
 const routes = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
+
+const cleanIds = (value: unknown) => Array.isArray(value)
+  ? Array.from(new Set(value.filter((item): item is string => typeof item === "string" && item.trim()).map((item) => item.trim()))).slice(0, 100)
+  : [];
 
 export async function GET() {
   const viewer = await getViewer();
