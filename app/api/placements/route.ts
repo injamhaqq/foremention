@@ -11,7 +11,7 @@ const stages = ["identified", "qualified", "pitched", "accepted", "published", "
 const routes = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
 
 const cleanIds = (value: unknown) => Array.isArray(value)
-  ? Array.from(new Set(value.filter((item): item is string => typeof item === "string" && item.trim()).map((item) => item.trim()))).slice(0, 100)
+  ? Array.from(new Set(value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim()))).slice(0, 100)
   : [];
 
 export async function GET() {
