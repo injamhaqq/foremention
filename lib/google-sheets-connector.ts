@@ -75,12 +75,59 @@ async function googleAccessToken(integration: Integration) {
 }
 
 function csvCell(value: unknown) { if (value === null || value === undefined) return ""; if (typeof value === "object") return JSON.stringify(value); return String(value); }
-async function dataset(organizationId: string, name: SheetsDataset): Promise<string[][]> {
-  if (name === "buyer_questions") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`prompts?select=id,prompt_text,intent,active,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","question","intent","active","created_at"], ...rows.map((r) => [r.id,r.prompt_text,r.intent,r.active,r.created_at].map(csvCell))]; }
-  if (name === "answer_runs") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,actual_cost_usd,created_at,completed_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","status","providers","questions","answers","citations","cost_usd","created_at","completed_at"], ...rows.map((r) => [r.id,r.status,r.provider_ids,r.prompt_count,r.answer_count,r.citation_count,r.actual_cost_usd,r.created_at,r.completed_at].map(csvCell))]; }
-  if (name === "source_map") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`sources?select=id,canonical_url,domain,page_title,source_type,crawler_access,first_observed_at,last_observed_at&organization_id=eq.${organizationId}&order=last_observed_at.desc&limit=5000`, { serviceRole: true }); return [["id","url","domain","title","type","crawler_access","first_observed","last_observed"], ...rows.map((r) => [r.id,r.canonical_url,r.domain,r.page_title,r.source_type,r.crawler_access,r.first_observed_at,r.last_observed_at].map(csvCell))]; }
-  if (name === "evidence") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`evidence_items?select=id,evidence_type,title,source_url,verification_status,observed_at,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","type","title","source_url","verification_status","observed_at","created_at"], ...rows.map((r) => [r.id,r.evidence_type,r.title,r.source_url,r.verification_status,r.observed_at,r.created_at].map(csvCell))]; }
-  const rows = await supabaseRest<Array<Record<string, unknown>>>(`placements?select=id,source_url,page_title,entry_route,stage,updated_at&organization_id=eq.${organizationId}&order=updated_at.desc&limit=5000`, { serviceRole: true }); return [["id","source_url","page_title","legitimate_route","stage","updated_at"], ...rows.map((r) => [r.id,r.source_url,r.page_title,r.entry_route,r.stage,r.updated_at].map(csvCell))];
+
+async function dataset(context: DatasetContext, name: SheetsDataset): Promise<string[][]> {
+  if (name === "buyer_questions") {
+    const rows = assertBoundedRows(await supabaseRest<Array<Record<string, unknown>>>(
+      `prompts?select=id,prompt_text,intent,active,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=${MAX_SHEETS_EXPORT_ROWS + 1}`,
+      { token: context.token },
+    ), "Buyer questions");
+    return [["id","question","intent","active","created_at"], ...rows.map((r) => [r.id,r.prompt_text,r.intent,r.active,r.created_at].map(csvCell))];
+  }
+
+  if (name === "answer_runs") {
+    const rows = assertBoundedRows(await supabaseRest<Array<Record<string, unknown>>>(
+      `runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,actual_cost_usd,created_at,completed_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=${MAX_SHEETS_EXPORT_ROWS + 1}`,
+      { token: context.token },
+    ), "AI result runs");
+    return [["id","status","providers","questions","answers","citations","cost_usd","created_at","completed_at"], ...rows.map((r) => [r.id,r.status,r.provider_ids,r.prompt_count,r.answer_count,r.citation_count,r.actual_cost_usd,r.created_at,r.completed_at].map(csvCell))];
+  }
+
+  if (name === "source_map") {
+    const maps = await supabaseRest<Array<{ id: string }>>(
+      `source_maps?select=id,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}&run.project_id=eq.${context.projectId}&status=eq.published&order=created_at.desc&limit=1`,
+      { token: context.token },
+    );
+    if (!maps[0]) return [["id","url","domain","title","type","crawler_access","first_observed","last_observed"]];
+    const entries = assertBoundedRows(await supabaseRest<SourceMapExportRow[]>(
+      `source_map_entries?select=source:sources(id,canonical_url,domain,page_title,source_type,crawler_access,first_observed_at,last_observed_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${maps[0].id}&order=rank.asc&limit=${MAX_SHEETS_EXPORT_ROWS + 1}`,
+      { token: context.token },
+    ), "Source Map");
+    const rows = entries.flatMap((entry) => entry.source ? [entry.source] : []);
+    return [["id","url","domain","title","type","crawler_access","first_observed","last_observed"], ...rows.map((r) => [r.id,r.canonical_url,r.domain,r.page_title,r.source_type,r.crawler_access,r.first_observed_at,r.last_observed_at].map(csvCell))];
+  }
+
+  if (name === "evidence") {
+    const rows = assertBoundedRows(await supabaseRest<Array<Record<string, unknown>>>(
+      `evidence_items?select=id,evidence_type,title,source_url,verification_status,observed_at,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=${MAX_SHEETS_EXPORT_ROWS + 1}`,
+      { token: context.token },
+    ), "Evidence");
+    return [["id","type","title","source_url","verification_status","observed_at","created_at"], ...rows.map((r) => [r.id,r.evidence_type,r.title,r.source_url,r.verification_status,r.observed_at,r.created_at].map(csvCell))];
+  }
+
+  const scope = await loadProjectPlacementScope({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    token: context.token,
+  });
+  if (!scope) throw new Error("Action export project scope could not be verified.");
+  const organizationRows = await supabaseRest<ActionExportRow[]>(
+    `placements?select=id,source_url,page_title,entry_route,stage,updated_at,target_prompt_ids,baseline_run_id,remeasurement_run_id&organization_id=eq.${context.organizationId}&order=updated_at.desc&limit=${MAX_PROJECT_PLACEMENTS + 1}`,
+    { token: context.token },
+  );
+  if (organizationRows.length > MAX_PROJECT_PLACEMENTS) throw new Error("Action export exceeds the verified project-scope row limit.");
+  const rows = filterPlacementsToProject(organizationRows, scope);
+  return [["id","source_url","page_title","legitimate_route","stage","updated_at"], ...rows.map((r) => [r.id,r.source_url,r.page_title,r.entry_route,r.stage,r.updated_at].map(csvCell))];
 }
 
 async function googleFetch<T>(url: string, token: string, init: RequestInit) { const response = await fetch(url, { ...init, headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(init.headers || {}) }, signal: AbortSignal.timeout(20_000) }); if (!response.ok) throw new Error(`Google Sheets API returned ${response.status}.`); return await response.json() as T; }
