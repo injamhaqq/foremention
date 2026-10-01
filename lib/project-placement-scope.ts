@@ -15,7 +15,7 @@ export type ProjectPlacementScope = {
 export async function loadProjectPlacementScope(input: {
   organizationId: string;
   projectId: string;
-  token: string;
+  token?: string;
 }): Promise<ProjectPlacementScope | null> {
   const [prompts, runs] = await Promise.all([
     supabaseRest<Array<{ id: string }>>(
