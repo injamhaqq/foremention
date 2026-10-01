@@ -11,12 +11,12 @@ type HubSpotTokens = { access_token: string; refresh_token: string; expires_in: 
 type IntegrationRow = { id: string; organization_id: string; project_id?: string | null; status: string; configuration: Record<string, unknown> };
 type CredentialRow = { encrypted_access_token: string; encrypted_refresh_token: string };
 
-export async function createHubSpotState(organizationId: string, userId: string, secret: string) {
-  return createOAuthState("hubspot", organizationId, userId, secret);
+export async function createHubSpotState(organizationId: string, projectId: string, userId: string, secret: string) {
+  return createOAuthState("hubspot", organizationId, userId, secret, projectId);
 }
 
-export async function verifyHubSpotState(state: string, organizationId: string, userId: string, secret: string) {
-  return verifyOAuthState(state, "hubspot", organizationId, userId, secret);
+export async function verifyHubSpotState(state: string, organizationId: string, projectId: string, userId: string, secret: string) {
+  return verifyOAuthState(state, "hubspot", organizationId, userId, secret, projectId);
 }
 
 export function hubSpotOAuthReady() {
