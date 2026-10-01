@@ -94,7 +94,7 @@ export async function PATCH(request: Request) {
   if (["published", "indexed", "first_cited", "repeatedly_cited", "closed"].includes(body.stage)) {
     const occurredAt = new Date().toISOString();
     await queueWorkspaceWebhook({ organizationId: context.organizationId, eventKey: `action.completed:${action.id}:${body.stage}`, eventType: "action.completed", occurredAt, href: "/app/placements" }).catch(() => undefined);
-    if (process.env.INNGEST_EVENT_KEY) await inngest.send({ id: `hubspot-action-${action.id}-${body.stage}`, name: "foremention/integration.hubspot-action", data: { organizationId: context.organizationId, placementId: action.id, eventKey: `action.completed:${action.id}:${body.stage}`, stage: body.stage, occurredAt } }).catch(() => undefined);
+    if (process.env.INNGEST_EVENT_KEY) await inngest.send({ id: `hubspot-action-${action.id}-${body.stage}`, name: "foremention/integration.hubspot-action", data: { organizationId: context.organizationId, projectId: context.projectId, placementId: action.id, eventKey: `action.completed:${action.id}:${body.stage}`, stage: body.stage, occurredAt } }).catch(() => undefined);
   }
   return NextResponse.json({ ok: true });
 }

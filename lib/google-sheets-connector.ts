@@ -1,4 +1,5 @@
 import { decryptIntegrationCredential, encryptIntegrationCredential } from "@/lib/integration-crypto";
+import { placementBelongsToProject } from "@/lib/agent-os/customer-success-core";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -39,19 +40,42 @@ async function googleAccessToken(integration: Integration) {
 }
 
 function csvCell(value: unknown) { if (value === null || value === undefined) return ""; if (typeof value === "object") return JSON.stringify(value); return String(value); }
-async function dataset(organizationId: string, name: SheetsDataset): Promise<string[][]> {
-  if (name === "buyer_questions") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`prompts?select=id,prompt_text,intent,active,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","question","intent","active","created_at"], ...rows.map((r) => [r.id,r.prompt_text,r.intent,r.active,r.created_at].map(csvCell))]; }
-  if (name === "answer_runs") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,actual_cost_usd,created_at,completed_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","status","providers","questions","answers","citations","cost_usd","created_at","completed_at"], ...rows.map((r) => [r.id,r.status,r.provider_ids,r.prompt_count,r.answer_count,r.citation_count,r.actual_cost_usd,r.created_at,r.completed_at].map(csvCell))]; }
-  if (name === "source_map") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`sources?select=id,canonical_url,domain,page_title,source_type,crawler_access,first_observed_at,last_observed_at&organization_id=eq.${organizationId}&order=last_observed_at.desc&limit=5000`, { serviceRole: true }); return [["id","url","domain","title","type","crawler_access","first_observed","last_observed"], ...rows.map((r) => [r.id,r.canonical_url,r.domain,r.page_title,r.source_type,r.crawler_access,r.first_observed_at,r.last_observed_at].map(csvCell))]; }
-  if (name === "evidence") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`evidence_items?select=id,evidence_type,title,source_url,verification_status,observed_at,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","type","title","source_url","verification_status","observed_at","created_at"], ...rows.map((r) => [r.id,r.evidence_type,r.title,r.source_url,r.verification_status,r.observed_at,r.created_at].map(csvCell))]; }
-  const rows = await supabaseRest<Array<Record<string, unknown>>>(`placements?select=id,source_url,page_title,entry_route,stage,updated_at&organization_id=eq.${organizationId}&order=updated_at.desc&limit=5000`, { serviceRole: true }); return [["id","source_url","page_title","legitimate_route","stage","updated_at"], ...rows.map((r) => [r.id,r.source_url,r.page_title,r.entry_route,r.stage,r.updated_at].map(csvCell))];
+async function dataset(organizationId: string, projectId: string, name: SheetsDataset): Promise<string[][]> {
+  if (name === "buyer_questions") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`prompts?select=id,prompt_text,intent,active,created_at&organization_id=eq.${organizationId}&project_id=eq.${projectId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","question","intent","active","created_at"], ...rows.map((r) => [r.id,r.prompt_text,r.intent,r.active,r.created_at].map(csvCell))]; }
+  if (name === "answer_runs") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,actual_cost_usd,created_at,completed_at&organization_id=eq.${organizationId}&project_id=eq.${projectId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","status","providers","questions","answers","citations","cost_usd","created_at","completed_at"], ...rows.map((r) => [r.id,r.status,r.provider_ids,r.prompt_count,r.answer_count,r.citation_count,r.actual_cost_usd,r.created_at,r.completed_at].map(csvCell))]; }
+  if (name === "source_map") {
+    const maps = await supabaseRest<Array<{ id: string }>>(
+      `source_maps?select=id,run:runs!inner(project_id)&organization_id=eq.${organizationId}&run.project_id=eq.${projectId}&order=created_at.desc&limit=5000`,
+      { serviceRole: true },
+    );
+    if (!maps.length) return [["id","url","domain","title","type","crawler_access","first_observed","last_observed"]];
+    const entries = await supabaseRest<Array<{ source_id: string; source: Record<string, unknown> | null }>>(
+      `source_map_entries?select=source_id,source:sources(id,canonical_url,domain,page_title,source_type,crawler_access,first_observed_at,last_observed_at)&organization_id=eq.${organizationId}&source_map_id=in.(${maps.map((item) => item.id).join(",")})&limit=5000`,
+      { serviceRole: true },
+    );
+    const unique = new Map<string, Record<string, unknown>>();
+    for (const entry of entries) if (entry.source && !unique.has(entry.source_id)) unique.set(entry.source_id, entry.source);
+    const rows = Array.from(unique.values());
+    return [["id","url","domain","title","type","crawler_access","first_observed","last_observed"], ...rows.map((r) => [r.id,r.canonical_url,r.domain,r.page_title,r.source_type,r.crawler_access,r.first_observed_at,r.last_observed_at].map(csvCell))];
+  }
+  if (name === "evidence") { const rows = await supabaseRest<Array<Record<string, unknown>>>(`evidence_items?select=id,evidence_type,title,source_url,verification_status,observed_at,created_at&organization_id=eq.${organizationId}&project_id=eq.${projectId}&order=created_at.desc&limit=5000`, { serviceRole: true }); return [["id","type","title","source_url","verification_status","observed_at","created_at"], ...rows.map((r) => [r.id,r.evidence_type,r.title,r.source_url,r.verification_status,r.observed_at,r.created_at].map(csvCell))]; }
+  const [promptRows, runRows, placementRows] = await Promise.all([
+    supabaseRest<Array<{ id: string }>>(`prompts?select=id&organization_id=eq.${organizationId}&project_id=eq.${projectId}&limit=5001`, { serviceRole: true }),
+    supabaseRest<Array<{ id: string }>>(`runs?select=id&organization_id=eq.${organizationId}&project_id=eq.${projectId}&limit=5001`, { serviceRole: true }),
+    supabaseRest<Array<Record<string, unknown> & { target_prompt_ids: string[] | null; baseline_run_id: string | null; remeasurement_run_id: string | null }>>(`placements?select=id,source_url,page_title,entry_route,stage,updated_at,target_prompt_ids,baseline_run_id,remeasurement_run_id&organization_id=eq.${organizationId}&order=updated_at.desc&limit=5001`, { serviceRole: true }),
+  ]);
+  if (promptRows.length > 5000 || runRows.length > 5000 || placementRows.length > 5000) throw new Error("Project Action export exceeds the safe export boundary.");
+  const promptIds = new Set(promptRows.map((row) => row.id));
+  const runIds = new Set(runRows.map((row) => row.id));
+  const rows = placementRows.filter((row) => placementBelongsToProject(row, promptIds, runIds));
+  return [["id","source_url","page_title","legitimate_route","stage","updated_at"], ...rows.map((r) => [r.id,r.source_url,r.page_title,r.entry_route,r.stage,r.updated_at].map(csvCell))];
 }
 
 async function googleFetch<T>(url: string, token: string, init: RequestInit) { const response = await fetch(url, { ...init, headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(init.headers || {}) }, signal: AbortSignal.timeout(20_000) }); if (!response.ok) throw new Error(`Google Sheets API returned ${response.status}.`); return await response.json() as T; }
 
-export async function exportDatasetToGoogleSheets(organizationId: string, name: SheetsDataset) {
-  const integrations = await supabaseRest<Integration[]>(`integrations?select=id,organization_id,project_id,configuration&organization_id=eq.${organizationId}&provider=eq.google_sheets&status=eq.connected&limit=1`, { serviceRole: true }); const integration = integrations[0]; if (!integration) return { status: "not_configured" as const };
-  const token = await googleAccessToken(integration); const values = await dataset(organizationId, name); const createdAt = new Date().toISOString();
+export async function exportDatasetToGoogleSheets(organizationId: string, projectId: string, name: SheetsDataset) {
+  const integrations = await supabaseRest<Integration[]>(`integrations?select=id,organization_id,project_id,configuration&organization_id=eq.${organizationId}&project_id=eq.${projectId}&provider=eq.google_sheets&status=eq.connected&limit=1`, { serviceRole: true }); const integration = integrations[0]; if (!integration) return { status: "not_configured" as const };
+  const token = await googleAccessToken(integration); const values = await dataset(organizationId, projectId, name); const createdAt = new Date().toISOString();
   const sheet = await googleFetch<{ spreadsheetId: string; spreadsheetUrl: string }>(SHEETS_API, token, { method: "POST", body: JSON.stringify({ properties: { title: `Foremention ${name.replaceAll("_", " ")} · ${createdAt.slice(0, 10)}` }, sheets: [{ properties: { title: name.slice(0, 90) } }] }) });
   await googleFetch(`${SHEETS_API}/${sheet.spreadsheetId}/values/${encodeURIComponent(`${name}!A1`)}?valueInputOption=RAW`, token, { method: "PUT", body: JSON.stringify({ range: `${name}!A1`, majorDimension: "ROWS", values }) });
   const eventKey = `google_sheets.export:${name}:${sheet.spreadsheetId}`;

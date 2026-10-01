@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (role !== "owner" && role !== "admin") return NextResponse.json({ error: "Only an owner or admin can connect HubSpot." }, { status: 403 });
   if (!hubSpotOAuthReady()) return NextResponse.json({ error: "HubSpot OAuth is not configured for this deployment." }, { status: 503 });
   const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/integrations/hubspot/callback`;
-  const state = await createHubSpotState(context.organizationId, viewer.id, process.env.HUBSPOT_OAUTH_STATE_SECRET || "");
+  const state = await createHubSpotState(context.organizationId, context.projectId, viewer.id, process.env.HUBSPOT_OAUTH_STATE_SECRET || "");
   const query = new URLSearchParams({ client_id: process.env.HUBSPOT_CLIENT_ID || "", redirect_uri: redirectUri, scope: "oauth crm.objects.companies.read crm.objects.companies.write", state });
   return NextResponse.json({ data: { authorizationUrl: `https://app.hubspot.com/oauth/authorize?${query}` } });
 }

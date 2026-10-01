@@ -18,16 +18,20 @@ async function signature(value: string, secret: string) {
   return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
-export async function createOAuthState(provider: string, organizationId: string, userId: string, secret: string) {
-  const payload = encode(JSON.stringify({ provider, organizationId, userId, expiresAt: Date.now() + 10 * 60_000, nonce: crypto.randomUUID() }));
+export async function createOAuthState(provider: string, organizationId: string, userId: string, secret: string, projectId?: string) {
+  const payload = encode(JSON.stringify({ provider, organizationId, projectId: projectId || null, userId, expiresAt: Date.now() + 10 * 60_000, nonce: crypto.randomUUID() }));
   return `${payload}.${await signature(payload, secret)}`;
 }
 
-export async function verifyOAuthState(state: string, provider: string, organizationId: string, userId: string, secret: string) {
+export async function verifyOAuthState(state: string, provider: string, organizationId: string, userId: string, secret: string, projectId?: string) {
   try {
     const [payload, signed, extra] = state.split(".");
     if (!payload || !signed || extra || signed !== await signature(payload, secret)) return false;
-    const parsed = JSON.parse(decode(payload)) as { provider: string; organizationId: string; userId: string; expiresAt: number };
-    return parsed.provider === provider && parsed.organizationId === organizationId && parsed.userId === userId && parsed.expiresAt > Date.now();
+    const parsed = JSON.parse(decode(payload)) as { provider: string; organizationId: string; projectId?: string | null; userId: string; expiresAt: number };
+    return parsed.provider === provider
+      && parsed.organizationId === organizationId
+      && (parsed.projectId || null) === (projectId || null)
+      && parsed.userId === userId
+      && parsed.expiresAt > Date.now();
   } catch { return false; }
 }
