@@ -1,4 +1,9 @@
 import { decryptIntegrationCredential, encryptIntegrationCredential } from "@/lib/integration-crypto";
+import {
+  filterPlacementsToProject,
+  loadProjectPlacementScope,
+  MAX_PROJECT_PLACEMENTS,
+} from "@/lib/project-placement-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -6,6 +11,37 @@ const SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
 export const SHEETS_DATASETS = ["buyer_questions", "answer_runs", "source_map", "evidence", "actions"] as const;
 export type SheetsDataset = typeof SHEETS_DATASETS[number];
 type Integration = { id: string; organization_id: string; project_id: string; configuration: Record<string, unknown> };
+type DatasetContext = { organizationId: string; projectId: string; categoryId: string; token?: string };
+type SourceMapExportRow = {
+  source: {
+    id: string;
+    canonical_url: string;
+    domain: string;
+    page_title: string | null;
+    source_type: string | null;
+    crawler_access: string;
+    first_observed_at: string;
+    last_observed_at: string;
+  } | null;
+};
+type ActionExportRow = {
+  id: string;
+  source_url: string;
+  page_title: string | null;
+  entry_route: string;
+  stage: string;
+  updated_at: string;
+  target_prompt_ids: string[] | null;
+  baseline_run_id: string | null;
+  remeasurement_run_id: string | null;
+};
+
+const MAX_SHEETS_EXPORT_ROWS = 5000;
+
+function assertBoundedRows<T>(rows: T[], label: string): T[] {
+  if (rows.length > MAX_SHEETS_EXPORT_ROWS) throw new Error(`${label} export exceeds the verified row limit.`);
+  return rows;
+}
 
 export function googleSheetsOAuthReady() { return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_OAUTH_STATE_SECRET && process.env.INTEGRATION_ENCRYPTION_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY); }
 
