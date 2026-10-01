@@ -1,5 +1,5 @@
 import type { Viewer } from "@/lib/auth";
-import { loadPrompts, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
+import { loadPlacements, loadPrompts, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
 import { buildDemoWorkspaceSearch } from "@/lib/demo-workspace-search";
 import { supabaseRest } from "@/lib/supabase-rest";
 
@@ -23,7 +23,7 @@ type AnswerRow = { id: string; run_id: string; prompt_text: string | null; promp
 type SourceRow = { id: string; domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_checked_at: string | null };
 type CompetitorRow = { id: string; name: string; website: string | null; competitor_type: string; active: boolean };
 type OpportunityRow = { id: string; citation_observations: number; entry_route: string | null; feasibility: string; influence: string; source: { domain: string; page_title: string | null; canonical_url: string; crawler_checked_at: string | null } | null };
-type ActionRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string };
+type ActionRow = Awaited<ReturnType<typeof loadPlacements>>[number];
 
 const PLACEMENT_STAGES = new Set([
   "identified",
@@ -80,15 +80,6 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
   const pattern = contains(query);
   const token = viewer.accessToken;
   const normalizedStage = query.toLowerCase().replace(/\s+/g, "_");
-  const actionFilters = [
-    `source_url.ilike.${pattern}`,
-    `page_title.ilike.${pattern}`,
-    `entry_route.ilike.${pattern}`,
-  ];
-  if (PLACEMENT_STAGES.has(normalizedStage)) {
-    actionFilters.push(`stage.eq.${encodeURIComponent(normalizedStage)}`);
-  }
-  const actionOr = actionFilters.join(",");
 
   const searches = await Promise.all([
     attempt("Question", supabaseRest<PromptRow[]>(
@@ -111,10 +102,7 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
       `source_map_entries?select=id,citation_observations,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,crawler_checked_at)&organization_id=eq.${context.organizationId}&client_present=eq.false&order=rank.asc&limit=100`,
       { token },
     )),
-    attempt("Action", supabaseRest<ActionRow[]>(
-      `placements?select=id,source_url,page_title,entry_route,stage,updated_at&organization_id=eq.${context.organizationId}&or=(${actionOr})&order=updated_at.desc&limit=12`,
-      { token },
-    )),
+    attempt("Action", loadPlacements(viewer)),
   ]);
 
   const failedKinds = searches.filter((item) => item.failed).map((item) => item.kind);
@@ -125,6 +113,11 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
     const haystack = `${item.source.domain} ${item.source.page_title || ""} ${item.source.canonical_url} ${item.entry_route || ""}`.toLocaleLowerCase();
     return haystack.includes(lower);
   }).slice(0, 12);
+  const actionRows = (actions || []).filter((item) => {
+    const stage = item.stage.replaceAll(" ", "_").toLowerCase();
+    const haystack = `${item.source} ${item.page} ${item.route} ${item.stage}`.toLocaleLowerCase();
+    return haystack.includes(lower) || (PLACEMENT_STAGES.has(normalizedStage) && stage === normalizedStage);
+  }).slice(0, 12);
 
   const results: WorkspaceSearchResult[] = [
     ...(questions || []).map((item) => ({ id: `question-${item.id}`, kind: "Question" as const, title: item.prompt_text || item.prompt_key, detail: item.active ? "Active buyer question" : "Paused buyer question", meta: "Questions", href: "/app/prompts" })),
@@ -132,7 +125,7 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
     ...(sources || []).map((item) => ({ id: `source-${item.id}`, kind: "Source" as const, title: item.page_title || item.domain, detail: item.canonical_url, meta: `${item.source_type || "Cited source"}${item.crawler_checked_at ? ` · reviewed ${dateLabel(item.crawler_checked_at)}` : " · needs review"}`, href: "/app/source-map" })),
     ...(competitors || []).map((item) => ({ id: `competitor-${item.id}`, kind: "Competitor" as const, title: item.name, detail: item.website || `${item.competitor_type} competitor`, meta: item.active ? "Tracking active" : "Tracking paused", href: "/app/competitors" })),
     ...opportunityRows.map((item) => ({ id: `opportunity-${item.id}`, kind: "Opportunity" as const, title: item.source?.page_title || item.source?.domain || "Reviewed source gap", detail: "Human-reviewed cited page where your brand was not observed.", meta: `${item.citation_observations} citation observation${item.citation_observations === 1 ? "" : "s"}${item.entry_route ? ` · ${item.entry_route}` : ""}`, href: "/app/opportunities" })),
-    ...(actions || []).map((item) => ({ id: `action-${item.id}`, kind: "Action" as const, title: item.page_title || item.source_url, detail: `${item.stage} · ${item.entry_route}`, meta: `Updated ${dateLabel(item.updated_at)}`, href: "/app/placements" })),
+    ...actionRows.map((item) => ({ id: `action-${item.id}`, kind: "Action" as const, title: item.page || item.source, detail: `${item.stage} · ${item.route}`, meta: `Updated ${item.updated}`, href: "/app/placements" })),
   ];
 
   return { query, results, failedKinds };

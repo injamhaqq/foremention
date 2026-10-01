@@ -6,7 +6,8 @@ const source = await readFile(new URL("../lib/workspace-search.ts", import.meta.
 
 test("placement search never applies ILIKE to the enum stage column", () => {
   assert.doesNotMatch(source, /stage\.ilike/);
-  assert.match(source, /stage\.eq\.\$\{encodeURIComponent\(normalizedStage\)\}/);
+  assert.match(source, /const stage = item\.stage\.replaceAll\(" ", "_"\)\.toLowerCase\(\)/);
+  assert.match(source, /PLACEMENT_STAGES\.has\(normalizedStage\) && stage === normalizedStage/);
 });
 
 test("human-readable placement stages normalize to enum-safe values", () => {

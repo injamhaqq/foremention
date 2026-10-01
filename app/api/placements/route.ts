@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { loadPlacements, loadWorkspaceContext } from "@/lib/data";
+import { loadProjectPlacementScope, placementBelongsToScope } from "@/lib/project-placement-scope";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
@@ -8,6 +9,10 @@ import { inngest } from "@/lib/jobs/inngest";
 
 const stages = ["identified", "qualified", "pitched", "accepted", "published", "indexed", "first_cited", "repeatedly_cited", "decayed", "closed"] as const;
 const routes = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
+
+const cleanIds = (value: unknown) => Array.isArray(value)
+  ? Array.from(new Set(value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim()))).slice(0, 100)
+  : [];
 
 export async function GET() {
   const viewer = await getViewer();
@@ -24,15 +29,33 @@ export async function POST(request: Request) {
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: crypto.randomUUID(), stage: "identified" }, mode: "demo" }, { status: 201 });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  const sources = await supabaseRest<Array<{ id: string; canonical_url: string; page_title: string | null }>>(
-    `sources?select=id,canonical_url,page_title&id=eq.${body.sourceId}&organization_id=eq.${context.organizationId}&limit=1`,
+  const targetPromptIds = cleanIds(body.targetPromptIds);
+  const [maps, promptRows] = await Promise.all([
+    supabaseRest<Array<{ id: string; run_id: string; run: { project_id: string } | null }>>(
+      `source_maps?select=id,run_id,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}&run.project_id=eq.${context.projectId}&status=eq.published&order=created_at.desc&limit=1`,
+      { token: viewer.accessToken },
+    ),
+    targetPromptIds.length
+      ? supabaseRest<Array<{ id: string }>>(
+        `prompts?select=id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${targetPromptIds.map((id) => encodeURIComponent(id)).join(",")})&limit=101`,
+        { token: viewer.accessToken },
+      )
+      : Promise.resolve([]),
+  ]);
+  const sourceMap = maps[0];
+  if (!sourceMap?.run_id) return NextResponse.json({ error: "A reviewed Source Map from this project is required before creating an Action." }, { status: 409 });
+  if (targetPromptIds.length && promptRows.length !== targetPromptIds.length) {
+    return NextResponse.json({ error: "One or more target buyer questions do not belong to the active project." }, { status: 403 });
+  }
+  const entries = await supabaseRest<Array<{ source_id: string; source: { canonical_url: string; page_title: string | null } | null }>>(
+    `source_map_entries?select=source_id,source:sources(canonical_url,page_title)&organization_id=eq.${context.organizationId}&source_map_id=eq.${sourceMap.id}&source_id=eq.${encodeURIComponent(body.sourceId)}&limit=1`,
     { token: viewer.accessToken },
   );
-  const source = sources[0];
-  if (!source) return NextResponse.json({ error: "This source does not belong to your workspace." }, { status: 403 });
+  const entry = entries[0];
+  if (!entry?.source) return NextResponse.json({ error: "This source is not part of the active project's reviewed Source Map." }, { status: 403 });
   const rows = await supabaseRest<Array<Record<string, unknown>>>("placements", {
     method: "POST", token: viewer.accessToken, prefer: "return=representation",
-    body: { organization_id: context.organizationId, source_id: source.id, source_url: source.canonical_url, page_title: source.page_title, entry_route: body.entryRoute, stage: "identified", owner_id: viewer.id, created_by: viewer.id, target_prompt_ids: (body.targetPromptIds || []).slice(0, 100) },
+    body: { organization_id: context.organizationId, source_id: entry.source_id, source_url: entry.source.canonical_url, page_title: entry.source.page_title, entry_route: body.entryRoute, stage: "identified", owner_id: viewer.id, created_by: viewer.id, target_prompt_ids: targetPromptIds, baseline_run_id: sourceMap.run_id },
   });
   return NextResponse.json({ data: rows[0] }, { status: 201 });
 }
@@ -46,19 +69,32 @@ export async function PATCH(request: Request) {
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo" });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  const current = await supabaseRest<Array<{ id: string; stage: typeof stages[number] }>>(
-    `placements?select=id,stage&id=eq.${body.id}&organization_id=eq.${context.organizationId}&limit=1`,
+  const scope = await loadProjectPlacementScope({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    token: viewer.accessToken,
+  });
+  if (!scope) return NextResponse.json({ error: "Action project scope could not be verified." }, { status: 409 });
+  const current = await supabaseRest<Array<{
+    id: string;
+    stage: typeof stages[number];
+    target_prompt_ids: string[] | null;
+    baseline_run_id: string | null;
+    remeasurement_run_id: string | null;
+  }>>(
+    `placements?select=id,stage,target_prompt_ids,baseline_run_id,remeasurement_run_id&id=eq.${encodeURIComponent(body.id)}&organization_id=eq.${context.organizationId}&limit=1`,
     { token: viewer.accessToken },
   );
-  if (!current[0]) return NextResponse.json({ error: "Action not found." }, { status: 404 });
+  const action = current[0];
+  if (!action || !placementBelongsToScope(action, scope)) return NextResponse.json({ error: "Action not found." }, { status: 404 });
   await Promise.all([
-    supabaseRest(`placements?id=eq.${body.id}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { stage: body.stage } }),
-    supabaseRest("placement_events", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, placement_id: body.id, from_stage: current[0].stage, to_stage: body.stage, note: String(body.note || "").trim().slice(0, 1000) || null, evidence_url: String(body.evidenceUrl || "").trim().slice(0, 1000) || null, actor_id: viewer.id } }),
+    supabaseRest(`placements?id=eq.${encodeURIComponent(action.id)}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { stage: body.stage } }),
+    supabaseRest("placement_events", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, placement_id: action.id, from_stage: action.stage, to_stage: body.stage, note: String(body.note || "").trim().slice(0, 1000) || null, evidence_url: String(body.evidenceUrl || "").trim().slice(0, 1000) || null, actor_id: viewer.id } }),
   ]);
   if (["published", "indexed", "first_cited", "repeatedly_cited", "closed"].includes(body.stage)) {
     const occurredAt = new Date().toISOString();
-    await queueWorkspaceWebhook({ organizationId: context.organizationId, eventKey: `action.completed:${body.id}:${body.stage}`, eventType: "action.completed", occurredAt, href: "/app/placements" }).catch(() => undefined);
-    if (process.env.INNGEST_EVENT_KEY) await inngest.send({ id: `hubspot-action-${body.id}-${body.stage}`, name: "foremention/integration.hubspot-action", data: { organizationId: context.organizationId, placementId: body.id, eventKey: `action.completed:${body.id}:${body.stage}`, stage: body.stage, occurredAt } }).catch(() => undefined);
+    await queueWorkspaceWebhook({ organizationId: context.organizationId, eventKey: `action.completed:${action.id}:${body.stage}`, eventType: "action.completed", occurredAt, href: "/app/placements" }).catch(() => undefined);
+    if (process.env.INNGEST_EVENT_KEY) await inngest.send({ id: `hubspot-action-${action.id}-${body.stage}`, name: "foremention/integration.hubspot-action", data: { organizationId: context.organizationId, placementId: action.id, eventKey: `action.completed:${action.id}:${body.stage}`, stage: body.stage, occurredAt } }).catch(() => undefined);
   }
   return NextResponse.json({ ok: true });
 }
