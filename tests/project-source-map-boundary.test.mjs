@@ -32,7 +32,10 @@ test("generic and truthful Source Map reads use the same project scope", async (
 });
 
 test("source evidence excerpts are rebuilt only from the active project's map run", async () => {
-  const data = await text("lib/data.ts");
+  const [data, overview] = await Promise.all([
+    text("lib/data.ts"),
+    text("app/app/page.tsx"),
+  ]);
 
   assert.match(data, /options:\s*\{\s*runId\?: string \| null\s*\}\s*=\s*\{\}/);
   assert.match(data, /runId:\s*options\.runId\s*\|\|\s*null/);
@@ -41,6 +44,7 @@ test("source evidence excerpts are rebuilt only from the active project's map ru
   assert.match(data, /limit=501/);
   assert.match(data, /answers\.length > 500/);
   assert.match(data, /observations\.length > 500/);
+  assert.match(overview, /loadSourceEvidenceContexts\([\s\S]*\{\s*runId:\s*latest\?\.id\s*\|\|\s*null\s*\}\)/);
 });
 
 test("source review and inspection reject entries outside active-project Source Maps", async () => {
