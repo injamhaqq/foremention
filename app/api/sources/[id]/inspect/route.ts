@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
+import { loadProjectSourceMapEntryRef } from "@/lib/project-source-map-scope";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { inspectSourceUrl, SourceInspectionError } from "@/lib/source-inspection";
 import { persistSourceSnapshot } from "@/lib/source-snapshots";
@@ -30,14 +31,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Please wait a minute before inspecting more sources." }, { status: 429, headers: { "retry-after": "60" } });
   }
 
-  const entries = await supabaseRest<Array<{ id: string; source_id: string }>>(
-    `source_map_entries?select=id,source_id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&limit=1`,
-    { token: viewer.accessToken },
-  );
-  const entry = entries[0];
-  if (!entry) return NextResponse.json({ error: "Source record not found in this workspace." }, { status: 404 });
+  const entry = await loadProjectSourceMapEntryRef({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    entryId: id,
+    token: viewer.accessToken,
+  });
+  if (!entry) return NextResponse.json({ error: "Source record not found in the active project." }, { status: 404 });
   const sources = await supabaseRest<Array<{ id: string; canonical_url: string; page_title: string | null; crawler_access: string; crawler_checked_at: string | null; content_signature: string | null; content_length: number | null }>>(
-    `sources?select=id,canonical_url,page_title,crawler_access,crawler_checked_at,content_signature,content_length&id=eq.${entry.source_id}&organization_id=eq.${context.organizationId}&limit=1`,
+    `sources?select=id,canonical_url,page_title,crawler_access,crawler_checked_at,content_signature,content_length&id=eq.${entry.sourceId}&organization_id=eq.${context.organizationId}&limit=1`,
     { token: viewer.accessToken },
   );
   const source = sources[0];
