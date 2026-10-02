@@ -10,9 +10,9 @@ test("canonical Source Map scope resolves published maps through active-project 
   assert.match(scope, /source_maps\?select=id,run_id,run:runs!inner\(project_id\)/);
   assert.match(scope, /run\.project_id=eq\.\$\{encoded\(input\.projectId\)\}/);
   assert.match(scope, /status=eq\.published/);
-  assert.match(scope, /MAX_PROJECT_SOURCE_MAPS \+ 1/);
-  assert.match(scope, /maps\.length > MAX_PROJECT_SOURCE_MAPS/);
-  assert.match(scope, /source_map_id=in\.\(\$\{mapIds\.join\(","\)\}\)/);
+  assert.match(scope, /source_map_entries\?select=id,source_id,source_map_id&id=eq\.\$\{encoded\(input\.entryId\)\}/);
+  assert.match(scope, /id=eq\.\$\{encoded\(entry\.source_map_id\)\}/);
+  assert.match(scope, /map\.run\?\.project_id !== input\.projectId/);
 });
 
 test("generic and truthful Source Map reads use the same project scope", async () => {
@@ -34,6 +34,8 @@ test("generic and truthful Source Map reads use the same project scope", async (
 test("source evidence excerpts are rebuilt only from the active project's map run", async () => {
   const data = await text("lib/data.ts");
 
+  assert.match(data, /options:\s*\{\s*runId\?: string \| null\s*\}\s*=\s*\{\}/);
+  assert.match(data, /runId:\s*options\.runId\s*\|\|\s*null/);
   assert.match(data, /run_id=eq\.\$\{map\.runId\}&review_status=eq\.verified/);
   assert.match(data, /run_answer_id=in\.\(\$\{answerIds\.join\(","\)\}\)/);
   assert.match(data, /limit=501/);
