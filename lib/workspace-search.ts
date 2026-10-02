@@ -108,7 +108,13 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
     return haystack.includes(lower);
   }).slice(0, 12);
   const opportunityRows = (opportunities || []).filter((item) => {
-    if (!item.reviewedAt || item.clientPresent) return false;
+    if (
+      !item.reviewedAt
+      || item.clientPresent
+      || item.influence === "unknown"
+      || item.feasibility === "unknown"
+      || item.route === "unknown"
+    ) return false;
     const haystack = `${item.domain} ${item.title} ${item.url} ${item.route}`.toLocaleLowerCase();
     return haystack.includes(lower);
   }).slice(0, 12);
