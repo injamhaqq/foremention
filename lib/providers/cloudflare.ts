@@ -158,7 +158,7 @@ export async function runGroundedCloudflareWithBinding(input: {
   maxOutputTokens: number;
   signal?: AbortSignal;
 }) {
-  const evidence = await retrieveFreeWebEvidence(input.searchQuery || input.prompt, input.signal);
+  const evidence = await retrieveFreeWebEvidence(input.searchQuery || input.prompt, input.signal, input.prompt);
   const sourceIndex = citationIndex(evidence.citations);
 
   const raw = await runWithAbort(

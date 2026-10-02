@@ -1,0 +1,114 @@
+name: Isolated Outcome UI
+
+# Separate signed-in server-rendered outcome report acceptance: no full
+# Resolution Center orchestration, no production or external provider calls.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-outcome-ui-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authenticated-reports:
+    name: Signed-in Outcome Ledger and board parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.25.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
+        with:
+          version: 2.111.0
+
+      - name: Install locked app dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate signed-in local reports against persisted synthetic evidence
+        shell: bash
+        env:
+          FOREMENTION_TEST_UI: "1"
+        run: |
+          set -euo pipefail
+          umask 077
+          server_pid=""
+          cleanup() {
+            if [ -n "$server_pid" ]; then
+              kill "$server_pid" 2>/dev/null || true
+              wait "$server_pid" 2>/dev/null || true
+            fi
+            rm -f .isolated-local-env .dev.vars dist/server/.dev.vars .local-cli-status .isolated-ui-server.log .isolated-supabase-start.log
+            supabase stop --no-backup >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          supabase start > .isolated-supabase-start.log 2>&1
+          supabase db reset >> .isolated-supabase-start.log 2>&1
+          supabase status -o env > .local-cli-status
+          node scripts/prepare-isolated-local-env.mjs .local-cli-status
+          set -a
+          source .isolated-local-env
+          set +a
+
+          pnpm build
+          cp .dev.vars dist/server/.dev.vars
+
+          # Separate bounded Worker application check. The release still
+          # needs the opt-in complete authenticated approval/measurement flow.
+          pnpm dlx wrangler@4.113.0 dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4174 > .isolated-ui-server.log 2>&1 &
+          server_pid=$!
+          ready=false
+          for attempt in $(seq 1 75); do
+            if curl --fail --silent --max-time 3 http://127.0.0.1:4174/api/health | grep -q '"status":"ok"'; then
+              ready=true
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "[isolated-ui] app exited before readiness"
+              exit 1
+            fi
+            echo "[isolated-ui] waiting for local app ($attempt/75)"
+            sleep 1
+          done
+          if [ "$ready" != "true" ]; then
+            echo "[isolated-ui] app readiness not achieved"
+            exit 1
+          fi
+
+          node --experimental-strip-types scripts/verify-isolated-outcome-context-auth.mjs
+          echo "[isolated-ui] Signed-in server-rendered owner/outsider/board exact and drift states passed."
+
+      - name: Confirm generated credentials and logs removed
+        if: always()
+        shell: bash
+        run: |
+          for path in .isolated-local-env .dev.vars dist/server/.dev.vars .local-cli-status .isolated-ui-server.log .isolated-supabase-start.log; do
+            if [ -e "$path" ]; then
+              echo "Local-only test artifact was not cleaned: $path"
+              exit 1
+            fi
+          done

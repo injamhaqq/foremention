@@ -13,6 +13,8 @@ import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
 import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
+import { filterPlacementsToProject, loadProjectPlacementScope, MAX_PROJECT_PLACEMENTS } from "@/lib/project-placement-scope";
+import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, Placement, SourceMapEntry, VisibilityRun } from "@/lib/types";
 
@@ -25,7 +27,7 @@ type SourceEntryRow = {
   source: { domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_access: SourceMapEntry["crawlerAccess"]; crawler_checked_at: string | null } | null;
 };
 type RunRow = { id: string; status: VisibilityRun["status"]; error_summary: string | null; prompt_count: number; answer_count: number; citation_count: number; brand_presence_pct: number | string; first_mention_pct: number | string; new_source_count: number; created_at: string };
-type PlacementRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string; target_prompt_ids: string[]; owner_id: string | null };
+type PlacementRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string; target_prompt_ids: string[] | null; baseline_run_id: string | null; remeasurement_run_id: string | null; owner_id: string | null };
 type AgentRunRow = RunRow & { provider_ids: string[]; started_at: string | null; completed_at: string | null };
 type AgentJobRow = {
   id: string;
@@ -48,6 +50,7 @@ export type CompetitorTracking = {
   active: boolean;
   answerMentions: number;
   totalAnswers: number;
+  answerHistoryComplete: boolean;
   mentionFrequencyPct: number | null;
   reviewedCitationPages: number;
   sourceOverlap: number;
@@ -71,6 +74,7 @@ export type WorkspaceContext = {
   categoryId: string;
   clusterId: string | null;
   organizationName: string;
+  projectBrand: string;
   website: string | null;
   category: string;
 };
@@ -291,10 +295,19 @@ export async function getPrimaryWorkspaceRole(viewer: Viewer): Promise<Workspace
 
 export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
   if (viewer.mode === "demo") return sourceMapEntries;
-  const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const maps = await supabaseRest<Array<{ id: string }>>(`source_maps?select=id&organization_id=eq.${organizationId}&status=eq.published&order=created_at.desc&limit=1`, { token: viewer.accessToken });
-  if (!maps[0]) return [];
-  const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&order=rank.asc`, { token: viewer.accessToken });
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const map = await loadLatestProjectSourceMapRef({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    token: viewer.accessToken,
+  });
+  if (!map) return [];
+  const rows = await supabaseRest<SourceEntryRow[]>(
+    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${map.id}&order=rank.asc`,
+    { token: viewer.accessToken },
+  );
   return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: sourceRoute(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
 }
 
@@ -306,24 +319,21 @@ const excerpt = (value: string, limit = 240) => {
 export async function loadSourceEvidenceContexts(
   viewer: Viewer,
   sourceIds: string[],
+  options: { runId?: string | null } = {},
 ): Promise<Record<string, SourceEvidenceContext[]>> {
   if (viewer.mode === "demo" || !sourceIds.length) return {};
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return {};
-  const safeSourceIds = sourceIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
-  if (!safeSourceIds.length) return {};
-  const observations = await supabaseRest<Array<{
-    source_id: string;
-    run_answer_id: string | null;
-    provider: string;
-    citation_ordinal: number | null;
-    observed_at: string;
-  }>>(
-    `source_observations?select=source_id,run_answer_id,provider,citation_ordinal,observed_at&organization_id=eq.${organizationId}&source_id=in.(${safeSourceIds.join(",")})&review_status=eq.verified&order=observed_at.desc&limit=500`,
-    { token: viewer.accessToken },
-  );
-  const answerIds = Array.from(new Set(observations.flatMap((row) => row.run_answer_id ? [row.run_answer_id] : [])));
-  if (!answerIds.length) return {};
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return {};
+  const safeSourceIds = Array.from(new Set(sourceIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id))));
+  if (!safeSourceIds.length || safeSourceIds.length > 250) return {};
+  const map = await loadLatestProjectSourceMapRef({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    runId: options.runId || null,
+    token: viewer.accessToken,
+  });
+  if (!map) return {};
   const answers = await supabaseRest<Array<{
     id: string;
     prompt_key: string;
@@ -332,9 +342,22 @@ export async function loadSourceEvidenceContexts(
     model: string | null;
     answer_text: string;
   }>>(
-    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text&organization_id=eq.${organizationId}&id=in.(${answerIds.join(",")})&review_status=eq.verified`,
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text&organization_id=eq.${context.organizationId}&run_id=eq.${map.runId}&review_status=eq.verified&order=collected_at.asc&limit=501`,
     { token: viewer.accessToken },
   );
+  if (!answers.length || answers.length > 500) return {};
+  const answerIds = answers.map((answer) => answer.id);
+  const observations = await supabaseRest<Array<{
+    source_id: string;
+    run_answer_id: string | null;
+    provider: string;
+    citation_ordinal: number | null;
+    observed_at: string;
+  }>>(
+    `source_observations?select=source_id,run_answer_id,provider,citation_ordinal,observed_at&organization_id=eq.${context.organizationId}&source_id=in.(${safeSourceIds.join(",")})&run_answer_id=in.(${answerIds.join(",")})&review_status=eq.verified&order=observed_at.desc&limit=501`,
+    { token: viewer.accessToken },
+  );
+  if (observations.length > 500) return {};
   const answerById = new Map(answers.map((answer) => [answer.id, answer]));
   return observations.reduce<Record<string, SourceEvidenceContext[]>>((result, observation) => {
     if (!observation.run_answer_id) return result;
@@ -360,8 +383,9 @@ export async function loadRuns(viewer: Viewer, options: { limit?: number; offset
   const limit = Math.max(1, Math.min(100, Math.round(options.limit || 100)));
   const offset = Math.max(0, Math.round(options.offset || 0));
   if (viewer.mode === "demo") return demoRuns.slice(offset, offset + limit);
-  const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=${limit}&offset=${offset}`, { token: viewer.accessToken });
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=${limit}&offset=${offset}`, { token: viewer.accessToken });
   return rows.map((row) => ({ id: row.id, date: dateLabel(row.created_at), status: row.status, errorSummary: row.error_summary, prompts: row.prompt_count, answers: row.answer_count, citations: row.citation_count, presence: Number(row.brand_presence_pct), firstMention: Number(row.first_mention_pct), newSources: row.new_source_count }));
 }
 
@@ -411,9 +435,28 @@ export async function loadAgentControlPlane(viewer: Viewer): Promise<AgentContro
 
 export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
   if (viewer.mode === "demo") return demoPlacements;
-  const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const rows = await supabaseRest<PlacementRow[]>(`placements?select=id,source_url,page_title,entry_route,stage,updated_at,target_prompt_ids,owner_id&organization_id=eq.${organizationId}&order=updated_at.desc`, { token: viewer.accessToken });
-  return rows.map((row) => ({ id: row.id, source: hostname(row.source_url), page: row.page_title || row.source_url, route: placementRoute(row.entry_route), owner: row.owner_id ? "Assigned" : "Unassigned", stage: row.stage.replaceAll("_", " ") as Placement["stage"], updated: relativeLabel(row.updated_at), promptImpact: row.target_prompt_ids?.length || 0 }));
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const scope = await loadProjectPlacementScope({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    token: viewer.accessToken,
+  });
+  if (!scope) return [];
+  const rows = await supabaseRest<PlacementRow[]>(
+    `placements?select=id,source_url,page_title,entry_route,stage,updated_at,target_prompt_ids,baseline_run_id,remeasurement_run_id,owner_id&organization_id=eq.${context.organizationId}&order=updated_at.desc&limit=${MAX_PROJECT_PLACEMENTS + 1}`,
+    { token: viewer.accessToken },
+  );
+  return filterPlacementsToProject(rows, scope).map((row) => ({
+    id: row.id,
+    source: hostname(row.source_url),
+    page: row.page_title || row.source_url,
+    route: placementRoute(row.entry_route),
+    owner: row.owner_id ? "Assigned" : "Unassigned",
+    stage: row.stage.replaceAll("_", " ") as Placement["stage"],
+    updated: relativeLabel(row.updated_at),
+    promptImpact: row.target_prompt_ids?.filter((id) => scope.promptIds.has(id)).length || 0,
+  }));
 }
 
 export function getProviderStatuses(): ProviderStatus[] {
@@ -473,17 +516,57 @@ export async function loadProviderStatuses(viewer: Viewer): Promise<ProviderStat
 }
 
 export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceContext | null> {
-  if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
+  if (viewer.mode === "demo") return {
+    organizationId: "10000000-0000-4000-8000-000000000001",
+    projectId: "20000000-0000-4000-8000-000000000001",
+    categoryId: "30000000-0000-4000-8000-000000000001",
+    clusterId: "40000000-0000-4000-8000-000000000001",
+    organizationName: "Northstar HR",
+    projectBrand: "Northstar HR",
+    website: "https://northstarhr.example",
+    category: "HR software for distributed teams",
+  };
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return null;
-  const [organizations, projects, categories, clusters] = await Promise.all([
-    supabaseRest<Array<{ name: string; website: string | null }>>(`organizations?select=name,website&id=eq.${organizationId}&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string }>>(`projects?select=id&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string; name: string }>>(`categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string }>>(`prompt_clusters?select=id&organization_id=eq.${organizationId}&order=priority.asc&limit=1`, { token: viewer.accessToken }),
+  const [organizations, projects] = await Promise.all([
+    supabaseRest<Array<{ name: string }>>(
+      `organizations?select=name&id=eq.${organizationId}&limit=1`,
+      { token: viewer.accessToken },
+    ),
+    supabaseRest<Array<{ id: string; client_brand: string; website: string | null; category: string | null }>>(
+      `projects?select=id,client_brand,website,category&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=1`,
+      { token: viewer.accessToken },
+    ),
   ]);
-  if (!organizations[0] || !projects[0] || !categories[0]) return null;
-  return { organizationId, projectId: projects[0].id, categoryId: categories[0].id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: organizations[0].website, category: categories[0].name };
+  const organization = organizations[0];
+  const project = projects[0];
+  if (!organization || !project || !project.client_brand?.trim()) return null;
+
+  const categoryQuery = project.category?.trim()
+    ? `categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&name=eq.${encodeURIComponent(project.category.trim())}&limit=1`
+    : `categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=2`;
+  const [categories, clusters] = await Promise.all([
+    supabaseRest<Array<{ id: string; name: string }>>(categoryQuery, { token: viewer.accessToken }),
+    supabaseRest<Array<{ id: string }>>(
+      `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${project.id}&order=priority.asc&limit=1`,
+      { token: viewer.accessToken },
+    ),
+  ]);
+  // A project with an explicit category must resolve that exact category. Older
+  // projects without a category are accepted only when the organization has one
+  // unambiguous active category; never borrow an arbitrary sibling category.
+  const category = categories[0];
+  if (!category || (!project.category?.trim() && categories.length !== 1)) return null;
+  return {
+    organizationId,
+    projectId: project.id,
+    categoryId: category.id,
+    clusterId: clusters[0]?.id || null,
+    organizationName: organization.name,
+    projectBrand: project.client_brand.trim(),
+    website: project.website,
+    category: project.category?.trim() || category.name,
+  };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
@@ -603,11 +686,11 @@ export async function loadRunConfiguration(viewer: Viewer, runId: string): Promi
 
 export async function loadLatestReviewedAnswers(viewer: Viewer, limit = 12): Promise<WorkspaceRunAnswer[]> {
   if (viewer.mode === "demo") return [];
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
   const safeLimit = Math.max(1, Math.min(50, Math.round(limit)));
   const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string }>>(
-    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${organizationId}&review_status=eq.verified&order=collected_at.desc&limit=${safeLimit}`,
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&order=collected_at.desc&limit=${safeLimit}`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
@@ -624,10 +707,10 @@ const demoPrompts: WorkspacePrompt[] = [
 
 export async function loadPrompts(viewer: Viewer): Promise<WorkspacePrompt[]> {
   if (viewer.mode === "demo") return demoPrompts;
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
   const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string; active: boolean; prompt_clusters: { name: string } | null }>>(
-    `prompts?select=id,prompt_key,prompt_text,active,prompt_clusters(name)&organization_id=eq.${organizationId}&order=created_at.asc`,
+    `prompts?select=id,prompt_key,prompt_text,active,prompt_clusters(name)&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.asc`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, cluster: row.prompt_clusters?.name || row.prompt_key || "Baseline", text: row.prompt_text, approved: row.active }));
@@ -646,8 +729,8 @@ export async function loadWorkspaceCompetitors(viewer: Viewer): Promise<string[]
 
 export async function loadCompetitorTracking(viewer: Viewer): Promise<CompetitorTracking[]> {
   if (viewer.mode === "demo") return [
-    { id: "demo-competitor-1", name: "Deel", website: "https://deel.example", type: "direct", active: true, answerMentions: 3, totalAnswers: 4, mentionFrequencyPct: 75, reviewedCitationPages: 2, sourceOverlap: 1, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 75 }], trendDelta: 25 },
-    { id: "demo-competitor-2", name: "Rippling", website: "https://rippling.example", type: "leader", active: true, answerMentions: 2, totalAnswers: 4, mentionFrequencyPct: 50, reviewedCitationPages: 1, sourceOverlap: 0, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 50 }], trendDelta: 0 },
+    { id: "demo-competitor-1", name: "Deel", website: "https://deel.example", type: "direct", active: true, answerMentions: 3, totalAnswers: 4, answerHistoryComplete: true, mentionFrequencyPct: 75, reviewedCitationPages: 2, sourceOverlap: 1, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 75 }], trendDelta: 25 },
+    { id: "demo-competitor-2", name: "Rippling", website: "https://rippling.example", type: "leader", active: true, answerMentions: 2, totalAnswers: 4, answerHistoryComplete: true, mentionFrequencyPct: 50, reviewedCitationPages: 1, sourceOverlap: 0, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 50 }], trendDelta: 0 },
   ];
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
@@ -669,10 +752,14 @@ export async function loadCompetitorTracking(viewer: Viewer): Promise<Competitor
     const reviewedPages = entries.filter((entry) => entry.crawlerAccess !== "unknown" && entry.competitors.some((name) => name.toLocaleLowerCase() === normalizedName));
     return {
       id: competitor.id, name: competitor.name, website: competitor.website, type: competitor.competitor_type, active: competitor.active,
-      answerMentions: mentions.length, totalAnswers: answers.length, mentionFrequencyPct: answers.length ? Math.round((mentions.length / answers.length) * 100) : null,
-      reviewedCitationPages: reviewedPages.length, sourceOverlap: reviewedPages.filter((entry) => entry.clientPresent).length,
-      trendPoints,
-      trendDelta: trendPoints.length > 1 ? trendPoints.at(-1)!.frequencyPct - trendPoints.at(-2)!.frequencyPct : null,
+      // Legacy live loader is retained only for compatibility. It does not own
+      // the independent full-run evidence gate, so never expose its bounded
+      // answer subset as a complete customer metric. The truthful customer
+      // surface uses loadTruthfulCompetitorTracking instead.
+      answerMentions: 0, totalAnswers: 0, answerHistoryComplete: false, mentionFrequencyPct: null,
+      reviewedCitationPages: 0, sourceOverlap: 0,
+      trendPoints: [],
+      trendDelta: null,
     };
   });
 }
@@ -685,7 +772,7 @@ export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionP
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
   const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null }>>(
-    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json&organization_id=eq.${context.organizationId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
+    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
     { token: viewer.accessToken },
   );
   const groups = new Map<string, typeof rows>();
@@ -693,13 +780,12 @@ export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionP
   return Array.from(groups.entries()).map(([key, answers]) => {
     const citationCount = answers.reduce((sum, answer) => sum + (answer.citations_json || []).filter((citation) => Boolean(citation.url)).length, 0);
     const citedAnswers = answers.filter((answer) => (answer.citations_json || []).some((citation) => Boolean(citation.url))).length;
-    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.organizationName.toLocaleLowerCase())).length;
+    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.projectBrand.toLocaleLowerCase())).length;
     const runCount = new Set(answers.map((answer) => answer.run_id)).size;
     const guidance: QuestionPerformance["guidance"] = runCount < 2 ? "Needs repeat" : citationCount >= answers.length && brandMentionCount > 0 ? "High evidence yield" : citationCount > 0 ? "Keep as baseline" : "Low observed yield";
     return { key, question: answers[0]?.prompt_text || key, answerCount: answers.length, runCount, citationCount, citedAnswerPct: answers.length ? Math.round((citedAnswers / answers.length) * 100) : 0, brandMentionCount, guidance };
   }).sort((left, right) => right.citationCount - left.citationCount || right.brandMentionCount - left.brandMentionCount || left.question.localeCompare(right.question));
 }
-
 export async function loadWorkspaceSummary(viewer: Viewer): Promise<WorkspaceSummary | null> {
   if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "northstarhr.example", category: "HR software for distributed teams", promptCount: demoPrompts.filter((prompt) => prompt.approved).length };
   const organizationId = await getPrimaryOrganizationId(viewer);
@@ -750,17 +836,17 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
     return { ...base, actions: buildDecisionActions(base) };
   }
 
-  const organizationId = await getPrimaryOrganizationId(viewer);
+  const context = await loadWorkspaceContext(viewer);
   const empty: Omit<DecisionSignal, "actions"> = {
     reviewedRuns: 0, latestRunId: null, latestRunDate: null, providerCount: 0, promptCount: 0, answerCount: 0,
     answerCompletionPct: null, recommendationConsensusPct: null, presenceRange: null, presenceDelta: null,
     sourceReviewPct: null, sourceDependencyPct: null, recurringSourcePct: null, evidenceObservations: 0, decisionReadiness: "insufficient",
   };
-  if (!organizationId) return { ...empty, actions: buildDecisionActions(empty) };
+  if (!context) return { ...empty, actions: buildDecisionActions(empty) };
 
   type DecisionRunRow = RunRow & { provider_ids: string[] };
   const [rows, sources] = await Promise.all([
-    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&status=in.(review,complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
+    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(review,complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
     loadSourceMap(viewer),
   ]);
   const latest = rows[0];
@@ -768,7 +854,7 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
 
   const runIds = rows.map((row) => row.id);
   const answerRows = await supabaseRest<Array<{ prompt_key: string; provider: string; brand_present: boolean | null; collected_at: string }>>(
-    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${organizationId}&run_id=in.(${runIds.join(",")})&order=collected_at.desc`,
+    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&order=collected_at.desc`,
     { token: viewer.accessToken },
   );
   const latestComparableAnswers = new Map<string, typeof answerRows[number]>();
@@ -811,7 +897,6 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
   };
   return { ...signalBase, actions: buildDecisionActions(signalBase) };
 }
-
 export async function loadTeam(viewer: Viewer): Promise<{
   members: WorkspaceTeamMember[];
   invitations: WorkspaceInvitation[];

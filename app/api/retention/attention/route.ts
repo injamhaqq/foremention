@@ -4,6 +4,7 @@ import { loadNotifications, loadPrompts, loadRuns, loadWorkspaceContext } from "
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { deriveRetentionHealth } from "@/lib/retention-health";
 import { deriveActivationStage, deriveAttentionItems, type ComparableChange } from "@/lib/retention-loop";
+import { filterPlacementsToProject, loadProjectPlacementScope, MAX_PROJECT_PLACEMENTS } from "@/lib/project-placement-scope";
 import { loadSafeWeeklyIntelligence } from "@/lib/safe-intelligence";
 import { isMissingRelationError, supabaseRest } from "@/lib/supabase-rest";
 
@@ -26,11 +27,33 @@ export async function GET() {
   let dueActions: Array<{ id: string; title: string; dueAt: string; overdue: boolean }> = [];
   if (viewer.mode !== "demo" && context) {
     try {
-      const [schedules, actions, firstAction] = await Promise.all([
-        supabaseRest<Array<{ id: string }>>(`measurement_schedules?select=id&organization_id=eq.${context.organizationId}&enabled=eq.true&limit=1`, { token: viewer.accessToken }),
-        supabaseRest<Array<{ id: string; page_title: string | null; source_url: string; due_at: string | null; remeasurement_due_at: string | null }>>(`placements?select=id,page_title,source_url,due_at,remeasurement_due_at&organization_id=eq.${context.organizationId}&or=(due_at.not.is.null,remeasurement_due_at.not.is.null)&order=updated_at.desc&limit=50`, { token: viewer.accessToken }),
-        supabaseRest<Array<{ id: string; owner_id: string | null }>>(`placements?select=id,owner_id&organization_id=eq.${context.organizationId}&order=created_at.asc&limit=50`, { token: viewer.accessToken }),
+      const [scope, schedules, organizationActions] = await Promise.all([
+        loadProjectPlacementScope({
+          organizationId: context.organizationId,
+          projectId: context.projectId,
+          token: viewer.accessToken,
+        }),
+        supabaseRest<Array<{ id: string }>>(
+          `measurement_schedules?select=id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&enabled=eq.true&limit=1`,
+          { token: viewer.accessToken },
+        ),
+        supabaseRest<Array<{
+          id: string;
+          page_title: string | null;
+          source_url: string;
+          due_at: string | null;
+          remeasurement_due_at: string | null;
+          owner_id: string | null;
+          target_prompt_ids: string[] | null;
+          baseline_run_id: string | null;
+          remeasurement_run_id: string | null;
+        }>>(
+          `placements?select=id,page_title,source_url,due_at,remeasurement_due_at,owner_id,target_prompt_ids,baseline_run_id,remeasurement_run_id&organization_id=eq.${context.organizationId}&order=updated_at.desc&limit=${MAX_PROJECT_PLACEMENTS + 1}`,
+          { token: viewer.accessToken },
+        ),
       ]);
+      const actions = scope ? filterPlacementsToProject(organizationActions, scope) : [];
+      const firstAction = actions;
       scheduleEnabled = schedules.length > 0;
       firstActionCreated = firstAction.length > 0;
       firstActionAssigned = firstAction.some((action) => Boolean(action.owner_id));

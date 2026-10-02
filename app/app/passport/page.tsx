@@ -46,7 +46,7 @@ export default async function PassportPage() {
     evidenceVerificationStatus: row.evidence?.verification_status ?? null,
   }));
   const passport = buildVendorPassport({
-    organization: { name: context.organizationName, website: context.website, category: context.category },
+    organization: { name: context.projectBrand, website: context.website, category: context.category },
     claims,
     generatedAt,
   });

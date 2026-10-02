@@ -33,14 +33,17 @@ test("human source review is persisted separately from automated crawler checks"
 });
 
 test("customer-facing source metrics can be scoped to the exact baseline run", async () => {
-  const [integrity, analytics, runDetail, safeIntelligence] = await Promise.all([
+  const [integrity, sourceScope, analytics, runDetail, safeIntelligence] = await Promise.all([
     text("lib/evidence-integrity-data.ts"),
+    text("lib/project-source-map-scope.ts"),
     text("app/app/analytics/page.tsx"),
     text("app/app/runs/[id]/page.tsx"),
     text("lib/safe-intelligence.ts"),
   ]);
   assert.match(integrity, /loadTruthfulSourceMap\([\s\S]*options:\s*\{\s*runId\?:/);
-  assert.match(integrity, /run_id=eq\.\$\{encodeURIComponent\(options\.runId\)\}/);
+  assert.match(integrity, /runId:\s*options\.runId\s*\|\|\s*null/);
+  assert.match(sourceScope, /run_id=eq\.\$\{encoded\(input\.runId\)\}/);
+  assert.match(sourceScope, /run\.project_id=eq\.\$\{encoded\(input\.projectId\)\}/);
   assert.match(analytics, /loadTruthfulSourceMap\(viewer,\s*\{\s*runId:\s*latest\.id\s*\}\)/);
   assert.match(runDetail, /loadTruthfulSourceMap\(viewer,\s*\{\s*runId:\s*run\.id\s*\}\)/);
   assert.match(safeIntelligence, /loadTruthfulSourceMap\(viewer,\s*\{\s*runId:\s*intelligence\.latest\.id\s*\}\)/);
@@ -58,6 +61,12 @@ test("decision-readiness uses finalized runs, verified answers, and safe compara
   assert.doesNotMatch(decision, /status=in\.\(review,complete,partial\)/);
   assert.match(decision, /review_status=eq\.verified/);
   assert.match(decision, /run_id=eq\.\$\{latest\.id\}/);
+  assert.match(decision, /answer_count/);
+  assert.match(decision, /assessCompleteRunHistory\(\[latest\], candidateAnswers\)/);
+  assert.match(decision, /MAX_COMPLETE_RUN_HISTORY_ANSWERS/);
+  assert.match(decision, /answerCompletionPct:\s*answerGate\.ok\s*\?/);
+  assert.match(decision, /decisionReadiness:\s*answerGate\.ok\s*&&\s*answers\.length/);
+  assert.match(integrity, /Restore complete answer evidence/);
   assert.match(page, /loadSafeWeeklyIntelligence/);
   assert.match(page, /intelligence\.previous/);
   assert.match(page, /exactComparablePair/);
@@ -100,6 +109,13 @@ test("question evidence yield keeps edited prompt text as a separate measurement
   const questionPerformance = integrity.slice(start);
   assert.match(questionPerformance, /prompt_key,prompt_text/);
   assert.match(questionPerformance, /JSON\.stringify\(\[row\.prompt_key,\s*row\.prompt_text/);
+  assert.match(questionPerformance, /project_id=eq\.\$\{context\.projectId\}/);
+  assert.match(questionPerformance, /status=in\.\(complete,partial\)/);
+  assert.match(questionPerformance, /MAX_COMPLETE_RUN_HISTORY_RUNS \+ 1/);
+  assert.match(questionPerformance, /run_id=in\.\(\$\{runIds\.join/);
+  assert.match(questionPerformance, /review_status=eq\.verified/);
+  assert.match(questionPerformance, /assessCompleteRunHistory\(historyRunRows, rows\)/);
+  assert.match(questionPerformance, /MAX_COMPLETE_RUN_HISTORY_ANSWERS/);
 });
 
 test("Outcome Ledger never treats a pending-review run as a finalized baseline", async () => {

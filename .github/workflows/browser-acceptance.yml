@@ -133,10 +133,38 @@ jobs:
 
           export FOREMENTION_BROWSER_BASE_URL=http://127.0.0.1:4173
 
+          # Avoid carrying cumulative browser-session workload from the
+          # 48-observation public acceptance suite into unrelated zoom and
+          # canonical-brand acceptance. After EACH suite, assert the same
+          # first-attempt Worker remained healthy; a crash is a real failure,
+          # never hidden by restarting or converting a diagnostic repeat.
+          assert_worker_healthy() {
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "Local Worker process exited during an acceptance suite." >&2
+              exit 1
+            fi
+            # This job intentionally runs PUBLIC-only browser tests, without
+            # disposable local Supabase. /api/health requires both Supabase and
+            # D1 and deliberately returns HTTP 503 when those are not wired:
+            # it is NOT a valid liveness probe in this job. Reuse the exact
+            # root-page probe that start_worker() uses. A failed first probe
+            # is a real test failure: never retry or restart to mask it.
+            if ! curl --fail --silent --show-error --max-time 4 \
+                http://127.0.0.1:4173/ >/dev/null; then
+              echo "Local Worker stopped serving the public route after an acceptance suite." >&2
+              exit 1
+            fi
+          }
+
           start_worker
           node scripts/browser-acceptance.mjs
+          assert_worker_healthy
+          start_worker
           node scripts/browser-zoom-reflow.mjs
+          assert_worker_healthy
+          start_worker
           node scripts/canonical-brand-visual-proof.mjs
+          assert_worker_healthy
           stop_worker
 
           chrome="$(command -v google-chrome || command -v google-chrome-stable || true)"

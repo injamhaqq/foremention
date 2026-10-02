@@ -32,6 +32,7 @@ type ExistingRunRow = { id: string; status: string; estimated_max_cost_usd: numb
 type PreparedRun = {
   runId: string;
   organizationId: string;
+  projectId: string;
   scheduleId: string;
   scheduledFor: string;
   nextRunAt: string;
@@ -84,7 +85,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   const [operatorRows, entitlementRows, existingRuns] = await Promise.all([
     supabaseRest<OperatorRow[]>(`organization_members?select=role&organization_id=eq.${schedule.organization_id}&user_id=eq.${schedule.created_by}&limit=1`, { serviceRole: true }),
     supabaseRest<EntitlementRow[]>(`organization_entitlements?select=status,expires_at&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
-    supabaseRest<ExistingRunRow[]>(`runs?select=id,status,estimated_max_cost_usd,requested_units&organization_id=eq.${schedule.organization_id}&idempotency_key=eq.${encodeURIComponent(key)}&limit=1`, { serviceRole: true }),
+    supabaseRest<ExistingRunRow[]>(`runs?select=id,status,estimated_max_cost_usd,requested_units&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&idempotency_key=eq.${encodeURIComponent(key)}&limit=1`, { serviceRole: true }),
   ]);
   const operator = operatorRows[0];
   const entitlement = entitlementRows[0];
@@ -103,6 +104,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
       return {
         runId: existing.id,
         organizationId: schedule.organization_id,
+        projectId: schedule.project_id,
         scheduleId: schedule.id,
         scheduledFor: schedule.next_run_at,
         nextRunAt,
@@ -122,7 +124,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
 
   const promptFilter = schedule.question_ids.map((id) => `"${id.replace(/"/g, "")}"`).join(",");
   const prompts = await supabaseRest<PromptRow[]>(
-    `prompts?select=id,prompt_key,prompt_text,locale,market&organization_id=eq.${schedule.organization_id}&active=eq.true&id=in.(${encodeURIComponent(promptFilter)})`,
+    `prompts?select=id,prompt_key,prompt_text,locale,market&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&active=eq.true&id=in.(${encodeURIComponent(promptFilter)})`,
     { serviceRole: true },
   );
   if (prompts.length !== schedule.question_ids.length) return null;
@@ -193,6 +195,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     return {
       runId,
       organizationId: schedule.organization_id,
+      projectId: schedule.project_id,
       scheduleId: schedule.id,
       scheduledFor: schedule.next_run_at,
       nextRunAt,
@@ -236,7 +239,7 @@ export const dispatchMeasurementSchedules = inngest.createFunction(
       // patch needs a retry, the deterministic run/event ids recover without a
       // second provider call.
       await step.run(`advance-measurement-schedule-${data.scheduleId}-${data.runId}`, () =>
-        supabaseRest(`measurement_schedules?id=eq.${data.scheduleId}&organization_id=eq.${data.organizationId}&next_run_at=eq.${encodeURIComponent(data.scheduledFor)}`, {
+        supabaseRest(`measurement_schedules?id=eq.${data.scheduleId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&next_run_at=eq.${encodeURIComponent(data.scheduledFor)}`, {
           method: "PATCH", serviceRole: true, prefer: "return=minimal",
           body: { last_run_at: data.scheduledFor, last_run_id: data.runId, next_run_at: data.nextRunAt },
         }),

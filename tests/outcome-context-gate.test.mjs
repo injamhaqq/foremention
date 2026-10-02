@@ -18,7 +18,9 @@ const answer = (run_id, overrides={}) => ({
   provider:"cloudflare", model:"model-id-pinned", measurement_context_json:{...context}, ...overrides,
 });
 const followUp = {id:"followup-1", resolution_asset_id:"asset-1", baseline_run_id:"base", rerun_id:"later", status:"complete",
-  requested_at:"2026-09-02T00:00:00Z", completed_at:"2026-09-08T00:00:00Z", outcome:{}, limitation:"Observed association only." };
+  // A real database follow-up can be requested only after the asset is applied
+  // (this file's applied fixture is dated 5 September); 2 September was never valid.
+  requested_at:"2026-09-06T00:00:00Z", completed_at:"2026-09-08T00:00:00Z", outcome:{}, limitation:"Observed association only." };
 const evaluate = (options={}) => evaluateFollowUpContextParity({
   followUps:[followUp], runs:[base,later], verifiedAnswers:[answer("base"),answer("later")], ...options,
 }).get(followUp.id);
@@ -110,6 +112,41 @@ test("record rendering withholds even previously stored directional outcomes on 
   const mismatchedAsset=build(new Map([[followUp.id,{comparable:true,reason:null}]]),{...asset,baseline_run_id:"different"});
   assert.equal(mismatchedAsset.comparisonEligible,false);
   assert.match(mismatchedAsset.limitation,/does not match this resolution asset/);
+});
+
+test("a more recent complete but context-ineligible follow-up must not inherit an older eligible outcome", () => {
+  const owned = {
+    id:"asset-latest",opportunity_id:"opp-latest",source_id:"source-latest",
+    baseline_run_id:"base",asset_type:"comparison_brief",title:"Fixture intervention",
+    problem_statement:"Synthetic observation",status:"applied",review_decision:"approved",
+    created_at:"2026-09-01T00:00:00Z",updated_at:"2026-09-05T00:00:00Z",
+    submitted_at:"2026-09-02T00:00:00Z",approved_at:"2026-09-03T00:00:00Z",
+    decision_at:"2026-09-03T00:00:00Z",approval_note:"Approved",applied_at:"2026-09-05T00:00:00Z",
+    application_reference:"synthetic-local-ticket",change_specification_id:"change-latest",
+  };
+  const first={...followUp,id:"followup-first",resolution_asset_id:owned.id};
+  const changed={...later,id:"later-drift",completed_at:"2026-09-15T00:00:00Z"};
+  const newest={...first,id:"followup-drift",rerun_id:changed.id,requested_at:"2026-09-10T00:00:00Z",
+    completed_at:"2026-09-15T00:00:00Z"};
+  const parity=evaluateFollowUpContextParity({
+    followUps:[first,newest],runs:[base,later,changed],
+    verifiedAnswers:[answer("base"),answer("later"),
+      answer("later-drift",{measurement_context_json:{...context,evaluationVersion:"drift-v2"}})],
+  });
+  assert.equal(parity.get(first.id)?.comparable,true);
+  assert.equal(parity.get(newest.id)?.comparable,false);
+  const [record]=buildOutcomeLedger({
+    assets:[owned],evidence:[{id:"evidence-1",resolution_asset_id:owned.id,
+      evidence_snapshot:{verification:"verified"},created_at:"2026-09-02T00:00:00Z"}],
+    opportunities:[{id:"opp-latest",owner_id:"local-owner",updated_at:"2026-09-03T00:00:00Z"}],
+    followUps:[first,newest],runs:[base,later,changed],contextParityByFollowUp:parity,
+  });
+  assert.equal(record.measurementStatus,"complete");
+  assert.equal(record.comparisonEligible,false);
+  assert.equal(record.comparison,null);
+  assert.equal(record.outcomeState,"incomparable");
+  assert.equal(buildDecisionEvidenceSummary([record]).completeDecisionChains,0);
+  assert.equal(buildBusinessValueReport([record]).higherObserved,0);
 });
 
 test("the user-visible page and board export use the scoped independent parity gate", async () => {

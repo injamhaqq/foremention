@@ -141,7 +141,10 @@ test("live source inspection remains tenant-scoped, role-checked, origin-guarded
   assert.match(route, /!role \|\| role === "viewer"/);
   assert.match(route, /created_at=gte\.\$\{recentWindow\}/);
   assert.match(route, /retry-after/);
-  assert.match(route, /source_map_entries\?select=id,source_id[\s\S]*organization_id=eq\.\$\{context\.organizationId\}/);
+  assert.match(route, /loadProjectSourceMapEntryRef\(\{/);
+  assert.match(route, /projectId: context\.projectId/);
+  assert.match(route, /categoryId: context\.categoryId/);
+  assert.match(route, /Source record not found in the active project/);
   assert.match(route, /sources\?select=id,canonical_url[\s\S]*organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(route, /includePageText: true/);
   assert.match(route, /persistSourceSnapshot/);

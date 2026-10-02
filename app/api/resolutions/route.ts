@@ -237,14 +237,48 @@ async function loadAsset(viewer: Viewer, context: WorkspaceContext, id: string) 
   return rows[0] || null;
 }
 
-export async function GET() {
+function isolatedResolutionReadStage(stage: "entry" | "viewer" | "workspace" | "loaded" | "catch", finalProbe = false, postReviewProbe = false) {
+  // Fixed-label observation only. Probe headers are ignored unless local CI
+  // explicitly enables diagnostics; no tokens or tenant data are logged.
+  if (process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1") {
+    const label = finalProbe ? "isolated-final-resolution-read-stage"
+      : postReviewProbe ? "isolated-post-review-resolution-read-stage" : "isolated-resolution-read-stage";
+    console.info(label, stage);
+  }
+}
+
+export async function GET(request: Request) {
+  const diagnostics = process.env.FOREMENTION_ISOLATED_JOURNEY_DIAGNOSTICS === "1";
+  const finalProbe = diagnostics && request.headers.get("x-foremention-isolated-final-read") === "1";
+  const postReviewProbe = diagnostics && request.headers.get("x-foremention-isolated-post-review-read") === "1";
+  isolatedResolutionReadStage("entry", finalProbe, postReviewProbe);
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  isolatedResolutionReadStage("viewer", finalProbe, postReviewProbe);
   if (viewer.mode === "demo") return NextResponse.json({ data: { resolutions: [] }, mode: "demo" });
-  const { context } = await resolveWorkspace(viewer);
-  if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  try { return NextResponse.json({ data: { resolutions: await loadResolutionRecords(viewer, context) } }); }
-  catch (error) { if (isMissingRelationError(error)) return pendingMigrationResponse(); throw error; }
+  try {
+    // Workspace resolution can itself issue authenticated PostgREST reads.
+    // Keep it inside this category-only catch, so the isolated test can
+    // distinguish local JWT validation failure from resolution aggregation.
+    const { context } = await resolveWorkspace(viewer);
+    if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+    isolatedResolutionReadStage("workspace", finalProbe, postReviewProbe);
+    const records = await loadResolutionRecords(viewer, context);
+    isolatedResolutionReadStage("loaded", finalProbe, postReviewProbe);
+    return NextResponse.json({ data: { resolutions: records } });
+  } catch (error) {
+    isolatedResolutionReadStage("catch", finalProbe, postReviewProbe);
+    if (isMissingRelationError(error)) return pendingMigrationResponse();
+    // Only categorize server-side failure; never log evidence excerpts,
+    // Supabase credentials, source URLs, queries or user identifiers.
+    console.warn("Resolution read failed", {
+      category: error instanceof SupabaseRequestError ? "database"
+        : error instanceof TypeError ? "type" : "other",
+      code: error instanceof SupabaseRequestError ? error.code || null : null,
+      status: error instanceof SupabaseRequestError ? error.status : null,
+    });
+    throw error;
+  }
 }
 
 async function handleCreate(request: Request) {
@@ -321,7 +355,7 @@ async function handleCreate(request: Request) {
       await supabaseRest(`resolution_assets?id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "DELETE", token: viewer.accessToken }).catch(() => undefined);
       throw error;
     }
-    await supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "resolution.generated", entity_type: "resolution_asset", entity_id: asset.id, after_state: { asset_type: assetType, opportunity_id: problem.id, evidence_count: evidence.length, baseline_run_id: baselineRunId, change_specification_id: changeSpecification.id } } }).catch(() => undefined);
+    await supabaseRest("audit_logs", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: "resolution.generated", entity_type: "resolution_asset", entity_id: asset.id, after_state: { asset_type: assetType, opportunity_id: problem.id, evidence_count: evidence.length, baseline_run_id: baselineRunId, change_specification_id: changeSpecification.id } } }).catch(() => undefined);
     const resolutions = await loadResolutionRecords(viewer, context);
     return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } }, { status: 201 });
   }
@@ -447,7 +481,7 @@ async function handleChange(request: Request) {
   } else return NextResponse.json({ error: "Choose update_draft, decision, or mark_applied." }, { status: 400 });
 
   await supabaseRest(`resolution_assets?id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: update });
-  await supabaseRest("audit_logs", { method: "POST", token: viewer.accessToken, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: `resolution.${action}`, entity_type: "resolution_asset", entity_id: asset.id, before_state: { status: asset.status, decision: asset.review_decision }, after_state: { action, ...update } } }).catch(() => undefined);
+  await supabaseRest("audit_logs", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { organization_id: context.organizationId, actor_id: viewer.id, action: `resolution.${action}`, entity_type: "resolution_asset", entity_id: asset.id, before_state: { status: asset.status, decision: asset.review_decision }, after_state: { action, ...update } } }).catch(() => undefined);
   const resolutions = await loadResolutionRecords(viewer, context);
   return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } });
 }

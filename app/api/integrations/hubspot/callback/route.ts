@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if (!viewer || viewer.mode === "demo") return NextResponse.redirect(new URL("/login?next=/app/settings", settings));
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   const url = new URL(request.url); const code = url.searchParams.get("code") || ""; const state = url.searchParams.get("state") || "";
-  if (!context || (role !== "owner" && role !== "admin") || !code || !await verifyHubSpotState(state, context.organizationId, viewer.id, process.env.HUBSPOT_OAUTH_STATE_SECRET || "")) {
+  if (!context || (role !== "owner" && role !== "admin") || !code || !await verifyHubSpotState(state, context.organizationId, context.projectId, viewer.id, process.env.HUBSPOT_OAUTH_STATE_SECRET || "")) {
     settings.searchParams.set("status", "invalid"); return NextResponse.redirect(settings);
   }
   try {

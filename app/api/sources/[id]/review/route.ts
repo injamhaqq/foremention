@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
+import { loadProjectSourceMapEntryRef } from "@/lib/project-source-map-scope";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { reviewedOpportunityBridge } from "@/lib/reviewed-opportunity";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -130,12 +131,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!context) return NextResponse.json({ error: "Complete onboarding before reviewing a source." }, { status: 409 });
   if (!role || role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
   const organizationId = context.organizationId;
-  const rows = await supabaseRest<Array<{ id: string; source_id: string; client_present: boolean; competitors_present: string[]; entry_route: string | null; feasibility: string; influence: string; analyst_note: string | null; reviewed_at: string | null; reviewed_by: string | null }>>(
-    `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note,reviewed_at,reviewed_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${organizationId}&limit=1`,
+  const scopedEntry = await loadProjectSourceMapEntryRef({
+    organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    entryId: id,
+    token: accessToken,
+  });
+  if (!scopedEntry) return NextResponse.json({ error: "Source record not found in the active project." }, { status: 404 });
+  const rows = await supabaseRest<Array<{ id: string; source_id: string; source_map_id: string; client_present: boolean; competitors_present: string[]; entry_route: string | null; feasibility: string; influence: string; analyst_note: string | null; reviewed_at: string | null; reviewed_by: string | null }>>(
+    `source_map_entries?select=id,source_id,source_map_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note,reviewed_at,reviewed_by&id=eq.${scopedEntry.id}&organization_id=eq.${organizationId}&source_map_id=eq.${scopedEntry.sourceMapId}&limit=1`,
     { token: accessToken },
   );
   const entry = rows[0];
-  if (!entry) return NextResponse.json({ error: "Source record not found in this workspace." }, { status: 404 });
+  if (!entry) return NextResponse.json({ error: "Source record not found in the active project." }, { status: 404 });
   const sourceRows = await supabaseRest<Array<{ id: string; canonical_url: string; page_title: string | null }>>(
     `sources?select=id,canonical_url,page_title&id=eq.${entry.source_id}&organization_id=eq.${organizationId}&limit=1`,
     { token: accessToken },
@@ -148,7 +157,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // automated crawler owns sources.crawler_access/crawler_checked_at. A review
   // records the reviewer's judgment on the reviewed entry and in the audit log
   // without rewriting the crawler's retrieval timestamp.
-  await supabaseRest(`source_map_entries?id=eq.${entry.id}&organization_id=eq.${organizationId}`, {
+  await supabaseRest(`source_map_entries?id=eq.${entry.id}&organization_id=eq.${organizationId}&source_map_id=eq.${entry.source_map_id}`, {
     method: "PATCH",
     token: accessToken,
     prefer: "return=minimal",
@@ -180,7 +189,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   await supabaseRest("audit_logs", {
     method: "POST",
-    token: accessToken,
+    // An authorized analyst may review a source but cannot INSERT into
+    // admin-only audit_logs under user RLS. The route already verified the
+    // JWT, analyst-or-higher membership and organization-scoped entry, then
+    // persisted the actual review using the caller's own access token.
+    // Use the server-held role only to record that exact derived audit fact.
+    serviceRole: true,
     prefer: "return=minimal",
     body: {
       organization_id: organizationId,

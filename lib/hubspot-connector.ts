@@ -1,5 +1,6 @@
 import { decryptIntegrationCredential, encryptIntegrationCredential } from "@/lib/integration-crypto";
 import { safeOperationalError } from "@/lib/collection-policy";
+import { loadProjectPlacementScope, placementBelongsToScope } from "@/lib/project-placement-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { createOAuthState, verifyOAuthState } from "@/lib/oauth-state";
 
@@ -7,15 +8,15 @@ const HUBSPOT_TOKEN_URL = "https://api.hubspot.com/oauth/2026-03/token";
 const HUBSPOT_API = "https://api.hubapi.com";
 
 type HubSpotTokens = { access_token: string; refresh_token: string; expires_in: number; scopes?: string[] };
-type IntegrationRow = { id: string; organization_id: string; status: string; configuration: Record<string, unknown> };
+type IntegrationRow = { id: string; organization_id: string; project_id?: string | null; status: string; configuration: Record<string, unknown> };
 type CredentialRow = { encrypted_access_token: string; encrypted_refresh_token: string };
 
-export async function createHubSpotState(organizationId: string, userId: string, secret: string) {
-  return createOAuthState("hubspot", organizationId, userId, secret);
+export async function createHubSpotState(organizationId: string, projectId: string, userId: string, secret: string) {
+  return createOAuthState("hubspot", organizationId, userId, secret, projectId);
 }
 
-export async function verifyHubSpotState(state: string, organizationId: string, userId: string, secret: string) {
-  return verifyOAuthState(state, "hubspot", organizationId, userId, secret);
+export async function verifyHubSpotState(state: string, organizationId: string, projectId: string, userId: string, secret: string) {
+  return verifyOAuthState(state, "hubspot", organizationId, userId, secret, projectId);
 }
 
 export function hubSpotOAuthReady() {
@@ -47,7 +48,7 @@ async function accessToken(integration: IntegrationRow) {
   if (Number.isFinite(expiresAt) && expiresAt > Date.now() + 60_000) return decryptIntegrationCredential(credential.encrypted_access_token, encryptionSecret);
   const refreshToken = await decryptIntegrationCredential(credential.encrypted_refresh_token, encryptionSecret);
   const tokens = await tokenRequest({ grant_type: "refresh_token", client_id: process.env.HUBSPOT_CLIENT_ID || "", client_secret: process.env.HUBSPOT_CLIENT_SECRET || "", refresh_token: refreshToken });
-  await saveHubSpotConnection(integration.organization_id, String(integration.configuration.project_id || ""), String(integration.configuration.connected_by || ""), tokens);
+  await saveHubSpotConnection(integration.organization_id, String(integration.project_id || integration.configuration.project_id || ""), String(integration.configuration.connected_by || ""), tokens);
   return tokens.access_token;
 }
 
@@ -57,13 +58,17 @@ async function hubSpotFetch<T>(path: string, token: string, init: RequestInit) {
   return await response.json() as T;
 }
 
-export async function deliverHubSpotCompletedAction(input: { organizationId: string; placementId: string; eventKey: string; stage: string; occurredAt: string }) {
+export async function deliverHubSpotCompletedAction(input: { organizationId: string; projectId: string; placementId: string; eventKey: string; stage: string; occurredAt: string }) {
   const existing = await supabaseRest<Array<{ id: string; status: string }>>(`integration_activity_deliveries?select=id,status&organization_id=eq.${input.organizationId}&provider=eq.hubspot&event_key=eq.${encodeURIComponent(input.eventKey)}&limit=1`, { serviceRole: true });
   if (existing[0]?.status === "delivered") return { status: "duplicate" as const };
-  const integrations = await supabaseRest<IntegrationRow[]>(`integrations?select=id,organization_id,status,configuration&organization_id=eq.${input.organizationId}&provider=eq.hubspot&status=eq.connected&limit=1`, { serviceRole: true });
+  const [integrations, scope] = await Promise.all([
+    supabaseRest<IntegrationRow[]>(`integrations?select=id,organization_id,project_id,status,configuration&organization_id=eq.${input.organizationId}&project_id=eq.${input.projectId}&provider=eq.hubspot&status=eq.connected&limit=1`, { serviceRole: true }),
+    loadProjectPlacementScope({ organizationId: input.organizationId, projectId: input.projectId, serviceRole: true }),
+  ]);
   const integration = integrations[0]; if (!integration) return { status: "not_connected" as const };
-  const placements = await supabaseRest<Array<{ source_url: string; page_title: string | null; entry_route: string }>>(`placements?select=source_url,page_title,entry_route&id=eq.${input.placementId}&organization_id=eq.${input.organizationId}&limit=1`, { serviceRole: true });
-  const placement = placements[0]; if (!placement) return { status: "missing_action" as const };
+  if (!scope) return { status: "missing_action" as const };
+  const placements = await supabaseRest<Array<{ source_url: string; page_title: string | null; entry_route: string; target_prompt_ids: string[] | null; baseline_run_id: string | null; remeasurement_run_id: string | null }>>(`placements?select=source_url,page_title,entry_route,target_prompt_ids,baseline_run_id,remeasurement_run_id&id=eq.${input.placementId}&organization_id=eq.${input.organizationId}&limit=1`, { serviceRole: true });
+  const placement = placements[0]; if (!placement || !placementBelongsToScope(placement, scope)) return { status: "missing_action" as const };
   const token = await accessToken(integration);
   try {
     const result = await hubSpotFetch<{ id: string }>("/crm/v3/objects/notes", token, { method: "POST", body: JSON.stringify({ properties: { hs_timestamp: input.occurredAt, hs_note_body: `Foremention action completed\nStage: ${input.stage.replaceAll("_", " ")}\nRoute: ${placement.entry_route}\nSource: ${placement.page_title || placement.source_url}\nEvidence URL: ${placement.source_url}` } }) });

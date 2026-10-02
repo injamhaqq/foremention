@@ -27,21 +27,27 @@ async function notionRequest(path: string, token: string, init: RequestInit) {
   return await response.json() as { id: string; url?: string };
 }
 
-export async function exportWeeklyDigestToNotion(organizationId: string, weekKey: string) {
-  const rows = await supabaseRest<Integration[]>(`integrations?select=id,organization_id,project_id,configuration&organization_id=eq.${organizationId}&provider=eq.notion&status=eq.connected&limit=1`, { serviceRole: true });
+export async function exportWeeklyDigestToNotion(organizationId: string, projectId: string, weekKey: string) {
+  const rows = await supabaseRest<Integration[]>(`integrations?select=id,organization_id,project_id,configuration&organization_id=eq.${organizationId}&project_id=eq.${projectId}&provider=eq.notion&status=eq.connected&limit=1`, { serviceRole: true });
   const integration = rows[0]; const parentPageId = String(integration?.configuration?.parent_page_id || "");
   if (!integration || !parentPageId) return { status: "not_configured" as const };
-  const eventKey = `notion.weekly_digest:${weekKey}`;
+  const eventKey = `notion.weekly_digest:${projectId}:${weekKey}`;
   const delivered = await supabaseRest<Array<{ external_id: string | null }>>(`integration_activity_deliveries?select=external_id&organization_id=eq.${organizationId}&provider=eq.notion&event_key=eq.${encodeURIComponent(eventKey)}&status=eq.delivered&limit=1`, { serviceRole: true });
   if (delivered[0]) return { status: "duplicate" as const, externalId: delivered[0].external_id };
   const credentials = await supabaseRest<Array<{ encrypted_access_token: string }>>(`integration_credentials?select=encrypted_access_token&integration_id=eq.${integration.id}&limit=1`, { serviceRole: true });
   if (!credentials[0]) return { status: "not_configured" as const };
   const token = await decryptIntegrationCredential(credentials[0].encrypted_access_token, process.env.INTEGRATION_ENCRYPTION_KEY || "");
-  const [organization, runs, sources] = await Promise.all([
+  const [organization, runs, maps] = await Promise.all([
     supabaseRest<Array<{ name: string }>>(`organizations?select=name&id=eq.${organizationId}&limit=1`, { serviceRole: true }),
-    supabaseRest<Array<{ id: string; status: string; answer_count: number; citation_count: number; created_at: string }>>(`runs?select=id,status,answer_count,citation_count,created_at&organization_id=eq.${organizationId}&status=in.(review,complete,partial)&order=created_at.desc&limit=1`, { serviceRole: true }),
-    supabaseRest<Array<{ page_title: string | null; canonical_url: string }>>(`sources?select=page_title,canonical_url&organization_id=eq.${organizationId}&order=updated_at.desc&limit=10`, { serviceRole: true }),
+    supabaseRest<Array<{ id: string; status: string; answer_count: number; citation_count: number; created_at: string }>>(`runs?select=id,status,answer_count,citation_count,created_at&organization_id=eq.${organizationId}&project_id=eq.${projectId}&status=in.(review,complete,partial)&order=created_at.desc&limit=1`, { serviceRole: true }),
+    supabaseRest<Array<{ id: string }>>(`source_maps?select=id,run:runs!inner(project_id)&organization_id=eq.${organizationId}&run.project_id=eq.${projectId}&order=created_at.desc&limit=1`, { serviceRole: true }),
   ]);
+  const sources = maps[0]
+    ? await supabaseRest<Array<{ source: { page_title: string | null; canonical_url: string } | null }>>(
+      `source_map_entries?select=source:sources(page_title,canonical_url)&organization_id=eq.${organizationId}&source_map_id=eq.${maps[0].id}&limit=10`,
+      { serviceRole: true },
+    ).then((entries) => entries.flatMap((entry) => entry.source ? [entry.source] : []))
+    : [];
   const run = runs[0]; const rich = (content: string) => [{ type: "text", text: { content: content.slice(0, 1900) } }];
   const page = await notionRequest("/pages", token, { method: "POST", body: JSON.stringify({ parent: { page_id: parentPageId }, properties: { title: { type: "title", title: rich(`Foremention weekly digest · ${weekKey}`) } }, children: [
     { object: "block", type: "paragraph", paragraph: { rich_text: rich(`${organization[0]?.name || "Workspace"}: ${run ? `${run.answer_count} answers and ${run.citation_count} provider-returned citations in the latest recorded run.` : "No completed run was available."}`) } },

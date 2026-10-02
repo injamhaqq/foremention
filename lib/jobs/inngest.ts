@@ -896,7 +896,7 @@ export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
       const prepared = await step.run(`prepare-weekly-${seed.organization_id}`, () => prepareWeeklyRun(seed, weekKey));
       if (prepared) queued.push(prepared);
       await step.run(`email-weekly-digest-${seed.organization_id}`, () => sendWeeklyDigest(seed, weekKey, Boolean(prepared)));
-      await step.run(`notion-weekly-digest-${seed.organization_id}`, () => exportWeeklyDigestToNotion(seed.organization_id, weekKey));
+      await step.run(`notion-weekly-digest-${seed.organization_id}`, () => exportWeeklyDigestToNotion(seed.organization_id, seed.project_id, weekKey));
     }
     if (queued.length) {
       await step.sendEvent("queue-weekly-runs", queued.map((data) => ({
@@ -916,5 +916,5 @@ export const deliverWorkspaceWebhookEvents = inngest.createFunction(
 
 export const deliverHubSpotActionEvents = inngest.createFunction(
   { id: "deliver-hubspot-action-events", retries: 3, triggers: { event: "foremention/integration.hubspot-action" } },
-  async ({ event, step }) => step.run("write-hubspot-activity", () => deliverHubSpotCompletedAction(event.data as { organizationId: string; placementId: string; eventKey: string; stage: string; occurredAt: string })),
+  async ({ event, step }) => step.run("write-hubspot-activity", () => deliverHubSpotCompletedAction(event.data as { organizationId: string; projectId: string; placementId: string; eventKey: string; stage: string; occurredAt: string })),
 );

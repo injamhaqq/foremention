@@ -59,7 +59,11 @@ test("safe intelligence uses tenant-scoped verified answers and full measurement
   assert.match(safe, /organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(safe, /review_status=eq\.verified/);
   assert.match(safe, /measurement_context_json/);
-  assert.match(safe, /assessExactQuestionComparability/);
+  assert.match(safe, /validPairedRunAnswerBudget/);
+  assert.match(safe, /assessCompleteVerifiedRunPair/);
+  assert.match(safe, /answer_count/);
+  assert.equal(safe.includes("project_id=eq.${context.projectId}"),true);
+  assert.equal(safe.includes("assessExactQuestionComparability(intelligence.latest.id"),false);
   assert.match(safe, /previous: null/);
   assert.match(safe, /Cross-collection movement withheld/);
   assert.match(safe, /locale.*market|market.*locale/is);
@@ -78,4 +82,47 @@ test("all customer intelligence surfaces use the final exact-question safety gat
   }
   assert.match(analytics, /exact persisted buyer-question text.*provider.*model.*methodology/is);
   assert.match(page, /exact persisted buyer-question text.*provider.*model.*methodology.*measurement context/is);
+});
+
+test("one collection cannot manufacture its own exact-comparable second cycle",()=>{
+  assert.match(assessExactQuestionComparability("latest","latest",[pair[0]]).reason || "",/two distinct/i);
+  assert.equal(assessExactQuestionComparability("","previous",pair).comparable,false);
+  assert.equal(assessExactQuestionComparability("latest","",pair).comparable,false);
+  assert.equal(assessExactQuestionComparability("latest","previous",pair).comparable,true);
+});
+
+
+test("two equally blank provider or question keys must never count as exact measurement provenance",()=>{
+  const missingProviders=pair.map(slot=>({...slot,provider:"  "}));
+  const missingKeys=pair.map(slot=>({...slot,promptKey:""}));
+  assert.match(assessExactQuestionComparability("latest","previous",missingProviders).reason||"",/provider provenance/i);
+  assert.match(assessExactQuestionComparability("latest","previous",missingKeys).reason||"",/question identity/i);
+  assert.equal(assessExactQuestionComparability("latest","previous",pair).comparable,true);
+});
+
+test("the shared all-surface comparator rejects matching duplicate observations rather than manufacturing a second cycle",()=>{
+  const duplicate=[...pair,{...pair[0]},{...pair[1]}];
+  const result=assessExactQuestionComparability("latest","previous",duplicate);
+  assert.equal(result.comparable,false);
+  assert.match(result.reason||"",/Duplicate/i);
+  const leftOnly=[...pair,{...pair[0]}];
+  assert.equal(assessExactQuestionComparability("latest","previous",leftOnly).comparable,false);
+  const alternative=[
+    pair[0],pair[1],
+    {...pair[0],promptKey:"q2",promptText:"Which independent verification workflow fits?"},
+    {...pair[1],promptKey:"q2",promptText:"Which independent verification workflow fits?"},
+  ];
+  assert.equal(assessExactQuestionComparability("latest","previous",alternative).comparable,true,
+    "two genuinely different but matching per-question slots are not duplicates");
+});
+
+test("weekly reports withhold an incomplete matching subset or wrong-project pair",async()=>{
+  const safe=await text("lib/safe-intelligence.ts");
+  assert.equal(safe.includes("runs?select=id,answer_count,status,methodology_version"),true);
+  assert.equal(safe.includes("project_id=eq.${context.projectId}"),true);
+  assert.equal(safe.includes("status=in.(complete,partial)"),true);
+  assert.equal(safe.includes("const budget = validPairedRunAnswerBudget(previous, latest)"),true);
+  assert.equal(safe.includes("assessCompleteVerifiedRunPair(previous, latest, rows)"),true);
+  assert.equal(safe.includes("withholdUnsafePair(intelligence"),true);
+  assert.equal(safe.includes("serviceRole: true"),false);
 });
