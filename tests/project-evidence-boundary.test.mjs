@@ -4,21 +4,21 @@ import test from "node:test";
 
 const text = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("legacy Source Map and evidence-context loaders prove active-project ownership", async () => {
-  const data = await text("lib/data.ts");
+test("legacy Source Map and evidence-context loaders use the canonical active-project scope", async () => {
+  const [data, scope] = await Promise.all([
+    text("lib/data.ts"),
+    text("lib/project-source-map-scope.ts"),
+  ]);
 
+  assert.match(data, /loadLatestProjectSourceMapRef\(\{/);
+  assert.match(data, /organizationId: context\.organizationId/);
+  assert.match(data, /projectId: context\.projectId/);
   assert.match(
-    data,
-    /source_maps\?select=id,run:runs!inner\(project_id\)&organization_id=eq\.\$\{context\.organizationId\}&run\.project_id=eq\.\$\{context\.projectId\}&status=eq\.published/,
+    scope,
+    /source_maps\?select=id,run_id,run:runs!inner\(project_id\)[^\n]+run\.project_id=eq\.\$\{encoded\(input\.projectId\)\}/,
   );
-  assert.match(
-    data,
-    /source_map_entries\?select=[^\n]+&organization_id=eq\.\$\{context\.organizationId\}&source_map_id=eq\.\$\{maps\[0\]\.id\}/,
-  );
-  assert.match(
-    data,
-    /run_answers\?select=id,prompt_key,prompt_text,provider,model,answer_text,run:runs!inner\(project_id\)&organization_id=eq\.\$\{context\.organizationId\}&run\.project_id=eq\.\$\{context\.projectId\}/,
-  );
+  assert.match(data, /run_id=eq\.\$\{map\.runId\}&review_status=eq\.verified/);
+  assert.match(data, /run_answer_id=in\.\(\$\{answerIds\.join\(","\)\}\)/);
 });
 
 test("question performance and decision signal aggregate only active-project runs", async () => {
@@ -48,18 +48,18 @@ test("reviewed change notifications never select a sibling project's current or 
   );
 });
 
-test("weekly intelligence and truthful Source Maps bind maps through their persisted run project", async () => {
+test("weekly intelligence and truthful Source Maps use the canonical project-owned map helper", async () => {
   const [intelligence, evidence] = await Promise.all([
     text("lib/intelligence-loop.ts"),
     text("lib/evidence-integrity-data.ts"),
   ]);
 
-  assert.match(
+  for (const source of [intelligence, evidence]) {
+    assert.match(source, /loadLatestProjectSourceMapRef\(\{/);
+    assert.match(source, /projectId: context\.projectId/);
+  }
+  assert.doesNotMatch(
     intelligence,
-    /source_maps\?select=id,run:runs!inner\(project_id\)&organization_id=eq\.\$\{context\.organizationId\}&category_id=eq\.\$\{context\.categoryId\}&run\.project_id=eq\.\$\{context\.projectId\}/,
-  );
-  assert.match(
-    evidence,
-    /source_maps\?select=id,run_id,run:runs!inner\(project_id\)&organization_id=eq\.\$\{context\.organizationId\}&category_id=eq\.\$\{context\.categoryId\}&run\.project_id=eq\.\$\{context\.projectId\}\$\{runFilter\}/,
+    /source_maps\?select=id&organization_id=eq\.\$\{context\.organizationId\}&category_id=/,
   );
 });
