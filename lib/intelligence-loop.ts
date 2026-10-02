@@ -576,7 +576,7 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
       { token: viewer.accessToken },
     ),
     supabaseRest<Array<{ id: string }>>(
-      `source_maps?select=id&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}&status=eq.published&order=created_at.desc&limit=1`,
+      `source_maps?select=id,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}&run.project_id=eq.${context.projectId}&status=eq.published&order=created_at.desc&limit=1`,
       { token: viewer.accessToken },
     ),
     supabaseRest<EvidenceRow[]>(

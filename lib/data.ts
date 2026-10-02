@@ -294,10 +294,13 @@ export async function getPrimaryWorkspaceRole(viewer: Viewer): Promise<Workspace
 
 export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
   if (viewer.mode === "demo") return sourceMapEntries;
-  const organizationId = await getPrimaryOrganizationId(viewer); if (!organizationId) return [];
-  const maps = await supabaseRest<Array<{ id: string }>>(`source_maps?select=id&organization_id=eq.${organizationId}&status=eq.published&order=created_at.desc&limit=1`, { token: viewer.accessToken });
+  const context = await loadWorkspaceContext(viewer); if (!context) return [];
+  const maps = await supabaseRest<Array<{ id: string }>>(
+    `source_maps?select=id,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&status=eq.published&order=created_at.desc&limit=1`,
+    { token: viewer.accessToken },
+  );
   if (!maps[0]) return [];
-  const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&order=rank.asc`, { token: viewer.accessToken });
+  const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${maps[0].id}&order=rank.asc`, { token: viewer.accessToken });
   return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: sourceRoute(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
 }
 
@@ -311,8 +314,8 @@ export async function loadSourceEvidenceContexts(
   sourceIds: string[],
 ): Promise<Record<string, SourceEvidenceContext[]>> {
   if (viewer.mode === "demo" || !sourceIds.length) return {};
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return {};
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return {};
   const safeSourceIds = sourceIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
   if (!safeSourceIds.length) return {};
   const observations = await supabaseRest<Array<{
@@ -322,7 +325,7 @@ export async function loadSourceEvidenceContexts(
     citation_ordinal: number | null;
     observed_at: string;
   }>>(
-    `source_observations?select=source_id,run_answer_id,provider,citation_ordinal,observed_at&organization_id=eq.${organizationId}&source_id=in.(${safeSourceIds.join(",")})&review_status=eq.verified&order=observed_at.desc&limit=500`,
+    `source_observations?select=source_id,run_answer_id,provider,citation_ordinal,observed_at&organization_id=eq.${context.organizationId}&source_id=in.(${safeSourceIds.join(",")})&review_status=eq.verified&order=observed_at.desc&limit=500`,
     { token: viewer.accessToken },
   );
   const answerIds = Array.from(new Set(observations.flatMap((row) => row.run_answer_id ? [row.run_answer_id] : [])));
@@ -335,7 +338,7 @@ export async function loadSourceEvidenceContexts(
     model: string | null;
     answer_text: string;
   }>>(
-    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text&organization_id=eq.${organizationId}&id=in.(${answerIds.join(",")})&review_status=eq.verified`,
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&id=in.(${answerIds.join(",")})&review_status=eq.verified`,
     { token: viewer.accessToken },
   );
   const answerById = new Map(answers.map((answer) => [answer.id, answer]));
@@ -752,7 +755,7 @@ export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionP
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
   const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null }>>(
-    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json&organization_id=eq.${context.organizationId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
+    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
     { token: viewer.accessToken },
   );
   const groups = new Map<string, typeof rows>();
@@ -817,17 +820,17 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
     return { ...base, actions: buildDecisionActions(base) };
   }
 
-  const organizationId = await getPrimaryOrganizationId(viewer);
+  const context = await loadWorkspaceContext(viewer);
   const empty: Omit<DecisionSignal, "actions"> = {
     reviewedRuns: 0, latestRunId: null, latestRunDate: null, providerCount: 0, promptCount: 0, answerCount: 0,
     answerCompletionPct: null, recommendationConsensusPct: null, presenceRange: null, presenceDelta: null,
     sourceReviewPct: null, sourceDependencyPct: null, recurringSourcePct: null, evidenceObservations: 0, decisionReadiness: "insufficient",
   };
-  if (!organizationId) return { ...empty, actions: buildDecisionActions(empty) };
+  if (!context) return { ...empty, actions: buildDecisionActions(empty) };
 
   type DecisionRunRow = RunRow & { provider_ids: string[] };
   const [rows, sources] = await Promise.all([
-    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&status=in.(review,complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
+    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(review,complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
     loadSourceMap(viewer),
   ]);
   const latest = rows[0];
@@ -835,7 +838,7 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
 
   const runIds = rows.map((row) => row.id);
   const answerRows = await supabaseRest<Array<{ prompt_key: string; provider: string; brand_present: boolean | null; collected_at: string }>>(
-    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${organizationId}&run_id=in.(${runIds.join(",")})&order=collected_at.desc`,
+    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&order=collected_at.desc`,
     { token: viewer.accessToken },
   );
   const latestComparableAnswers = new Map<string, typeof answerRows[number]>();
