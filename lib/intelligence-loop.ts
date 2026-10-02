@@ -3,6 +3,7 @@ import { canonicalizeEvidenceUrl, roundUsd } from "@/lib/collection-policy";
 import { loadPlacements, loadWorkspaceContext } from "@/lib/data";
 import type { Placement } from "@/lib/types";
 import { demoRuns, sourceMapEntries } from "@/lib/demo-data";
+import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export type IntelligenceRun = {
@@ -575,10 +576,12 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
       `runs?select=id,provider_ids,methodology_version,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,actual_cost_usd,estimated_max_cost_usd,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=6`,
       { token: viewer.accessToken },
     ),
-    supabaseRest<Array<{ id: string }>>(
-      `source_maps?select=id,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}&run.project_id=eq.${context.projectId}&status=eq.published&order=created_at.desc&limit=1`,
-      { token: viewer.accessToken },
-    ),
+    loadLatestProjectSourceMapRef({
+      organizationId: context.organizationId,
+      projectId: context.projectId,
+      categoryId: context.categoryId,
+      token: viewer.accessToken,
+    }),
     supabaseRest<EvidenceRow[]>(
       `evidence_items?select=id,evidence_type,title,source_url,verification_status,verified_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=100`,
       { token: viewer.accessToken },
@@ -599,8 +602,8 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
       `ai_cost_events?select=run_id,estimated_cost_usd,cost_source,total_tokens&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&order=observed_at.desc&limit=500`,
       { token: viewer.accessToken },
     ) : Promise.resolve([]),
-    maps[0] ? supabaseRest<SourceEntryRow[]>(
-      `source_map_entries?select=id,source_id,citation_observations,engines,client_present,competitors_present,source:sources(domain,page_title,canonical_url,crawler_access,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${maps[0].id}&order=rank.asc&limit=250`,
+    maps ? supabaseRest<SourceEntryRow[]>(
+      `source_map_entries?select=id,source_id,citation_observations,engines,client_present,competitors_present,source:sources(domain,page_title,canonical_url,crawler_access,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${maps.id}&order=rank.asc&limit=250`,
       { token: viewer.accessToken },
     ) : Promise.resolve([]),
   ]);

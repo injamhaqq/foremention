@@ -9,6 +9,7 @@ import {
   type QuestionPerformance,
 } from "@/lib/data";
 import { sourceMapEntries } from "@/lib/demo-data";
+import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { assessCompleteCompetitorHistory, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
 import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS, MAX_COMPLETE_RUN_HISTORY_RUNS } from "@/lib/complete-run-evidence.mjs";
@@ -74,14 +75,16 @@ export async function loadTruthfulSourceMap(
   if (viewer.mode === "demo") return sourceMapEntries;
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const runFilter = options.runId ? `&run_id=eq.${encodeURIComponent(options.runId)}` : "";
-  const maps = await supabaseRest<Array<{ id: string; run_id: string | null }>>(
-    `source_maps?select=id,run_id,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}&run.project_id=eq.${context.projectId}${runFilter}&status=eq.published&order=created_at.desc&limit=1`,
-    { token: viewer.accessToken },
-  );
-  if (!maps[0]) return [];
+  const map = await loadLatestProjectSourceMapRef({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    runId: options.runId || null,
+    token: viewer.accessToken,
+  });
+  if (!map) return [];
   const rows = await supabaseRest<TruthfulSourceEntryRow[]>(
-    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,reviewed_at,reviewed_by,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&organization_id=eq.${context.organizationId}&order=rank.asc`,
+    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,reviewed_at,reviewed_by,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${map.id}&organization_id=eq.${context.organizationId}&order=rank.asc`,
     { token: viewer.accessToken },
   );
   return rows.filter((row) => row.source).map((row) => ({
