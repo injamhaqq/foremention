@@ -76,7 +76,7 @@ export async function loadTruthfulSourceMap(
   if (!context) return [];
   const runFilter = options.runId ? `&run_id=eq.${encodeURIComponent(options.runId)}` : "";
   const maps = await supabaseRest<Array<{ id: string; run_id: string | null }>>(
-    `source_maps?select=id,run_id&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}${runFilter}&status=eq.published&order=created_at.desc&limit=1`,
+    `source_maps?select=id,run_id,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}&run.project_id=eq.${context.projectId}${runFilter}&status=eq.published&order=created_at.desc&limit=1`,
     { token: viewer.accessToken },
   );
   if (!maps[0]) return [];
