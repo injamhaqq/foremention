@@ -35,7 +35,7 @@ export default async function DashboardPage() {
   const comparablePrevious = intelligence.previous;
   const [observedAnswers, sourceContexts, competitors] = await Promise.all([
     latest ? loadRunAnswers(viewer, latest.id) : Promise.resolve([]),
-    loadSourceEvidenceContexts(viewer, sources.flatMap((source) => source.sourceId ? [source.sourceId] : [])),
+    loadSourceEvidenceContexts(viewer, sources.flatMap((source) => source.sourceId ? [source.sourceId] : []), { runId: latest?.id || null }),
     loadWorkspaceCompetitors(viewer),
   ]);
   const latestAnswer = observedAnswers[0];
