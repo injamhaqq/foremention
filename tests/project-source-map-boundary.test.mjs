@@ -70,7 +70,11 @@ test("workspace search sources and reviewed gaps come from the truthful active-p
   assert.match(search, /attempt\("Opportunity", sourceMapPromise\)/);
   assert.doesNotMatch(search, /attempt\("Source", supabaseRest/);
   assert.doesNotMatch(search, /attempt\("Opportunity", supabaseRest/);
-  assert.match(search, /if \(!item\.reviewedAt \|\| item\.clientPresent\) return false/);
+  assert.match(search, /!item\.reviewedAt/);
+  assert.match(search, /item\.clientPresent/);
+  assert.match(search, /item\.influence === "unknown"/);
+  assert.match(search, /item\.feasibility === "unknown"/);
+  assert.match(search, /item\.route === "unknown"/);
 });
 
 test("reviewed change notifications select current and previous runs only inside the active project", async () => {
