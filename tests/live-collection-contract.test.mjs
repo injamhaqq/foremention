@@ -108,10 +108,11 @@ test("the server-only Supabase role can execute trusted background collection", 
 });
 
 test("observed citations auto-populate a truthful draft map while review remains explicit", async () => {
-  const [review, generator, loader] = await Promise.all([
+  const [review, generator, loader, sourceScope] = await Promise.all([
     text("app/api/runs/[id]/review/route.ts"),
     text("lib/source-map-generation.ts"),
     text("lib/data.ts"),
+    text("lib/project-source-map-scope.ts"),
   ]);
   assert.match(review, /run\.status !== "review"/);
   assert.match(review, /review_status: "verified"/);
@@ -123,7 +124,7 @@ test("observed citations auto-populate a truthful draft map while review remains
   assert.match(generator, /status: "published"/);
   assert.match(generator, /influence: "unknown"/);
   assert.match(generator, /feasibility: "unknown"/);
-  assert.match(loader, /status=eq\.published/);
+  assert.match(loader, /loadLatestProjectSourceMapRef/);\n  assert.match(sourceScope, /status=eq\.published/);\n  assert.match(sourceScope, /run\.project_id=eq\.\$\{encoded\(input\.projectId\)\}/);
 });
 
 test("source map retries do not downgrade an existing published map before a successful rebuild", async () => {
