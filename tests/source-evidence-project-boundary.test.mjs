@@ -34,6 +34,6 @@ test("source evidence excerpts cannot reuse sibling-project run answers", async 
   );
   assert.doesNotMatch(
     data,
-    /loadSourceEvidenceContexts[\s\S]+run_answers\?select=id,prompt_key,prompt_text,provider,model,answer_text&organization_id=eq\.\$\{organizationId\}/,
+    /run_answers\?select=id,prompt_key,prompt_text,provider,model,answer_text&organization_id=eq\.\$\{organizationId\}&id=in\.\(\$\{answerIds\.join\(","\)\}\)/,
   );
 });
