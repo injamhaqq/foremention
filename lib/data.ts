@@ -319,6 +319,7 @@ const excerpt = (value: string, limit = 240) => {
 export async function loadSourceEvidenceContexts(
   viewer: Viewer,
   sourceIds: string[],
+  options: { runId?: string | null } = {},
 ): Promise<Record<string, SourceEvidenceContext[]>> {
   if (viewer.mode === "demo" || !sourceIds.length) return {};
   const context = await loadWorkspaceContext(viewer);
@@ -329,6 +330,7 @@ export async function loadSourceEvidenceContexts(
     organizationId: context.organizationId,
     projectId: context.projectId,
     categoryId: context.categoryId,
+    runId: options.runId || null,
     token: viewer.accessToken,
   });
   if (!map) return {};
