@@ -28,7 +28,7 @@ test("global workspace search is tenant-scoped and covers all customer product a
   assert.match(search, /run:runs!inner\(project_id\)/);
   assert.match(search, /run\.project_id=eq\.\$\{context\.projectId\}/);
   assert.match(search, /review_status=eq\.verified/);
-  assert.match(search, /client_present=eq\.false/);
+  assert.match(search, /const sourceMapPromise = loadTruthfulSourceMap\(viewer\)/);\n  assert.match(search, /if \(!item\.reviewedAt \|\| item\.clientPresent\) return false/);\n  assert.doesNotMatch(search, /client_present=eq\.false/);
   assert.match(search, /failedKinds/);
   assert.doesNotMatch(search, /serviceRole: true/);
 });
