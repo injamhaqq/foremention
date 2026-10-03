@@ -1,13 +1,13 @@
 'use strict';
 
 const stringify = require('./stringify');
+const MAX_DEPTH = 100;
 
 /**
  * Constants
  */
 
 const {
-  MAX_DEPTH,
   MAX_LENGTH,
   CHAR_BACKSLASH, /* \ */
   CHAR_BACKTICK, /* ` */
@@ -36,7 +36,7 @@ const parse = (input, options = {}) => {
 
   const opts = options || {};
   const max = typeof opts.maxLength === 'number' ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH;
-  const maxDepth = Number.isFinite(opts.maxDepth) ? Math.min(MAX_DEPTH, opts.maxDepth) : MAX_DEPTH;
+  const maxDepth = Number.isFinite(opts.maxDepth) ? Math.max(0, Math.min(MAX_DEPTH, Math.floor(opts.maxDepth))) : MAX_DEPTH;
   if (input.length > max) {
     throw new SyntaxError(`Input length (${input.length}), exceeds max characters (${max})`);
   }
@@ -173,33 +173,25 @@ const parse = (input, options = {}) => {
      */
 
     if (value === CHAR_DOUBLE_QUOTE || value === CHAR_SINGLE_QUOTE || value === CHAR_BACKTICK) {
-      const leftQuote = value;
-      // Looking for the nearest unescaped quote of the same type.
-      // @todo Use negative lookbehind after targeting the node@8.10+
-      const hasRightQuote = input.slice(index).search(new RegExp(`[^\\\\]${leftQuote}|^${leftQuote}`)) !== -1;
-
+      const open = value;
       let next;
 
-      // If there is no right quote, consume an unpaired quote as a regular character.
-      if (hasRightQuote) {
-        if (options.keepQuotes !== true) {
-          value = '';
+      if (options.keepQuotes !== true) {
+        value = '';
+      }
+
+      while (index < length && (next = advance())) {
+        if (next === CHAR_BACKSLASH) {
+          value += next + advance();
+          continue;
         }
 
-        while (index <= length && (next = advance())) {
-          // Skip escaped quotes.
-          if (next === CHAR_BACKSLASH) {
-            value += next + advance();
-            continue;
-          }
-
-          if (next === leftQuote) {
-            if (options.keepQuotes === true) value += next;
-            break;
-          }
-
-          value += next;
+        if (next === open) {
+          if (options.keepQuotes === true) value += next;
+          break;
         }
+
+        value += next;
       }
 
       push({ type: 'text', value });
@@ -267,7 +259,6 @@ const parse = (input, options = {}) => {
         const open = block.nodes.shift();
         block.nodes = [open, { type: 'text', value: stringify(block) }];
       }
-      block.invalid = false;
 
       push({ type: 'comma', value });
       block.commas++;

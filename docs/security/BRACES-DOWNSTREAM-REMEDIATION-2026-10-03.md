@@ -43,3 +43,7 @@ No scanner waiver, OSV ignore, severity reduction, or release-gate bypass is par
 ## Generated lockfile proof
 
 The final scoped dependency graph was generated and frozen-install verified by temporary workflow run `37120114906` before that generator removed itself. The subsequent repository-authored checkpoint commit exists only to trigger Foremention's normal release workflows on the exact final candidate; it does not change runtime dependency resolution.
+
+## Compatibility correction
+
+The initial vendored candidate used the full current upstream PR branch, whose base also contains unrelated post-3.0.3 behavior changes. Focused Foremention regression tests detected one such change in stringify/escapeInvalid semantics. The downstream package is therefore derived from the published 3.0.3 runtime sources and applies only the bounded nesting-depth security changes, while retaining PR #72 and commit d0d575e55e74a4e0218e5248fafb79efc3e54ebb as the upstream security-design reference. This keeps the security bound while preserving published 3.0.3 behavior outside that bound.

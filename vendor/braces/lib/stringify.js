@@ -1,10 +1,10 @@
 'use strict';
 
 const utils = require('./utils');
-const { MAX_DEPTH } = require('./constants');
+const MAX_DEPTH = 100;
 
 module.exports = (ast, options = {}) => {
-  const maxDepth = Number.isFinite(options.maxDepth) ? Math.min(MAX_DEPTH, options.maxDepth) : MAX_DEPTH;
+  const maxDepth = Number.isFinite(options.maxDepth) ? Math.max(0, Math.min(MAX_DEPTH, Math.floor(options.maxDepth))) : MAX_DEPTH;
 
   const stringify = (node, parent = {}, depth = 0) => {
     if (node.nodes && depth > maxDepth) {
@@ -27,7 +27,7 @@ module.exports = (ast, options = {}) => {
 
     if (node.nodes) {
       for (const child of node.nodes) {
-        output += stringify(child, node, child.nodes ? depth + 1 : depth);
+        output += stringify(child, {}, child.nodes ? depth + 1 : depth);
       }
     }
     return output;
@@ -35,3 +35,4 @@ module.exports = (ast, options = {}) => {
 
   return stringify(ast, {}, ast.type === 'root' ? 0 : 1);
 };
+

@@ -2,10 +2,10 @@
 
 const fill = require('fill-range');
 const utils = require('./utils');
-const { MAX_DEPTH } = require('./constants');
+const MAX_DEPTH = 100;
 
 const compile = (ast, options = {}) => {
-  const maxDepth = Number.isFinite(options.maxDepth) ? Math.min(MAX_DEPTH, options.maxDepth) : MAX_DEPTH;
+  const maxDepth = Number.isFinite(options.maxDepth) ? Math.max(0, Math.min(MAX_DEPTH, Math.floor(options.maxDepth))) : MAX_DEPTH;
 
   const walk = (node, parent = {}, depth = 0) => {
     if (node.nodes && depth > maxDepth) {

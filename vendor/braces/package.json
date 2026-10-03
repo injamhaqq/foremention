@@ -27,9 +27,9 @@
     "upstreamRepository": "micromatch/braces",
     "upstreamSecurityPullRequest": 72,
     "upstreamSecurityCommit": "d0d575e55e74a4e0218e5248fafb79efc3e54ebb",
+    "derivation": "Published 3.0.3 runtime sources plus bounded nesting-depth changes only; unrelated post-3.0.3 upstream behavior changes are excluded.",
     "advisory": "GHSA-vfj7-8cjw-p6xm",
     "cve": "CVE-2026-93687",
-    "purpose": "Downstream vendored security build pending an official patched npm release.",
     "packageIdentity": "@foremention/braces"
   }
 }
