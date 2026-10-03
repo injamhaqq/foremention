@@ -34,24 +34,25 @@ test("downstream fork preserves provenance and removes the vulnerable package id
   assert.ok(lock.includes("micromatch: file:vendor/micromatch"));
   assert.ok(lock.includes("@foremention/braces"));
   assert.ok(!lock.includes("braces@3.0.3"));
-  assert.ok(!lock.includes("braces@file:vendor/braces"));
+  assert.ok(!/^  braces@/m.test(lock), "unscoped braces package identity must be absent");
+  assert.ok(!/^[ \t]+braces:/m.test(lock), "unscoped braces dependency identity must be absent");
 });
 
 test("forked braces preserves representative normal behavior", () => {
-  const braces = rootRequire(bracesRoot);
+  const braces = rootRequire("@foremention/braces");
   assert.equal(braces.compile("a/{b,c}/d"), "a/(b|c)/d");
   assert.deepEqual(braces.expand("a/{b,c}/d"), ["a/b/d", "a/c/d"]);
   assert.equal(braces.stringify(braces.parse("{{a}}"), { escapeInvalid: true }), "{{a}}");
 });
 
 test("forked micromatch consumes @foremention/braces and preserves brace matching", () => {
-  const micromatch = rootRequire(micromatchRoot);
+  const micromatch = rootRequire("@foremention/micromatch");
   assert.deepEqual(micromatch(["a.js","b.ts","c.md"], "*.{js,ts}"), ["a.js","b.ts"]);
   assert.deepEqual(micromatch.braceExpand("src/{a,b}.js"), ["src/a.js","src/b.js"]);
 });
 
 test("forked braces accepts the 100-level boundary and rejects level 101", () => {
-  const braces = rootRequire(bracesRoot);
+  const braces = rootRequire("@foremention/braces");
   const atLimit = "{".repeat(100) + "a,b" + "}".repeat(100);
   const overLimit = "{".repeat(101) + "a,b" + "}".repeat(101);
   assert.doesNotThrow(() => braces.parse(atLimit));
@@ -59,7 +60,7 @@ test("forked braces accepts the 100-level boundary and rejects level 101", () =>
 });
 
 test("forked braces guards caller-supplied deep ASTs", () => {
-  const braces = rootRequire(bracesRoot);
+  const braces = rootRequire("@foremention/braces");
   assert.throws(() => braces.compile(nestedAst(101)), /exceeds max depth/);
   assert.throws(() => braces.stringify(nestedAst(101)), /exceeds max depth/);
   assert.throws(() => braces.expand(nestedAst(101)), /exceeds max depth/);
