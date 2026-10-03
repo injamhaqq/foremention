@@ -41,7 +41,9 @@
         "typescript": "5.9.3",
         "vinext": "0.0.50",
         "vite": "8.2.0",
-        "wrangler": "4.114.0"
+        "wrangler": "4.114.0",
+        "@foremention/braces": "file:vendor/braces",
+        "@foremention/micromatch": "file:vendor/micromatch"
     },
     "type": "module"
 }
