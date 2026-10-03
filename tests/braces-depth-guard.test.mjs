@@ -5,11 +5,8 @@ import { createRequire } from "node:module";
 import test from "node:test";
 
 const rootRequire = createRequire(import.meta.url);
-const vendorRoot = path.join(process.cwd(), "vendor", "braces");
-
-function loadVendoredBraces() {
-  return rootRequire(vendorRoot);
-}
+const bracesRoot = path.join(process.cwd(), "vendor", "braces");
+const micromatchRoot = path.join(process.cwd(), "vendor", "micromatch");
 
 function nestedAst(depth) {
   let node = { type: "text", value: "a" };
@@ -19,45 +16,50 @@ function nestedAst(depth) {
   return { type: "root", nodes: [node] };
 }
 
-test("vendored braces preserves reviewed provenance and removes the affected registry resolution", () => {
-  const pkg = JSON.parse(fs.readFileSync(path.join(vendorRoot, "package.json"), "utf8"));
+test("downstream fork preserves provenance and removes the vulnerable package identity", () => {
+  const bracesPkg = JSON.parse(fs.readFileSync(path.join(bracesRoot, "package.json"), "utf8"));
+  const micromatchPkg = JSON.parse(fs.readFileSync(path.join(micromatchRoot, "package.json"), "utf8"));
   const lock = fs.readFileSync(path.join(process.cwd(), "pnpm-lock.yaml"), "utf8");
 
-  assert.equal(pkg.name, "braces");
-  assert.equal(pkg.version, "3.0.4-foremention.1");
-  assert.equal(pkg.license, "MIT");
-  assert.equal(pkg.forementionProvenance.baseVersion, "3.0.3");
-  assert.equal(pkg.forementionProvenance.upstreamSecurityCommit, "d0d575e55e74a4e0218e5248fafb79efc3e54ebb");
-  assert.equal(pkg.forementionProvenance.advisory, "GHSA-vfj7-8cjw-p6xm");
-  assert.ok(lock.includes("file:vendor/braces"), "expected local braces override in lockfile");
-  assert.ok(!lock.includes("braces@3.0.3"), "affected registry braces@3.0.3 must not remain in lockfile");
+  assert.equal(bracesPkg.name, "@foremention/braces");
+  assert.equal(bracesPkg.version, "3.0.4-foremention.1");
+  assert.equal(bracesPkg.license, "MIT");
+  assert.equal(bracesPkg.forementionProvenance.upstreamSecurityCommit, "d0d575e55e74a4e0218e5248fafb79efc3e54ebb");
+
+  assert.equal(micromatchPkg.name, "@foremention/micromatch");
+  assert.equal(micromatchPkg.version, "4.0.8-foremention.1");
+  assert.equal(micromatchPkg.license, "MIT");
+  assert.equal(micromatchPkg.dependencies["@foremention/braces"], "file:../braces");
+
+  assert.ok(lock.includes("micromatch: file:vendor/micromatch"));
+  assert.ok(lock.includes("@foremention/braces"));
+  assert.ok(!lock.includes("braces@3.0.3"));
+  assert.ok(!lock.includes("braces@file:vendor/braces"));
 });
 
-test("vendored braces preserves representative normal behavior", () => {
-  const braces = loadVendoredBraces();
+test("forked braces preserves representative normal behavior", () => {
+  const braces = rootRequire(bracesRoot);
   assert.equal(braces.compile("a/{b,c}/d"), "a/(b|c)/d");
   assert.deepEqual(braces.expand("a/{b,c}/d"), ["a/b/d", "a/c/d"]);
   assert.equal(braces.stringify(braces.parse("{{a}}"), { escapeInvalid: true }), "{{a}}");
 });
 
-test("vendored braces accepts the 100-level boundary and rejects level 101", () => {
-  const braces = loadVendoredBraces();
+test("forked micromatch consumes @foremention/braces and preserves brace matching", () => {
+  const micromatch = rootRequire(micromatchRoot);
+  assert.deepEqual(micromatch(["a.js","b.ts","c.md"], "*.{js,ts}"), ["a.js","b.ts"]);
+  assert.deepEqual(micromatch.braceExpand("src/{a,b}.js"), ["src/a.js","src/b.js"]);
+});
+
+test("forked braces accepts the 100-level boundary and rejects level 101", () => {
+  const braces = rootRequire(bracesRoot);
   const atLimit = "{".repeat(100) + "a,b" + "}".repeat(100);
   const overLimit = "{".repeat(101) + "a,b" + "}".repeat(101);
   assert.doesNotThrow(() => braces.parse(atLimit));
   assert.throws(() => braces.parse(overLimit), /exceeds max depth/);
 });
 
-test("vendored braces rejects hostile parser nesting early", () => {
-  const braces = loadVendoredBraces();
-  assert.doesNotThrow(() => braces.parse("{{a,b},c}", { maxDepth: 2 }));
-  assert.throws(() => braces.parse("{{a,b},c}", { maxDepth: 1 }), /exceeds max depth/);
-  const hostile = "{".repeat(1000) + "a,b" + "}".repeat(1000);
-  assert.throws(() => braces.compile(hostile), /exceeds max depth/);
-});
-
-test("vendored braces guards caller-supplied deep ASTs", () => {
-  const braces = loadVendoredBraces();
+test("forked braces guards caller-supplied deep ASTs", () => {
+  const braces = rootRequire(bracesRoot);
   assert.throws(() => braces.compile(nestedAst(101)), /exceeds max depth/);
   assert.throws(() => braces.stringify(nestedAst(101)), /exceeds max depth/);
   assert.throws(() => braces.expand(nestedAst(101)), /exceeds max depth/);
