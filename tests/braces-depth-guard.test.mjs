@@ -22,7 +22,7 @@ test("downstream fork preserves provenance and removes the vulnerable package id
   const lock = fs.readFileSync(path.join(process.cwd(), "pnpm-lock.yaml"), "utf8");
 
   assert.equal(bracesPkg.name, "@foremention/braces");
-  assert.equal(bracesPkg.version, "3.0.4-foremention.1");
+  assert.equal(bracesPkg.version, "3.0.3-foremention.1");
   assert.equal(bracesPkg.license, "MIT");
   assert.equal(bracesPkg.forementionProvenance.upstreamSecurityCommit, "d0d575e55e74a4e0218e5248fafb79efc3e54ebb");
 
