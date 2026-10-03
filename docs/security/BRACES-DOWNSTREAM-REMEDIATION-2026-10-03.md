@@ -39,3 +39,7 @@ No scanner waiver, OSV ignore, severity reduction, or release-gate bypass is par
 5. Caller-supplied deep ASTs must be bounded in compile/stringify/expand.
 6. Dependency audit, OSV, Trivy, CodeQL, full tests, typecheck, build and browser acceptance stay enabled.
 7. Replace this downstream package with an official upstream release once a patched release is independently verified through the same gates.
+
+## Generated lockfile proof
+
+The final scoped dependency graph was generated and frozen-install verified by temporary workflow run `37120114906` before that generator removed itself. The subsequent repository-authored checkpoint commit exists only to trigger Foremention's normal release workflows on the exact final candidate; it does not change runtime dependency resolution.
