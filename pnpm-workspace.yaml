@@ -20,6 +20,8 @@ overrides:
   fast-uri@>=3.0.0 <3.1.8: 3.1.8
   # Patched JXL/HEIF and ICNS parser DoS (two published OSV advisories).
   image-size: 2.0.4
+patchedDependencies:
+  braces@3.0.3: patches/braces@3.0.3.patch
 onlyBuiltDependencies:
   - esbuild
   - protobufjs
