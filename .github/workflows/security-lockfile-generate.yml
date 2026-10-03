@@ -10,7 +10,7 @@ on:
       - ".github/workflows/security-lockfile-generate.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   lockfile:
@@ -46,10 +46,12 @@ jobs:
       - name: Verify generated lockfile installs
         run: pnpm install --frozen-lockfile
 
-      - name: Upload generated lockfile
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: braces-remediation-lockfile
-          path: pnpm-lock.yaml
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit generated lockfile and remove generator
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git rm .github/workflows/security-lockfile-generate.yml
+          git commit -m "Regenerate lockfile for vendored braces remediation"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
