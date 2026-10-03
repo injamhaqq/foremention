@@ -53,8 +53,8 @@ jobs:
             echo "::error::Affected braces@3.0.3 remains in pnpm-lock.yaml"
             exit 1
           fi
-          if grep -q "braces@file:vendor/braces" pnpm-lock.yaml; then
-            echo "::error::Local dependency is still exposed under the vulnerable braces package identity"
+          if grep -Eq '^  braces@|^[[:space:]]+braces:' pnpm-lock.yaml; then
+            echo "::error::An unscoped braces package identity remains in pnpm-lock.yaml"
             exit 1
           fi
       - name: Verify generated lockfile installs
