@@ -20,7 +20,7 @@ overrides:
 
 patchedDependencies:
   braces@3.0.3:
-    hash: 1be01264fb02f44cc3390def10d01ea7b7833ece07442515a8f4d8e742fe6268
+    hash: 521f042db2bec8bce5448a7575168bb1dfd1e129c3dd1399b3f8df7f80b1bfe3
     path: patches/braces@3.0.3.patch
 
 importers:
@@ -5790,7 +5790,7 @@ snapshots:
     dependencies:
       balanced-match: 4.0.4
 
-  braces@3.0.3(patch_hash=1be01264fb02f44cc3390def10d01ea7b7833ece07442515a8f4d8e742fe6268):
+  braces@3.0.3(patch_hash=521f042db2bec8bce5448a7575168bb1dfd1e129c3dd1399b3f8df7f80b1bfe3):
     dependencies:
       fill-range: 7.1.1
 
@@ -6915,7 +6915,7 @@ snapshots:
 
   micromatch@4.0.8:
     dependencies:
-      braces: 3.0.3(patch_hash=1be01264fb02f44cc3390def10d01ea7b7833ece07442515a8f4d8e742fe6268)
+      braces: 3.0.3(patch_hash=521f042db2bec8bce5448a7575168bb1dfd1e129c3dd1399b3f8df7f80b1bfe3)
       picomatch: 2.3.2
 
   mime-db@1.54.0: {}
