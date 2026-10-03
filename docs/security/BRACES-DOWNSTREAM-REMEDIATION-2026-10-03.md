@@ -47,3 +47,7 @@ The final scoped dependency graph was generated and frozen-install verified by t
 ## Compatibility correction
 
 The initial vendored candidate used the full current upstream PR branch, whose base also contains unrelated post-3.0.3 behavior changes. Focused Foremention regression tests detected one such change in stringify/escapeInvalid semantics. The downstream package is therefore derived from the published 3.0.3 runtime sources and applies only the bounded nesting-depth security changes, while retaining PR #72 and commit d0d575e55e74a4e0218e5248fafb79efc3e54ebb as the upstream security-design reference. This keeps the security bound while preserving published 3.0.3 behavior outside that bound.
+
+## Final focused validation
+
+Temporary generator run `37120646481` regenerated the lockfile after root dev-only test bindings were added, verified there is no unscoped `braces` identity, completed a frozen install, and passed all five focused scoped-fork security/compatibility tests. The generator then removed itself. This checkpoint commit exists to trigger the repository's normal Security, CI, CodeQL, quality and Browser Acceptance workflows against the exact post-generation candidate.
