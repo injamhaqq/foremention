@@ -52,3 +52,13 @@ test("Action export reuses fail-closed project placement ownership", async () =>
   assert.match(connector, /filterPlacementsToProject\(organizationRows, scope\)/);
   assert.match(connector, /if \(!scope\) throw new Error/);
 });
+
+test("Action export fails closed on mixed, unknown, or unlinked project ownership", async () => {
+  const scope = await text("lib/project-placement-scope.ts");
+
+  assert.match(scope, /if \(!hasAnyProjectLink\) return false/);
+  assert.match(scope, /!promptIds\.every\(\(id\) => scope\.promptIds\.has\(id\)\)/);
+  assert.match(scope, /placement\.baseline_run_id && !scope\.runIds\.has\(placement\.baseline_run_id\)/);
+  assert.match(scope, /placement\.remeasurement_run_id && !scope\.runIds\.has\(placement\.remeasurement_run_id\)/);
+  assert.doesNotMatch(scope, /placementBelongsToProject\(/);
+});

@@ -1,7 +1,4 @@
-import {
-  placementBelongsToProject,
-  type CustomerSuccessPlacementLink,
-} from "@/lib/agent-os/customer-success-core";
+import type { CustomerSuccessPlacementLink } from "@/lib/agent-os/customer-success-core";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export const MAX_PROJECT_PLACEMENT_SCOPE_LINKS = 1000;
@@ -41,7 +38,22 @@ export function placementBelongsToScope(
   placement: CustomerSuccessPlacementLink,
   scope: ProjectPlacementScope,
 ) {
-  return placementBelongsToProject(placement, scope.promptIds, scope.runIds);
+  const promptIds = Array.isArray(placement.target_prompt_ids)
+    ? placement.target_prompt_ids
+    : [];
+  const hasAnyProjectLink = promptIds.length > 0
+    || Boolean(placement.baseline_run_id)
+    || Boolean(placement.remeasurement_run_id);
+  if (!hasAnyProjectLink) return false;
+
+  // Fail closed on ambiguous legacy placements. A placement may be exported for
+  // this project only when every durable prompt/run link resolves to this
+  // project's verified scope. One matching link must never mask a foreign,
+  // unknown, or stale link.
+  if (!promptIds.every((id) => scope.promptIds.has(id))) return false;
+  if (placement.baseline_run_id && !scope.runIds.has(placement.baseline_run_id)) return false;
+  if (placement.remeasurement_run_id && !scope.runIds.has(placement.remeasurement_run_id)) return false;
+  return true;
 }
 
 export function filterPlacementsToProject<T extends CustomerSuccessPlacementLink>(
