@@ -8,7 +8,7 @@ const HUBSPOT_TOKEN_URL = "https://api.hubspot.com/oauth/2026-03/token";
 const HUBSPOT_API = "https://api.hubapi.com";
 
 type HubSpotTokens = { access_token: string; refresh_token: string; expires_in: number; scopes?: string[] };
-type IntegrationRow = { id: string; organization_id: string; project_id?: string; status: string; configuration: Record<string, unknown> };
+type IntegrationRow = { id: string; organization_id: string; project_id: string; connected_by: string | null; status: string; configuration: Record<string, unknown> };
 type CredentialRow = { encrypted_access_token: string; encrypted_refresh_token: string };
 
 export async function createHubSpotState(organizationId: string, userId: string, secret: string) {
@@ -48,7 +48,8 @@ async function accessToken(integration: IntegrationRow) {
   if (Number.isFinite(expiresAt) && expiresAt > Date.now() + 60_000) return decryptIntegrationCredential(credential.encrypted_access_token, encryptionSecret);
   const refreshToken = await decryptIntegrationCredential(credential.encrypted_refresh_token, encryptionSecret);
   const tokens = await tokenRequest({ grant_type: "refresh_token", client_id: process.env.HUBSPOT_CLIENT_ID || "", client_secret: process.env.HUBSPOT_CLIENT_SECRET || "", refresh_token: refreshToken });
-  await saveHubSpotConnection(integration.organization_id, String(integration.configuration.project_id || ""), String(integration.configuration.connected_by || ""), tokens);
+  if (!integration.project_id || !integration.connected_by) throw new Error("HubSpot integration identity is incomplete.");
+  await saveHubSpotConnection(integration.organization_id, integration.project_id, integration.connected_by, tokens);
   return tokens.access_token;
 }
 
@@ -60,7 +61,7 @@ async function hubSpotFetch<T>(path: string, token: string, init: RequestInit) {
 
 export async function deliverHubSpotCompletedAction(input: { organizationId: string; projectId: string; placementId: string; eventKey: string; stage: string; occurredAt: string }) {
   const integrations = await supabaseRest<IntegrationRow[]>(
-    `integrations?select=id,organization_id,project_id,status,configuration&organization_id=eq.${input.organizationId}&project_id=eq.${input.projectId}&provider=eq.hubspot&status=eq.connected&limit=1`,
+    `integrations?select=id,organization_id,project_id,connected_by,status,configuration&organization_id=eq.${input.organizationId}&project_id=eq.${input.projectId}&provider=eq.hubspot&status=eq.connected&limit=1`,
     { serviceRole: true },
   );
   const integration = integrations[0];
