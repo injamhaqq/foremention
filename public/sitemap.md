@@ -5,7 +5,7 @@
 ## Product and methodology
 
 - [Home](https://foremention.com/) — Recommendation Intelligence for B2B software and the design-partner entry point.
-- [Product](https://foremention.com/product) — product workflow and customer-decision model.
+- [Product](https://foremention.com/product) — product workflow and customer-decision model.\n- [Use Cases](https://foremention.com/use-cases) — evidence-grounded customer questions and decision workflows.
 - [Recommendation Intelligence](https://foremention.com/recommendation-intelligence) — category definition.
 - [Recommendation Record](https://foremention.com/recommendation-record) — canonical measurement object.
 - [Methodology](https://foremention.com/methodology) — evidence, review, and comparable remeasurement methodology.
@@ -37,7 +37,7 @@
 - [Homepage markdown](https://foremention.com/index.md) — markdown mirror of the homepage's core content.
 - [AGENTS.md](https://foremention.com/AGENTS.md) — evidence and navigation guidance for agents.
 
-- [Product markdown](https://foremention.com/product.md) — canonical product summary with explicit evidence boundaries.
+- [Product markdown](https://foremention.com/product.md) — canonical product summary with explicit evidence boundaries.\n- [Use Cases markdown](https://foremention.com/use-cases.md) — structured use cases and decision boundaries.
 - [Methodology markdown](https://foremention.com/methodology.md) — inspectable measurement and comparability principles.
 
 - [Recommendation Record Markdown](https://foremention.com/recommendation-record.md) — explicit record schema, inspected evidence stages, review limitations and comparison conditions.
