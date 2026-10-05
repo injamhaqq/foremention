@@ -20,11 +20,12 @@ test("Company OS funding route derives authorization and scope server-side", asy
   assert.match(route, /role === "owner" \|\| role === "admin"/);
   assert.match(route, /status=eq\.active/);
   assert.match(route, /token: viewer\.accessToken/);
+  assert.match(route, /!process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(route, /serviceRole: true/);
 
   assert.match(service, /FOREMENTION_COMPANY_OS_ORGANIZATION_ID/);
   assert.match(service, /FOREMENTION_COMPANY_OS_PROJECT_ID/);
   assert.doesNotMatch(route, /body\.(?:organizationId|projectId|createdBy)/);
-  assert.doesNotMatch(route, /SUPABASE_SERVICE_ROLE_KEY|service[_-]?role/i);
 });
 
 test("funding POST accepts only bounded opportunity inputs and derives company truth from the configured project", async () => {
@@ -56,7 +57,8 @@ test("funding persistence remains internal draft only and append-only for authen
   assert.match(migration, /submissionAuthorized'[\s\S]*'false'::jsonb/i);
   assert.match(migration, /requiresSubmissionApproval'[\s\S]*'true'::jsonb/i);
   assert.match(migration, /alter table public\.company_funding_draft_artifacts enable row level security/i);
-  assert.match(migration, /grant select, insert on table public\.company_funding_draft_artifacts to authenticated/i);
-  assert.doesNotMatch(migration, /grant\s+(?:update|delete|all)[^;]*\bauthenticated\b/i);
+  assert.match(migration, /grant select on table public\.company_funding_draft_artifacts to authenticated/i);
+  assert.doesNotMatch(migration, /grant\s+(?:insert|update|delete|all)[^;]*\bauthenticated\b/i);
+  assert.match(migration, /grant select, insert, delete on table public\.company_funding_draft_artifacts to service_role/i);
   assert.match(migration, /if tg_op = 'UPDATE' then[\s\S]*Company funding draft revisions are immutable/i);
 });
