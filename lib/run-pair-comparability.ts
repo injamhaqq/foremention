@@ -92,7 +92,7 @@ export async function assessWorkspaceRunPairComparability(
   if (!context) return withheld("The active workspace could not be verified.");
 
   const runs = await supabaseRest<RunRow[]>(
-    `runs?select=id,status,methodology_version,created_at&organization_id=eq.${context.organizationId}&id=in.(${earlierRunId},${laterRunId})&limit=2`,
+    `runs?select=id,status,methodology_version,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${earlierRunId},${laterRunId})&limit=2`,
     { token: viewer.accessToken },
   );
   const byId = new Map(runs.map((run) => [run.id, run]));
