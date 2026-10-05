@@ -47,8 +47,9 @@ test("Groq web-search execution remains distinct from returned citations", async
   assert.match(diagnostics, /provider=eq\.groq/);
   assert.match(diagnostics, /organization_id=eq\./);
   assert.match(diagnostics, /run_id=eq\./);
-  assert.match(diagnostics, /encodeURIComponent\(organizationId\)/);
-  assert.match(diagnostics, /encodeURIComponent\(runId\)/);
+  assert.match(diagnostics, /encodedOrganizationId = encodeURIComponent\(context\.organizationId\)/);
+  assert.match(diagnostics, /encodedRunId = encodeURIComponent\(runId\)/);
+  assert.match(diagnostics, /encodedProjectId = encodeURIComponent\(context\.projectId\)/);
   assert.match(diagnostics, /searchResultCount/);
   assert.match(diagnostics, /searchUsed/);
   assert.doesNotMatch(diagnostics, /arguments|content|reasoning|snippet/i);
