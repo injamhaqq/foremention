@@ -11,7 +11,7 @@ test("Recommendation Records expose an inspectable persisted run manifest", asyn
     text("components/run-manifest-panel.tsx"),
   ]);
 
-  assert.match(manifest, /runs\?select=id,organization_id,project_id,status,provider_ids,prompt_count,requested_units,estimated_max_cost_usd,actual_cost_usd,methodology_version/);
+  assert.match(manifest, /runs\?select=id,organization_id,project_id,status,provider_ids,prompt_count,answer_count,requested_units,estimated_max_cost_usd,actual_cost_usd,methodology_version/);
   assert.match(manifest, /project_id=eq\.\$\{context\.projectId\}/);
   assert.match(manifest, /run_prompt_selections\?select=prompt_id,prompt_key,prompt_text,locale,market/);
   assert.match(manifest, /run_attempts\?select=prompt_key,provider,model,status,attempt_number/);
@@ -19,6 +19,14 @@ test("Recommendation Records expose an inspectable persisted run manifest", asyn
   assert.match(manifest, /failedObservations/);
   assert.match(manifest, /excludedObservations/);
   assert.match(manifest, /missingObservations/);
+
+  assert.match(manifest, /MAX_RUN_MANIFEST_QUESTIONS = 100/);
+  assert.match(manifest, /MAX_RUN_MANIFEST_ATTEMPTS = 500/);
+  assert.match(manifest, /MAX_RUN_MANIFEST_ANSWERS = 500/);
+  assert.match(manifest, /MAX_RUN_MANIFEST_PROMPT_VERSIONS = 500/);
+  assert.match(manifest, /selections\.length !== Number\(run\.prompt_count\)/);
+  assert.match(manifest, /answers\.length !== Number\(run\.answer_count\)/);
+  assert.match(manifest, /promptVersions\.length > MAX_RUN_MANIFEST_PROMPT_VERSIONS\) return null/);
 
   assert.match(page, /loadRunManifest\(viewer, id\)/);
   assert.match(page, /<RunManifestPanel manifest=\{manifest\} \/>/);
