@@ -32,6 +32,7 @@ type ExistingRunRow = { id: string; status: string; estimated_max_cost_usd: numb
 type PreparedRun = {
   runId: string;
   organizationId: string;
+  projectId: string;
   scheduleId: string;
   scheduledFor: string;
   nextRunAt: string;
@@ -55,7 +56,7 @@ async function releaseScheduledCandidate(schedule: DueSchedule, runId: string, r
   // Scheduled idempotency keys represent a cadence occurrence. A pre-dispatch
   // failure must be retryable on the next dispatcher pass, so the failed audit
   // row is preserved while its uniqueness keys are released.
-  await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${schedule.organization_id}&status=in.(failed,cancelled)`, {
+  await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&status=in.(failed,cancelled)`, {
     method: "PATCH",
     serviceRole: true,
     prefer: "return=minimal",
@@ -81,10 +82,12 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     modelSnapshot: schedule.model_snapshot,
   }, schedule.next_run_at);
   const nextRunAt = nextScheduleAt(schedule.next_run_at, schedule.cadence, schedule.timezone).toISOString();
-  const [operatorRows, entitlementRows, existingRuns] = await Promise.all([
+  const [operatorRows, entitlementRows, existingRuns, projects, categories] = await Promise.all([
     supabaseRest<OperatorRow[]>(`organization_members?select=role&organization_id=eq.${schedule.organization_id}&user_id=eq.${schedule.created_by}&limit=1`, { serviceRole: true }),
     supabaseRest<EntitlementRow[]>(`organization_entitlements?select=status,expires_at&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
-    supabaseRest<ExistingRunRow[]>(`runs?select=id,status,estimated_max_cost_usd,requested_units&organization_id=eq.${schedule.organization_id}&idempotency_key=eq.${encodeURIComponent(key)}&limit=1`, { serviceRole: true }),
+    supabaseRest<ExistingRunRow[]>(`runs?select=id,status,estimated_max_cost_usd,requested_units&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&idempotency_key=eq.${encodeURIComponent(key)}&limit=1`, { serviceRole: true }),
+    supabaseRest<Array<{ id: string }>>(`projects?select=id&id=eq.${schedule.project_id}&organization_id=eq.${schedule.organization_id}&status=eq.active&limit=1`, { serviceRole: true }),
+    supabaseRest<Array<{ id: string }>>(`categories?select=id&id=eq.${schedule.category_id}&organization_id=eq.${schedule.organization_id}&active=eq.true&limit=1`, { serviceRole: true }),
   ]);
   const operator = operatorRows[0];
   const entitlement = entitlementRows[0];
@@ -93,6 +96,8 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     !operator
     || !isOperatorRole(operator.role)
     || !entitlement
+    || !projects[0]
+    || !categories[0]
     || entitlement.status !== "active"
     || (entitlementExpiry && (!Number.isFinite(entitlementExpiry.getTime()) || entitlementExpiry <= new Date()))
   ) return null;
@@ -103,6 +108,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
       return {
         runId: existing.id,
         organizationId: schedule.organization_id,
+        projectId: schedule.project_id,
         scheduleId: schedule.id,
         scheduledFor: schedule.next_run_at,
         nextRunAt,
@@ -112,7 +118,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     // A previous attempt may have stopped after creating the zero-cost candidate.
     // Rebuild the immutable prompt snapshot, then re-run idempotent reservations.
   } else if (existing) {
-    await supabaseRest(`runs?id=eq.${existing.id}&organization_id=eq.${schedule.organization_id}`, {
+    await supabaseRest(`runs?id=eq.${existing.id}&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}`, {
       method: "PATCH",
       serviceRole: true,
       prefer: "return=minimal",
@@ -122,7 +128,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
 
   const promptFilter = schedule.question_ids.map((id) => `"${id.replace(/"/g, "")}"`).join(",");
   const prompts = await supabaseRest<PromptRow[]>(
-    `prompts?select=id,prompt_key,prompt_text,locale,market&organization_id=eq.${schedule.organization_id}&active=eq.true&id=in.(${encodeURIComponent(promptFilter)})`,
+    `prompts?select=id,prompt_key,prompt_text,locale,market&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&category_id=eq.${schedule.category_id}&active=eq.true&id=in.(${encodeURIComponent(promptFilter)})`,
     { serviceRole: true },
   );
   if (prompts.length !== schedule.question_ids.length) return null;
@@ -193,6 +199,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     return {
       runId,
       organizationId: schedule.organization_id,
+      projectId: schedule.project_id,
       scheduleId: schedule.id,
       scheduledFor: schedule.next_run_at,
       nextRunAt,
@@ -228,7 +235,7 @@ export const dispatchMeasurementSchedules = inngest.createFunction(
         await step.sendEvent(`queue-measurement-schedule-run-${data.runId}`, {
           id: `foremention-schedule-${data.runId}`,
           name: "foremention/run.requested",
-          data: { runId: data.runId, organizationId: data.organizationId },
+          data: { runId: data.runId, organizationId: data.organizationId, projectId: data.projectId },
         });
         dispatched += 1;
       }
@@ -236,7 +243,7 @@ export const dispatchMeasurementSchedules = inngest.createFunction(
       // patch needs a retry, the deterministic run/event ids recover without a
       // second provider call.
       await step.run(`advance-measurement-schedule-${data.scheduleId}-${data.runId}`, () =>
-        supabaseRest(`measurement_schedules?id=eq.${data.scheduleId}&organization_id=eq.${data.organizationId}&next_run_at=eq.${encodeURIComponent(data.scheduledFor)}`, {
+        supabaseRest(`measurement_schedules?id=eq.${data.scheduleId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&next_run_at=eq.${encodeURIComponent(data.scheduledFor)}`, {
           method: "PATCH", serviceRole: true, prefer: "return=minimal",
           body: { last_run_at: data.scheduledFor, last_run_id: data.runId, next_run_at: data.nextRunAt },
         }),
