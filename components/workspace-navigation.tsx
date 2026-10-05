@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { useRef, type KeyboardEvent } from "react";
 import { Arrow, ForementionMark, Wordmark } from "@/components/brand";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { ProjectSwitcher } from "@/components/project-switcher";
 import type { Viewer } from "@/lib/auth";
+import type { WorkspaceProject } from "@/lib/data";
 import { resetProductAnalytics } from "@/lib/product-analytics";
 
 const primaryNav = [
@@ -42,11 +44,13 @@ function isCurrent(pathname: string, href: string) {
   return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function WorkspaceIdentity({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
+function WorkspaceIdentity({ viewer, workspaceName, projects, activeProjectId }: { viewer: Viewer; workspaceName?: string; projects: WorkspaceProject[]; activeProjectId: string | null }) {
+  const activeProject = projects.find((project) => project.id === activeProjectId) || projects[0];
   return <div className="sidebar-company">
-    <span>Workspace</span>
+    <span>Organization</span>
     <strong>{viewer.mode === "demo" ? "Northstar HR" : workspaceName || "Setup required"}</strong>
-    <small>{viewer.mode === "demo" ? "Seeded demo · fictional data" : workspaceName ? "Customer workspace" : "Complete onboarding"}</small>
+    <small>{viewer.mode === "demo" ? "Seeded demo · fictional data" : activeProject ? `Project · ${activeProject.brand || activeProject.name}` : "Complete onboarding"}</small>
+    {viewer.mode !== "demo" && <ProjectSwitcher projects={projects} activeProjectId={activeProject?.id || null} />}
   </div>;
 }
 
@@ -65,7 +69,7 @@ function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigat
   </nav>;
 }
 
-export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
+export function WorkspaceSidebar({ viewer, workspaceName, projects, activeProjectId }: { viewer: Viewer; workspaceName?: string; projects: WorkspaceProject[]; activeProjectId: string | null }) {
   const pathname = usePathname();
   return <aside className="app-sidebar registered-workspace-sidebar">
     <Wordmark />
@@ -73,13 +77,13 @@ export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; wo
       <NavigationLinks pathname={pathname} />
     </div>
     <div className="app-sidebar__footer">
-      <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
+      <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} projects={projects} activeProjectId={activeProjectId} />
       <SignOutButton demo={viewer.mode === "demo"} />
     </div>
   </aside>;
 }
 
-export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
+export function WorkspaceMobileNavigation({ viewer, workspaceName, projects, activeProjectId }: { viewer: Viewer; workspaceName?: string; projects: WorkspaceProject[]; activeProjectId: string | null }) {
   const pathname = usePathname();
   const mobileMenu = useRef<HTMLDetailsElement>(null);
   const summaryRef = useRef<HTMLElement>(null);
@@ -99,7 +103,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
         <Link prefetch={false} className="app-mobile-nav__search" href="/app/search" onClick={() => closeMenu()}>Search workspace <span aria-hidden="true">&rarr;</span></Link>
-        <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
+        <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} projects={projects} activeProjectId={activeProjectId} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>
     </details>;
