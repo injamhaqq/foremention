@@ -9,6 +9,7 @@ import {
   type QuestionPerformance,
 } from "@/lib/data";
 import { sourceMapEntries } from "@/lib/demo-data";
+import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
@@ -71,14 +72,16 @@ export async function loadTruthfulSourceMap(
   if (viewer.mode === "demo") return sourceMapEntries;
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const runFilter = options.runId ? `&run_id=eq.${encodeURIComponent(options.runId)}` : "";
-  const maps = await supabaseRest<Array<{ id: string; run_id: string | null }>>(
-    `source_maps?select=id,run_id&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}${runFilter}&status=eq.published&order=created_at.desc&limit=1`,
-    { token: viewer.accessToken },
-  );
-  if (!maps[0]) return [];
+  const map = await loadLatestProjectSourceMapRef({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    runId: options.runId || null,
+    token: viewer.accessToken,
+  });
+  if (!map) return [];
   const rows = await supabaseRest<TruthfulSourceEntryRow[]>(
-    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,reviewed_at,reviewed_by,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&organization_id=eq.${context.organizationId}&order=rank.asc`,
+    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,reviewed_at,reviewed_by,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${map.id}&organization_id=eq.${context.organizationId}&order=rank.asc`,
     { token: viewer.accessToken },
   );
   return rows.filter((row) => row.source).map((row) => ({
@@ -256,8 +259,8 @@ export async function loadExactQuestionPerformance(viewer: Viewer): Promise<Ques
   if (viewer.mode === "demo") return loadQuestionPerformance(viewer);
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null }>>(
-    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json&organization_id=eq.${context.organizationId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
+  const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null; run: { project_id: string } | null }>>(
+    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
     { token: viewer.accessToken },
   );
   const groups = new Map<string, typeof rows>();
