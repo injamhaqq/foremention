@@ -144,6 +144,28 @@ insert into public.source_snapshots (
     'Fixture open source observation.',
     'f2700000-0000-4000-8000-000000000002'::uuid,
     'Fixture bounded evidence excerpt.'
+  ),
+  (
+    'f2750000-0000-4000-8000-000000000004'::uuid,
+    'f2710000-0000-4000-8000-000000000001'::uuid,
+    'f2740000-0000-4000-8000-000000000001'::uuid,
+    'funding-review-a-unreviewable-partial',
+    'https://funding-review-a.invalid/program',
+    'https://funding-review-a.invalid/program',
+    '2026-10-05T15:25:00Z'::timestamptz,
+    'partial',
+    200,
+    'application/pdf',
+    null,
+    0,
+    0,
+    null,
+    null,
+    'visible-text-prefix-24k-v1',
+    'unknown',
+    'Fixture partial response without safely reviewable bounded text.',
+    'f2700000-0000-4000-8000-000000000001'::uuid,
+    null
   );
 
 insert into public.company_funding_source_checks (
@@ -171,6 +193,17 @@ insert into public.company_funding_source_checks (
     '2026-10-05T15:00:00Z'::timestamptz,
     'f2700000-0000-4000-8000-000000000001'::uuid,
     '2026-10-05T15:20:00Z'::timestamptz
+  ),
+  (
+    'f2760000-0000-4000-8000-000000000003'::uuid,
+    'f2710000-0000-4000-8000-000000000001'::uuid,
+    'f2720000-0000-4000-8000-000000000001'::uuid,
+    'f2730000-0000-4000-8000-000000000001'::uuid,
+    'f2740000-0000-4000-8000-000000000001'::uuid,
+    'f2750000-0000-4000-8000-000000000004'::uuid,
+    '2026-10-05T15:00:00Z'::timestamptz,
+    'f2700000-0000-4000-8000-000000000001'::uuid,
+    '2026-10-05T15:25:00Z'::timestamptz
   );
 
 -- Browser roles cannot inspect or forge the internal ledger directly.
@@ -306,7 +339,7 @@ end
 $$;
 
 -- A blocked/unreachable exact snapshot can never be accepted.
-do $$
+do $
 declare
   denied boolean := false;
 begin
@@ -326,6 +359,29 @@ begin
   end;
   if not denied then raise exception 'unreachable funding source check was accepted'; end if;
 end
-$$;
+$;
+
+-- A partial response without bounded reviewable text is not acceptance evidence.
+do $
+declare
+  denied boolean := false;
+begin
+  begin
+    insert into public.company_funding_source_reviews (
+      organization_id, project_id, check_id, decision, decided_by, decided_at
+    ) values (
+      'f2710000-0000-4000-8000-000000000001'::uuid,
+      'f2720000-0000-4000-8000-000000000001'::uuid,
+      'f2760000-0000-4000-8000-000000000003'::uuid,
+      'accepted',
+      'f2700000-0000-4000-8000-000000000001'::uuid,
+      '2026-10-05T15:33:00Z'::timestamptz
+    );
+  exception when raise_exception then
+    denied := true;
+  end;
+  if not denied then raise exception 'unreviewable partial funding source check was accepted'; end if;
+end
+$;
 
 rollback;
