@@ -104,8 +104,8 @@ async function boundedJson(request: Request): Promise<unknown> {
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  const raw = new TextDecoder().decode(bytes);
   try {
+    const raw = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     return JSON.parse(raw);
   } catch {
     throw new Error("FUNDING_SERVICE_INVALID:request:json");
@@ -322,7 +322,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (isMissingRelationError(error)) return responseError("Funding draft persistence is waiting for its database migration.", 503);
     if (error instanceof Error && error.message === "FUNDING_SERVICE_PROFILE_AMBIGUOUS") {
-      return responseError("Company OS funding requires one unambiguous Company Truth company entity in the active project.", 409);
+      return responseError("Company OS funding requires one unambiguous Company Truth company entity in the configured project.", 409);
     }
     if (error instanceof Error && (error.message.startsWith("FUNDING_SERVICE_INVALID:") || error.message.startsWith("FUNDING_DRAFT_INVALID:"))) {
       return responseError("The funding draft request is invalid.", 400);
