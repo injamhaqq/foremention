@@ -520,6 +520,7 @@ function demoInput(): BuildInput {
       estimated_cost_usd: runIndex ? 0.004875 : 0.00525,
       cost_source: "estimated" as const,
       usage_total_tokens: 480 + answerIndex * 10,
+      review_status: "verified",
       collected_at: run.created_at,
     };
   })));
