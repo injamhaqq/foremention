@@ -402,13 +402,19 @@ export async function PATCH(request: Request) {
     if (!checks[0]) return responseError("Funding source check not found in the configured Company OS project.", 404);
 
     if (input.decision === "accepted") {
-      const snapshots = await supabaseRest<Array<{ id: string; access: string }>>(
-        `source_snapshots?select=id,access&id=eq.${encodeURIComponent(checks[0].source_snapshot_id)}`
+      const snapshots = await supabaseRest<Array<{ id: string; access: string; content_hash: string | null; evidence_excerpt: string | null }>>(
+        `source_snapshots?select=id,access,content_hash,evidence_excerpt&id=eq.${encodeURIComponent(checks[0].source_snapshot_id)}`
           + `&organization_id=eq.${encodeURIComponent(context.organizationId)}&limit=1`,
         { serviceRole: true },
       );
-      if (!snapshots[0] || !["open", "partial"].includes(snapshots[0].access)) {
-        return responseError("A blocked or unreachable funding source observation cannot be accepted.", 409);
+      const snapshot = snapshots[0];
+      if (
+        !snapshot
+        || !["open", "partial"].includes(snapshot.access)
+        || !snapshot.content_hash
+        || !snapshot.evidence_excerpt?.trim()
+      ) {
+        return responseError("A blocked, unreachable, or unreviewable funding source observation cannot be accepted.", 409);
       }
     }
 
