@@ -1,5 +1,5 @@
 import { serve } from "inngest/next";
-import { cleanupCancelledCollection, deliverHubSpotActionEvents, deliverWorkspaceWebhookEvents, inngest, runMultiEngineScan, scheduleWeeklyWorkspaceRuns } from "@/lib/jobs/inngest";
+import { cleanupCancelledCollection, deliverHubSpotActionEvents, deliverWorkspaceWebhookEvents, inngest, runMultiEngineScan, scheduleWeeklyWorkspaceDigests } from "@/lib/jobs/inngest";
 import { discoverAcquisitionTargets } from "@/lib/jobs/acquisition-discovery";
 import { pollZohoAcquisitionRepliesJob } from "@/lib/jobs/acquisition-zoho-replies";
 import { dispatchMeasurementSchedules } from "@/lib/jobs/measurement-schedule-dispatcher";
