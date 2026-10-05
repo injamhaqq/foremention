@@ -252,7 +252,7 @@ export async function POST(request: Request) {
     const sent = await inngest.send({
       id: `foremention-run-${runId}`,
       name: "foremention/run.requested",
-      data: { runId, organizationId: context.organizationId },
+      data: { runId, organizationId: context.organizationId, projectId: context.projectId },
     });
     const queueEventId = sent.ids[0];
     if (queueEventId) {
