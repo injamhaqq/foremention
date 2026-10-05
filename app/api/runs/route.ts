@@ -14,12 +14,28 @@ import { inngest } from "@/lib/jobs/inngest";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { runUnits } from "@/lib/product-limits";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
+import { buildRunManifest } from "@/lib/run-manifest";
 import { getProvider } from "@/lib/providers";
 import type { ProviderId } from "@/lib/providers/types";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { correlationIdFor, logOperationalEvent } from "@/lib/structured-logger";
 
 type LiveProviderId = Exclude<ProviderId, "mock">;
+
+function configuredModelSetting(providerId: LiveProviderId) {
+  const settings: Record<LiveProviderId, string | undefined> = {
+    openai: process.env.OPENAI_MODEL,
+    gemini: process.env.GEMINI_MODEL,
+    anthropic: process.env.ANTHROPIC_MODEL,
+    perplexity: process.env.PERPLEXITY_MODEL,
+    groq: process.env.GROQ_MODEL,
+    cloudflare: process.env.CLOUDFLARE_AI_MODEL,
+    openrouter: process.env.OPENROUTER_MODEL,
+    zenmux: process.env.ZENMUX_MODEL,
+    omnirouters: process.env.OMNIROUTERS_MODEL,
+  };
+  return settings[providerId]?.trim() || null;
+}
 
 export async function GET() {
   const viewer = await getViewer();
@@ -89,7 +105,7 @@ export async function POST(request: Request) {
   if (!["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can start collection runs." }, { status: 403 });
 
   const existingRuns = await supabaseRest<Array<{ id: string; status: string }>>(
-    `runs?select=id,status&organization_id=eq.${context.organizationId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
+    `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
     { token: viewer.accessToken },
   );
   if (existingRuns[0]) {
@@ -99,13 +115,20 @@ export async function POST(request: Request) {
   const requested = new Set(promptIds);
   const prompts = workspacePrompts
     .filter((prompt) => requested.has(prompt.id) && prompt.approved)
-    .map((prompt) => ({ promptId: prompt.id, promptKey: prompt.id, text: prompt.text, locale: "en-US" }));
+    .map((prompt) => ({
+      promptId: prompt.id,
+      promptKey: prompt.key,
+      promptVersion: prompt.version,
+      text: prompt.text,
+      locale: prompt.locale || context.locale,
+      market: prompt.market || context.market,
+    }));
   if (prompts.length !== requested.size) {
     return NextResponse.json({ error: "Every selected buyer question must be active in your workspace." }, { status: 403 });
   }
   const activeRequestKey = `${providerId}:${prompts.map((prompt) => prompt.promptId).sort().join(",")}`;
   const activeDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
-    `runs?select=id,status&organization_id=eq.${context.organizationId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
+    `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
     { token: viewer.accessToken },
   );
   if (activeDuplicate[0]) {
@@ -148,6 +171,19 @@ export async function POST(request: Request) {
   }
 
   const runId = crypto.randomUUID();
+  const runManifest = buildRunManifest({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    canonicalBrand: context.clientBrand,
+    organizationName: context.organizationName,
+    domain: context.website,
+    questions: prompts,
+    providerId,
+    modelSetting: configuredModelSetting(providerId),
+    methodologyVersion: currentObservationMethodologyVersion(),
+    estimatedMaximumCostUsd: estimatedMaximumCost,
+    perRunLimitUsd: configuredMaxRunCostUsd(),
+  });
   const requestedUnits = runUnits(prompts.length, 1);
   let quotaReserved = false;
   let capacityStage = "create-run";
@@ -169,6 +205,7 @@ export async function POST(request: Request) {
         idempotency_key: idempotencyKey,
         active_request_key: activeRequestKey,
         methodology_version: currentObservationMethodologyVersion(),
+        run_manifest_json: runManifest,
         created_by: viewer.id,
       },
     });
@@ -183,7 +220,9 @@ export async function POST(request: Request) {
         prompt_id: prompt.promptId,
         prompt_key: prompt.promptKey,
         prompt_text: prompt.text,
+        prompt_version: prompt.promptVersion,
         locale: prompt.locale,
+        market: prompt.market,
       })),
     });
     capacityStage = "reserve-usage";
@@ -213,14 +252,14 @@ export async function POST(request: Request) {
     logOperationalEvent("collection_reservation_failed", { correlationId, route: "/api/runs", errorCode: "capacity_reservation_failed" });
     console.warn(`Collection capacity failed during ${capacityStage}.`, safeOperationalError(error));
     const concurrentDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
-      `runs?select=id,status&organization_id=eq.${context.organizationId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
+      `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
       { token: viewer.accessToken },
     ).catch(() => []);
     if (concurrentDuplicate[0] && concurrentDuplicate[0].id !== runId) {
       return NextResponse.json({ id: concurrentDuplicate[0].id, status: concurrentDuplicate[0].status, duplicate: true }, { status: 202 });
     }
     const concurrentActiveDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
-      `runs?select=id,status&organization_id=eq.${context.organizationId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
+      `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
       { token: viewer.accessToken },
     ).catch(() => []);
     if (concurrentActiveDuplicate[0] && concurrentActiveDuplicate[0].id !== runId) {
@@ -238,7 +277,7 @@ export async function POST(request: Request) {
         },
       }).catch(() => undefined);
     } else {
-      await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${context.organizationId}`, {
+      await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
         method: "DELETE",
         token: viewer.accessToken,
       }).catch(() => undefined);
@@ -252,11 +291,11 @@ export async function POST(request: Request) {
     const sent = await inngest.send({
       id: `foremention-run-${runId}`,
       name: "foremention/run.requested",
-      data: { runId, organizationId: context.organizationId },
+      data: { runId, organizationId: context.organizationId, projectId: context.projectId },
     });
     const queueEventId = sent.ids[0];
     if (queueEventId) {
-      await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${context.organizationId}`, {
+      await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
         method: "PATCH",
         token: viewer.accessToken,
         prefer: "return=minimal",
