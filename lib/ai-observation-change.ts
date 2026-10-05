@@ -2,23 +2,12 @@ import type { Viewer } from "@/lib/auth";
 import { buildAiObservationChangeGraph, fictionalAiObservationChangeGraph, type AiObservationChangeGraph } from "@/lib/ai-observation-change-core";
 import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
 import { loadWorkspaceContext } from "@/lib/data";
-import { coerceComparableMeasurementContext } from "@/lib/intelligence-comparability";
+import { assessWorkspaceRunPairComparability } from "@/lib/run-pair-comparability";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export type { AiObservationChangeGraph } from "@/lib/ai-observation-change-core";
 
 type RunRow = { id: string; project_id: string | null; methodology_version: string | null };
-type AnswerRow = {
-  run_id: string;
-  prompt_key: string;
-  prompt_text: string | null;
-  provider: string;
-  model: string | null;
-  measurement_context_json: unknown;
-  answer_text: string;
-  citations_json: Array<{ url?: string }> | null;
-  brand_present: boolean | null;
-};
 type SourceMapRow = { id: string; run_id: string | null; name: string };
 type SourceMapEntryRow = { source_map_id: string; competitors_present: string[] | null };
 
@@ -99,31 +88,38 @@ export async function loadAiObservationChangeGraph(
     return withheld(latestRunId, effectivePreviousRunId, "The selected reviewed collections are not both inside the active workspace project, so movement is withheld.");
   }
   const requested = [latestRunId, previous.id];
-
-  const answers = await supabaseRest<AnswerRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
-    { token: viewer.accessToken },
-  );
+  const comparison = await assessWorkspaceRunPairComparability(viewer, previous.id, latestRunId);
+  if (!comparison.comparable) {
+    return withheld(
+      latestRunId,
+      previous.id,
+      comparison.reason || "The complete reviewed answer sets are not exactly comparable.",
+    );
+  }
+  const answers = comparison.answers;
 
   let competitors: Array<{ runId: string; names: string[] }> = [];
   let competitorContextComparable = false;
   if (!diagnosticOnly) {
     const maps = await supabaseRest<SourceMapRow[]>(
-      `source_maps?select=id,run_id,name&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&status=eq.published`,
+      `source_maps?select=id,run_id,name&organization_id=eq.${context.organizationId}&run_id=in.(${requested.join(",")})&status=eq.published&limit=5`,
       { token: viewer.accessToken },
     );
     const reviewedMaps = maps.filter((map) => map.run_id && map.name.startsWith("Reviewed collection"));
-    const mapByRun = new Map(reviewedMaps.map((map) => [map.run_id!, map.id]));
-    const latestMapId = mapByRun.get(latestRunId) || null;
-    const previousMapId = mapByRun.get(previous.id) || null;
+    const latestMaps = reviewedMaps.filter((map) => map.run_id === latestRunId);
+    const previousMaps = reviewedMaps.filter((map) => map.run_id === previous.id);
+    const latestMapId = latestMaps.length === 1 ? latestMaps[0].id : null;
+    const previousMapId = previousMaps.length === 1 ? previousMaps[0].id : null;
     competitorContextComparable = Boolean(latestMapId && previousMapId);
     const mapIds = [latestMapId, previousMapId].filter((value): value is string => Boolean(value));
-    const entries = mapIds.length
+    const candidateEntries = mapIds.length
       ? await supabaseRest<SourceMapEntryRow[]>(
-        `source_map_entries?select=source_map_id,competitors_present&organization_id=eq.${context.organizationId}&source_map_id=in.(${mapIds.join(",")})`,
+        `source_map_entries?select=source_map_id,competitors_present&organization_id=eq.${context.organizationId}&source_map_id=in.(${mapIds.join(",")})&limit=501`,
         { token: viewer.accessToken },
       )
       : [];
+    const entries = candidateEntries.length <= 500 ? candidateEntries : [];
+    competitorContextComparable = competitorContextComparable && candidateEntries.length <= 500;
     const runByMap = new Map(reviewedMaps.map((map) => [map.id, map.run_id!]));
     competitors = entries.flatMap((entry) => {
       const runId = runByMap.get(entry.source_map_id);
@@ -135,16 +131,15 @@ export async function loadAiObservationChangeGraph(
     latest: { id: latest.id, methodologyVersion: latest.methodology_version },
     previous: { id: previous.id, methodologyVersion: previous.methodology_version },
     answers: answers.map((answer) => ({
-      runId: answer.run_id,
-      promptKey: answer.prompt_key,
-      prompt: answer.prompt_text || "",
+      runId: answer.runId,
+      promptKey: answer.promptKey,
+      prompt: answer.promptText,
       provider: answer.provider,
       model: answer.model,
-      measurementContext: coerceComparableMeasurementContext(answer.measurement_context_json),
-      answerText: answer.answer_text,
-      brandPresent: answer.brand_present,
-      citationUrls: Array.from(new Set((answer.citations_json || []).flatMap((citation) => {
-        if (!citation.url) return [];
+      measurementContext: answer.measurementContext,
+      answerText: answer.answerText,
+      brandPresent: answer.brandPresent,
+      citationUrls: Array.from(new Set(answer.citations.flatMap((citation) => {
         const canonical = canonicalCitation(citation.url);
         return canonical ? [canonical] : [];
       }))),
