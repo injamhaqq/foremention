@@ -37,14 +37,14 @@ test("Registered Evidence is the final presentation layer", () => {
   assert.doesNotMatch(css, /linear-gradient|radial-gradient|filter:\s*blur/i);
 });
 
-test("homepage carries the outreach outcome while retaining the canonical evidence record", () => {
+test("homepage carries the approved recommendation promise while retaining the canonical evidence record", () => {
   const hero = read("components/goat-home-experience.tsx");
-  const signal = read("components/canonical-signal-field.tsx");
+  const cinematic = read("app/public-cinematic-home.css");
 
-  assert.match(hero, /Know what your company should change next to become the stronger recommendation\./);
-  assert.match(hero, /Recommendation intelligence for B2B software\./);
-  assert.match(hero, /Apply as Design Partner/);
-  assert.match(hero, /See how it works/);
+  assert.match(hero, /See where AI recommends your brand\./);
+  assert.match(hero, /Track recommendations, inspect supporting sources, and decide what to improve\./);
+  assert.match(hero, /Request a pilot/);
+  assert.match(hero, /Explore a sample/);
   assert.match(hero, /LIVE RECORD \/ ILLUSTRATIVE/);
   assert.match(hero, /ANSWER/);
   assert.match(hero, /Observed/);
@@ -56,9 +56,9 @@ test("homepage carries the outreach outcome while retaining the canonical eviden
   assert.match(hero, /Pending/);
   assert.match(hero, /Evidence inspection/);
   assert.match(hero, /NEXT COMPANY CHANGE/);
-  assert.match(signal, /canonical-signal__depth--rings/);
-  assert.match(signal, /canonical-signal__beam/);
-  assert.match(signal, /canonical-signal__horizon/);
+  assert.match(cinematic, /fm-recommendation-graph/);
+  assert.match(cinematic, /prefers-reduced-motion/);
+  assert.doesNotMatch(cinematic, /three|webgl|canvas/i);
   assert.match(hero, /The recommendation is only the start\./);
   assert.match(hero, /returned references[^.]*distinct sources[^.]*retrievability[^.]*review state[^.]*later comparison eligibility/i);
 });
@@ -67,11 +67,11 @@ test("public navigation reflects the approved outreach information architecture 
   const shell = read("components/public-shell.tsx");
 
   assert.match(shell, /\["\/product", "Product"\]/);
-  assert.match(shell, /\["\/#how-it-works", "How it works"\]/);
+  assert.match(shell, /\["\/use-cases", "Use cases"\]/);
   assert.match(shell, /\["\/pricing", "Pricing"\]/);
   assert.match(shell, /\["\/insights", "Research"\]/);
   assert.match(shell, /\["\/trust", "Trust"\]/);
-  assert.match(shell, /Apply as Design Partner/);
+  assert.match(shell, /Request a pilot/);
   assert.match(shell, /href="\/login">Sign in/);
   assert.match(shell, /href="\/recommendation-record">Recommendation Record/);
   assert.match(shell, /href="\/insights">Research &amp; evidence/);
