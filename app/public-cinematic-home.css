@@ -482,3 +482,92 @@
     font-size: 16px;
   }
 }
+
+
+/* Progressive sample controls: keep the public graph truthful, keyboard-operable and dependency-free. */
+.fm-recommendation-graph__surface {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  z-index: 5;
+  display: grid;
+  width: min(290px, 42%);
+  gap: 7px;
+}
+
+.fm-recommendation-graph__surface > span {
+  color: #65b58e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.fm-recommendation-graph__surface select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(101,181,142,.32);
+  border-radius: 7px;
+  background: rgba(7,11,9,.92);
+  color: #e8ebe7;
+  padding: 8px 30px 8px 10px;
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.fm-recommendation-graph__surface select:focus-visible,
+.fm-graph-node:focus-visible,
+.fm-graph-record:focus-visible {
+  outline: 2px solid #65b58e;
+  outline-offset: 3px;
+}
+
+button.fm-graph-node {
+  appearance: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.fm-graph-node:disabled {
+  cursor: not-allowed;
+  opacity: .38;
+}
+
+.fm-graph-node.is-muted {
+  opacity: .42;
+}
+
+.fm-graph-node.is-selected {
+  border-color: rgba(101,181,142,.92);
+  box-shadow: 0 0 0 1px rgba(101,181,142,.18), 0 14px 42px rgba(0,0,0,.3);
+}
+
+.fm-graph-node--source-a {
+  top: 110px;
+}
+
+.fm-graph-record {
+  right: 220px;
+}
+
+@media (max-width: 700px) {
+  .fm-recommendation-graph__surface {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    margin: 0 0 4px;
+  }
+
+  .fm-recommendation-graph__surface select {
+    min-height: 44px;
+    font-size: 12px;
+  }
+
+  button.fm-graph-node {
+    min-height: 74px;
+  }
+}
