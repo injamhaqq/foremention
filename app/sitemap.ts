@@ -5,7 +5,8 @@ const updated = new Date("2026-10-05T00:00:00Z");
 
 const routes = [
   { path: "", frequency: "weekly", priority: 1 },
-  { path: "/product", frequency: "monthly", priority: 0.95 },\n  { path: "/use-cases", frequency: "monthly", priority: 0.9 },
+  { path: "/product", frequency: "monthly", priority: 0.95 },
+  { path: "/use-cases", frequency: "monthly", priority: 0.9 },
   { path: "/recommendation-intelligence", frequency: "monthly", priority: 0.95 },
   { path: "/recommendation-record", frequency: "monthly", priority: 0.9 },
   { path: "/methodology", frequency: "monthly", priority: 0.9 },
