@@ -342,6 +342,11 @@ textarea { resize: vertical; }
 .sidebar-company { margin-top: auto; padding: 18px 0; border-top: 1px solid #3f3b36; border-bottom: 1px solid #3f3b36; }
 .sidebar-company span, .sidebar-company small { display: block; color: #928b82; font-size: 9px; }
 .sidebar-company strong { display: block; margin: 7px 0 3px; font-size: 13px; }
+.sidebar-project { display: grid; gap: 6px; margin-top: 12px; }
+.sidebar-project select { width: 100%; min-height: 34px; padding: 6px 8px; border: 1px solid #5e5750; border-radius: 0; background: #101d1b; color: var(--paper); font-size: 10px; }
+.sidebar-project select:focus-visible { outline: 2px solid var(--marker); outline-offset: 2px; }
+.sidebar-project select:disabled { opacity: .72; cursor: default; }
+.sidebar-project__error { margin-top: 7px; color: #ffb4a7 !important; line-height: 1.4; }
 .app-sidebar form button { width: 100%; display: flex; justify-content: space-between; padding: 16px 0 0; border: 0; background: transparent; color: #cfc8be; font-size: 11px; }
 .app-main { min-width: 0; }
 .app-topbar { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 36px; border-bottom: 1px solid var(--line); background: var(--paper); }
