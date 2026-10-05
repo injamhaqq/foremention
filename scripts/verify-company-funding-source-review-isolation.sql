@@ -339,7 +339,7 @@ end
 $$;
 
 -- A blocked/unreachable exact snapshot can never be accepted.
-do $
+do $$
 declare
   denied boolean := false;
 begin
@@ -362,7 +362,7 @@ end
 $;
 
 -- A partial response without bounded reviewable text is not acceptance evidence.
-do $
+do $$
 declare
   denied boolean := false;
 begin
