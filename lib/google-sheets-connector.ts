@@ -70,7 +70,7 @@ async function googleAccessToken(integration: Integration) {
   const tokens = await tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken, client_id: process.env.GOOGLE_CLIENT_ID || "", client_secret: process.env.GOOGLE_CLIENT_SECRET || "" });
   const access = await encryptIntegrationCredential(tokens.access_token, secret);
   await supabaseRest(`integration_credentials?integration_id=eq.${integration.id}`, { method: "PATCH", serviceRole: true, prefer: "return=minimal", body: { encrypted_access_token: access, updated_at: new Date().toISOString() } });
-  await supabaseRest(`integrations?id=eq.${integration.id}`, { method: "PATCH", serviceRole: true, prefer: "return=minimal", body: { configuration: { ...integration.configuration, expires_at: new Date(Date.now() + Math.max(60, tokens.expires_in - 60) * 1000).toISOString() }, last_synced_at: new Date().toISOString() } });
+  await supabaseRest(`integrations?id=eq.${integration.id}&organization_id=eq.${integration.organization_id}&project_id=eq.${integration.project_id}`, { method: "PATCH", serviceRole: true, prefer: "return=minimal", body: { configuration: { ...integration.configuration, expires_at: new Date(Date.now() + Math.max(60, tokens.expires_in - 60) * 1000).toISOString() }, last_synced_at: new Date().toISOString() } });
   return tokens.access_token;
 }
 
