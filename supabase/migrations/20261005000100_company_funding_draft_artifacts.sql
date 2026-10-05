@@ -230,7 +230,7 @@ begin
     exception when others then
       raise exception 'Company funding opportunity source evidence identifiers must be UUIDs';
     end;
-    if not (evidence_uuid = any(new.program_evidence_ids)) then
+    if evidence_uuid is null or not (evidence_uuid = any(new.program_evidence_ids)) then
       raise exception 'Company funding opportunities must reference persisted official program evidence';
     end if;
   end loop;
