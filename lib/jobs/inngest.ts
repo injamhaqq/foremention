@@ -125,7 +125,7 @@ async function prepareWeeklyRun(seed: ScheduledRunSeed, weekKey: string) {
     return { runId, organizationId: seed.organization_id, projectId: seed.project_id };
   } catch (error) {
     await supabaseRest(`usage_events?organization_id=eq.${seed.organization_id}&run_id=eq.${runId}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
-    await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${seed.organization_id}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
+    await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${seed.organization_id}&project_id=eq.${seed.project_id}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
     console.warn("Scheduled run preparation failed.", safeOperationalError(error));
     return null;
   }
@@ -584,7 +584,7 @@ export const runMultiEngineScan = inngest.createFunction(
     }
 
     await step.run("mark-run-running", () => measureRunPhase("mark_running", run.id, () =>
-      supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${run.organization_id}&status=eq.queued`, {
+      supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&status=eq.queued`, {
         method: "PATCH",
         serviceRole: true,
         prefer: "return=minimal",
@@ -605,7 +605,7 @@ export const runMultiEngineScan = inngest.createFunction(
     for (const prompt of prompts) {
       const runState = await step.run(`check-cancellation-${prompt.prompt_key}`, () =>
         supabaseRest<Array<{ status: string }>>(
-          `runs?select=status&id=eq.${run.id}&organization_id=eq.${run.organization_id}&limit=1`,
+          `runs?select=status&id=eq.${run.id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&limit=1`,
           { serviceRole: true },
         ));
       if (runState[0]?.status === "cancelled") return { runId: run.id, cancelled: true };
@@ -685,7 +685,7 @@ export const runMultiEngineScan = inngest.createFunction(
     const actualCostUsd = await step.run("sum-recorded-run-cost", () => recordedRunCost(data));
     const finalState = await step.run("check-final-cancellation", () =>
       supabaseRest<Array<{ status: string }>>(
-        `runs?select=status&id=eq.${run.id}&organization_id=eq.${run.organization_id}&limit=1`,
+        `runs?select=status&id=eq.${run.id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&limit=1`,
         { serviceRole: true },
       ));
     if (finalState[0]?.status === "cancelled") return { runId: run.id, cancelled: true };
@@ -768,7 +768,7 @@ export const runMultiEngineScan = inngest.createFunction(
 
     const completedAt = new Date().toISOString();
     await step.run("mark-run-for-human-review", () => measureRunPhase("mark_for_review", run.id, () =>
-      supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${run.organization_id}`, {
+      supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}`, {
         method: "PATCH",
         serviceRole: true,
         prefer: "return=minimal",
