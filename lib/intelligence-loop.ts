@@ -1,5 +1,6 @@
 import type { Viewer } from "@/lib/auth";
 import { canonicalizeEvidenceUrl, roundUsd } from "@/lib/collection-policy";
+import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS } from "@/lib/complete-run-evidence.mjs";
 import { loadPlacements, loadWorkspaceContext } from "@/lib/data";
 import type { Placement } from "@/lib/types";
 import { demoRuns, sourceMapEntries } from "@/lib/demo-data";
@@ -99,6 +100,7 @@ type AnswerRow = {
   estimated_cost_usd: number | string | null;
   cost_source: "estimated" | "provider_reported" | null;
   usage_total_tokens: number | null;
+  review_status: string;
   collected_at: string;
 };
 
@@ -592,26 +594,66 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
     ),
     loadPlacements(viewer),
   ]);
-  const runIds = runs.map((run) => run.id);
-  const [answers, costs, sources] = await Promise.all([
+  const latestRun = runs[0] || null;
+  const latestDenominatorValid = Boolean(
+    latestRun
+    && Number.isSafeInteger(latestRun.answer_count)
+    && latestRun.answer_count > 0
+    && latestRun.answer_count < MAX_COMPLETE_RUN_HISTORY_ANSWERS,
+  );
+
+  const readableRuns: RunRow[] = [];
+  let reservedAnswerRows = 0;
+  if (latestDenominatorValid) {
+    for (const run of runs) {
+      if (!Number.isSafeInteger(run.answer_count) || run.answer_count <= 0) continue;
+      if (reservedAnswerRows + run.answer_count >= MAX_COMPLETE_RUN_HISTORY_ANSWERS) break;
+      readableRuns.push(run);
+      reservedAnswerRows += run.answer_count;
+    }
+  }
+
+  const runIds = readableRuns.map((run) => run.id);
+  const [candidateAnswers, sourceRows] = await Promise.all([
     runIds.length ? supabaseRest<AnswerRow[]>(
-      `run_answers?select=id,run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present,brand_position,estimated_cost_usd,cost_source,usage_total_tokens,collected_at&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.desc&limit=500`,
-      { token: viewer.accessToken },
-    ) : Promise.resolve([]),
-    runIds.length ? supabaseRest<CostRow[]>(
-      `ai_cost_events?select=run_id,estimated_cost_usd,cost_source,total_tokens&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&order=observed_at.desc&limit=500`,
+      `run_answers?select=id,run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present,brand_position,estimated_cost_usd,cost_source,usage_total_tokens,review_status,collected_at&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.desc&limit=${MAX_COMPLETE_RUN_HISTORY_ANSWERS}`,
       { token: viewer.accessToken },
     ) : Promise.resolve([]),
     map ? supabaseRest<SourceEntryRow[]>(
-      `source_map_entries?select=id,source_id,citation_observations,engines,client_present,competitors_present,source:sources(domain,page_title,canonical_url,crawler_access,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${map.id}&order=rank.asc&limit=250`,
+      `source_map_entries?select=id,source_id,citation_observations,engines,client_present,competitors_present,source:sources(domain,page_title,canonical_url,crawler_access,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${map.id}&order=rank.asc&limit=251`,
       { token: viewer.accessToken },
     ) : Promise.resolve([]),
   ]);
+
+  const completeRuns: RunRow[] = [];
+  const completeAnswers: AnswerRow[] = [];
+  if (latestDenominatorValid) {
+    for (const run of readableRuns) {
+      const runAnswers = candidateAnswers.filter((answer) => answer.run_id === run.id);
+      if (!assessCompleteRunHistory([run], runAnswers).ok) {
+        if (run.id === latestRun?.id) {
+          completeRuns.length = 0;
+          completeAnswers.length = 0;
+          break;
+        }
+        continue;
+      }
+      completeRuns.push(run);
+      completeAnswers.push(...runAnswers);
+    }
+  }
+
+  // A 251st Source Map row proves the bounded read is incomplete. Withhold the
+  // whole set instead of presenting the first 250 as the full evidence map.
+  const sources = sourceRows.length <= 250 ? sourceRows : [];
+
   return buildWeeklyIntelligence({
-    telemetry: runs.length ? "recorded" : "empty",
-    runs,
-    answers,
-    costs,
+    telemetry: completeRuns.length ? "recorded" : "empty",
+    runs: completeRuns,
+    answers: completeAnswers,
+    // Customer totals use the independently persisted runs.actual_cost_usd
+    // aggregate. A bounded attempt-event subset must never be summed as total.
+    costs: [],
     sources,
     evidence,
     claims,
