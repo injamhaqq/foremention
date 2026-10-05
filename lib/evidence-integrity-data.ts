@@ -35,6 +35,7 @@ const sourceRoute = (value: string | null): SourceMapEntry["route"] => {
 };
 
 const clampPct = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+export const MAX_TRUTHFUL_SOURCE_MAP_ENTRIES = 1000;
 
 type TruthfulSourceEntryRow = {
   id: string;
@@ -83,9 +84,10 @@ export async function loadTruthfulSourceMap(
   });
   if (!map) return [];
   const rows = await supabaseRest<TruthfulSourceEntryRow[]>(
-    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,reviewed_at,reviewed_by,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${map.id}&organization_id=eq.${context.organizationId}&order=rank.asc`,
+    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,reviewed_at,reviewed_by,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${map.id}&organization_id=eq.${context.organizationId}&order=rank.asc&limit=${MAX_TRUTHFUL_SOURCE_MAP_ENTRIES + 1}`,
     { token: viewer.accessToken },
   );
+  if (rows.length > MAX_TRUTHFUL_SOURCE_MAP_ENTRIES) return [];
   return rows.filter((row) => row.source).map((row) => ({
     id: row.id,
     sourceId: row.source_id,
