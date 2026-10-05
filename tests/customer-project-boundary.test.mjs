@@ -13,7 +13,9 @@ test("core customer records are bound to the active project", async () => {
   assert.match(data, /run_answers\?select=provider,brand_present,run:runs!inner\(project_id\)[^\n]+run\.project_id=eq\.\$\{context\.projectId\}/);
   assert.match(data, /run_answers\?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at,run:runs!inner\(project_id\)[^\n]+run\.project_id=eq\.\$\{context\.projectId\}/);
   assert.match(data, /ai_cost_events\?select=provider,model,input_tokens,output_tokens,total_tokens,estimated_cost_usd,cost_source,run:runs!inner\(project_id\)[^\n]+run\.project_id=eq\.\$\{context\.projectId\}/);
-  assert.match(data, /prompt_clusters\?select=id&organization_id=eq\.\$\{organizationId\}&project_id=eq\.\$\{projects\[0\]\.id\}/);
+  assert.match(data, /prompt_clusters\?select=id&organization_id=eq\.\$\{organizationId\}&project_id=eq\.\$\{project\.id\}/);
+  assert.match(data, /categories\?select=id,name&organization_id=eq\.\$\{organizationId\}&active=eq\.true&order=created_at\.asc&limit=100/);
+  assert.match(data, /categories\.find\(\(candidate\) => candidate\.name\.trim\(\)\.toLocaleLowerCase\(\) === projectCategory\.toLocaleLowerCase\(\)\)/);
 });
 
 test("legacy Source Maps and Actions fail closed on active-project ownership", async () => {
