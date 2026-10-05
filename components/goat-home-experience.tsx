@@ -228,6 +228,71 @@ export function MissingAnswerExperience() {
       </div>
     </section>
 
+    <section className="fm-home-proof" aria-labelledby="fm-home-proof-title">
+      <div className="shell fm-home-proof__layout">
+        <div className="fm-home-proof__intro">
+          <span className="canonical-kicker">PROOF WITHOUT PLACEHOLDERS</span>
+          <h2 id="fm-home-proof-title">Credibility should appear only after the evidence exists.</h2>
+          <p>Foremention does not publish invented customer logos, uplift percentages, security badges, or outcome claims to make the site look mature. Public proof is added only when it is consented, attributable, and supported by the underlying record.</p>
+        </div>
+        <div className="fm-home-proof__grid">
+          <article>
+            <span>01</span>
+            <strong>Methodology is inspectable now.</strong>
+            <p>See how question versions, provider context, returned references, review state, uncertainty, and later comparability are separated.</p>
+            <Link className="text-link" href="/methodology">Read methodology <Arrow /></Link>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>Trust claims stay current.</strong>
+            <p>Security, privacy, tenant isolation, provider handling, and unavailable controls are described as implemented, configuration-required, architecture-ready, or unavailable.</p>
+            <Link className="text-link" href="/trust">Open Trust Center <Arrow /></Link>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Customer proof waits for customer proof.</strong>
+            <p>No design-partner application, demo workspace, internal test, or fictional sample is presented as a customer result.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section className="fm-home-faq" aria-labelledby="fm-home-faq-title">
+      <div className="shell fm-home-faq__layout">
+        <div>
+          <span className="canonical-kicker">PRACTICAL QUESTIONS</span>
+          <h2 id="fm-home-faq-title">What teams usually need to know before a pilot.</h2>
+          <p>These answers describe the current product boundary rather than a future roadmap claim.</p>
+        </div>
+        <div className="fm-home-faq__items">
+          <details>
+            <summary>Does Foremention guarantee that my brand will be recommended?</summary>
+            <p>No. Foremention records observations, inspects evidence, helps identify company-owned changes worth testing, and supports comparable later measurement. It does not control an AI provider&apos;s ranking, model weights, personalization, updates, or future answers.</p>
+          </details>
+          <details>
+            <summary>Which AI surface is measured today?</summary>
+            <p>Current free-only live collection uses Cloudflare Workers AI with independently retrieved Bing Search RSS sources and grounded synthesis. That is not direct monitoring of ChatGPT, Gemini, or Perplexity consumer applications.</p>
+          </details>
+          <details>
+            <summary>Does opening the homepage run paid AI research?</summary>
+            <p>No. The public sample is sanitized and versioned. It does not call a paid provider, create a customer run, or expose customer records when the page loads.</p>
+          </details>
+          <details>
+            <summary>What makes a later observation comparable?</summary>
+            <p>The buyer-question version, provider/model context, collection method, and other material measurement conditions must remain equivalent enough for comparison. Material drift is recorded as not comparable instead of being forced into a trend.</p>
+          </details>
+          <details>
+            <summary>What happens in the founder-led pilot?</summary>
+            <p>Bring up to five priority buyer questions, establish a baseline, review the evidence, choose one customer-owned company change worth testing, implement only what your team approves, and return for comparable remeasurement.</p>
+          </details>
+          <details>
+            <summary>What happens to the information I submit?</summary>
+            <p>The public application collects only the information needed to evaluate the pilot conversation. The intake is validated, rate-limited, persisted server-side, and does not create a paid subscription or authorize automated collection.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
     <section className="outreach-partner" aria-labelledby="outreach-partner-title">
       <div className="shell">
         <div className="outreach-partner__intro">
