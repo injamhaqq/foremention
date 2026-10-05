@@ -61,5 +61,7 @@ test("funding persistence remains internal draft only and append-only for authen
   assert.doesNotMatch(migration, /grant\s+(?:insert|update|delete|all)[^;]*\bauthenticated\b/i);
   assert.doesNotMatch(migration, /for insert[\s\S]{0,300}to authenticated/i);
   assert.match(migration, /grant select, insert, delete on table public\.company_funding_draft_artifacts to service_role/i);
+  assert.match(migration, /project_status is distinct from 'active'/i);
+  assert.match(migration, /from public\.organization_members as membership[\s\S]*membership\.user_id = new\.created_by[\s\S]*owner','admin/i);
   assert.match(migration, /if tg_op = 'UPDATE' then[\s\S]*Company funding draft revisions are immutable/i);
 });
