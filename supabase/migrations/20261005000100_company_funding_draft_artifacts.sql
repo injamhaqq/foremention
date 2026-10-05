@@ -53,10 +53,12 @@ begin
   if auth.uid() is not null and new.created_by <> auth.uid() then
     raise exception 'Company funding draft creator must match authenticated actor';
   end if;
-  if not public.has_org_role(
-    new.organization_id,
-    array['owner','admin']::public.organization_role[],
-    new.created_by
+  if not exists (
+    select 1
+    from public.organization_members as membership
+    where membership.organization_id = new.organization_id
+      and membership.user_id = new.created_by
+      and membership.role = any(array['owner','admin']::public.organization_role[])
   ) then
     raise exception 'Company funding draft creator must be an organization owner or admin';
   end if;
