@@ -73,6 +73,7 @@ export type WeeklyIntelligence = {
 
 type RunRow = {
   id: string;
+  status: string;
   provider_ids: string[];
   methodology_version: string;
   prompt_count: number;
@@ -479,6 +480,7 @@ function demoInput(): BuildInput {
   const [latest, previous] = demoRuns;
   const demoRunRows: RunRow[] = [latest, previous].map((run, index) => ({
     id: run.id,
+    status: run.status,
     provider_ids: ["chatgpt", "perplexity", "claude", "google-ai"],
     methodology_version: "fictional-demo-v1",
     prompt_count: 4,
@@ -576,7 +578,7 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
   if (!context) return buildWeeklyIntelligence({ telemetry: "empty", runs: [], answers: [], costs: [], sources: [], evidence: [], claims: [], actions: [] });
   const [runs, map, evidence, claims, actions] = await Promise.all([
     supabaseRest<RunRow[]>(
-      `runs?select=id,provider_ids,methodology_version,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,actual_cost_usd,estimated_max_cost_usd,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=6`,
+      `runs?select=id,status,provider_ids,methodology_version,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,actual_cost_usd,estimated_max_cost_usd,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=6`,
       { token: viewer.accessToken },
     ),
     loadLatestProjectSourceMapRef({
