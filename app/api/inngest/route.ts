@@ -8,5 +8,5 @@ import { generateDailyCeoAgentBrief, runReviewedOperatingAgents, runSupportTicke
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [runMultiEngineScan, cleanupCancelledCollection, scheduleWeeklyWorkspaceRuns, discoverAcquisitionTargets, pollZohoAcquisitionRepliesJob, dispatchMeasurementSchedules, runtimeServiceProbe, runReviewedOperatingAgents, runSupportTicketAgent, generateDailyCeoAgentBrief, deliverWorkspaceWebhookEvents, deliverHubSpotActionEvents],
+  functions: [runMultiEngineScan, cleanupCancelledCollection, scheduleWeeklyWorkspaceDigests, discoverAcquisitionTargets, pollZohoAcquisitionRepliesJob, dispatchMeasurementSchedules, runtimeServiceProbe, runReviewedOperatingAgents, runSupportTicketAgent, generateDailyCeoAgentBrief, deliverWorkspaceWebhookEvents, deliverHubSpotActionEvents],
 });
