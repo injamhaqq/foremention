@@ -4,7 +4,7 @@ import { supabaseRest } from "@/lib/supabase-rest";
 
 export const WORKSPACE_WEBHOOK_EVENTS = ["collection.completed", "source.reviewed", "action.completed", "evidence.reviewed"] as const;
 export type WorkspaceWebhookEvent = typeof WORKSPACE_WEBHOOK_EVENTS[number];
-export type DeliveryEvent = { organizationId: string; eventKey: string; eventType: WorkspaceWebhookEvent; occurredAt: string; href: string };
+export type DeliveryEvent = { organizationId: string; projectId: string; eventKey: string; eventType: WorkspaceWebhookEvent; occurredAt: string; href: string };
 type EndpointRow = { id: string; organization_id: string; destination_url: string; event_types: string[]; active: boolean };
 
 const encoder = new TextEncoder();
@@ -32,6 +32,11 @@ export async function deriveWebhookSigningSecret(endpointId: string, masterSecre
 export async function deliverWorkspaceWebhooks(event: DeliveryEvent) {
   const masterSecret = process.env.WEBHOOK_SIGNING_SECRET;
   if (!masterSecret) return { delivered: 0, failed: 0, status: "not_configured" as const };
+  const projects = await supabaseRest<Array<{ id: string }>>(
+    `projects?select=id&id=eq.${encodeURIComponent(event.projectId)}&organization_id=eq.${event.organizationId}&status=eq.active&limit=1`,
+    { serviceRole: true },
+  );
+  if (!projects[0]) return { delivered: 0, failed: 0, status: "invalid_project" as const };
   const endpoints = await supabaseRest<EndpointRow[]>(`workspace_webhook_endpoints?select=id,organization_id,destination_url,event_types,active&organization_id=eq.${event.organizationId}&active=eq.true`, { serviceRole: true });
   let delivered = 0; let failed = 0;
   for (const endpoint of endpoints.filter((row) => row.event_types.includes(event.eventType))) {
@@ -43,7 +48,7 @@ export async function deliverWorkspaceWebhooks(event: DeliveryEvent) {
     const delivery = rows[0] || existing[0]; if (!delivery || delivery.status === "delivered" || delivery.attempt_count >= 4) continue;
     const attemptCount = delivery.attempt_count + 1;
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const body = JSON.stringify({ id: event.eventKey, type: event.eventType, occurred_at: event.occurredAt, organization_id: event.organizationId, data: { href: event.href } });
+    const body = JSON.stringify({ id: event.eventKey, type: event.eventType, occurred_at: event.occurredAt, organization_id: event.organizationId, project_id: event.projectId, data: { href: event.href, project_id: event.projectId } });
     try {
       const destination = validateWebhookDestination(endpoint.destination_url);
       const secret = await deriveWebhookSigningSecret(endpoint.id, masterSecret);
