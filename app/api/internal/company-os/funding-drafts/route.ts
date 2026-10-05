@@ -12,12 +12,10 @@ import {
   fundingServiceDigest,
   parseFundingServiceRequest,
   prepareScopedFundingDraft,
-  sameFundingServiceScope,
   validFundingFactKey,
   type FundingServiceEvidence,
   type FundingServiceFact,
 } from "@/lib/company-os/funding-draft-service";
-import { getPrimaryWorkspaceRole, loadWorkspaceContext, type WorkspaceContext, type WorkspaceRole } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { isMissingRelationError, SupabaseRequestError, supabaseRest } from "@/lib/supabase-rest";
 
@@ -46,6 +44,10 @@ type FundingArtifactRow = {
   artifact: unknown;
   created_at: string;
 };
+type FundingContext = { organizationId: string; projectId: string };
+type FundingMembershipRole = "owner" | "admin" | "analyst" | "viewer";
+type FundingMembershipRow = { role: FundingMembershipRole };
+type FundingProjectRow = { id: string; organization_id: string; status: string };
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -53,7 +55,7 @@ function responseError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status, headers: { "cache-control": "no-store" } });
 }
 
-function writer(role: WorkspaceRole | null): role is "owner" | "admin" {
+function writer(role: FundingMembershipRole | null): role is "owner" | "admin" {
   return role === "owner" || role === "admin";
 }
 
@@ -111,7 +113,7 @@ async function boundedJson(request: Request): Promise<unknown> {
 }
 
 async function resolveFundingContext(): Promise<
-  | { viewer: Viewer; context: WorkspaceContext; role: "owner" | "admin" }
+  | { viewer: Viewer; context: FundingContext; role: "owner" | "admin" }
   | { error: NextResponse }
 > {
   const viewer = await getViewer();
@@ -121,21 +123,32 @@ async function resolveFundingContext(): Promise<
   if (!isCompanyOperatorEmail(viewer.email)) {
     return { error: responseError("Company operator access is required.", 403) };
   }
-  const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
-  if (!context || !writer(role)) {
-    return { error: responseError("Owner or admin access to the active workspace is required.", 403) };
-  }
   const configured = configuredCompanyOsScope();
   if (!configured) {
     return { error: responseError("The Company OS organization/project scope is not configured.", 503) };
   }
-  if (!sameFundingServiceScope(configured, { organizationId: context.organizationId, projectId: context.projectId })) {
-    return { error: responseError("The active workspace is not the configured Company OS scope.", 403) };
+
+  const [memberships, projects] = await Promise.all([
+    supabaseRest<FundingMembershipRow[]>(
+      `organization_members?select=role&organization_id=eq.${encodeURIComponent(configured.organizationId)}&user_id=eq.${encodeURIComponent(viewer.id)}&limit=1`,
+      { token: viewer.accessToken },
+    ),
+    supabaseRest<FundingProjectRow[]>(
+      `projects?select=id,organization_id,status&id=eq.${encodeURIComponent(configured.projectId)}&organization_id=eq.${encodeURIComponent(configured.organizationId)}&status=eq.active&limit=1`,
+      { token: viewer.accessToken },
+    ),
+  ]);
+  const role = memberships[0]?.role || null;
+  if (!writer(role)) {
+    return { error: responseError("Owner or admin access to the configured Company OS organization is required.", 403) };
   }
-  return { viewer, context, role };
+  if (!projects[0]) {
+    return { error: responseError("The configured Company OS project is unavailable, inactive, or outside the authenticated organization.", 403) };
+  }
+  return { viewer, context: configured, role };
 }
 
-async function loadEvidenceRows(viewer: Viewer, context: WorkspaceContext, ids: string[]) {
+async function loadEvidenceRows(viewer: Viewer, context: FundingContext, ids: string[]) {
   if (!ids.length) return [] as EvidenceRow[];
   return supabaseRest<EvidenceRow[]>(
     `evidence_items?select=id,evidence_type,source_url,verification_status,verified_at,expires_at,usage_rights`
@@ -146,7 +159,7 @@ async function loadEvidenceRows(viewer: Viewer, context: WorkspaceContext, ids: 
   );
 }
 
-async function loadCompanyTruth(viewer: Viewer, context: WorkspaceContext, asOf: string) {
+async function loadCompanyTruth(viewer: Viewer, context: FundingContext, asOf: string) {
   const entities = await supabaseRest<TruthEntityRow[]>(
     `company_truth_entities?select=id,canonical_key`
       + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
