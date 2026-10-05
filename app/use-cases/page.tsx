@@ -62,6 +62,7 @@ const useCases = [
 export default function UseCasesPage() {
   return (
     <PublicShell>
+      <link rel="alternate" type="text/markdown" href="/use-cases.md" />
       <section className="page-hero page-hero--ink">
         <div className="shell narrow-heading">
           <span className="eyebrow eyebrow--on-ink">Use cases</span>
