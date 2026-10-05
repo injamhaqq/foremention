@@ -82,6 +82,6 @@ export async function PATCH(request: Request) {
       },
     }),
   ]);
-  if (body.status === "verified") await queueWorkspaceWebhook({ organizationId: context.organizationId, eventKey: `evidence.reviewed:${id}:${verifiedAt}`, eventType: "evidence.reviewed", occurredAt: verifiedAt!, href: "/app/evidence" }).catch(() => undefined);
+  if (body.status === "verified") await queueWorkspaceWebhook({ organizationId: context.organizationId, projectId: context.projectId, eventKey: `evidence.reviewed:${id}:${verifiedAt}`, eventType: "evidence.reviewed", occurredAt: verifiedAt!, href: "/app/evidence" }).catch(() => undefined);
   return NextResponse.json({ data: { id, status: body.status, verifiedAt } });
 }
