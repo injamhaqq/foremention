@@ -38,6 +38,9 @@ test("funding source review route reuses native inspection and exact Company OS 
   assert.match(route, /includePageText:\s*true/);
   assert.match(route, /maxExtractedTextChars:\s*24_000/);
   assert.match(route, /persistSourceSnapshot/);
+  assert.match(route, /source_snapshots\?select=id,access,content_hash,evidence_excerpt/);
+  assert.match(route, /content_hash/);
+  assert.match(route, /evidence_excerpt/);
   assert.match(route, /serviceRole:\s*true/);
   assert.doesNotMatch(route, /sendProductAlertEmail|sendEmail|submitApplication|browser\.newPage|payment/i);
 });
@@ -62,6 +65,8 @@ test("funding source review persistence is project-scoped, append-only, and serv
   assert.match(migration, /not \(source\.canonical_url = evidence\.source_url\)/i);
   assert.match(migration, /not \(snapshot\.source_id = new\.source_id\)/i);
   assert.match(migration, /decision = 'accepted'[\s\S]*snapshot\.access not in \('open','partial'\)/i);
+  assert.match(migration, /decision = 'accepted'[\s\S]*snapshot\.content_hash is null/i);
+  assert.match(migration, /decision = 'accepted'[\s\S]*nullif\(trim\(snapshot\.evidence_excerpt\), ''\) is null/i);
   assert.match(migration, /mode'[\s\S]*internal_review_only/i);
   assert.match(migration, /externalEffects'[\s\S]*false/i);
   assert.match(migration, /submissionAuthorized'[\s\S]*false/i);
@@ -73,6 +78,7 @@ test("isolated SQL acceptance covers direct browser denial and review fail-close
   assert.match(sql, /Authenticated owner bypassed trusted funding source check write path/i);
   assert.match(sql, /non-owner\/admin funding source check creator/i);
   assert.match(sql, /unreachable funding source check was accepted/i);
+  assert.match(sql, /unreviewable partial funding source check was accepted/i);
   assert.match(sql, /duplicate funding source review was accepted/i);
   assert.match(sql, /cross-project funding evidence was accepted/i);
 });
