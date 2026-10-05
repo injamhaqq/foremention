@@ -52,7 +52,7 @@ export function MissingAnswerExperience() {
           <h1 id="fm-cinematic-hero-title">See where AI recommends your brand.</h1>
           <p className="fm-cinematic-hero__lead">Track recommendations, inspect supporting sources, and decide what to improve.</p>
           <div className="fm-cinematic-hero__actions">
-            <Link className="canonical-button canonical-button--primary" href="#recommendation-record">Explore a sample <Arrow /></Link>
+            <Link data-public-sample-open className="canonical-button canonical-button--primary" href="#recommendation-record">Explore a sample <Arrow /></Link>
             <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--secondary" href="/contact">Request a pilot <Arrow /></Link>
           </div>
           <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records.</p>
@@ -100,7 +100,7 @@ export function MissingAnswerExperience() {
             <small>Retrievable · review pending</small>
           </div>
 
-          <Link className="fm-graph-record" href="#recommendation-record" aria-label="Inspect the illustrative Recommendation Record">
+          <Link data-public-sample-open className="fm-graph-record" href="#recommendation-record" aria-label="Inspect the illustrative Recommendation Record">
             <span>RECOMMENDATION RECORD / 01</span>
             <strong>Observed evidence, held together.</strong>
             <small>Answer · brands · sources · review state · limitations <b aria-hidden="true">→</b></small>
@@ -137,7 +137,7 @@ export function MissingAnswerExperience() {
           {recordChain.map(([label, state], index) => <div key={label} className={state}><span aria-hidden="true" /><strong>{label}</strong>{index < recordChain.length - 1 ? <i aria-hidden="true" /> : null}</div>)}
         </div>
         <div className="canonical-record__actions">
-          <Link className="canonical-record__inspect" href="/recommendation-record">Inspect evidence <span aria-hidden="true">→</span></Link>
+          <Link data-public-evidence-inspect className="canonical-record__inspect" href="/recommendation-record">Inspect evidence <span aria-hidden="true">→</span></Link>
           <Link className="canonical-record__inspect" href="/methodology">Read methodology <span aria-hidden="true">→</span></Link>
         </div>
         <div className="canonical-record__boundary">
