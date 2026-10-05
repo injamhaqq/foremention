@@ -45,7 +45,7 @@ export function RunManifestPanel({ manifest }: { manifest: RunManifest }) {
     <details className="run-manifest__details">
       <summary>Question snapshot and version identity</summary>
       <div className="run-manifest__versions">
-        <span>Prompt {manifest.versions.prompt || "unknown"}</span>
+        <span>Prompt pipeline {manifest.versions.prompt || "unknown"}</span>
         <span>Parser {manifest.versions.parser || "unknown"}</span>
         <span>Retrieval {manifest.versions.retrieval || "unknown"}</span>
         <span>Policy {manifest.versions.policy || "unknown"}</span>
@@ -55,7 +55,7 @@ export function RunManifestPanel({ manifest }: { manifest: RunManifest }) {
       {manifest.questions.length ? <ol className="run-manifest__questions">
         {manifest.questions.map((question) => <li key={`${question.promptKey}-${question.promptId || question.text}`}>
           <strong>{question.text}</strong>
-          <small>{question.locale}{question.market ? ` · ${question.market}` : ""} · frozen in this run</small>
+          <small>{question.revision ? `Revision v${question.revision} · ` : "Revision unresolved · "}{question.locale}{question.market ? ` · ${question.market}` : ""} · frozen in this run</small>
         </li>)}
       </ol> : <p className="table-caption">No persisted question snapshot is available for this record.</p>}
     </details>
