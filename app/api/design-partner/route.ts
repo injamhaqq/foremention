@@ -6,7 +6,6 @@ import { supabaseRest } from "@/lib/supabase-rest";
 
 type IntakeReceipt = {
   intakeId?: string;
-  notificationStatus?: "not_configured" | "no_recipients" | "provider_accepted" | "partial" | "failed" | "unchanged";
 };
 
 function wantsFormResponse(request: Request) {
@@ -46,21 +45,13 @@ function operatorRecipients() {
     .slice(0, 5);
 }
 
-async function findExistingApplicationId(application: Pick<DesignPartnerApplication, "email" | "company">) {
-  const rows = await supabaseRest<Array<{ id: string }>>(
-    `design_partner_applications?select=id&email=eq.${encodeURIComponent(application.email)}&company=eq.${encodeURIComponent(application.company)}&order=created_at.desc&limit=1`,
-    { serviceRole: true },
-  );
-  return rows[0]?.id;
-}
-
 async function notifyDesignPartnerOperators(
   application: DesignPartnerApplication,
   keyHash: string,
-): Promise<NonNullable<IntakeReceipt["notificationStatus"]>> {
-  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return "not_configured";
+) {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return;
   const recipients = operatorRecipients();
-  if (!recipients.length) return "no_recipients";
+  if (!recipients.length) return;
 
   const questionSummary = application.buyerQuestions.length
     ? application.buyerQuestions.map((question, index) => `${index + 1}. ${question}`).join("\n")
@@ -82,17 +73,12 @@ async function notifyDesignPartnerOperators(
     "Stage-0 operating target: review within one business day. This application is not a customer, paid pilot, or traction claim until first-party commercial evidence supports that state.",
   ].join("\n");
 
-  const results = await Promise.allSettled(recipients.map((to, index) => sendProductAlertEmail({
+  await Promise.allSettled(recipients.map((to, index) => sendProductAlertEmail({
     to,
     subject: `Foremention design-partner application — ${application.company}`,
     text,
     idempotencyKey: `design-partner-application-${keyHash}-${index}`,
   })));
-
-  const accepted = results.filter((result) => result.status === "fulfilled").length;
-  if (accepted === results.length) return "provider_accepted";
-  if (accepted > 0) return "partial";
-  return "failed";
 }
 
 export async function POST(request: Request) {
@@ -125,13 +111,7 @@ export async function POST(request: Request) {
       serviceRole: true,
       body: { p_key_hash: keyHash },
     });
-    if (claim === "duplicate") {
-      const intakeId = await findExistingApplicationId(normalized.value);
-      return responseFor(request, 201, "Application received.", {
-        ...(intakeId ? { intakeId } : {}),
-        notificationStatus: "unchanged",
-      });
-    }
+    if (claim === "duplicate") return responseFor(request, 201, "Application received.");
     if (claim === "limited") return limitedResponse(request);
     if (claim !== "accepted") throw new Error("Unexpected submission claim state.");
 
@@ -153,8 +133,8 @@ export async function POST(request: Request) {
     const intakeId = (rows as Array<{ id: string }>)[0]?.id;
     if (!intakeId) throw new Error("Application was not returned after persistence.");
 
-    const notificationStatus = await notifyDesignPartnerOperators(normalized.value, keyHash);
-    return responseFor(request, 201, "Application received.", { intakeId, notificationStatus });
+    await notifyDesignPartnerOperators(normalized.value, keyHash);
+    return responseFor(request, 201, "Application received.", { intakeId });
   } catch {
     return responseFor(request, 503, "Applications are temporarily unavailable. Email hello@foremention.com instead.");
   }
