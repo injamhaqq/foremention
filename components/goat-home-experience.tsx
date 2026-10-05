@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Arrow } from "@/components/brand";
-import { CanonicalSignalField } from "@/components/canonical-signal-field";
 
 const workflow = [
   ["01", "Buyer question", "Start with a real question that can determine the shortlist."],
