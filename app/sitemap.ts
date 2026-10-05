@@ -1,7 +1,9 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 
-const updated = new Date("2026-10-05T00:00:00Z");
+const baselineUpdated = new Date("2026-08-30T00:00:00Z");
+const websiteUpdated = new Date("2026-10-05T00:00:00Z");
+const websiteUpdatedPaths = new Set(["", "/use-cases", "/contact"]);
 
 const routes = [
   { path: "", frequency: "weekly", priority: 1 },
@@ -26,7 +28,7 @@ const routes = [
 export default function sitemap(): MetadataRoute.Sitemap {
   return routes.map((route) => ({
     url: `${SITE_URL}${route.path}`,
-    lastModified: updated,
+    lastModified: websiteUpdatedPaths.has(route.path) ? websiteUpdated : baselineUpdated,
     changeFrequency: route.frequency,
     priority: route.priority,
   }));
