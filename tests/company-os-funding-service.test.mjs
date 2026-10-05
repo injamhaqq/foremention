@@ -50,6 +50,13 @@ test("service request requires unique UUID official-source references", () => {
     () => parseFundingServiceRequest({ ...request(), programEvidenceIds: [programEvidenceId, programEvidenceId] }),
     /FUNDING_SERVICE_INVALID:programEvidenceIds:duplicate/,
   );
+  assert.throws(
+    () => parseFundingServiceRequest({
+      ...request(),
+      opportunities: [{ ...request().opportunities[0], sourceEvidenceId: companyEvidenceId }],
+    }),
+    /FUNDING_SERVICE_INVALID:opportunities\.0\.sourceEvidenceId/,
+  );
 });
 
 test("trusted service inputs bind scope and preserve draft-only authority flags", async () => {
@@ -125,6 +132,7 @@ test("internal funding route authenticates operator, active scope, role, trusted
   assert.doesNotMatch(route, /loadWorkspaceContext|getPrimaryWorkspaceRole/);
   assert.match(route, /funding_program_official/);
   assert.match(route, /company_truth_assertions/);
+  assert.match(route, /new TextDecoder\("utf-8", \{ fatal: true \}\)/);
   assert.match(route, /new Date\(\)\.toISOString\(\)/);
   assert.doesNotMatch(route, /serviceRole:\s*true/);
   assert.doesNotMatch(route, /sendProductAlertEmail|sendEmail|submitApplication|browser/i);
