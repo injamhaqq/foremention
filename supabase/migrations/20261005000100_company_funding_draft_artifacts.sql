@@ -29,6 +29,7 @@ set search_path = ''
 as $$
 declare
   project_org uuid;
+  project_status text;
   evidence_row jsonb;
   fact_row jsonb;
   opportunity_row jsonb;
@@ -39,15 +40,25 @@ begin
     raise exception 'Company funding draft revisions are immutable';
   end if;
 
-  select organization_id into project_org
+  select organization_id, status into project_org, project_status
   from public.projects
   where id = new.project_id;
 
   if project_org is null or project_org <> new.organization_id then
     raise exception 'Company funding draft must belong to one organization/project scope';
   end if;
+  if project_status is distinct from 'active' then
+    raise exception 'Company funding draft requires an active project';
+  end if;
   if auth.uid() is not null and new.created_by <> auth.uid() then
     raise exception 'Company funding draft creator must match authenticated actor';
+  end if;
+  if not public.has_org_role(
+    new.organization_id,
+    array['owner','admin']::public.organization_role[],
+    new.created_by
+  ) then
+    raise exception 'Company funding draft creator must be an organization owner or admin';
   end if;
 
   if cardinality(new.program_evidence_ids) < 1 or cardinality(new.program_evidence_ids) > 10 then
