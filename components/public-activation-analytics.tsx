@@ -7,7 +7,7 @@ import { captureProductEvent } from "@/lib/product-analytics";
 function publicSurface(pathname: string) {
   if (pathname === "/") return "home";
   if (pathname === "/product") return "product";
-  if (pathname === "/pricing") return "pricing";
+  if (pathname === "/pricing") return "pricing";\n  if (pathname === "/use-cases") return "use_cases";
   return "public_other";
 }
 
@@ -21,8 +21,16 @@ export function PublicActivationAnalytics() {
     const onDocumentClick = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (!target.closest("[data-design-partner-cta]")) return;
-      captureProductEvent("design_partner_cta_clicked", { surface: publicSurface(pathname) });
+      const surface = publicSurface(pathname);
+      if (target.closest("[data-public-sample-open]")) {
+        captureProductEvent("sample_opened", { surface });
+      }
+      if (target.closest("[data-public-evidence-inspect]")) {
+        captureProductEvent("evidence_inspected", { surface });
+      }
+      if (target.closest("[data-design-partner-cta]")) {
+        captureProductEvent("design_partner_cta_clicked", { surface });
+      }
     };
 
     document.addEventListener("click", onDocumentClick);
