@@ -4,10 +4,12 @@ import { RecommendationAnswerRecord } from "@/components/recommendation-answer-r
 import { RunReview } from "@/components/run-review";
 import { RunCancel } from "@/components/run-cancel";
 import { RunRerunButton } from "@/components/run-rerun-button";
+import { RunManifestPanel } from "@/components/run-manifest-panel";
 import { requireViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadRunAnswers, loadRunConfiguration, loadRunCostEvents, loadRuns, loadWorkspaceContext } from "@/lib/data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { loadProviderRunDiagnostics } from "@/lib/provider-run-diagnostics";
+import { loadRunManifest } from "@/lib/run-manifest";
 
 const usd = (value: number) => `$${value.toFixed(value < .01 ? 4 : 2)}`;
 
@@ -16,7 +18,7 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
   const { id } = await params;
   const { first_evidence: firstEvidenceParam = "" } = await searchParams;
   const firstEvidence = firstEvidenceParam === "1";
-  const [runs, answers, providerDiagnostics, costEvents, configuration, context, role] = await Promise.all([
+  const [runs, answers, providerDiagnostics, costEvents, configuration, context, role, manifest] = await Promise.all([
     loadRuns(viewer),
     loadRunAnswers(viewer, id),
     loadProviderRunDiagnostics(viewer, id),
@@ -24,6 +26,7 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
     loadRunConfiguration(viewer, id),
     loadWorkspaceContext(viewer),
     getPrimaryWorkspaceRole(viewer),
+    loadRunManifest(viewer, id),
   ]);
   const run = runs.find((item) => item.id === id);
   if (!run) notFound();
@@ -71,6 +74,8 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
     {run.status === "review" && <RunReview runId={run.id} />}
     {(run.status === "queued" || run.status === "running") && <RunCancel runId={run.id} />}
     {["complete", "partial"].includes(run.status) && configuration && <RunRerunButton promptIds={configuration.promptIds} provider={configuration.provider} demo={viewer.mode === "demo"} />}
+
+    {manifest && <RunManifestPanel manifest={manifest} />}
 
     <div className="answer-stack canonical-record-stack">
       {answers.length ? answers.map((answer) => <RecommendationAnswerRecord
