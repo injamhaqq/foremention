@@ -43,10 +43,16 @@ test("public Evidence Standard accessibility refinements remain explicit", () =>
   assert.match(outreachCss, /min-height:\s*44px/);
 });
 
-test("public navigation keeps product understanding concise while exposing commercial and research paths", () => {
+test("public navigation keeps product understanding concise while exposing use cases, commercial, and research paths", () => {
   const shell = read("components/public-shell.tsx");
-  for (const item of ["Product", "How it works", "Pricing", "Research", "Trust"]) assert.ok(shell.includes('"' + item + '"'));
-  assert.match(shell, /Apply as Design Partner/);
+  for (const pair of [
+    '["/product", "Product"]',
+    '["/use-cases", "Use cases"]',
+    '["/pricing", "Pricing"]',
+    '["/insights", "Research"]',
+    '["/trust", "Trust"]',
+  ]) assert.ok(shell.includes(pair), "missing public navigation item: " + pair);
+  assert.match(shell, /Request a pilot/);
   assert.match(shell, /Sign in/);
   assert.match(shell, /href="\/privacy"/);
   assert.match(shell, /href="\/subprocessors"/);
@@ -55,27 +61,24 @@ test("public navigation keeps product understanding concise while exposing comme
   assert.doesNotMatch(shell, />Partners</);
   assert.doesNotMatch(shell, />Request a demo</);
   assert.doesNotMatch(shell, /Source X-Ray|\/source-x-ray/);
-  assert.match(shell, /\["\/pricing", "Pricing"\]/);
-  assert.match(shell, /\["\/insights", "Research"\]/);
 });
 
-test("public metadata states the company-change value while preserving the evidence boundary", () => {
+test("public metadata states the approved recommendation-intelligence promise without overclaiming", () => {
   const layout = read("app/layout.tsx");
-  assert.match(layout, /Understand why competitors are being recommended/);
-  assert.match(layout, /what your company can actually change/);
-  assert.match(layout, /verify what happened after the change/);
+  assert.match(layout, /See where AI recommends your brand/);
+  assert.match(layout, /Track recommendations, inspect supporting sources, and decide what to improve/);
   assert.match(layout, /Recommendation intelligence software/);
   assert.doesNotMatch(layout, /guaranteed|caused the recommendation|Category Leadership OS/i);
 });
 
-test("homepage leads with the company-change outcome while commercial truth remains explicit", () => {
+test("homepage leads with the approved recommendation promise while commercial truth remains explicit", () => {
   const experience = read("components/goat-home-experience.tsx");
   const pricing = read("app/pricing/page.tsx");
   const primitives = read("components/evidence-standard-primitives.tsx");
 
-  assert.match(experience, /Know what your company should change next to become the stronger recommendation\./);
-  assert.match(experience, /Recommendation intelligence for B2B software/i);
-  assert.match(experience, /No ranking guarantees\. No fabricated scores\. No causal claims without evidence\./);
+  assert.match(experience, /See where AI recommends your brand\./);
+  assert.match(experience, /Track recommendations, inspect supporting sources, and decide what to improve\./);
+  assert.match(experience, /Illustrative, versioned sample data/);
   assert.match(experience, /Illustrative example — not customer evidence\./);
   assert.match(experience, /Company Truth/);
   assert.match(experience, /Eligibility/);
