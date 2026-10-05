@@ -106,7 +106,7 @@ begin
 
   if source.id is null
      or source.organization_id <> new.organization_id
-     or source.canonical_url <> evidence.source_url then
+     or not (source.canonical_url = evidence.source_url) then
     raise exception 'Company funding source check source must match the official evidence URL';
   end if;
 
@@ -116,8 +116,8 @@ begin
 
   if snapshot.id is null
      or snapshot.organization_id <> new.organization_id
-     or snapshot.source_id <> new.source_id
-     or snapshot.canonical_url <> evidence.source_url
+     or not (snapshot.source_id = new.source_id)
+     or not (snapshot.canonical_url = evidence.source_url)
      or snapshot.retrieved_at <> new.checked_at then
     raise exception 'Company funding source check must bind the exact native source snapshot';
   end if;
@@ -206,7 +206,7 @@ begin
 
   if source.id is null
      or source.organization_id <> new.organization_id
-     or source.canonical_url <> evidence.source_url then
+     or not (source.canonical_url = evidence.source_url) then
     raise exception 'Company funding source review evidence URL changed after inspection';
   end if;
 
@@ -216,8 +216,8 @@ begin
 
   if snapshot.id is null
      or snapshot.organization_id <> new.organization_id
-     or snapshot.source_id <> source_check.source_id
-     or snapshot.canonical_url <> evidence.source_url then
+     or not (snapshot.source_id = source_check.source_id)
+     or not (snapshot.canonical_url = evidence.source_url) then
     raise exception 'Company funding source review lost its exact native snapshot provenance';
   end if;
 
