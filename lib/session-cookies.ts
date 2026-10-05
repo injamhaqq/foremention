@@ -41,7 +41,6 @@ export function markRecoverySession(response: NextResponse) {
 
 export function clearRecoverySession(response: NextResponse) {
   response.cookies.delete(RECOVERY_COOKIE);
-  response.cookies.delete(ACTIVE_PROJECT_COOKIE);
 }
 
 export function setActiveProjectCookie(response: NextResponse, projectId: string) {
@@ -56,6 +55,7 @@ export function clearSessionCookies(response: NextResponse) {
   response.cookies.delete(REFRESH_COOKIE);
   response.cookies.delete(DEMO_COOKIE);
   response.cookies.delete(RECOVERY_COOKIE);
+  response.cookies.delete(ACTIVE_PROJECT_COOKIE);
 }
 
 export function clearDemoCookie(response: NextResponse) {
