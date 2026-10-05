@@ -634,13 +634,14 @@ export type RunCostEvent = {
   costUsd: number;
   costSource: "estimated" | "provider_reported";
 };
+export const MAX_RUN_COST_EVENTS = 500;
 
 export async function loadRunCostEvents(viewer: Viewer, runId: string): Promise<RunCostEvent[]> {
   if (viewer.mode === "demo") return [];
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
   const rows = await supabaseRest<Array<{ provider: string; model: string; input_tokens: number | null; output_tokens: number | null; total_tokens: number | null; estimated_cost_usd: number | string; cost_source: RunCostEvent["costSource"]; run: { project_id: string } | null }>>(
-    `ai_cost_events?select=provider,model,input_tokens,output_tokens,total_tokens,estimated_cost_usd,cost_source,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run_id=eq.${encodeURIComponent(runId)}&run.project_id=eq.${context.projectId}&order=observed_at.asc&limit=500`,
+    `ai_cost_events?select=provider,model,input_tokens,output_tokens,total_tokens,estimated_cost_usd,cost_source,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run_id=eq.${encodeURIComponent(runId)}&run.project_id=eq.${context.projectId}&order=observed_at.asc&limit=${MAX_RUN_COST_EVENTS + 1}`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ provider: row.provider, model: row.model, inputTokens: row.input_tokens, outputTokens: row.output_tokens, totalTokens: row.total_tokens, costUsd: Number(row.estimated_cost_usd), costSource: row.cost_source }));
