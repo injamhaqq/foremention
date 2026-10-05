@@ -80,3 +80,18 @@ test("Record economics never sums a truncated cost-event ledger as total cost", 
   assert.match(page, /independently persisted run aggregate/);
   assert.doesNotMatch(page, /const totalCost = costEvents\.reduce/);
 });
+
+test("Source Map loaders reserve a sentinel instead of trusting implicit PostgREST ceilings", async () => {
+  const [integrity, data] = await Promise.all([
+    text("lib/evidence-integrity-data.ts"),
+    text("lib/data.ts"),
+  ]);
+
+  assert.match(integrity, /MAX_TRUTHFUL_SOURCE_MAP_ENTRIES = 1000/);
+  assert.match(integrity, /limit=\$\{MAX_TRUTHFUL_SOURCE_MAP_ENTRIES \+ 1\}/);
+  assert.match(integrity, /rows\.length > MAX_TRUTHFUL_SOURCE_MAP_ENTRIES\) return \[\]/);
+
+  assert.match(data, /MAX_CUSTOMER_SOURCE_MAP_ENTRIES = 1000/);
+  assert.match(data, /limit=\$\{MAX_CUSTOMER_SOURCE_MAP_ENTRIES \+ 1\}/);
+  assert.match(data, /rows\.length > MAX_CUSTOMER_SOURCE_MAP_ENTRIES\) return \[\]/);
+});
