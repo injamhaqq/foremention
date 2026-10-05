@@ -11,7 +11,7 @@ test("public homepage exposes the approved evidence-led cinematic hero", async (
 
   assert.match(source, /See where AI recommends your brand\./);
   assert.match(source, /Track recommendations, inspect supporting sources, and decide what to improve\./);
-  assert.match(source, /href="#recommendation-record">Explore a sample/);
+  assert.match(source, /href="#sample-recommendation-graph">Explore a sample/);
   assert.match(source, /href="\/contact">Request a pilot/);
   assert.match(source, /ILLUSTRATIVE SIGNAL MAP/);
   assert.match(source, /Question → answer → brands → sources/);
