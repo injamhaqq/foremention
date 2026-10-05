@@ -12,9 +12,9 @@ It fails closed unless all of the following are true:
 
 - the viewer is an authenticated live Supabase user, never demo;
 - the viewer email is explicitly present in `FOREMENTION_COMPANY_OPERATOR_EMAILS`;
-- the viewer is an owner or admin of the active workspace;
+- the viewer is an owner or admin member of the exact configured Company OS organization;
 - `FOREMENTION_COMPANY_OS_ORGANIZATION_ID` and `FOREMENTION_COMPANY_OS_PROJECT_ID` are both configured as UUIDs;
-- the active organization/project exactly matches those configured IDs.
+- the configured project exists in that organization, is `active`, and is visible through the authenticated user's RLS token.
 
 The route uses the authenticated user's Supabase token. It does not use the service role.
 
@@ -42,9 +42,9 @@ The browser/request may provide only:
 
 The caller cannot provide `organizationId`, `projectId`, `asOf`, `profileRevision`, evidence verification, or company facts. Scope and time are bound by the server.
 
-Each program evidence record must already exist in the active project and be current, verified, source-linked evidence with usage rights and exact `evidence_type = funding_program_official`. The route snapshots its URL and verification timestamp and caps program-source freshness at 30 days.
+Each program evidence record must already exist in the configured Company OS project and be current, verified, source-linked evidence with usage rights and exact `evidence_type = funding_program_official`. The route snapshots its URL and verification timestamp and caps program-source freshness at 30 days.
 
-Company facts are derived only from the active project's single Company Truth entity and its current `verified` assertions. A scalar fact is included only while its same-project evidence remains verified, source-linked, rights-bearing, and unexpired. The service ignores caller claims that a company fact is verified because caller facts are not accepted at all. The profile revision is a deterministic digest of the current usable Company Truth assertion set actually admitted to the draft.
+Company facts are derived only from the configured project's single Company Truth entity and its current `verified` assertions. A scalar fact is included only while its same-project evidence remains verified, source-linked, rights-bearing, and unexpired. The service ignores caller claims that a company fact is verified because caller facts are not accepted at all. The profile revision is a deterministic digest of the current usable Company Truth assertion set actually admitted to the draft.
 
 If there is no current scalar Company Truth fact, the draft can still be persisted, but affected eligibility criteria and required answers remain unknown/blocked. If more than one Company Truth `company` entity exists in the configured project, the service fails closed rather than choosing one.
 
