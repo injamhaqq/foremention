@@ -276,7 +276,7 @@ create policy company_funding_draft_artifacts_insert_manager
   );
 
 revoke all on table public.company_funding_draft_artifacts from public, anon, authenticated;
-grant select, insert on table public.company_funding_draft_artifacts to authenticated;
+grant select on table public.company_funding_draft_artifacts to authenticated;
 grant select, insert, delete on table public.company_funding_draft_artifacts to service_role;
 
 comment on table public.company_funding_draft_artifacts is
