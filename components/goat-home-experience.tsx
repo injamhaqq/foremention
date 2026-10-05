@@ -87,13 +87,13 @@ export function MissingAnswerExperience() {
           <h1 id="fm-cinematic-hero-title">See where AI recommends your brand.</h1>
           <p className="fm-cinematic-hero__lead">Track recommendations, inspect supporting sources, and decide what to improve.</p>
           <div className="fm-cinematic-hero__actions">
-            <Link data-public-sample-open className="canonical-button canonical-button--primary" href="#recommendation-record">Explore a sample <Arrow /></Link>
+            <Link data-public-sample-open className="canonical-button canonical-button--primary" href="#sample-recommendation-graph">Explore a sample <Arrow /></Link>
             <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--secondary" href="/contact">Request a pilot <Arrow /></Link>
           </div>
           <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records.</p>
         </div>
 
-        <div className="fm-recommendation-graph" role="group" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
+        <div id="sample-recommendation-graph" className="fm-recommendation-graph" role="group" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
           <div className="fm-recommendation-graph__label"><span>ILLUSTRATIVE SIGNAL MAP</span><strong>Question → answer → brands → sources</strong></div>
           <label className="fm-recommendation-graph__surface">
             <span>EXAMPLE MEASUREMENT SURFACE</span>
@@ -187,7 +187,7 @@ export function MissingAnswerExperience() {
           </button>
 
           <Link
-            data-public-sample-open
+            data-public-evidence-inspect
             className="fm-graph-record"
             href="#recommendation-record"
             aria-label="Inspect the illustrative Recommendation Record"
