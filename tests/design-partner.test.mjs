@@ -52,6 +52,8 @@ test("newly accepted design-partner applications return a stable intake referenc
   assert.match(route, /notificationStatus/);
   assert.match(contact, /Application reference:/);
   assert.match(contact, /intakeIdPattern/);
+  assert.match(contact, /const intakeId = query\.intake/);
+  assert.doesNotMatch(contact, /\\\\n\\\\nexport default/);
   assert.match(route, /claim === "duplicate"\) return responseFor\(request, 201, "Application received\."\)/);
   assert.doesNotMatch(route, /findExistingApplicationId/);
 });
