@@ -21,6 +21,11 @@ export type RunManifestSurface = {
   consumerInterfaceEquivalent: false;
 };
 
+export const MAX_RUN_MANIFEST_QUESTIONS = 100;
+export const MAX_RUN_MANIFEST_ATTEMPTS = 500;
+export const MAX_RUN_MANIFEST_ANSWERS = 500;
+export const MAX_RUN_MANIFEST_PROMPT_VERSIONS = 500;
+
 export type RunManifest = {
   runId: string;
   organizationId: string;
@@ -62,6 +67,7 @@ type RunRow = {
   status: string;
   provider_ids: string[];
   prompt_count: number;
+  answer_count: number;
   requested_units: number;
   estimated_max_cost_usd: number | string;
   actual_cost_usd: number | string;
@@ -203,19 +209,19 @@ export async function loadRunManifest(viewer: Viewer, runId: string): Promise<Ru
   const safeRunId = encodeURIComponent(runId);
   const [runs, selections, attempts, answers, projects] = await Promise.all([
     supabaseRest<RunRow[]>(
-      `runs?select=id,organization_id,project_id,status,provider_ids,prompt_count,requested_units,estimated_max_cost_usd,actual_cost_usd,methodology_version,created_at,started_at,completed_at&id=eq.${safeRunId}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+      `runs?select=id,organization_id,project_id,status,provider_ids,prompt_count,answer_count,requested_units,estimated_max_cost_usd,actual_cost_usd,methodology_version,created_at,started_at,completed_at&id=eq.${safeRunId}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
       { token: viewer.accessToken },
     ),
     supabaseRest<SelectionRow[]>(
-      `run_prompt_selections?select=prompt_id,prompt_key,prompt_text,locale,market&run_id=eq.${safeRunId}&organization_id=eq.${context.organizationId}&order=created_at.asc&limit=100`,
+      `run_prompt_selections?select=prompt_id,prompt_key,prompt_text,locale,market&run_id=eq.${safeRunId}&organization_id=eq.${context.organizationId}&order=created_at.asc&limit=${MAX_RUN_MANIFEST_QUESTIONS + 1}`,
       { token: viewer.accessToken },
     ),
     supabaseRest<AttemptRow[]>(
-      `run_attempts?select=prompt_key,provider,model,status,attempt_number&run_id=eq.${safeRunId}&organization_id=eq.${context.organizationId}&order=created_at.asc&limit=500`,
+      `run_attempts?select=prompt_key,provider,model,status,attempt_number&run_id=eq.${safeRunId}&organization_id=eq.${context.organizationId}&order=created_at.asc&limit=${MAX_RUN_MANIFEST_ATTEMPTS + 1}`,
       { token: viewer.accessToken },
     ),
     supabaseRest<AnswerRow[]>(
-      `run_answers?select=prompt_key,provider,model,measurement_context_json&run_id=eq.${safeRunId}&organization_id=eq.${context.organizationId}&order=collected_at.asc&limit=500`,
+      `run_answers?select=prompt_key,provider,model,measurement_context_json&run_id=eq.${safeRunId}&organization_id=eq.${context.organizationId}&order=collected_at.asc&limit=${MAX_RUN_MANIFEST_ANSWERS + 1}`,
       { token: viewer.accessToken },
     ),
     supabaseRest<Array<{ id: string; name: string; client_brand: string }>>(
@@ -226,6 +232,13 @@ export async function loadRunManifest(viewer: Viewer, runId: string): Promise<Ru
   const run = runs[0];
   const project = projects[0];
   if (!run || !project) return null;
+  if (
+    selections.length > MAX_RUN_MANIFEST_QUESTIONS
+    || attempts.length > MAX_RUN_MANIFEST_ATTEMPTS
+    || answers.length > MAX_RUN_MANIFEST_ANSWERS
+    || selections.length !== Number(run.prompt_count)
+    || answers.length !== Number(run.answer_count)
+  ) return null;
 
   const promptIds = Array.from(new Set(selections.flatMap((selection) => selection.prompt_id ? [selection.prompt_id] : [])));
   const promptVersions = promptIds.length ? await supabaseRest<Array<{
@@ -236,9 +249,10 @@ export async function loadRunManifest(viewer: Viewer, runId: string): Promise<Ru
     market: string;
     created_at: string;
   }>>(
-    `prompt_versions?select=prompt_id,version,prompt_text,locale,market,created_at&organization_id=eq.${context.organizationId}&prompt_id=in.(${promptIds.join(",")})&created_at=lte.${encodeURIComponent(run.created_at)}&order=version.desc&limit=500`,
+    `prompt_versions?select=prompt_id,version,prompt_text,locale,market,created_at&organization_id=eq.${context.organizationId}&prompt_id=in.(${promptIds.join(",")})&created_at=lte.${encodeURIComponent(run.created_at)}&order=version.desc&limit=${MAX_RUN_MANIFEST_PROMPT_VERSIONS + 1}`,
     { token: viewer.accessToken },
   ) : [];
+  if (promptVersions.length > MAX_RUN_MANIFEST_PROMPT_VERSIONS) return null;
   const revisionFor = (selection: SelectionRow) => {
     if (!selection.prompt_id) return null;
     const match = promptVersions.find((revision) =>
