@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Foremention Public API",
-    "version": "2026-09-20",
+    "version": "2026-10-05",
     "description": "Bounded public Foremention endpoints only. Authenticated workspace and internal service endpoints are intentionally omitted."
   },
   "servers": [
@@ -121,7 +121,25 @@
           }
         },
         "responses": {
-          "201": { "description": "Application received." },
+          "201": {
+            "description": "Application received. JSON clients receive the stable intake reference when available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received": { "type": "boolean", "const": true },
+                    "intakeId": { "type": "string", "format": "uuid" },
+                    "notificationStatus": {
+                      "type": "string",
+                      "enum": ["not_configured", "no_recipients", "provider_accepted", "partial", "failed", "unchanged"]
+                    }
+                  },
+                  "required": ["received"]
+                }
+              }
+            }
+          },
           "400": { "description": "Invalid application input." },
           "403": { "description": "Invalid mutation origin." },
           "429": { "description": "Recent application limit reached." },
