@@ -114,7 +114,7 @@ export function MissingAnswerExperience() {
           <svg className="fm-recommendation-graph__lines" viewBox="0 0 760 620" aria-hidden="true" preserveAspectRatio="none">
             <path d="M130 310 C230 310 220 190 330 190" />
             <path d="M130 310 C230 310 220 420 330 420" />
-            <path d="M430 190 C525 190 520 118 635 118" />
+            <path d="M430 190 C525 190 520 150 635 150" />
             <path d="M430 190 C525 190 520 265 635 265" />
             <path d="M430 420 C525 420 520 355 635 355" />
             <path d="M430 420 C525 420 520 505 635 505" />
