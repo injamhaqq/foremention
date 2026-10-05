@@ -227,7 +227,7 @@ export async function loadRunManifest(viewer: Viewer, runId: string): Promise<Ru
   if (!run || !project) return null;
 
   const providerIds = Array.from(new Set(run.provider_ids || []));
-  const plannedObservations = selections.length * providerIds.length;
+  const plannedObservations = Number(run.prompt_count || selections.length) * providerIds.length;
   const counts = terminalObservationCounts(attempts, answers, plannedObservations);
   const modelIds = Array.from(new Set([
     ...answers.flatMap((answer) => answer.model ? [answer.model] : []),
@@ -242,7 +242,7 @@ export async function loadRunManifest(viewer: Viewer, runId: string): Promise<Ru
     brand: project.client_brand,
     status: run.status,
     methodologyVersion: run.methodology_version,
-    methodologyName: CURRENT_OBSERVATION_METHODOLOGY.name,
+    methodologyName: run.methodology_version === CURRENT_OBSERVATION_METHODOLOGY.version ? CURRENT_OBSERVATION_METHODOLOGY.name : "Historical Foremention observation methodology",
     surfaces: providerIds.map(surfaceFor),
     providerIds,
     modelIds,
