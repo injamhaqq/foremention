@@ -221,7 +221,7 @@ export const dispatchMeasurementSchedules = inngest.createFunction(
   async ({ step }) => {
     const now = new Date().toISOString();
     const schedules = await step.run("load-due-measurement-schedules", () =>
-      supabaseRest<DueSchedule[]>(`measurement_schedules?select=id,organization_id,project_id,category_id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,next_run_at,created_by&enabled=eq.true&next_run_at=lte.${encodeURIComponent(now)}&order=next_run_at.asc&limit=100`, { serviceRole: true }),
+      supabaseRest<DueSchedule[]>(`measurement_schedules?select=id,organization_id,project_id,category_id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,next_run_at,created_by&enabled=eq.true&project_id=not.is.null&category_id=not.is.null&created_by=not.is.null&next_run_at=lte.${encodeURIComponent(now)}&order=next_run_at.asc&limit=100`, { serviceRole: true }),
     );
     const preparedRuns: PreparedRun[] = [];
     for (const schedule of schedules) {
