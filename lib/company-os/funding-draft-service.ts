@@ -39,6 +39,14 @@ export function parseFundingServiceRequest(value: unknown): FundingServiceReques
   });
   if (new Set(programEvidenceIds).size !== programEvidenceIds.length) invalid("programEvidenceIds:duplicate");
   if (!Array.isArray(root.opportunities) || root.opportunities.length < 1 || root.opportunities.length > 10) invalid("opportunities");
+  const programEvidenceSet = new Set(programEvidenceIds);
+  root.opportunities.forEach((value, index) => {
+    const opportunity = plainRecord(value, `opportunities.${index}`);
+    const sourceEvidenceId = opportunity.sourceEvidenceId;
+    if (typeof sourceEvidenceId !== "string" || !UUID_PATTERN.test(sourceEvidenceId) || !programEvidenceSet.has(sourceEvidenceId.toLowerCase())) {
+      invalid(`opportunities.${index}.sourceEvidenceId`);
+    }
+  });
   return { schemaVersion: 1, programEvidenceIds, opportunities: root.opportunities as FundingDraftRequest["opportunities"] };
 }
 
