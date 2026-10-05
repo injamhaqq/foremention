@@ -47,7 +47,8 @@ export async function POST(request: Request) {
       prompt_key: `customer-${crypto.randomUUID().slice(0, 8)}`,
       prompt_text: text,
       buyer_stage: "evaluation",
-      locale: "en-US",
+      locale: context.locale,
+      market: context.market,
       version: 1,
       active: true,
     },
@@ -63,6 +64,8 @@ export async function POST(request: Request) {
       prompt_text: text,
       change_reason: "Created by workspace member",
       created_by: viewer.id,
+      locale: context.locale,
+      market: context.market,
     },
   });
   return NextResponse.json({ data: { id: rows[0].id, text, cluster: clusterName, approved: true } }, { status: 201 });
@@ -94,7 +97,7 @@ export async function PATCH(request: Request) {
   }
 
   const scopedPrompt = await supabaseRest<Array<{ id: string }>>(
-    `prompts?select=id&id=eq.${id}&organization_id=eq.${context.organizationId}&limit=1`,
+    `prompts?select=id&id=eq.${id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   if (!scopedPrompt[0]) return NextResponse.json({ error: "Buyer question not found." }, { status: 404 });
