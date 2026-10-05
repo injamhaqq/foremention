@@ -21,8 +21,10 @@ test("a nontechnical customer can follow website to question to collection to Re
     text("app/app/placements/page.tsx"),
   ]);
 
-  for (const step of ["Add your website", "Review buyer questions", "Start your first collection", "See your first AI result", "Review your first source"]) {
-    assert.match(overview, new RegExp(step));
+  const guidance = await text("lib/baseline-guidance.ts");
+  assert.match(overview, /buildBaselineGuidance/);
+  for (const step of ["Add your website", "Review buyer questions", "Collect your first answers", "Review your Recommendation Record", "Inspect returned evidence"]) {
+    assert.match(guidance, new RegExp(step));
   }
   assert.match(onboarding, /Generate my setup/);
   assert.match(questions, /Buyer/);

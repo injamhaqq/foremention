@@ -379,7 +379,7 @@ async function handleCreate(request: Request) {
     const samePrompts = JSON.stringify(baselineSelections.map((row) => row.prompt_id).sort()) === JSON.stringify(rerunSelections.map((row) => row.prompt_id).sort());
     if (!sameProviders || !samePrompts) return NextResponse.json({ error: "The follow-up must use the same buyer questions and provider as the baseline." }, { status: 409 });
     if (followUp.status === "requested") await supabaseRest(`resolution_follow_ups?id=eq.${followUp.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { rerun_id: rerun.id, status: "queued" } });
-    if (["complete", "partial", "failed", "cancelled"].includes(rerun.status)) await finalizeResolutionFollowUpsForRun({ organizationId: context.organizationId, runId: rerun.id, runStatus: rerun.status as "complete" | "partial" | "failed" | "cancelled", recordedBy: viewer.id });
+    if (["complete", "partial", "failed", "cancelled"].includes(rerun.status)) await finalizeResolutionFollowUpsForRun({ organizationId: context.organizationId, projectId: context.projectId, runId: rerun.id, runStatus: rerun.status as "complete" | "partial" | "failed" | "cancelled", recordedBy: viewer.id });
     const resolutions = await loadResolutionRecords(viewer, context);
     return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } }, { status: 200 });
   }

@@ -51,6 +51,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   });
   await finalizeResolutionFollowUpsForRun({
     organizationId: context.organizationId,
+    projectId: context.projectId,
     runId: run.id,
     runStatus: "cancelled",
     recordedBy: viewer.id,

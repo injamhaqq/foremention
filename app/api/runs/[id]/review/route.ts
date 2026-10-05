@@ -73,6 +73,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
     await finalizeResolutionFollowUpsForRun({
       organizationId: context.organizationId,
+      projectId: context.projectId,
       runId: run.id,
       runStatus: finalStatus,
       recordedBy: viewer.id,

@@ -74,6 +74,7 @@ export function deriveComparableChanges(baseline: ComparableSnapshot, current: C
 }
 
 export type AttentionInput = {
+  setupStep?: { title: string; detail: string; href: string };
   onboardingComplete: boolean;
   activeRun?: { id: string; status: "queued" | "running" | "failed"; error?: string | null } | null;
   reviewBacklog?: number;
@@ -85,7 +86,7 @@ export type AttentionInput = {
 
 export function deriveAttentionItems(input: AttentionInput): AttentionItem[] {
   const items: AttentionItem[] = [];
-  if (!input.onboardingComplete) items.push({ id: "setup", kind: "setup", priority: "high", title: "Finish your trustworthy baseline", detail: "Complete workspace context, approve buyer questions, and collect your first real Recommendation Record.", href: "/app/onboarding" });
+  if (!input.onboardingComplete) items.push({ id: "setup", kind: "setup", priority: "high", title: "Finish your trustworthy baseline", detail: "Complete workspace context, approve buyer questions, and collect your first real Recommendation Record.", href: "/app/onboarding", ...input.setupStep });
   if (input.activeRun?.status === "failed") items.push({ id: `run-${input.activeRun.id}`, kind: "run_failed", priority: "critical", title: "A collection needs attention", detail: input.activeRun.error || "The collection failed without inventing replacement evidence.", href: `/app/runs/${input.activeRun.id}` });
   if (input.activeRun && ["queued", "running"].includes(input.activeRun.status)) items.push({ id: `run-${input.activeRun.id}`, kind: "collection_running", priority: "normal", title: "A collection is in progress", detail: "Foremention is preserving provider/model provenance and returned evidence while this run completes.", href: `/app/runs/${input.activeRun.id}` });
   if ((input.reviewBacklog || 0) > 0) items.push({ id: "review-backlog", kind: "review", priority: "high", title: `${input.reviewBacklog} evidence item${input.reviewBacklog === 1 ? "" : "s"} need review`, detail: "Human review is required before this evidence can support a decision.", href: "/app/source-map" });
