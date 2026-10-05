@@ -28,6 +28,7 @@ test("cinematic homepage keeps responsive and reduced-motion fallbacks", async (
   assert.match(css, /@media \(max-width: 380px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(css, /\.fm-recommendation-graph__lines \{ display: none; \}/);
+  assert.match(css, /\.fm-home-proof \.canonical-kicker \{[\s\S]*color: #35705d;/);
 });
 
 test("public hero remains a static sample rather than a live-provider surface", async () => {
