@@ -339,6 +339,10 @@
   top: 110px;
 }
 
+.fm-home-proof .canonical-kicker {
+  color: #35705d;
+}
+
 .fm-home-proof__intro h2,
 .fm-home-faq h2 {
   margin: 18px 0 0;
