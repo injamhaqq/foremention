@@ -18,6 +18,7 @@ const intakeIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f
   const plan = validPlans.has((query.plan || "").toLowerCase()) ? (query.plan || "").toLowerCase() : "";
   const submitted = query.submitted === "1";
   const failed = Boolean(query.error);
+  const intakeId = query.intake && intakeIdPattern.test(query.intake) ? query.intake : "";
 
   return (
     <PublicShell>
