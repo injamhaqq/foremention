@@ -222,4 +222,129 @@ create trigger validate_company_funding_artifact_program_sources_before_write
   before insert or update on public.company_funding_draft_artifacts
   for each row execute function public.validate_company_funding_artifact_program_sources();
 
+create or replace function public.review_company_funding_program_source(
+  p_source_id uuid,
+  p_organization_id uuid,
+  p_project_id uuid,
+  p_actor_id uuid,
+  p_decision text
+)
+returns setof public.company_funding_program_sources
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  item public.company_funding_program_sources%rowtype;
+  latest_snapshot_id uuid;
+  snapshot_access public.crawler_access;
+  snapshot_url text;
+  snapshot_retrieved_at timestamptz;
+  reviewed_at timestamptz := now();
+begin
+  if p_decision not in ('verify','reject') then
+    raise exception 'Unsupported Company funding source review decision';
+  end if;
+
+  select *
+  into item
+  from public.company_funding_program_sources
+  where id = p_source_id
+    and organization_id = p_organization_id
+    and project_id = p_project_id
+  for update;
+
+  if item.id is null then
+    raise exception 'Company funding source was not found in the configured scope';
+  end if;
+
+  if not exists (
+    select 1
+    from public.organization_members as membership
+    where membership.organization_id = p_organization_id
+      and membership.user_id = p_actor_id
+      and membership.role = any(array['owner','admin']::public.organization_role[])
+  ) then
+    raise exception 'Company funding source reviewer must be an organization owner or admin';
+  end if;
+
+  if p_decision = 'verify' then
+    select id
+    into latest_snapshot_id
+    from public.source_snapshots
+    where organization_id = p_organization_id
+      and source_id = item.source_id
+    order by retrieved_at desc, created_at desc
+    limit 1;
+
+    if latest_snapshot_id is null or latest_snapshot_id <> item.source_snapshot_id then
+      raise exception 'Company funding source has a newer page observation and must be reviewed again';
+    end if;
+
+    select access, final_url, retrieved_at
+    into snapshot_access, snapshot_url, snapshot_retrieved_at
+    from public.source_snapshots
+    where id = item.source_snapshot_id
+      and organization_id = p_organization_id
+      and source_id = item.source_id;
+
+    if snapshot_access not in ('open'::public.crawler_access, 'partial'::public.crawler_access) then
+      raise exception 'Company funding source is not currently reachable for review';
+    end if;
+    if snapshot_retrieved_at < reviewed_at - interval '30 days' then
+      raise exception 'Company funding source observation is stale and must be inspected again';
+    end if;
+    if lower(snapshot_url) not like 'https://%' then
+      raise exception 'Verified Company funding source must resolve to HTTPS';
+    end if;
+
+    update public.evidence_items
+    set verification_status = 'verified',
+        verified_at = reviewed_at,
+        expires_at = reviewed_at + interval '30 days',
+        usage_rights = 'public_web_internal_research',
+        updated_at = reviewed_at
+    where id = item.evidence_item_id
+      and organization_id = p_organization_id
+      and project_id = p_project_id;
+
+    update public.company_funding_program_sources
+    set verification_state = 'verified',
+        reviewed_by = p_actor_id,
+        reviewed_at = reviewed_at,
+        verified_at = reviewed_at,
+        updated_at = reviewed_at
+    where id = item.id;
+  else
+    update public.evidence_items
+    set verification_status = 'rejected',
+        verified_at = null,
+        expires_at = null,
+        usage_rights = null,
+        updated_at = reviewed_at
+    where id = item.evidence_item_id
+      and organization_id = p_organization_id
+      and project_id = p_project_id;
+
+    update public.company_funding_program_sources
+    set verification_state = 'rejected',
+        reviewed_by = p_actor_id,
+        reviewed_at = reviewed_at,
+        verified_at = null,
+        updated_at = reviewed_at
+    where id = item.id;
+  end if;
+
+  return query
+  select *
+  from public.company_funding_program_sources
+  where id = item.id;
+end;
+$$;
+
+revoke all on function public.review_company_funding_program_source(uuid,uuid,uuid,uuid,text)
+  from public, anon, authenticated;
+grant execute on function public.review_company_funding_program_source(uuid,uuid,uuid,uuid,text)
+  to service_role;
+
 commit;
