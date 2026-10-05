@@ -16,7 +16,7 @@ It fails closed unless all of the following are true:
 - `FOREMENTION_COMPANY_OS_ORGANIZATION_ID` and `FOREMENTION_COMPANY_OS_PROJECT_ID` are both configured as UUIDs;
 - the configured project exists in that organization, is `active`, and is visible through the authenticated user's RLS token.
 
-The route uses the authenticated user's Supabase token. It does not use the service role.
+The route uses the authenticated user's Supabase token for scope, membership, evidence, Company Truth, and artifact reads. The final artifact insert is a trusted server-only write using the existing `SUPABASE_SERVICE_ROLE_KEY` after those user-scoped checks pass. Authenticated browser roles have no direct insert grant on the artifact table.
 
 ## POST input
 
@@ -61,7 +61,7 @@ Migration `20261005000100_company_funding_draft_artifacts.sql` creates append-on
 - the exact deterministic draft artifact;
 - creation timestamp.
 
-RLS permits only owner/admin reads and inserts for the same active project. Authenticated users receive no update or delete grant. A validation trigger rejects mismatched organization/project IDs, mismatched actor IDs, unverified/cross-project program evidence, stale or superseded Company Truth provenance, artifact evidence that does not match those source records, and any artifact that changes the bounded authority flags.
+RLS permits only owner/admin reads for the configured organization/project. Authenticated browser roles receive no insert, update, or delete grant; only the trusted server write path and privileged retention/deletion process can persist or remove rows. The API establishes the authenticated operator and exact active scope first, then performs the insert server-side. A validation trigger independently rejects mismatched organization/project IDs, unverified/cross-project program evidence, stale or superseded Company Truth provenance, artifact evidence that does not match those source records, and any artifact that changes the bounded authority flags.
 
 Workspace/account deletion may still remove records through the repository's privileged retention/deletion process and foreign-key cascades. "Immutable" here means application revisions are append-only; it is not a promise of indefinite retention.
 
@@ -83,10 +83,11 @@ The service does not create Company Truth, verify evidence, discover opportuniti
 1. Deploy the migration through the normal release process.
 2. Create or designate a dedicated internal Company OS organization and active project.
 3. Configure the exact organization/project UUIDs in the server environment.
-4. Ensure the founder/operator email is in `FOREMENTION_COMPANY_OPERATOR_EMAILS`.
-5. In that project, maintain one Company Truth `company` entity with reviewed, evidence-backed assertions.
-6. Store each official funding source as a verified `evidence_items` row with `evidence_type = funding_program_official`, source URL, usage rights, and appropriate expiry/review cadence.
-7. Use only current official program terms, closing time/timezone, and truthful Company Truth attributes.
+4. Ensure the server-only `SUPABASE_SERVICE_ROLE_KEY` is configured and never exposed to browser code or model prompts.
+5. Ensure the founder/operator email is in `FOREMENTION_COMPANY_OPERATOR_EMAILS`.
+6. In that project, maintain one Company Truth `company` entity with reviewed, evidence-backed assertions.
+7. Store each official funding source as a verified `evidence_items` row with `evidence_type = funding_program_official`, source URL, usage rights, and appropriate expiry/review cadence.
+8. Use only current official program terms, closing time/timezone, and truthful Company Truth attributes.
 
 No IDs, facts, evidence, eligibility, deadline, program, customer, revenue, award, or production configuration are asserted by this document.
 
