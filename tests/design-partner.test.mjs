@@ -55,4 +55,3 @@ test("newly accepted design-partner applications return a stable intake referenc
   assert.match(route, /claim === "duplicate"\) return responseFor\(request, 201, "Application received\."\)/);
   assert.doesNotMatch(route, /findExistingApplicationId/);
 });
-
