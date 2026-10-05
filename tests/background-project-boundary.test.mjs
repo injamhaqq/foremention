@@ -17,15 +17,20 @@ test("background collection events carry and re-verify project identity", async 
   assert.match(jobs, /project_id=eq\.\$\{seed\.project_id\}/);
 });
 
-test("weekly scheduling keeps one seed per organization and project", async () => {
-  const jobs = await text("lib/jobs/inngest.ts");
+test("weekly job is digest-only and groups evidence by organization plus project", async () => {
+  const [jobs, inngestRoute] = await Promise.all([
+    text("lib/jobs/inngest.ts"),
+    text("app/api/inngest/route.ts"),
+  ]);
 
+  assert.match(jobs, /export const scheduleWeeklyWorkspaceDigests = inngest\.createFunction/);
   assert.match(jobs, /const byProject = new Map<string, ScheduledRunSeed>\(\)/);
   assert.match(jobs, /\$\{row\.organization_id\}\\u0000\$\{row\.project_id\}/);
-  assert.match(jobs, /weekly:\$\{seed\.organization_id\}:\$\{seed\.project_id\}:\$\{weekKey\}/);
-  assert.match(jobs, /prepare-weekly-\$\{seed\.organization_id\}-\$\{seed\.project_id\}/);
   assert.match(jobs, /exportWeeklyDigestToNotion\(seed\.organization_id, seed\.project_id, weekKey\)/);
-  assert.doesNotMatch(jobs, /const byOrganization = new Map/);
+  assert.doesNotMatch(jobs, /prepareWeeklyRun/);
+  assert.doesNotMatch(jobs, /idempotencyKey = `weekly:/);
+  assert.match(inngestRoute, /scheduleWeeklyWorkspaceDigests/);
+  assert.doesNotMatch(inngestRoute, /scheduleWeeklyWorkspaceRuns/);
 });
 
 test("Notion and HubSpot integrations resolve the exact project before external effects", async () => {
