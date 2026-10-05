@@ -16,7 +16,7 @@ It fails closed unless all of the following are true:
 - `FOREMENTION_COMPANY_OS_ORGANIZATION_ID` and `FOREMENTION_COMPANY_OS_PROJECT_ID` are both configured as UUIDs;
 - the configured project exists in that organization, is `active`, and is visible through the authenticated user's RLS token.
 
-The route uses the authenticated user's Supabase token for scope, membership, evidence, Company Truth, and artifact reads. The final artifact insert is a trusted server-only write using the existing `SUPABASE_SERVICE_ROLE_KEY` after those user-scoped checks pass. Authenticated browser roles have no direct insert grant on the artifact table.
+The route uses the authenticated user's Supabase token for identity, membership, configured-project visibility, official evidence, and Company Truth. Funding artifact reads, duplicate detection, and inserts occur only inside the trusted server route using the existing `SUPABASE_SERVICE_ROLE_KEY` after those user-scoped checks pass. Authenticated browser roles have no direct table privileges.
 
 ## POST input
 
@@ -61,7 +61,7 @@ Migration `20261005000100_company_funding_draft_artifacts.sql` creates append-on
 - the exact deterministic draft artifact;
 - creation timestamp.
 
-RLS permits only owner/admin reads for the configured organization/project. Authenticated browser roles receive no insert, update, or delete grant; only the trusted server write path and privileged retention/deletion process can persist or remove rows. The API establishes the authenticated operator and exact active scope first, then performs the insert server-side. A validation trigger independently rejects mismatched organization/project IDs, unverified/cross-project program evidence, stale or superseded Company Truth provenance, artifact evidence that does not match those source records, and any artifact that changes the bounded authority flags.
+The artifact table is service-only: `public`, `anon`, and `authenticated` receive no direct table privileges. RLS remains enabled as defense in depth, while route-level authorization establishes the authenticated operator and exact active configured project before any trusted server read or write. A validation trigger independently rejects inactive/mismatched organization-project scope, creators who are not owner/admin members of the persisted organization, unverified/cross-project program evidence, stale or superseded Company Truth provenance, artifact evidence that does not match those source records, and any artifact that changes the bounded authority flags.
 
 Workspace/account deletion may still remove records through the repository's privileged retention/deletion process and foreign-key cascades. "Immutable" here means application revisions are append-only; it is not a promise of indefinite retention.
 
