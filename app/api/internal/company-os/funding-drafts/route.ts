@@ -177,6 +177,14 @@ async function loadCompanyTruth(viewer: Viewer, context: WorkspaceContext, asOf:
   const evidenceById = new Map(evidenceRows.map((row) => [row.id, row]));
   const facts: FundingServiceFact[] = [];
   const evidence = new Map<string, FundingServiceEvidence>();
+  const assertionIds: string[] = [];
+  const profileMaterial: Array<{
+    id: string;
+    attributeKey: string;
+    assertedValue: unknown;
+    evidenceItemId: string;
+    verifiedAt: string | null;
+  }> = [];
   for (const assertion of assertions) {
     const source = assertion.evidence_item_id ? evidenceById.get(assertion.evidence_item_id) : undefined;
     const scalar = fundingScalar(assertion.asserted_value_json);
@@ -187,19 +195,21 @@ async function loadCompanyTruth(viewer: Viewer, context: WorkspaceContext, asOf:
       verification: "verified",
       evidenceId: source.id,
     });
+    assertionIds.push(assertion.id);
+    profileMaterial.push({
+      id: assertion.id,
+      attributeKey: assertion.attribute_key,
+      assertedValue: scalar,
+      evidenceItemId: source.id,
+      verifiedAt: assertion.verified_at,
+    });
     evidence.set(source.id, fundingEvidence(source, "company_record", FUNDING_COMPANY_EVIDENCE_MAX_AGE_DAYS));
   }
-  const profileRevision = await deriveFundingProfileRevision(assertions.map((row) => ({
-    id: row.id,
-    attributeKey: row.attribute_key,
-    assertedValue: row.asserted_value_json,
-    evidenceItemId: row.evidence_item_id,
-    verifiedAt: row.verified_at,
-  })));
+  const profileRevision = await deriveFundingProfileRevision(profileMaterial);
   return {
     facts,
     evidence: [...evidence.values()],
-    assertionIds: assertions.map((row) => row.id),
+    assertionIds,
     profileRevision,
     profileFactCount: facts.length,
   };
