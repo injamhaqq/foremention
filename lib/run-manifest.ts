@@ -11,6 +11,7 @@ export type RunManifestQuestion = {
   text: string;
   locale: string;
   market: string | null;
+  revision: number | null;
 };
 
 export type RunManifestSurface = {
@@ -226,6 +227,29 @@ export async function loadRunManifest(viewer: Viewer, runId: string): Promise<Ru
   const project = projects[0];
   if (!run || !project) return null;
 
+  const promptIds = Array.from(new Set(selections.flatMap((selection) => selection.prompt_id ? [selection.prompt_id] : [])));
+  const promptVersions = promptIds.length ? await supabaseRest<Array<{
+    prompt_id: string;
+    version: number;
+    prompt_text: string;
+    locale: string;
+    market: string;
+    created_at: string;
+  }>>(
+    `prompt_versions?select=prompt_id,version,prompt_text,locale,market,created_at&organization_id=eq.${context.organizationId}&prompt_id=in.(${promptIds.join(",")})&created_at=lte.${encodeURIComponent(run.created_at)}&order=version.desc&limit=500`,
+    { token: viewer.accessToken },
+  ) : [];
+  const revisionFor = (selection: SelectionRow) => {
+    if (!selection.prompt_id) return null;
+    const match = promptVersions.find((revision) =>
+      revision.prompt_id === selection.prompt_id
+      && revision.prompt_text === selection.prompt_text
+      && revision.locale === selection.locale
+      && revision.market === (selection.market || "global")
+    );
+    return match?.version ?? null;
+  };
+
   const providerIds = Array.from(new Set(run.provider_ids || []));
   const plannedObservations = Number(run.prompt_count || selections.length) * providerIds.length;
   const counts = terminalObservationCounts(attempts, answers, plannedObservations);
@@ -252,6 +276,7 @@ export async function loadRunManifest(viewer: Viewer, runId: string): Promise<Ru
       text: selection.prompt_text,
       locale: selection.locale,
       market: selection.market,
+      revision: revisionFor(selection),
     })),
     plannedObservations,
     completedObservations: counts.completed,
