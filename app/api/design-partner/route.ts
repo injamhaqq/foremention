@@ -135,7 +135,7 @@ export async function POST(request: Request) {
     if (claim === "limited") return limitedResponse(request);
     if (claim !== "accepted") throw new Error("Unexpected submission claim state.");
 
-    const rows = await supabaseRest<Array<{ id: string }>>("design_partner_applications?select=id", {
+    const rows = await supabaseRest("design_partner_applications", {
       method: "POST",
       serviceRole: true,
       prefer: "return=representation",
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
         source: "website_design_partner",
       },
     });
-    const intakeId = rows[0]?.id;
+    const intakeId = (rows as Array<{ id: string }>)[0]?.id;
     if (!intakeId) throw new Error("Application was not returned after persistence.");
 
     const notificationStatus = await notifyDesignPartnerOperators(normalized.value, keyHash);
