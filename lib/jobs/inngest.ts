@@ -34,6 +34,7 @@ type LiveProviderId = Exclude<ProviderId, "mock">;
 type RunRequestedData = {
   runId: string;
   organizationId: string;
+  projectId: string;
 };
 type RunRow = {
   id: string;
@@ -63,7 +64,7 @@ const includesName = (text: string, value: string) =>
 async function notifyFirstCompletedRun(run: RunRow, answerCount: number, citationCount: number, sourceCount: number) {
   if (!run.created_by) return;
   const earlier = await supabaseRest<Array<{ id: string }>>(
-    `runs?select=id&organization_id=eq.${run.organization_id}&id=neq.${run.id}&status=in.(review,complete,partial)&limit=1`,
+    `runs?select=id&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&id=neq.${run.id}&status=in.(review,complete,partial)&limit=1`,
     { serviceRole: true },
   );
   if (earlier.length) return;
@@ -83,7 +84,7 @@ async function sendWeeklyDigest(seed: ScheduledRunSeed, weekKey: string, queued:
   await sendWorkspaceEmailAlert({
     organizationId: seed.organization_id,
     userId: seed.created_by,
-    eventKey: `weekly_digest:${seed.organization_id}:${weekKey}`,
+    eventKey: `weekly_digest:${seed.organization_id}:${seed.project_id}:${weekKey}`,
     kind: "weekly_digest",
     subject: "Your weekly Foremention evidence digest",
     text: queued
@@ -113,7 +114,7 @@ async function prepareWeeklyRun(seed: ScheduledRunSeed, weekKey: string) {
   const reservedSpend = monthlyRuns.reduce((sum, row) => sum + (["failed", "cancelled"].includes(row.status) && !row.started_at ? 0 : Number(row.actual_cost_usd || row.estimated_max_cost_usd || 0)), 0);
   if (usedUnits + requestedUnits > entitlement.monthly_run_units || reservedSpend + estimatedMaximumCost > Number(entitlement.monthly_ai_spend_cap_usd)) return null;
   const runId = crypto.randomUUID();
-  const idempotencyKey = `weekly:${seed.organization_id}:${weekKey}`;
+  const idempotencyKey = `weekly:${seed.organization_id}:${seed.project_id}:${weekKey}`;
   const activeRequestKey = `${providerId}:${prompts.map((prompt) => prompt.prompt_id).sort().join(",")}`;
   try {
     await supabaseRest("runs", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { id: runId, organization_id: seed.organization_id, project_id: seed.project_id, category_id: seed.category_id, status: "queued", provider_ids: [providerId], prompt_count: prompts.length, requested_units: requestedUnits, estimated_max_cost_usd: estimatedMaximumCost, idempotency_key: idempotencyKey, active_request_key: activeRequestKey, methodology_version: "3.0", created_by: seed.created_by } });
@@ -121,7 +122,7 @@ async function prepareWeeklyRun(seed: ScheduledRunSeed, weekKey: string) {
       supabaseRest("run_prompt_selections", { method: "POST", serviceRole: true, prefer: "return=minimal", body: prompts.map((prompt) => ({ organization_id: seed.organization_id, run_id: runId, prompt_id: prompt.prompt_id, prompt_key: prompt.prompt_key, prompt_text: prompt.prompt_text, locale: prompt.locale })) }),
       supabaseRest("usage_events", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { organization_id: seed.organization_id, meter: "provider_prompt_observation", units: requestedUnits, period_start: `${new Date().toISOString().slice(0, 7)}-01`, run_id: runId } }),
     ]);
-    return { runId, organizationId: seed.organization_id };
+    return { runId, organizationId: seed.organization_id, projectId: seed.project_id };
   } catch (error) {
     await supabaseRest(`usage_events?organization_id=eq.${seed.organization_id}&run_id=eq.${runId}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
     await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${seed.organization_id}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
@@ -176,7 +177,7 @@ async function notifyRunOwner(
 
 async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNeverStarted = false) {
   const runs = await supabaseRest<Array<{ id: string; organization_id: string; project_id: string; created_by: string | null; status: string; started_at: string | null }>>(
-    `runs?select=id,organization_id,project_id,created_by,status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&limit=1`,
+    `runs?select=id,organization_id,project_id,created_by,status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&limit=1`,
     { serviceRole: true },
   );
   const run = runs[0];
@@ -188,7 +189,7 @@ async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNe
     });
   }
   const actualCostUsd = await recordedRunCost(data);
-  await supabaseRest(`runs?id=eq.${data.runId}&organization_id=eq.${data.organizationId}`, {
+  await supabaseRest(`runs?id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}`, {
     method: "PATCH",
     serviceRole: true,
     prefer: "return=minimal",
@@ -223,7 +224,7 @@ async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNe
 
 async function loadRun(data: RunRequestedData) {
   const runs = await supabaseRest<RunRow[]>(
-    `runs?select=id,organization_id,project_id,category_id,status,provider_ids,created_by&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&limit=1`,
+    `runs?select=id,organization_id,project_id,category_id,status,provider_ids,created_by&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&limit=1`,
     { serviceRole: true },
   );
   const run = runs[0];
@@ -802,7 +803,7 @@ export const runMultiEngineScan = inngest.createFunction(
     await step.sendEvent("deliver-collection-webhooks", {
       id: `workspace-event-collection-${run.id}`,
       name: "foremention/workspace.event",
-      data: { organizationId: run.organization_id, eventKey: `collection.completed:${run.id}`, eventType: "collection.completed", occurredAt: completedAt, href: `/app/runs/${run.id}` } satisfies DeliveryEvent,
+      data: { organizationId: run.organization_id, projectId: run.project_id, eventKey: `collection.completed:${run.id}`, eventType: "collection.completed", occurredAt: completedAt, href: `/app/runs/${run.id}` } satisfies DeliveryEvent,
     });
     await Promise.all([
       step.run("record-human-review-gate", () =>
@@ -834,13 +835,13 @@ export const cleanupCancelledCollection = inngest.createFunction(
   { id: "cleanup-cancelled-collection", retries: 2, triggers: { event: "inngest/function.cancelled" } },
   async ({ event, step }) => {
     const original = event.data.event as { name?: string; data?: RunRequestedData } | undefined;
-    if (original?.name !== "foremention/run.requested" || !original.data?.runId || !original.data.organizationId) {
+    if (original?.name !== "foremention/run.requested" || !original.data?.runId || !original.data.organizationId || !original.data.projectId) {
       return { skipped: true };
     }
     const data = original.data;
     await step.run("mark-cancelled-run", async () => {
       const runs = await supabaseRest<Array<{ status: string; started_at: string | null }>>(
-        `runs?select=status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&limit=1`,
+        `runs?select=status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&limit=1`,
         { serviceRole: true },
       );
       const run = runs[0];
@@ -852,7 +853,7 @@ export const cleanupCancelledCollection = inngest.createFunction(
         });
       }
       const actualCostUsd = await recordedRunCost(data);
-      await supabaseRest(`runs?id=eq.${data.runId}&organization_id=eq.${data.organizationId}`, {
+      await supabaseRest(`runs?id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}`, {
         method: "PATCH",
         serviceRole: true,
         prefer: "return=minimal",
@@ -886,17 +887,20 @@ export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
         "runs?select=id,organization_id,project_id,category_id,status,provider_ids,created_by,completed_at&status=in.(complete,partial)&order=created_at.desc&limit=1000",
         { serviceRole: true },
       );
-      const byOrganization = new Map<string, ScheduledRunSeed>();
-      for (const row of rows) if (!byOrganization.has(row.organization_id)) byOrganization.set(row.organization_id, row);
-      return Array.from(byOrganization.values());
+      const byProject = new Map<string, ScheduledRunSeed>();
+      for (const row of rows) {
+        const key = `${row.organization_id}\u0000${row.project_id}`;
+        if (!byProject.has(key)) byProject.set(key, row);
+      }
+      return Array.from(byProject.values());
     });
     const weekKey = new Date().toISOString().slice(0, 10);
     const queued: RunRequestedData[] = [];
     for (const seed of seeds) {
-      const prepared = await step.run(`prepare-weekly-${seed.organization_id}`, () => prepareWeeklyRun(seed, weekKey));
+      const prepared = await step.run(`prepare-weekly-${seed.organization_id}-${seed.project_id}`, () => prepareWeeklyRun(seed, weekKey));
       if (prepared) queued.push(prepared);
-      await step.run(`email-weekly-digest-${seed.organization_id}`, () => sendWeeklyDigest(seed, weekKey, Boolean(prepared)));
-      await step.run(`notion-weekly-digest-${seed.organization_id}`, () => exportWeeklyDigestToNotion(seed.organization_id, weekKey));
+      await step.run(`email-weekly-digest-${seed.organization_id}-${seed.project_id}`, () => sendWeeklyDigest(seed, weekKey, Boolean(prepared)));
+      await step.run(`notion-weekly-digest-${seed.organization_id}-${seed.project_id}`, () => exportWeeklyDigestToNotion(seed.organization_id, seed.project_id, weekKey));
     }
     if (queued.length) {
       await step.sendEvent("queue-weekly-runs", queued.map((data) => ({
@@ -916,5 +920,5 @@ export const deliverWorkspaceWebhookEvents = inngest.createFunction(
 
 export const deliverHubSpotActionEvents = inngest.createFunction(
   { id: "deliver-hubspot-action-events", retries: 3, triggers: { event: "foremention/integration.hubspot-action" } },
-  async ({ event, step }) => step.run("write-hubspot-activity", () => deliverHubSpotCompletedAction(event.data as { organizationId: string; placementId: string; eventKey: string; stage: string; occurredAt: string })),
+  async ({ event, step }) => step.run("write-hubspot-activity", () => deliverHubSpotCompletedAction(event.data as { organizationId: string; projectId: string; placementId: string; eventKey: string; stage: string; occurredAt: string })),
 );
