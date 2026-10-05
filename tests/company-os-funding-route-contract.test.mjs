@@ -59,6 +59,7 @@ test("funding persistence remains internal draft only and append-only for authen
   assert.match(migration, /alter table public\.company_funding_draft_artifacts enable row level security/i);
   assert.match(migration, /grant select on table public\.company_funding_draft_artifacts to authenticated/i);
   assert.doesNotMatch(migration, /grant\s+(?:insert|update|delete|all)[^;]*\bauthenticated\b/i);
+  assert.doesNotMatch(migration, /for insert[\s\S]{0,300}to authenticated/i);
   assert.match(migration, /grant select, insert, delete on table public\.company_funding_draft_artifacts to service_role/i);
   assert.match(migration, /if tg_op = 'UPDATE' then[\s\S]*Company funding draft revisions are immutable/i);
 });
