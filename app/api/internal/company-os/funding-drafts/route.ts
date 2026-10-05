@@ -253,6 +253,9 @@ export async function POST(request: Request) {
   const current = await resolveFundingContext();
   if ("error" in current) return current.error;
   const { viewer, context } = current;
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return responseError("Funding draft persistence is not configured.", 503);
+  }
   const asOf = new Date().toISOString();
 
   try {
@@ -298,7 +301,7 @@ export async function POST(request: Request) {
       "company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,artifact,created_at",
       {
         method: "POST",
-        token: viewer.accessToken,
+        serviceRole: true,
         prefer: "return=representation",
         body: {
           organization_id: context.organizationId,
