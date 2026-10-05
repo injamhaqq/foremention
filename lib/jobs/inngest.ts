@@ -6,7 +6,6 @@ import { recordAgentExecution } from "@/lib/agent-control-plane";
 import {
   canonicalizeEvidenceUrl,
   estimateMaximumRunCost,
-  estimateReservedRunCost,
   estimateProviderCost,
   GROQ_SPEND_LIMITS,
   getProviderCostRates,
@@ -92,43 +91,6 @@ async function sendWeeklyDigest(seed: ScheduledRunSeed, weekKey: string, queued:
       : "Your latest reviewed evidence remains available. No new weekly collection was queued because configuration, capacity, or cost limits did not permit a safe run.",
     href: "/app/analytics",
   });
-}
-
-async function prepareWeeklyRun(seed: ScheduledRunSeed, weekKey: string) {
-  const providerId = seed.provider_ids[0];
-  if (!providerId || !providerAllowedForLiveCollection(providerId)) return null;
-  const rates = getProviderCostRates(providerId);
-  if (!rates || !getProvider(providerId).configured()) return null;
-  const [prompts, entitlements, activeRuns, monthlyUsage, monthlyRuns] = await Promise.all([
-    supabaseRest<PromptSelection[]>(`run_prompt_selections?select=prompt_id,prompt_key,prompt_text,locale&organization_id=eq.${seed.organization_id}&run_id=eq.${seed.id}&order=created_at.asc`, { serviceRole: true }),
-    supabaseRest<Array<{ monthly_run_units: number; monthly_ai_spend_cap_usd: number | string; status: string }>>(`organization_entitlements?select=monthly_run_units,monthly_ai_spend_cap_usd,status&organization_id=eq.${seed.organization_id}&limit=1`, { serviceRole: true }),
-    supabaseRest<Array<{ id: string }>>(`runs?select=id&organization_id=eq.${seed.organization_id}&status=in.(queued,running)&limit=1`, { serviceRole: true }),
-    supabaseRest<Array<{ units: number }>>(`usage_events?select=units&organization_id=eq.${seed.organization_id}&period_start=eq.${new Date().toISOString().slice(0, 7)}-01`, { serviceRole: true }),
-    supabaseRest<Array<{ actual_cost_usd: number | string; estimated_max_cost_usd: number | string; status: string; started_at: string | null }>>(`runs?select=actual_cost_usd,estimated_max_cost_usd,status,started_at&organization_id=eq.${seed.organization_id}&created_at=gte.${encodeURIComponent(`${new Date().toISOString().slice(0, 7)}-01T00:00:00.000Z`)}`, { serviceRole: true }),
-  ]);
-  const entitlement = entitlements[0];
-  if (!entitlement || entitlement.status !== "active" || activeRuns.length || !prompts.length) return null;
-  const requestedUnits = prompts.length;
-  const usedUnits = monthlyUsage.reduce((sum, row) => sum + Number(row.units || 0), 0);
-  const estimatedMaximumCost = estimateReservedRunCost(providerId, prompts.length, rates);
-  const reservedSpend = monthlyRuns.reduce((sum, row) => sum + (["failed", "cancelled"].includes(row.status) && !row.started_at ? 0 : Number(row.actual_cost_usd || row.estimated_max_cost_usd || 0)), 0);
-  if (usedUnits + requestedUnits > entitlement.monthly_run_units || reservedSpend + estimatedMaximumCost > Number(entitlement.monthly_ai_spend_cap_usd)) return null;
-  const runId = crypto.randomUUID();
-  const idempotencyKey = `weekly:${seed.organization_id}:${seed.project_id}:${weekKey}`;
-  const activeRequestKey = `${providerId}:${prompts.map((prompt) => prompt.prompt_id).sort().join(",")}`;
-  try {
-    await supabaseRest("runs", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { id: runId, organization_id: seed.organization_id, project_id: seed.project_id, category_id: seed.category_id, status: "queued", provider_ids: [providerId], prompt_count: prompts.length, requested_units: requestedUnits, estimated_max_cost_usd: estimatedMaximumCost, idempotency_key: idempotencyKey, active_request_key: activeRequestKey, methodology_version: "3.0", created_by: seed.created_by } });
-    await Promise.all([
-      supabaseRest("run_prompt_selections", { method: "POST", serviceRole: true, prefer: "return=minimal", body: prompts.map((prompt) => ({ organization_id: seed.organization_id, run_id: runId, prompt_id: prompt.prompt_id, prompt_key: prompt.prompt_key, prompt_text: prompt.prompt_text, locale: prompt.locale })) }),
-      supabaseRest("usage_events", { method: "POST", serviceRole: true, prefer: "return=minimal", body: { organization_id: seed.organization_id, meter: "provider_prompt_observation", units: requestedUnits, period_start: `${new Date().toISOString().slice(0, 7)}-01`, run_id: runId } }),
-    ]);
-    return { runId, organizationId: seed.organization_id, projectId: seed.project_id };
-  } catch (error) {
-    await supabaseRest(`usage_events?organization_id=eq.${seed.organization_id}&run_id=eq.${runId}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
-    await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${seed.organization_id}&project_id=eq.${seed.project_id}`, { method: "DELETE", serviceRole: true }).catch(() => undefined);
-    console.warn("Scheduled run preparation failed.", safeOperationalError(error));
-    return null;
-  }
 }
 
 async function recordedRunCost(data: RunRequestedData) {
@@ -875,14 +837,14 @@ export const cleanupCancelledCollection = inngest.createFunction(
   },
 );
 
-export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
+export const scheduleWeeklyWorkspaceDigests = inngest.createFunction(
   {
-    id: "schedule-weekly-workspace-runs",
+    id: "schedule-weekly-workspace-digests",
     retries: 2,
     triggers: { cron: "0 8 * * 1" },
   },
   async ({ step }) => {
-    const seeds = await step.run("load-weekly-workspaces", async () => {
+    const seeds = await step.run("load-weekly-digest-projects", async () => {
       const rows = await supabaseRest<ScheduledRunSeed[]>(
         "runs?select=id,organization_id,project_id,category_id,status,provider_ids,created_by,completed_at&status=in.(complete,partial)&order=created_at.desc&limit=1000",
         { serviceRole: true },
@@ -895,21 +857,17 @@ export const scheduleWeeklyWorkspaceRuns = inngest.createFunction(
       return Array.from(byProject.values());
     });
     const weekKey = new Date().toISOString().slice(0, 10);
-    const queued: RunRequestedData[] = [];
     for (const seed of seeds) {
-      const prepared = await step.run(`prepare-weekly-${seed.organization_id}-${seed.project_id}`, () => prepareWeeklyRun(seed, weekKey));
-      if (prepared) queued.push(prepared);
-      await step.run(`email-weekly-digest-${seed.organization_id}-${seed.project_id}`, () => sendWeeklyDigest(seed, weekKey, Boolean(prepared)));
-      await step.run(`notion-weekly-digest-${seed.organization_id}-${seed.project_id}`, () => exportWeeklyDigestToNotion(seed.organization_id, seed.project_id, weekKey));
+      await step.run(
+        `email-weekly-digest-${seed.organization_id}-${seed.project_id}`,
+        () => sendWeeklyDigest(seed, weekKey, false),
+      );
+      await step.run(
+        `notion-weekly-digest-${seed.organization_id}-${seed.project_id}`,
+        () => exportWeeklyDigestToNotion(seed.organization_id, seed.project_id, weekKey),
+      );
     }
-    if (queued.length) {
-      await step.sendEvent("queue-weekly-runs", queued.map((data) => ({
-        id: `foremention-weekly-${data.runId}`,
-        name: "foremention/run.requested",
-        data,
-      })));
-    }
-    return { eligibleWorkspaces: seeds.length, queuedRuns: queued.length, weekKey };
+    return { eligibleProjects: seeds.length, weekKey };
   },
 );
 
