@@ -226,6 +226,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       href: `/app/sources/${entry.id}`,
     });
   }
-  await queueWorkspaceWebhook({ organizationId, eventKey: `source.reviewed:${entry.id}:${reviewedAt}`, eventType: "source.reviewed", occurredAt: reviewedAt, href: `/app/sources/${entry.id}` }).catch(() => undefined);
+  await queueWorkspaceWebhook({ organizationId, projectId: context.projectId, eventKey: `source.reviewed:${entry.id}:${reviewedAt}`, eventType: "source.reviewed", occurredAt: reviewedAt, href: `/app/sources/${entry.id}` }).catch(() => undefined);
   return NextResponse.json({ ok: true, reviewedAt, opportunity });
 }
