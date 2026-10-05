@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { migrationSqlDigests, compareMigrationSqlReceipts } from '../lib/migration-sql-receipt-audit.mjs';
+
+const execFileAsync = promisify(execFile);
+const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 
 const source = { version: '20260901010000', name: 'safe_example', path: 'supabase/migrations/safe.sql', sql: '-- example\nselect 1;\n' };
 const remote = [{ version: '20260901090000', name: 'safe_example_renamed' }];
@@ -58,12 +62,30 @@ test('26 September pinned stored SQL receipt snapshot reproduces measured eviden
   const evidence = JSON.parse(await readFile(new URL('../docs/operations/PRODUCTION-MIGRATION-SQL-RECEIPTS-2026-09-26.json', import.meta.url), 'utf8'));
   assert.equal(fixture.observed_date, evidence.observed_date);
   assert.equal(evidence.repo_migrations_at_sha, '3d3b4cc6f063d46f34e0b2dc49aec222a309b5d2');
-  const root = fileURLToPath(new URL('../supabase/migrations/', import.meta.url));
-  const files = (await readdir(root)).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name));
-  assert.equal(files.length, 93, 'historical proof fixture must be explicitly refreshed after migration changes');
-  const sources = await Promise.all(files.map(async name => ({
-    version: name.slice(0, 14), name: name.slice(15, -4), path: name, sql: await readFile(join(root, name), 'utf8')
-  })));
+  const historicalSha = evidence.repo_migrations_at_sha;
+  const { stdout: tree } = await execFileAsync(
+    'git',
+    ['ls-tree', '-r', '--name-only', historicalSha, '--', 'supabase/migrations'],
+    { cwd: repositoryRoot, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 },
+  );
+  const files = tree
+    .split(/\r?\n/)
+    .filter(path => /^supabase\/migrations\/\d{14}_[a-z0-9_]+\.sql$/.test(path));
+  assert.equal(files.length, 93, 'pinned historical commit must retain the audited migration set');
+  const sources = await Promise.all(files.map(async path => {
+    const filename = path.slice('supabase/migrations/'.length);
+    const { stdout: sql } = await execFileAsync(
+      'git',
+      ['show', `${historicalSha}:${path}`],
+      { cwd: repositoryRoot, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 },
+    );
+    return {
+      version: filename.slice(0, 14),
+      name: filename.slice(15, -4),
+      path: filename,
+      sql,
+    };
+  }));
   const r = compareMigrationSqlReceipts(sources, fixture.migrations, evidence.receipts);
   assert.deepEqual({ remote: r.counts.remote, byteMatched: r.counts.byte_matched_remote,
     drift: r.counts.byte_matched_but_metadata_drift, terminalLf: r.counts.terminal_lf_only_remote,
