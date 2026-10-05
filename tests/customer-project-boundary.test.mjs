@@ -57,18 +57,19 @@ test("direct-id customer mutations prove active-project ownership", async () => 
 });
 
 test("comparison and global-search surfaces cannot mix sibling-project evidence", async () => {
-  const [pair, notifications, evidence, intelligence, search] = await Promise.all([
+  const [pair, notifications, evidence, intelligence, search, sourceScope] = await Promise.all([
     text("lib/run-pair-comparability.ts"),
     text("lib/reviewed-change-notifications.ts"),
     text("lib/evidence-integrity-data.ts"),
     text("lib/intelligence-loop.ts"),
     text("lib/workspace-search.ts"),
+    text("lib/project-source-map-scope.ts"),
   ]);
 
   assert.match(pair, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&id=in/);
   assert.match(notifications, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&id=neq/);
   assert.match(evidence, /loadLatestProjectSourceMapRef\(\{/);
-  assert.match(evidence, /run:runs!inner\(project_id\)[^\n]+run\.project_id=eq\.\$\{context\.projectId\}/);
+  assert.match(sourceScope, /run:runs!inner\(project_id\)[^\n]+run\.project_id=eq\.\$\{encoded\(input\.projectId\)\}/);
   assert.match(intelligence, /loadLatestProjectSourceMapRef\(\{/);
 
   assert.match(search, /loadLatestProjectSourceMapRef\(\{/);
