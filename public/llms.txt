@@ -4,7 +4,7 @@
 
 ## Core
 
-- [Product](https://foremention.com/product): Product workflow and decision boundaries.
+- [Product](https://foremention.com/product): Product workflow and decision boundaries.\n- [Use Cases](https://foremention.com/use-cases): Evidence-grounded customer questions and decision workflows.
 - [Recommendation Intelligence](https://foremention.com/recommendation-intelligence): Public category definition.
 - [Recommendation Record](https://foremention.com/recommendation-record): Canonical measurement object and evidence-chain explanation.
 - [Methodology](https://foremention.com/methodology): Measurement, evidence, review, and comparability methodology.
@@ -31,7 +31,7 @@
 - [Markdown sitemap](https://foremention.com/sitemap.md): Human- and agent-readable public site map.
 - [Homepage markdown](https://foremention.com/index.md): Markdown mirror of the homepage's core public claims and workflow.
 
-- [Product Markdown](https://foremention.com/product.md): Structured public product workflow and honest constraints.
+- [Product Markdown](https://foremention.com/product.md): Structured public product workflow and honest constraints.\n- [Use Cases Markdown](https://foremention.com/use-cases.md): Structured decision workflows and product boundaries.
 - [Methodology Markdown](https://foremention.com/methodology.md): Structured measurement and comparability methodology.
 
 - [Recommendation Record Markdown](https://foremention.com/recommendation-record.md): Canonical record identity, evidence stages and comparison gate.
