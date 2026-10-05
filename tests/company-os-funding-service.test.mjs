@@ -116,11 +116,13 @@ test("internal funding route authenticates operator, active scope, role, trusted
   assert.match(route, /isTrustedMutationOrigin/);
   assert.match(route, /getViewer/);
   assert.match(route, /isCompanyOperatorEmail/);
-  assert.match(route, /loadWorkspaceContext/);
-  assert.match(route, /getPrimaryWorkspaceRole/);
   assert.match(route, /configuredCompanyOsScope/);
-  assert.match(route, /sameFundingServiceScope/);
+  assert.match(route, /organization_members\?select=role/);
+  assert.match(route, /projects\?select=id,organization_id,status/);
+  assert.match(route, /configured\.projectId/);
+  assert.match(route, /status=eq\.active/);
   assert.match(route, /role === "owner" \|\| role === "admin"/);
+  assert.doesNotMatch(route, /loadWorkspaceContext|getPrimaryWorkspaceRole/);
   assert.match(route, /funding_program_official/);
   assert.match(route, /company_truth_assertions/);
   assert.match(route, /new Date\(\)\.toISOString\(\)/);
