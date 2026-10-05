@@ -195,8 +195,9 @@ $$;
 reset role;
 set local role service_role;
 
--- The trusted server role can read the fixture store, but the validation trigger
--- still rejects a creator who is not an owner/admin of the persisted organization.
+-- The trusted server role can read the fixture store. The test JWT subject remains
+-- the analyst actor below so auth.uid() matches created_by; rejection must therefore
+-- come from the independent owner/admin membership guard for the target organization.
 do $$
 declare
   denied boolean := false;
@@ -212,7 +213,7 @@ begin
     ) values (
       'f2610000-0000-4000-8000-000000000002'::uuid,
       'f2620000-0000-4000-8000-000000000002'::uuid,
-      'f2600000-0000-4000-8000-000000000001'::uuid,
+      'f2600000-0000-4000-8000-000000000003'::uuid,
       'company-truth-v1-' || repeat('4', 64),
       '0.1.0',
       repeat('5', 64),
