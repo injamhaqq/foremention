@@ -43,7 +43,7 @@ test("accepted design-partner applications notify configured operators without c
 });
 
 
-test("accepted design-partner applications return a stable intake reference", async () => {
+test("newly accepted design-partner applications return a stable intake reference without exposing duplicate application existence", async () => {
   const route = await read("app/api/design-partner/route.ts");
   const contact = await read("app/contact/page.tsx");
   assert.match(route, /prefer:\s*"return=representation"/);
@@ -52,4 +52,7 @@ test("accepted design-partner applications return a stable intake reference", as
   assert.match(route, /notificationStatus/);
   assert.match(contact, /Application reference:/);
   assert.match(contact, /intakeIdPattern/);
+  assert.match(route, /claim === "duplicate"\) return responseFor\(request, 201, "Application received\."\)/);
+  assert.doesNotMatch(route, /findExistingApplicationId/);
 });
+
