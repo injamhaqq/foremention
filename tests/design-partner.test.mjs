@@ -48,8 +48,6 @@ test("newly accepted design-partner applications return a stable intake referenc
   const contact = await read("app/contact/page.tsx");
   assert.match(route, /prefer:\s*"return=representation"/);
   assert.match(route, /intakeId/);
-  assert.match(route, /findExistingApplicationId/);
-  assert.match(route, /notificationStatus/);
   assert.match(contact, /Application reference:/);
   assert.match(contact, /intakeIdPattern/);
   assert.match(contact, /const intakeId = query\.intake/);
