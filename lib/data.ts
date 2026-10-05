@@ -514,20 +514,31 @@ export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceCon
   if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", projectName: "Northstar HR", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return null;
-  const [organizations, projects, categories, cookieStore] = await Promise.all([
+  const [organizations, projects, cookieStore] = await Promise.all([
     supabaseRest<Array<{ name: string; website: string | null }>>(`organizations?select=name,website&id=eq.${organizationId}&limit=1`, { token: viewer.accessToken }),
     loadWorkspaceProjects(viewer),
-    supabaseRest<Array<{ id: string; name: string }>>(`categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
     cookies(),
   ]);
-  if (!organizations[0] || !projects.length || !categories[0]) return null;
+  if (!organizations[0] || !projects.length) return null;
   const requestedProjectId = cookieStore.get(ACTIVE_PROJECT_COOKIE)?.value || "";
   const project = projects.find((candidate) => candidate.id === requestedProjectId) || projects[0];
-  const clusters = await supabaseRest<Array<{ id: string }>>(
-    `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${project.id}&order=priority.asc&limit=1`,
-    { token: viewer.accessToken },
-  );
-  return { organizationId, projectId: project.id, projectName: project.name, categoryId: categories[0].id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website || organizations[0].website, category: project.category || categories[0].name };
+  const [categories, clusters] = await Promise.all([
+    supabaseRest<Array<{ id: string; name: string }>>(
+      `categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=100`,
+      { token: viewer.accessToken },
+    ),
+    supabaseRest<Array<{ id: string }>>(
+      `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${project.id}&order=priority.asc&limit=1`,
+      { token: viewer.accessToken },
+    ),
+  ]);
+  const projectCategory = project.category?.trim() || "";
+  const category = projectCategory
+    ? categories.find((candidate) => candidate.name.trim().toLocaleLowerCase() === projectCategory.toLocaleLowerCase()) || null
+    : categories[0] || null;
+  // Never silently run a named project category under another category ID.
+  if (!category) return null;
+  return { organizationId, projectId: project.id, projectName: project.name, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website || organizations[0].website, category: projectCategory || category.name };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
