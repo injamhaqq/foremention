@@ -231,14 +231,17 @@ async function loadCompanyTruth(viewer: Viewer, context: FundingContext, asOf: s
 export async function GET() {
   const current = await resolveFundingContext();
   if ("error" in current) return current.error;
-  const { viewer, context } = current;
+  const { context } = current;
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return responseError("Funding draft persistence is not configured.", 503);
+  }
   try {
     const rows = await supabaseRest<FundingArtifactRow[]>(
       `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,artifact,created_at`
         + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
         + `&project_id=eq.${encodeURIComponent(context.projectId)}`
         + `&order=created_at.desc&limit=20`,
-      { token: viewer.accessToken },
+      { serviceRole: true },
     );
     return NextResponse.json({ data: rows, mode: "internal_draft_only" }, { headers: { "cache-control": "private, no-store, max-age=0" } });
   } catch (error) {
@@ -287,7 +290,7 @@ export async function POST(request: Request) {
         + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
         + `&project_id=eq.${encodeURIComponent(context.projectId)}`
         + `&artifact_digest=eq.${artifactDigest}&limit=1`,
-      { token: viewer.accessToken },
+      { serviceRole: true },
     );
     const warnings = [
       ...(profile.profileFactCount ? [] : ["No current scalar Company Truth facts were available; affected criteria and answers remain unknown."]),
