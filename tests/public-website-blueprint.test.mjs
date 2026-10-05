@@ -29,7 +29,7 @@ test("public sample report demonstrates evidence rather than fake composite cert
   assert.match(sample, /Evidence review/);
   assert.match(sample, /Change Specification/);
   assert.match(sample, /not proof of a customer outcome/i);
-  assert.doesNotMatch(sample, /Readiness score/i);
+  assert.match(sample, /intentionally avoids a composite visibility or readiness score/i);
   assert.doesNotMatch(sample, /recommendation share/i);
   assert.doesNotMatch(sample, /first-mention share/i);
   assert.doesNotMatch(sample, /31%|12%|62\/100/);
