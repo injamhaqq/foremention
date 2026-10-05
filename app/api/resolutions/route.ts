@@ -23,6 +23,7 @@ const cleanMultiline = (value: unknown, limit: number) => typeof value === "stri
 const uniqueIds = (value: unknown) => Array.from(new Set(Array.isArray(value) ? value.filter((id): id is string => typeof id === "string" && uuid.test(id)) : [])).slice(0, 20);
 const writable = (role: WorkspaceRole | null): role is Exclude<WorkspaceRole, "viewer"> => Boolean(role && role !== "viewer");
 const manager = (role: WorkspaceRole | null) => role === "owner" || role === "admin";
+const MAX_RESOLUTION_SOURCE_OBSERVATIONS = 500;
 
 type AssetRow = {
   id: string; organization_id: string; project_id: string; opportunity_id: string; source_id: string; baseline_run_id: string | null;
@@ -96,12 +97,16 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
   ]);
   const assetIds = assets.map((row) => row.id);
   const sourceIds = Array.from(new Set([...assets.map((row) => row.source_id), ...opportunities.map((row) => row.source_id)]));
-  const [sources, evidenceLinks, followUps, observations] = await Promise.all([
+  const [sources, evidenceLinks, followUps, observationRows] = await Promise.all([
     sourceIds.length ? supabaseRest<SourceRow[]>(`sources?select=id,canonical_url,page_title&id=in.(${inFilter(sourceIds)})&organization_id=eq.${context.organizationId}`, { token: viewer.accessToken }) : [],
-    assetIds.length ? supabaseRest<EvidenceLinkRow[]>(`resolution_asset_evidence?select=resolution_asset_id,evidence_snapshot&resolution_asset_id=in.(${inFilter(assetIds)})&organization_id=eq.${context.organizationId}&order=created_at.asc`, { token: viewer.accessToken }) : [],
-    assetIds.length ? supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&resolution_asset_id=in.(${inFilter(assetIds)})&organization_id=eq.${context.organizationId}&order=requested_at.desc`, { token: viewer.accessToken }) : [],
-    sourceIds.length ? supabaseRest<Array<{ id: string; source_id: string; run_answer_id: string | null; provider: string; observed_at: string }>>(`source_observations?select=id,source_id,run_answer_id,provider,observed_at&organization_id=eq.${context.organizationId}&source_id=in.(${inFilter(sourceIds)})&review_status=eq.verified&order=observed_at.desc&limit=500`, { token: viewer.accessToken }) : [],
+    assetIds.length ? supabaseRest<EvidenceLinkRow[]>(`resolution_asset_evidence?select=resolution_asset_id,evidence_snapshot&resolution_asset_id=in.(${inFilter(assetIds)})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.asc`, { token: viewer.accessToken }) : [],
+    assetIds.length ? supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&resolution_asset_id=in.(${inFilter(assetIds)})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=requested_at.desc`, { token: viewer.accessToken }) : [],
+    sourceIds.length ? supabaseRest<Array<{ id: string; source_id: string; run_answer_id: string | null; provider: string; observed_at: string }>>(`source_observations?select=id,source_id,run_answer_id,provider,observed_at&organization_id=eq.${context.organizationId}&source_id=in.(${inFilter(sourceIds)})&review_status=eq.verified&order=observed_at.desc&limit=${MAX_RESOLUTION_SOURCE_OBSERVATIONS + 1}`, { token: viewer.accessToken }) : [],
   ]);
+  // If the sentinel row is present, the observation set is not complete.
+  // Withhold derived problem evidence rather than treating the first 500 rows
+  // as the complete Resolution Center evidence packet.
+  const observations = observationRows.length <= MAX_RESOLUTION_SOURCE_OBSERVATIONS ? observationRows : [];
   const observationAnswerIds = observations.map((row) => row.run_answer_id).filter((id): id is string => Boolean(id));
   const observedAnswers = observationAnswerIds.length ? await supabaseRest<Array<{ id: string; run_id: string; provider: string; model: string | null; answer_text: string; review_status: string }>>(`run_answers?select=id,run_id,provider,model,answer_text,review_status&id=in.(${inFilter(observationAnswerIds)})&organization_id=eq.${context.organizationId}&review_status=eq.verified`, { token: viewer.accessToken }) : [];
   const observedRunIds = Array.from(new Set(observedAnswers.map((row) => row.run_id)));
@@ -341,7 +346,7 @@ async function handleCreate(request: Request) {
         supabaseRest<Array<{ prompt_id: string }>>(`run_prompt_selections?select=prompt_id&run_id=eq.${asset.baseline_run_id}&organization_id=eq.${context.organizationId}&order=prompt_id.asc`, { token: viewer.accessToken }),
       ]);
       if (!baseline[0] || baseline[0].provider_ids.length !== 1 || !selections.length) return NextResponse.json({ error: "The baseline is missing one exact provider or its approved buyer questions, so a comparable run cannot be started." }, { status: 409 });
-      const existing = await supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&status=in.(requested,queued)&order=requested_at.desc&limit=1`, { token: viewer.accessToken });
+      const existing = await supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(requested,queued)&order=requested_at.desc&limit=1`, { token: viewer.accessToken });
       let followUp = existing[0];
       if (!followUp) {
         try {
@@ -349,7 +354,7 @@ async function handleCreate(request: Request) {
           followUp = created[0];
         } catch (error) {
           if (!uniqueViolation(error)) throw error;
-          const concurrent = await supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&status=in.(requested,queued)&order=requested_at.desc&limit=1`, { token: viewer.accessToken });
+          const concurrent = await supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(requested,queued)&order=requested_at.desc&limit=1`, { token: viewer.accessToken });
           followUp = concurrent[0];
         }
       }
@@ -358,7 +363,7 @@ async function handleCreate(request: Request) {
     }
 
     if (!measurementId) return NextResponse.json({ error: "The durable follow-up request ID is required before a run can be attached." }, { status: 400 });
-    const requests = await supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&${measurementId ? `id=eq.${measurementId}&` : ""}resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&status=in.(requested,queued)&order=requested_at.desc&limit=1`, { token: viewer.accessToken });
+    const requests = await supabaseRest<FollowUpRow[]>(`resolution_follow_ups?select=id,resolution_asset_id,baseline_run_id,rerun_id,status,requested_at,completed_at,outcome,limitation&${measurementId ? `id=eq.${measurementId}&` : ""}resolution_asset_id=eq.${asset.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(requested,queued)&order=requested_at.desc&limit=1`, { token: viewer.accessToken });
     const followUp = requests[0];
     if (!followUp) return NextResponse.json({ error: "Create a follow-up request before attaching the run." }, { status: 409 });
     const [baselineRows, rerunRows, baselineSelections, rerunSelections] = await Promise.all([
@@ -373,7 +378,7 @@ async function handleCreate(request: Request) {
     const sameProviders = JSON.stringify([...baseline.provider_ids].sort()) === JSON.stringify([...rerun.provider_ids].sort());
     const samePrompts = JSON.stringify(baselineSelections.map((row) => row.prompt_id).sort()) === JSON.stringify(rerunSelections.map((row) => row.prompt_id).sort());
     if (!sameProviders || !samePrompts) return NextResponse.json({ error: "The follow-up must use the same buyer questions and provider as the baseline." }, { status: 409 });
-    if (followUp.status === "requested") await supabaseRest(`resolution_follow_ups?id=eq.${followUp.id}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { rerun_id: rerun.id, status: "queued" } });
+    if (followUp.status === "requested") await supabaseRest(`resolution_follow_ups?id=eq.${followUp.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { rerun_id: rerun.id, status: "queued" } });
     if (["complete", "partial", "failed", "cancelled"].includes(rerun.status)) await finalizeResolutionFollowUpsForRun({ organizationId: context.organizationId, runId: rerun.id, runStatus: rerun.status as "complete" | "partial" | "failed" | "cancelled", recordedBy: viewer.id });
     const resolutions = await loadResolutionRecords(viewer, context);
     return NextResponse.json({ data: { resolution: resolutions.find((row) => row.id === asset.id) } }, { status: 200 });
