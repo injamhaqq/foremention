@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Arrow } from "@/components/brand";
 import { CanonicalSignalField } from "@/components/canonical-signal-field";
 
@@ -44,6 +45,41 @@ const recordChain = [
 const changeDefinitionLabelStyle = { color: "#666460" } as const;
 
 export function MissingAnswerExperience() {
+  const [sampleSurface, setSampleSurface] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState<"competitor" | "brand" | null>(null);
+  const [selectedEvidence, setSelectedEvidence] = useState<"source-01" | "source-02" | null>(null);
+  const sampleSurfaceReady = sampleSurface === "workers-ai-bing-rss";
+
+  const inspector = !sampleSurfaceReady
+    ? {
+        label: "STEP 02 / EXAMPLE SURFACE",
+        title: "Choose the supported example surface.",
+        detail: "The question is visible first. Selecting the surface unlocks the illustrative answer, brands, and returned sources.",
+      }
+    : selectedEvidence
+      ? {
+          label: "EVIDENCE DETAIL",
+          title: selectedEvidence === "source-01" ? "Source 01 · review pending" : "Source 02 · review pending",
+          detail: "Returned and sample-retrievable. Human review remains open, and this source is not presented as the cause of the recommendation.",
+        }
+      : selectedBrand === "competitor"
+        ? {
+            label: "OBSERVED BRAND",
+            title: "Competitor A appears in the sample answer.",
+            detail: "The observed answer and returned sources stay attached to the same illustrative Recommendation Record.",
+          }
+        : selectedBrand === "brand"
+          ? {
+              label: "OBSERVED BRAND",
+              title: "Your brand is present, but not top-listed.",
+              detail: "That is an observation only. The sample does not invent a causal explanation for the ordering.",
+            }
+          : {
+              label: "STEP 03 / OBSERVED ANSWER",
+              title: "Provider response preserved.",
+              detail: "Select a brand or returned source to inspect its state, then open the Recommendation Record for the full evidence boundary.",
+            };
+
   return <div className="outreach-home">
     <section className="fm-cinematic-hero" aria-labelledby="fm-cinematic-hero-title">
       <div className="shell fm-cinematic-hero__inner">
@@ -60,6 +96,21 @@ export function MissingAnswerExperience() {
 
         <div className="fm-recommendation-graph" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
           <div className="fm-recommendation-graph__label"><span>ILLUSTRATIVE SIGNAL MAP</span><strong>Question → answer → brands → sources</strong></div>
+          <label className="fm-recommendation-graph__surface">
+            <span>EXAMPLE MEASUREMENT SURFACE</span>
+            <select
+              aria-label="Choose the supported example measurement surface"
+              value={sampleSurface}
+              onChange={(event) => {
+                setSampleSurface(event.target.value);
+                setSelectedBrand(null);
+                setSelectedEvidence(null);
+              }}
+            >
+              <option value="">Choose a surface</option>
+              <option value="workers-ai-bing-rss">Workers AI + Bing RSS grounded synthesis</option>
+            </select>
+          </label>
           <svg className="fm-recommendation-graph__lines" viewBox="0 0 760 620" aria-hidden="true" preserveAspectRatio="none">
             <path d="M130 310 C230 310 220 190 330 190" />
             <path d="M130 310 C230 310 220 420 330 420" />
@@ -74,40 +125,83 @@ export function MissingAnswerExperience() {
             <strong>Best platform for enterprise product marketing?</strong>
             <small>Priority question · demonstration</small>
           </div>
-          <div className="fm-graph-node fm-graph-node--answer">
+          <div className={`fm-graph-node fm-graph-node--answer${sampleSurfaceReady ? "" : " is-muted"}`}>
             <span>OBSERVED ANSWER</span>
-            <strong>Provider response preserved</strong>
-            <small>Timestamp + model provenance attached</small>
+            <strong>{sampleSurfaceReady ? "Provider response preserved" : "Select an example surface"}</strong>
+            <small>{sampleSurfaceReady ? "Timestamp + model provenance attached" : "No live research is triggered"}</small>
           </div>
-          <div className="fm-graph-node fm-graph-node--brand">
+          <button
+            type="button"
+            disabled={!sampleSurfaceReady}
+            aria-pressed={selectedBrand === "competitor"}
+            className={`fm-graph-node fm-graph-node--brand${selectedBrand === "competitor" ? " is-selected" : ""}`}
+            onClick={() => {
+              setSelectedBrand("competitor");
+              setSelectedEvidence(null);
+            }}
+          >
             <span>RECOMMENDED BRAND</span>
             <strong>Competitor A</strong>
             <small>Observed in this sample answer</small>
-          </div>
-          <div className="fm-graph-node fm-graph-node--brand-secondary">
+          </button>
+          <button
+            type="button"
+            disabled={!sampleSurfaceReady}
+            aria-pressed={selectedBrand === "brand"}
+            className={`fm-graph-node fm-graph-node--brand-secondary${selectedBrand === "brand" ? " is-selected" : ""}`}
+            onClick={() => {
+              setSelectedBrand("brand");
+              setSelectedEvidence(null);
+            }}
+          >
             <span>YOUR BRAND</span>
             <strong>Present, not top-listed</strong>
             <small>Illustrative state only</small>
-          </div>
-          <div className="fm-graph-node fm-graph-node--source-a">
+          </button>
+          <button
+            type="button"
+            disabled={!sampleSurfaceReady}
+            aria-pressed={selectedEvidence === "source-01"}
+            className={`fm-graph-node fm-graph-node--source-a${selectedEvidence === "source-01" ? " is-selected" : ""}`}
+            onClick={() => {
+              setSelectedEvidence("source-01");
+              setSelectedBrand(null);
+            }}
+          >
             <span>RETURNED SOURCE</span>
             <strong>Source 01</strong>
             <small>Retrievable · review pending</small>
-          </div>
-          <div className="fm-graph-node fm-graph-node--source-b">
+          </button>
+          <button
+            type="button"
+            disabled={!sampleSurfaceReady}
+            aria-pressed={selectedEvidence === "source-02"}
+            className={`fm-graph-node fm-graph-node--source-b${selectedEvidence === "source-02" ? " is-selected" : ""}`}
+            onClick={() => {
+              setSelectedEvidence("source-02");
+              setSelectedBrand(null);
+            }}
+          >
             <span>RETURNED SOURCE</span>
             <strong>Source 02</strong>
             <small>Retrievable · review pending</small>
-          </div>
+          </button>
 
-          <Link data-public-sample-open className="fm-graph-record" href="#recommendation-record" aria-label="Inspect the illustrative Recommendation Record">
-            <span>RECOMMENDATION RECORD / 01</span>
-            <strong>Observed evidence, held together.</strong>
-            <small>Answer · brands · sources · review state · limitations <b aria-hidden="true">→</b></small>
+          <Link
+            data-public-sample-open
+            className="fm-graph-record"
+            href="#recommendation-record"
+            aria-label="Inspect the illustrative Recommendation Record"
+            aria-live="polite"
+          >
+            <span>{inspector.label}</span>
+            <strong>{inspector.title}</strong>
+            <small>{inspector.detail} <b aria-hidden="true">→</b></small>
           </Link>
 
           <ol className="sr-only">
-            <li>One illustrative buyer question is measured.</li>
+            <li>One illustrative buyer question is shown before any measurement surface is selected.</li>
+            <li>The visitor can select the currently supported example surface: Cloudflare Workers AI with independently retrieved Bing Search RSS grounded synthesis.</li>
             <li>The provider answer is preserved with provenance.</li>
             <li>Observed brand recommendations remain attached to that answer.</li>
             <li>Returned sources remain distinct and inspectable.</li>
