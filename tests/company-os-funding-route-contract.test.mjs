@@ -21,7 +21,7 @@ test("Company OS funding route derives authorization and scope server-side", asy
   assert.match(route, /status=eq\.active/);
   assert.match(route, /token: viewer\.accessToken/);
   assert.match(route, /!process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
-  assert.match(route, /serviceRole: true/);
+  assert.ok((route.match(/serviceRole: true/g) || []).length >= 3);
 
   assert.match(service, /FOREMENTION_COMPANY_OS_ORGANIZATION_ID/);
   assert.match(service, /FOREMENTION_COMPANY_OS_PROJECT_ID/);
@@ -57,9 +57,9 @@ test("funding persistence remains internal draft only and append-only for authen
   assert.match(migration, /submissionAuthorized'[\s\S]*'false'::jsonb/i);
   assert.match(migration, /requiresSubmissionApproval'[\s\S]*'true'::jsonb/i);
   assert.match(migration, /alter table public\.company_funding_draft_artifacts enable row level security/i);
-  assert.match(migration, /grant select on table public\.company_funding_draft_artifacts to authenticated/i);
-  assert.doesNotMatch(migration, /grant\s+(?:insert|update|delete|all)[^;]*\bauthenticated\b/i);
-  assert.doesNotMatch(migration, /for insert[\s\S]{0,300}to authenticated/i);
+  assert.match(migration, /revoke all on table public\.company_funding_draft_artifacts from public, anon, authenticated/i);
+  assert.doesNotMatch(migration, /grant[^;]*\bauthenticated\b/i);
+  assert.doesNotMatch(migration, /create policy[\s\S]{0,400}company_funding_draft_artifacts[\s\S]{0,400}to authenticated/i);
   assert.match(migration, /grant select, insert, delete on table public\.company_funding_draft_artifacts to service_role/i);
   assert.match(migration, /project_status is distinct from 'active'/i);
   assert.match(migration, /from public\.organization_members as membership[\s\S]*membership\.user_id = new\.created_by[\s\S]*owner','admin/i);
