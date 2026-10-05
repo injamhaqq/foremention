@@ -151,14 +151,15 @@ test("one reviewed collection stays a baseline and fictional demo comparisons st
 });
 
 test("AI observation loader is tenant, active-project, human-review, measurement-context, and customer-token scoped", async () => {
-  const loader = await text("lib/ai-observation-change.ts");
+  const [loader, comparability] = await Promise.all([text("lib/ai-observation-change.ts"), text("lib/run-pair-comparability.ts")]);
   assert.match(loader, /loadWorkspaceContext\(viewer\)/);
   assert.match(loader, /organization_id=eq\.\$\{context\.organizationId\}/g);
   assert.match(loader, /latest\.project_id !== context\.projectId/);
   assert.match(loader, /previous\.project_id !== context\.projectId/);
-  assert.match(loader, /review_status=eq\.verified/);
-  assert.match(loader, /measurement_context_json/);
-  assert.match(loader, /coerceComparableMeasurementContext/);
+  assert.match(loader, /assessWorkspaceRunPairComparability/);
+  assert.match(comparability, /review_status=eq\.verified/);
+  assert.match(comparability, /measurement_context_json/);
+  assert.match(comparability, /coerceComparableMeasurementContext/);
   assert.match(loader, /name\.startsWith\("Reviewed collection"\)/);
   assert.match(loader, /canonicalizeEvidenceUrl/);
   assert.match(loader, /token: viewer\.accessToken/g);
