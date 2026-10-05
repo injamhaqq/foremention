@@ -78,7 +78,7 @@ async function notifyFirstCompletedRun(run: RunRow, answerCount: number, citatio
   });
 }
 
-async function sendWeeklyDigest(seed: ScheduledRunSeed, weekKey: string, queued: boolean) {
+async function sendWeeklyDigest(seed: ScheduledRunSeed, weekKey: string) {
   if (!seed.created_by) return;
   await sendWorkspaceEmailAlert({
     organizationId: seed.organization_id,
@@ -86,9 +86,7 @@ async function sendWeeklyDigest(seed: ScheduledRunSeed, weekKey: string, queued:
     eventKey: `weekly_digest:${seed.organization_id}:${seed.project_id}:${weekKey}`,
     kind: "weekly_digest",
     subject: "Your weekly Foremention evidence digest",
-    text: queued
-      ? "Your latest reviewed evidence remains available and a new capped weekly collection was queued. Return after it completes to inspect changes before acting."
-      : "Your latest reviewed evidence remains available. No new weekly collection was queued because configuration, capacity, or cost limits did not permit a safe run.",
+    text: "Your latest reviewed evidence remains available. Recurring collection follows the active Measurement Schedule for this project; open Foremention to inspect the latest record before acting.",
     href: "/app/analytics",
   });
 }
@@ -860,7 +858,7 @@ export const scheduleWeeklyWorkspaceDigests = inngest.createFunction(
     for (const seed of seeds) {
       await step.run(
         `email-weekly-digest-${seed.organization_id}-${seed.project_id}`,
-        () => sendWeeklyDigest(seed, weekKey, false),
+        () => sendWeeklyDigest(seed, weekKey),
       );
       await step.run(
         `notion-weekly-digest-${seed.organization_id}-${seed.project_id}`,
