@@ -93,7 +93,7 @@ export function MissingAnswerExperience() {
           <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records.</p>
         </div>
 
-        <div className="fm-recommendation-graph" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
+        <div className="fm-recommendation-graph" role="group" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
           <div className="fm-recommendation-graph__label"><span>ILLUSTRATIVE SIGNAL MAP</span><strong>Question → answer → brands → sources</strong></div>
           <label className="fm-recommendation-graph__surface">
             <span>EXAMPLE MEASUREMENT SURFACE</span>
