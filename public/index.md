@@ -49,11 +49,12 @@ The current design-partner workflow uses one real B2B software category, up to f
 
 Applying does not create a paid subscription, guarantee an outcome, or authorize a company change.
 
-[Apply as Design Partner](https://foremention.com/contact)
+[Request a pilot](https://foremention.com/contact)
 
 ## Sitemap
 
-- [Product](https://foremention.com/product)\n- [Use Cases](https://foremention.com/use-cases)
+- [Product](https://foremention.com/product)
+- [Use Cases](https://foremention.com/use-cases)
 - [Recommendation Intelligence](https://foremention.com/recommendation-intelligence)
 - [Recommendation Record](https://foremention.com/recommendation-record)
 - [Methodology](https://foremention.com/methodology)
