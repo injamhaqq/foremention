@@ -9,6 +9,7 @@ test("run inspection withholds movement unless exact reviewed comparability is p
   const page = await text("app/app/runs/compare/page.tsx");
   const selector = await text("components/run-comparison-selector.tsx");
   const gate = await text("lib/run-pair-comparability.ts");
+  const answerGate = await text("lib/run-pair-answer-gate.ts");
 
   assert.match(selector, /name="left"/);
   assert.match(selector, /name="right"/);
@@ -32,7 +33,9 @@ test("run inspection withholds movement unless exact reviewed comparability is p
   assert.match(gate, /measurement_context_json/);
   assert.match(gate, /earlier\.methodology_version !== later\.methodology_version/);
   assert.match(gate, /new Date\(earlier\.created_at\)\.getTime\(\) >= new Date\(later\.created_at\)\.getTime\(\)/);
-  assert.match(gate, /assessExactQuestionComparability\(laterRunId, earlierRunId, slots\)/);
+  assert.match(gate, /assessCompleteVerifiedRunPair\(earlier, later, rows\)/);
+  assert.match(answerGate, /assessExactQuestionComparability\(later\.id, earlier\.id, slots\)/);
   assert.match(gate, /canonicalizeEvidenceUrl/);
-  assert.doesNotMatch(gate, /answer_text|brand_position/);
+  assert.match(gate, /answer_text,citations_json,brand_present/);
+  assert.doesNotMatch(gate, /brand_position/);
 });
