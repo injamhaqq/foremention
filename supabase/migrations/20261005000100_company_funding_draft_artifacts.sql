@@ -103,22 +103,22 @@ begin
     raise exception 'Company funding facts must use current verified same-project Company Truth assertions';
   end if;
 
-  if new.artifact ->> 'organizationId' <> new.organization_id::text
-     or new.artifact ->> 'projectId' <> new.project_id::text
-     or new.artifact ->> 'profileRevision' <> new.profile_revision
-     or new.artifact ->> 'packageVersion' <> new.package_version
-     or new.artifact ->> 'inputDigest' <> new.input_digest then
+  if new.artifact ->> 'organizationId' is distinct from new.organization_id::text
+     or new.artifact ->> 'projectId' is distinct from new.project_id::text
+     or new.artifact ->> 'profileRevision' is distinct from new.profile_revision
+     or new.artifact ->> 'packageVersion' is distinct from new.package_version
+     or new.artifact ->> 'inputDigest' is distinct from new.input_digest then
     raise exception 'Company funding artifact metadata must match persisted scope and digests';
   end if;
-  if new.artifact ->> 'mode' <> 'internal_draft_only'
-     or new.artifact -> 'externalEffects' <> 'false'::jsonb
-     or new.artifact -> 'submissionAuthorized' <> 'false'::jsonb
-     or new.artifact -> 'requiresSubmissionApproval' <> 'true'::jsonb then
+  if new.artifact ->> 'mode' is distinct from 'internal_draft_only'
+     or new.artifact -> 'externalEffects' is distinct from 'false'::jsonb
+     or new.artifact -> 'submissionAuthorized' is distinct from 'false'::jsonb
+     or new.artifact -> 'requiresSubmissionApproval' is distinct from 'true'::jsonb then
     raise exception 'Company funding artifact cannot carry external execution authority';
   end if;
-  if jsonb_typeof(new.artifact -> 'evidence') <> 'array'
-     or jsonb_typeof(new.artifact -> 'facts') <> 'array'
-     or jsonb_typeof(new.artifact -> 'opportunities') <> 'array' then
+  if jsonb_typeof(new.artifact -> 'evidence') is distinct from 'array'
+     or jsonb_typeof(new.artifact -> 'facts') is distinct from 'array'
+     or jsonb_typeof(new.artifact -> 'opportunities') is distinct from 'array' then
     raise exception 'Company funding artifact evidence, facts, and opportunities must be arrays';
   end if;
   if jsonb_array_length(new.artifact -> 'opportunities') < 1
@@ -137,7 +137,7 @@ begin
     end;
 
     if evidence_uuid = any(new.program_evidence_ids) then
-      if evidence_row ->> 'authority' <> 'official'
+      if evidence_row ->> 'authority' is distinct from 'official'
          or coalesce((evidence_row ->> 'maxAgeDays')::integer, 0) < 1
          or (evidence_row ->> 'maxAgeDays')::integer > 30
          or not exists (
@@ -151,7 +151,7 @@ begin
         raise exception 'Company funding official evidence snapshot does not match its verified source record';
       end if;
     else
-      if evidence_row ->> 'authority' <> 'company_record'
+      if evidence_row ->> 'authority' is distinct from 'company_record'
          or coalesce((evidence_row ->> 'maxAgeDays')::integer, 0) < 1
          or (evidence_row ->> 'maxAgeDays')::integer > 365
          or not exists (
@@ -171,7 +171,7 @@ begin
   end loop;
 
   for fact_row in select value from jsonb_array_elements(new.artifact -> 'facts') loop
-    if fact_row ->> 'verification' <> 'verified' then
+    if fact_row ->> 'verification' is distinct from 'verified' then
       raise exception 'Persisted Company funding facts must come from verified Company Truth';
     end if;
     begin
