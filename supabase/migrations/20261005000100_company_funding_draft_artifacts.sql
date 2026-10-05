@@ -195,6 +195,35 @@ begin
     end if;
   end loop;
 
+  if exists (
+    select 1
+    from unnest(new.program_evidence_ids) as requested(id)
+    where not exists (
+      select 1
+      from jsonb_array_elements(new.artifact -> 'evidence') as artifact_evidence(value)
+      where artifact_evidence.value ->> 'id' = requested.id::text
+        and artifact_evidence.value ->> 'authority' = 'official'
+    )
+  ) then
+    raise exception 'Every persisted funding program evidence identifier must appear in the artifact evidence snapshot';
+  end if;
+
+  if exists (
+    select 1
+    from public.company_truth_assertions as assertion
+    where assertion.id = any(new.company_truth_assertion_ids)
+      and not exists (
+        select 1
+        from jsonb_array_elements(new.artifact -> 'facts') as artifact_fact(value)
+        where artifact_fact.value ->> 'key' = assertion.attribute_key
+          and artifact_fact.value -> 'value' = assertion.asserted_value_json
+          and artifact_fact.value ->> 'evidenceId' = assertion.evidence_item_id::text
+          and artifact_fact.value ->> 'verification' = 'verified'
+      )
+  ) then
+    raise exception 'Every persisted Company Truth assertion identifier must appear as an exact artifact fact';
+  end if;
+
   for opportunity_row in select value from jsonb_array_elements(new.artifact -> 'opportunities') loop
     begin
       evidence_uuid := (opportunity_row ->> 'sourceEvidenceId')::uuid;
