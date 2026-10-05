@@ -55,4 +55,5 @@ test("schedule dispatch and advancement preserve project identity", async () => 
   );
   assert.match(dispatcher, /scheduleIdempotencyKey/);
   assert.match(dispatcher, /nextScheduleAt/);
+  assert.match(dispatcher, /project_id=not\.is\.null&category_id=not\.is\.null&created_by=not\.is\.null/);
 });
