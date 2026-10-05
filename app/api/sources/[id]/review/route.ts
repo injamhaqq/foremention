@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
+import { loadProjectSourceMapEntryRef } from "@/lib/project-source-map-scope";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { reviewedOpportunityBridge } from "@/lib/reviewed-opportunity";
@@ -130,12 +131,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!context) return NextResponse.json({ error: "Complete onboarding before reviewing a source." }, { status: 409 });
   if (!role || role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
   const organizationId = context.organizationId;
+  const scopedEntry = await loadProjectSourceMapEntryRef({
+    organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    entryId: id,
+    token: accessToken,
+  });
+  if (!scopedEntry) return NextResponse.json({ error: "Source record not found in the active project." }, { status: 404 });
   const rows = await supabaseRest<Array<{ id: string; source_id: string; client_present: boolean; competitors_present: string[]; entry_route: string | null; feasibility: string; influence: string; analyst_note: string | null; reviewed_at: string | null; reviewed_by: string | null }>>(
-    `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note,reviewed_at,reviewed_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${organizationId}&limit=1`,
+    `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note,reviewed_at,reviewed_by&id=eq.${encodeURIComponent(scopedEntry.id)}&organization_id=eq.${organizationId}&limit=1`,
     { token: accessToken },
   );
   const entry = rows[0];
-  if (!entry) return NextResponse.json({ error: "Source record not found in this workspace." }, { status: 404 });
+  if (!entry || entry.source_id !== scopedEntry.sourceId) return NextResponse.json({ error: "Source record could not be verified in the active project." }, { status: 404 });
   const sourceRows = await supabaseRest<Array<{ id: string; canonical_url: string; page_title: string | null }>>(
     `sources?select=id,canonical_url,page_title&id=eq.${entry.source_id}&organization_id=eq.${organizationId}&limit=1`,
     { token: accessToken },
