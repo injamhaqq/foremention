@@ -45,19 +45,76 @@ const changeDefinitionLabelStyle = { color: "#666460" } as const;
 
 export function MissingAnswerExperience() {
   return <div className="outreach-home">
-    <section className="outreach-hero shell" aria-labelledby="outreach-hero-title">
-      <div className="outreach-hero__copy">
-        <h1 id="outreach-hero-title">Know what your company should change next to become the stronger recommendation.</h1>
-        <p className="outreach-hero__lead">Recommendation intelligence for B2B software. Foremention observes how AI systems answer your buyers&apos; questions, verifies the evidence behind those recommendations, separates controllable gaps from structural ones, and turns the result into exact company changes your team can review and verify.</p>
-        <div className="outreach-hero__actions">
-          <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--primary" href="/contact">Apply as Design Partner <Arrow /></Link>
-          <Link className="canonical-button canonical-button--secondary" href="/#how-it-works">See how it works <Arrow /></Link>
-          <Link className="canonical-button canonical-button--secondary" href="#recommendation-record">See example Recommendation Record <Arrow /></Link>
+    <section className="fm-cinematic-hero" aria-labelledby="fm-cinematic-hero-title">
+      <div className="shell fm-cinematic-hero__inner">
+        <div className="fm-cinematic-hero__copy">
+          <span className="fm-cinematic-hero__kicker">RECOMMENDATION INTELLIGENCE FOR B2B SOFTWARE</span>
+          <h1 id="fm-cinematic-hero-title">See where AI recommends your brand.</h1>
+          <p className="fm-cinematic-hero__lead">Track recommendations, inspect supporting sources, and decide what to improve.</p>
+          <div className="fm-cinematic-hero__actions">
+            <Link className="canonical-button canonical-button--primary" href="#recommendation-record">Explore a sample <Arrow /></Link>
+            <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--secondary" href="/contact">Request a pilot <Arrow /></Link>
+          </div>
+          <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records.</p>
         </div>
-        <p className="outreach-hero__boundary">No fake reviews. No hidden promotion. No ranking guarantees. No fabricated scores. No causal claims without evidence.</p>
-        <p className="outreach-hero__boundary">Current free-only observations use Cloudflare Workers AI with Bing Search RSS grounded synthesis, not direct monitoring of ChatGPT, Gemini, or Perplexity consumer apps.</p>
+
+        <div className="fm-recommendation-graph" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
+          <div className="fm-recommendation-graph__label"><span>ILLUSTRATIVE SIGNAL MAP</span><strong>Question → answer → brands → sources</strong></div>
+          <svg className="fm-recommendation-graph__lines" viewBox="0 0 760 620" aria-hidden="true" preserveAspectRatio="none">
+            <path d="M130 310 C230 310 220 190 330 190" />
+            <path d="M130 310 C230 310 220 420 330 420" />
+            <path d="M430 190 C525 190 520 118 635 118" />
+            <path d="M430 190 C525 190 520 265 635 265" />
+            <path d="M430 420 C525 420 520 355 635 355" />
+            <path d="M430 420 C525 420 520 505 635 505" />
+          </svg>
+
+          <div className="fm-graph-node fm-graph-node--question">
+            <span>BUYER QUESTION</span>
+            <strong>Best platform for enterprise product marketing?</strong>
+            <small>Priority question · demonstration</small>
+          </div>
+          <div className="fm-graph-node fm-graph-node--answer">
+            <span>OBSERVED ANSWER</span>
+            <strong>Provider response preserved</strong>
+            <small>Timestamp + model provenance attached</small>
+          </div>
+          <div className="fm-graph-node fm-graph-node--brand">
+            <span>RECOMMENDED BRAND</span>
+            <strong>Competitor A</strong>
+            <small>Observed in this sample answer</small>
+          </div>
+          <div className="fm-graph-node fm-graph-node--brand-secondary">
+            <span>YOUR BRAND</span>
+            <strong>Present, not top-listed</strong>
+            <small>Illustrative state only</small>
+          </div>
+          <div className="fm-graph-node fm-graph-node--source-a">
+            <span>RETURNED SOURCE</span>
+            <strong>Source 01</strong>
+            <small>Retrievable · review pending</small>
+          </div>
+          <div className="fm-graph-node fm-graph-node--source-b">
+            <span>RETURNED SOURCE</span>
+            <strong>Source 02</strong>
+            <small>Retrievable · review pending</small>
+          </div>
+
+          <Link className="fm-graph-record" href="#recommendation-record" aria-label="Inspect the illustrative Recommendation Record">
+            <span>RECOMMENDATION RECORD / 01</span>
+            <strong>Observed evidence, held together.</strong>
+            <small>Answer · brands · sources · review state · limitations <b aria-hidden="true">→</b></small>
+          </Link>
+
+          <ol className="sr-only">
+            <li>One illustrative buyer question is measured.</li>
+            <li>The provider answer is preserved with provenance.</li>
+            <li>Observed brand recommendations remain attached to that answer.</li>
+            <li>Returned sources remain distinct and inspectable.</li>
+            <li>The evidence resolves into one sample Recommendation Record.</li>
+          </ol>
+        </div>
       </div>
-      <div className="outreach-hero__visual"><CanonicalSignalField compact /></div>
     </section>
 
     <div className="shell">
