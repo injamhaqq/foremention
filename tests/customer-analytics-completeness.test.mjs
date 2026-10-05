@@ -54,3 +54,29 @@ test("weekly intelligence withholds incomplete bounded answer and Source Map rea
   assert.doesNotMatch(intelligence, /ai_cost_events\?select=/);
   assert.doesNotMatch(intelligence, /run_answers\?select=[^\n]+limit=500/);
 });
+
+test("AI Observation Change Graph reuses complete run-pair evidence", async () => {
+  const graph = await text("lib/ai-observation-change.ts");
+
+  assert.match(graph, /assessWorkspaceRunPairComparability\(viewer, previous\.id, latestRunId\)/);
+  assert.match(graph, /comparison\.answers/);
+  assert.doesNotMatch(graph, /run_answers\?select=/);
+  assert.doesNotMatch(graph, /limit=500/);
+  assert.match(graph, /source_map_entries\?select=source_map_id,competitors_present[^\n]+limit=501/);
+  assert.match(graph, /candidateEntries\.length <= 500/);
+});
+
+test("Record economics never sums a truncated cost-event ledger as total cost", async () => {
+  const [data, page] = await Promise.all([
+    text("lib/data.ts"),
+    text("app/app/runs/[id]/page.tsx"),
+  ]);
+
+  assert.match(data, /MAX_RUN_COST_EVENTS = 500/);
+  assert.match(data, /limit=\$\{MAX_RUN_COST_EVENTS \+ 1\}/);
+  assert.match(page, /const costEventsComplete = costEvents\.length <= MAX_RUN_COST_EVENTS/);
+  assert.match(page, /const totalCost = manifest\?\.actualCostUsd \?\? 0/);
+  assert.match(page, /persisted run cost/);
+  assert.match(page, /independently persisted run aggregate/);
+  assert.doesNotMatch(page, /const totalCost = costEvents\.reduce/);
+});
