@@ -570,4 +570,9 @@ button.fm-graph-node:disabled {
   button.fm-graph-node {
     min-height: 74px;
   }
+
+  .fm-graph-node--source-a,
+  .fm-graph-record {
+    inset: auto;
+  }
 }
