@@ -41,3 +41,15 @@ test("accepted design-partner applications notify configured operators without c
   assert.match(route, /not a customer, paid pilot, or traction claim/i);
   assert.ok(route.indexOf('supabaseRest("design_partner_applications"') < route.indexOf("await notifyDesignPartnerOperators"));
 });
+
+
+test("accepted design-partner applications return a stable intake reference", async () => {
+  const route = await read("app/api/design-partner/route.ts");
+  const contact = await read("app/contact/page.tsx");
+  assert.match(route, /prefer:\s*"return=representation"/);
+  assert.match(route, /intakeId/);
+  assert.match(route, /findExistingApplicationId/);
+  assert.match(route, /notificationStatus/);
+  assert.match(contact, /Application reference:/);
+  assert.match(contact, /intakeIdPattern/);
+});
