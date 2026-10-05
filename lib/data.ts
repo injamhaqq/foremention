@@ -198,6 +198,7 @@ export type DecisionSignal = {
 };
 
 const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
+const MAX_CUSTOMER_SOURCE_MAP_ENTRIES = 1000;
 const sourceRoute = (value: string | null): SourceMapEntry["route"] => routes.includes(value as EntryRoute) ? value as EntryRoute : "unknown";
 const placementRoute = (value: string | null): EntryRoute => routes.includes(value as EntryRoute) ? value as EntryRoute : "editorial outreach";
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(value));
@@ -309,7 +310,8 @@ export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
     token: viewer.accessToken,
   });
   if (!map) return [];
-  const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${map.id}&order=rank.asc`, { token: viewer.accessToken });
+  const rows = await supabaseRest<SourceEntryRow[]>(`source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${map.id}&order=rank.asc&limit=${MAX_CUSTOMER_SOURCE_MAP_ENTRIES + 1}`, { token: viewer.accessToken });
+  if (rows.length > MAX_CUSTOMER_SOURCE_MAP_ENTRIES) return [];
   return rows.filter((row) => row.source).map((row) => ({ id: row.id, sourceId: row.source_id, rank: row.rank, domain: row.source!.domain, title: row.source!.page_title || row.source!.domain, url: row.source!.canonical_url, type: row.source!.source_type || "web source", influence: row.influence, engines: row.engines || [], clientPresent: row.client_present, competitors: row.competitors_present || [], crawlerAccess: row.source!.crawler_access, route: sourceRoute(row.entry_route), feasibility: row.feasibility, evidenceCount: row.citation_observations, reviewedAt: row.source!.crawler_checked_at ? dateLabel(row.source!.crawler_checked_at) : null }));
 }
 
