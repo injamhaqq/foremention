@@ -495,14 +495,17 @@ export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceCon
   if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return null;
-  const [organizations, projects, categories, clusters] = await Promise.all([
+  const [organizations, projects, categories] = await Promise.all([
     supabaseRest<Array<{ name: string; website: string | null }>>(`organizations?select=name,website&id=eq.${organizationId}&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string }>>(`projects?select=id&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
+    supabaseRest<Array<{ id: string; website: string | null }>>(`projects?select=id,website&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
     supabaseRest<Array<{ id: string; name: string }>>(`categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string }>>(`prompt_clusters?select=id&organization_id=eq.${organizationId}&order=priority.asc&limit=1`, { token: viewer.accessToken }),
   ]);
   if (!organizations[0] || !projects[0] || !categories[0]) return null;
-  return { organizationId, projectId: projects[0].id, categoryId: categories[0].id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: organizations[0].website, category: categories[0].name };
+  const clusters = await supabaseRest<Array<{ id: string }>>(
+    `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${projects[0].id}&order=priority.asc&limit=1`,
+    { token: viewer.accessToken },
+  );
+  return { organizationId, projectId: projects[0].id, categoryId: categories[0].id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: projects[0].website || organizations[0].website, category: categories[0].name };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
@@ -708,8 +711,8 @@ export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionP
   ];
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null }>>(
-    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json&organization_id=eq.${context.organizationId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
+  const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null; run: { project_id: string } | null }>>(
+    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
     { token: viewer.accessToken },
   );
   const groups = new Map<string, typeof rows>();
@@ -726,16 +729,13 @@ export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionP
 
 export async function loadWorkspaceSummary(viewer: Viewer): Promise<WorkspaceSummary | null> {
   if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "northstarhr.example", category: "HR software for distributed teams", promptCount: demoPrompts.filter((prompt) => prompt.approved).length };
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return null;
-  const [organizations, categories, prompts] = await Promise.all([
-    supabaseRest<Array<{ name: string; website: string | null }>>(`organizations?select=name,website&id=eq.${organizationId}&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ name: string }>>(`categories?select=name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string }>>(`prompts?select=id&organization_id=eq.${organizationId}&active=eq.true`, { token: viewer.accessToken }),
-  ]);
-  const organization = organizations[0];
-  if (!organization) return null;
-  return { organizationId, organizationName: organization.name, website: organization.website, category: categories[0]?.name || null, promptCount: prompts.length };
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return null;
+  const prompts = await supabaseRest<Array<{ id: string }>>(
+    `prompts?select=id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&active=eq.true`,
+    { token: viewer.accessToken },
+  );
+  return { organizationId: context.organizationId, organizationName: context.organizationName, website: context.website, category: context.category, promptCount: prompts.length };
 }
 
 const clampPct = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
@@ -774,17 +774,17 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
     return { ...base, actions: buildDecisionActions(base) };
   }
 
-  const organizationId = await getPrimaryOrganizationId(viewer);
+  const context = await loadWorkspaceContext(viewer);
   const empty: Omit<DecisionSignal, "actions"> = {
     reviewedRuns: 0, latestRunId: null, latestRunDate: null, providerCount: 0, promptCount: 0, answerCount: 0,
     answerCompletionPct: null, recommendationConsensusPct: null, presenceRange: null, presenceDelta: null,
     sourceReviewPct: null, sourceDependencyPct: null, recurringSourcePct: null, evidenceObservations: 0, decisionReadiness: "insufficient",
   };
-  if (!organizationId) return { ...empty, actions: buildDecisionActions(empty) };
+  if (!context) return { ...empty, actions: buildDecisionActions(empty) };
 
   type DecisionRunRow = RunRow & { provider_ids: string[] };
   const [rows, sources] = await Promise.all([
-    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${organizationId}&status=in.(review,complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
+    supabaseRest<DecisionRunRow[]>(`runs?select=id,status,provider_ids,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(review,complete,partial)&order=created_at.desc&limit=8`, { token: viewer.accessToken }),
     loadSourceMap(viewer),
   ]);
   const latest = rows[0];
@@ -792,7 +792,7 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
 
   const runIds = rows.map((row) => row.id);
   const answerRows = await supabaseRest<Array<{ prompt_key: string; provider: string; brand_present: boolean | null; collected_at: string }>>(
-    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${organizationId}&run_id=in.(${runIds.join(",")})&order=collected_at.desc`,
+    `run_answers?select=prompt_key,provider,brand_present,collected_at&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&order=collected_at.desc`,
     { token: viewer.accessToken },
   );
   const latestComparableAnswers = new Map<string, typeof answerRows[number]>();
