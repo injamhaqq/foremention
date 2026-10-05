@@ -136,129 +136,75 @@ from (
 join public.evidence_items as program on program.id = fixture.program_evidence_id
 join public.evidence_items as company_evidence on company_evidence.id = fixture.company_evidence_id;
 
--- Tenant A owner sees only Tenant A artifact.
+-- Funding artifacts are internal Company OS records. Browser roles receive no
+-- direct table access; the authenticated route establishes operator/project
+-- authority before trusted server reads or writes.
 set local role authenticated;
-select set_config('request.jwt.claim.sub', 'f2600000-0000-4000-8000-000000000001', true);
 
+select set_config('request.jwt.claim.sub', 'f2600000-0000-4000-8000-000000000001', true);
 do $$
 declare
-  changed integer := 0;
   denied boolean := false;
 begin
-  if (select count(*) from public.company_funding_draft_artifacts where organization_id = 'f2610000-0000-4000-8000-000000000001'::uuid) <> 1
-     or (select count(*) from public.company_funding_draft_artifacts where organization_id = 'f2610000-0000-4000-8000-000000000002'::uuid) <> 0 then
-    raise exception 'Funding artifact read isolation failed for Tenant A owner';
-  end if;
-
   begin
-    update public.company_funding_draft_artifacts
-    set profile_revision = profile_revision
-    where id = 'f2660000-0000-4000-8000-000000000001'::uuid;
-    get diagnostics changed = row_count;
+    perform 1 from public.company_funding_draft_artifacts limit 1;
   exception when insufficient_privilege then
     denied := true;
   end;
-  if not denied or changed <> 0 then raise exception 'Authenticated funding artifact update was permitted'; end if;
-
-  denied := false;
-  begin
-    delete from public.company_funding_draft_artifacts
-    where id = 'f2660000-0000-4000-8000-000000000001'::uuid;
-    get diagnostics changed = row_count;
-  exception when insufficient_privilege then
-    denied := true;
-  end;
-  if not denied or changed <> 0 then raise exception 'Authenticated funding artifact delete was permitted'; end if;
+  if not denied then raise exception 'Authenticated owner received direct funding artifact read access'; end if;
 
   denied := false;
   begin
     insert into public.company_funding_draft_artifacts (
       id, organization_id, project_id, created_by, profile_revision, package_version,
       input_digest, artifact_digest, program_evidence_ids, company_truth_assertion_ids, artifact
-    )
-    select
-      gen_random_uuid(), organization_id, project_id, created_by, profile_revision, package_version,
-      input_digest, repeat('7', 64), program_evidence_ids, company_truth_assertion_ids, artifact
-    from public.company_funding_draft_artifacts
-    where id = 'f2660000-0000-4000-8000-000000000001'::uuid;
-  exception when insufficient_privilege then
-    denied := true;
-  end;
-  if not denied then raise exception 'Authenticated owner bypassed the trusted funding artifact write path'; end if;
-end
-$;
-
--- Tenant B owner sees only Tenant B artifact.
-select set_config('request.jwt.claim.sub', 'f2600000-0000-4000-8000-000000000002', true);
-
-do $$
-begin
-  if (select count(*) from public.company_funding_draft_artifacts where organization_id = 'f2610000-0000-4000-8000-000000000002'::uuid) <> 1
-     or (select count(*) from public.company_funding_draft_artifacts where organization_id = 'f2610000-0000-4000-8000-000000000001'::uuid) <> 0 then
-    raise exception 'Funding artifact reciprocal read isolation failed for Tenant B owner';
-  end if;
-end
-$$;
-
--- Tenant A analyst receives neither read nor insert access to funding artifacts.
-select set_config('request.jwt.claim.sub', 'f2600000-0000-4000-8000-000000000003', true);
-
-do $$
-declare
-  denied boolean := false;
-begin
-  if exists (
-    select 1
-    from public.company_funding_draft_artifacts
-    where organization_id = 'f2610000-0000-4000-8000-000000000001'::uuid
-  ) then
-    raise exception 'Analyst received Company OS funding artifact read access';
-  end if;
-
-  begin
-    insert into public.company_funding_draft_artifacts (
-      organization_id, project_id, created_by, profile_revision, package_version,
-      input_digest, artifact_digest, program_evidence_ids, company_truth_assertion_ids, artifact
-    )
-    select
+    ) values (
+      gen_random_uuid(),
       'f2610000-0000-4000-8000-000000000001'::uuid,
       'f2620000-0000-4000-8000-000000000001'::uuid,
-      'f2600000-0000-4000-8000-000000000003'::uuid,
-      ('company-truth-v1-' || repeat('1', 64))::text,
+      'f2600000-0000-4000-8000-000000000001'::uuid,
+      'company-truth-v1-' || repeat('1', 64),
       '0.1.0',
       repeat('2', 64),
       repeat('3', 64),
       array['f2630000-0000-4000-8000-000000000001'::uuid],
       array['f2650000-0000-4000-8000-000000000001'::uuid],
-      jsonb_build_object(
-        'schemaVersion', 1, 'packageVersion', '0.1.0', 'mode', 'internal_draft_only',
-        'externalEffects', false, 'submissionAuthorized', false, 'requiresSubmissionApproval', true,
-        'organizationId', 'f2610000-0000-4000-8000-000000000001',
-        'projectId', 'f2620000-0000-4000-8000-000000000001',
-        'profileRevision', 'company-truth-v1-' || repeat('1', 64),
-        'asOf', now(), 'inputDigest', repeat('2', 64),
-        'evidence', jsonb_build_array(
-          jsonb_build_object('id','f2630000-0000-4000-8000-000000000001','url','https://funding-a.invalid/program','authority','official','observedAt',(select verified_at from public.evidence_items where id='f2630000-0000-4000-8000-000000000001'),'maxAgeDays',30),
-          jsonb_build_object('id','f2630000-0000-4000-8000-000000000002','url','https://funding-a.invalid/company','authority','company_record','observedAt',(select verified_at from public.evidence_items where id='f2630000-0000-4000-8000-000000000002'),'maxAgeDays',365)
-        ),
-        'facts', jsonb_build_array(jsonb_build_object('key','company.country','value','BD','verification','verified','evidenceId','f2630000-0000-4000-8000-000000000002')),
-        'opportunities', jsonb_build_array(jsonb_build_object('id','fixture-program','sourceEvidenceId','f2630000-0000-4000-8000-000000000001'))
-      );
+      '{}'::jsonb
+    );
   exception when insufficient_privilege then
     denied := true;
   end;
-  if not denied then raise exception 'Analyst received Company OS funding artifact insert access'; end if;
+  if not denied then raise exception 'Authenticated owner bypassed the trusted funding artifact write path'; end if;
 end
 $$;
 
--- An owner cannot create a funding artifact in another tenant. Layered source
--- and RLS checks may reject this before the final policy check; either is correct.
-select set_config('request.jwt.claim.sub', 'f2600000-0000-4000-8000-000000000001', true);
-
+select set_config('request.jwt.claim.sub', 'f2600000-0000-4000-8000-000000000003', true);
 do $$
 declare
   denied boolean := false;
 begin
+  begin
+    perform 1 from public.company_funding_draft_artifacts limit 1;
+  exception when insufficient_privilege then
+    denied := true;
+  end;
+  if not denied then raise exception 'Authenticated analyst received direct funding artifact read access'; end if;
+end
+$$;
+
+reset role;
+set local role service_role;
+
+-- The trusted server role can read the fixture store, but the validation trigger
+-- still rejects a creator who is not an owner/admin of the persisted organization.
+do $$
+declare
+  denied boolean := false;
+begin
+  if (select count(*) from public.company_funding_draft_artifacts) <> 2 then
+    raise exception 'Trusted funding artifact fixture count changed unexpectedly';
+  end if;
+
   begin
     insert into public.company_funding_draft_artifacts (
       organization_id, project_id, created_by, profile_revision, package_version,
@@ -274,20 +220,31 @@ begin
       array['f2630000-0000-4000-8000-000000000003'::uuid],
       array['f2650000-0000-4000-8000-000000000002'::uuid],
       jsonb_build_object(
-        'schemaVersion', 1, 'packageVersion', '0.1.0', 'mode', 'internal_draft_only',
-        'externalEffects', false, 'submissionAuthorized', false, 'requiresSubmissionApproval', true,
+        'schemaVersion', 1,
+        'packageVersion', '0.1.0',
+        'mode', 'internal_draft_only',
+        'externalEffects', false,
+        'submissionAuthorized', false,
+        'requiresSubmissionApproval', true,
         'organizationId', 'f2610000-0000-4000-8000-000000000002',
         'projectId', 'f2620000-0000-4000-8000-000000000002',
         'profileRevision', 'company-truth-v1-' || repeat('4', 64),
-        'asOf', now(), 'inputDigest', repeat('5', 64),
-        'evidence', '[]'::jsonb, 'facts', '[]'::jsonb,
-        'opportunities', jsonb_build_array(jsonb_build_object('id','cross-tenant','sourceEvidenceId','f2630000-0000-4000-8000-000000000003'))
+        'asOf', now(),
+        'inputDigest', repeat('5', 64),
+        'evidence', '[]'::jsonb,
+        'facts', '[]'::jsonb,
+        'opportunities', jsonb_build_array(
+          jsonb_build_object(
+            'id', 'cross-tenant',
+            'sourceEvidenceId', 'f2630000-0000-4000-8000-000000000003'
+          )
+        )
       )
     );
-  exception when insufficient_privilege or raise_exception then
+  exception when raise_exception then
     denied := true;
   end;
-  if not denied then raise exception 'Cross-tenant Company OS funding artifact insert was permitted'; end if;
+  if not denied then raise exception 'Trusted funding write accepted a creator outside the persisted organization'; end if;
 end
 $$;
 
