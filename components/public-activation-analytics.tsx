@@ -7,7 +7,8 @@ import { captureProductEvent } from "@/lib/product-analytics";
 function publicSurface(pathname: string) {
   if (pathname === "/") return "home";
   if (pathname === "/product") return "product";
-  if (pathname === "/pricing") return "pricing";\n  if (pathname === "/use-cases") return "use_cases";
+  if (pathname === "/pricing") return "pricing";
+  if (pathname === "/use-cases") return "use_cases";
   return "public_other";
 }
 
