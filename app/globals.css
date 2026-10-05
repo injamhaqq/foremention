@@ -2599,3 +2599,18 @@ textarea { resize: vertical; }
   .run-manifest__grid { grid-template-columns: 1fr; }
   .run-manifest__grid > div, .run-manifest__grid > div:nth-child(2n) { border-right: 0; }
 }
+
+
+/* Pre-run bounded usage estimate */
+.run-estimate { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 16px 20px 0; border: 1px solid var(--line); background: #fbfbf6; }
+.run-estimate > div { min-height: 72px; display: flex; flex-direction: column; justify-content: center; padding: 12px 16px; border-right: 1px solid var(--line); }
+.run-estimate > div:nth-child(2) { border-right: 0; }
+.run-estimate span { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.run-estimate strong { margin-top: 6px; font-size: 14px; }
+.run-estimate p { grid-column: 1 / -1; margin: 0; padding: 10px 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; line-height: 1.5; }
+
+@media (max-width: 640px) {
+  .run-estimate { grid-template-columns: 1fr; }
+  .run-estimate > div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .run-estimate > div:nth-child(2) { border-bottom: 0; }
+}
