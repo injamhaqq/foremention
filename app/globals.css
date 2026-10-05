@@ -2572,3 +2572,30 @@ textarea { resize: vertical; }
   .vendor-passport { padding: 20px; }
   .vendor-passport__head { flex-direction: column; gap: 14px; }
 }
+
+
+/* Recommendation Record measurement manifest */
+.run-manifest { margin: 20px 0; overflow: hidden; }
+.run-manifest__coverage { align-self: flex-start; padding: 8px 10px; border: 1px solid var(--ink); background: var(--marker); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+.run-manifest__surface { padding: 18px 24px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: #fff0a1; }
+.run-manifest__surface strong { display: block; margin-bottom: 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.run-manifest__surface p { margin: 0; max-width: 92ch; color: #3d433f; font-size: 12px; line-height: 1.6; }
+.run-manifest__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.run-manifest__grid > div { min-height: 86px; padding: 16px 20px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.run-manifest__grid > div:nth-child(2n) { border-right: 0; }
+.run-manifest__grid dt { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.run-manifest__grid dd { margin: 9px 0 0; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.run-manifest__details { padding: 18px 20px 22px; }
+.run-manifest__details summary { font-size: 11px; font-weight: 700; }
+.run-manifest__versions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+.run-manifest__versions span { padding: 6px 8px; border: 1px solid var(--line); background: #fbfbf6; font-size: 9px; }
+.run-manifest__questions { margin: 18px 0 0; padding-left: 22px; }
+.run-manifest__questions li + li { margin-top: 12px; }
+.run-manifest__questions strong, .run-manifest__questions small { display: block; }
+.run-manifest__questions strong { font-size: 12px; line-height: 1.45; }
+.run-manifest__questions small { margin-top: 4px; color: var(--muted); font-size: 9px; }
+
+@media (max-width: 640px) {
+  .run-manifest__grid { grid-template-columns: 1fr; }
+  .run-manifest__grid > div, .run-manifest__grid > div:nth-child(2n) { border-right: 0; }
+}
