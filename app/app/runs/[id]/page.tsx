@@ -6,7 +6,7 @@ import { RunCancel } from "@/components/run-cancel";
 import { RunRerunButton } from "@/components/run-rerun-button";
 import { RunManifestPanel } from "@/components/run-manifest-panel";
 import { requireViewer } from "@/lib/auth";
-import { getPrimaryWorkspaceRole, loadRunAnswers, loadRunConfiguration, loadRunCostEvents, loadRuns, loadWorkspaceContext } from "@/lib/data";
+import { getPrimaryWorkspaceRole, loadRunAnswers, loadRunConfiguration, loadRunCostEvents, loadRuns, loadWorkspaceContext, MAX_RUN_COST_EVENTS } from "@/lib/data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { loadProviderRunDiagnostics } from "@/lib/provider-run-diagnostics";
 import { loadRunManifest } from "@/lib/run-manifest";
@@ -33,9 +33,12 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
   const sourceMap = ["complete", "partial"].includes(run.status) ? await loadTruthfulSourceMap(viewer, { runId: run.id }) : [];
   const canInspectSources = viewer.mode === "demo" || role === "owner" || role === "admin" || role === "analyst";
   const providerDiagnosticsByAnswer = new Map(providerDiagnostics.map((item) => [item.answerId, item]));
-  const totalCost = costEvents.reduce((sum, event) => sum + event.costUsd, 0);
-  const totalTokens = costEvents.some((event) => event.totalTokens !== null) ? costEvents.reduce((sum, event) => sum + Number(event.totalTokens || 0), 0) : null;
-  const providerCosts = Array.from(costEvents.reduce((groups, event) => {
+  const costEventsComplete = costEvents.length <= MAX_RUN_COST_EVENTS;
+  const detailedCostEvents = costEventsComplete ? costEvents : [];
+  const totalCost = manifest?.actualCostUsd ?? 0;
+  const hasRecordedCost = Boolean(manifest && (manifest.actualCostUsd > 0 || detailedCostEvents.length));
+  const totalTokens = detailedCostEvents.some((event) => event.totalTokens !== null) ? detailedCostEvents.reduce((sum, event) => sum + Number(event.totalTokens || 0), 0) : null;
+  const providerCosts = Array.from(detailedCostEvents.reduce((groups, event) => {
     const key = `${event.provider}\u0000${event.model}`;
     const current = groups.get(key) || { provider: event.provider, model: event.model, cost: 0, tokens: 0, events: 0, sources: new Set<string>() };
     current.cost += event.costUsd;
@@ -94,9 +97,9 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
     <section className="panel run-cost-breakdown">
       <details>
         <summary>Advanced run details</summary>
-        <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Internal run economics</span><h2>{costEvents.length ? `${usd(totalCost)} recorded cost` : "Cost not recorded"}</h2></div></div>
-        <div className="run-cost-metrics"><div><span>Total cost</span><strong>{costEvents.length ? usd(totalCost) : "—"}</strong></div><div><span>Per question</span><strong>{costEvents.length && run.prompts ? usd(totalCost / run.prompts) : "—"}</strong></div><div><span>Per citation</span><strong>{costEvents.length && run.citations ? usd(totalCost / run.citations) : "—"}</strong></div><div><span>Tokens</span><strong>{totalTokens?.toLocaleString() || "—"}</strong></div></div>
-        {providerCosts.length ? <div className="run-cost-providers">{providerCosts.map((item) => <article key={`${item.provider}-${item.model}`}><div><strong>{item.provider}</strong><small>{item.model}</small></div><span>{item.events} question{item.events === 1 ? "" : "s"}</span><span>{item.tokens ? `${item.tokens.toLocaleString()} tokens` : "Tokens unavailable"}</span><span>{usd(item.cost)}</span><small>{Array.from(item.sources).join(" + ")} cost</small></article>)}</div> : <div className="empty-state empty-state--compact"><p>No attempt-level cost events were recorded. Foremention does not interpret missing cost as free usage.</p></div>}
+        <div className="panel-heading panel-heading--padded"><div><span className="eyebrow">Internal run economics</span><h2>{hasRecordedCost ? `${usd(totalCost)} persisted run cost` : "Cost not recorded"}</h2></div></div>
+        <div className="run-cost-metrics"><div><span>Total cost</span><strong>{hasRecordedCost ? usd(totalCost) : "—"}</strong></div><div><span>Per question</span><strong>{hasRecordedCost && run.prompts ? usd(totalCost / run.prompts) : "—"}</strong></div><div><span>Per citation</span><strong>{hasRecordedCost && run.citations ? usd(totalCost / run.citations) : "—"}</strong></div><div><span>Tokens</span><strong>{costEventsComplete ? totalTokens?.toLocaleString() || "—" : "Withheld"}</strong></div></div>
+        {!costEventsComplete ? <div className="empty-state empty-state--compact"><p>Attempt-level cost detail is withheld because the bounded ledger read reached its safety limit. The total above comes from the independently persisted run aggregate and is not recomputed from a truncated event subset.</p></div> : providerCosts.length ? <div className="run-cost-providers">{providerCosts.map((item) => <article key={`${item.provider}-${item.model}`}><div><strong>{item.provider}</strong><small>{item.model}</small></div><span>{item.events} cost event{item.events === 1 ? "" : "s"}</span><span>{item.tokens ? `${item.tokens.toLocaleString()} tokens` : "Tokens unavailable"}</span><span>{usd(item.cost)}</span><small>{Array.from(item.sources).join(" + ")} cost</small></article>)}</div> : <div className="empty-state empty-state--compact"><p>No attempt-level cost events were recorded. Foremention does not interpret missing cost as free usage.</p></div>}
       </details>
     </section>
   </main>;
