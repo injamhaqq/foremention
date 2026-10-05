@@ -359,7 +359,7 @@ begin
   end;
   if not denied then raise exception 'unreachable funding source check was accepted'; end if;
 end
-$;
+$$;
 
 -- A partial response without bounded reviewable text is not acceptance evidence.
 do $$
@@ -382,6 +382,6 @@ begin
   end;
   if not denied then raise exception 'unreviewable partial funding source check was accepted'; end if;
 end
-$;
+$$;
 
 rollback;
