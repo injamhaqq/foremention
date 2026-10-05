@@ -224,6 +224,12 @@ begin
   if new.decision = 'accepted' and snapshot.access not in ('open','partial') then
     raise exception 'An unreachable funding source check cannot be accepted';
   end if;
+  if new.decision = 'accepted' and snapshot.content_hash is null then
+    raise exception 'An unreviewable funding source check without bounded text evidence cannot be accepted';
+  end if;
+  if new.decision = 'accepted' and nullif(trim(snapshot.evidence_excerpt), '') is null then
+    raise exception 'An unreviewable funding source check without a bounded evidence excerpt cannot be accepted';
+  end if;
 
   if new.authority ->> 'mode' is distinct from 'internal_review_only'
      or new.authority -> 'externalEffects' is distinct from 'false'::jsonb
