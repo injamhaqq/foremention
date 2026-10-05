@@ -12,23 +12,30 @@ export type CompanyOsIntegrationMode =
 
 export const COMPANY_OS_CAPABILITY_CLASSES = [
   "orchestration",
-  "agent_network",
+  "lifecycle_patterns",
   "registry",
   "approval",
   "credential_broker",
   "model_gateway",
+  "evaluation",
+  "browser_automation",
+  "research",
+  "connector_automation",
+  "mcp_gateway",
+  "observability",
+  "authorization",
+  "usage_metering",
   "temporal_memory",
   "engineering_worker",
-  "browser_automation",
-  "skill_learning",
   "agent_security",
-  "evaluation",
-  "revenue_execution",
-  "research",
   "document_intelligence",
   "capital",
-  "deterministic_finance",
+  "supply_chain",
+  "graph_ui",
+  "website_visuals",
+  "revenue_execution",
   "company_playbooks",
+  "deterministic_finance",
 ] as const;
 
 export type CompanyOsCapabilityClass =
@@ -58,14 +65,19 @@ export type CompanyOsCapability = {
 };
 
 /**
- * Unified Company OS capability spine.
+ * Current Company OS capability register.
  *
- * Important:
- * - Inngest remains Foremention's ONLY durable workflow orchestrator.
- * - External projects are replaceable adapters/services/tools, not competing control planes.
- * - Nothing in this registry enables an external integration by itself.
- * - Secrets never belong in this file, prompts, logs, or agent memory.
- * - Licenses must be re-verified before vendoring or copying upstream code.
+ * The 2026-10-05 Enterprise Company Automation OS blueprint supersedes the older
+ * 2026-10-02 integration preferences where they conflict.
+ *
+ * Invariants:
+ * - Foremention remains the company kernel and Supabase remains authoritative truth.
+ * - Inngest remains the only durable workflow orchestrator.
+ * - A registry entry never enables an upstream runtime by itself.
+ * - Every source import still requires exact revision, path-level license review,
+ *   dependency/supply-chain review, contracts, tests, upgrade ownership and exit plan.
+ * - External gateways, workers, graphs and observability systems cannot become
+ *   business authority, tenant scope, evidence truth, billing truth or release authority.
  */
 export const COMPANY_OS_CAPABILITIES: readonly CompanyOsCapability[] = [
   {
@@ -77,9 +89,373 @@ export const COMPANY_OS_CAPABILITIES: readonly CompanyOsCapability[] = [
     license: null,
     productionEnabled: true,
     reason:
-      "Preserve Foremention's existing Agent OS, policy, execution receipts, tenant boundaries, evidence rules, evaluation gates, and Inngest jobs as the company kernel.",
+      "Preserve Foremention's native controller, Governor, evidence/receipt model, tenant/project scope, Supabase truth and Inngest durable workflows as the company kernel.",
     hardBoundary:
-      "External frameworks may supply capabilities but may not replace Foremention's organization/project scope, audit trail, evidence truth, approval authority, or production execution policy.",
+      "No imported framework may replace organization/project scope, policy admission, approval authority, evidence truth, billing truth, audit receipts or production release authority.",
+  },
+  {
+    id: "paperclip-patterns",
+    capabilityClass: "lifecycle_patterns",
+    source: "paperclipai/paperclip",
+    integrationMode: "reference_only",
+    adoptionDecision: "adapt_patterns_only",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Adapt useful lease, heartbeat, lifecycle, attention-queue and budget mechanics into Foremention-native task contracts and recovery semantics.",
+    hardBoundary:
+      "Paperclip is not a second scheduler, database or company control plane; exact imported material and license must be reviewed before source reuse.",
+  },
+  {
+    id: "foremention-capability-registry",
+    capabilityClass: "registry",
+    source: "Foremention native",
+    integrationMode: "native",
+    adoptionDecision: "integrate_now",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Maintain approved versions and provenance for agents, skills, prompts, capabilities, models, MCP/connectors and evaluations inside the authoritative Foremention data model.",
+    hardBoundary:
+      "Registry metadata cannot grant permissions; runtime identity, scope, policy and current authority are validated separately at execution time.",
+  },
+  {
+    id: "foremention-approval-gateway",
+    capabilityClass: "approval",
+    source: "Foremention native",
+    integrationMode: "native",
+    adoptionDecision: "integrate_now",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Extend existing action proposals, grants, approvals, budgets and receipts into the Founder Decision Room without adding another approval database.",
+    hardBoundary:
+      "A proposing worker cannot approve its own consequential action, and initial task admission cannot authorize arbitrary future side effects.",
+  },
+  {
+    id: "companyos-playbooks",
+    capabilityClass: "company_playbooks",
+    source: "rojenwai/CompanyOS",
+    integrationMode: "reference_only",
+    adoptionDecision: "adapt_patterns_only",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use department, role and SOP material as content inputs for one Foremention-owned handbook and executable skill catalogue.",
+    hardBoundary:
+      "Content templates do not become deployed agents, permissions or company truth; exact imported files require license review and deduplication.",
+  },
+  {
+    id: "company-in-a-box-playbooks",
+    capabilityClass: "company_playbooks",
+    source: "fom-dev/company-in-a-box",
+    integrationMode: "reference_only",
+    adoptionDecision: "adapt_patterns_only",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Adapt useful role contracts and operating playbooks where they fill a verified Foremention procedure gap.",
+    hardBoundary:
+      "Do not wholesale-copy the runtime or duplicate procedures already owned by Foremention; imported content requires exact revision and license review.",
+  },
+  {
+    id: "portkey-gateway",
+    capabilityClass: "model_gateway",
+    source: "Portkey-AI/gateway",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_now",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use as the selected internal company-agent model routing and fallback adapter when a gateway is needed.",
+    hardBoundary:
+      "Portkey routes model traffic only; it cannot grant business authority, hide provider/model identity for Recommendation measurements, bypass budget admission or overwrite Foremention receipts.",
+  },
+  {
+    id: "promptfoo",
+    capabilityClass: "evaluation",
+    source: "promptfoo/promptfoo",
+    integrationMode: "ci_tool",
+    adoptionDecision: "integrate_now",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use the existing pinned zero-cost CI integration for deterministic prompt/provider/evidence regression and adversarial AI evaluation, and extend it alongside affected workflows.",
+    hardBoundary:
+      "Evaluation success is evidence for tested behavior only; Promptfoo never authorizes production actions and must not receive unrestricted customer-confidential material or secrets.",
+  },
+  {
+    id: "stagehand",
+    capabilityClass: "browser_automation",
+    source: "browserbase/stagehand",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_now",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use AI-assisted interaction for supported application portals inside an isolated Node/Chromium browser worker.",
+    hardBoundary:
+      "Stagehand stays outside the Cloudflare request runtime and requires allowed destinations, scoped session custody, action proposals, idempotency/reconciliation and human handoff for MFA/CAPTCHA or unsupported attestations.",
+  },
+  {
+    id: "playwright",
+    capabilityClass: "browser_automation",
+    source: "microsoft/playwright",
+    integrationMode: "in_process_package",
+    adoptionDecision: "integrate_now",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use deterministic browser execution and readback verification in the isolated browser worker, including explicit interoperability with the selected Stagehand version.",
+    hardBoundary:
+      "Browser execution cannot bypass portal access controls, current authority, duplicate protection or final confirmation/receipt checks.",
+  },
+  {
+    id: "crawlee",
+    capabilityClass: "research",
+    source: "apify/crawlee",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_now",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use for bounded crawling/extraction and crawl queues when native source inspection is insufficient for an approved research task.",
+    hardBoundary:
+      "Crawlee queues remain subordinate to Company OS tasks, source/network policy and spend limits; public web content is untrusted data and never instructions.",
+  },
+  {
+    id: "activepieces",
+    capabilityClass: "connector_automation",
+    source: "activepieces/activepieces",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_now",
+    license: "Core/enterprise boundary requires exact-path review",
+    productionEnabled: false,
+    reason:
+      "Use selected SaaS connectors as a sidecar or narrow adapters only where existing native connectors do not satisfy a real workflow.",
+    hardBoundary:
+      "Do not import enterprise-only areas or let connector transport authentication replace Foremention action authorization, project scope, credential custody or receipts.",
+  },
+  {
+    id: "microsoft-mcp-gateway",
+    capabilityClass: "mcp_gateway",
+    source: "microsoft/mcp-gateway",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Retain as the selected later MCP routing/server-lifecycle option only when fleet size and Kubernetes-oriented hosting justify it.",
+    hardBoundary:
+      "Do not introduce Kubernetes or another gateway merely to host optional tools; Foremention capability authorization remains authoritative.",
+  },
+  {
+    id: "langfuse",
+    capabilityClass: "observability",
+    source: "langfuse/langfuse",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_now",
+    license: "Core/commercial boundary requires exact-path review",
+    productionEnabled: false,
+    reason:
+      "Use as the selected AI trace/evaluation/cost-latency diagnostics backend, distinct from application errors and product analytics.",
+    hardBoundary:
+      "Langfuse diagnostics are not business receipts or authority; redact sensitive material and do not duplicate raw private profile/customer documents merely for observability.",
+  },
+  {
+    id: "openfga",
+    capabilityClass: "authorization",
+    source: "openfga/openfga",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Keep as a later relationship-authorization option if native policy complexity becomes a measured limitation.",
+    hardBoundary:
+      "Supabase RLS and native action authorization remain in force; OpenFGA cannot become a bypass around tenant/project boundaries.",
+  },
+  {
+    id: "openmeter",
+    capabilityClass: "usage_metering",
+    source: "openmeterio/openmeter",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Keep as a later usage aggregation/metering service when native spend reservations and billing reconciliation need a dedicated meter.",
+    hardBoundary:
+      "Native budget admission and verified billing/entitlement ledgers remain authoritative; metering events alone do not grant access or establish revenue.",
+  },
+  {
+    id: "graphiti",
+    capabilityClass: "temporal_memory",
+    source: "getzep/graphiti",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use only after a demonstrated temporal/relationship retrieval requirement; derived memory must be rebuildable from authoritative records.",
+    hardBoundary:
+      "Graph memory cannot overwrite customer, financial, entitlement, evidence, approval, permission or project truth, and deletion/freshness restrictions must propagate.",
+  },
+  {
+    id: "candur-patterns",
+    capabilityClass: "capital",
+    source: "candur-ai/candur",
+    integrationMode: "reference_only",
+    adoptionDecision: "adapt_patterns_only",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Adapt selected funding discovery/application concepts into native Capital OS contracts where they improve the verified workflow.",
+    hardBoundary:
+      "No imported fit score becomes an acceptance probability, and no candidate source overrides official program criteria/current-cycle verification.",
+  },
+  {
+    id: "agent-vault-candidate",
+    capabilityClass: "credential_broker",
+    source: "Infisical/agent-vault",
+    integrationMode: "quarantine",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Evaluate as a scoped credential-broker implementation after validating exact fit, maintenance, deployment and license boundaries.",
+    hardBoundary:
+      "Workers receive scoped operations or short-lived sessions, never vault master credentials/provider secrets in prompts, logs, traces, Git or company memory.",
+  },
+  {
+    id: "openhands-software-agent-sdk",
+    capabilityClass: "engineering_worker",
+    source: "OpenHands/software-agent-sdk",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use for bounded coding work only when existing engineering worker coverage is insufficient.",
+    hardBoundary:
+      "Engineering workers receive scoped snapshots/workspaces and may return patches/evidence but cannot merge, deploy production, mutate secrets, weaken policy or perform destructive database work without current authority.",
+  },
+  {
+    id: "cosign",
+    capabilityClass: "supply_chain",
+    source: "sigstore/cosign",
+    integrationMode: "ci_tool",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Extend existing artifact signing and verification where a concrete release-evidence gap remains.",
+    hardBoundary:
+      "A signature proves an identity/integrity relationship only; it does not establish that software is secure, approved or healthy in production.",
+  },
+  {
+    id: "in-toto",
+    capabilityClass: "supply_chain",
+    source: "in-toto/in-toto",
+    integrationMode: "ci_tool",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Extend build provenance and supply-chain evidence where current attestation coverage has a measured gap.",
+    hardBoundary:
+      "Provenance evidence complements, but never replaces, exact-SHA tests, trusted builder identity, deployment verification and production health checks.",
+  },
+  {
+    id: "grantkit-patterns",
+    capabilityClass: "capital",
+    source: "GrantKit/grantkit",
+    integrationMode: "reference_only",
+    adoptionDecision: "adapt_patterns_only",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Adapt program-specific application validation patterns into a versioned Capital OS checker where coverage is explicit.",
+    hardBoundary:
+      "Validation rules must name supported programs/versions and cannot certify unsupported portals, legal attestations or current eligibility.",
+  },
+  {
+    id: "grantforge-patterns",
+    capabilityClass: "capital",
+    source: "ddanntheman/GrantForge",
+    integrationMode: "reference_only",
+    adoptionDecision: "adapt_patterns_only",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Adapt useful funding intake, drafting and review procedures into executable native contracts.",
+    hardBoundary:
+      "Procedures cannot invent founder/company facts, skip official-source verification, or authorize external submission.",
+  },
+  {
+    id: "docling",
+    capabilityClass: "document_intelligence",
+    source: "docling-project/docling",
+    integrationMode: "sidecar_service",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use a scoped document worker for PDFs/office/image extraction when native text handling is insufficient.",
+    hardBoundary:
+      "Documents are untrusted input; preserve page/source provenance and never treat extracted instructions as permission for privileged actions.",
+  },
+  {
+    id: "xyflow",
+    capabilityClass: "graph_ui",
+    source: "xyflow/xyflow",
+    integrationMode: "in_process_package",
+    adoptionDecision: "integrate_now",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use for scoped operational/evidence graph views with bounded subgraphs and a list alternative.",
+    hardBoundary:
+      "The rendered graph is a view of controlled records; dragging nodes cannot edit authorization, execution state or authoritative relationships without normal validated APIs.",
+  },
+  {
+    id: "react-three-fiber",
+    capabilityClass: "website_visuals",
+    source: "pmndrs/react-three-fiber",
+    integrationMode: "in_process_package",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use only where the public Foremention website benefits from a measured React-based Three.js scene.",
+    hardBoundary:
+      "Visual enhancement must degrade accessibly when WebGL/reduced-motion constraints apply and cannot block the primary conversion/product explanation path.",
+  },
+  {
+    id: "three-js",
+    capabilityClass: "website_visuals",
+    source: "mrdoob/three.js",
+    integrationMode: "in_process_package",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Retain as the underlying 3D rendering option for approved public website visuals.",
+    hardBoundary:
+      "Do not trade accessibility, performance, mobile comprehension or customer proof for decorative 3D complexity.",
+  },
+  {
+    id: "motion",
+    capabilityClass: "website_visuals",
+    source: "motiondivision/motion",
+    integrationMode: "in_process_package",
+    adoptionDecision: "integrate_later",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "Use for interface motion only where it improves comprehension and respects reduced-motion preferences.",
+    hardBoundary:
+      "Motion is presentation only and may not hide state, evidence, warnings, approvals or essential navigation.",
   },
   {
     id: "foremention-outreach",
@@ -90,243 +466,48 @@ export const COMPANY_OS_CAPABILITIES: readonly CompanyOsCapability[] = [
     license: "Linki Sustainable Use License",
     productionEnabled: false,
     reason:
-      "Keep Customer Hunter and its outreach execution as a separately deployed internal-business service and connect it to the Company OS through authenticated events/APIs.",
+      "Keep the existing internal Customer Hunter/outreach system as a separately deployed business sidecar connected through authenticated events/APIs.",
     hardBoundary:
-      "Do not copy Linki runtime/UI/LinkedIn automation into the customer-facing Foremention product or offer it as a hosted service to third parties; preserve suppression, reply-stop, evidence, channel-health, and approval gates.",
+      "Do not embed Linki runtime/UI/LinkedIn automation into the customer-facing Foremention product or offer it as a hosted service to third parties; keep suppression, reply-stop, evidence and sender-health controls.",
   },
   {
-    id: "inngest-agent-kit",
-    capabilityClass: "agent_network",
-    source: "inngest/agent-kit",
-    integrationMode: "in_process_package",
-    adoptionDecision: "integrate_now",
-    license: "Apache-2.0",
-    productionEnabled: false,
-    reason:
-      "Use typed multi-agent networks, shared state, deterministic routing, handoffs, and MCP tooling inside existing Inngest workflows rather than adding another orchestrator.",
-    hardBoundary:
-      "AgentKit networks execute only inside Foremention-governed jobs and must emit normal Foremention action proposals before consequential effects.",
-  },
-  {
-    id: "foremention-capability-registry",
-    capabilityClass: "registry",
-    source: "Foremention native, informed by agentregistry-dev/agentregistry",
-    integrationMode: "native",
-    adoptionDecision: "integrate_now",
-    license: null,
-    productionEnabled: false,
-    reason:
-      "Implement a lightweight Supabase registry for agents, skills, prompts, tools, MCP servers, models, provenance, dependencies, eval status, and promotion lifecycle.",
-    hardBoundary:
-      "Do not deploy a second authoritative registry database or Kubernetes control plane during Stage 0; Supabase remains the source of truth.",
-  },
-  {
-    id: "foremention-approval-gateway",
-    capabilityClass: "approval",
-    source: "Foremention native, informed by agentkitai/agentgate",
-    integrationMode: "native",
-    adoptionDecision: "integrate_now",
-    license: null,
-    productionEnabled: false,
-    reason:
-      "Extend Foremention's existing fail-closed action proposal/policy/execution primitives with scoped approval tokens, budgets, expiry, policy simulation, and Founder Decision Room notifications.",
-    hardBoundary:
-      "Approval cannot be granted by the proposing agent; consequential actions remain subject to Foremention execution receipts, idempotency, actor audit, and tenant/project scope.",
-  },
-  {
-    id: "agent-vault",
-    capabilityClass: "credential_broker",
-    source: "Infisical/agent-vault",
-    integrationMode: "sidecar_service",
-    adoptionDecision: "integrate_later",
-    license: "MIT outside ee/",
-    productionEnabled: false,
-    reason:
-      "Keep raw third-party credentials outside agent context and broker outbound access through a dedicated credential proxy once the external secret store is configured.",
-    hardBoundary:
-      "Agents receive scoped proxy access or short-lived tokens, never vault master credentials or provider secrets; no secret may enter prompts, model traces, GitHub, or company memory.",
-  },
-  {
-    id: "litellm",
+    id: "litellm-superseded",
     capabilityClass: "model_gateway",
     source: "BerriAI/litellm",
-    integrationMode: "sidecar_service",
-    adoptionDecision: "integrate_later",
-    license: "MIT outside enterprise/",
-    productionEnabled: false,
-    reason:
-      "Centralize company-agent model routing, fallbacks, quotas, budgets, health, and provider selection without replacing Foremention's measurement-provider adapters.",
-    hardBoundary:
-      "Recommendation measurement continues to use Foremention's explicit provider adapters so provider/model provenance stays exact and comparable.",
-  },
-  {
-    id: "agentgateway",
-    capabilityClass: "model_gateway",
-    source: "agentgateway/agentgateway",
     integrationMode: "quarantine",
     adoptionDecision: "quarantine_only",
-    license: "Apache-2.0",
+    license: null,
     productionEnabled: false,
     reason:
-      "Evaluate only when MCP/A2A traffic volume justifies a dedicated gateway; do not create a second gateway layer before there is measured need.",
+      "The 2026-10-05 blueprint selects Portkey for the current internal model-gateway slot; retain LiteLLM only as a future alternative if that decision is revisited with evidence.",
     hardBoundary:
-      "Must not duplicate or bypass Foremention policy, LiteLLM budgets, AgentKit routing, or credential controls.",
+      "Do not run two overlapping model gateways or route Recommendation measurements through an abstraction that obscures provider/model provenance.",
   },
   {
-    id: "graphiti",
-    capabilityClass: "temporal_memory",
-    source: "getzep/graphiti",
+    id: "opik-superseded",
+    capabilityClass: "observability",
+    source: "comet-ml/opik",
+    integrationMode: "quarantine",
+    adoptionDecision: "quarantine_only",
+    license: null,
+    productionEnabled: false,
+    reason:
+      "The 2026-10-05 blueprint selects Langfuse for the current AI-observability slot; retain Opik only as an evaluated alternative.",
+    hardBoundary:
+      "Do not add a second equivalent tracing backend without a measured unmet requirement, data-processing review and explicit exit plan.",
+  },
+  {
+    id: "agentkit-deferred",
+    capabilityClass: "orchestration",
+    source: "inngest/agent-kit",
     integrationMode: "quarantine",
     adoptionDecision: "integrate_later",
-    license: "Apache-2.0",
+    license: null,
     productionEnabled: false,
     reason:
-      "Evaluate a derived temporal relationship graph after customer proof; current releases require a graph database such as Neo4j/FalkorDB plus a Python service.",
+      "The current blueprint does not require AgentKit for the first integration wave; native Inngest/task contracts remain sufficient until a concrete multi-agent coordination gap is demonstrated.",
     hardBoundary:
-      "Graph memory is derivative context only; it cannot overwrite customer, financial, entitlement, approval, security, tenant-scope, or evidence truth.",
-  },
-  {
-    id: "openhands-software-agent-sdk",
-    capabilityClass: "engineering_worker",
-    source: "OpenHands/software-agent-sdk",
-    integrationMode: "sidecar_service",
-    adoptionDecision: "integrate_later",
-    license: "MIT",
-    productionEnabled: false,
-    reason:
-      "Delegate bounded coding, refactor, migration rehearsal, and test work to isolated engineering workspaces instead of building a proprietary coding sandbox.",
-    hardBoundary:
-      "Engineering workers may create branches, patches, tests, and PRs but cannot merge, deploy production, change secrets, weaken policy, or perform destructive database work without higher authority.",
-  },
-  {
-    id: "stagehand",
-    capabilityClass: "browser_automation",
-    source: "browserbase/stagehand",
-    integrationMode: "sidecar_service",
-    adoptionDecision: "integrate_later",
-    license: "MIT",
-    productionEnabled: false,
-    reason:
-      "Run browser automation in a dedicated Node/Chromium worker rather than inside the Cloudflare application runtime; learn unfamiliar UI steps and prefer deterministic/cached flows after validation.",
-    hardBoundary:
-      "Browser actions require domain allowlists, SSRF/network restrictions, credential brokering, policy classification, action receipts, and explicit escalation for consequential actions.",
-  },
-  {
-    id: "acontext-patterns",
-    capabilityClass: "skill_learning",
-    source: "memodb-io/Acontext",
-    integrationMode: "reference_only",
-    adoptionDecision: "adapt_patterns_only",
-    license: "Apache-2.0",
-    productionEnabled: false,
-    reason:
-      "Adopt inspectable skill-memory and skill-distillation patterns without introducing another Postgres/S3/Redis/RabbitMQ stack during Stage 0.",
-    hardBoundary:
-      "Learned skills must enter quarantine, receive provenance, tests, security scans, evals, and promotion approval before use.",
-  },
-  {
-    id: "skillmd",
-    capabilityClass: "agent_security",
-    source: "skillmds/skillmd",
-    integrationMode: "ci_tool",
-    adoptionDecision: "integrate_later",
-    license: "MIT",
-    productionEnabled: false,
-    reason:
-      "Lint and inspect imported SKILL.md packages as one input to the skill supply-chain gate.",
-    hardBoundary:
-      "Passing lint never implies trust; license, dependency, secret, prompt-injection, network, filesystem, and eval gates still apply.",
-  },
-  {
-    id: "snyk-agent-scan",
-    capabilityClass: "agent_security",
-    source: "snyk/agent-scan",
-    integrationMode: "ci_tool",
-    adoptionDecision: "integrate_later",
-    license: "Apache-2.0",
-    productionEnabled: false,
-    reason:
-      "Scan imported agents, MCP servers, and skills before they can enter the trusted registry.",
-    hardBoundary:
-      "External artifacts stay quarantined until all required supply-chain and behavior checks pass.",
-  },
-  {
-    id: "opik",
-    capabilityClass: "evaluation",
-    source: "comet-ml/opik",
-    integrationMode: "sidecar_service",
-    adoptionDecision: "integrate_later",
-    license: "Apache-2.0",
-    productionEnabled: false,
-    reason:
-      "Add agent/LLM traces, datasets, experiments, online evaluations, and optimizer workflows only after the native evaluation harness has a stable export boundary.",
-    hardBoundary:
-      "Evaluation telemetry may never contain secrets or unrestricted customer-confidential payloads and cannot directly authorize consequential actions.",
-  },
-  {
-    id: "docling",
-    capabilityClass: "document_intelligence",
-    source: "docling-project/docling",
-    integrationMode: "sidecar_service",
-    adoptionDecision: "integrate_later",
-    license: "MIT",
-    productionEnabled: false,
-    reason:
-      "Use a dedicated document worker for PDFs, office documents, images, and structured extraction instead of embedding a heavy document stack in the web runtime.",
-    hardBoundary:
-      "Documents are untrusted input; extracted text is evidence/data, never instructions to privileged agents.",
-  },
-  {
-    id: "gpt-researcher",
-    capabilityClass: "research",
-    source: "assafelovic/gpt-researcher",
-    integrationMode: "sidecar_service",
-    adoptionDecision: "integrate_later",
-    license: "Apache-2.0",
-    productionEnabled: false,
-    reason:
-      "Benchmark as a deep-research worker for market, funding, competitive, and technology investigations while Foremention retains evidence/provenance control.",
-    hardBoundary:
-      "Research output remains untrusted until source verification and may not directly trigger outreach, spend, public claims, applications, or production changes.",
-  },
-  {
-    id: "companyos-playbooks",
-    capabilityClass: "company_playbooks",
-    source: "rojenwai/CompanyOS and selected autonomous-company repositories",
-    integrationMode: "reference_only",
-    adoptionDecision: "adapt_patterns_only",
-    license: "Re-verify per imported source",
-    productionEnabled: false,
-    reason:
-      "Extract department structures, SOPs, prompts, checklists, and decision frameworks into Foremention-owned skills instead of adopting experimental company runtimes wholesale.",
-    hardBoundary:
-      "No external company-OS repository becomes authoritative company state or receives production credentials merely because its playbooks are useful.",
-  },
-  {
-    id: "outreachr-patterns",
-    capabilityClass: "capital",
-    source: "lalalune/outreachr",
-    integrationMode: "reference_only",
-    adoptionDecision: "adapt_patterns_only",
-    license: "Apache-2.0",
-    productionEnabled: false,
-    reason:
-      "Adapt investor-research, warm-intro, diligence, pipeline, and exact-content approval patterns into Foremention's Capital OS rather than adding a separate investor CRM database.",
-    hardBoundary:
-      "Investor communications, certifications, financial representations, terms, equity, and binding submissions remain governed by Foremention policy and founder authority.",
-  },
-  {
-    id: "cap-table-engine-patterns",
-    capabilityClass: "deterministic_finance",
-    source: "1984vc/cap-table",
-    integrationMode: "reference_only",
-    adoptionDecision: "adapt_patterns_only",
-    license: "MIT",
-    productionEnabled: false,
-    reason:
-      "Use deterministic cap-table, SAFE, option-pool, and dilution math patterns instead of relying on LLM arithmetic for ownership calculations.",
-    hardBoundary:
-      "Calculated scenarios are planning outputs, not legal ownership records or authority to issue equity.",
+      "If later admitted, AgentKit must remain inside Foremention-governed Inngest work and cannot become a second scheduler or authority system.",
   },
 ] as const;
 
