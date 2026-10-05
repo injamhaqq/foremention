@@ -1,4 +1,3 @@
-// RED contract: implementation intentionally absent at this revision.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -59,9 +58,9 @@ test("funding source review persistence is project-scoped, append-only, and serv
   assert.match(migration, /project_status is distinct from 'active'/i);
   assert.match(migration, /membership\.user_id = new\.created_by/i);
   assert.match(migration, /funding_program_official/i);
-  assert.match(migration, /verification_status = 'verified'/i);
-  assert.match(migration, /source\.canonical_url = evidence\.source_url/i);
-  assert.match(migration, /snapshot\.source_id = new\.source_id/i);
+  assert.match(migration, /evidence\.verification_status (?:<>|is distinct from) 'verified'/i);
+  assert.match(migration, /not \(source\.canonical_url = evidence\.source_url\)/i);
+  assert.match(migration, /not \(snapshot\.source_id = new\.source_id\)/i);
   assert.match(migration, /decision = 'accepted'[\s\S]*snapshot\.access not in \('open','partial'\)/i);
   assert.match(migration, /mode'[\s\S]*internal_review_only/i);
   assert.match(migration, /externalEffects'[\s\S]*false/i);
