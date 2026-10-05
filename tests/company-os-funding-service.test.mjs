@@ -118,7 +118,7 @@ test("configured Company OS scope comparison is exact", () => {
   ), false);
 });
 
-test("internal funding route authenticates operator, active scope, role, trusted origin, and user-token RLS", async () => {
+test("internal funding route authenticates operator and scope before trusted artifact access", async () => {
   const route = await read("app/api/internal/company-os/funding-drafts/route.ts");
   assert.match(route, /isTrustedMutationOrigin/);
   assert.match(route, /getViewer/);
@@ -134,16 +134,18 @@ test("internal funding route authenticates operator, active scope, role, trusted
   assert.match(route, /company_truth_assertions/);
   assert.match(route, /new TextDecoder\("utf-8", \{ fatal: true \}\)/);
   assert.match(route, /new Date\(\)\.toISOString\(\)/);
-  assert.doesNotMatch(route, /serviceRole:\s*true/);
+  assert.match(route, /token: viewer\.accessToken/);
+  assert.match(route, /!process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
+  assert.ok((route.match(/serviceRole: true/g) || []).length >= 3);
   assert.doesNotMatch(route, /sendProductAlertEmail|sendEmail|submitApplication|browser/i);
 });
 
-test("funding artifact migration enforces tenant provenance, immutable authenticated revisions, and no execution authority", async () => {
+test("funding artifact migration enforces service-only provenance, immutable revisions, and no execution authority", async () => {
   const sql = await read("supabase/migrations/20261005000100_company_funding_draft_artifacts.sql");
   assert.match(sql, /alter table public\.company_funding_draft_artifacts enable row level security/i);
-  assert.match(sql, /public\.has_org_role[\s\S]*'owner','admin'/i);
-  assert.match(sql, /created_by = \(select auth\.uid\(\)\)/i);
-  assert.match(sql, /project\.id = project_id[\s\S]*project\.organization_id = organization_id[\s\S]*project\.status = 'active'/i);
+  assert.match(sql, /project_status is distinct from 'active'/i);
+  assert.match(sql, /from public\.organization_members as membership[\s\S]*membership\.organization_id = new\.organization_id[\s\S]*membership\.user_id = new\.created_by[\s\S]*owner','admin/i);
+  assert.match(sql, /Company funding draft creator must be an organization owner or admin/i);
   assert.match(sql, /funding_program_official/);
   assert.match(sql, /verification_state = 'verified'[\s\S]*superseded_at is null/i);
   assert.match(sql, /Company funding draft revisions are immutable/i);
@@ -154,9 +156,10 @@ test("funding artifact migration enforces tenant provenance, immutable authentic
   assert.match(sql, /artifact -> 'submissionAuthorized' is distinct from 'false'::jsonb/i);
   assert.match(sql, /artifact -> 'requiresSubmissionApproval' is distinct from 'true'::jsonb/i);
   assert.match(sql, /jsonb_typeof\(new\.artifact -> 'evidence'\) is distinct from 'array'/i);
-  assert.match(sql, /grant select, insert on table public\.company_funding_draft_artifacts to authenticated/i);
-  assert.doesNotMatch(sql, /grant[^;]*update[^;]*to authenticated/i);
-  assert.doesNotMatch(sql, /grant[^;]*delete[^;]*to authenticated/i);
+  assert.match(sql, /revoke all on table public\.company_funding_draft_artifacts from public, anon, authenticated/i);
+  assert.doesNotMatch(sql, /grant[^;]*\bauthenticated\b/i);
+  assert.doesNotMatch(sql, /create policy[\s\S]{0,400}company_funding_draft_artifacts[\s\S]{0,400}to authenticated/i);
+  assert.match(sql, /grant select, insert, delete on table public\.company_funding_draft_artifacts to service_role/i);
 });
 
 test("Company OS scope variables are documented but unset by default", async () => {
