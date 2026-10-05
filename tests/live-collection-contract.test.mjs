@@ -16,7 +16,7 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
   assert.match(route, /reserve_run_budget/);
   assert.match(route, /p_reason: safeOperationalError\(error\)/);
   assert.match(route, /INNGEST_SIGNING_KEY/);
-  assert.match(route, /data: \{ runId, organizationId: context\.organizationId \}/);
+  assert.match(route, /data: \{ runId, organizationId: context\.organizationId, projectId: context\.projectId \}/);
   assert.doesNotMatch(route, /data: \{[^}]*prompts/s);
   assert.match(job, /idempotency: "event\.data\.runId"/);
   assert.match(job, /key: "event\.data\.organizationId"/);
@@ -108,10 +108,11 @@ test("the server-only Supabase role can execute trusted background collection", 
 });
 
 test("observed citations auto-populate a truthful draft map while review remains explicit", async () => {
-  const [review, generator, loader] = await Promise.all([
+  const [review, generator, loader, sourceScope] = await Promise.all([
     text("app/api/runs/[id]/review/route.ts"),
     text("lib/source-map-generation.ts"),
     text("lib/data.ts"),
+    text("lib/project-source-map-scope.ts"),
   ]);
   assert.match(review, /run\.status !== "review"/);
   assert.match(review, /review_status: "verified"/);
@@ -123,7 +124,8 @@ test("observed citations auto-populate a truthful draft map while review remains
   assert.match(generator, /status: "published"/);
   assert.match(generator, /influence: "unknown"/);
   assert.match(generator, /feasibility: "unknown"/);
-  assert.match(loader, /status=eq\.published/);
+  assert.match(loader, /loadLatestProjectSourceMapRef/);
+  assert.match(sourceScope, /status=eq\.published/);
 });
 
 test("source map retries do not downgrade an existing published map before a successful rebuild", async () => {
@@ -392,15 +394,23 @@ test("Foremention Agent Control Plane records evidence-bound stages without extr
   assert.match(migration, /enable row level security/);
 });
 
-test("weekly Inngest runs enforce capacity without pre-review movement detection", async () => {
-  const [jobs, route] = await Promise.all([text("lib/jobs/inngest.ts"), text("app/api/inngest/route.ts")]);
-  assert.match(jobs, /id: "schedule-weekly-workspace-runs"/);
+test("recurring collection is driven by Measurement Schedules while Monday remains digest-only", async () => {
+  const [jobs, dispatcher, route] = await Promise.all([
+    text("lib/jobs/inngest.ts"),
+    text("lib/jobs/measurement-schedule-dispatcher.ts"),
+    text("app/api/inngest/route.ts"),
+  ]);
+  assert.match(jobs, /id: "schedule-weekly-workspace-digests"/);
   assert.match(jobs, /triggers: \{ cron: "0 8 \* \* 1" \}/);
-  assert.match(jobs, /monthly_run_units/);
-  assert.match(jobs, /monthly_ai_spend_cap_usd/);
-  assert.match(jobs, /status=in\.\(queued,running\)/);
-  assert.doesNotMatch(jobs, /brand_presence_changed|new_sources|lost_sources|competitor_movement/);
-  assert.match(route, /scheduleWeeklyWorkspaceRuns/);
+  assert.doesNotMatch(jobs, /schedule-weekly-workspace-runs|prepareWeeklyRun/);
+  assert.match(dispatcher, /id: "dispatch-measurement-schedules"/);
+  assert.match(dispatcher, /project_id=not\.is\.null/);
+  assert.match(dispatcher, /reserve_run_quota_server/);
+  assert.match(dispatcher, /reserve_run_budget_server/);
+  assert.match(dispatcher, /name: "foremention\/run\.requested"/);
+  assert.doesNotMatch(dispatcher, /brand_presence_changed|new_sources|lost_sources|competitor_movement/);
+  assert.match(route, /scheduleWeeklyWorkspaceDigests/);
+  assert.match(route, /dispatchMeasurementSchedules/);
 });
 
 test("failed first evidence checks remain explicit instead of showing unexplained zeroes", async () => {
