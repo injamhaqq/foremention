@@ -54,6 +54,7 @@ export type CompetitorTracking = {
   answerMentions: number;
   totalAnswers: number;
   mentionFrequencyPct: number | null;
+  answerHistoryComplete?: boolean;
   reviewedCitationPages: number;
   sourceOverlap: number;
   trendPoints: Array<{ runId: string; date: string; frequencyPct: number }>;
