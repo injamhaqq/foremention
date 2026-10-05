@@ -14,9 +14,10 @@ test("commercial platform positioning and brand contract are encoded", async () 
   ]);
   assert.match(home, /MissingAnswerExperience/);
   assert.match(home, /Recommendation Intelligence for B2B Software/);
-  assert.match(experience, /Recommendation intelligence for B2B software/);
+  assert.match(experience, /Recommendation intelligence for B2B software/i);
   assert.match(experience, /Recommendation Record/);
-  assert.match(experience, /Evidence inspection/);
+  assert.match(experience, /Evidence inspection/i);
+  assert.match(experience, /See where AI recommends your brand\./);
   assert.doesNotMatch(home, /SourceXRayExperience|Source X-Ray|source-xray/i);
   assert.match(pricing, /Core/);
   assert.match(pricing, /Signal/);
