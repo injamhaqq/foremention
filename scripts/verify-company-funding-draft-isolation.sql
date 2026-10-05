@@ -169,8 +169,24 @@ begin
     denied := true;
   end;
   if not denied or changed <> 0 then raise exception 'Authenticated funding artifact delete was permitted'; end if;
+
+  denied := false;
+  begin
+    insert into public.company_funding_draft_artifacts (
+      id, organization_id, project_id, created_by, profile_revision, package_version,
+      input_digest, artifact_digest, program_evidence_ids, company_truth_assertion_ids, artifact
+    )
+    select
+      gen_random_uuid(), organization_id, project_id, created_by, profile_revision, package_version,
+      input_digest, repeat('7', 64), program_evidence_ids, company_truth_assertion_ids, artifact
+    from public.company_funding_draft_artifacts
+    where id = 'f2660000-0000-4000-8000-000000000001'::uuid;
+  exception when insufficient_privilege then
+    denied := true;
+  end;
+  if not denied then raise exception 'Authenticated owner bypassed the trusted funding artifact write path'; end if;
 end
-$$;
+$;
 
 -- Tenant B owner sees only Tenant B artifact.
 select set_config('request.jwt.claim.sub', 'f2600000-0000-4000-8000-000000000002', true);
