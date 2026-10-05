@@ -38,6 +38,9 @@ test("funding source review route reuses native inspection and exact Company OS 
   assert.match(route, /includePageText:\s*true/);
   assert.match(route, /maxExtractedTextChars:\s*24_000/);
   assert.match(route, /persistSourceSnapshot/);
+  const inspectionCall = route.indexOf("await inspectSourceUrl(");
+  const sourceWriteCall = route.indexOf("await ensureNativeSource(");
+  assert.ok(inspectionCall >= 0 && sourceWriteCall >= 0 && inspectionCall < sourceWriteCall, "public-resolution inspection must complete before native source persistence");
   assert.match(route, /source_snapshots\?select=id,access,content_hash,evidence_excerpt/);
   assert.match(route, /content_hash/);
   assert.match(route, /evidence_excerpt/);
