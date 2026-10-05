@@ -304,11 +304,11 @@ export async function POST(request: Request) {
     }
 
     await enforceInspectionRateLimit(viewer, context);
-    const source = await ensureNativeSource(context, evidence, safeUrl);
     const inspection = await inspectSourceUrl(evidence.source_url as string, {
       includePageText: true,
       maxExtractedTextChars: 24_000,
     });
+    const source = await ensureNativeSource(context, evidence, safeUrl);
     const snapshot = await persistSourceSnapshot({
       organizationId: context.organizationId,
       sourceId: source.id,
