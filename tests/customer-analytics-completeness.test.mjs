@@ -40,3 +40,17 @@ test("all exact movement surfaces share the complete run-pair comparator", async
   assert.doesNotMatch(safe, /limit=500/);
   assert.match(reviewed, /assessWorkspaceRunPairComparability/);
 });
+
+test("weekly intelligence withholds incomplete bounded answer and Source Map reads", async () => {
+  const intelligence = await text("lib/intelligence-loop.ts");
+
+  assert.match(intelligence, /MAX_COMPLETE_RUN_HISTORY_ANSWERS/);
+  assert.match(intelligence, /assessCompleteRunHistory\(\[run\], runAnswers\)/);
+  assert.match(intelligence, /if \(run\.id === latestRun\?\.id\)/);
+  assert.match(intelligence, /source_map_entries\?select=[^\n]+limit=251/);
+  assert.match(intelligence, /sourceRows\.length <= 250 \? sourceRows : \[\]/);
+  assert.match(intelligence, /costs: \[\]/);
+  assert.match(intelligence, /runs\.actual_cost_usd|independently persisted runs\.actual_cost_usd/);
+  assert.doesNotMatch(intelligence, /ai_cost_events\?select=/);
+  assert.doesNotMatch(intelligence, /run_answers\?select=[^\n]+limit=500/);
+});
