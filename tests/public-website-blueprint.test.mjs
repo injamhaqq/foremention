@@ -60,3 +60,26 @@ test("homepage proof and FAQ keep public claims inside verified boundaries", asy
   assert.match(home, /Does opening the homepage run paid AI research/);
   assert.match(home, /validated, rate-limited, persisted server-side/);
 });
+
+
+test("public engagement analytics measure the blueprint events without collecting intake content", async () => {
+  const [analytics, home] = await Promise.all([
+    read("components/public-activation-analytics.tsx"),
+    read("components/goat-home-experience.tsx"),
+  ]);
+  assert.match(analytics, /sample_opened/);
+  assert.match(analytics, /evidence_inspected/);
+  assert.match(analytics, /use_cases/);
+  assert.match(home, /data-public-sample-open/);
+  assert.match(home, /data-public-evidence-inspect/);
+  assert.doesNotMatch(analytics, /buyerQuestions|currentProblem|intakeId/);
+});
+
+test("sitemap freshness only advances routes changed by the public website slice", async () => {
+  const sitemap = await read("app/sitemap.ts");
+  assert.match(sitemap, /baselineUpdated/);
+  assert.match(sitemap, /websiteUpdatedPaths/);
+  assert.match(sitemap, /"\/use-cases"/);
+  assert.match(sitemap, /"\/contact"/);
+  assert.doesNotMatch(sitemap, /lastModified:\s*websiteUpdated,/);
+});
