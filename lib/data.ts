@@ -16,6 +16,7 @@ import { cookies } from "next/headers";
 import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
 import { filterPlacementsToProject, loadProjectPlacementScope, MAX_PROJECT_PLACEMENTS } from "@/lib/project-placement-scope";
 import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
+import { filterNotificationsToProject, MAX_PROJECT_NOTIFICATION_SCAN } from "@/lib/project-notification-scope";
 import { ACTIVE_PROJECT_COOKIE } from "@/lib/session-cookies";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, Placement, SourceMapEntry, VisibilityRun } from "@/lib/types";
@@ -915,10 +916,11 @@ export async function loadTeam(viewer: Viewer): Promise<{
 
 export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotification[]> {
   if (viewer.mode === "demo") return [];
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
   const rows = await supabaseRest<Array<{
     id: string;
+    event_key: string;
     kind: WorkspaceNotification["kind"];
     title: string;
     body: string;
@@ -926,11 +928,18 @@ export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotifi
     read_at: string | null;
     created_at: string;
   }>>(
-    `notifications?select=id,kind,title,body,href,read_at,created_at&organization_id=eq.${organizationId}&user_id=eq.${viewer.id}&order=created_at.desc&limit=50`,
+    `notifications?select=id,event_key,kind,title,body,href,read_at,created_at&organization_id=eq.${context.organizationId}&user_id=eq.${viewer.id}&order=created_at.desc&limit=${MAX_PROJECT_NOTIFICATION_SCAN + 1}`,
     { token: viewer.accessToken },
   );
+  const scoped = await filterNotificationsToProject({
+    rows,
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    token: viewer.accessToken,
+  });
+  if (!scoped) return [];
   const groups = new Map<string, WorkspaceNotification>();
-  for (const row of rows) {
+  for (const row of scoped.slice(0, 50)) {
     const mappedCount = row.kind === "source_map_published" ? Number(row.body.match(/\d+/)?.[0] || 0) : 0;
     const title = row.kind === "source_map_published" ? "Source Map created from approved collection" : row.title;
     const body = row.kind === "source_map_published"
