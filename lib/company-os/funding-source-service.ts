@@ -101,7 +101,13 @@ export function fundingSourceStateAfterInspection(input: {
 }) {
   if (input.previousState === "rejected") return "rejected" as const;
   if (input.previousState === "verified") {
-    if (input.becameUnreachable || input.materiallyChanged || input.changeState === "unknown") return "stale" as const;
+    if (
+      input.becameUnreachable
+      || input.materiallyChanged
+      || input.changeState === "changed"
+      || input.changeState === "unreachable"
+      || input.changeState === "unknown"
+    ) return "stale" as const;
     return "verified" as const;
   }
   return "unverified" as const;
