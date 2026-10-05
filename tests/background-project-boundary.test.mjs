@@ -5,16 +5,18 @@ import test from "node:test";
 const text = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("background collection events carry and re-verify project identity", async () => {
-  const [jobs, route] = await Promise.all([
+  const [jobs, route, dispatcher] = await Promise.all([
     text("lib/jobs/inngest.ts"),
     text("app/api/runs/route.ts"),
+    text("lib/jobs/measurement-schedule-dispatcher.ts"),
   ]);
 
   assert.match(jobs, /projectId: string/);
   assert.match(route, /data: \{ runId, organizationId: context\.organizationId, projectId: context\.projectId \}/);
   assert.match(jobs, /project_id=eq\.\$\{data\.projectId\}/);
   assert.match(jobs, /project_id=eq\.\$\{run\.project_id\}/);
-  assert.match(jobs, /project_id=eq\.\$\{seed\.project_id\}/);
+  assert.match(dispatcher, /project_id=not\.is\.null/);
+  assert.match(dispatcher, /data: \{ runId: data\.runId, organizationId: data\.organizationId, projectId: data\.projectId \}/);
 });
 
 test("weekly job is digest-only and groups evidence by organization plus project", async () => {
