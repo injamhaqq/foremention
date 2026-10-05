@@ -47,3 +47,19 @@ test("public hero remains a static sample rather than a live-provider surface", 
     );
   }
 });
+
+
+test("public sample graph is progressively inspectable without inventing extra provider surfaces", async () => {
+  const source = await readFile(heroPath, "utf8");
+  const css = await readFile(cssPath, "utf8");
+
+  assert.match(source, /useState\(""/);
+  assert.match(source, /Choose the supported example measurement surface/);
+  assert.match(source, /workers-ai-bing-rss/);
+  assert.match(source, /Workers AI \+ Bing RSS grounded synthesis/);
+  assert.match(source, /aria-pressed=\{selectedBrand === "competitor"\}/);
+  assert.match(source, /aria-pressed=\{selectedEvidence === "source-01"\}/);
+  assert.match(source, /does not invent a causal explanation/i);
+  assert.match(css, /button\.fm-graph-node:disabled/);
+  assert.match(css, /\.fm-graph-node\.is-selected/);
+});
