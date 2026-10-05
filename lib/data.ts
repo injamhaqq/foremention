@@ -8,7 +8,7 @@ import {
   type ForementionAgentId,
   type ForementionAgentStatus,
 } from "@/lib/agent-control-plane";
-import { getProviderCostRates } from "@/lib/collection-policy";
+import { estimateReservedRunCost, getProviderCostRates } from "@/lib/collection-policy";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
@@ -136,6 +136,7 @@ export type ProviderStatus = {
   lastTestedAt: string | null;
   verifiedAnswers: number;
   presencePct: number | null;
+  estimatedMaxCostPerQuestionUsd: number | null;
 };
 export type WorkspaceTeamMember = {
   userId: string;
@@ -441,20 +442,24 @@ export async function loadPlacements(viewer: Viewer): Promise<Placement[]> {
 
 export function getProviderStatuses(): ProviderStatus[] {
   const statuses: ProviderStatus[] = [
-    { id: "openai", label: "OpenAI", configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL && getProviderCostRates("openai")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "gemini", label: "Google Gemini", configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "anthropic", label: "Anthropic Claude", configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "perplexity", label: "Perplexity", configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "groq", label: "Groq Compound", configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "cloudflare", label: "Cloudflare Workers AI + Bing Search RSS", configured: Boolean(cloudflareAiConfigured() && getProviderCostRates("cloudflare")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "openrouter", label: "OpenRouter · GLM 5.2", configured: Boolean(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL && getProviderCostRates("openrouter")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "zenmux", label: "ZenMux Gateway", configured: Boolean(process.env.ZENMUX_API_KEY && process.env.ZENMUX_MODEL && getProviderCostRates("zenmux")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "omnirouters", label: "OmniRouters Gateway", configured: Boolean(process.env.OMNIROUTERS_API_KEY && process.env.OMNIROUTERS_MODEL && getProviderCostRates("omnirouters")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "openai", label: "OpenAI", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL && getProviderCostRates("openai")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "gemini", label: "Google Gemini", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL && getProviderCostRates("gemini")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "anthropic", label: "Anthropic Claude", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_MODEL && getProviderCostRates("anthropic")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "perplexity", label: "Perplexity", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL && getProviderCostRates("perplexity")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "groq", label: "Groq Compound", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL && getProviderCostRates("groq")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "cloudflare", label: "Cloudflare Workers AI + Bing Search RSS", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(cloudflareAiConfigured() && getProviderCostRates("cloudflare")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "openrouter", label: "OpenRouter · GLM 5.2", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL && getProviderCostRates("openrouter")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "zenmux", label: "ZenMux Gateway", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.ZENMUX_API_KEY && process.env.ZENMUX_MODEL && getProviderCostRates("zenmux")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "omnirouters", label: "OmniRouters Gateway", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.OMNIROUTERS_API_KEY && process.env.OMNIROUTERS_MODEL && getProviderCostRates("omnirouters")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
   ];
-  return statuses.map((provider) => ({
-    ...provider,
-    configured: provider.configured && providerAllowedForLiveCollection(provider.id),
-  }));
+  return statuses.map((provider) => {
+    const rates = getProviderCostRates(provider.id);
+    return {
+      ...provider,
+      configured: provider.configured && providerAllowedForLiveCollection(provider.id),
+      estimatedMaxCostPerQuestionUsd: rates ? estimateReservedRunCost(provider.id, 1, rates) : null,
+    };
+  });
 }
 
 export async function loadProviderStatuses(viewer: Viewer): Promise<ProviderStatus[]> {
