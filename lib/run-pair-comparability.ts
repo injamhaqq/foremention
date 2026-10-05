@@ -24,6 +24,7 @@ type VerifiedAnswerRow = {
   provider: string;
   model: string | null;
   measurement_context_json: unknown;
+  answer_text: string;
   citations_json: Array<{ url?: string; title?: string }> | null;
   brand_present: boolean | null;
 };
@@ -36,6 +37,8 @@ export type VerifiedRunComparisonAnswer = {
   model: string;
   citations: Array<{ url: string; title?: string }>;
   brandPresent: boolean | null;
+  answerText: string;
+  measurementContext: ReturnType<typeof coerceComparableMeasurementContext>;
 };
 
 export type RunPairComparability = {
@@ -67,6 +70,8 @@ function answerView(row: VerifiedAnswerRow): VerifiedRunComparisonAnswer | null 
     model,
     citations,
     brandPresent: row.brand_present,
+    answerText: row.answer_text,
+    measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
   };
 }
 
@@ -120,7 +125,7 @@ export async function assessWorkspaceRunPairComparability(
   if (!budget.comparable) return withheld(budget.reason || "The reviewed collections exceed the bounded comparison evidence budget.");
 
   const rows = await supabaseRest<VerifiedAnswerRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=${MAX_VERIFIED_RUN_PAIR_ANSWERS}`,
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=${MAX_VERIFIED_RUN_PAIR_ANSWERS}`,
     { token: viewer.accessToken },
   );
   const assessment = assessCompleteVerifiedRunPair(earlier, later, rows);
