@@ -256,25 +256,6 @@ create policy company_funding_draft_artifacts_select_manager
     )
   );
 
-create policy company_funding_draft_artifacts_insert_manager
-  on public.company_funding_draft_artifacts
-  for insert
-  to authenticated
-  with check (
-    created_by = (select auth.uid())
-    and public.has_org_role(
-      organization_id,
-      array['owner','admin']::public.organization_role[]
-    )
-    and exists (
-      select 1
-      from public.projects as project
-      where project.id = project_id
-        and project.organization_id = organization_id
-        and project.status = 'active'
-    )
-  );
-
 revoke all on table public.company_funding_draft_artifacts from public, anon, authenticated;
 grant select on table public.company_funding_draft_artifacts to authenticated;
 grant select, insert, delete on table public.company_funding_draft_artifacts to service_role;
