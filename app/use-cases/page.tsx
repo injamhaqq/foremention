@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
-import { pageMetadata } from "@/lib/seo";
+import { collectionPageJsonLd, pageMetadata } from "@/lib/seo";
+
+const description =
+  "Use Foremention to inspect high-intent buyer questions, recommendation evidence, competitor gaps, customer-owned changes, and comparable later observations without turning correlation into causation.";
 
 export const metadata: Metadata = pageMetadata({
   title: "Recommendation Intelligence Use Cases",
-  description:
-    "Use Foremention to inspect high-intent buyer questions, recommendation evidence, competitor gaps, customer-owned changes, and comparable later observations without turning correlation into causation.",
+  description,
   path: "/use-cases",
+  markdownPath: "/use-cases.md",
 });
 
 const useCases = [
@@ -60,9 +63,16 @@ const useCases = [
 ] as const;
 
 export default function UseCasesPage() {
+  const structuredData = collectionPageJsonLd({
+    name: "Foremention Recommendation Intelligence Use Cases",
+    description,
+    path: "/use-cases",
+  });
+
   return (
     <PublicShell>
       <link rel="alternate" type="text/markdown" href="/use-cases.md" />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <section className="page-hero page-hero--ink">
         <div className="shell narrow-heading">
           <span className="eyebrow eyebrow--on-ink">Use cases</span>
