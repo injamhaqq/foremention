@@ -12,9 +12,11 @@ import { getProviderCostRates } from "@/lib/collection-policy";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
 import { filterPlacementsToProject, loadProjectPlacementScope, MAX_PROJECT_PLACEMENTS } from "@/lib/project-placement-scope";
 import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
+import { ACTIVE_PROJECT_COOKIE } from "@/lib/session-cookies";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, Placement, SourceMapEntry, VisibilityRun } from "@/lib/types";
 
@@ -66,10 +68,12 @@ export type QuestionPerformance = {
   brandMentionCount: number;
   guidance: "Needs repeat" | "High evidence yield" | "Keep as baseline" | "Low observed yield";
 };
-export type WorkspaceSummary = { organizationId: string; organizationName: string; website: string | null; category: string | null; promptCount: number };
+export type WorkspaceProject = { id: string; name: string; website: string | null; category: string | null };
+export type WorkspaceSummary = { organizationId: string; organizationName: string; projectId: string; projectName: string; website: string | null; category: string | null; promptCount: number };
 export type WorkspaceContext = {
   organizationId: string;
   projectId: string;
+  projectName: string;
   categoryId: string;
   clusterId: string | null;
   organizationName: string;
@@ -491,21 +495,34 @@ export async function loadProviderStatuses(viewer: Viewer): Promise<ProviderStat
   });
 }
 
-export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceContext | null> {
-  if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
+export async function loadWorkspaceProjects(viewer: Viewer): Promise<WorkspaceProject[]> {
+  if (viewer.mode === "demo") return [{ id: "20000000-0000-4000-8000-000000000001", name: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" }];
   const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return null;
-  const [organizations, projects, categories] = await Promise.all([
-    supabaseRest<Array<{ name: string; website: string | null }>>(`organizations?select=name,website&id=eq.${organizationId}&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string; website: string | null }>>(`projects?select=id,website&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ id: string; name: string }>>(`categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
-  ]);
-  if (!organizations[0] || !projects[0] || !categories[0]) return null;
-  const clusters = await supabaseRest<Array<{ id: string }>>(
-    `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${projects[0].id}&order=priority.asc&limit=1`,
+  if (!organizationId) return [];
+  return supabaseRest<WorkspaceProject[]>(
+    `projects?select=id,name,website,category&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=100`,
     { token: viewer.accessToken },
   );
-  return { organizationId, projectId: projects[0].id, categoryId: categories[0].id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: projects[0].website || organizations[0].website, category: categories[0].name };
+}
+
+export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceContext | null> {
+  if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", projectName: "Northstar HR", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
+  const organizationId = await getPrimaryOrganizationId(viewer);
+  if (!organizationId) return null;
+  const [organizations, projects, categories, cookieStore] = await Promise.all([
+    supabaseRest<Array<{ name: string; website: string | null }>>(`organizations?select=name,website&id=eq.${organizationId}&limit=1`, { token: viewer.accessToken }),
+    loadWorkspaceProjects(viewer),
+    supabaseRest<Array<{ id: string; name: string }>>(`categories?select=id,name&organization_id=eq.${organizationId}&active=eq.true&order=created_at.asc&limit=1`, { token: viewer.accessToken }),
+    cookies(),
+  ]);
+  if (!organizations[0] || !projects.length || !categories[0]) return null;
+  const requestedProjectId = cookieStore.get(ACTIVE_PROJECT_COOKIE)?.value || "";
+  const project = projects.find((candidate) => candidate.id === requestedProjectId) || projects[0];
+  const clusters = await supabaseRest<Array<{ id: string }>>(
+    `prompt_clusters?select=id&organization_id=eq.${organizationId}&project_id=eq.${project.id}&order=priority.asc&limit=1`,
+    { token: viewer.accessToken },
+  );
+  return { organizationId, projectId: project.id, projectName: project.name, categoryId: categories[0].id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website || organizations[0].website, category: project.category || categories[0].name };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
@@ -728,14 +745,14 @@ export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionP
 }
 
 export async function loadWorkspaceSummary(viewer: Viewer): Promise<WorkspaceSummary | null> {
-  if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "northstarhr.example", category: "HR software for distributed teams", promptCount: demoPrompts.filter((prompt) => prompt.approved).length };
+  if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", projectId: "20000000-0000-4000-8000-000000000001", projectName: "Northstar HR", website: "northstarhr.example", category: "HR software for distributed teams", promptCount: demoPrompts.filter((prompt) => prompt.approved).length };
   const context = await loadWorkspaceContext(viewer);
   if (!context) return null;
   const prompts = await supabaseRest<Array<{ id: string }>>(
     `prompts?select=id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&active=eq.true`,
     { token: viewer.accessToken },
   );
-  return { organizationId: context.organizationId, organizationName: context.organizationName, website: context.website, category: context.category, promptCount: prompts.length };
+  return { organizationId: context.organizationId, organizationName: context.organizationName, projectId: context.projectId, projectName: context.projectName, website: context.website, category: context.category, promptCount: prompts.length };
 }
 
 const clampPct = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
