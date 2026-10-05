@@ -139,9 +139,11 @@ test("funding artifact migration enforces tenant provenance, immutable authentic
   assert.match(sql, /Company funding draft revisions are immutable/i);
   assert.match(sql, /Every persisted funding program evidence identifier must appear in the artifact evidence snapshot/i);
   assert.match(sql, /Every persisted Company Truth assertion identifier must appear as an exact artifact fact/i);
-  assert.match(sql, /artifact ->> 'mode' <> 'internal_draft_only'/i);
-  assert.match(sql, /artifact -> 'externalEffects' <> 'false'::jsonb/i);
-  assert.match(sql, /artifact -> 'submissionAuthorized' <> 'false'::jsonb/i);
+  assert.match(sql, /artifact ->> 'mode' is distinct from 'internal_draft_only'/i);
+  assert.match(sql, /artifact -> 'externalEffects' is distinct from 'false'::jsonb/i);
+  assert.match(sql, /artifact -> 'submissionAuthorized' is distinct from 'false'::jsonb/i);
+  assert.match(sql, /artifact -> 'requiresSubmissionApproval' is distinct from 'true'::jsonb/i);
+  assert.match(sql, /jsonb_typeof\(new\.artifact -> 'evidence'\) is distinct from 'array'/i);
   assert.match(sql, /grant select, insert on table public\.company_funding_draft_artifacts to authenticated/i);
   assert.doesNotMatch(sql, /grant[^;]*update[^;]*to authenticated/i);
   assert.doesNotMatch(sql, /grant[^;]*delete[^;]*to authenticated/i);
