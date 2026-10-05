@@ -393,7 +393,7 @@ export function MissingAnswerExperience() {
             <h2 id="outreach-partner-title">Become a Foremention Design Partner.</h2>
             <p>Use one real B2B software category, five buyer questions, and one measurable company-change cycle. Founder-led by design while the workflow is being validated with real teams.</p>
           </div>
-          <Link data-design-partner-cta="home_partner" className="canonical-button canonical-button--primary" href="/contact">Apply as Design Partner <Arrow /></Link>
+          <Link data-design-partner-cta="home_partner" className="canonical-button canonical-button--primary" href="/contact">Request a pilot <Arrow /></Link>
         </div>
         <ol className="outreach-partner__steps">
           {partnerSteps.map(([number, title, body]) => <li key={number}><span>{number}</span><strong>{title}</strong><p>{body}</p></li>)}
