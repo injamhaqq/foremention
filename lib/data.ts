@@ -481,15 +481,15 @@ export function getProviderStatuses(): ProviderStatus[] {
 export async function loadProviderStatuses(viewer: Viewer): Promise<ProviderStatus[]> {
   const configured = getProviderStatuses();
   if (viewer.mode === "demo") return configured.map((provider) => ({ ...provider, configured: true, health: "available" }));
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return configured;
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return configured;
   const [attempts, answers] = await Promise.all([
-    supabaseRest<Array<{ provider: string; status: string; completed_at: string | null; created_at: string }>>(
-      `run_attempts?select=provider,status,completed_at,created_at&organization_id=eq.${organizationId}&order=created_at.desc&limit=100`,
+    supabaseRest<Array<{ provider: string; status: string; completed_at: string | null; created_at: string; run: { project_id: string } | null }>>(
+      `run_attempts?select=provider,status,completed_at,created_at,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&order=created_at.desc&limit=100`,
       { token: viewer.accessToken },
     ),
-    supabaseRest<Array<{ provider: string; brand_present: boolean | null }>>(
-      `run_answers?select=provider,brand_present&organization_id=eq.${organizationId}&review_status=eq.verified`,
+    supabaseRest<Array<{ provider: string; brand_present: boolean | null; run: { project_id: string } | null }>>(
+      `run_answers?select=provider,brand_present,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&limit=2000`,
       { token: viewer.accessToken },
     ),
   ]);
@@ -644,10 +644,15 @@ export async function loadVerifiedClaims(viewer: Viewer): Promise<VerifiedClaim[
 
 export async function loadRunAnswers(viewer: Viewer, runId: string): Promise<WorkspaceRunAnswer[]> {
   if (viewer.mode === "demo") return [];
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const authorized = await supabaseRest<Array<{ id: string }>>(
+    `runs?select=id&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+    { token: viewer.accessToken },
+  );
+  if (!authorized[0]) return [];
   const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string }>>(
-    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${organizationId}&run_id=eq.${runId}&order=collected_at.asc`,
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${context.organizationId}&run_id=eq.${encodeURIComponent(runId)}&order=collected_at.asc`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
@@ -665,10 +670,15 @@ export type RunCostEvent = {
 
 export async function loadRunCostEvents(viewer: Viewer, runId: string): Promise<RunCostEvent[]> {
   if (viewer.mode === "demo") return [];
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const authorized = await supabaseRest<Array<{ id: string }>>(
+    `runs?select=id&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+    { token: viewer.accessToken },
+  );
+  if (!authorized[0]) return [];
   const rows = await supabaseRest<Array<{ provider: string; model: string; input_tokens: number | null; output_tokens: number | null; total_tokens: number | null; estimated_cost_usd: number | string; cost_source: RunCostEvent["costSource"] }>>(
-    `ai_cost_events?select=provider,model,input_tokens,output_tokens,total_tokens,estimated_cost_usd,cost_source&organization_id=eq.${organizationId}&run_id=eq.${encodeURIComponent(runId)}&order=observed_at.asc&limit=500`,
+    `ai_cost_events?select=provider,model,input_tokens,output_tokens,total_tokens,estimated_cost_usd,cost_source&organization_id=eq.${context.organizationId}&run_id=eq.${encodeURIComponent(runId)}&order=observed_at.asc&limit=500`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ provider: row.provider, model: row.model, inputTokens: row.input_tokens, outputTokens: row.output_tokens, totalTokens: row.total_tokens, costUsd: Number(row.estimated_cost_usd), costSource: row.cost_source }));
@@ -676,11 +686,11 @@ export async function loadRunCostEvents(viewer: Viewer, runId: string): Promise<
 
 export async function loadRunConfiguration(viewer: Viewer, runId: string): Promise<{ promptIds: string[]; provider: string } | null> {
   if (viewer.mode === "demo") return { promptIds: demoPrompts.slice(0, 1).map((prompt) => prompt.id), provider: "mock" };
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return null;
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return null;
   const [runs, prompts] = await Promise.all([
-    supabaseRest<Array<{ provider_ids: string[] }>>(`runs?select=provider_ids&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${organizationId}&status=in.(complete,partial)&limit=1`, { token: viewer.accessToken }),
-    supabaseRest<Array<{ prompt_id: string }>>(`run_prompt_selections?select=prompt_id&run_id=eq.${encodeURIComponent(runId)}&organization_id=eq.${organizationId}&order=created_at.asc&limit=100`, { token: viewer.accessToken }),
+    supabaseRest<Array<{ provider_ids: string[] }>>(`runs?select=provider_ids&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&limit=1`, { token: viewer.accessToken }),
+    supabaseRest<Array<{ prompt_id: string }>>(`run_prompt_selections?select=prompt_id&run_id=eq.${encodeURIComponent(runId)}&organization_id=eq.${context.organizationId}&order=created_at.asc&limit=100`, { token: viewer.accessToken }),
   ]);
   if (!runs[0]?.provider_ids?.[0] || !prompts.length) return null;
   return { provider: runs[0].provider_ids[0], promptIds: prompts.map((prompt) => prompt.prompt_id) };
@@ -688,23 +698,23 @@ export async function loadRunConfiguration(viewer: Viewer, runId: string): Promi
 
 export async function loadLatestReviewedAnswers(viewer: Viewer, limit = 12): Promise<WorkspaceRunAnswer[]> {
   if (viewer.mode === "demo") return [];
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
   const safeLimit = Math.max(1, Math.min(50, Math.round(limit)));
-  const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string }>>(
-    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at&organization_id=eq.${organizationId}&review_status=eq.verified&order=collected_at.desc&limit=${safeLimit}`,
+  const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string; run: { project_id: string } | null }>>(
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&order=collected_at.desc&limit=${safeLimit}`,
     { token: viewer.accessToken },
   );
   return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
 }
 
 const demoPrompts: WorkspacePrompt[] = [
-  { id: "demo-1", cluster: "Discovery", text: "Best HR software for distributed teams", approved: true },
-  { id: "demo-2", cluster: "Use case", text: "What HR platform works for a 200-person remote company?", approved: true },
-  { id: "demo-3", cluster: "Comparison", text: "Northstar HR vs Deel for a global team", approved: false },
-  { id: "demo-4", cluster: "Alternative", text: "Best alternatives to Rippling for distributed companies", approved: true },
-  { id: "demo-5", cluster: "Trust", text: "Most reliable HRIS for cross-border compliance", approved: false },
-  { id: "demo-6", cluster: "Constraint", text: "Affordable HR platform for a remote startup", approved: true },
+  { id: "demo-1", key: "demo-1", cluster: "Discovery", text: "Best HR software for distributed teams", approved: true, version: 1, locale: "en-US", market: "global" },
+  { id: "demo-2", key: "demo-2", cluster: "Use case", text: "What HR platform works for a 200-person remote company?", approved: true, version: 1, locale: "en-US", market: "global" },
+  { id: "demo-3", key: "demo-3", cluster: "Comparison", text: "Northstar HR vs Deel for a global team", approved: false, version: 1, locale: "en-US", market: "global" },
+  { id: "demo-4", key: "demo-4", cluster: "Alternative", text: "Best alternatives to Rippling for distributed companies", approved: true, version: 1, locale: "en-US", market: "global" },
+  { id: "demo-5", key: "demo-5", cluster: "Trust", text: "Most reliable HRIS for cross-border compliance", approved: false, version: 1, locale: "en-US", market: "global" },
+  { id: "demo-6", key: "demo-6", cluster: "Constraint", text: "Affordable HR platform for a remote startup", approved: true, version: 1, locale: "en-US", market: "global" },
 ];
 
 export async function loadPrompts(viewer: Viewer): Promise<WorkspacePrompt[]> {
