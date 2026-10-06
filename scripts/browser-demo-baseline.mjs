@@ -72,6 +72,8 @@ try {
       const answers = page.locator(".canonical-answer-record");
       assert.equal(await answers.count(), 16, "Every advertised demo answer is inspectable");
       assert.match(await answers.first().innerText(), /Fictional demonstration only/);
+      const answerAudit = await new AxeBuilder({ page }).include(".canonical-answer-record > p").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+      assert.deepEqual(answerAudit.violations, [], "Recorded provider answer text must remain readable in the actual workspace theme");
       const evidence = answers.first().locator(".canonical-contained-evidence").first();
       await evidence.locator(":scope > summary").click();
       await evidence.locator(".canonical-source-evidence").waitFor();
