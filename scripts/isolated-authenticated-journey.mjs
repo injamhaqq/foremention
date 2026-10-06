@@ -334,9 +334,17 @@ async function main() {
     await db("PATCH","change_specifications?id=eq."+spec.id,{
       verification_plan_json:{intent:"seeded local-only intent",comparison_contract:"fixture-preserve-v1"}
     });
+    const analystRead=must(await appCall(analystCtx,"GET","/api/change-specifications"),200,"analyst decision editor preflight");
+    assert.equal(analystRead.permissions?.role,"analyst");
+    assert.equal(analystRead.permissions?.canWrite,true);
+    assert.equal(analystRead.permissions?.canDecide,false);
+    assert.ok(analystRead.data.some(item=>item.id===spec.id),"analyst preflight must return the scoped decision");
+    step("authenticated-analyst-editor-api-role-preflight");
+
     const analystPage=await analystCtx.newPage();
-    await analystPage.goto(new URL("/app/change-specifications/"+spec.id,app).toString(),{waitUntil:"domcontentloaded",timeout:30000});
-    await analystPage.getByRole("heading",{name:"Define the exact company change."}).waitFor();
+    const analystNavigation=await analystPage.goto(new URL("/app/change-specifications/"+spec.id,app).toString(),{waitUntil:"domcontentloaded",timeout:45000});
+    assert.equal(analystNavigation?.status(),200,"authenticated decision editor navigation must return 200");
+    await analystPage.getByRole("heading",{name:"Define the exact company change."}).waitFor({timeout:45000});
     assert.match(await analystPage.locator("body").innerText(),/Workspace role: analyst/i);
     assert.equal(await analystPage.getByRole("button",{name:"Approve"}).count(),0,"analyst must not receive manager approval controls");
     await analystPage.getByLabel("Exact company change").fill("Add a fixture-only source disclosure");
