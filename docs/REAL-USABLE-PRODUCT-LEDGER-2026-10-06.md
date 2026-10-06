@@ -191,3 +191,5 @@ Known limitations: fictional mode cannot prove live provider analysis, real acti
 - Next dependency: reconcile the legacy Opportunities placement CTA with canonical decisions and verify the authenticated review → decision → comparable follow-up journey in an isolated acceptance workspace.
 
 - D2 final screenshot review also exposed a legacy white card underneath light-text, verbatim brand-mention sentences. Canonical mention-context cards now use the established dark surface/foreground tokens; the actual Record browser journey audits those extracted sentences separately. No extraction, measurement or inference logic changed.
+
+- D2 browser fixture reliability: the simulated Attention outage now stays unavailable until explicit keyboard Retry, rather than consuming a one-shot error response. The check still requires a real failed request, a visible error, the Records fallback, a new recovery request and a recovered inbox; it does not assume a specific number of mount-time reads.

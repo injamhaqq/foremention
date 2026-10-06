@@ -103,9 +103,10 @@ try {
       await page.screenshot({ path: resolve(output, `record-evidence-${width}.png`), fullPage: true });
       // Deliberately unavailable Attention must be an error, then recover via Retry.
       let attentionRequests = 0;
+      let recoverAttention = false;
       await page.route("**/api/retention/attention", async (route) => {
         attentionRequests += 1;
-        if (attentionRequests === 1) await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Attention temporarily unavailable" }) });
+        if (!recoverAttention) await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Attention temporarily unavailable" }) });
         else await route.fallback();
       });
       await page.goto(new URL("/app", base).href);
@@ -115,16 +116,19 @@ try {
       await page.screenshot({ path: resolve(output, `attention-error-${width}.png`), fullPage: true });
       const retry = alert.getByRole("button", { name: "Retry attention" });
       await retry.focus();
+      const failedAttentionRequests = attentionRequests;
+      assert.ok(failedAttentionRequests >= 1, "The outage must include a real failed Attention request");
+      recoverAttention = true;
       await page.keyboard.press("Enter");
       await page.locator(".attention-inbox").waitFor();
       assert.equal(await alert.count(), 0);
-      assert.equal(attentionRequests, 2);
+      assert.ok(attentionRequests > failedAttentionRequests, "Keyboard Retry must issue a recovery request");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
       assert.equal(overflow, false, `Overview overflows at ${width}px`);
       const audit = await new AxeBuilder({ page }).include(".getting-started").include(".attention-inbox").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
       assert.deepEqual(audit.violations, [], "Changed baseline/Attention surfaces must pass axe");
       assert.deepEqual(errors, [], "Demo journey must not produce page errors or unexpected mutations");
-      summary.profiles.push({ width, passed: true, attentionRequests, violations: audit.violations });
+      summary.profiles.push({ width, passed: true, failedAttentionRequests, attentionRequests, violations: audit.violations });
     } finally {
       await page.screenshot({ path: resolve(output, `final-${width}.png`), fullPage: true }).catch(() => {});
       await context.close();
