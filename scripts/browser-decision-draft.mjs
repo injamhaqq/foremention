@@ -51,12 +51,14 @@ try {
       await page.route(target,async(route)=>{
         const hint=new URL(route.request().url()).searchParams.get("source");
         const selectedHtml=renderToStaticMarkup(decisionDraftClientFixture({sourceUrl:hint,records:[decisionDraftRecord,selectedRecord]}).render());
-        await route.fulfill({contentType:"text/html",body:`<!doctype html><html lang="en"><head><title>Selected decision fixture</title>${css}</head><body><div class="app-frame" style="display:block"><main class="workspace page"><h1>Review a decision</h1>${selectedHtml}</main></div></body></html>`});
+        await route.fulfill({contentType:"text/html; charset=utf-8",body:`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Selected decision fixture</title>${css}</head><body><div class="app-frame" style="display:block"><main class="workspace page"><h1>Review a decision</h1>${selectedHtml}</main></div></body></html>`});
       });
       // The synthetic document has no origin; supply one for native relative-link navigation.
       await page.evaluate(()=>{const base=document.createElement("base");base.href="https://fixture.example";document.head.append(base);});
       await entry.focus();await page.keyboard.press("Enter");await page.waitForURL(target);
       assert.equal(await page.title(),"Selected decision fixture");
+      assert.equal(await page.evaluate(()=>document.characterSet),"UTF-8");
+      assert.ok((await page.locator("body").textContent()).includes("→"),"Native navigation must preserve evidence-link glyphs");
       await page.getByRole("heading",{name:"Selected cited page",exact:true}).waitFor();
       assert.equal(await page.getByRole("button",{name:"Create decision draft"}).count(),1);
       await page.screenshot({path:resolve(output,`opportunity-selected-${width}.png`),fullPage:true});
