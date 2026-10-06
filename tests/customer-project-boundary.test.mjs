@@ -16,6 +16,8 @@ test("core customer records are bound to the active project", async () => {
   assert.match(data, /prompt_clusters\?select=id&organization_id=eq\.\$\{organizationId\}&project_id=eq\.\$\{project\.id\}/);
   assert.match(data, /categories\?select=id,name&organization_id=eq\.\$\{organizationId\}&active=eq\.true&order=created_at\.asc&limit=100/);
   assert.match(data, /categories\.find\(\(candidate\) => candidate\.name\.trim\(\)\.toLocaleLowerCase\(\) === projectCategory\.toLocaleLowerCase\(\)\)/);
+  assert.match(data, /projectBrand: project\.projectBrand/);
+  assert.match(data, /includes\(context\.projectBrand\.toLocaleLowerCase\(\)\)/);
 });
 
 test("legacy Source Maps and Actions fail closed on active-project ownership", async () => {
