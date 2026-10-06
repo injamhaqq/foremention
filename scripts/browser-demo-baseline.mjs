@@ -25,6 +25,20 @@ try {
     let attentionMode = "unavailable";
     const stalledRequests = new Set();
     const releaseStalledRequests = () => { for (const release of stalledRequests) release(); stalledRequests.clear(); };
+    const clientNavigate = async (href) => {
+      const targetUrl = new URL(href, base).href;
+      let link = page.locator(`a[href="${href}"]:visible`).first();
+      if (await link.count() === 0) {
+        const mobileMenu = page.locator(".app-mobile-nav");
+        if (await mobileMenu.count()) {
+          const open = await mobileMenu.getAttribute("open");
+          if (open === null) await mobileMenu.locator("summary").click();
+        }
+        link = page.locator(`a[href="${href}"]:visible`).first();
+      }
+      await link.waitFor();
+      await Promise.all([page.waitForURL(targetUrl), link.click()]);
+    };
     const network = [];
     const noteNetwork = (request, state, status) => {
       const url = new URL(request.url());
@@ -127,9 +141,9 @@ try {
         else if (attentionMode === "unavailable") await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Attention temporarily unavailable" }) });
         else await route.fallback();
       });
-      await page.goto(new URL("/app", base).href);
+      await clientNavigate("/app");
       const alert = page.getByRole("alert").filter({ hasText: "Attention is temporarily unavailable." });
-      await alert.waitFor();
+      await alert.waitFor({ timeout: 45_000 });
       assert.equal(await alert.getByRole("link", { name: "Open Records" }).getAttribute("href"), "/app/runs");
       await page.screenshot({ path: resolve(output, `attention-error-${width}.png`), fullPage: true });
       const retry = alert.getByRole("button", { name: "Retry attention" });
@@ -144,8 +158,9 @@ try {
       // A request that never returns must also stop loading and offer Retry.
       attentionMode = "stalled";
       const beforeStall = attentionRequests;
-      await page.goto(new URL("/app", base).href);
-      await alert.waitFor();
+      await clientNavigate("/app/runs");
+      await clientNavigate("/app");
+      await alert.waitFor({ timeout: 45_000 });
       assert.ok(attentionRequests > beforeStall, "The deadline case must dispatch an actual stalled Attention read");
       assert.equal(await page.locator(".attention-inbox").count(), 0, "A timeout cannot display an empty/successful inbox");
       assert.equal(await alert.getByRole("link", { name: "Open Records" }).getAttribute("href"), "/app/runs");

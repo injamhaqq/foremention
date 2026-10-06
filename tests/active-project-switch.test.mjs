@@ -13,7 +13,9 @@ test("active project selection is authorized, server-scoped, and cleared with th
 
   assert.match(data, /ACTIVE_PROJECT_COOKIE/);
   assert.match(data, /projects\.find\(\(candidate\) => candidate\.id === requestedProjectId\) \|\| projects\[0\]/);
-  assert.match(data, /projects\?select=id,name,website,category&organization_id=eq\.\$\{organizationId\}&status=eq\.active/);
+  assert.match(data, /projects\?select=id,name,client_brand,website,category&organization_id=eq\.\$\{organizationId\}&status=eq\.active/);
+  assert.match(data, /projectBrand: row\.client_brand\.trim\(\)/);
+  assert.match(data, /projectBrand: project\.projectBrand/);
 
   assert.match(route, /isTrustedMutationOrigin/);
   assert.match(route, /getPrimaryOrganizationId/);

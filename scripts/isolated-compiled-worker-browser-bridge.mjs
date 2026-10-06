@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Bounded experiment only: real compiled Worker via direct test-harness
-// dispatcher, exposed to one real local Chromium fixture through a minimal
-// loopback HTTP bridge. Not production/edge/network-representative acceptance.
+// Bounded experiment only: real compiled Worker plus its generated static
+// assets through the local test-harness listener, exposed to one real Chromium
+// fixture through a minimal loopback HTTP bridge. Not production/edge/network-
+// representative acceptance.
 // No production service, provider, paid API, existing browser credentials or
 // sensitive failure log is accessed.
 import assert from "node:assert/strict";
@@ -62,6 +63,12 @@ try {
           for (const item of value) headers.append(name,item);
         } else if (value !== undefined) headers.set(name,value);
       }
+      // Preserve the browser-facing same-origin boundary through the loopback
+      // harness transport. The application already recognizes validated
+      // forwarded host/protocol metadata for reverse-proxy execution.
+      headers.set("x-forwarded-host", new URL(appOrigin).host);
+      headers.set("x-forwarded-proto", new URL(appOrigin).protocol.replace(":", ""));
+
       const chunks = [];
       let received = 0;
       for await (const chunk of request) {
@@ -74,17 +81,26 @@ try {
       }
       const method = request.method || "GET";
       const body = chunks.length ? Buffer.concat(chunks) : undefined;
-      const workerResponse = await compiledWorker.fetch(target.toString(),{
+      // Preserve the already-proven direct compiled-Worker semantics for
+      // application/API requests. Only generated browser assets need the
+      // harness listener's static-asset layer for real Chromium hydration.
+      const requestInit = {
         method,
         headers,
         ...(body && !["GET","HEAD"].includes(method) ? {body} : {}),
         redirect:"manual",
-      });
+      };
+      const workerResponse = target.pathname.startsWith("/assets/")
+        ? await fetch(new URL(target.pathname + target.search, url), requestInit)
+        : await compiledWorker.fetch(target.toString(), requestInit);
       // A bridge is not a pass-retry device: return the actual first status.
       // Keep Set-Cookie as separate headers for real browser session handling.
+      // Undici has already decoded any compressed response body. Do not
+      // forward Content-Encoding for those decoded bytes or the outer browser/
+      // fetch client will attempt a second decompression.
       const sentHeaders = {};
       workerResponse.headers.forEach((value,name) => {
-        if (["set-cookie","connection","content-length","transfer-encoding"].includes(name)) return;
+        if (["set-cookie","connection","content-length","transfer-encoding","content-encoding"].includes(name)) return;
         sentHeaders[name] = value;
       });
       const setCookies = workerResponse.headers.getSetCookie();
@@ -107,7 +123,14 @@ try {
   });
   const proxyHealth = await fetch(appOrigin + "/api/health");
   assert.equal(proxyHealth.status,200,"Browser-facing loopback must preserve compiled-Worker health.");
-  process.stdout.write("[compiled-browser-bridge] first-compiled-worker-and-loopback-health-200\n");
+  const root = await fetch(appOrigin + "/");
+  assert.equal(root.status,200,"Browser-facing loopback must render the compiled application shell.");
+  const rootHtml = await root.text();
+  const assetPath = rootHtml.match(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/)?.[1];
+  assert.ok(assetPath,"Compiled application shell must reference a generated browser asset.");
+  const asset = await fetch(appOrigin + assetPath);
+  assert.equal(asset.status,200,"Browser-facing loopback must serve generated static assets.");
+  process.stdout.write("[compiled-browser-bridge] first-compiled-worker-loopback-and-static-asset-health-200\n");
 
   // Existing full Playwright Chromium journey performs real review/approval,
   // locally persisted second cycle and strict positive/negative page reads.

@@ -23,6 +23,12 @@ test("real authenticated customer acceptance must only run against local ephemer
   assert.match(journey,/const state=must\(finalRead,200,"final audited resolution read"\)/);
   assert.match(journey,/probeCode=candidate==="PGRST303"\?"PGRST303":"other"/);
   assert.match(journey,/ordinary-run-review-published-one-citation-four-zero-citation-questions/);
+  assert.match(journey,/authenticated-analyst-editor-api-role-preflight/);
+  assert.match(journey,/analystRead\.permissions\?\.canWrite,true/);
+  assert.match(journey,/analystRead\.permissions\?\.canDecide,false/);
+  assert.match(journey,/authenticated-analyst-editor-save-unsaved-submit-and-role-boundary/);
+  assert.match(journey,/comparison_contract:"fixture-preserve-v1"/);
+  assert.match(journey,/Save & submit for review/);
   assert.match(journey,/real-change-spec-review-role-gates-and-manager-approval/);
   assert.match(journey,/evidence-linked-resolution-and-company-controlled-execution/);
   assert.match(journey,/ordinary-reviewed-zero-citation-second-cycle-noncausal-tenant-scoped-result/);
@@ -68,7 +74,14 @@ test("authenticated bridge dispatches exact compiled Worker status with no remot
   const bridge=await read("../scripts/isolated-compiled-worker-browser-bridge.mjs");
   assert.match(bridge,/createTestHarness/); assert.match(bridge,/compiledWorker\.fetch/);
   assert.match(bridge,/delete original\.ai/); assert.match(bridge,/target\.origin !== appOrigin/);
+  assert.match(bridge,/target\.pathname\.startsWith\("\/assets\/"\)/);
+  assert.match(bridge,/await fetch\(new URL\(target\.pathname \+ target\.search, url\), requestInit\)/);
+  assert.match(bridge,/await compiledWorker\.fetch\(target\.toString\(\), requestInit\)/);
+  assert.match(bridge,/Browser-facing loopback must serve generated static assets/);
   assert.match(bridge,/response\.writeHead\(workerResponse\.status,sentHeaders\)/);
+  assert.match(bridge,/content-encoding/);
+  assert.match(bridge,/headers\.set\("x-forwarded-host", new URL\(appOrigin\)\.host\)/);
+  assert.match(bridge,/headers\.set\("x-forwarded-proto", new URL\(appOrigin\)\.protocol\.replace\(":", ""\)\)/);
   assert.match(bridge,/received > 2_000_000/); assert.match(bridge,/headers\.getSetCookie\(\)/);
   assert.match(bridge,/spawn\(process\.execPath,\["scripts\/isolated-authenticated-journey\.mjs"\]/);
   assert.match(bridge,/await unlink\(isolatedConfig\)/);

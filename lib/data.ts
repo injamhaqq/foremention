@@ -70,12 +70,13 @@ export type QuestionPerformance = {
   brandMentionCount: number;
   guidance: "Needs repeat" | "High evidence yield" | "Keep as baseline" | "Low observed yield";
 };
-export type WorkspaceProject = { id: string; name: string; website: string | null; category: string | null };
+export type WorkspaceProject = { id: string; name: string; projectBrand: string; website: string | null; category: string | null };
 export type WorkspaceSummary = { organizationId: string; organizationName: string; projectId: string; projectName: string; website: string | null; category: string | null; promptCount: number };
 export type WorkspaceContext = {
   organizationId: string;
   projectId: string;
   projectName: string;
+  projectBrand: string;
   categoryId: string;
   clusterId: string | null;
   organizationName: string;
@@ -517,17 +518,20 @@ export async function loadProviderStatuses(viewer: Viewer): Promise<ProviderStat
 }
 
 export async function loadWorkspaceProjects(viewer: Viewer): Promise<WorkspaceProject[]> {
-  if (viewer.mode === "demo") return [{ id: "20000000-0000-4000-8000-000000000001", name: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" }];
+  if (viewer.mode === "demo") return [{ id: "20000000-0000-4000-8000-000000000001", name: "Northstar HR", projectBrand: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" }];
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return [];
-  return supabaseRest<WorkspaceProject[]>(
-    `projects?select=id,name,website,category&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=100`,
+  const rows = await supabaseRest<Array<{ id: string; name: string; client_brand: string; website: string | null; category: string | null }>>(
+    `projects?select=id,name,client_brand,website,category&organization_id=eq.${organizationId}&status=eq.active&order=created_at.asc&limit=100`,
     { token: viewer.accessToken },
   );
+  return rows
+    .filter((row) => Boolean(row.client_brand?.trim()))
+    .map((row) => ({ id: row.id, name: row.name, projectBrand: row.client_brand.trim(), website: row.website, category: row.category }));
 }
 
 export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceContext | null> {
-  if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", projectName: "Northstar HR", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
+  if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", projectName: "Northstar HR", projectBrand: "Northstar HR", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return null;
   const [organizations, projects, cookieStore] = await Promise.all([
@@ -554,7 +558,7 @@ export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceCon
     : categories[0] || null;
   // Never silently run a named project category under another category ID.
   if (!category) return null;
-  return { organizationId, projectId: project.id, projectName: project.name, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website || organizations[0].website, category: projectCategory || category.name };
+  return { organizationId, projectId: project.id, projectName: project.name, projectBrand: project.projectBrand, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website || organizations[0].website, category: projectCategory || category.name };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
@@ -770,7 +774,7 @@ export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionP
   return Array.from(groups.entries()).map(([key, answers]) => {
     const citationCount = answers.reduce((sum, answer) => sum + (answer.citations_json || []).filter((citation) => Boolean(citation.url)).length, 0);
     const citedAnswers = answers.filter((answer) => (answer.citations_json || []).some((citation) => Boolean(citation.url))).length;
-    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.organizationName.toLocaleLowerCase())).length;
+    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.projectBrand.toLocaleLowerCase())).length;
     const runCount = new Set(answers.map((answer) => answer.run_id)).size;
     const guidance: QuestionPerformance["guidance"] = runCount < 2 ? "Needs repeat" : citationCount >= answers.length && brandMentionCount > 0 ? "High evidence yield" : citationCount > 0 ? "Keep as baseline" : "Low observed yield";
     return { key, question: answers[0]?.prompt_text || key, answerCount: answers.length, runCount, citationCount, citedAnswerPct: answers.length ? Math.round((citedAnswers / answers.length) * 100) : 0, brandMentionCount, guidance };
