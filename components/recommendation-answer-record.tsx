@@ -69,7 +69,7 @@ export function RecommendationAnswerRecord({
               <small>Returned reference → mapped source record → bounded retrieval → human review</small>
             </summary>
             <div className="canonical-contained-evidence__body">
-              <RecommendationSourceEvidence viewer={viewer} source={sourceTarget} demo={demo} canInspectSources={canInspectSources} />
+              <RecommendationSourceEvidence viewer={viewer} source={sourceTarget} demo={demo} canInspectSources={canInspectSources} inspectionId={`${answer.id}-${index}`} />
             </div>
           </details> : <small className="canonical-citation-record__boundary">No run-scoped mapped source record is available yet. The returned citation remains the evidence boundary.</small>}
         </div>;

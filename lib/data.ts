@@ -13,7 +13,7 @@ import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { demoPlacements, demoRuns, sourceMapEntries } from "@/lib/demo-data";
+import { demoAnswerRows, demoPlacements, demoPrompts, demoRuns, getDemoRunAnswers, sourceMapEntries } from "@/lib/demo-data";
 import { filterPlacementsToProject, loadProjectPlacementScope, MAX_PROJECT_PLACEMENTS } from "@/lib/project-placement-scope";
 import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { filterNotificationsToProject, MAX_PROJECT_NOTIFICATION_SCAN } from "@/lib/project-notification-scope";
@@ -277,8 +277,8 @@ function demoAgentControlPlane(): AgentControlPlaneView {
     "question-scout": { summary: "Four fictional buyer questions passed workspace validation.", metrics: [agentMetric("Questions", 4), agentMetric("Competitors", 3)] },
     "answer-collector": { summary: "Sixteen fictional provider answers are shown only inside this demo.", metrics: [agentMetric("Answers", 16), agentMetric("Failures", 0)] },
     "evidence-mapper": { summary: "Thirty-two fictional citation observations resolve to eight demonstration sources.", metrics: [agentMetric("Citations", 32), agentMetric("Unique sources", 8)] },
-    "brand-observer": { summary: "Fictional brand presence and first-mention measurements demonstrate the calculation.", metrics: [agentMetric("Brand presence", "61%"), agentMetric("First mention", "29%")] },
-    "human-review-gate": { summary: "Fictional evidence passed a demonstration review gate.", metrics: [agentMetric("Gate", "Demo complete")] },
+    "brand-observer": { summary: "Fictional brand presence and first-mention measurements demonstrate the calculation.", metrics: [agentMetric("Brand presence", `${demoRuns[0].presence}%`), agentMetric("First mention", `${demoRuns[0].firstMention}%`)] },
+    "human-review-gate": { summary: "Fictional answers are reviewed examples; cited pages still require human review.", metrics: [agentMetric("Gate", "Source review pending")] },
   };
   const agents = FOREMENTION_AGENTS.map((definition) => ({ ...definition, status: "complete" as const, ...summaries[definition.id], runId: demoRuns[0].id, observedAt: demoRuns[0].date, telemetry: "fictional" as const }));
   return { agents, latestRunId: demoRuns[0].id, recordedExecutions: agents.length, activeAgents: 0, failedAgents: 0, waitingAgents: 0, telemetry: "fictional" };
@@ -324,7 +324,19 @@ export async function loadSourceEvidenceContexts(
   viewer: Viewer,
   sourceIds: string[],
 ): Promise<Record<string, SourceEvidenceContext[]>> {
-  if (viewer.mode === "demo" || !sourceIds.length) return {};
+  if (!sourceIds.length) return {};
+  if (viewer.mode === "demo") {
+    const contexts: Record<string, SourceEvidenceContext[]> = {};
+    const sources = sourceMapEntries.filter((source) => sourceIds.includes(source.id));
+    for (const source of sources) {
+      contexts[source.id] = demoAnswerRows.filter((answer) => answer.run_id === demoRuns[0].id).flatMap((answer) => answer.citations_json.flatMap((citation, index) => citation.url === source.url ? [{
+        sourceId: source.id, answerId: answer.id, prompt: answer.prompt_text,
+        provider: answer.provider, model: answer.model, answerExcerpt: excerpt(answer.answer_text),
+        citationOrdinal: index + 1, observedAt: dateLabel(answer.collected_at),
+      }] : []));
+    }
+    return contexts;
+  }
   const context = await loadWorkspaceContext(viewer);
   if (!context) return {};
   const safeSourceIds = sourceIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
@@ -617,7 +629,7 @@ export async function loadVerifiedClaims(viewer: Viewer): Promise<VerifiedClaim[
 }
 
 export async function loadRunAnswers(viewer: Viewer, runId: string): Promise<WorkspaceRunAnswer[]> {
-  if (viewer.mode === "demo") return [];
+  if (viewer.mode === "demo") return getDemoRunAnswers(runId);
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
   const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string; run: { project_id: string } | null }>>(
@@ -650,7 +662,7 @@ export async function loadRunCostEvents(viewer: Viewer, runId: string): Promise<
 }
 
 export async function loadRunConfiguration(viewer: Viewer, runId: string): Promise<{ promptIds: string[]; provider: string } | null> {
-  if (viewer.mode === "demo") return { promptIds: demoPrompts.slice(0, 1).map((prompt) => prompt.id), provider: "mock" };
+  if (viewer.mode === "demo") return demoRuns.some((run) => run.id === runId && run.status === "complete") ? { promptIds: demoPrompts.filter((prompt) => prompt.approved).map((prompt) => prompt.id), provider: "mock" } : null;
   const context = await loadWorkspaceContext(viewer);
   if (!context) return null;
   const runs = await supabaseRest<Array<{ provider_ids: string[] }>>(
@@ -667,7 +679,7 @@ export async function loadRunConfiguration(viewer: Viewer, runId: string): Promi
 }
 
 export async function loadLatestReviewedAnswers(viewer: Viewer, limit = 12): Promise<WorkspaceRunAnswer[]> {
-  if (viewer.mode === "demo") return [];
+  if (viewer.mode === "demo") return demoRuns.flatMap((run) => getDemoRunAnswers(run.id)).filter((answer) => answer.status === "verified").slice(0, Math.max(1, Math.min(50, Math.round(limit))));
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
   const safeLimit = Math.max(1, Math.min(50, Math.round(limit)));
@@ -677,15 +689,6 @@ export async function loadLatestReviewedAnswers(viewer: Viewer, limit = 12): Pro
   );
   return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
 }
-
-const demoPrompts: WorkspacePrompt[] = [
-  { id: "demo-1", cluster: "Discovery", text: "Best HR software for distributed teams", approved: true },
-  { id: "demo-2", cluster: "Use case", text: "What HR platform works for a 200-person remote company?", approved: true },
-  { id: "demo-3", cluster: "Comparison", text: "Northstar HR vs Deel for a global team", approved: false },
-  { id: "demo-4", cluster: "Alternative", text: "Best alternatives to Rippling for distributed companies", approved: true },
-  { id: "demo-5", cluster: "Trust", text: "Most reliable HRIS for cross-border compliance", approved: false },
-  { id: "demo-6", cluster: "Constraint", text: "Affordable HR platform for a remote startup", approved: true },
-];
 
 export async function loadPrompts(viewer: Viewer): Promise<WorkspacePrompt[]> {
   if (viewer.mode === "demo") return demoPrompts;
@@ -710,10 +713,17 @@ export async function loadWorkspaceCompetitors(viewer: Viewer): Promise<string[]
 }
 
 export async function loadCompetitorTracking(viewer: Viewer): Promise<CompetitorTracking[]> {
-  if (viewer.mode === "demo") return [
-    { id: "demo-competitor-1", name: "Deel", website: "https://deel.example", type: "direct", active: true, answerMentions: 3, totalAnswers: 4, mentionFrequencyPct: 75, reviewedCitationPages: 2, sourceOverlap: 1, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 75 }], trendDelta: 25 },
-    { id: "demo-competitor-2", name: "Rippling", website: "https://rippling.example", type: "leader", active: true, answerMentions: 2, totalAnswers: 4, mentionFrequencyPct: 50, reviewedCitationPages: 1, sourceOverlap: 0, trendPoints: [{ runId: "demo-run-1", date: "Jul 10, 2026", frequencyPct: 50 }, { runId: "demo-run-2", date: "Jul 24, 2026", frequencyPct: 50 }], trendDelta: 0 },
-  ];
+  if (viewer.mode === "demo") return ["Deel", "Rippling"].map((name, index) => {
+    const latestAnswers = getDemoRunAnswers(demoRuns[0].id);
+    const mentions = latestAnswers.filter((answer) => answer.answer.includes(name)).length;
+    const trendPoints = demoRuns.slice(0, 2).reverse().map((run) => {
+      const answers = getDemoRunAnswers(run.id);
+      return { runId: run.id, date: run.date, frequencyPct: Math.round(answers.filter((answer) => answer.answer.includes(name)).length / answers.length * 100) };
+    });
+    return { id: `demo-competitor-${index + 1}`, name, website: `https://${name.toLowerCase()}.example`, type: "direct" as const, active: true,
+      answerMentions: mentions, totalAnswers: latestAnswers.length, mentionFrequencyPct: Math.round(mentions / latestAnswers.length * 100),
+      reviewedCitationPages: 0, sourceOverlap: 0, trendPoints, trendDelta: trendPoints[1].frequencyPct - trendPoints[0].frequencyPct };
+  });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
   const [competitors, runs, entries] = await Promise.all([
@@ -743,10 +753,12 @@ export async function loadCompetitorTracking(viewer: Viewer): Promise<Competitor
 }
 
 export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionPerformance[]> {
-  if (viewer.mode === "demo") return [
-    { key: "discovery", question: "Best HR software for distributed teams", answerCount: 4, runCount: 2, citationCount: 9, citedAnswerPct: 100, brandMentionCount: 2, guidance: "High evidence yield" },
-    { key: "trust", question: "Most reliable HRIS for cross-border compliance", answerCount: 2, runCount: 1, citationCount: 3, citedAnswerPct: 100, brandMentionCount: 0, guidance: "Needs repeat" },
-  ];
+  if (viewer.mode === "demo") return demoPrompts.filter((prompt) => prompt.approved).map((prompt) => {
+    const answers = demoAnswerRows.filter((answer) => answer.prompt_key === prompt.id && answer.review_status === "verified");
+    return { key: prompt.id, question: prompt.text, answerCount: answers.length, runCount: new Set(answers.map((answer) => answer.run_id)).size,
+      citationCount: answers.reduce((sum, answer) => sum + answer.citations_json.length, 0), citedAnswerPct: 100,
+      brandMentionCount: answers.filter((answer) => answer.brand_present).length, guidance: "Keep as baseline" };
+  });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
   const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null; run: { project_id: string } | null }>>(
@@ -800,14 +812,14 @@ export async function loadDecisionSignal(viewer: Viewer): Promise<DecisionSignal
       promptCount: demoRuns[0].prompts,
       answerCount: demoRuns[0].answers,
       answerCompletionPct: 100,
-      recommendationConsensusPct: 68,
-      presenceRange: 7,
-      presenceDelta: 3,
-      sourceReviewPct: 88,
-      sourceDependencyPct: 57,
-      recurringSourcePct: 75,
+      recommendationConsensusPct: null,
+      presenceRange: null,
+      presenceDelta: demoRuns[0].presence - demoRuns[1].presence,
+      sourceReviewPct: 0,
+      sourceDependencyPct: null,
+      recurringSourcePct: null,
       evidenceObservations: sourceMapEntries.reduce((sum, source) => sum + source.evidenceCount, 0),
-      decisionReadiness: "directional",
+      decisionReadiness: "insufficient",
     };
     return { ...base, actions: buildDecisionActions(base) };
   }
