@@ -87,9 +87,12 @@ try {
       });
       // A bridge is not a pass-retry device: return the actual first status.
       // Keep Set-Cookie as separate headers for real browser session handling.
+      // Undici has already decoded any compressed response body. Do not
+      // forward Content-Encoding for those decoded bytes or the outer browser/
+      // fetch client will attempt a second decompression.
       const sentHeaders = {};
       workerResponse.headers.forEach((value,name) => {
-        if (["set-cookie","connection","content-length","transfer-encoding"].includes(name)) return;
+        if (["set-cookie","connection","content-length","transfer-encoding","content-encoding"].includes(name)) return;
         sentHeaders[name] = value;
       });
       const setCookies = workerResponse.headers.getSetCookie();
