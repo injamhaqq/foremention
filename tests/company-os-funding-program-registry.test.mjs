@@ -87,6 +87,7 @@ test("registry SQL acceptance and CI wiring cover fail-closed cases", async () =
   const workflow = await read(".github/workflows/ci.yml");
   assert.match(workflow, /verify-company-funding-program-registry\.sql/);
   assert.match(sql, /Authenticated owner received direct funding program registry access/i);
+  assert.match(sql, /Authenticated owner bypassed trusted funding program registry write path/i);
   assert.match(sql, /non-owner\/admin funding program revision creator was accepted/i);
   assert.match(sql, /stale funding source review was accepted into registry/i);
   assert.match(sql, /rejected funding source review was accepted into registry/i);
