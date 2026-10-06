@@ -61,6 +61,19 @@ function hasCompleteMeasurementContext(context: ComparableMeasurementContext | n
   return Boolean(context && measurementKeys.every((key) => Boolean(context[key] && normalize(context[key] || ""))));
 }
 
+// Duplicated question/provider slots are invalid even when two runs repeat
+// the same malformed multiset. The database also has a matching unique
+// (run_id, prompt_key, provider) constraint; fail closed for joined/legacy data.
+function hasDuplicateObservationSlots(slots: ComparableQuestionSlot[]) {
+  const seen = new Set<string>();
+  for (const slot of slots) {
+    const identity = slot.promptKey + "\u0000" + normalize(slot.provider);
+    if (seen.has(identity)) return true;
+    seen.add(identity);
+  }
+  return false;
+}
+
 function slotIdentity(slot: ComparableQuestionSlot) {
   const context = slot.measurementContext as ComparableMeasurementContext;
   return [
@@ -94,8 +107,13 @@ export function assessExactQuestionComparability(
     return { comparable: false, reason: "Verified measurement context is unavailable for one or more answers, including locale, market, buyer stage, or version identity." };
   }
 
-  const latest = scoped.filter((slot) => slot.runId === latestRunId).map(slotIdentity).sort();
-  const previous = scoped.filter((slot) => slot.runId === previousRunId).map(slotIdentity).sort();
+  const latestSlots = scoped.filter((slot) => slot.runId === latestRunId);
+  const previousSlots = scoped.filter((slot) => slot.runId === previousRunId);
+  if (hasDuplicateObservationSlots(latestSlots) || hasDuplicateObservationSlots(previousSlots)) {
+    return { comparable: false, reason: "Duplicate buyer-question/provider observation slots prevent comparable measurement." };
+  }
+  const latest = latestSlots.map(slotIdentity).sort();
+  const previous = previousSlots.map(slotIdentity).sort();
   if (!latest.length || latest.length !== previous.length || latest.some((key, index) => key !== previous[index])) {
     return { comparable: false, reason: "The exact buyer-question/provider/model/measurement context matrix changed between these reviewed collections." };
   }
