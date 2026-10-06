@@ -45,6 +45,11 @@ try {
       const setupLink = attention.getByRole("link", { name: /Review buyer questions/ });
       await setupLink.waitFor();
       assert.equal(await setupLink.getAttribute("href"), "/app/prompts");
+      assert.match(await page.locator(".workspace-heading").innerText(), /16 recorded answers/);
+      const preview = page.locator(".latest-answer");
+      await preview.waitFor();
+      assert.match(await preview.innerText(), /fictional-demo-model/i);
+      assert.match(await preview.innerText(), /Fictional demonstration only/);
       const rows = await attention.locator(".attention-inbox__item").evaluateAll((items) => items.map((item) => {
         const box = item.getBoundingClientRect();
         return { top: box.top, bottom: box.bottom, display: getComputedStyle(item).display };
@@ -64,6 +69,19 @@ try {
       await record.click();
       await page.waitForURL(/\/app\/runs\/.+/);
       await page.locator("main").waitFor();
+      const answers = page.locator(".canonical-answer-record");
+      assert.equal(await answers.count(), 16, "Every advertised demo answer is inspectable");
+      assert.match(await answers.first().innerText(), /Fictional demonstration only/);
+      const answerAudit = await new AxeBuilder({ page }).include(".canonical-answer-record > p").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+      assert.deepEqual(answerAudit.violations, [], "Recorded provider answer text must remain readable in the actual workspace theme");
+      const evidence = answers.first().locator(".canonical-contained-evidence").first();
+      await evidence.locator(":scope > summary").click();
+      await evidence.locator(".canonical-source-evidence").waitFor();
+      assert.match(await evidence.locator(".canonical-contained-evidence__facts").textContent(), /Human review[\s\S]*Pending/);
+      assert.match(await evidence.innerText(), /does not prove authority, influence/);
+      const evidenceIds = await page.locator(".canonical-source-evidence [id]").evaluateAll((elements) => elements.map((element) => element.id));
+      assert.equal(new Set(evidenceIds).size, evidenceIds.length, "Repeated references must retain distinct accessible heading IDs");
+      await page.screenshot({ path: resolve(output, `record-evidence-${width}.png`), fullPage: true });
       // Deliberately unavailable Attention must be an error, then recover via Retry.
       let attentionRequests = 0;
       await page.route("**/api/retention/attention", async (route) => {
