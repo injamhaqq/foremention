@@ -4,6 +4,7 @@ export const SESSION_COOKIE = "foremention-session";
 export const REFRESH_COOKIE = "foremention-refresh";
 export const DEMO_COOKIE = "foremention-demo";
 export const RECOVERY_COOKIE = "foremention-recovery";
+export const ACTIVE_PROJECT_COOKIE = "foremention-active-project";
 
 type SessionTokens = {
   accessToken: string;
@@ -42,11 +43,19 @@ export function clearRecoverySession(response: NextResponse) {
   response.cookies.delete(RECOVERY_COOKIE);
 }
 
+export function setActiveProjectCookie(response: NextResponse, projectId: string) {
+  response.cookies.set(ACTIVE_PROJECT_COOKIE, projectId, {
+    ...cookieBase,
+    maxAge: 60 * 60 * 24 * 365,
+  });
+}
+
 export function clearSessionCookies(response: NextResponse) {
   response.cookies.delete(SESSION_COOKIE);
   response.cookies.delete(REFRESH_COOKIE);
   response.cookies.delete(DEMO_COOKIE);
   response.cookies.delete(RECOVERY_COOKIE);
+  response.cookies.delete(ACTIVE_PROJECT_COOKIE);
 }
 
 export function clearDemoCookie(response: NextResponse) {

@@ -131,17 +131,20 @@ test("source inspection records blocked, oversized, and network-failure outcomes
 
 test("live source inspection remains tenant-scoped, role-checked, origin-guarded, snapshotted and audited inside Recommendation Record", async () => {
   const root = new URL("../", import.meta.url);
-  const [route, evidence, component] = await Promise.all([
+  const [route, evidence, component, sourceScope] = await Promise.all([
     readFile(new URL("app/api/sources/[id]/inspect/route.ts", root), "utf8"),
     readFile(new URL("components/recommendation-source-evidence.tsx", root), "utf8"),
     readFile(new URL("components/source-live-inspector.tsx", root), "utf8"),
+    readFile(new URL("lib/project-source-map-scope.ts", root), "utf8"),
   ]);
   assert.match(route, /isTrustedMutationOrigin/);
   assert.match(route, /getPrimaryWorkspaceRole/);
   assert.match(route, /!role \|\| role === "viewer"/);
   assert.match(route, /created_at=gte\.\$\{recentWindow\}/);
   assert.match(route, /retry-after/);
-  assert.match(route, /source_map_entries\?select=id,source_id[\s\S]*organization_id=eq\.\$\{context\.organizationId\}/);
+  assert.match(route, /loadProjectSourceMapEntryRef/);
+  assert.match(sourceScope, /source_map_entries\?select=id,source_id,source_map_id[^\n]+organization_id=eq\.\$\{encoded\(input\.organizationId\)\}/);
+  assert.match(sourceScope, /run:runs!inner\(project_id\)[^\n]+run\.project_id=eq\.\$\{encoded\(input\.projectId\)\}/);
   assert.match(route, /sources\?select=id,canonical_url[\s\S]*organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(route, /includePageText: true/);
   assert.match(route, /persistSourceSnapshot/);

@@ -13,15 +13,16 @@ export async function loadProjectPlacementScope(input: {
   organizationId: string;
   projectId: string;
   token?: string;
+  serviceRole?: boolean;
 }): Promise<ProjectPlacementScope | null> {
   const [prompts, runs] = await Promise.all([
     supabaseRest<Array<{ id: string }>>(
       `prompts?select=id&organization_id=eq.${input.organizationId}&project_id=eq.${input.projectId}&order=created_at.asc&limit=${MAX_PROJECT_PLACEMENT_SCOPE_LINKS + 1}`,
-      { token: input.token },
+      { token: input.token, serviceRole: input.serviceRole },
     ),
     supabaseRest<Array<{ id: string }>>(
       `runs?select=id&organization_id=eq.${input.organizationId}&project_id=eq.${input.projectId}&order=created_at.desc&limit=${MAX_PROJECT_PLACEMENT_SCOPE_LINKS + 1}`,
-      { token: input.token },
+      { token: input.token, serviceRole: input.serviceRole },
     ),
   ]);
   if (

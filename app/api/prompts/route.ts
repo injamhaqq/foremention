@@ -94,7 +94,7 @@ export async function PATCH(request: Request) {
   }
 
   const scopedPrompt = await supabaseRest<Array<{ id: string }>>(
-    `prompts?select=id&id=eq.${id}&organization_id=eq.${context.organizationId}&limit=1`,
+    `prompts?select=id&id=eq.${id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   if (!scopedPrompt[0]) return NextResponse.json({ error: "Buyer question not found." }, { status: 404 });

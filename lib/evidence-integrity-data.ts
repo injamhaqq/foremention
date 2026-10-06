@@ -9,6 +9,9 @@ import {
   type QuestionPerformance,
 } from "@/lib/data";
 import { sourceMapEntries } from "@/lib/demo-data";
+import { assessCompleteCompetitorHistory, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
+import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS, MAX_COMPLETE_RUN_HISTORY_RUNS } from "@/lib/complete-run-evidence.mjs";
+import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
@@ -32,6 +35,7 @@ const sourceRoute = (value: string | null): SourceMapEntry["route"] => {
 };
 
 const clampPct = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+export const MAX_TRUTHFUL_SOURCE_MAP_ENTRIES = 1000;
 
 type TruthfulSourceEntryRow = {
   id: string;
@@ -71,16 +75,19 @@ export async function loadTruthfulSourceMap(
   if (viewer.mode === "demo") return sourceMapEntries;
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const runFilter = options.runId ? `&run_id=eq.${encodeURIComponent(options.runId)}` : "";
-  const maps = await supabaseRest<Array<{ id: string; run_id: string | null }>>(
-    `source_maps?select=id,run_id&organization_id=eq.${context.organizationId}&category_id=eq.${context.categoryId}${runFilter}&status=eq.published&order=created_at.desc&limit=1`,
-    { token: viewer.accessToken },
-  );
-  if (!maps[0]) return [];
+  const map = await loadLatestProjectSourceMapRef({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    runId: options.runId || null,
+    token: viewer.accessToken,
+  });
+  if (!map) return [];
   const rows = await supabaseRest<TruthfulSourceEntryRow[]>(
-    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,reviewed_at,reviewed_by,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${maps[0].id}&organization_id=eq.${context.organizationId}&order=rank.asc`,
+    `source_map_entries?select=id,source_id,rank,citation_observations,engines,client_present,competitors_present,entry_route,feasibility,influence,reviewed_at,reviewed_by,source:sources(domain,page_title,canonical_url,source_type,crawler_access,crawler_checked_at)&source_map_id=eq.${map.id}&organization_id=eq.${context.organizationId}&order=rank.asc&limit=${MAX_TRUTHFUL_SOURCE_MAP_ENTRIES + 1}`,
     { token: viewer.accessToken },
   );
+  if (rows.length > MAX_TRUTHFUL_SOURCE_MAP_ENTRIES) return [];
   return rows.filter((row) => row.source).map((row) => ({
     id: row.id,
     sourceId: row.source_id,
@@ -119,46 +126,86 @@ export async function loadTruthfulCompetitorTracking(
   if (viewer.mode === "demo") return loadCompetitorTracking(viewer);
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const [competitors, runs, entries] = await Promise.all([
+
+  type HistoryRun = {
+    id: string;
+    status: string;
+    answer_count: number | null;
+    provider_ids: string[];
+    created_at: string;
+  };
+  type HistoryAnswer = {
+    id: string;
+    run_id: string;
+    prompt_key: string;
+    prompt_text: string | null;
+    provider: string;
+    answer_text: string;
+    review_status: string;
+  };
+
+  const [competitors, historyRunRows, entries] = await Promise.all([
     supabaseRest<Array<{ id: string; name: string; website: string | null; competitor_type: CompetitorTracking["type"]; active: boolean }>>(
       `competitors?select=id,name,website,competitor_type,active&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.asc&limit=100`,
       { token: viewer.accessToken },
     ),
-    supabaseRest<Array<{ id: string; created_at: string }>>(
-      `runs?select=id,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.asc&limit=50`,
+    supabaseRest<HistoryRun[]>(
+      `runs?select=id,status,answer_count,provider_ids,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.asc&limit=${MAX_COMPETITOR_HISTORY_RUNS + 1}`,
       { token: viewer.accessToken },
     ),
     loadTruthfulSourceMap(viewer),
   ]);
-  const runIds = runs.map((run) => run.id);
-  const answers = runIds.length ? await supabaseRest<Array<{ run_id: string; answer_text: string }>>(
-    `run_answers?select=run_id,answer_text&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=2000`,
-    { token: viewer.accessToken },
-  ) : [];
+
+  const historyRuns = historyRunRows.slice(0, MAX_COMPETITOR_HISTORY_RUNS);
+  let historyAnswers: HistoryAnswer[] = [];
+  let answerHistoryComplete = historyRunRows.length === 0;
+
+  if (historyRunRows.length > 0 && historyRunRows.length <= MAX_COMPETITOR_HISTORY_RUNS) {
+    const expected = historyRuns.reduce((sum, run) =>
+      sum + (typeof run.answer_count === "number" && Number.isSafeInteger(run.answer_count) ? run.answer_count : 0), 0);
+    if (expected > 0 && expected < MAX_COMPETITOR_HISTORY_ANSWERS) {
+      const runIds = historyRuns.map((run) => run.id);
+      const candidateAnswers = await supabaseRest<HistoryAnswer[]>(
+        `run_answers?select=id,run_id,prompt_key,prompt_text,provider,answer_text,review_status&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=${MAX_COMPETITOR_HISTORY_ANSWERS}`,
+        { token: viewer.accessToken },
+      );
+      if (assessCompleteCompetitorHistory(historyRuns, candidateAnswers).ok) {
+        historyAnswers = candidateAnswers;
+        answerHistoryComplete = true;
+      }
+    }
+  }
 
   return competitors.map((competitor) => {
-    const total = mentionFrequency(answers, competitor.name);
-    const trendPoints = runs.map((run) => {
-      const runAnswers = answers.filter((answer) => answer.run_id === run.id);
-      const point = mentionFrequency(runAnswers, competitor.name);
-      return { runId: run.id, date: dateLabel(run.created_at), frequencyPct: point.frequencyPct };
-    });
-    const reviewedPages = entries.filter((entry) => Boolean(entry.reviewedAt) && entry.competitors.some((name) => name.toLocaleLowerCase() === competitor.name.toLocaleLowerCase()));
+    const total = mentionFrequency(historyAnswers, competitor.name);
+    const trendPoints = answerHistoryComplete
+      ? historyRuns.map((run) => {
+        const runAnswers = historyAnswers.filter((answer) => answer.run_id === run.id);
+        const point = mentionFrequency(runAnswers, competitor.name);
+        return { runId: run.id, date: dateLabel(run.created_at), frequencyPct: point.frequencyPct };
+      })
+      : [];
+    const reviewedPages = entries.filter((entry) =>
+      Boolean(entry.reviewedAt)
+      && entry.competitors.some((name) => name.toLocaleLowerCase() === competitor.name.toLocaleLowerCase()));
+
     let trendDelta: number | null = null;
-    if (comparablePair) {
+    if (answerHistoryComplete && comparablePair) {
       const latestPoint = trendPoints.find((point) => point.runId === comparablePair.latestId);
       const previousPoint = trendPoints.find((point) => point.runId === comparablePair.previousId);
       if (latestPoint && previousPoint) trendDelta = latestPoint.frequencyPct - previousPoint.frequencyPct;
     }
+
     return {
       id: competitor.id,
       name: competitor.name,
       website: competitor.website,
       type: competitor.competitor_type,
       active: competitor.active,
-      answerMentions: total.mentions,
-      totalAnswers: answers.length,
-      mentionFrequencyPct: answers.length ? total.frequencyPct : null,
+      answerMentions: answerHistoryComplete ? total.mentions : 0,
+      totalAnswers: answerHistoryComplete ? historyAnswers.length : 0,
+      answerHistoryComplete,
+      mentionFrequencyPct: answerHistoryComplete && historyAnswers.length ? total.frequencyPct : null,
       reviewedCitationPages: reviewedPages.length,
       sourceOverlap: reviewedPages.filter((entry) => entry.clientPresent).length,
       trendPoints,
@@ -169,6 +216,7 @@ export async function loadTruthfulCompetitorTracking(
 
 function buildDecisionActions(signal: Omit<DecisionSignal, "actions">): DecisionSignal["actions"] {
   const actions: DecisionSignal["actions"] = [];
+  if (signal.latestRunId && signal.answerCompletionPct === null) actions.push({ priority: "now", title: "Restore complete answer evidence", reason: "The latest finalized collection cannot be treated as decision-ready until its independently recorded verified answer set is complete, unambiguous, and readable.", href: `/app/runs/${signal.latestRunId}` });
   if (signal.reviewedRuns < 2) actions.push({ priority: "now", title: "Establish a repeatable baseline", reason: "One finalized reviewed run cannot establish comparable movement.", href: "/app/runs" });
   if (signal.answerCompletionPct !== null && signal.answerCompletionPct < 90) actions.push({ priority: "now", title: "Repair collection coverage", reason: `${signal.answerCompletionPct}% of the expected answer matrix is verified. Diagnose failed or excluded prompt-provider combinations before acting.`, href: signal.latestRunId ? `/app/runs/${signal.latestRunId}` : "/app/runs" });
   if (signal.providerCount < 2) actions.push({ priority: "now", title: "Add a second answer provider", reason: "Cross-provider agreement cannot be measured from a single provider.", href: "/app/settings#providers" });
@@ -206,19 +254,45 @@ export async function loadTruthfulDecisionSignal(viewer: Viewer): Promise<Decisi
     decisionReadiness: "insufficient",
   };
   if (!context) return { ...empty, actions: buildDecisionActions(empty) };
-  const runs = await supabaseRest<Array<{ id: string; provider_ids: string[]; prompt_count: number; created_at: string }>>(
-    `runs?select=id,provider_ids,prompt_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=8`,
+
+  const runs = await supabaseRest<Array<{
+    id: string;
+    status: string;
+    provider_ids: string[];
+    prompt_count: number;
+    answer_count: number | null;
+    created_at: string;
+  }>>(
+    `runs?select=id,status,provider_ids,prompt_count,answer_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.desc&limit=8`,
     { token: viewer.accessToken },
   );
   const latest = runs[0];
   if (!latest) return { ...empty, actions: buildDecisionActions(empty) };
-  const [answers, sources] = await Promise.all([
-    supabaseRest<Array<{ prompt_key: string; prompt_text: string | null; provider: string; brand_present: boolean | null }>>(
-      `run_answers?select=prompt_key,prompt_text,provider,brand_present&organization_id=eq.${context.organizationId}&run_id=eq.${latest.id}&review_status=eq.verified&order=collected_at.asc`,
-      { token: viewer.accessToken },
-    ),
+
+  const canReadCompleteAnswers = Number.isSafeInteger(latest.answer_count)
+    && Number(latest.answer_count) > 0
+    && Number(latest.answer_count) < MAX_COMPLETE_RUN_HISTORY_ANSWERS;
+  const [candidateAnswers, sources] = await Promise.all([
+    canReadCompleteAnswers
+      ? supabaseRest<Array<{
+        id: string;
+        run_id: string;
+        prompt_key: string;
+        prompt_text: string | null;
+        provider: string;
+        brand_present: boolean | null;
+        review_status: string;
+      }>>(
+        `run_answers?select=id,run_id,prompt_key,prompt_text,provider,brand_present,review_status&organization_id=eq.${context.organizationId}&run_id=eq.${latest.id}&review_status=eq.verified&order=collected_at.asc&limit=${MAX_COMPLETE_RUN_HISTORY_ANSWERS}`,
+        { token: viewer.accessToken },
+      )
+      : Promise.resolve([]),
     loadTruthfulSourceMap(viewer, { runId: latest.id }),
   ]);
+
+  const answerGate = assessCompleteRunHistory([latest], candidateAnswers);
+  const answers = answerGate.ok ? candidateAnswers : [];
+  const providerCount = answerGate.ok ? new Set(answers.map((answer) => answer.provider)).size : 0;
   const expectedAnswers = Math.max(1, latest.prompt_count) * Math.max(1, latest.provider_ids.length);
   const promptAnswers = new Map<string, boolean[]>();
   for (const answer of answers) {
@@ -235,18 +309,18 @@ export async function loadTruthfulDecisionSignal(viewer: Viewer): Promise<Decisi
     reviewedRuns: runs.length,
     latestRunId: latest.id,
     latestRunDate: dateLabel(latest.created_at),
-    providerCount: latest.provider_ids.length,
+    providerCount,
     promptCount: latest.prompt_count,
     answerCount: answers.length,
-    answerCompletionPct: clampPct((answers.length / expectedAnswers) * 100),
-    recommendationConsensusPct: comparable.length ? clampPct((agreed / comparable.length) * 100) : null,
+    answerCompletionPct: answerGate.ok ? clampPct((answers.length / expectedAnswers) * 100) : null,
+    recommendationConsensusPct: answerGate.ok && comparable.length ? clampPct((agreed / comparable.length) * 100) : null,
     presenceRange: null,
     presenceDelta: null,
     sourceReviewPct,
     sourceDependencyPct: observationTotal ? clampPct((topThreeObservations / observationTotal) * 100) : null,
     recurringSourcePct: sources.length ? clampPct((sources.filter((source) => source.evidenceCount > 1).length / sources.length) * 100) : null,
     evidenceObservations: observationTotal,
-    decisionReadiness: answers.length ? "directional" : "insufficient",
+    decisionReadiness: answerGate.ok && answers.length ? "directional" : "insufficient",
   };
   return { ...signalBase, actions: buildDecisionActions(signalBase) };
 }
@@ -256,10 +330,38 @@ export async function loadExactQuestionPerformance(viewer: Viewer): Promise<Ques
   if (viewer.mode === "demo") return loadQuestionPerformance(viewer);
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const rows = await supabaseRest<Array<{ run_id: string; prompt_key: string; prompt_text: string | null; answer_text: string; citations_json: Array<{ url?: string }> | null }>>(
-    `run_answers?select=run_id,prompt_key,prompt_text,answer_text,citations_json&organization_id=eq.${context.organizationId}&review_status=eq.verified&order=collected_at.asc&limit=2000`,
+
+  const historyRunRows = await supabaseRest<Array<{
+    id: string;
+    status: string;
+    answer_count: number | null;
+    provider_ids: string[];
+  }>>(
+    `runs?select=id,status,answer_count,provider_ids&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&order=created_at.asc&limit=${MAX_COMPLETE_RUN_HISTORY_RUNS + 1}`,
     { token: viewer.accessToken },
   );
+  if (!historyRunRows.length || historyRunRows.length > MAX_COMPLETE_RUN_HISTORY_RUNS) return [];
+
+  const expected = historyRunRows.reduce((sum, run) =>
+    sum + (typeof run.answer_count === "number" && Number.isSafeInteger(run.answer_count) ? run.answer_count : 0), 0);
+  if (!Number.isSafeInteger(expected) || expected < 1 || expected >= MAX_COMPLETE_RUN_HISTORY_ANSWERS) return [];
+
+  const runIds = historyRunRows.map((run) => run.id);
+  const rows = await supabaseRest<Array<{
+    id: string;
+    run_id: string;
+    prompt_key: string;
+    prompt_text: string | null;
+    provider: string;
+    answer_text: string;
+    citations_json: Array<{ url?: string }> | null;
+    review_status: string;
+  }>>(
+    `run_answers?select=id,run_id,prompt_key,prompt_text,provider,answer_text,citations_json,review_status&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=${MAX_COMPLETE_RUN_HISTORY_ANSWERS}`,
+    { token: viewer.accessToken },
+  );
+  if (!assessCompleteRunHistory(historyRunRows, rows).ok) return [];
+
   const groups = new Map<string, typeof rows>();
   for (const row of rows) {
     const identity = JSON.stringify([row.prompt_key, row.prompt_text || row.prompt_key]);
@@ -268,7 +370,7 @@ export async function loadExactQuestionPerformance(viewer: Viewer): Promise<Ques
   return Array.from(groups.entries()).map(([identity, answers]) => {
     const citationCount = answers.reduce((sum, answer) => sum + (answer.citations_json || []).filter((citation) => Boolean(citation.url)).length, 0);
     const citedAnswers = answers.filter((answer) => (answer.citations_json || []).some((citation) => Boolean(citation.url))).length;
-    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.organizationName.toLocaleLowerCase())).length;
+    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.projectBrand.toLocaleLowerCase())).length;
     const runCount = new Set(answers.map((answer) => answer.run_id)).size;
     const guidance: QuestionPerformance["guidance"] = runCount < 2 ? "Needs repeat" : citationCount >= answers.length && brandMentionCount > 0 ? "High evidence yield" : citationCount > 0 ? "Keep as baseline" : "Low observed yield";
     return {

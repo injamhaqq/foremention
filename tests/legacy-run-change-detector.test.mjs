@@ -6,7 +6,7 @@ const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
 test("collection processing no longer creates chronological movement claims before human review", async () => {
-  const jobs = await text("lib/jobs/inngest.ts");
+  const [jobs, dispatcher] = await Promise.all([text("lib/jobs/inngest.ts"), text("lib/jobs/measurement-schedule-dispatcher.ts")]);
   assert.doesNotMatch(jobs, /async function recordRunChanges/);
   assert.doesNotMatch(jobs, /detect-run-changes/);
   assert.doesNotMatch(jobs, /recordRunChanges\(run, identity\)/);
@@ -15,25 +15,33 @@ test("collection processing no longer creates chronological movement claims befo
   assert.doesNotMatch(jobs, /competitor_overtook:/);
 });
 
-test("operational collection notifications and the bounded weekly scheduler remain intact", async () => {
-  const jobs = await text("lib/jobs/inngest.ts");
+test("operational collection notifications, digest delivery, and schedule-driven recurring collection remain intact", async () => {
+  const [jobs, dispatcher] = await Promise.all([
+    text("lib/jobs/inngest.ts"),
+    text("lib/jobs/measurement-schedule-dispatcher.ts"),
+  ]);
   for (const value of [
     "mark-run-for-human-review",
     "notify-run-owner",
     "email-first-run-owner",
     "run_ready",
     "first_run_completed",
-    "schedule-weekly-workspace-runs",
+    "schedule-weekly-workspace-digests",
     'cron: "0 8 * * 1"',
-    "prepareWeeklyRun",
   ]) assert.match(jobs, new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+
+  assert.doesNotMatch(jobs, /prepareWeeklyRun|schedule-weekly-workspace-runs/);
+  assert.match(dispatcher, /id: "dispatch-measurement-schedules"/);
+  assert.match(dispatcher, /reserve_run_quota_server/);
+  assert.match(dispatcher, /reserve_run_budget_server/);
 });
 
 test("review-time movement remains behind human review and exact run-pair comparability", async () => {
-  const [review, reviewedChanges, comparability] = await Promise.all([
+  const [review, reviewedChanges, comparability, answerGate] = await Promise.all([
     text("app/api/runs/[id]/review/route.ts"),
     text("lib/reviewed-change-notifications.ts"),
     text("lib/run-pair-comparability.ts"),
+    text("lib/run-pair-answer-gate.ts"),
   ]);
 
   assert.match(review, /recordReviewedComparableChangeNotifications/);
@@ -46,7 +54,8 @@ test("review-time movement remains behind human review and exact run-pair compar
   assert.match(comparability, /methodology_version/);
   assert.match(comparability, /review_status=eq\.verified/);
   assert.match(comparability, /prompt_text,provider,model/);
-  assert.match(comparability, /assessExactQuestionComparability/);
+  assert.match(comparability, /assessCompleteVerifiedRunPair/);
+  assert.match(answerGate, /assessExactQuestionComparability/);
 });
 
 test("legacy notification and email suppression guards remain as defense in depth", async () => {

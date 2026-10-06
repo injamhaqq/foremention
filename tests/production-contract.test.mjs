@@ -335,7 +335,8 @@ test("the weekly intelligence loop is tenant-scoped, review-only, cost-aware, an
   assert.match(data, /organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(data, /project_id=eq\.\$\{context\.projectId\}/);
   assert.match(data, /review_status=eq\.verified/);
-  assert.match(data, /ai_cost_events/);
+  assert.match(data, /actual_cost_usd/);
+  assert.match(data, /Customer totals use the independently persisted runs\.actual_cost_usd/);
   assert.match(data, /canonicalizeEvidenceUrl/);
   assert.match(data, /comparisonSignature/);
   assert.match(data, /candidateSignature === latestSignature/);

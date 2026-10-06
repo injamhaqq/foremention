@@ -3,20 +3,20 @@ import { WorkspaceMobileNavigation, WorkspaceSidebar } from "@/components/worksp
 import { WorkspaceKeyboardShortcuts } from "@/components/workspace-keyboard-shortcuts";
 import { WorkspaceGlobalSearch } from "@/components/workspace-global-search";
 import type { Viewer } from "@/lib/auth";
-import type { WorkspaceNotification } from "@/lib/data";
+import type { WorkspaceNotification, WorkspaceProject } from "@/lib/data";
 import { NotificationBell } from "@/components/notification-bell";
 
-export function AppShell({ viewer, workspaceName, notifications, children }: { viewer: Viewer; workspaceName?: string; notifications: WorkspaceNotification[]; children: React.ReactNode }) {
+export function AppShell({ viewer, organizationName, projects, activeProjectId, notifications, children }: { viewer: Viewer; organizationName?: string; projects: WorkspaceProject[]; activeProjectId?: string; notifications: WorkspaceNotification[]; children: React.ReactNode }) {
   return <div className="app-frame">
     <a className="skip-link" href="#app-content">Skip to workspace content</a>
     <WorkspaceKeyboardShortcuts />
-    <WorkspaceSidebar viewer={viewer} workspaceName={workspaceName} />
+    <WorkspaceSidebar viewer={viewer} organizationName={organizationName} projects={projects} activeProjectId={activeProjectId} />
     <div className="app-main" id="app-content" tabIndex={-1}>
       <header className="app-topbar">
-        <WorkspaceMobileNavigation viewer={viewer} workspaceName={workspaceName} />
+        <WorkspaceMobileNavigation viewer={viewer} organizationName={organizationName} projects={projects} activeProjectId={activeProjectId} />
         <div>
           <span className="app-topbar__brand-label"><Wordmark /></span>
-          <span className="demo-badge">{viewer.mode === "demo" ? "Fictional demo" : workspaceName ? "Customer data" : "Setup required"}</span>
+          <span className="demo-badge">{viewer.mode === "demo" ? "Fictional demo" : activeProjectId ? "Customer data" : "Setup required"}</span>
         </div>
         <WorkspaceGlobalSearch />
         <div className="app-topbar__account"><NotificationBell initialItems={notifications} /><div className="app-user"><span>{viewer.name.slice(0, 1).toUpperCase()}</span><div><strong>{viewer.name}</strong><small>{viewer.email}</small></div></div></div>

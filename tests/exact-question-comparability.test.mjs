@@ -54,15 +54,21 @@ test("exact comparability accepts only the same persisted question/provider/mode
 });
 
 test("safe intelligence uses tenant-scoped verified answers and full measurement provenance", async () => {
-  const safe = await text("lib/safe-intelligence.ts");
+  const [safe, gate, answerGate, comparability] = await Promise.all([
+    text("lib/safe-intelligence.ts"),
+    text("lib/run-pair-comparability.ts"),
+    text("lib/run-pair-answer-gate.ts"),
+    text("lib/intelligence-comparability.ts"),
+  ]);
   assert.match(safe, /loadWeeklyIntelligence\(viewer\)/);
-  assert.match(safe, /organization_id=eq\.\$\{context\.organizationId\}/);
-  assert.match(safe, /review_status=eq\.verified/);
-  assert.match(safe, /measurement_context_json/);
-  assert.match(safe, /assessExactQuestionComparability/);
+  assert.match(gate, /organization_id=eq\.\$\{context\.organizationId\}/);
+  assert.match(gate, /review_status=eq\.verified/);
+  assert.match(gate, /measurement_context_json/);
+  assert.match(safe, /assessWorkspaceRunPairComparability/);
+  assert.match(answerGate, /assessExactQuestionComparability/);
   assert.match(safe, /previous: null/);
   assert.match(safe, /Cross-collection movement withheld/);
-  assert.match(safe, /locale.*market|market.*locale/is);
+  assert.match(comparability, /locale.*market|market.*locale/is);
   assert.doesNotMatch(safe, /serviceRole:\s*true/);
 });
 

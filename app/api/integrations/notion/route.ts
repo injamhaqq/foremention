@@ -22,7 +22,7 @@ export async function PATCH(request: Request) {
   const body = await request.json() as { parentPageId?: string }; const parentPageId = String(body.parentPageId || "").trim(); if (!pageId.test(parentPageId)) return NextResponse.json({ error: "Enter a valid Notion page ID shared with the integration." }, { status: 400 });
   const rows = await supabaseRest<Array<{ id: string; configuration: Record<string, unknown> }>>(`integrations?select=id,configuration&organization_id=eq.${current.context.organizationId}&project_id=eq.${current.context.projectId}&provider=eq.notion&status=eq.connected&limit=1`, { token: current.viewer.accessToken });
   if (!rows[0]) return NextResponse.json({ error: "Connect Notion before choosing an export page." }, { status: 409 });
-  await supabaseRest(`integrations?id=eq.${rows[0].id}&organization_id=eq.${current.context.organizationId}`, { method: "PATCH", token: current.viewer.accessToken, prefer: "return=minimal", body: { configuration: { ...rows[0].configuration, parent_page_id: parentPageId }, updated_at: new Date().toISOString() } });
+  await supabaseRest(`integrations?id=eq.${rows[0].id}&organization_id=eq.${current.context.organizationId}&project_id=eq.${current.context.projectId}`, { method: "PATCH", token: current.viewer.accessToken, prefer: "return=minimal", body: { configuration: { ...rows[0].configuration, parent_page_id: parentPageId }, updated_at: new Date().toISOString() } });
   return NextResponse.json({ ok: true });
 }
 
@@ -31,6 +31,6 @@ export async function DELETE(request: Request) {
   const current = await contextAndRole(); if (!current?.context || current.viewer.mode === "demo") return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   if (current.role !== "owner" && current.role !== "admin") return NextResponse.json({ error: "Only an owner or admin can disconnect Notion." }, { status: 403 });
   const rows = await supabaseRest<Array<{ id: string }>>(`integrations?select=id&organization_id=eq.${current.context.organizationId}&project_id=eq.${current.context.projectId}&provider=eq.notion&limit=1`, { token: current.viewer.accessToken });
-  if (rows[0]) { await supabaseRest(`integration_credentials?integration_id=eq.${rows[0].id}`, { method: "DELETE", serviceRole: true }); await supabaseRest(`integrations?id=eq.${rows[0].id}&organization_id=eq.${current.context.organizationId}`, { method: "PATCH", token: current.viewer.accessToken, prefer: "return=minimal", body: { status: "revoked", configuration: {} } }); }
+  if (rows[0]) { await supabaseRest(`integration_credentials?integration_id=eq.${rows[0].id}`, { method: "DELETE", serviceRole: true }); await supabaseRest(`integrations?id=eq.${rows[0].id}&organization_id=eq.${current.context.organizationId}&project_id=eq.${current.context.projectId}`, { method: "PATCH", token: current.viewer.accessToken, prefer: "return=minimal", body: { status: "revoked", configuration: {} } }); }
   return NextResponse.json({ ok: true });
 }

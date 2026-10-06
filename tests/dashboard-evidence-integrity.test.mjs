@@ -33,14 +33,16 @@ test("human source review is persisted separately from automated crawler checks"
 });
 
 test("customer-facing source metrics can be scoped to the exact baseline run", async () => {
-  const [integrity, analytics, runDetail, safeIntelligence] = await Promise.all([
+  const [integrity, analytics, runDetail, safeIntelligence, sourceScope] = await Promise.all([
     text("lib/evidence-integrity-data.ts"),
     text("app/app/analytics/page.tsx"),
     text("app/app/runs/[id]/page.tsx"),
     text("lib/safe-intelligence.ts"),
+    text("lib/project-source-map-scope.ts"),
   ]);
   assert.match(integrity, /loadTruthfulSourceMap\([\s\S]*options:\s*\{\s*runId\?:/);
-  assert.match(integrity, /run_id=eq\.\$\{encodeURIComponent\(options\.runId\)\}/);
+  assert.match(integrity, /runId: options\.runId \|\| null/);
+  assert.match(sourceScope, /run_id=eq\.\$\{encoded\(input\.runId\)\}/);
   assert.match(analytics, /loadTruthfulSourceMap\(viewer,\s*\{\s*runId:\s*latest\.id\s*\}\)/);
   assert.match(runDetail, /loadTruthfulSourceMap\(viewer,\s*\{\s*runId:\s*run\.id\s*\}\)/);
   assert.match(safeIntelligence, /loadTruthfulSourceMap\(viewer,\s*\{\s*runId:\s*intelligence\.latest\.id\s*\}\)/);

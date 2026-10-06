@@ -44,8 +44,12 @@ export function RunLauncher({ prompts, providers, demo, priorRunCount = 0 }: { p
     } finally { setBusy(false); }
   }
 
-  const selectableProviders = demo ? [{ id: "mock", label: "Safe demo", configured: true, supportsCitations: true, health: "available" as const, latestStatus: "complete", lastTestedAt: null, verifiedAnswers: 0, presencePct: null }] : providers;
+  const selectableProviders = demo ? [{ id: "mock", label: "Safe demo", configured: true, supportsCitations: true, health: "available" as const, latestStatus: "complete", lastTestedAt: null, verifiedAnswers: 0, presencePct: null, estimatedMaxCostPerQuestionUsd: 0 }] : providers;
   const selectedProvider = selectableProviders.find((provider) => provider.id === selectedProviders[0]);
+  const estimatedUnits = selectedPrompts.length * selectedProviders.length;
+  const estimatedMaximumCost = selectedProvider?.estimatedMaxCostPerQuestionUsd === null || selectedProvider?.estimatedMaxCostPerQuestionUsd === undefined
+    ? null
+    : selectedProvider.estimatedMaxCostPerQuestionUsd * selectedPrompts.length;
   const providerLabel = (provider: typeof selectableProviders[number]) => {
     if (!provider.configured) return "Not configured";
     const evidenceNote = provider.supportsCitations ? "" : " · answer comparison only; no returned web citations";
@@ -60,12 +64,17 @@ export function RunLauncher({ prompts, providers, demo, priorRunCount = 0 }: { p
       <fieldset className="question-picker"><legend>Buyer questions</legend>{active.length ? active.map((prompt) => <label key={prompt.id}><input type="checkbox" checked={selectedPrompts.includes(prompt.id)} onChange={(event) => setSelectedPrompts((current) => event.target.checked ? [...current, prompt.id] : current.filter((id) => id !== prompt.id))} /><span className="question-picker__copy">{prompt.text}</span></label>) : <p>No active questions. Add one in Questions first.</p>}</fieldset>
       <div className="provider-picker">
         <span className="eyebrow">AI system</span>
-        {selectedProvider ? <div className="review-action"><div><strong>{selectedProvider.label}</strong><p>{selectedProvider.supportsCitations ? "Can return cited web sources for Source X-Ray." : "Answer comparison only; this system does not return cited web sources."}</p></div><span className={`provider-state provider-state--${selectedProvider.health}`}>{selectedProvider.health === "available" ? "Ready" : selectedProvider.health === "limited" ? "Needs attention" : "Untested"}</span></div> : <div className="empty-state"><h3>No AI system is connected.</h3><p>Connect and prove a collection provider before starting a real run.</p></div>}
+        {selectedProvider ? <div className="review-action"><div><strong>{selectedProvider.label}</strong><p>{selectedProvider.supportsCitations ? "Can return cited web sources for evidence inspection." : "Answer comparison only; this system does not return cited web sources."}</p></div><span className={`provider-state provider-state--${selectedProvider.health}`}>{selectedProvider.health === "available" ? "Ready" : selectedProvider.health === "limited" ? "Needs attention" : "Untested"}</span></div> : <div className="empty-state"><h3>No AI system is connected.</h3><p>Connect and prove a collection provider before starting a real run.</p></div>}
         <details>
           <summary>Change AI system</summary>
           <fieldset><legend className="sr-only">Choose one provider</legend>{selectableProviders.map((provider) => <label key={provider.id} className={!provider.configured ? "is-disabled" : provider.health === "limited" ? "is-limited" : ""}><input type="radio" name="collection-provider" disabled={!provider.configured} checked={selectedProviders[0] === provider.id} onChange={() => setSelectedProviders([provider.id])} /><span className="provider-picker__copy"><strong>{provider.label}</strong><small>{providerLabel(provider)}</small></span><b className={`provider-state provider-state--${!provider.configured ? "off" : provider.health}`}>{!provider.configured ? "Unavailable" : provider.health === "available" ? "Ready" : provider.health === "limited" ? "Needs attention" : "Untested"}</b></label>)}</fieldset>
         </details>
       </div>
+    </div>
+    <div className="run-estimate" role="status" aria-live="polite">
+      <div><span>Estimated usage</span><strong>{estimatedUnits} run unit{estimatedUnits === 1 ? "" : "s"}</strong></div>
+      <div><span>Reserved maximum cost</span><strong>{estimatedMaximumCost === null ? "Unavailable until rates are configured" : `${estimatedMaximumCost.toFixed(estimatedMaximumCost < 0.01 ? 4 : 2)}`}</strong></div>
+      <p>Estimate only. Final cost comes from recorded provider usage or the configured estimator. A collection is blocked before dispatch if it exceeds the applicable ceiling.</p>
     </div>
     {message && <p className="inline-notice" role="status">{message}</p>}
     <div className="run-launcher__actions"><p>Foremention keeps the exact AI system, model, time, answer, citations, and failures with every observation. Provider credentials stay server-side.</p><button className="button button--ink" type="button" onClick={() => void run()} disabled={busy || !selectedPrompts.length || selectedProviders.length !== 1}>{busy ? "Starting…" : "Start collection"}</button></div>
