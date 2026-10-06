@@ -328,15 +328,49 @@ async function main() {
     assert.ok(spec.id);
     const premature=await appCall(ownerCtx,"PATCH","/api/change-specifications",{action:"submit",id:spec.id});
     assert.equal(premature.status,409,"incomplete decision must fail closed");
-    must(await appCall(analystCtx,"PATCH","/api/change-specifications",{
-      action:"update_draft",id:spec.id,controlClass:"CONTROLLABLE",controlSurface:"synthetic-owned documentation",
-      eligibilityState:"ELIGIBLE",decisionState:"TEST_FIRST",truthState:"HYPOTHESIS",
-      confidenceState:"LOW",exactChange:"Add a fixture-only source disclosure",
-      ownerRole:"synthetic owner",effort:"LOW",
-      acceptanceCriteria:["Test reviewer confirms local-only example"],
-      verificationPlan:{intent:"repeat five unchanged fictional questions"},
-    }),200,"customer-authored exact change");
-    must(await appCall(analystCtx,"PATCH","/api/change-specifications",{action:"submit",id:spec.id}),200,"decision submitted");
+
+    // Preserve a non-UI verification-plan key while the real authenticated
+    // analyst editor changes its human-readable intent.
+    await db("PATCH","change_specifications?id=eq."+spec.id,{
+      verification_plan_json:{intent:"seeded local-only intent",comparison_contract:"fixture-preserve-v1"}
+    });
+    const analystPage=await analystCtx.newPage();
+    await analystPage.goto(new URL("/app/change-specifications/"+spec.id,app).toString(),{waitUntil:"domcontentloaded",timeout:30000});
+    await analystPage.getByRole("heading",{name:"Define the exact company change."}).waitFor();
+    assert.match(await analystPage.locator("body").innerText(),/Workspace role: analyst/i);
+    assert.equal(await analystPage.getByRole("button",{name:"Approve"}).count(),0,"analyst must not receive manager approval controls");
+    await analystPage.getByLabel("Exact company change").fill("Add a fixture-only source disclosure");
+    await analystPage.getByLabel("Control class").selectOption("CONTROLLABLE");
+    await analystPage.getByLabel("Control surface").fill("synthetic-owned documentation");
+    await analystPage.getByLabel("Decision").selectOption("TEST_FIRST");
+    await analystPage.getByLabel("Eligibility").selectOption("ELIGIBLE");
+    await analystPage.getByLabel("Confidence").selectOption("LOW");
+    await analystPage.getByLabel("Truth state").selectOption("HYPOTHESIS");
+    await analystPage.getByLabel("Owner role").fill("synthetic owner");
+    await analystPage.getByLabel("Effort").selectOption("LOW");
+    await analystPage.getByLabel("Acceptance criteria").fill("Test reviewer confirms local-only example");
+    await analystPage.getByLabel("Verification intent").fill("repeat five unchanged fictional questions");
+    await analystPage.getByRole("button",{name:"Save decision draft"}).click();
+    await analystPage.getByRole("status").getByText(/Draft saved/).waitFor();
+    const afterSave=(await db("GET","change_specifications?select=status,verification_plan_json&id=eq."+spec.id))[0];
+    assert.equal(afterSave.status,"draft");
+    assert.equal(afterSave.verification_plan_json.intent,"repeat five unchanged fictional questions");
+    assert.equal(afterSave.verification_plan_json.comparison_contract,"fixture-preserve-v1","editor save must preserve non-UI verification context");
+
+    // Change one field and submit without pressing Save. The UI must persist
+    // current edits first, then submit exactly once through the normal API.
+    await analystPage.getByLabel("Exact company change").fill("Add a fixture-only source disclosure with unsaved-submit proof");
+    await analystPage.getByRole("button",{name:"Save & submit for review"}).click();
+    await analystPage.getByRole("heading",{name:"Submitted decision body is immutable."}).waitFor();
+    const afterSubmit=(await db("GET","change_specifications?select=status,exact_change,verification_plan_json&id=eq."+spec.id))[0];
+    assert.equal(afterSubmit.status,"in_review");
+    assert.equal(afterSubmit.exact_change,"Add a fixture-only source disclosure with unsaved-submit proof");
+    assert.equal(afterSubmit.verification_plan_json.comparison_contract,"fixture-preserve-v1");
+    assert.match(await analystPage.locator("body").innerText(),/Waiting for a workspace owner or admin/i);
+    assert.equal(await analystPage.getByRole("button",{name:"Approve"}).count(),0);
+    assert.equal(await analystPage.getByRole("button",{name:"Reject"}).count(),0);
+    await analystPage.close();
+    step("authenticated-analyst-editor-save-unsaved-submit-and-role-boundary");
     const forbidden=await appCall(analystCtx,"PATCH","/api/change-specifications",{
       action:"decision",id:spec.id,decision:"approved"
     });
