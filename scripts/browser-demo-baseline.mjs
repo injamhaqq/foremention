@@ -72,6 +72,8 @@ try {
       const answers = page.locator(".canonical-answer-record");
       assert.equal(await answers.count(), 16, "Every advertised demo answer is inspectable");
       assert.match(await answers.first().innerText(), /Fictional demonstration only/);
+      const mentionAudit = await new AxeBuilder({ page }).include(".brand-mention-context strong").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+      assert.deepEqual(mentionAudit.violations, [], "Extracted brand-mention sentences must remain readable in the workspace theme");
       const answerAudit = await new AxeBuilder({ page }).include(".canonical-answer-record > p").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
       assert.deepEqual(answerAudit.violations, [], "Recorded provider answer text must remain readable in the actual workspace theme");
       const evidence = answers.first().locator(".canonical-contained-evidence").first();
@@ -79,14 +81,32 @@ try {
       await evidence.locator(".canonical-source-evidence").waitFor();
       assert.match(await evidence.locator(".canonical-contained-evidence__facts").textContent(), /Human review[\s\S]*Pending/);
       assert.match(await evidence.innerText(), /does not prove authority, influence/);
+      const review = evidence.locator(".source-review-form");
+      assert.equal(await review.getByRole("button", { name: "Save reviewed source" }).isDisabled(), true, "Fictional source review is read-only");
+      assert.equal(await review.getByRole("combobox", { name: "Crawler access" }).isDisabled(), true);
+      assert.match(await review.innerText(), /fictional demo is read-only/i);
+      const reviewColors = await review.locator("select, textarea").evaluateAll((fields) => fields.map((field) => {
+        const style = getComputedStyle(field);
+        return { foreground: style.color, background: style.backgroundColor, opacity: style.opacity };
+      }));
+      const luminance = (color) => {
+        const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number).map((value) => { const channel = value / 255; return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4; });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      };
+      for (const colors of reviewColors) {
+        const values = [luminance(colors.foreground), luminance(colors.background)].sort((a, b) => b - a);
+        assert.ok((values[0] + 0.05) / (values[1] + 0.05) >= 4.5, "Source review field values must be readable even when read-only");
+        assert.equal(colors.opacity, "1");
+      }
       const evidenceIds = await page.locator(".canonical-source-evidence [id]").evaluateAll((elements) => elements.map((element) => element.id));
       assert.equal(new Set(evidenceIds).size, evidenceIds.length, "Repeated references must retain distinct accessible heading IDs");
       await page.screenshot({ path: resolve(output, `record-evidence-${width}.png`), fullPage: true });
       // Deliberately unavailable Attention must be an error, then recover via Retry.
       let attentionRequests = 0;
+      let recoverAttention = false;
       await page.route("**/api/retention/attention", async (route) => {
         attentionRequests += 1;
-        if (attentionRequests === 1) await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Attention temporarily unavailable" }) });
+        if (!recoverAttention) await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Attention temporarily unavailable" }) });
         else await route.fallback();
       });
       await page.goto(new URL("/app", base).href);
@@ -96,16 +116,19 @@ try {
       await page.screenshot({ path: resolve(output, `attention-error-${width}.png`), fullPage: true });
       const retry = alert.getByRole("button", { name: "Retry attention" });
       await retry.focus();
+      const failedAttentionRequests = attentionRequests;
+      assert.ok(failedAttentionRequests >= 1, "The outage must include a real failed Attention request");
+      recoverAttention = true;
       await page.keyboard.press("Enter");
       await page.locator(".attention-inbox").waitFor();
       assert.equal(await alert.count(), 0);
-      assert.equal(attentionRequests, 2);
+      assert.ok(attentionRequests > failedAttentionRequests, "Keyboard Retry must issue a recovery request");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
       assert.equal(overflow, false, `Overview overflows at ${width}px`);
       const audit = await new AxeBuilder({ page }).include(".getting-started").include(".attention-inbox").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
       assert.deepEqual(audit.violations, [], "Changed baseline/Attention surfaces must pass axe");
       assert.deepEqual(errors, [], "Demo journey must not produce page errors or unexpected mutations");
-      summary.profiles.push({ width, passed: true, attentionRequests, violations: audit.violations });
+      summary.profiles.push({ width, passed: true, failedAttentionRequests, attentionRequests, violations: audit.violations });
     } finally {
       await page.screenshot({ path: resolve(output, `final-${width}.png`), fullPage: true }).catch(() => {});
       await context.close();
