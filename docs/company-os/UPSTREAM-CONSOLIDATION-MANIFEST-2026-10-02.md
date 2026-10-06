@@ -1,5 +1,7 @@
 # Foremention Company OS — Upstream Consolidation Manifest
 
+
+> **Superseded integration choices (2026-10-05):** Where this historical document conflicts with `docs/company-os/CAPABILITY-INTEGRATION-REGISTER-2026-10-05.md`, the 5 October register and Enterprise Company Automation OS blueprint govern. Preserve this file for decision history; do not use its LiteLLM/AgentKit-first preferences as current implementation authority.
 Date: 2026-10-02
 
 ## Goal
