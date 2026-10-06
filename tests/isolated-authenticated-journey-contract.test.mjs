@@ -29,9 +29,8 @@ test("real authenticated customer acceptance must only run against local ephemer
   assert.match(journey,/real-authenticated-browser-rendered-isolated-audited-journey/);
   assert.match(workflow,/supabase start/);
   assert.match(workflow,/supabase db reset/);
-  assert.match(workflow,/pnpm dlx wrangler@4\.113\.0 dev --local/);
-  assert.match(workflow,/documented upstream local-dev network-drop regression/);
-  assert.match(workflow,/node scripts\/isolated-authenticated-journey\.mjs/);
+  assert.match(workflow,/node scripts\/isolated-compiled-worker-browser-bridge\.mjs/);
+  assert.doesNotMatch(workflow,/wrangler.*dev --local/);
   assert.match(workflow,/rm -f \.isolated-local-env \.dev.vars/);
   assert.doesNotMatch(workflow,/secrets\.|foremention\.com|FOREMENTION_ACCEPTANCE_EMAIL|FOREMENTION_ACCEPTANCE_PASSWORD/);
   assert.match(env,/NEXT_PUBLIC_SUPABASE_URL/);
@@ -63,4 +62,17 @@ test("analyst-scoped source and change writes preserve admin-write-only audit re
   assert.match(sourceReview, /if \(!role \|\| role === "viewer"\)/);
   assert.match(changes, /if \(!writable\(role\)\)/);
   assert.match(resolutions, /if \(!writable\(role\)\)/);
+});
+
+test("authenticated bridge dispatches exact compiled Worker status with no remote AI binding or test retry",async()=>{
+  const bridge=await read("../scripts/isolated-compiled-worker-browser-bridge.mjs");
+  assert.match(bridge,/createTestHarness/); assert.match(bridge,/compiledWorker\.fetch/);
+  assert.match(bridge,/delete original\.ai/); assert.match(bridge,/target\.origin !== appOrigin/);
+  assert.match(bridge,/response\.writeHead\(workerResponse\.status,sentHeaders\)/);
+  assert.match(bridge,/received > 2_000_000/); assert.match(bridge,/headers\.getSetCookie\(\)/);
+  assert.match(bridge,/spawn\(process\.execPath,\["scripts\/isolated-authenticated-journey\.mjs"\]/);
+  assert.match(bridge,/await unlink\(isolatedConfig\)/);
+  const review=await read("../app/api/runs/[id]/review/route.ts");
+  assert.match(review,/supabaseRest\("audit_logs",\s*\{[\s\S]*?serviceRole: true/);
+  assert.match(review,/actor_id: viewer\.id/); assert.match(review,/entity_id: run\.id/);
 });

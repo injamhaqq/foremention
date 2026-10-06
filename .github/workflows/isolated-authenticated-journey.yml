@@ -57,7 +57,7 @@ jobs:
               kill "$server_pid" 2>/dev/null || true
               wait "$server_pid" 2>/dev/null || true
             fi
-            rm -f .isolated-local-env .dev.vars dist/server/.dev.vars .local-cli-status .isolated-browser-server.log .isolated-supabase-start.log
+            rm -f .isolated-local-env .dev.vars dist/server/.dev.vars .local-cli-status .isolated-browser-server.log .isolated-supabase-start.log dist/server/wrangler.local-browser-bridge.json
             supabase stop --no-backup >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
@@ -87,56 +87,16 @@ jobs:
           npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
           .ci-tools/node_modules/.bin/playwright install --with-deps chromium
 
-          # Isolated acceptance only: repository-pinned Wrangler 4.114.0 is
-          # within a documented upstream local-dev network-drop regression
-          # window (cloudflare/workers-sdk#15002). Test the independently
-          # reported last-clean 4.113.0 WITHOUT changing the production build,
-          # application dependency graph or the frozen repository lockfile.
-          # This does not excuse any HTTP 500 in customer-route assertions.
-          pnpm dlx wrangler@4.113.0 dev --local --config dist/server/wrangler.json --ip 127.0.0.1 --port 4174 > .isolated-browser-server.log 2>&1 &
-          server_pid=$!
-          ready=false
-          for attempt in $(seq 1 90); do
-            health_response="$(curl --fail --silent --show-error --max-time 4 http://127.0.0.1:4174/api/health 2>/dev/null || true)"
-            if [[ "$health_response" == *'"status":"ok"'* ]]; then
-              ready=true
-              break
-            fi
-            if ! kill -0 "$server_pid" 2>/dev/null; then
-              echo "Local Worker stopped before readiness."
-              exit 1
-            fi
-            echo "Waiting for isolated local Worker ($attempt/90)"
-            sleep 1
-          done
-          if [ "$ready" != "true" ]; then
-            echo "Local Worker did not become ready."
-            exit 1
-          fi
-
-          if ! node scripts/isolated-authenticated-journey.mjs; then
-            # Fixed-label runner diagnostics only: never print local Worker
-            # logs, generated credentials, request bodies or environment.
-            if kill -0 "$server_pid" 2>/dev/null; then
-              echo "[isolated-server] wrangler-process-alive"
-            else
-              echo "[isolated-server] wrangler-process-exited"
-            fi
-            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:4174/api/health >/dev/null 2>&1; then
-              echo "[isolated-server] post-failure-worker-health-200"
-            else
-              echo "[isolated-server] post-failure-worker-health-unavailable"
-            fi
-            node scripts/summarize-isolated-worker-failure.mjs .isolated-browser-server.log
-            exit 1
-          fi
+          # Reuse the existing #358 direct compiled-Worker Chromium transport.
+          # The same strict first-attempt customer API assertions remain intact.
+          node scripts/isolated-compiled-worker-browser-bridge.mjs
           echo "Isolated authenticated acceptance succeeded without any external provider request."
 
       - name: Verify no test secrets or artifacts remain
         if: always()
         shell: bash
         run: |
-          for path in .isolated-local-env .dev.vars dist/server/.dev.vars .local-cli-status; do
+          for path in .isolated-local-env .dev.vars dist/server/.dev.vars .local-cli-status dist/server/wrangler.local-browser-bridge.json; do
             if [ -e "$path" ]; then
               echo "Sensitive local test file was not cleaned: $path"
               exit 1

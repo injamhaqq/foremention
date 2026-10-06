@@ -88,7 +88,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const sideEffects = await Promise.allSettled([
     supabaseRest("audit_logs", {
       method: "POST",
-      token: viewer.accessToken,
+      // Append the already-authorized review receipt using audit-table
+      // authority; the tenant, actor and run come from verified context.
+      serviceRole: true,
       prefer: "return=minimal",
       body: {
         organization_id: context.organizationId,
