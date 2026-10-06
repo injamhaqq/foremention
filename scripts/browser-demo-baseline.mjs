@@ -73,7 +73,7 @@ try {
       assert.equal(await answers.count(), 16, "Every advertised demo answer is inspectable");
       assert.match(await answers.first().innerText(), /Fictional demonstration only/);
       const evidence = answers.first().locator(".canonical-contained-evidence").first();
-      await evidence.locator("summary").click();
+      await evidence.locator(":scope > summary").click();
       await evidence.locator(".canonical-source-evidence").waitFor();
       assert.match(await evidence.innerText(), /Human review[\s\S]*Pending/);
       assert.match(await evidence.innerText(), /does not prove authority, influence/);
