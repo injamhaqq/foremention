@@ -134,9 +134,9 @@ jobs:
           export FOREMENTION_BROWSER_BASE_URL=http://127.0.0.1:4173
 
           start_worker
+          node --experimental-strip-types scripts/browser-decision-draft.mjs
           node scripts/browser-acceptance.mjs
           node scripts/browser-demo-baseline.mjs
-          node --experimental-strip-types scripts/browser-decision-draft.mjs
           node scripts/browser-zoom-reflow.mjs
           node scripts/canonical-brand-visual-proof.mjs
           stop_worker
