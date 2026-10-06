@@ -79,8 +79,28 @@ begin
   exception when insufficient_privilege then denied := true;
   end;
   if not denied then raise exception 'Authenticated owner received direct funding program registry access'; end if;
+
+  denied := false;
+  begin
+    insert into public.company_funding_program_revisions (
+      id, program_id, organization_id, project_id, evidence_item_id, source_check_id, source_review_id,
+      name, kind, criteria, questions, created_by
+    ) values (
+      gen_random_uuid(), gen_random_uuid(),
+      'f2910000-0000-4000-8000-000000000001'::uuid,
+      'f2920000-0000-4000-8000-000000000001'::uuid,
+      'f2930000-0000-4000-8000-000000000001'::uuid,
+      'f2960000-0000-4000-8000-000000000001'::uuid,
+      'f2970000-0000-4000-8000-000000000001'::uuid,
+      'Browser write attempt', 'grant', '[]'::jsonb, '[]'::jsonb,
+      'f2900000-0000-4000-8000-000000000001'::uuid
+    );
+  exception when insufficient_privilege then
+    denied := true;
+  end;
+  if not denied then raise exception 'Authenticated owner bypassed trusted funding program registry write path'; end if;
 end
-$$;
+$;
 reset role;
 set local role service_role;
 
