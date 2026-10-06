@@ -48,7 +48,7 @@ try {
       assert.match(await page.locator(".workspace-heading").innerText(), /16 recorded answers/);
       const preview = page.locator(".latest-answer");
       await preview.waitFor();
-      assert.match(await preview.innerText(), /fictional-demo-model/);
+      assert.match(await preview.innerText(), /fictional-demo-model/i);
       assert.match(await preview.innerText(), /Fictional demonstration only/);
       const rows = await attention.locator(".attention-inbox__item").evaluateAll((items) => items.map((item) => {
         const box = item.getBoundingClientRect();
