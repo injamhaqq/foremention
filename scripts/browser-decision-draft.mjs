@@ -43,6 +43,8 @@ try {
       const entry=page.getByRole("link",{name:"Review decision",exact:true});
       await entry.focus();assert.equal(await entry.evaluate((e)=>e===document.activeElement),true);
       const href=await entry.getAttribute("href");assert.equal(new URL(href,"https://fixture.example").searchParams.get("source"),opportunitySourceUrl);
+      const actionBox=await entry.boundingBox();assert.ok(actionBox.height>=44,"Opportunity links must retain a usable touch target");
+      if(width<=900){const rowBox=await page.locator(".opportunity-list article").boundingBox();assert.ok(actionBox.width>=rowBox.width*.75,"Tablet/mobile actions must span the row, not fall into the narrow score column");}
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1),false);
       assert.deepEqual((await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa"]).analyze()).violations,[]);
       await page.screenshot({path:resolve(output,`opportunity-entry-${width}.png`),fullPage:true});
