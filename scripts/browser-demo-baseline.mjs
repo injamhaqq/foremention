@@ -79,6 +79,23 @@ try {
       await evidence.locator(".canonical-source-evidence").waitFor();
       assert.match(await evidence.locator(".canonical-contained-evidence__facts").textContent(), /Human review[\s\S]*Pending/);
       assert.match(await evidence.innerText(), /does not prove authority, influence/);
+      const review = evidence.locator(".source-review-form");
+      assert.equal(await review.getByRole("button", { name: "Save reviewed source" }).isDisabled(), true, "Fictional source review is read-only");
+      assert.equal(await review.getByRole("combobox", { name: "Crawler access" }).isDisabled(), true);
+      assert.match(await review.innerText(), /fictional demo is read-only/i);
+      const reviewColors = await review.locator("select, textarea").evaluateAll((fields) => fields.map((field) => {
+        const style = getComputedStyle(field);
+        return { foreground: style.color, background: style.backgroundColor, opacity: style.opacity };
+      }));
+      const luminance = (color) => {
+        const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number).map((value) => { const channel = value / 255; return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4; });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      };
+      for (const colors of reviewColors) {
+        const values = [luminance(colors.foreground), luminance(colors.background)].sort((a, b) => b - a);
+        assert.ok((values[0] + 0.05) / (values[1] + 0.05) >= 4.5, "Source review field values must be readable even when read-only");
+        assert.equal(colors.opacity, "1");
+      }
       const evidenceIds = await page.locator(".canonical-source-evidence [id]").evaluateAll((elements) => elements.map((element) => element.id));
       assert.equal(new Set(evidenceIds).size, evidenceIds.length, "Repeated references must retain distinct accessible heading IDs");
       await page.screenshot({ path: resolve(output, `record-evidence-${width}.png`), fullPage: true });
