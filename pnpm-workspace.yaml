@@ -6,7 +6,7 @@ allowBuilds:
   unrs-resolver: true
   workerd: true
 overrides:
-  sharp: 0.35.4
+  sharp: 0.35.5
   postcss: 8.5.23
   # Patch GHSA-68fv-2mgg-jv7q in transitive PostCSS/source-map chains.
   'source-map-js@>=1.0.0 <1.2.2': 1.2.2
@@ -31,6 +31,7 @@ onlyBuiltDependencies:
   - unrs-resolver
   - workerd
 minimumReleaseAgeExclude:
+  - sharp@0.35.5
   - vite@8.0.16
   - next@16.3.6
   - source-map-js@1.2.2
