@@ -4,7 +4,7 @@ import { PublicShell } from "@/components/public-shell";
 import { pageMetadata, webPageJsonLd } from "@/lib/seo";
 
 const description =
-  "No fake reviews. No hidden promotion. No ranking guarantees. Understand why competitors are being recommended, what your company should change next, and how to verify what happened after the change.";
+  "See where AI recommends your brand. Track recommendations, inspect supporting sources, and decide what to improve with evidence-based Recommendation Intelligence for B2B software.";
 
 export const metadata: Metadata = pageMetadata({
   title: "Recommendation Intelligence for B2B Software",

@@ -17,7 +17,7 @@ concurrency:
 jobs:
   browser-acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
 
     steps:
       - name: Harden runner
@@ -81,7 +81,29 @@ jobs:
           }
           JSON
           npm install --prefix .ci-tools --package-lock=false --ignore-scripts --no-audit --no-fund
-          .ci-tools/node_modules/.bin/playwright install --with-deps chromium firefox webkit
+          .ci-tools/node_modules/.bin/playwright install chromium firefox webkit
+
+          browser_smoke() {
+            node <<'NODE'
+          const { chromium, firefox, webkit } = require("./.ci-tools/node_modules/playwright");
+          (async () => {
+            for (const [name, browserType] of Object.entries({ chromium, firefox, webkit })) {
+              const browser = await browserType.launch({ headless: true });
+              await browser.close();
+              console.log(`[browser-tooling] ${name} launch OK`);
+            }
+          })().catch((error) => {
+            console.error("[browser-tooling] launch failed", error);
+            process.exit(1);
+          });
+          NODE
+          }
+
+          if ! browser_smoke; then
+            echo "Browser runtime dependencies are incomplete; installing Playwright OS dependencies."
+            .ci-tools/node_modules/.bin/playwright install-deps chromium firefox webkit
+            browser_smoke
+          fi
 
       - name: Run pull request browser, accessibility and performance acceptance
         if: github.event_name == 'pull_request'

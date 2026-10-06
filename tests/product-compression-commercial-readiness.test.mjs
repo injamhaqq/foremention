@@ -89,9 +89,10 @@ test("release does not introduce fabricated commercial, customer, compliance, or
   assert.doesNotMatch(joined, /Foremention (Inc\.|LLC|Ltd\.|Limited)/i);
 });
 
-test("homepage reflects the approved outreach release instead of a frozen source hash", () => {
+test("homepage reflects the approved 5 October release instead of a frozen source hash", () => {
   assert.match(homepage, /MissingAnswerExperience/);
   assert.match(homepage, /Recommendation Intelligence for B2B Software/);
-  assert.match(homepage, /what your company should change next/i);
+  assert.match(homepage, /See where AI recommends your brand/i);
+  assert.match(homepage, /Track recommendations, inspect supporting sources, and decide what to improve/i);
   assert.doesNotMatch(homepage, /guaranteed rankings|Category Leadership/i);
 });
