@@ -163,6 +163,7 @@ async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNe
   });
   await finalizeResolutionFollowUpsForRun({
     organizationId: data.organizationId,
+    projectId: data.projectId,
     runId: data.runId,
     runStatus: "failed",
   });
@@ -827,6 +828,7 @@ export const cleanupCancelledCollection = inngest.createFunction(
       });
       await finalizeResolutionFollowUpsForRun({
         organizationId: data.organizationId,
+        projectId: data.projectId,
         runId: data.runId,
         runStatus: "cancelled",
       });
