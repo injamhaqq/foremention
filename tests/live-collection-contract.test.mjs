@@ -13,6 +13,9 @@ test("live collection is tenant-revalidated, idempotent, cost-capped and backgro
     text("supabase/migrations/20260728000100_live_collection_hardening.sql"),
   ]);
   assert.match(route, /idempotency-key/);
+  assert.match(route, /persistedIdempotencyKey = `\$\{context\.projectId\}:\$\{idempotencyKey\}`/);
+  assert.match(route, /idempotency_key=in\.\(\$\{idempotencyFilter\}\)/);
+  assert.match(route, /idempotency_key: persistedIdempotencyKey/);
   assert.match(route, /reserve_run_budget/);
   assert.match(route, /p_reason: safeOperationalError\(error\)/);
   assert.match(route, /INNGEST_SIGNING_KEY/);
