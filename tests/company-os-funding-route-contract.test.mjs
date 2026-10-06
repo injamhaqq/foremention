@@ -28,15 +28,17 @@ test("Company OS funding route derives authorization and scope server-side", asy
   assert.doesNotMatch(route, /body\.(?:organizationId|projectId|createdBy)/);
 });
 
-test("funding POST accepts only bounded opportunity inputs and derives company truth from the configured project", async () => {
+test("funding POST accepts only bounded registry revision IDs and derives opportunities plus company truth server-side", async () => {
   const [route, service] = await Promise.all([
     read("app/api/internal/company-os/funding-drafts/route.ts"),
     read("lib/company-os/funding-draft-service.ts"),
   ]);
 
-  assert.match(service, /new Set\(\["schemaVersion", "programEvidenceIds", "opportunities"\]\)/);
-  assert.match(service, /programEvidenceIds\.length < 1 \|\| root\.programEvidenceIds\.length > 10/);
-  assert.match(service, /sourceEvidenceId/);
+  assert.match(service, /new Set\(\["schemaVersion", "programRevisionIds"\]\)/);
+  assert.match(service, /programRevisionIds\.length < 1 \|\| root\.programRevisionIds\.length > 10/);
+  assert.match(service, /schemaVersion !== 2/);
+  assert.match(route, /company_funding_program_revisions/);
+  assert.match(route, /supersedes_revision_id/);
   assert.match(route, /company_truth_entities\?select=id,canonical_key/);
   assert.match(route, /company_truth_assertions\?select=id,attribute_key,asserted_value_json,evidence_item_id,verified_at/);
   assert.match(route, /organization_id=eq\.\$\{encodeURIComponent\(context\.organizationId\)\}/);
