@@ -66,6 +66,24 @@ insert into public.company_funding_source_reviews (
   ('f2870000-0000-4000-8000-000000000004'::uuid, 'f2810000-0000-4000-8000-000000000001'::uuid, 'f2820000-0000-4000-8000-000000000001'::uuid, 'f2860000-0000-4000-8000-000000000004'::uuid, 'accepted', 'stale fixture', 'f2800000-0000-4000-8000-000000000001'::uuid, now() - interval '30 days'),
   ('f2870000-0000-4000-8000-000000000005'::uuid, 'f2810000-0000-4000-8000-000000000002'::uuid, 'f2820000-0000-4000-8000-000000000002'::uuid, 'f2860000-0000-4000-8000-000000000005'::uuid, 'accepted', 'cross fixture', 'f2800000-0000-4000-8000-000000000002'::uuid, now() - interval '30 minutes');
 
+insert into public.company_funding_program_revisions (
+  id, program_id, organization_id, project_id, evidence_item_id, source_check_id, source_review_id,
+  name, kind, criteria, questions, created_by
+) values (
+  'f28a0000-0000-4000-8000-000000000001'::uuid,
+  'f28a0000-0000-4000-8000-000000000001'::uuid,
+  'f2810000-0000-4000-8000-000000000001'::uuid,
+  'f2820000-0000-4000-8000-000000000001'::uuid,
+  'f2830000-0000-4000-8000-000000000001'::uuid,
+  'f2860000-0000-4000-8000-000000000001'::uuid,
+  'f2870000-0000-4000-8000-000000000001'::uuid,
+  'Current Program A',
+  'grant',
+  '[]'::jsonb,
+  '[]'::jsonb,
+  'f2800000-0000-4000-8000-000000000001'::uuid
+);
+
 -- Reverification after an accepted review invalidates that review chain.
 update public.evidence_items
 set verified_at = now() - interval '1 day'
@@ -90,15 +108,28 @@ declare
   v_profile_revision text := 'company-truth-v1-' || repeat('a', 64);
   v_input_digest text := repeat(p_digest_char, 64);
   v_artifact_digest text := repeat(p_digest_char, 64);
+  v_program_revision_ids uuid[] := '{}'::uuid[];
 begin
   select source_url into v_source_url from public.evidence_items where id = p_evidence_id;
+  select array[revision.id] into v_program_revision_ids
+  from public.company_funding_program_revisions as revision
+  where revision.organization_id = p_organization_id
+    and revision.project_id = p_project_id
+    and revision.evidence_item_id = p_evidence_id
+    and not exists (
+      select 1 from public.company_funding_program_revisions as newer
+      where newer.supersedes_revision_id = revision.id
+    )
+  order by revision.created_at desc
+  limit 1;
+  v_program_revision_ids := coalesce(v_program_revision_ids, '{}'::uuid[]);
   insert into public.company_funding_draft_artifacts (
     id, organization_id, project_id, created_by, profile_revision, package_version,
     input_digest, artifact_digest, program_evidence_ids, program_source_check_ids,
-    program_source_review_ids, company_truth_assertion_ids, artifact
+    program_source_review_ids, program_revision_ids, company_truth_assertion_ids, artifact
   ) values (
     p_artifact_id, p_organization_id, p_project_id, p_owner_id, v_profile_revision, '0.1.0',
-    v_input_digest, v_artifact_digest, array[p_evidence_id], p_check_ids, p_review_ids, '{}'::uuid[],
+    v_input_digest, v_artifact_digest, array[p_evidence_id], p_check_ids, p_review_ids, v_program_revision_ids, '{}'::uuid[],
     jsonb_build_object(
       'schemaVersion', 1,
       'packageVersion', '0.1.0',
