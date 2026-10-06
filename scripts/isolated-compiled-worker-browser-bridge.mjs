@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Bounded experiment only: real compiled Worker via direct test-harness
-// dispatcher, exposed to one real local Chromium fixture through a minimal
-// loopback HTTP bridge. Not production/edge/network-representative acceptance.
+// Bounded experiment only: real compiled Worker plus its generated static
+// assets through the local test-harness listener, exposed to one real Chromium
+// fixture through a minimal loopback HTTP bridge. Not production/edge/network-
+// representative acceptance.
 // No production service, provider, paid API, existing browser credentials or
 // sensitive failure log is accessed.
 import assert from "node:assert/strict";
@@ -74,7 +75,11 @@ try {
       }
       const method = request.method || "GET";
       const body = chunks.length ? Buffer.concat(chunks) : undefined;
-      const workerResponse = await compiledWorker.fetch(target.toString(),{
+      // Browser hydration needs the generated static asset layer as well as
+      // the Worker. The harness listener exercises both; direct getWorker()
+      // dispatch above remains the independent compiled-Worker health proof.
+      const harnessTarget = new URL(target.pathname + target.search, url);
+      const workerResponse = await fetch(harnessTarget,{
         method,
         headers,
         ...(body && !["GET","HEAD"].includes(method) ? {body} : {}),
@@ -107,7 +112,14 @@ try {
   });
   const proxyHealth = await fetch(appOrigin + "/api/health");
   assert.equal(proxyHealth.status,200,"Browser-facing loopback must preserve compiled-Worker health.");
-  process.stdout.write("[compiled-browser-bridge] first-compiled-worker-and-loopback-health-200\n");
+  const root = await fetch(appOrigin + "/");
+  assert.equal(root.status,200,"Browser-facing loopback must render the compiled application shell.");
+  const rootHtml = await root.text();
+  const assetPath = rootHtml.match(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/)?.[1];
+  assert.ok(assetPath,"Compiled application shell must reference a generated browser asset.");
+  const asset = await fetch(appOrigin + assetPath);
+  assert.equal(asset.status,200,"Browser-facing loopback must serve generated static assets.");
+  process.stdout.write("[compiled-browser-bridge] first-compiled-worker-loopback-and-static-asset-health-200\n");
 
   // Existing full Playwright Chromium journey performs real review/approval,
   // locally persisted second cycle and strict positive/negative page reads.
