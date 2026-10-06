@@ -558,7 +558,7 @@ export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceCon
     : categories[0] || null;
   // Never silently run a named project category under another category ID.
   if (!category) return null;
-  return { organizationId, projectId: project.id, projectName: project.name, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website || organizations[0].website, category: projectCategory || category.name };
+  return { organizationId, projectId: project.id, projectName: project.name, projectBrand: project.projectBrand, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website || organizations[0].website, category: projectCategory || category.name };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {
