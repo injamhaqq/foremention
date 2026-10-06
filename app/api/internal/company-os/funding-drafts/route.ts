@@ -425,7 +425,7 @@ export async function GET() {
   }
   try {
     const rows = await supabaseRest<FundingArtifactRow[]>(
-      `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,artifact,created_at`
+      `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,program_revision_ids,artifact,created_at`
         + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
         + `&project_id=eq.${encodeURIComponent(context.projectId)}`
         + `&order=created_at.desc&limit=20`,
@@ -451,32 +451,29 @@ export async function POST(request: Request) {
 
   try {
     const serviceRequest = parseFundingServiceRequest(await boundedJson(request));
-    const programRows = await loadEvidenceRows(viewer, context, serviceRequest.programEvidenceIds);
-    const programById = new Map(programRows.map((row) => [row.id, row]));
-    for (const evidenceId of serviceRequest.programEvidenceIds) {
-      const row = programById.get(evidenceId);
-      if (!row || row.evidence_type.trim().toLowerCase() !== "funding_program_official" || !currentEvidence(row, asOf)) {
-        return responseError("Every funding-program source must be current verified same-project evidence of type funding_program_official with a source URL and usage rights.", 409);
-      }
-    }
-    const reviewedPrograms = await loadCurrentAcceptedFundingReviews(
+    const reviewedPrograms = await loadCurrentFundingProgramRevisions(
+      viewer,
       context,
-      programById,
-      serviceRequest.programEvidenceIds,
+      serviceRequest.programRevisionIds,
       asOf,
     );
-    if (reviewedPrograms.size !== serviceRequest.programEvidenceIds.length) {
-      return responseError("Every funding-program source requires a current accepted source review in the configured Company OS project.", 409);
+    if (!reviewedPrograms || reviewedPrograms.length !== serviceRequest.programRevisionIds.length) {
+      return responseError("Every funding draft program must be a current reviewed registry revision in the configured Company OS project.", 409);
     }
-    const programEvidence = serviceRequest.programEvidenceIds.map((id) => {
-      const reviewed = reviewedPrograms.get(id) as ReviewedProgramEvidence;
-      return fundingEvidence(
-        programById.get(id) as EvidenceRow,
+    const programEvidenceIds = reviewedPrograms.map((row) => row.evidenceId);
+    if (new Set(programEvidenceIds).size !== programEvidenceIds.length) {
+      return responseError("Each selected funding program revision must bind a distinct official evidence record.", 409);
+    }
+    const programRows = await loadEvidenceRows(viewer, context, programEvidenceIds);
+    const programById = new Map(programRows.map((row) => [row.id, row]));
+    const programEvidence = reviewedPrograms.map((reviewed) =>
+      fundingEvidence(
+        programById.get(reviewed.evidenceId) as EvidenceRow,
         "official",
         FUNDING_PROGRAM_EVIDENCE_MAX_AGE_DAYS,
         reviewed.checkedAt,
-      );
-    });
+      )
+    );
     const profile = await loadCompanyTruth(viewer, context, asOf);
     const draft = await prepareScopedFundingDraft({
       serviceRequest,
@@ -486,10 +483,11 @@ export async function POST(request: Request) {
       programEvidence,
       companyEvidence: profile.evidence,
       companyFacts: profile.facts,
+      opportunities: reviewedPrograms.map((row) => row.opportunity),
     });
     const artifactDigest = await fundingServiceDigest(draft);
     const existing = await supabaseRest<FundingArtifactRow[]>(
-      `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,artifact,created_at`
+      `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,program_revision_ids,artifact,created_at`
         + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
         + `&project_id=eq.${encodeURIComponent(context.projectId)}`
         + `&artifact_digest=eq.${artifactDigest}&limit=1`,
@@ -497,14 +495,14 @@ export async function POST(request: Request) {
     );
     const warnings = [
       ...(profile.profileFactCount ? [] : ["No current scalar Company Truth facts were available; affected criteria and answers remain unknown."]),
-      "Program criteria, questions, and deadline fields remain operator-transcribed draft inputs; each official source is bound to a current accepted bounded source review.",
+      "Program names, kinds, deadlines, criteria, and questions come from current append-only reviewed Funding Program Registry revisions.",
       "This artifact is internal_draft_only and grants no submission authority.",
     ];
     if (existing[0]) {
       return NextResponse.json({ data: existing[0], duplicate: true, warnings }, { headers: { "cache-control": "private, no-store, max-age=0" } });
     }
     const inserted = await supabaseRest<FundingArtifactRow[]>(
-      "company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,artifact,created_at",
+      "company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,program_revision_ids,artifact,created_at",
       {
         method: "POST",
         serviceRole: true,
@@ -517,9 +515,10 @@ export async function POST(request: Request) {
           package_version: draft.packageVersion,
           input_digest: draft.inputDigest,
           artifact_digest: artifactDigest,
-          program_evidence_ids: serviceRequest.programEvidenceIds,
-          program_source_check_ids: serviceRequest.programEvidenceIds.map((id) => (reviewedPrograms.get(id) as ReviewedProgramEvidence).checkId),
-          program_source_review_ids: serviceRequest.programEvidenceIds.map((id) => (reviewedPrograms.get(id) as ReviewedProgramEvidence).reviewId),
+          program_evidence_ids: reviewedPrograms.map((row) => row.evidenceId),
+          program_source_check_ids: reviewedPrograms.map((row) => row.checkId),
+          program_source_review_ids: reviewedPrograms.map((row) => row.reviewId),
+          program_revision_ids: reviewedPrograms.map((row) => row.revisionId),
           company_truth_assertion_ids: profile.assertionIds,
           artifact: draft,
         },
