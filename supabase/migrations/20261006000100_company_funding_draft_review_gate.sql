@@ -40,17 +40,26 @@ begin
      and source_check.organization_id = new.organization_id
      and source_check.project_id = new.project_id
      and source_check.evidence_item_id = requested.evidence_id
+     and source_check.evidence_verified_at = evidence.verified_at
     left join public.company_funding_source_reviews as review
       on review.id = requested.review_id
      and review.organization_id = new.organization_id
      and review.project_id = new.project_id
      and review.check_id = requested.check_id
+     and review.decision = 'accepted'
+     and review.decided_at >= source_check.checked_at
     left join public.sources as source
       on source.id = source_check.source_id
      and source.organization_id = new.organization_id
+     and source.canonical_url = evidence.source_url
     left join public.source_snapshots as snapshot
       on snapshot.id = source_check.source_snapshot_id
      and snapshot.organization_id = new.organization_id
+     and snapshot.source_id = source.id
+     and snapshot.canonical_url = evidence.source_url
+     and snapshot.access in ('open','partial')
+     and snapshot.content_hash is not null
+     and nullif(trim(snapshot.evidence_excerpt), '') is not null
     where evidence.id is null
        or lower(trim(evidence.evidence_type)) <> 'funding_program_official'
        or evidence.verification_status <> 'verified'
@@ -60,22 +69,13 @@ begin
        or evidence.verified_at > now()
        or (evidence.expires_at is not null and evidence.expires_at <= now())
        or source_check.id is null
-       or source_check.evidence_verified_at is distinct from evidence.verified_at
        or source_check.checked_at < evidence.verified_at
        or source_check.checked_at < now() - interval '30 days'
        or source_check.checked_at > now()
        or review.id is null
-       or review.decision <> 'accepted'
-       or review.decided_at < source_check.checked_at
        or review.decided_at > now()
        or source.id is null
-       or source.canonical_url is distinct from evidence.source_url
        or snapshot.id is null
-       or snapshot.source_id is distinct from source.id
-       or snapshot.canonical_url is distinct from evidence.source_url
-       or snapshot.access not in ('open','partial')
-       or snapshot.content_hash is null
-       or nullif(trim(snapshot.evidence_excerpt), '') is null
   ) then
     raise exception 'Company funding draft requires a current accepted reviewed source chain for every program evidence record';
   end if;
