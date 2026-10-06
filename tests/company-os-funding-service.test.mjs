@@ -15,20 +15,22 @@ const read = (path) => readFile(new URL(path, root), "utf8");
 const organizationId = "11111111-1111-4111-8111-111111111111";
 const projectId = "22222222-2222-4222-8222-222222222222";
 const programEvidenceId = "33333333-3333-4333-8333-333333333333";
+const programRevisionId = "55555555-5555-4555-8555-555555555555";
 const companyEvidenceId = "44444444-4444-4444-8444-444444444444";
 
+const opportunity = {
+  id: "66666666-6666-4666-8666-666666666666",
+  name: "Synthetic Grant",
+  kind: "grant",
+  sourceEvidenceId: programEvidenceId,
+  deadlineAt: "2026-11-01T23:59:59Z",
+  criteria: [{ id: "country", factKey: "company.country", operator: "eq", expected: "BD" }],
+  questions: [{ id: "company-name", prompt: "Company name", factKey: "company.name", maxChars: 120, required: true }],
+};
+
 const request = () => ({
-  schemaVersion: 1,
-  programEvidenceIds: [programEvidenceId],
-  opportunities: [{
-    id: "synthetic-grant",
-    name: "Synthetic Grant",
-    kind: "grant",
-    sourceEvidenceId: programEvidenceId,
-    deadlineAt: "2026-11-01T23:59:59Z",
-    criteria: [{ id: "country", factKey: "company.country", operator: "eq", expected: "BD" }],
-    questions: [{ id: "company-name", prompt: "Company name", factKey: "company.name", maxChars: 120, required: true }],
-  }],
+  schemaVersion: 2,
+  programRevisionIds: [programRevisionId],
 });
 
 test("service request cannot supply organization, project, clock, evidence, facts, or profile verification", () => {
@@ -41,21 +43,18 @@ test("service request cannot supply organization, project, clock, evidence, fact
   }
 });
 
-test("service request requires unique UUID official-source references", () => {
+test("service request requires unique UUID funding-program revision references", () => {
   assert.throws(
-    () => parseFundingServiceRequest({ ...request(), programEvidenceIds: ["not-a-uuid"] }),
-    /FUNDING_SERVICE_INVALID:programEvidenceIds\.0/,
+    () => parseFundingServiceRequest({ ...request(), programRevisionIds: ["not-a-uuid"] }),
+    /FUNDING_SERVICE_INVALID:programRevisionIds\.0/,
   );
   assert.throws(
-    () => parseFundingServiceRequest({ ...request(), programEvidenceIds: [programEvidenceId, programEvidenceId] }),
-    /FUNDING_SERVICE_INVALID:programEvidenceIds:duplicate/,
+    () => parseFundingServiceRequest({ ...request(), programRevisionIds: [programRevisionId, programRevisionId] }),
+    /FUNDING_SERVICE_INVALID:programRevisionIds:duplicate/,
   );
   assert.throws(
-    () => parseFundingServiceRequest({
-      ...request(),
-      opportunities: [{ ...request().opportunities[0], sourceEvidenceId: companyEvidenceId }],
-    }),
-    /FUNDING_SERVICE_INVALID:opportunities\.0\.sourceEvidenceId/,
+    () => parseFundingServiceRequest({ ...request(), opportunities: [opportunity] }),
+    /FUNDING_SERVICE_INVALID:request:unknown_property/,
   );
 });
 
@@ -85,6 +84,7 @@ test("trusted service inputs bind scope and preserve draft-only authority flags"
       { key: "company.country", value: "BD", verification: "verified", evidenceId: companyEvidenceId },
       { key: "company.name", value: "Synthetic Company", verification: "verified", evidenceId: companyEvidenceId },
     ],
+    opportunities: [opportunity],
   });
   assert.equal(draft.organizationId, organizationId);
   assert.equal(draft.projectId, projectId);
@@ -114,7 +114,7 @@ test("configured Company OS scope comparison is exact", () => {
   ), true);
   assert.equal(sameFundingServiceScope(
     { organizationId, projectId },
-    { organizationId, projectId: "55555555-5555-4555-8555-555555555555" },
+    { organizationId, projectId: "77777777-7777-4777-8777-777777777777" },
   ), false);
 });
 
