@@ -6,6 +6,7 @@ allowBuilds:
   unrs-resolver: true
   workerd: true
 overrides:
+  # Security hotfix for fixable HIGH advisories detected after the website release.
   sharp: 0.35.5
   source-map-js: 1.2.2
   postcss: 8.5.23
