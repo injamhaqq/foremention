@@ -65,6 +65,7 @@ test("legacy funding draft fixtures carry accepted reviewed-source provenance un
   assert.match(sql, /company_funding_source_reviews/);
   assert.match(sql, /program_source_check_ids/);
   assert.match(sql, /program_source_review_ids/);
+  assert.match(sql, /program_revision_ids/);
   assert.match(sql, /source_check\.checked_at/);
 });
 
