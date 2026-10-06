@@ -8,6 +8,8 @@ allowBuilds:
 overrides:
   sharp: 0.35.4
   postcss: 8.5.23
+  # Reject unbounded indexed-source-map offsets (CVE-2026-93749).
+  source-map-js@<=1.2.1: 1.2.2
   # Refresh the reviewed security patches; keep scanner gates enabled.
   '@grpc/grpc-js@>=1.14.0 <1.14.5': 1.14.5
   brace-expansion@>=1.0.0 <1.1.21: 1.1.21

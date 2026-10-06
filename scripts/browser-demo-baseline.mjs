@@ -45,6 +45,15 @@ try {
       const setupLink = attention.getByRole("link", { name: /Review buyer questions/ });
       await setupLink.waitFor();
       assert.equal(await setupLink.getAttribute("href"), "/app/prompts");
+      const rows = await attention.locator(".attention-inbox__item").evaluateAll((items) => items.map((item) => {
+        const box = item.getBoundingClientRect();
+        return { top: box.top, bottom: box.bottom, display: getComputedStyle(item).display };
+      }));
+      assert.ok(rows.length >= 2, "Demo provides multiple attention items for layout verification");
+      rows.forEach((row, index) => {
+        assert.equal(row.display, "grid", "Attention items must have an explicit row layout");
+        if (index) assert.ok(row.top >= rows[index - 1].bottom + 8, "Attention items must be separated vertically");
+      });
       await page.screenshot({ path: resolve(output, `overview-${width}.png`), fullPage: true });
       await primary.click();
       await page.getByRole("heading", { level: 1, name: "Buyer Questions" }).waitFor();
