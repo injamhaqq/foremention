@@ -13,7 +13,7 @@ export function decisionDraftClientFixture(options={}) {
     const slot=cursor++;
     if(!(slot in state)) {
       state[slot]=initial;
-      if(Array.isArray(initial)) { arrays++; state[slot]=arrays===1?[id(2)]:[options.record||decisionDraftRecord]; }
+      if(Array.isArray(initial)) { arrays++; state[slot]=arrays===1?[id(2)]:options.records||[options.record||decisionDraftRecord]; }
       if(slot===2)state[slot]=id(3);
       // The fixture supplies records that would normally arrive through the scoped GETs.
       if(slot===9)state[slot]=false;
@@ -29,7 +29,7 @@ export function decisionDraftClientFixture(options={}) {
   const source=readFileSync(new URL("../../components/resolution-center.tsx",import.meta.url),"utf8");
   const code=ts.transpileModule(source,{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   const exports={};vm.runInNewContext(code,{exports,require:(name)=>mocks[name],fetch,Date,Set,Map,console,Response,DOMException});
-  const render=()=>{cursor=0;refCursor=0;return exports.ResolutionCenter({demo:options.demo||false,role:options.role||"analyst"});};
+  const render=()=>{cursor=0;refCursor=0;return exports.ResolutionCenter({demo:options.demo||false,role:options.role||"analyst",sourceUrl:options.sourceUrl||""});};
   const walk=(node,predicate)=>{if(!node||typeof node!=="object")return null;if(predicate(node))return node;for(const child of React.Children.toArray(node.props?.children)){const found=walk(child,predicate);if(found)return found;}return null;};
   return {render,walk,posts,navigations,finish};
 }
