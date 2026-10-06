@@ -180,7 +180,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   await supabaseRest("audit_logs", {
     method: "POST",
-    token: accessToken,
+    // An authorized analyst may review a source but cannot INSERT into
+    // admin-only audit_logs under user RLS. The route already verified the
+    // JWT, analyst-or-higher membership and organization-scoped entry, then
+    // persisted the actual review using the caller's own access token.
+    // Use the server-held role only to record that exact derived audit fact.
+    serviceRole: true,
     prefer: "return=minimal",
     body: {
       organization_id: organizationId,
