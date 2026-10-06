@@ -74,7 +74,9 @@ test("authenticated bridge dispatches exact compiled Worker status with no remot
   const bridge=await read("../scripts/isolated-compiled-worker-browser-bridge.mjs");
   assert.match(bridge,/createTestHarness/); assert.match(bridge,/compiledWorker\.fetch/);
   assert.match(bridge,/delete original\.ai/); assert.match(bridge,/target\.origin !== appOrigin/);
-  assert.match(bridge,/new URL\(target\.pathname \+ target\.search, url\)/);
+  assert.match(bridge,/target\.pathname\.startsWith\("\/assets\/"\)/);
+  assert.match(bridge,/await fetch\(new URL\(target\.pathname \+ target\.search, url\), requestInit\)/);
+  assert.match(bridge,/await compiledWorker\.fetch\(target\.toString\(\), requestInit\)/);
   assert.match(bridge,/Browser-facing loopback must serve generated static assets/);
   assert.match(bridge,/response\.writeHead\(workerResponse\.status,sentHeaders\)/);
   assert.match(bridge,/content-encoding/);
