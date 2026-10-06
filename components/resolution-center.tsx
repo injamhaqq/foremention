@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { buildDecisionDraftRequest, decisionRecordId } from "@/lib/decision-draft-request";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "@/app/app/resolutions/resolution-center.module.css";
 
@@ -145,6 +147,11 @@ function EmptyState({ demo }: { demo: boolean }) {
 }
 
 export function ResolutionCenter({ demo, role }: { demo: boolean; role: WorkspaceRole }) {
+  const router = useRouter();
+  const creationLock = useRef(false);
+  const [creationUncertain, setCreationUncertain] = useState(false);
+  const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
+  const [baselineRunId, setBaselineRunId] = useState("");
   const [records, setRecords] = useState<ResolutionRecord[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [draft, setDraft] = useState<Draft>(blankDraft);
@@ -168,6 +175,9 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
     setApprovalNote(record.approval.note || "");
     setTargetUrl(record.application.targetUrl || "");
     setTab(record.proposal ? "preview" : "edit");
+    setSelectedEvidenceIds([]);
+    const runIds = [...new Set(record.evidence.filter((item) => item.kind === "source_observation" && item.runId && decisionRecordId.test(item.runId)).map((item) => item.runId!))];
+    setBaselineRunId(runIds.length === 1 ? runIds[0] : "");
   }, []);
 
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -229,6 +239,31 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
     finally { setBusy(""); }
   }, [busy, canWrite, load]);
 
+  async function createDecision() {
+    if (!active || !canWrite || busy || creationLock.current || creationUncertain || active.changeSpecification || active.proposal) return;
+    let body;
+    try { body = buildDecisionDraftRequest(active.problem.id, active.evidence, selectedEvidenceIds, baselineRunId); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Review the selected evidence."); return; }
+    creationLock.current = true;
+    setBusy("create-decision"); setError(""); setNotice("");
+    let confirmedDecline = false;
+    try {
+      const response = await fetch("/api/change-specifications", { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(body) });
+      const payload = await readResponse(response);
+      if (!response.ok) { confirmedDecline = response.status >= 400 && response.status < 500; throw new Error(typeof payload.error === "string" ? payload.error : "The decision draft could not be saved."); }
+      const data = payload.data as { id?: string; status?: string } | undefined;
+      if (!data?.id || !decisionRecordId.test(data.id) || data.status !== "draft") throw new Error("The save response could not be verified. Reload and inspect existing decisions before retrying.");
+      setCreationUncertain(true);
+      await load();
+      router.push(`/app/change-specifications/${encodeURIComponent(data.id)}`);
+    } catch (caught) {
+      setCreationUncertain(!confirmedDecline);
+      // A lost response may follow a successful save. Reconcile before allowing another attempt.
+      await load();
+      setError(`${caught instanceof Error ? caught.message : "The save result is unknown."}${confirmedDecline ? "" : " Reload and inspect existing decisions before retrying; another save is blocked on this page."}`);
+    } finally { creationLock.current = false; setBusy(""); }
+  }
+
   async function generateProposal() {
     if (!active?.changeSpecification || !reviewedChangeStatuses.includes(active.changeSpecification.status)) {
       setError("A reviewed Change Specification is required before Foremention can create an execution asset.");
@@ -287,6 +322,7 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
   const approved = active.approval.status === "approved";
   const applied = active.application.status === "applied";
   const followUpBusy = active.followUp.status === "queued" || active.followUp.status === "running";
+  const baselineChoices = [...new Set(active.evidence.filter((item) => item.kind === "source_observation" && item.runId && decisionRecordId.test(item.runId)).map((item) => item.runId!))];
   const reviewedParent = Boolean(active.changeSpecification && reviewedChangeStatuses.includes(active.changeSpecification.status));
 
   return <div className={styles.center}>
@@ -297,7 +333,7 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
     <div className={styles.centerGrid}>
       <aside className={styles.problemRail} aria-label="Measured problems">
         <div className={styles.railHeading}><span>Measured problems</span><strong>{records.length}</strong></div>
-        <div className={styles.problemList}>{records.map((record) => <button className={record.id === active.id ? styles.selectedProblem : ""} type="button" key={record.id} onClick={() => hydrateEditor(record)}><span>{readable(record.problem.type)}</span><strong>{record.problem.title}</strong><small>{readable(record.status)}</small></button>)}</div>
+        <div className={styles.problemList}>{records.map((record) => <button className={record.id === active.id ? styles.selectedProblem : ""} type="button" key={record.id} disabled={busy !== ""} onClick={() => hydrateEditor(record)}><span>{readable(record.problem.type)}</span><strong>{record.problem.title}</strong><small>{readable(record.status)}</small></button>)}</div>
         <p className={styles.railNote}>Only workspace problems backed by persisted records belong here.</p>
       </aside>
 
@@ -306,18 +342,27 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
           <div className={styles.sectionHeading}><div><span>01 · Specific problem</span><h2>{active.problem.title}</h2></div><div className={styles.confidence}><small>Recorded confidence</small><strong>{readable(active.problem.confidence)}</strong></div></div>
           <p className={styles.problemSummary}>{active.problem.summary}</p>
           <dl className={styles.factStrip}><div><dt>Problem type</dt><dd>{readable(active.problem.type)}</dd></div><div><dt>Observed</dt><dd>{formatDate(active.problem.observedAt)}</dd></div><div><dt>Resolution state</dt><dd>{readable(active.status)}</dd></div></dl>
-          {active.changeSpecification ? <div className="inline-notice" role="note"><strong>Parent Change Specification · {active.changeSpecification.title}</strong><p>{active.changeSpecification.exactChange || "The exact company change is not specified yet."} · {readable(active.changeSpecification.status)} · {readable(active.changeSpecification.decisionState)} · {active.changeSpecification.controlClass ? readable(active.changeSpecification.controlClass) : "Control unknown"}{active.changeSpecification.controlSurface ? ` · ${active.changeSpecification.controlSurface}` : ""}</p><Link className={styles.inlineLink} href={`/app/change-specifications/${encodeURIComponent(active.changeSpecification.id)}`}>Open company decision →</Link></div> : active.proposal ? <div className="inline-notice" role="note"><strong>Legacy Resolution Asset</strong><p>This stored resolution has no Change Specification link. Foremention keeps its historical recommendation semantics and will not manufacture a parent decision.</p></div> : <div className="inline-notice" role="note"><strong>No Change Specification yet.</strong><p>Create and review the company decision before generating a new execution asset.</p><Link className={styles.inlineLink} href="/app">Open Attention →</Link></div>}
+          {active.changeSpecification ? <div className="inline-notice" role="note"><strong>Parent Change Specification · {active.changeSpecification.title}</strong><p>{active.changeSpecification.exactChange || "The exact company change is not specified yet."} · {readable(active.changeSpecification.status)} · {readable(active.changeSpecification.decisionState)} · {active.changeSpecification.controlClass ? readable(active.changeSpecification.controlClass) : "Control unknown"}{active.changeSpecification.controlSurface ? ` · ${active.changeSpecification.controlSurface}` : ""}</p><Link className={styles.inlineLink} href={`/app/change-specifications/${encodeURIComponent(active.changeSpecification.id)}`}>Open company decision →</Link></div> : active.proposal ? <div className="inline-notice" role="note"><strong>Legacy Resolution Asset</strong><p>This stored resolution has no Change Specification link. Foremention keeps its historical recommendation semantics and will not manufacture a parent decision.</p></div> : <div className="inline-notice" role="note"><strong>Create a decision from this evidence.</strong><p>A Change Specification records the proposed change, owner, acceptance criteria, and verification plan. Creating a draft does not approve, publish, or execute anything.</p><a className={styles.inlineLink} href="#decision-draft">Review evidence and create a draft →</a></div>}
         </section>
 
         <section className={styles.sectionPanel}>
           <div className={styles.sectionHeading}><div><span>02 · Inspectable evidence</span><h3>What supports this problem?</h3></div><small>{active.evidence.length} recorded item{active.evidence.length === 1 ? "" : "s"}</small></div>
           <EvidenceList items={active.evidence} />
+          {!active.changeSpecification && !active.proposal && <form id="decision-draft" className={styles.editor} onSubmit={(event) => { event.preventDefault(); void createDecision(); }}>
+            <fieldset className={styles.fullField} disabled={!canWrite || busy !== ""}>
+              <legend>Choose evidence for the decision draft</legend>
+              {active.evidence.filter((item) => ["source_observation", "evidence_item"].includes(item.kind) && decisionRecordId.test(item.id)).map((item) => <label className={styles.evidenceChoice} key={item.id}><span><input type="checkbox" checked={selectedEvidenceIds.includes(item.id)} onChange={(event) => setSelectedEvidenceIds((current) => event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id))} /> {item.title} · {formatDate(item.observedAt)}</span></label>)}
+            </fieldset>
+            {baselineChoices.length > 0 && <label className={styles.fullField}>Baseline Record<select disabled={!canWrite || busy !== ""} value={baselineRunId} onChange={(event) => setBaselineRunId(event.target.value)}><option value="">Choose a Record</option>{baselineChoices.map((id) => <option key={id} value={id}>{id} · {formatDate(active.evidence.find((item) => item.runId === id)?.observedAt)}</option>)}</select></label>}
+            <p className={styles.fullField}>Select the supporting records above. Source observations must belong to the chosen baseline. Review does not prove causation; the draft starts with insufficient evidence and requires a customer decision.</p>
+            <div className={`${styles.buttonRow} ${styles.fullField}`}><button className="button button--ink" type="submit" disabled={!canWrite || busy !== "" || creationUncertain || !selectedEvidenceIds.length}>{busy === "create-decision" ? "Saving decision draft…" : "Create decision draft"}</button><span>Next: define the change, owner, acceptance criteria, and verification plan.</span></div>
+          </form>}
           <p className={styles.limitNote}>Evidence supports the diagnosis within its date, provider, model, and review boundary. It does not prove external influence or causation.</p>
         </section>
 
-        <section className={styles.sectionPanel}>
+        {(active.changeSpecification || active.proposal) && <><section className={styles.sectionPanel}>
           <div className={styles.sectionHeading}><div><span>03 · {active.changeSpecification ? "Execution asset" : "Proposed fix"}</span><h3>{active.changeSpecification ? "Create an artifact beneath the reviewed company decision." : "Review the legacy resolution or define a Change Specification first."}</h3></div>{active.proposal && <small>Version {active.proposal.version} · {formatDate(active.proposal.updatedAt)}</small>}</div>
-          {!proposalSaved && <div className={styles.generateRow}><div><strong>{reviewedParent ? "No execution asset has been created." : "A reviewed Change Specification is required."}</strong><p>{reviewedParent ? "Generation uses the reviewed parent decision plus attached evidence and preserves explicit limitations for customer review." : "Foremention will not turn an observed problem directly into a new execution asset without the canonical company decision."}</p></div>{reviewedParent && active.changeSpecification ? <button className="button button--ink" type="button" disabled={!canWrite || busy !== "" || !active.evidence.length} onClick={() => void generateProposal()}>{busy === "generate" ? "Creating draft…" : "Create execution-asset draft"}</button> : active.changeSpecification ? <Link className="button button--outline" href={`/app/change-specifications/${encodeURIComponent(active.changeSpecification.id)}`}>Complete decision first</Link> : <Link className="button button--outline" href="/app">Open Attention</Link>}</div>}
+          {!proposalSaved && <div className={styles.generateRow}><div><strong>{reviewedParent ? "No execution asset has been created." : "A reviewed Change Specification is required."}</strong><p>{reviewedParent ? "Generation uses the reviewed parent decision plus attached evidence and preserves explicit limitations for customer review." : "Foremention will not turn an observed problem directly into a new execution asset without the canonical company decision."}</p></div>{reviewedParent && active.changeSpecification ? <button className="button button--ink" type="button" disabled={!canWrite || busy !== "" || !active.evidence.length} onClick={() => void generateProposal()}>{busy === "generate" ? "Creating draft…" : "Create execution-asset draft"}</button> : active.changeSpecification ? <Link className="button button--outline" href={`/app/change-specifications/${encodeURIComponent(active.changeSpecification.id)}`}>Complete decision first</Link> : <a className="button button--outline" href="#decision-draft">Create decision first</a>}</div>}
 
           <div className={styles.editorTabs} role="tablist" aria-label="Solution asset editor"><button type="button" role="tab" aria-selected={tab === "edit"} onClick={() => setTab("edit")}>Edit</button><button type="button" role="tab" aria-selected={tab === "preview"} onClick={() => setTab("preview")}>Preview</button></div>
           {tab === "edit" ? <form className={styles.editor} onSubmit={(event) => { event.preventDefault(); void saveDraft(); }}>
@@ -336,6 +381,7 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
         </section>
 
         <section className={`${styles.sectionPanel} ${styles.followUp}`}><div><span>06 · Follow-up measurement</span><h3>Measure the same question and conditions again.</h3><p>A comparable follow-up preserves the baseline, provider, model, and question so the customer can inspect change without turning correlation into a causal claim.</p>{active.followUp.summary && <blockquote>{active.followUp.summary}</blockquote>}</div><div className={styles.followUpAction}><strong>{readable(active.followUp.status)}</strong>{active.followUp.followUpRunId && <Link className={styles.inlineLink} href={`/app/runs/${encodeURIComponent(active.followUp.followUpRunId)}`}>Inspect follow-up run →</Link>}<button className="button button--ink" type="button" disabled={!canWrite || busy !== "" || !applied || followUpBusy} onClick={() => void requestRemeasurement()}>{busy === "remeasure" || followUpBusy ? "Measurement queued…" : active.followUp.status === "complete" || active.followUp.status === "incomparable" ? "Run another comparison" : "Request comparable measurement"}</button></div></section>
+        </>}
       </div>
     </div>
   </div>;

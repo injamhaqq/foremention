@@ -136,3 +136,9 @@
 @media (prefers-reduced-motion: reduce) {
   .pulse, .loadingHeading, .loadingGrid div { animation: none; }
 }
+
+/* Decision evidence selection keeps the checkbox and its complete label together. */
+.editor .evidenceChoice { display: block; margin-block: 12px; font-size: 12px; letter-spacing: normal; text-transform: none; overflow-wrap: anywhere; }
+.evidenceChoice span { display: flex; align-items: center; gap: 10px; }
+.editor .evidenceChoice input { flex: 0 0 20px; width: 20px; min-height: 20px; padding: 0; }
+.editor fieldset { min-width: 0; padding: 14px; }
