@@ -20,7 +20,8 @@ const summary={scope:"Isolated React rendering with synthetic scoped GET state. 
 const browser=await chromium.launch({headless:true});
 try {
   for(const width of [1440,375,320]) {
-    const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:"reduce"});
+    const context=await browser.newContext({viewport:{width,height:1000},reducedMotion:"reduce"});
+    const page=await context.newPage();
     try {
       const html=renderToStaticMarkup(decisionDraftClientFixture().render());
       await page.setContent(`<!doctype html><html lang="en"><head><title>Decision draft layout fixture</title>${css}</head><body><div class="app-frame" style="display:block"><main class="workspace page"><div class="workspace-heading"><div><h1>Review a decision</h1><p>Isolated layout fixture — no customer data or saved decision.</p></div></div>${html}</main></div></body></html>`);
@@ -37,7 +38,7 @@ try {
       assert.deepEqual(audit.violations,[],"Decision fixture must pass axe");
       await page.screenshot({path:resolve(output,`decision-draft-${width}.png`),fullPage:true});
       summary.profiles.push({width,passed:true,violations:audit.violations});
-    } finally { await page.screenshot({path:resolve(output,`final-${width}.png`),fullPage:true}).catch(()=>{});await page.close(); }
+    } finally { await page.screenshot({path:resolve(output,`final-${width}.png`),fullPage:true}).catch(()=>{});await context.close(); }
   }
   console.log("PASS isolated decision-draft rendering and native controls at 1440, 375 and 320px; authenticated save remains unverified");
 } finally {await writeFile(resolve(output,"summary.json"),JSON.stringify(summary,null,2));await browser.close();}
