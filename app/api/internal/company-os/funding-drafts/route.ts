@@ -16,6 +16,7 @@ import {
   type FundingServiceEvidence,
   type FundingServiceFact,
 } from "@/lib/company-os/funding-draft-service";
+import type { FundingDraftRequest } from "@/lib/company-os/funding-draft";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { isMissingRelationError, SupabaseRequestError, supabaseRest } from "@/lib/supabase-rest";
 
@@ -43,6 +44,7 @@ type FundingArtifactRow = {
   artifact_digest: string;
   program_source_check_ids: string[];
   program_source_review_ids: string[];
+  program_revision_ids: string[];
   artifact: unknown;
   created_at: string;
 };
@@ -69,10 +71,27 @@ type FundingSourceSnapshotRow = {
   content_hash: string | null;
   evidence_excerpt: string | null;
 };
-type ReviewedProgramEvidence = {
+type FundingProgramRevisionRow = {
+  id: string;
+  program_id: string;
+  evidence_item_id: string;
+  source_check_id: string;
+  source_review_id: string;
+  supersedes_revision_id: string | null;
+  name: string;
+  kind: FundingDraftRequest["opportunities"][number]["kind"];
+  deadline_at: string | null;
+  criteria: FundingDraftRequest["opportunities"][number]["criteria"];
+  questions: FundingDraftRequest["opportunities"][number]["questions"];
+};
+type ReviewedProgramRevision = {
+  revisionId: string;
+  programId: string;
+  evidenceId: string;
   checkId: string;
   reviewId: string;
   checkedAt: string;
+  opportunity: FundingDraftRequest["opportunities"][number];
 };
 type FundingContext = { organizationId: string; projectId: string };
 type FundingMembershipRole = "owner" | "admin" | "analyst" | "viewer";
