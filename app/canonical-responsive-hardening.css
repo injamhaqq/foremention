@@ -308,3 +308,9 @@
     --fm-muted: #c5ccc6;
   }
 }
+
+/* Opportunity controls belong below the evidence on two/one-column layouts. */
+.app-frame .opportunity-actions > a { min-height: 44px; align-items: center; }
+@media (max-width: 900px) {
+  .app-frame .opportunity-actions { grid-column: 1 / -1; min-width: 0; }
+}

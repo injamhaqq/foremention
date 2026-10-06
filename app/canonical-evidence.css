@@ -96,7 +96,7 @@
   line-height: 1.05;
 }
 
-.canonical-answer-record > p {
+.canonical-record-stack .canonical-answer-record > p {
   max-width: 940px;
   margin: 0;
   padding: 20px 22px 24px;
@@ -311,3 +311,11 @@
   .canonical-contained-evidence .source-inspector__result { grid-template-columns: 1fr; }
   .canonical-contained-evidence .source-inspector__wide { grid-column: auto; }
 }
+/* Review values stay readable in the canonical workspace, including read-only records. */
+.app-frame .source-review-grid { min-width: 0; margin: 0; border: 0; }
+.app-frame .source-review-grid :is(input:not([type="checkbox"]), select, textarea) { color: var(--fm-fg); background: var(--fm-surface); border-color: var(--fm-border-strong); opacity: 1; -webkit-text-fill-color: var(--fm-fg); }
+.app-frame .source-review-grid :is(input, textarea)::placeholder { color: var(--fm-muted); opacity: 1; }
+.app-frame .source-review-check { color: var(--fm-fg-soft); background: var(--fm-surface-2); border-color: var(--fm-border-strong); }
+
+.canonical-answer-record .brand-mention-context article { background: var(--fm-surface); border-color: var(--fm-border-strong); }
+.canonical-answer-record .brand-mention-context article strong { color: var(--fm-fg); }

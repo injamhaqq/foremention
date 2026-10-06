@@ -7,8 +7,7 @@ import { AttentionInbox } from "@/components/attention-inbox";
 import { BillingControl } from "@/components/billing-control";
 import { EnterpriseReadiness } from "@/components/enterprise-readiness";
 import { MeasurementScheduleControl } from "@/components/measurement-schedule-control";
-import type { RetentionHealth } from "@/lib/retention-health";
-import type { ActivationStage, AttentionItem } from "@/lib/retention-loop";
+import type { AttentionItem } from "@/lib/retention-loop";
 
 function ContextLinks({ title, body, links }: { title: string; body: string; links: Array<[string, string]> }) {
   return <details className="panel retention-context-tools">
@@ -24,40 +23,39 @@ function ContextLinks({ title, body, links }: { title: string; body: string; lin
   </details>;
 }
 
-function NextBestStep({ activation }: { activation: ActivationStage }) {
-  return <section className="panel retention-next-step" data-activation-stage={activation.key}>
-    <span className="eyebrow">Next best step</span>
-    <h2>{activation.title}</h2>
-    <p>{activation.detail}</p>
-    <div className="settings-actions"><Link className={`button ${activation.complete ? "button--outline" : "button--ink"}`} href={activation.href}>{activation.complete ? "Review comparable change" : "Continue the loop"}</Link></div>
-  </section>;
-}
-
-function RetentionHealthPanel({ health }: { health: RetentionHealth }) {
-  return <section className="panel retention-health" data-retention-health={health.status} aria-label="Retention health">
-    <span className="eyebrow">Retention health</span>
-    <h2>{health.label}</h2>
-    <p>{health.reason}</p>
-  </section>;
-}
-
 function AttentionSurface() {
   const [items, setItems] = useState<AttentionItem[]>([]);
-  const [activation, setActivation] = useState<ActivationStage | null>(null);
-  const [retentionHealth, setRetentionHealth] = useState<RetentionHealth | null>(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     let live = true;
-    void fetch("/api/retention/attention", { cache: "no-store" })
-      .then(async (response) => response.ok ? response.json() : { data: [] })
-      .then((payload: { data?: AttentionItem[]; activation?: ActivationStage; retentionHealth?: RetentionHealth }) => { if (live) { setItems(payload.data || []); setActivation(payload.activation || null); setRetentionHealth(payload.retentionHealth || null); setLoaded(true); } })
-      .catch(() => { if (live) setLoaded(true); });
-    return () => { live = false; };
-  }, []);
+    const controller = new AbortController();
+    const unavailable = () => {
+      if (!live) return;
+      live = false;
+      setError(true);
+      setLoaded(true);
+    };
+    // Bound the whole read, including a response body that never finishes.
+    // A missing response is unavailable evidence, not an empty inbox.
+    const deadline = setTimeout(() => {
+      unavailable();
+      controller.abort();
+    }, 15_000);
+    void fetch("/api/retention/attention", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() : Promise.reject(new Error("Attention unavailable")))
+      .then((payload: { data?: AttentionItem[] }) => {
+        if (!Array.isArray(payload.data)) throw new Error("Attention unavailable");
+        if (live) { live = false; setItems(payload.data); setLoaded(true); }
+      })
+      .catch(unavailable)
+      .finally(() => clearTimeout(deadline));
+    return () => { live = false; clearTimeout(deadline); controller.abort(); };
+  }, [attempt]);
   if (!loaded) return <section className="panel"><span className="eyebrow">Attention</span><h2>Checking what needs you now.</h2><p className="table-caption">Only persisted workspace state can create an Attention item.</p></section>;
+  if (error) return <section className="panel" role="alert"><h2>Attention is temporarily unavailable.</h2><p>We could not check what needs your attention. Your saved records have not changed.</p><button className="button button--outline" onClick={() => { setError(false); setLoaded(false); setAttempt((value) => value + 1); }}>Retry attention</button> <Link href="/app/runs">Open Records →</Link></section>;
   return <>
-    {activation && <NextBestStep activation={activation} />}
-    {retentionHealth && <RetentionHealthPanel health={retentionHealth} />}
     <AttentionInbox items={items} />
     <ContextLinks
       title="Move from signal to owned follow-through."
@@ -123,7 +121,7 @@ export function RetentionSurfaceBridge() {
   const pathname = usePathname();
   const recordMatch = pathname.match(/^\/app\/runs\/([^/]+)$/);
   return <>
-    {pathname === "/app" && <AttentionSurface />}
+    {pathname === "/app" && <div className="attention-surface"><AttentionSurface /></div>}
     {pathname === "/app/settings" && <SettingsExtensions />}
     {recordMatch && <RecordControls runId={decodeURIComponent(recordMatch[1])} />}
     {pathname === "/app/analytics" && <AnalyticsExtensions />}

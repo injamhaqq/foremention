@@ -223,7 +223,7 @@ export async function POST(request: Request) {
     logOperationalEvent("collection_reservation_failed", { correlationId, route: "/api/runs", errorCode: "capacity_reservation_failed" });
     console.warn(`Collection capacity failed during ${capacityStage}.`, safeOperationalError(error));
     const concurrentDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
-      `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=in.(${idempotencyFilter})&limit=1`,
+      `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
       { token: viewer.accessToken },
     ).catch(() => []);
     if (concurrentDuplicate[0] && concurrentDuplicate[0].id !== runId) {

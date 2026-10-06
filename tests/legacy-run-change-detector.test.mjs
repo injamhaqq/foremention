@@ -6,7 +6,7 @@ const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
 test("collection processing no longer creates chronological movement claims before human review", async () => {
-  const [jobs, dispatcher] = await Promise.all([text("lib/jobs/inngest.ts"), text("lib/jobs/measurement-schedule-dispatcher.ts")]);
+  const jobs = await text("lib/jobs/inngest.ts");
   assert.doesNotMatch(jobs, /async function recordRunChanges/);
   assert.doesNotMatch(jobs, /detect-run-changes/);
   assert.doesNotMatch(jobs, /recordRunChanges\(run, identity\)/);
@@ -16,10 +16,7 @@ test("collection processing no longer creates chronological movement claims befo
 });
 
 test("operational collection notifications, digest delivery, and schedule-driven recurring collection remain intact", async () => {
-  const [jobs, dispatcher] = await Promise.all([
-    text("lib/jobs/inngest.ts"),
-    text("lib/jobs/measurement-schedule-dispatcher.ts"),
-  ]);
+  const [jobs, dispatcher] = await Promise.all([text("lib/jobs/inngest.ts"), text("lib/jobs/measurement-schedule-dispatcher.ts")]);
   for (const value of [
     "mark-run-for-human-review",
     "notify-run-owner",
@@ -28,8 +25,7 @@ test("operational collection notifications, digest delivery, and schedule-driven
     "first_run_completed",
     "schedule-weekly-workspace-digests",
     'cron: "0 8 * * 1"',
-  ]) assert.match(jobs, new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-
+  ]) assert.ok(jobs.includes(value), `Missing operational contract: ${value}`);
   assert.doesNotMatch(jobs, /prepareWeeklyRun|schedule-weekly-workspace-runs/);
   assert.match(dispatcher, /id: "dispatch-measurement-schedules"/);
   assert.match(dispatcher, /reserve_run_quota_server/);
