@@ -133,11 +133,28 @@ jobs:
 
           export FOREMENTION_BROWSER_BASE_URL=http://127.0.0.1:4173
 
+          # Keep each browser suite on a fresh Wrangler process. A previous
+          # exact-candidate failure showed a local dev Worker returning 500 for
+          # a core framework asset after earlier suites had already passed.
+          # Restarting between suites preserves every assertion while removing
+          # cross-suite process contamination from the acceptance transport.
           start_worker
           node --experimental-strip-types scripts/browser-decision-draft.mjs
+          stop_worker
+
+          start_worker
           node scripts/browser-acceptance.mjs
+          stop_worker
+
+          start_worker
           node scripts/browser-demo-baseline.mjs
+          stop_worker
+
+          start_worker
           node scripts/browser-zoom-reflow.mjs
+          stop_worker
+
+          start_worker
           node scripts/canonical-brand-visual-proof.mjs
           stop_worker
 
