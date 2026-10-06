@@ -6,8 +6,9 @@ allowBuilds:
   unrs-resolver: true
   workerd: true
 overrides:
-  sharp: 0.35.4
+  sharp: 0.35.5
   postcss: 8.5.23
+  'source-map-js@>=1.0.0 <1.2.2': 1.2.2
   # Refresh the reviewed security patches; keep scanner gates enabled.
   '@grpc/grpc-js@>=1.14.0 <1.14.5': 1.14.5
   brace-expansion@>=1.0.0 <1.1.21: 1.1.21
@@ -29,6 +30,8 @@ onlyBuiltDependencies:
   - unrs-resolver
   - workerd
 minimumReleaseAgeExclude:
+  - sharp@0.35.5
+  - source-map-js@1.2.2
   - vite@8.0.16
   - next@16.3.6
   - '@grpc/grpc-js@1.14.5'
