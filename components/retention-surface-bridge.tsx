@@ -30,11 +30,28 @@ function AttentionSurface() {
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     let live = true;
-    void fetch("/api/retention/attention", { cache: "no-store" })
+    const controller = new AbortController();
+    const unavailable = () => {
+      if (!live) return;
+      live = false;
+      setError(true);
+      setLoaded(true);
+    };
+    // Bound the whole read, including a response body that never finishes.
+    // A missing response is unavailable evidence, not an empty inbox.
+    const deadline = setTimeout(() => {
+      unavailable();
+      controller.abort();
+    }, 15_000);
+    void fetch("/api/retention/attention", { cache: "no-store", signal: controller.signal })
       .then(async (response) => response.ok ? response.json() : Promise.reject(new Error("Attention unavailable")))
-      .then((payload: { data?: AttentionItem[] }) => { if (!Array.isArray(payload.data)) throw new Error("Attention unavailable"); if (live) { setItems(payload.data); setLoaded(true); } })
-      .catch(() => { if (live) { setError(true); setLoaded(true); } });
-    return () => { live = false; };
+      .then((payload: { data?: AttentionItem[] }) => {
+        if (!Array.isArray(payload.data)) throw new Error("Attention unavailable");
+        if (live) { live = false; setItems(payload.data); setLoaded(true); }
+      })
+      .catch(unavailable)
+      .finally(() => clearTimeout(deadline));
+    return () => { live = false; clearTimeout(deadline); controller.abort(); };
   }, [attempt]);
   if (!loaded) return <section className="panel"><span className="eyebrow">Attention</span><h2>Checking what needs you now.</h2><p className="table-caption">Only persisted workspace state can create an Attention item.</p></section>;
   if (error) return <section className="panel" role="alert"><h2>Attention is temporarily unavailable.</h2><p>We could not check what needs your attention. Your saved records have not changed.</p><button className="button button--outline" onClick={() => { setError(false); setLoaded(false); setAttempt((value) => value + 1); }}>Retry attention</button> <Link href="/app/runs">Open Records →</Link></section>;

@@ -21,6 +21,22 @@ try {
     const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: "reduce" });
     const page = await context.newPage();
     const errors = [];
+    let attentionRequests = 0;
+    let attentionMode = "unavailable";
+    const stalledRequests = new Set();
+    const releaseStalledRequests = () => { for (const release of stalledRequests) release(); stalledRequests.clear(); };
+    const network = [];
+    const noteNetwork = (request, state, status) => {
+      const url = new URL(request.url());
+      // Local fictional fixture diagnostics: paths/status only, no headers,
+      // cookies, query strings, request bodies or recorded answer contents.
+      if (url.origin !== base.origin || !(url.pathname === "/api/retention/attention" || /\.(?:js|css)$/.test(url.pathname))) return;
+      network.push({ path: url.pathname, state, ...(status === undefined ? {} : { status }) });
+      if (network.length > 80) network.shift();
+    };
+    page.on("request", (request) => noteNetwork(request, "started"));
+    page.on("response", (response) => noteNetwork(response.request(), "response", response.status()));
+    page.on("requestfailed", (request) => noteNetwork(request, "failed"));
     page.on("pageerror", (error) => errors.push(error.message));
     // Reject unexpected mutations. Only the existing local demo sign-in is allowed.
     await page.route("**/*", async (route) => {
@@ -102,11 +118,13 @@ try {
       assert.equal(new Set(evidenceIds).size, evidenceIds.length, "Repeated references must retain distinct accessible heading IDs");
       await page.screenshot({ path: resolve(output, `record-evidence-${width}.png`), fullPage: true });
       // Deliberately unavailable Attention must be an error, then recover via Retry.
-      let attentionRequests = 0;
-      let recoverAttention = false;
       await page.route("**/api/retention/attention", async (route) => {
         attentionRequests += 1;
-        if (!recoverAttention) await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Attention temporarily unavailable" }) });
+        if (attentionMode === "stalled") {
+          await new Promise((resolve) => { stalledRequests.add(resolve); });
+          await route.abort().catch(() => {}); // The client may already have aborted at its deadline.
+        }
+        else if (attentionMode === "unavailable") await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Attention temporarily unavailable" }) });
         else await route.fallback();
       });
       await page.goto(new URL("/app", base).href);
@@ -118,11 +136,28 @@ try {
       await retry.focus();
       const failedAttentionRequests = attentionRequests;
       assert.ok(failedAttentionRequests >= 1, "The outage must include a real failed Attention request");
-      recoverAttention = true;
+      attentionMode = "recover";
       await page.keyboard.press("Enter");
       await page.locator(".attention-inbox").waitFor();
       assert.equal(await alert.count(), 0);
       assert.ok(attentionRequests > failedAttentionRequests, "Keyboard Retry must issue a recovery request");
+      // A request that never returns must also stop loading and offer Retry.
+      attentionMode = "stalled";
+      const beforeStall = attentionRequests;
+      await page.goto(new URL("/app", base).href);
+      await alert.waitFor();
+      assert.ok(attentionRequests > beforeStall, "The deadline case must dispatch an actual stalled Attention read");
+      assert.equal(await page.locator(".attention-inbox").count(), 0, "A timeout cannot display an empty/successful inbox");
+      assert.equal(await alert.getByRole("link", { name: "Open Records" }).getAttribute("href"), "/app/runs");
+      await page.screenshot({ path: resolve(output, `attention-timeout-${width}.png`), fullPage: true });
+      attentionMode = "recover";
+      releaseStalledRequests();
+      const beforeTimeoutRetry = attentionRequests;
+      await alert.getByRole("button", { name: "Retry attention" }).focus();
+      await page.keyboard.press("Enter");
+      await page.locator(".attention-inbox").waitFor();
+      assert.ok(attentionRequests > beforeTimeoutRetry, "Retry after a deadline must dispatch a fresh read");
+      assert.equal(await alert.count(), 0);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
       assert.equal(overflow, false, `Overview overflows at ${width}px`);
       const audit = await new AxeBuilder({ page }).include(".getting-started").include(".attention-inbox").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
@@ -130,11 +165,21 @@ try {
       assert.deepEqual(errors, [], "Demo journey must not produce page errors or unexpected mutations");
       summary.profiles.push({ width, passed: true, failedAttentionRequests, attentionRequests, violations: audit.violations });
     } finally {
+      releaseStalledRequests();
+      const state = await page.evaluate(() => ({
+        path: location.pathname,
+        readyState: document.readyState,
+        loading: document.body.textContent.includes("Checking what needs you now."),
+        unavailable: document.body.textContent.includes("Attention is temporarily unavailable."),
+        inbox: Boolean(document.querySelector(".attention-inbox")),
+      })).catch(() => ({ inspectionUnavailable: true }));
+      summary.diagnostics ||= [];
+      summary.diagnostics.push({ width, attentionMode, attentionRequests, state, pageErrors: errors, network });
       await page.screenshot({ path: resolve(output, `final-${width}.png`), fullPage: true }).catch(() => {});
       await context.close();
     }
   }
-  console.log("PASS fictional demo baseline and Attention retry at 1440, 375 and 320px");
+  console.log("PASS fictional demo baseline, Attention error/deadline and keyboard retry at 1440, 375 and 320px");
 } catch (error) {
   summary.error = String(error);
   throw error;
