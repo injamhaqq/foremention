@@ -1,4 +1,3 @@
-// RED contract: registry implementation intentionally absent at this revision.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -69,6 +68,7 @@ test("funding draft v2 accepts registry revision ids and no caller opportunity d
   assert.match(route, /programRevisionIds/);
   assert.match(route, /program_revision_ids/);
   assert.match(route, /supersedes_revision_id/);
+  assert.match(route, /fundingServiceDigest\(\{[\s\S]*programRevisionIds:[\s\S]*programSourceCheckIds:[\s\S]*programSourceReviewIds:/);
 });
 
 test("funding draft artifact binds current program revision provenance", async () => {
