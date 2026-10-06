@@ -1,6 +1,6 @@
 # Foremention Company OS — Capability Integration Register
 
-Date: 2026-10-05  
+Date: 2026-10-05
 Authority: Enterprise Company Automation OS blueprint, sections 18–23
 
 ## Decision
