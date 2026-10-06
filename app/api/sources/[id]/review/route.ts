@@ -189,7 +189,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   await supabaseRest("audit_logs", {
     method: "POST",
-    token: accessToken,
+    // Record the already-authorized review with server-derived tenant/actor
+    // context. Source and opportunity mutations still use the viewer token.
+    serviceRole: true,
     prefer: "return=minimal",
     body: {
       organization_id: organizationId,
