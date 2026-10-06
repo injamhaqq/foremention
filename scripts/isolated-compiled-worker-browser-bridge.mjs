@@ -81,16 +81,18 @@ try {
       }
       const method = request.method || "GET";
       const body = chunks.length ? Buffer.concat(chunks) : undefined;
-      // Browser hydration needs the generated static asset layer as well as
-      // the Worker. The harness listener exercises both; direct getWorker()
-      // dispatch above remains the independent compiled-Worker health proof.
-      const harnessTarget = new URL(target.pathname + target.search, url);
-      const workerResponse = await fetch(harnessTarget,{
+      // Preserve the already-proven direct compiled-Worker semantics for
+      // application/API requests. Only generated browser assets need the
+      // harness listener's static-asset layer for real Chromium hydration.
+      const requestInit = {
         method,
         headers,
         ...(body && !["GET","HEAD"].includes(method) ? {body} : {}),
         redirect:"manual",
-      });
+      };
+      const workerResponse = target.pathname.startsWith("/assets/")
+        ? await fetch(new URL(target.pathname + target.search, url), requestInit)
+        : await compiledWorker.fetch(target.toString(), requestInit);
       // A bridge is not a pass-retry device: return the actual first status.
       // Keep Set-Cookie as separate headers for real browser session handling.
       // Undici has already decoded any compressed response body. Do not
