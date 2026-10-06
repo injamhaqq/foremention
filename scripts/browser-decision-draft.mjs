@@ -10,7 +10,11 @@ const requireTools = createRequire(new URL("../.ci-tools/package.json", import.m
 const { chromium } = requireTools("playwright");
 const axeModule = requireTools("@axe-core/playwright");
 const AxeBuilder = axeModule.default || axeModule.AxeBuilder || axeModule;
-const css = (await Promise.all([readFile("app/globals.css", "utf8"), readFile("app/app/resolutions/resolution-center.module.css", "utf8")])).join("\n");
+const layout = await readFile("app/layout.tsx", "utf8");
+const cssFiles = [...layout.matchAll(/import "\.\/(.*\.css)";/g)].map((match) => `app/${match[1]}`);
+assert.ok(cssFiles.includes("app/canonical-system.css"), "Use the actual root stylesheet order and workspace theme");
+cssFiles.push("app/app/resolutions/resolution-center.module.css");
+const css = (await Promise.all(cssFiles.map((path) => readFile(path, "utf8")))).map((sheet) => `<style>${sheet}</style>`).join("\n");
 const output=resolve("browser-acceptance/decision-draft-layout");await mkdir(output,{recursive:true});
 const summary={scope:"Isolated React rendering with synthetic scoped GET state. Native controls/layout only; no authenticated save, provider call or customer outcome.",profiles:[]};
 const browser=await chromium.launch({headless:true});
@@ -19,7 +23,7 @@ try {
     const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:"reduce"});
     try {
       const html=renderToStaticMarkup(decisionDraftClientFixture().render());
-      await page.setContent(`<!doctype html><html lang="en"><head><title>Decision draft layout fixture</title><style>${css}</style></head><body><main class="workspace page"><div class="workspace-heading"><div><h1>Review a decision</h1><p>Isolated layout fixture — no customer data or saved decision.</p></div></div>${html}</main></body></html>`);
+      await page.setContent(`<!doctype html><html lang="en"><head><title>Decision draft layout fixture</title>${css}</head><body><div class="app-frame" style="display:block"><main class="workspace page"><div class="workspace-heading"><div><h1>Review a decision</h1><p>Isolated layout fixture — no customer data or saved decision.</p></div></div>${html}</main></div></body></html>`);
       await page.getByRole("button",{name:"Create decision draft"}).waitFor();
       assert.equal(await page.getByRole("button",{name:"Approve asset"}).count(),0);
       const choice=page.getByRole("checkbox",{name:/Reviewed answer source/});
