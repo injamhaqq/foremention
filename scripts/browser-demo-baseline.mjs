@@ -75,7 +75,7 @@ try {
       const evidence = answers.first().locator(".canonical-contained-evidence").first();
       await evidence.locator(":scope > summary").click();
       await evidence.locator(".canonical-source-evidence").waitFor();
-      assert.match(await evidence.innerText(), /Human review[\s\S]*Pending/);
+      assert.match(await evidence.locator(".canonical-contained-evidence__facts").textContent(), /Human review[\s\S]*Pending/);
       assert.match(await evidence.innerText(), /does not prove authority, influence/);
       const evidenceIds = await page.locator(".canonical-source-evidence [id]").evaluateAll((elements) => elements.map((element) => element.id));
       assert.equal(new Set(evidenceIds).size, evidenceIds.length, "Repeated references must retain distinct accessible heading IDs");
