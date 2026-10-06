@@ -52,7 +52,8 @@ test("direct-id customer mutations prove active-project ownership", async () => 
   assert.match(prompts, /prompts\?select=id&id=eq\.\$\{id\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/);
   assert.match(runs, /const persistedIdempotencyKey = `\$\{context\.projectId\}:\$\{idempotencyKey\}`/);
   assert.match(runs, /const idempotencyFilter = \[idempotencyKey, persistedIdempotencyKey\]/);
-  assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&idempotency_key=in\.\(\$\{idempotencyFilter\}\)/);\n  const projectSafeIdempotencyReads = runs.match(/idempotency_key=in\.\(\$\{idempotencyFilter\}\)/g) || [];
+  assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&idempotency_key=in\.\(\$\{idempotencyFilter\}\)/);
+  const projectSafeIdempotencyReads = runs.match(/idempotency_key=in\.\(\$\{idempotencyFilter\}\)/g) || [];
   assert.ok(projectSafeIdempotencyReads.length >= 2, "initial and concurrent duplicate recovery reads must share the active-project legacy+namespaced filter");
   assert.match(runs, /idempotency_key: persistedIdempotencyKey/);
   assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&active_request_key=eq/);
