@@ -45,9 +45,39 @@ insert into public.company_truth_assertions (
   ('f2650000-0000-4000-8000-000000000001'::uuid, 'f2610000-0000-4000-8000-000000000001'::uuid, 'f2620000-0000-4000-8000-000000000001'::uuid, 'f2640000-0000-4000-8000-000000000001'::uuid, 'company.country', '"BD"'::jsonb, 'f2630000-0000-4000-8000-000000000002'::uuid, 'verified', 'f2600000-0000-4000-8000-000000000001'::uuid, 'f2600000-0000-4000-8000-000000000001'::uuid, now()),
   ('f2650000-0000-4000-8000-000000000002'::uuid, 'f2610000-0000-4000-8000-000000000002'::uuid, 'f2620000-0000-4000-8000-000000000002'::uuid, 'f2640000-0000-4000-8000-000000000002'::uuid, 'company.country', '"BD"'::jsonb, 'f2630000-0000-4000-8000-000000000004'::uuid, 'verified', 'f2600000-0000-4000-8000-000000000002'::uuid, 'f2600000-0000-4000-8000-000000000002'::uuid, now());
 
+-- Current accepted reviewed-source provenance required by the draft gate.
+insert into public.sources (
+  id, organization_id, canonical_url, domain, page_title, source_type, crawler_access
+) values
+  ('f2670000-0000-4000-8000-000000000001'::uuid, 'f2610000-0000-4000-8000-000000000001'::uuid, 'https://funding-a.invalid/program', 'funding-a.invalid', 'Program A', 'funding_program_official', 'open'),
+  ('f2670000-0000-4000-8000-000000000002'::uuid, 'f2610000-0000-4000-8000-000000000002'::uuid, 'https://funding-b.invalid/program', 'funding-b.invalid', 'Program B', 'funding_program_official', 'open');
+
+insert into public.source_snapshots (
+  id, organization_id, source_id, snapshot_key, canonical_url, final_url, retrieved_at,
+  access, http_status, content_type, page_title, redirect_count, content_length,
+  content_signature, content_hash, representation_version, change_state, change_reason,
+  created_by, evidence_excerpt
+) values
+  ('f2680000-0000-4000-8000-000000000001'::uuid, 'f2610000-0000-4000-8000-000000000001'::uuid, 'f2670000-0000-4000-8000-000000000001'::uuid, 'funding-draft-a-reviewed', 'https://funding-a.invalid/program', 'https://funding-a.invalid/program', now(), 'open', 200, 'text/html', 'Program A', 0, 1000, 'funding-a-reviewed', repeat('a', 64), 'visible-text-prefix-24k-v1', 'initial', 'Funding draft isolation reviewed-source fixture.', 'f2600000-0000-4000-8000-000000000001'::uuid, 'Bounded official Program A evidence.'),
+  ('f2680000-0000-4000-8000-000000000002'::uuid, 'f2610000-0000-4000-8000-000000000002'::uuid, 'f2670000-0000-4000-8000-000000000002'::uuid, 'funding-draft-b-reviewed', 'https://funding-b.invalid/program', 'https://funding-b.invalid/program', now(), 'open', 200, 'text/html', 'Program B', 0, 1000, 'funding-b-reviewed', repeat('b', 64), 'visible-text-prefix-24k-v1', 'initial', 'Funding draft isolation reviewed-source fixture.', 'f2600000-0000-4000-8000-000000000002'::uuid, 'Bounded official Program B evidence.');
+
+insert into public.company_funding_source_checks (
+  id, organization_id, project_id, evidence_item_id, source_id, source_snapshot_id,
+  evidence_verified_at, created_by, checked_at
+) values
+  ('f2690000-0000-4000-8000-000000000001'::uuid, 'f2610000-0000-4000-8000-000000000001'::uuid, 'f2620000-0000-4000-8000-000000000001'::uuid, 'f2630000-0000-4000-8000-000000000001'::uuid, 'f2670000-0000-4000-8000-000000000001'::uuid, 'f2680000-0000-4000-8000-000000000001'::uuid, now(), 'f2600000-0000-4000-8000-000000000001'::uuid, now()),
+  ('f2690000-0000-4000-8000-000000000002'::uuid, 'f2610000-0000-4000-8000-000000000002'::uuid, 'f2620000-0000-4000-8000-000000000002'::uuid, 'f2630000-0000-4000-8000-000000000003'::uuid, 'f2670000-0000-4000-8000-000000000002'::uuid, 'f2680000-0000-4000-8000-000000000002'::uuid, now(), 'f2600000-0000-4000-8000-000000000002'::uuid, now());
+
+insert into public.company_funding_source_reviews (
+  id, organization_id, project_id, check_id, decision, decision_note, decided_by, decided_at
+) values
+  ('f26a0000-0000-4000-8000-000000000001'::uuid, 'f2610000-0000-4000-8000-000000000001'::uuid, 'f2620000-0000-4000-8000-000000000001'::uuid, 'f2690000-0000-4000-8000-000000000001'::uuid, 'accepted', 'Funding draft isolation fixture.', 'f2600000-0000-4000-8000-000000000001'::uuid, now()),
+  ('f26a0000-0000-4000-8000-000000000002'::uuid, 'f2610000-0000-4000-8000-000000000002'::uuid, 'f2620000-0000-4000-8000-000000000002'::uuid, 'f2690000-0000-4000-8000-000000000002'::uuid, 'accepted', 'Funding draft isolation fixture.', 'f2600000-0000-4000-8000-000000000002'::uuid, now());
+
 insert into public.company_funding_draft_artifacts (
   id, organization_id, project_id, created_by, profile_revision, package_version,
-  input_digest, artifact_digest, program_evidence_ids, company_truth_assertion_ids, artifact
+  input_digest, artifact_digest, program_evidence_ids, program_source_check_ids,
+  program_source_review_ids, company_truth_assertion_ids, artifact
 )
 select
   fixture.artifact_id,
@@ -59,6 +89,8 @@ select
   fixture.input_digest,
   fixture.artifact_digest,
   array[fixture.program_evidence_id]::uuid[],
+  array[source_check.id]::uuid[],
+  array[source_review.id]::uuid[],
   array[fixture.truth_assertion_id]::uuid[],
   jsonb_build_object(
     'schemaVersion', 1,
@@ -77,7 +109,7 @@ select
         'id', fixture.program_evidence_id::text,
         'url', program.source_url,
         'authority', 'official',
-        'observedAt', program.verified_at,
+        'observedAt', source_check.checked_at,
         'maxAgeDays', 30
       ),
       jsonb_build_object(
@@ -134,7 +166,16 @@ from (
   company_evidence_id, truth_assertion_id, profile_revision, input_digest, artifact_digest
 )
 join public.evidence_items as program on program.id = fixture.program_evidence_id
-join public.evidence_items as company_evidence on company_evidence.id = fixture.company_evidence_id;
+join public.evidence_items as company_evidence on company_evidence.id = fixture.company_evidence_id
+join public.company_funding_source_checks as source_check
+  on source_check.evidence_item_id = fixture.program_evidence_id
+ and source_check.organization_id = fixture.organization_id
+ and source_check.project_id = fixture.project_id
+join public.company_funding_source_reviews as source_review
+  on source_review.check_id = source_check.id
+ and source_review.organization_id = fixture.organization_id
+ and source_review.project_id = fixture.project_id
+ and source_review.decision = 'accepted';
 
 -- Funding artifacts are internal Company OS records. Browser roles receive no
 -- direct table access; the authenticated route establishes operator/project
