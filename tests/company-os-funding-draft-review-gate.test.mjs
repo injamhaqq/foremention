@@ -16,14 +16,14 @@ test("funding draft route requires a current accepted source review for every of
 
   assert.match(route, /company_funding_source_checks/);
   assert.match(route, /company_funding_source_reviews/);
-  assert.match(route, /decision=eq\.accepted/);
+  assert.match(route, /review\.decision !== "accepted"/);
   assert.match(route, /source_snapshots/);
   assert.match(route, /content_hash/);
   assert.match(route, /evidence_excerpt/);
   assert.match(route, /FUNDING_PROGRAM_EVIDENCE_MAX_AGE_DAYS/);
   assert.match(route, /checked_at/);
   assert.match(route, /decided_at/);
-  assert.match(route, /Every funding-program source requires a current accepted source review/i);
+  assert.match(route, /current reviewed registry revision/i);
 });
 
 test("funding draft evidence freshness is anchored to the reviewed source observation", async () => {
@@ -65,6 +65,7 @@ test("legacy funding draft fixtures carry accepted reviewed-source provenance un
   assert.match(sql, /company_funding_source_reviews/);
   assert.match(sql, /program_source_check_ids/);
   assert.match(sql, /program_source_review_ids/);
+  assert.match(sql, /program_revision_ids/);
   assert.match(sql, /source_check\.checked_at/);
 });
 

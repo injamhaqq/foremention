@@ -9,9 +9,8 @@ const IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
 export type FundingServiceScope = { organizationId: string; projectId: string };
 export type FundingServiceRequest = {
-  schemaVersion: 1;
-  programEvidenceIds: string[];
-  opportunities: FundingDraftRequest["opportunities"];
+  schemaVersion: 2;
+  programRevisionIds: string[];
 };
 export type FundingServiceEvidence = FundingDraftRequest["evidence"][number];
 export type FundingServiceFact = FundingDraftRequest["facts"][number];
@@ -27,27 +26,18 @@ function plainRecord(value: unknown, field: string): Record<string, unknown> {
 
 export function parseFundingServiceRequest(value: unknown): FundingServiceRequest {
   const root = plainRecord(value, "request");
-  const allowed = new Set(["schemaVersion", "programEvidenceIds", "opportunities"]);
+  const allowed = new Set(["schemaVersion", "programRevisionIds"]);
   if (Object.keys(root).some((key) => !allowed.has(key))) invalid("request:unknown_property");
-  if (root.schemaVersion !== 1) invalid("schemaVersion");
-  if (!Array.isArray(root.programEvidenceIds) || root.programEvidenceIds.length < 1 || root.programEvidenceIds.length > 10) {
-    invalid("programEvidenceIds");
+  if (root.schemaVersion !== 2) invalid("schemaVersion");
+  if (!Array.isArray(root.programRevisionIds) || root.programRevisionIds.length < 1 || root.programRevisionIds.length > 10) {
+    invalid("programRevisionIds");
   }
-  const programEvidenceIds = root.programEvidenceIds.map((value, index) => {
-    if (typeof value !== "string" || !UUID_PATTERN.test(value)) invalid(`programEvidenceIds.${index}`);
+  const programRevisionIds = root.programRevisionIds.map((value, index) => {
+    if (typeof value !== "string" || !UUID_PATTERN.test(value)) invalid(`programRevisionIds.${index}`);
     return value.toLowerCase();
   });
-  if (new Set(programEvidenceIds).size !== programEvidenceIds.length) invalid("programEvidenceIds:duplicate");
-  if (!Array.isArray(root.opportunities) || root.opportunities.length < 1 || root.opportunities.length > 10) invalid("opportunities");
-  const programEvidenceSet = new Set(programEvidenceIds);
-  root.opportunities.forEach((value, index) => {
-    const opportunity = plainRecord(value, `opportunities.${index}`);
-    const sourceEvidenceId = opportunity.sourceEvidenceId;
-    if (typeof sourceEvidenceId !== "string" || !UUID_PATTERN.test(sourceEvidenceId) || !programEvidenceSet.has(sourceEvidenceId.toLowerCase())) {
-      invalid(`opportunities.${index}.sourceEvidenceId`);
-    }
-  });
-  return { schemaVersion: 1, programEvidenceIds, opportunities: root.opportunities as FundingDraftRequest["opportunities"] };
+  if (new Set(programRevisionIds).size !== programRevisionIds.length) invalid("programRevisionIds:duplicate");
+  return { schemaVersion: 2, programRevisionIds };
 }
 
 export function configuredCompanyOsScope(env: NodeJS.ProcessEnv = process.env): FundingServiceScope | null {
@@ -113,6 +103,7 @@ export async function prepareScopedFundingDraft(input: {
   programEvidence: FundingServiceEvidence[];
   companyEvidence: FundingServiceEvidence[];
   companyFacts: FundingServiceFact[];
+  opportunities: FundingDraftRequest["opportunities"];
 }): Promise<FundingDraftPack> {
   const evidenceById = new Map<string, FundingServiceEvidence>();
   for (const row of [...input.programEvidence, ...input.companyEvidence]) {
@@ -126,6 +117,6 @@ export async function prepareScopedFundingDraft(input: {
     profileRevision: input.profileRevision,
     evidence: [...evidenceById.values()],
     facts: input.companyFacts,
-    opportunities: input.serviceRequest.opportunities,
+    opportunities: input.opportunities,
   });
 }

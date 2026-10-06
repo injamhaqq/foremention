@@ -16,6 +16,7 @@ import {
   type FundingServiceEvidence,
   type FundingServiceFact,
 } from "@/lib/company-os/funding-draft-service";
+import type { FundingDraftRequest } from "@/lib/company-os/funding-draft";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { isMissingRelationError, SupabaseRequestError, supabaseRest } from "@/lib/supabase-rest";
 
@@ -43,6 +44,7 @@ type FundingArtifactRow = {
   artifact_digest: string;
   program_source_check_ids: string[];
   program_source_review_ids: string[];
+  program_revision_ids: string[];
   artifact: unknown;
   created_at: string;
 };
@@ -69,10 +71,27 @@ type FundingSourceSnapshotRow = {
   content_hash: string | null;
   evidence_excerpt: string | null;
 };
-type ReviewedProgramEvidence = {
+type FundingProgramRevisionRow = {
+  id: string;
+  program_id: string;
+  evidence_item_id: string;
+  source_check_id: string;
+  source_review_id: string;
+  supersedes_revision_id: string | null;
+  name: string;
+  kind: FundingDraftRequest["opportunities"][number]["kind"];
+  deadline_at: string | null;
+  criteria: FundingDraftRequest["opportunities"][number]["criteria"];
+  questions: FundingDraftRequest["opportunities"][number]["questions"];
+};
+type ReviewedProgramRevision = {
+  revisionId: string;
+  programId: string;
+  evidenceId: string;
   checkId: string;
   reviewId: string;
   checkedAt: string;
+  opportunity: FundingDraftRequest["opportunities"][number];
 };
 type FundingContext = { organizationId: string; projectId: string };
 type FundingMembershipRole = "owner" | "admin" | "analyst" | "viewer";
@@ -194,48 +213,71 @@ async function loadEvidenceRows(viewer: Viewer, context: FundingContext, ids: st
   );
 }
 
-async function loadCurrentAcceptedFundingReviews(
+async function loadCurrentFundingProgramRevisions(
+  viewer: Viewer,
   context: FundingContext,
-  programById: Map<string, EvidenceRow>,
-  evidenceIds: string[],
+  revisionIds: string[],
   asOf: string,
-) {
-  if (!evidenceIds.length) return new Map<string, ReviewedProgramEvidence>();
-  const checks = await supabaseRest<FundingSourceCheckRow[]>(
-    `company_funding_source_checks?select=id,evidence_item_id,source_id,source_snapshot_id,evidence_verified_at,checked_at`
-      + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
-      + `&project_id=eq.${encodeURIComponent(context.projectId)}`
-      + `&evidence_item_id=in.(${evidenceIds.join(",")})&order=checked_at.desc&limit=100`,
-    { serviceRole: true },
-  );
-  const checkIds = Array.from(new Set(checks.map((row) => row.id)));
-  if (!checkIds.length) return new Map<string, ReviewedProgramEvidence>();
+): Promise<ReviewedProgramRevision[] | null> {
+  if (!revisionIds.length) return null;
+  const revisionPath = "company_funding_program_revisions?select=id,program_id,evidence_item_id,source_check_id,source_review_id,supersedes_revision_id,name,kind,deadline_at,criteria,questions"
+    + "&organization_id=eq." + encodeURIComponent(context.organizationId)
+    + "&project_id=eq." + encodeURIComponent(context.projectId)
+    + "&id=in.(" + revisionIds.join(",") + ")&limit=" + Math.min(100, revisionIds.length);
+  const revisions = await supabaseRest<FundingProgramRevisionRow[]>(revisionPath, { serviceRole: true });
+  if (revisions.length !== revisionIds.length) return null;
 
-  const reviews = await supabaseRest<FundingSourceReviewRow[]>(
-    `company_funding_source_reviews?select=id,check_id,decision,decided_at`
-      + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
-      + `&project_id=eq.${encodeURIComponent(context.projectId)}`
-      + `&check_id=in.(${checkIds.join(",")})&decision=eq.accepted&order=decided_at.desc&limit=100`,
+  const childRows = await supabaseRest<Array<{ id: string; supersedes_revision_id: string }>>(
+    "company_funding_program_revisions?select=id,supersedes_revision_id"
+      + "&organization_id=eq." + encodeURIComponent(context.organizationId)
+      + "&project_id=eq." + encodeURIComponent(context.projectId)
+      + "&supersedes_revision_id=in.(" + revisionIds.join(",") + ")&limit=100",
     { serviceRole: true },
   );
-  const acceptedReviewByCheck = new Map<string, FundingSourceReviewRow>();
-  for (const review of reviews) {
-    if (!acceptedReviewByCheck.has(review.check_id)) acceptedReviewByCheck.set(review.check_id, review);
-  }
+  if (childRows.length) return null;
+
+  const revisionById = new Map(revisions.map((row) => [row.id, row]));
+  const evidenceIds = Array.from(new Set(revisions.map((row) => row.evidence_item_id)));
+  const evidenceRows = await loadEvidenceRows(viewer, context, evidenceIds);
+  const evidenceById = new Map(evidenceRows.map((row) => [row.id, row]));
+  if (evidenceById.size !== evidenceIds.length) return null;
+
+  const checkIds = Array.from(new Set(revisions.map((row) => row.source_check_id)));
+  const reviewIds = Array.from(new Set(revisions.map((row) => row.source_review_id)));
+  const [checks, reviews] = await Promise.all([
+    supabaseRest<FundingSourceCheckRow[]>(
+      "company_funding_source_checks?select=id,evidence_item_id,source_id,source_snapshot_id,evidence_verified_at,checked_at"
+        + "&organization_id=eq." + encodeURIComponent(context.organizationId)
+        + "&project_id=eq." + encodeURIComponent(context.projectId)
+        + "&id=in.(" + checkIds.join(",") + ")&limit=100",
+      { serviceRole: true },
+    ),
+    supabaseRest<FundingSourceReviewRow[]>(
+      "company_funding_source_reviews?select=id,check_id,decision,decided_at"
+        + "&organization_id=eq." + encodeURIComponent(context.organizationId)
+        + "&project_id=eq." + encodeURIComponent(context.projectId)
+        + "&id=in.(" + reviewIds.join(",") + ")&limit=100",
+      { serviceRole: true },
+    ),
+  ]);
+  const checkById = new Map(checks.map((row) => [row.id, row]));
+  const reviewById = new Map(reviews.map((row) => [row.id, row]));
 
   const sourceIds = Array.from(new Set(checks.map((row) => row.source_id)));
   const snapshotIds = Array.from(new Set(checks.map((row) => row.source_snapshot_id)));
   const [sources, snapshots] = await Promise.all([
     sourceIds.length
       ? supabaseRest<FundingSourceRow[]>(
-        `sources?select=id,canonical_url&organization_id=eq.${encodeURIComponent(context.organizationId)}&id=in.(${sourceIds.join(",")})&limit=100`,
+        "sources?select=id,canonical_url&organization_id=eq." + encodeURIComponent(context.organizationId)
+          + "&id=in.(" + sourceIds.join(",") + ")&limit=100",
         { serviceRole: true },
       )
       : Promise.resolve([]),
     snapshotIds.length
       ? supabaseRest<FundingSourceSnapshotRow[]>(
-        `source_snapshots?select=id,source_id,canonical_url,access,content_hash,evidence_excerpt`
-          + `&organization_id=eq.${encodeURIComponent(context.organizationId)}&id=in.(${snapshotIds.join(",")})&limit=100`,
+        "source_snapshots?select=id,source_id,canonical_url,access,content_hash,evidence_excerpt"
+          + "&organization_id=eq." + encodeURIComponent(context.organizationId)
+          + "&id=in.(" + snapshotIds.join(",") + ")&limit=100",
         { serviceRole: true },
       )
       : Promise.resolve([]),
@@ -244,25 +286,34 @@ async function loadCurrentAcceptedFundingReviews(
   const snapshotById = new Map(snapshots.map((row) => [row.id, row]));
   const asOfMs = Date.parse(asOf);
   const oldestAllowedMs = asOfMs - (FUNDING_PROGRAM_EVIDENCE_MAX_AGE_DAYS * 86_400_000);
-  const accepted = new Map<string, ReviewedProgramEvidence>();
+  const result: ReviewedProgramRevision[] = [];
 
-  for (const sourceCheck of checks) {
-    if (accepted.has(sourceCheck.evidence_item_id)) continue;
-    const evidence = programById.get(sourceCheck.evidence_item_id);
-    const review = acceptedReviewByCheck.get(sourceCheck.id);
+  for (const revisionId of revisionIds) {
+    const revision = revisionById.get(revisionId);
+    if (!revision) return null;
+    const evidence = evidenceById.get(revision.evidence_item_id);
+    const sourceCheck = checkById.get(revision.source_check_id);
+    const review = reviewById.get(revision.source_review_id);
+    if (!evidence || !sourceCheck || !review || !evidence.verified_at || !evidence.source_url) return null;
+    if (evidence.evidence_type.trim().toLowerCase() !== "funding_program_official" || !currentEvidence(evidence, asOf)) return null;
+    if (
+      sourceCheck.evidence_item_id !== evidence.id
+      || sourceCheck.evidence_verified_at !== evidence.verified_at
+      || review.check_id !== sourceCheck.id
+      || review.decision !== "accepted"
+    ) return null;
+
     const source = sourceById.get(sourceCheck.source_id);
     const snapshot = snapshotById.get(sourceCheck.source_snapshot_id);
-    if (!evidence || !review || !source || !snapshot || !evidence.verified_at || !evidence.source_url) continue;
+    if (!source || !snapshot) return null;
 
     const checkedAtMs = Date.parse(sourceCheck.checked_at);
-    const evidenceVerifiedAtMs = Date.parse(evidence.verified_at);
-    const checkedEvidenceVerifiedAtMs = Date.parse(sourceCheck.evidence_verified_at);
+    const verifiedAtMs = Date.parse(evidence.verified_at);
     const decidedAtMs = Date.parse(review.decided_at);
     const validTimes = Number.isFinite(checkedAtMs)
-      && Number.isFinite(evidenceVerifiedAtMs)
-      && Number.isFinite(checkedEvidenceVerifiedAtMs)
+      && Number.isFinite(verifiedAtMs)
       && Number.isFinite(decidedAtMs)
-      && checkedEvidenceVerifiedAtMs === evidenceVerifiedAtMs
+      && checkedAtMs >= verifiedAtMs
       && checkedAtMs >= oldestAllowedMs
       && checkedAtMs <= asOfMs
       && decidedAtMs >= checkedAtMs
@@ -273,15 +324,27 @@ async function loadCurrentAcceptedFundingReviews(
       && (snapshot.access === "open" || snapshot.access === "partial")
       && Boolean(snapshot.content_hash)
       && Boolean(snapshot.evidence_excerpt?.trim());
+    if (!validTimes || !validSnapshot) return null;
 
-    if (!validTimes || !validSnapshot) continue;
-    accepted.set(sourceCheck.evidence_item_id, {
+    result.push({
+      revisionId: revision.id,
+      programId: revision.program_id,
+      evidenceId: evidence.id,
       checkId: sourceCheck.id,
       reviewId: review.id,
       checkedAt: sourceCheck.checked_at,
+      opportunity: {
+        id: revision.program_id,
+        name: revision.name,
+        kind: revision.kind,
+        sourceEvidenceId: evidence.id,
+        deadlineAt: revision.deadline_at,
+        criteria: revision.criteria,
+        questions: revision.questions,
+      },
     });
   }
-  return accepted;
+  return result;
 }
 
 async function loadCompanyTruth(viewer: Viewer, context: FundingContext, asOf: string) {
@@ -362,7 +425,7 @@ export async function GET() {
   }
   try {
     const rows = await supabaseRest<FundingArtifactRow[]>(
-      `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,artifact,created_at`
+      `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,program_revision_ids,artifact,created_at`
         + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
         + `&project_id=eq.${encodeURIComponent(context.projectId)}`
         + `&order=created_at.desc&limit=20`,
@@ -388,32 +451,29 @@ export async function POST(request: Request) {
 
   try {
     const serviceRequest = parseFundingServiceRequest(await boundedJson(request));
-    const programRows = await loadEvidenceRows(viewer, context, serviceRequest.programEvidenceIds);
-    const programById = new Map(programRows.map((row) => [row.id, row]));
-    for (const evidenceId of serviceRequest.programEvidenceIds) {
-      const row = programById.get(evidenceId);
-      if (!row || row.evidence_type.trim().toLowerCase() !== "funding_program_official" || !currentEvidence(row, asOf)) {
-        return responseError("Every funding-program source must be current verified same-project evidence of type funding_program_official with a source URL and usage rights.", 409);
-      }
-    }
-    const reviewedPrograms = await loadCurrentAcceptedFundingReviews(
+    const reviewedPrograms = await loadCurrentFundingProgramRevisions(
+      viewer,
       context,
-      programById,
-      serviceRequest.programEvidenceIds,
+      serviceRequest.programRevisionIds,
       asOf,
     );
-    if (reviewedPrograms.size !== serviceRequest.programEvidenceIds.length) {
-      return responseError("Every funding-program source requires a current accepted source review in the configured Company OS project.", 409);
+    if (!reviewedPrograms || reviewedPrograms.length !== serviceRequest.programRevisionIds.length) {
+      return responseError("Every funding draft program must be a current reviewed registry revision in the configured Company OS project.", 409);
     }
-    const programEvidence = serviceRequest.programEvidenceIds.map((id) => {
-      const reviewed = reviewedPrograms.get(id) as ReviewedProgramEvidence;
-      return fundingEvidence(
-        programById.get(id) as EvidenceRow,
+    const programEvidenceIds = reviewedPrograms.map((row) => row.evidenceId);
+    if (new Set(programEvidenceIds).size !== programEvidenceIds.length) {
+      return responseError("Each selected funding program revision must bind a distinct official evidence record.", 409);
+    }
+    const programRows = await loadEvidenceRows(viewer, context, programEvidenceIds);
+    const programById = new Map(programRows.map((row) => [row.id, row]));
+    const programEvidence = reviewedPrograms.map((reviewed) =>
+      fundingEvidence(
+        programById.get(reviewed.evidenceId) as EvidenceRow,
         "official",
         FUNDING_PROGRAM_EVIDENCE_MAX_AGE_DAYS,
         reviewed.checkedAt,
-      );
-    });
+      )
+    );
     const profile = await loadCompanyTruth(viewer, context, asOf);
     const draft = await prepareScopedFundingDraft({
       serviceRequest,
@@ -423,10 +483,16 @@ export async function POST(request: Request) {
       programEvidence,
       companyEvidence: profile.evidence,
       companyFacts: profile.facts,
+      opportunities: reviewedPrograms.map((row) => row.opportunity),
     });
-    const artifactDigest = await fundingServiceDigest(draft);
+    const artifactDigest = await fundingServiceDigest({
+      draft,
+      programRevisionIds: reviewedPrograms.map((row) => row.revisionId),
+      programSourceCheckIds: reviewedPrograms.map((row) => row.checkId),
+      programSourceReviewIds: reviewedPrograms.map((row) => row.reviewId),
+    });
     const existing = await supabaseRest<FundingArtifactRow[]>(
-      `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,artifact,created_at`
+      `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,program_revision_ids,artifact,created_at`
         + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
         + `&project_id=eq.${encodeURIComponent(context.projectId)}`
         + `&artifact_digest=eq.${artifactDigest}&limit=1`,
@@ -434,14 +500,14 @@ export async function POST(request: Request) {
     );
     const warnings = [
       ...(profile.profileFactCount ? [] : ["No current scalar Company Truth facts were available; affected criteria and answers remain unknown."]),
-      "Program criteria, questions, and deadline fields remain operator-transcribed draft inputs; each official source is bound to a current accepted bounded source review.",
+      "Program names, kinds, deadlines, criteria, and questions come from current append-only reviewed Funding Program Registry revisions.",
       "This artifact is internal_draft_only and grants no submission authority.",
     ];
     if (existing[0]) {
       return NextResponse.json({ data: existing[0], duplicate: true, warnings }, { headers: { "cache-control": "private, no-store, max-age=0" } });
     }
     const inserted = await supabaseRest<FundingArtifactRow[]>(
-      "company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,artifact,created_at",
+      "company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,program_revision_ids,artifact,created_at",
       {
         method: "POST",
         serviceRole: true,
@@ -454,9 +520,10 @@ export async function POST(request: Request) {
           package_version: draft.packageVersion,
           input_digest: draft.inputDigest,
           artifact_digest: artifactDigest,
-          program_evidence_ids: serviceRequest.programEvidenceIds,
-          program_source_check_ids: serviceRequest.programEvidenceIds.map((id) => (reviewedPrograms.get(id) as ReviewedProgramEvidence).checkId),
-          program_source_review_ids: serviceRequest.programEvidenceIds.map((id) => (reviewedPrograms.get(id) as ReviewedProgramEvidence).reviewId),
+          program_evidence_ids: reviewedPrograms.map((row) => row.evidenceId),
+          program_source_check_ids: reviewedPrograms.map((row) => row.checkId),
+          program_source_review_ids: reviewedPrograms.map((row) => row.reviewId),
+          program_revision_ids: reviewedPrograms.map((row) => row.revisionId),
           company_truth_assertion_ids: profile.assertionIds,
           artifact: draft,
         },
