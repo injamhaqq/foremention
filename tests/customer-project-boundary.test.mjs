@@ -50,7 +50,10 @@ test("direct-id customer mutations prove active-project ownership", async () => 
   ]);
 
   assert.match(prompts, /prompts\?select=id&id=eq\.\$\{id\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/);
-  assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&idempotency_key=eq/);
+  assert.match(runs, /const persistedIdempotencyKey = `\$\{context\.projectId\}:\$\{idempotencyKey\}`/);
+  assert.match(runs, /const idempotencyFilter = \[idempotencyKey, persistedIdempotencyKey\]/);
+  assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&idempotency_key=in\.\(\$\{idempotencyFilter\}\)/);
+  assert.match(runs, /idempotency_key: persistedIdempotencyKey/);
   assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&active_request_key=eq/);
   assert.match(cancel, /runs\?select=id,status,started_at&id=eq\.\$\{id\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/);
   assert.match(review, /project_id=eq\.\$\{context\.projectId\}&limit=1/);
