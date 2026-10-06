@@ -15,7 +15,11 @@ function fixture(options = {}) {
     "@/lib/request-security": { isTrustedMutationOrigin: () => !options.untrusted },
     "@/lib/supabase-rest": { isMissingRelationError: () => false, supabaseRest: async (query, auth) => {
       calls.push({query, auth});
-      assert.equal(auth.token,"viewer-token"); assert.equal(auth.serviceRole,undefined);
+      if (query === "audit_logs") {
+        assert.equal(auth.serviceRole, true); assert.equal(auth.token, undefined);
+        assert.equal(auth.body.actor_id, id(9)); assert.equal(auth.body.organization_id, id(10));
+        if (options.auditFailure) throw new Error("audit write failed");
+      } else { assert.equal(auth.token,"viewer-token"); assert.equal(auth.serviceRole,undefined); }
       if (auth.method === "POST") {
         if (query === "change_specifications") return [{...auth.body, id:id(8)}];
         if (query === "change_specification_evidence" && options.evidenceFailure) throw new Error("write failed");
@@ -61,4 +65,11 @@ test("failed evidence persistence rolls back the new draft within the same organ
   const f=fixture({evidenceFailure:true});assert.equal((await f.post()).status,502);
   const deleted=f.calls.find(({auth})=>auth.method==="DELETE");assert.ok(deleted.query.includes(`id=eq.${id(8)}&organization_id=eq.${id(10)}&project_id=eq.${id(11)}`));
   assert.equal(f.calls.some(({query})=>query==="audit_logs"),false);
+});
+
+test("failed audit persistence rolls back a new decision draft without broadening business authority",async()=>{
+  const f=fixture({auditFailure:true});assert.equal((await f.post()).status,502);
+  const deleted=f.calls.find(({auth})=>auth.method==="DELETE");
+  assert.equal(deleted.auth.token,"viewer-token"); assert.equal(deleted.auth.serviceRole,undefined);
+  assert.ok(deleted.query.includes(`organization_id=eq.${id(10)}&project_id=eq.${id(11)}`));
 });
