@@ -15,7 +15,9 @@ test("core customer records are bound to the active project", async () => {
   assert.match(data, /ai_cost_events\?select=provider,model,input_tokens,output_tokens,total_tokens,estimated_cost_usd,cost_source,run:runs!inner\(project_id\)[^\n]+run\.project_id=eq\.\$\{context\.projectId\}/);
   assert.match(data, /prompt_clusters\?select=id&organization_id=eq\.\$\{organizationId\}&project_id=eq\.\$\{project\.id\}/);
   assert.match(data, /categories\?select=id,name&organization_id=eq\.\$\{organizationId\}&active=eq\.true&order=created_at\.asc&limit=100/);
-  assert.match(data, /categories\.find\(\(candidate\) => candidate\.name\.trim\(\)\.toLocaleLowerCase\(\) === projectCategory\.toLocaleLowerCase\(\)\)/);\n  assert.match(data, /projectBrand: project\.projectBrand/);\n  assert.match(data, /includes\(context\.projectBrand\.toLocaleLowerCase\(\)\)/);
+  assert.match(data, /categories\.find\(\(candidate\) => candidate\.name\.trim\(\)\.toLocaleLowerCase\(\) === projectCategory\.toLocaleLowerCase\(\)\)/);
+  assert.match(data, /projectBrand: project\.projectBrand/);
+  assert.match(data, /includes\(context\.projectBrand\.toLocaleLowerCase\(\)\)/);
 });
 
 test("legacy Source Maps and Actions fail closed on active-project ownership", async () => {
@@ -48,7 +50,9 @@ test("direct-id customer mutations prove active-project ownership", async () => 
   ]);
 
   assert.match(prompts, /prompts\?select=id&id=eq\.\$\{id\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/);
-  assert.match(runs, /const persistedIdempotencyKey = `\$\{context\.projectId\}:\$\{idempotencyKey\}`/);\n  assert.match(runs, /const idempotencyFilter = \[idempotencyKey, persistedIdempotencyKey\]/);\n  assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&idempotency_key=in\.\(\$\{idempotencyFilter\}\)/);\n  const projectSafeIdempotencyReads = runs.match(/idempotency_key=in\.\(\$\{idempotencyFilter\}\)/g) || [];
+  assert.match(runs, /const persistedIdempotencyKey = `\$\{context\.projectId\}:\$\{idempotencyKey\}`/);
+  assert.match(runs, /const idempotencyFilter = \[idempotencyKey, persistedIdempotencyKey\]/);
+  assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&idempotency_key=in\.\(\$\{idempotencyFilter\}\)/);\n  const projectSafeIdempotencyReads = runs.match(/idempotency_key=in\.\(\$\{idempotencyFilter\}\)/g) || [];
   assert.ok(projectSafeIdempotencyReads.length >= 2, "initial and concurrent duplicate recovery reads must share the active-project legacy+namespaced filter");
   assert.match(runs, /idempotency_key: persistedIdempotencyKey/);
   assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&active_request_key=eq/);
