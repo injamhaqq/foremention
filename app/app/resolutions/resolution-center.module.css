@@ -145,3 +145,6 @@
 
 .editor label { min-width: 0; }
 .editor select { width: 100%; min-width: 0; max-width: 100%; }
+
+.decisionIntro { margin-top: 20px; padding: 16px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
+.decisionIntro p { margin-block: 8px; font-size: 12px; line-height: 1.6; }
