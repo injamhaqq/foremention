@@ -30,7 +30,7 @@ test("pull request browser suites do not share one long-lived local Worker", () 
     "browser-demo-baseline.mjs",
     "browser-zoom-reflow.mjs",
     "canonical-brand-visual-proof.mjs",
-  ]) assert.match(prStep, new RegExp(`start_worker[\\s\\S]*?${script.replaceAll(".", "\\\\.")}[\\s\\S]*?stop_worker`));
+  ]) assert.match(prStep, new RegExp(`start_worker[\\s\\S]*?${script.replaceAll(".", "\\.")}[\\s\\S]*?stop_worker`));
 });
 
 test("pull request Lighthouse audits isolate every route behind a fresh local Worker", () => {
