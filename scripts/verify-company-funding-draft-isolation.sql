@@ -264,7 +264,8 @@ begin
   begin
     insert into public.company_funding_draft_artifacts (
       organization_id, project_id, created_by, profile_revision, package_version,
-      input_digest, artifact_digest, program_evidence_ids, company_truth_assertion_ids, artifact
+      input_digest, artifact_digest, program_evidence_ids, program_source_check_ids,
+      program_source_review_ids, program_revision_ids, company_truth_assertion_ids, artifact
     ) values (
       'f2610000-0000-4000-8000-000000000002'::uuid,
       'f2620000-0000-4000-8000-000000000002'::uuid,
@@ -274,6 +275,9 @@ begin
       repeat('5', 64),
       repeat('6', 64),
       array['f2630000-0000-4000-8000-000000000003'::uuid],
+      array['f2690000-0000-4000-8000-000000000002'::uuid],
+      array['f26a0000-0000-4000-8000-000000000002'::uuid],
+      array['f26b0000-0000-4000-8000-000000000002'::uuid],
       array['f2650000-0000-4000-8000-000000000002'::uuid],
       jsonb_build_object(
         'schemaVersion', 1,
