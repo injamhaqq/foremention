@@ -78,6 +78,8 @@ test("authenticated bridge dispatches exact compiled Worker status with no remot
   assert.match(bridge,/Browser-facing loopback must serve generated static assets/);
   assert.match(bridge,/response\.writeHead\(workerResponse\.status,sentHeaders\)/);
   assert.match(bridge,/content-encoding/);
+  assert.match(bridge,/headers\.set\("x-forwarded-host", new URL\(appOrigin\)\.host\)/);
+  assert.match(bridge,/headers\.set\("x-forwarded-proto", new URL\(appOrigin\)\.protocol\.replace\(":", ""\)\)/);
   assert.match(bridge,/received > 2_000_000/); assert.match(bridge,/headers\.getSetCookie\(\)/);
   assert.match(bridge,/spawn\(process\.execPath,\["scripts\/isolated-authenticated-journey\.mjs"\]/);
   assert.match(bridge,/await unlink\(isolatedConfig\)/);
