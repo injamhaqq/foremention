@@ -171,7 +171,9 @@ async function recordAudit(viewer: Viewer, context: WorkspaceContext, input: {
 }) {
   await supabaseRest("audit_logs", {
     method: "POST",
-    token: viewer.accessToken,
+    // Audit-table RLS is admin-write-only. Business writes above remain
+    // viewer-scoped; this receipt contains only verified server context.
+    serviceRole: true,
     prefer: "return=minimal",
     body: {
       organization_id: context.organizationId,
@@ -188,10 +190,17 @@ async function recordAudit(viewer: Viewer, context: WorkspaceContext, input: {
 export async function GET() {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (viewer.mode === "demo") return NextResponse.json({ data: [], mode: "demo" });
+  if (viewer.mode === "demo") return NextResponse.json({
+    data: [],
+    mode: "demo",
+    permissions: { role: "demo", canWrite: false, canDecide: false },
+  });
   if (!viewer.accessToken) return NextResponse.json({ error: "Your authenticated session is incomplete. Sign in again." }, { status: 401 });
-  const { context } = await resolveWorkspace(viewer);
-  if (!context) return NextResponse.json({ data: [] });
+  const { context, role } = await resolveWorkspace(viewer);
+  if (!context || !role) return NextResponse.json({
+    data: [],
+    permissions: { role: null, canWrite: false, canDecide: false },
+  });
   try {
     const rows = await supabaseRest<ChangeSpecificationRow[]>(
       `change_specifications?select=*&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=priority_rank.asc.nullslast,created_at.desc`,
@@ -204,7 +213,10 @@ export async function GET() {
     ) : [];
     const counts = new Map<string, number>();
     for (const link of links) counts.set(link.change_specification_id, (counts.get(link.change_specification_id) || 0) + 1);
-    return NextResponse.json({ data: rows.map((row) => responseRow(row, counts.get(row.id) || 0)) });
+    return NextResponse.json({
+      data: rows.map((row) => responseRow(row, counts.get(row.id) || 0)),
+      permissions: { role, canWrite: writable(role), canDecide: manager(role) },
+    });
   } catch (error) {
     if (isMissingRelationError(error)) return pendingMigrationResponse();
     throw error;

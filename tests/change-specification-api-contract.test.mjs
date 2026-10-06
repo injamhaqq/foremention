@@ -13,7 +13,9 @@ test("Change Specification route is tenant-scoped and uses canonical states", as
   assert.match(route, /buildSafeChangeSpecificationDraft/);
   assert.match(route, /validateChangeSpecificationForReview/);
   assert.match(route, /isTrustedMutationOrigin/);
-  assert.doesNotMatch(route, /serviceRole\s*:\s*true/);
+  assert.match(route, /supabaseRest\("audit_logs",\s*\{[\s\S]*?serviceRole: true/);
+  const businessWrites = route.replace(/supabaseRest\("audit_logs",\s*\{[\s\S]*?\n  \}\);/, "");
+  assert.doesNotMatch(businessWrites, /serviceRole\s*:\s*true/);
   assert.doesNotMatch(route, /confidence.*\d+%/i);
 });
 

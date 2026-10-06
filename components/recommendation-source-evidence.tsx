@@ -32,12 +32,15 @@ export async function RecommendationSourceEvidence({
   source,
   demo,
   canInspectSources,
+  inspectionId,
 }: {
   viewer: Viewer;
   source: SourceMapEntry;
   demo: boolean;
   canInspectSources: boolean;
+  inspectionId?: string;
 }) {
+  const evidenceId = inspectionId || source.id;
   const reviewed = Boolean(source.reviewedAt);
   const credibility = estimateSourceCredibility(source);
   const snapshots = source.sourceId ? await loadSourceSnapshotHistory(viewer, source.sourceId) : [];
@@ -49,27 +52,27 @@ export async function RecommendationSourceEvidence({
       <div><dt>Human review</dt><dd>{reviewed ? "Reviewed" : "Pending"}</dd></div>
     </dl>
 
-    <section className="canonical-observed-evidence" aria-labelledby={`evidence-chain-${source.id}`}>
+    <section className="canonical-observed-evidence" aria-labelledby={`evidence-chain-${evidenceId}`}>
       <span className="eyebrow">Observed evidence chain</span>
-      <h3 id={`evidence-chain-${source.id}`}>{source.domain}</h3>
+      <h3 id={`evidence-chain-${evidenceId}`}>{source.domain}</h3>
       <p>{source.evidenceCount} provider-returned citation observation{source.evidenceCount === 1 ? "" : "s"} across {new Set(source.engines).size} observed AI system{new Set(source.engines).size === 1 ? "" : "s"}. Citation recurrence is observed evidence; it does not prove authority, influence, or that this page caused a recommendation.</p>
     </section>
 
-    <section className="canonical-source-credibility source-credibility" aria-labelledby={`credibility-${source.id}`}>
+    <section className="canonical-source-credibility source-credibility" aria-labelledby={`credibility-${evidenceId}`}>
       <div>
         <span className="eyebrow">Estimated source credibility</span>
-        <h3 id={`credibility-${source.id}`}>{credibility.score}/100 · {credibility.confidence} confidence</h3>
+        <h3 id={`credibility-${evidenceId}`}>{credibility.score}/100 · {credibility.confidence} confidence</h3>
         <p>This transparent heuristic uses only Foremention-observed citation recurrence, provider coverage, publisher-type signals, observed reachability, and explicit human review. It is not a third-party domain-authority score.</p>
       </div>
       <div><strong>Signals used</strong><ul>{credibility.signals.map((signal) => <li key={signal}>{signal}</li>)}</ul></div>
       <div><strong>Still unknown</strong><ul>{credibility.missing.map((signal) => <li key={signal}>{signal}</li>)}</ul></div>
     </section>
 
-    <section className="canonical-snapshot-history source-snapshot-history" aria-labelledby={`snapshots-${source.id}`}>
+    <section className="canonical-snapshot-history source-snapshot-history" aria-labelledby={`snapshots-${evidenceId}`}>
       <div className="panel-heading">
         <div>
           <span className="eyebrow">Saved page observations</span>
-          <h3 id={`snapshots-${source.id}`}>What changed on this cited page?</h3>
+          <h3 id={`snapshots-${evidenceId}`}>What changed on this cited page?</h3>
           <p>Foremention saves bounded retrieval metadata and a text fingerprint—not the page body. When readable text is available, it also retains a small historical evidence excerpt, not the full page. A changed fingerprint records an observed difference; it does not prove what caused the difference.</p>
         </div>
       </div>

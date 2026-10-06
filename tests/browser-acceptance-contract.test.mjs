@@ -22,6 +22,17 @@ test("browser acceptance is permanent on pull requests and exact main releases",
   assert.match(workflow, /Waiting for local Worker \(\$\{attempt\}\/60\)/);
 });
 
+test("pull request browser suites do not share one long-lived local Worker", () => {
+  const prStep = workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?rm -rf \.lighthouseci/)?.[0] || "";
+  for (const script of [
+    "browser-decision-draft.mjs",
+    "browser-acceptance.mjs",
+    "browser-demo-baseline.mjs",
+    "browser-zoom-reflow.mjs",
+    "canonical-brand-visual-proof.mjs",
+  ]) assert.match(prStep, new RegExp(`start_worker[\\s\\S]*?${script.replaceAll(".", "\\.")}[\\s\\S]*?stop_worker`));
+});
+
 test("pull request Lighthouse audits isolate every route behind a fresh local Worker", () => {
   const prStep = workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?\.ci-tools\/node_modules\/\.bin\/lhci assert/)?.[0] || "";
   assert.match(prStep, /start_worker\(\)/);

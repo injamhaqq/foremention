@@ -3,7 +3,7 @@ import { canonicalizeEvidenceUrl, roundUsd } from "@/lib/collection-policy";
 import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS } from "@/lib/complete-run-evidence.mjs";
 import { loadPlacements, loadWorkspaceContext } from "@/lib/data";
 import type { Placement } from "@/lib/types";
-import { demoRuns, sourceMapEntries } from "@/lib/demo-data";
+import { demoRunRows, demoAnswerRows, demoCostRows, sourceMapEntries } from "@/lib/demo-data";
 import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 
@@ -477,61 +477,10 @@ export function buildWeeklyIntelligence(input: BuildInput): WeeklyIntelligence {
 }
 
 function demoInput(): BuildInput {
-  const [latest, previous] = demoRuns;
-  const demoRunRows: RunRow[] = [latest, previous].map((run, index) => ({
-    id: run.id,
-    status: run.status,
-    provider_ids: ["chatgpt", "perplexity", "claude", "google-ai"],
-    methodology_version: "fictional-demo-v1",
-    prompt_count: 4,
-    answer_count: run.answers,
-    citation_count: run.citations,
-    brand_presence_pct: run.presence,
-    first_mention_pct: run.firstMention,
-    new_source_count: run.newSources,
-    actual_cost_usd: index ? 0.078 : 0.084,
-    estimated_max_cost_usd: 0.1,
-    created_at: index ? "2026-07-13T10:00:00.000Z" : "2026-07-20T10:00:00.000Z",
-  }));
-  const prompts = [
-    "Best HR software for distributed teams",
-    "HR platform for a 200-person remote company",
-    "Reliable HRIS for cross-border compliance",
-    "Affordable HR platform for a remote startup",
-  ];
-  const providers = ["chatgpt", "perplexity", "claude", "google-ai"];
-  const demoAnswers: AnswerRow[] = demoRunRows.flatMap((run, runIndex) => prompts.flatMap((prompt, promptIndex) => providers.map((provider, providerIndex) => {
-    const answerIndex = promptIndex * providers.length + providerIndex;
-    const sourcePool = runIndex ? sourceMapEntries.slice(0, 6) : sourceMapEntries;
-    return {
-      id: `demo-answer-${runIndex}-${answerIndex}`,
-      run_id: run.id,
-      prompt_key: `demo-${promptIndex}`,
-      prompt_text: prompt,
-      provider,
-      model: "fictional-demo-model",
-      answer_text: runIndex === 0
-        ? `Fictional ${provider} demonstration answer for ${prompt}. It shows how reviewed answer text becomes searchable without representing a real provider response.`
-        : `Earlier fictional ${provider} demonstration answer for ${prompt}. It exists only to show an exact run comparison.`,
-      citations_json: [
-        { url: sourcePool[answerIndex % sourcePool.length].url },
-        { url: sourcePool[(answerIndex + 2) % sourcePool.length].url },
-      ],
-      brand_present: runIndex === 0 ? answerIndex % 3 !== 0 : answerIndex % 4 === 0,
-      brand_position: answerIndex % 4 === 0 ? 1 : (answerIndex % 5) + 2,
-      estimated_cost_usd: runIndex ? 0.004875 : 0.00525,
-      cost_source: "estimated" as const,
-      usage_total_tokens: 480 + answerIndex * 10,
-      review_status: "verified",
-      collected_at: run.created_at,
-    };
-  })));
-  const demoCosts: CostRow[] = demoRunRows.flatMap((run, runIndex) => Array.from({ length: 16 }, (_, index) => ({
-    run_id: run.id,
-    estimated_cost_usd: runIndex ? 0.004875 : 0.00525,
-    cost_source: "estimated",
-    total_tokens: 480 + index * 10,
-  })));
+  const runs = demoRunRows.slice(0, 2);
+  const runIds = new Set(runs.map((run) => run.id));
+  const demoAnswers = demoAnswerRows.filter((answer) => runIds.has(answer.run_id));
+  const demoCosts = demoCostRows.filter((cost) => runIds.has(cost.run_id));
   const demoSources: SourceEntryRow[] = sourceMapEntries.map((source, index) => ({
     id: source.id,
     source_id: source.id,
@@ -549,7 +498,7 @@ function demoInput(): BuildInput {
   }));
   return {
     telemetry: "fictional",
-    runs: demoRunRows,
+    runs,
     answers: demoAnswers,
     costs: demoCosts,
     sources: demoSources,
