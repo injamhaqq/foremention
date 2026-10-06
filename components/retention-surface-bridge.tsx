@@ -104,7 +104,7 @@ export function RetentionSurfaceBridge() {
   const pathname = usePathname();
   const recordMatch = pathname.match(/^\/app\/runs\/([^/]+)$/);
   return <>
-    {pathname === "/app" && <AttentionSurface />}
+    {pathname === "/app" && <div className="attention-surface"><AttentionSurface /></div>}
     {pathname === "/app/settings" && <SettingsExtensions />}
     {recordMatch && <RecordControls runId={decodeURIComponent(recordMatch[1])} />}
     {pathname === "/app/analytics" && <AnalyticsExtensions />}
