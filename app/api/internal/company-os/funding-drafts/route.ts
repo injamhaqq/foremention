@@ -485,7 +485,12 @@ export async function POST(request: Request) {
       companyFacts: profile.facts,
       opportunities: reviewedPrograms.map((row) => row.opportunity),
     });
-    const artifactDigest = await fundingServiceDigest(draft);
+    const artifactDigest = await fundingServiceDigest({
+      draft,
+      programRevisionIds: reviewedPrograms.map((row) => row.revisionId),
+      programSourceCheckIds: reviewedPrograms.map((row) => row.checkId),
+      programSourceReviewIds: reviewedPrograms.map((row) => row.reviewId),
+    });
     const existing = await supabaseRest<FundingArtifactRow[]>(
       `company_funding_draft_artifacts?select=id,profile_revision,input_digest,artifact_digest,program_source_check_ids,program_source_review_ids,program_revision_ids,artifact,created_at`
         + `&organization_id=eq.${encodeURIComponent(context.organizationId)}`
