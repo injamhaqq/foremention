@@ -6,6 +6,7 @@
 
 - [Home](https://foremention.com/) — Recommendation Intelligence for B2B software and the design-partner entry point.
 - [Product](https://foremention.com/product) — product workflow and customer-decision model.
+- [Use Cases](https://foremention.com/use-cases) — evidence-grounded customer questions and decision workflows.
 - [Recommendation Intelligence](https://foremention.com/recommendation-intelligence) — category definition.
 - [Recommendation Record](https://foremention.com/recommendation-record) — canonical measurement object.
 - [Methodology](https://foremention.com/methodology) — evidence, review, and comparable remeasurement methodology.
@@ -38,6 +39,7 @@
 - [AGENTS.md](https://foremention.com/AGENTS.md) — evidence and navigation guidance for agents.
 
 - [Product markdown](https://foremention.com/product.md) — canonical product summary with explicit evidence boundaries.
+- [Use Cases markdown](https://foremention.com/use-cases.md) — structured use cases and decision boundaries.
 - [Methodology markdown](https://foremention.com/methodology.md) — inspectable measurement and comparability principles.
 
 - [Recommendation Record Markdown](https://foremention.com/recommendation-record.md) — explicit record schema, inspected evidence stages, review limitations and comparison conditions.

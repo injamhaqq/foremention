@@ -131,13 +131,19 @@ test("approved canonical Foremention identity stays active while Source Eclipse 
 });
 
 test("interactive demo and factual disclosure are present", async () => {
-  const [journey, report, home] = await Promise.all([text("components/recommendation-journey.tsx"), text("app/sample-report/page.tsx"), text("app/page.tsx")]);
+  const [journey, report, home, experience] = await Promise.all([
+    text("components/recommendation-journey.tsx"),
+    text("app/sample-report/page.tsx"),
+    text("app/page.tsx"),
+    text("components/goat-home-experience.tsx"),
+  ]);
   assert.match(journey, /Illustrative demo using fictional sample data/);
   assert.match(journey, /Buyer prompt/);
   assert.match(journey, /Placement route/);
-  assert.match(report, /Fictional sample report/);
+  assert.match(report, /Fictional Recommendation Intelligence report/i);
   assert.match(report, /does not guarantee/i);
-  assert.match(home, /No fake reviews\. No hidden promotion\. No ranking guarantees\./);
+  assert.match(home, /See where AI recommends your brand/);
+  assert.match(experience, /Opening this page does not trigger paid research or expose customer records/);
 });
 
 test("Sites D1 intake and migration are configured", async () => {

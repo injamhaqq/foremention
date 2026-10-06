@@ -21,6 +21,7 @@ import "./outreach-site.css";
 import "./outreach-reflow.css";
 import "./browser-acceptance-hardening.css";
 import "./navigation-discovery.css";
+import "./public-cinematic-home.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
@@ -28,7 +29,7 @@ import { PublicActivationAnalytics } from "../components/public-activation-analy
 import { ContentsquareAnalytics } from "../components/contentsquare-analytics";
 import { SITE_URL } from "../lib/seo";
 
-const publicDescription = "Understand why competitors are being recommended, what your company can actually change, and how to verify what happened after the change.";
+const publicDescription = "See where AI recommends your brand. Track recommendations, inspect supporting sources, and decide what to improve with Recommendation Intelligence for B2B software.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

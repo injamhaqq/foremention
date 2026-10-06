@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Arrow } from "@/components/brand";
-import { CanonicalSignalField } from "@/components/canonical-signal-field";
 
 const workflow = [
   ["01", "Buyer question", "Start with a real question that can determine the shortlist."],
@@ -44,20 +44,170 @@ const recordChain = [
 const changeDefinitionLabelStyle = { color: "#666460" } as const;
 
 export function MissingAnswerExperience() {
+  const [sampleSurface, setSampleSurface] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState<"competitor" | "brand" | null>(null);
+  const [selectedEvidence, setSelectedEvidence] = useState<"source-01" | "source-02" | null>(null);
+  const sampleSurfaceReady = sampleSurface === "workers-ai-bing-rss";
+
+  const inspector = !sampleSurfaceReady
+    ? {
+        label: "STEP 02 / EXAMPLE SURFACE",
+        title: "Choose the supported example surface.",
+        detail: "The question is visible first. Selecting the surface unlocks the illustrative answer, brands, and returned sources.",
+      }
+    : selectedEvidence
+      ? {
+          label: "EVIDENCE DETAIL",
+          title: selectedEvidence === "source-01" ? "Source 01 · review pending" : "Source 02 · review pending",
+          detail: "Returned and sample-retrievable. Human review remains open, and this source is not presented as the cause of the recommendation.",
+        }
+      : selectedBrand === "competitor"
+        ? {
+            label: "OBSERVED BRAND",
+            title: "Competitor A appears in the sample answer.",
+            detail: "The observed answer and returned sources stay attached to the same illustrative Recommendation Record.",
+          }
+        : selectedBrand === "brand"
+          ? {
+              label: "OBSERVED BRAND",
+              title: "Your brand is present, but not top-listed.",
+              detail: "That is an observation only. The sample does not invent a causal explanation for the ordering.",
+            }
+          : {
+              label: "STEP 03 / OBSERVED ANSWER",
+              title: "Provider response preserved.",
+              detail: "Select a brand or returned source to inspect its state, then open the Recommendation Record for the full evidence boundary.",
+            };
+
   return <div className="outreach-home">
-    <section className="outreach-hero shell" aria-labelledby="outreach-hero-title">
-      <div className="outreach-hero__copy">
-        <h1 id="outreach-hero-title">Know what your company should change next to become the stronger recommendation.</h1>
-        <p className="outreach-hero__lead">Recommendation intelligence for B2B software. Foremention observes how AI systems answer your buyers&apos; questions, verifies the evidence behind those recommendations, separates controllable gaps from structural ones, and turns the result into exact company changes your team can review and verify.</p>
-        <div className="outreach-hero__actions">
-          <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--primary" href="/contact">Apply as Design Partner <Arrow /></Link>
-          <Link className="canonical-button canonical-button--secondary" href="/#how-it-works">See how it works <Arrow /></Link>
-          <Link className="canonical-button canonical-button--secondary" href="#recommendation-record">See example Recommendation Record <Arrow /></Link>
+    <section className="fm-cinematic-hero" aria-labelledby="fm-cinematic-hero-title">
+      <div className="shell fm-cinematic-hero__inner">
+        <div className="fm-cinematic-hero__copy">
+          <span className="fm-cinematic-hero__kicker">RECOMMENDATION INTELLIGENCE FOR B2B SOFTWARE</span>
+          <h1 id="fm-cinematic-hero-title">See where AI recommends your brand.</h1>
+          <p className="fm-cinematic-hero__lead">Track recommendations, inspect supporting sources, and decide what to improve.</p>
+          <div className="fm-cinematic-hero__actions">
+            <Link data-public-sample-open className="canonical-button canonical-button--primary" href="#sample-recommendation-graph">Explore a sample <Arrow /></Link>
+            <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--secondary" href="/contact">Request a pilot <Arrow /></Link>
+          </div>
+          <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records.</p>
         </div>
-        <p className="outreach-hero__boundary">No fake reviews. No hidden promotion. No ranking guarantees. No fabricated scores. No causal claims without evidence.</p>
-        <p className="outreach-hero__boundary">Current free-only observations use Cloudflare Workers AI with Bing Search RSS grounded synthesis, not direct monitoring of ChatGPT, Gemini, or Perplexity consumer apps.</p>
+
+        <div id="sample-recommendation-graph" className="fm-recommendation-graph" role="group" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
+          <div className="fm-recommendation-graph__label"><span>ILLUSTRATIVE SIGNAL MAP</span><strong>Question → answer → brands → sources</strong></div>
+          <label className="fm-recommendation-graph__surface">
+            <span>EXAMPLE MEASUREMENT SURFACE</span>
+            <select
+              aria-label="Choose the supported example measurement surface"
+              value={sampleSurface}
+              onChange={(event) => {
+                setSampleSurface(event.target.value);
+                setSelectedBrand(null);
+                setSelectedEvidence(null);
+              }}
+            >
+              <option value="">Choose a surface</option>
+              <option value="workers-ai-bing-rss">Workers AI + Bing RSS grounded synthesis</option>
+            </select>
+          </label>
+          <svg className="fm-recommendation-graph__lines" viewBox="0 0 760 620" aria-hidden="true" preserveAspectRatio="none">
+            <path d="M130 310 C230 310 220 190 330 190" />
+            <path d="M130 310 C230 310 220 420 330 420" />
+            <path d="M430 190 C525 190 520 150 635 150" />
+            <path d="M430 190 C525 190 520 265 635 265" />
+            <path d="M430 420 C525 420 520 355 635 355" />
+            <path d="M430 420 C525 420 520 505 635 505" />
+          </svg>
+
+          <div className="fm-graph-node fm-graph-node--question">
+            <span>BUYER QUESTION</span>
+            <strong>Best platform for enterprise product marketing?</strong>
+            <small>Priority question · demonstration</small>
+          </div>
+          <div className={`fm-graph-node fm-graph-node--answer${sampleSurfaceReady ? "" : " is-muted"}`}>
+            <span>OBSERVED ANSWER</span>
+            <strong>{sampleSurfaceReady ? "Provider response preserved" : "Select an example surface"}</strong>
+            <small>{sampleSurfaceReady ? "Timestamp + model provenance attached" : "No live research is triggered"}</small>
+          </div>
+          <button
+            type="button"
+            disabled={!sampleSurfaceReady}
+            aria-pressed={selectedBrand === "competitor"}
+            className={`fm-graph-node fm-graph-node--brand${selectedBrand === "competitor" ? " is-selected" : ""}`}
+            onClick={() => {
+              setSelectedBrand("competitor");
+              setSelectedEvidence(null);
+            }}
+          >
+            <span>RECOMMENDED BRAND</span>
+            <strong>Competitor A</strong>
+            <small>Observed in this sample answer</small>
+          </button>
+          <button
+            type="button"
+            disabled={!sampleSurfaceReady}
+            aria-pressed={selectedBrand === "brand"}
+            className={`fm-graph-node fm-graph-node--brand-secondary${selectedBrand === "brand" ? " is-selected" : ""}`}
+            onClick={() => {
+              setSelectedBrand("brand");
+              setSelectedEvidence(null);
+            }}
+          >
+            <span>YOUR BRAND</span>
+            <strong>Present, not top-listed</strong>
+            <small>Illustrative state only</small>
+          </button>
+          <button
+            type="button"
+            disabled={!sampleSurfaceReady}
+            aria-pressed={selectedEvidence === "source-01"}
+            className={`fm-graph-node fm-graph-node--source-a${selectedEvidence === "source-01" ? " is-selected" : ""}`}
+            onClick={() => {
+              setSelectedEvidence("source-01");
+              setSelectedBrand(null);
+            }}
+          >
+            <span>RETURNED SOURCE</span>
+            <strong>Source 01</strong>
+            <small>Retrievable · review pending</small>
+          </button>
+          <button
+            type="button"
+            disabled={!sampleSurfaceReady}
+            aria-pressed={selectedEvidence === "source-02"}
+            className={`fm-graph-node fm-graph-node--source-b${selectedEvidence === "source-02" ? " is-selected" : ""}`}
+            onClick={() => {
+              setSelectedEvidence("source-02");
+              setSelectedBrand(null);
+            }}
+          >
+            <span>RETURNED SOURCE</span>
+            <strong>Source 02</strong>
+            <small>Retrievable · review pending</small>
+          </button>
+
+          <Link
+            data-public-evidence-inspect
+            className="fm-graph-record"
+            href="#recommendation-record"
+            aria-label="Inspect the illustrative Recommendation Record"
+            aria-live="polite"
+          >
+            <span>{inspector.label}</span>
+            <strong>{inspector.title}</strong>
+            <small>{inspector.detail} <b aria-hidden="true">→</b></small>
+          </Link>
+
+          <ol className="sr-only">
+            <li>One illustrative buyer question is shown before any measurement surface is selected.</li>
+            <li>The visitor can select the currently supported example surface: Cloudflare Workers AI with independently retrieved Bing Search RSS grounded synthesis.</li>
+            <li>The provider answer is preserved with provenance.</li>
+            <li>Observed brand recommendations remain attached to that answer.</li>
+            <li>Returned sources remain distinct and inspectable.</li>
+            <li>The evidence resolves into one sample Recommendation Record.</li>
+          </ol>
+        </div>
       </div>
-      <div className="outreach-hero__visual"><CanonicalSignalField compact /></div>
     </section>
 
     <div className="shell">
@@ -80,7 +230,7 @@ export function MissingAnswerExperience() {
           {recordChain.map(([label, state], index) => <div key={label} className={state}><span aria-hidden="true" /><strong>{label}</strong>{index < recordChain.length - 1 ? <i aria-hidden="true" /> : null}</div>)}
         </div>
         <div className="canonical-record__actions">
-          <Link className="canonical-record__inspect" href="/recommendation-record">Inspect evidence <span aria-hidden="true">→</span></Link>
+          <Link data-public-evidence-inspect className="canonical-record__inspect" href="/recommendation-record">Inspect evidence <span aria-hidden="true">→</span></Link>
           <Link className="canonical-record__inspect" href="/methodology">Read methodology <span aria-hidden="true">→</span></Link>
         </div>
         <div className="canonical-record__boundary">
@@ -171,6 +321,71 @@ export function MissingAnswerExperience() {
       </div>
     </section>
 
+    <section className="fm-home-proof" aria-labelledby="fm-home-proof-title">
+      <div className="shell fm-home-proof__layout">
+        <div className="fm-home-proof__intro">
+          <span className="canonical-kicker">PROOF WITHOUT PLACEHOLDERS</span>
+          <h2 id="fm-home-proof-title">Credibility should appear only after the evidence exists.</h2>
+          <p>Foremention does not publish invented customer logos, uplift percentages, security badges, or outcome claims to make the site look mature. Public proof is added only when it is consented, attributable, and supported by the underlying record.</p>
+        </div>
+        <div className="fm-home-proof__grid">
+          <article>
+            <span>01</span>
+            <strong>Methodology is inspectable now.</strong>
+            <p>See how question versions, provider context, returned references, review state, uncertainty, and later comparability are separated.</p>
+            <Link className="text-link" href="/methodology">Read methodology <Arrow /></Link>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>Trust claims stay current.</strong>
+            <p>Security, privacy, tenant isolation, provider handling, and unavailable controls are described as implemented, configuration-required, architecture-ready, or unavailable.</p>
+            <Link className="text-link" href="/trust">Open Trust Center <Arrow /></Link>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Customer proof waits for customer proof.</strong>
+            <p>No design-partner application, demo workspace, internal test, or fictional sample is presented as a customer result.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section className="fm-home-faq" aria-labelledby="fm-home-faq-title">
+      <div className="shell fm-home-faq__layout">
+        <div>
+          <span className="canonical-kicker">PRACTICAL QUESTIONS</span>
+          <h2 id="fm-home-faq-title">What teams usually need to know before a pilot.</h2>
+          <p>These answers describe the current product boundary rather than a future roadmap claim.</p>
+        </div>
+        <div className="fm-home-faq__items">
+          <details>
+            <summary>Does Foremention guarantee that my brand will be recommended?</summary>
+            <p>No. Foremention records observations, inspects evidence, helps identify company-owned changes worth testing, and supports comparable later measurement. It does not control an AI provider&apos;s ranking, model weights, personalization, updates, or future answers.</p>
+          </details>
+          <details>
+            <summary>Which AI surface is measured today?</summary>
+            <p>Current free-only live collection uses Cloudflare Workers AI with independently retrieved Bing Search RSS sources and grounded synthesis. That is not direct monitoring of ChatGPT, Gemini, or Perplexity consumer applications.</p>
+          </details>
+          <details>
+            <summary>Does opening the homepage run paid AI research?</summary>
+            <p>No. The public sample is sanitized and versioned. It does not call a paid provider, create a customer run, or expose customer records when the page loads.</p>
+          </details>
+          <details>
+            <summary>What makes a later observation comparable?</summary>
+            <p>The buyer-question version, provider/model context, collection method, and other material measurement conditions must remain equivalent enough for comparison. Material drift is recorded as not comparable instead of being forced into a trend.</p>
+          </details>
+          <details>
+            <summary>What happens in the founder-led pilot?</summary>
+            <p>Bring up to five priority buyer questions, establish a baseline, review the evidence, choose one customer-owned company change worth testing, implement only what your team approves, and return for comparable remeasurement.</p>
+          </details>
+          <details>
+            <summary>What happens to the information I submit?</summary>
+            <p>The public application collects only the information needed to evaluate the pilot conversation. The intake is validated, rate-limited, persisted server-side, and does not create a paid subscription or authorize automated collection.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
     <section className="outreach-partner" aria-labelledby="outreach-partner-title">
       <div className="shell">
         <div className="outreach-partner__intro">
@@ -178,7 +393,7 @@ export function MissingAnswerExperience() {
             <h2 id="outreach-partner-title">Become a Foremention Design Partner.</h2>
             <p>Use one real B2B software category, five buyer questions, and one measurable company-change cycle. Founder-led by design while the workflow is being validated with real teams.</p>
           </div>
-          <Link data-design-partner-cta="home_partner" className="canonical-button canonical-button--primary" href="/contact">Apply as Design Partner <Arrow /></Link>
+          <Link data-design-partner-cta="home_partner" className="canonical-button canonical-button--primary" href="/contact">Request a pilot <Arrow /></Link>
         </div>
         <ol className="outreach-partner__steps">
           {partnerSteps.map(([number, title, body]) => <li key={number}><span>{number}</span><strong>{title}</strong><p>{body}</p></li>)}

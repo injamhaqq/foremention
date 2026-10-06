@@ -12,7 +12,7 @@ const comparison = await text("app/monitoring-vs-execution/page.tsx");
 
 test("outreach navigation stays focused while canonical evidence and research routes remain reachable", () => {
   assert.match(shell, /\["\/product",\s*"Product"\]/);
-  assert.match(shell, /\["\/#how-it-works",\s*"How it works"\]/);
+  assert.match(shell, /\["\/use-cases",\s*"Use cases"\]/);
   assert.match(shell, /\["\/pricing",\s*"Pricing"\]/);
   assert.match(shell, /\["\/insights",\s*"Research"\]/);
   assert.match(shell, /\["\/trust",\s*"Trust"\]/);
