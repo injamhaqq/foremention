@@ -1,4 +1,3 @@
-// RED contract: reviewed-evidence gate intentionally absent at this revision.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -53,6 +52,20 @@ test("funding draft review-gate migration binds exact evidence, check, and accep
   assert.match(sql, /nullif\(trim\(snapshot\.evidence_excerpt\), ''\) is not null/i);
   assert.match(sql, /review\.decided_at >= source_check\.checked_at/i);
   assert.match(sql, /FUNDING_PROGRAM_EVIDENCE_MAX_AGE_DAYS|interval '30 days'/i);
+});
+
+test("CI executes the reviewed-evidence acceptance verifier after migration replay", async () => {
+  const workflow = await read(".github/workflows/ci.yml");
+  assert.match(workflow, /verify-company-funding-draft-review-gate\.sql/);
+});
+
+test("legacy funding draft fixtures carry accepted reviewed-source provenance under the new gate", async () => {
+  const sql = await read("scripts/verify-company-funding-draft-isolation.sql");
+  assert.match(sql, /company_funding_source_checks/);
+  assert.match(sql, /company_funding_source_reviews/);
+  assert.match(sql, /program_source_check_ids/);
+  assert.match(sql, /program_source_review_ids/);
+  assert.match(sql, /source_check\.checked_at/);
 });
 
 test("SQL acceptance proves the reviewed-evidence funding draft gate fails closed", async () => {
