@@ -23,6 +23,9 @@ test("real authenticated customer acceptance must only run against local ephemer
   assert.match(journey,/const state=must\(finalRead,200,"final audited resolution read"\)/);
   assert.match(journey,/probeCode=candidate==="PGRST303"\?"PGRST303":"other"/);
   assert.match(journey,/ordinary-run-review-published-one-citation-four-zero-citation-questions/);
+  assert.match(journey,/authenticated-analyst-editor-save-unsaved-submit-and-role-boundary/);
+  assert.match(journey,/comparison_contract:"fixture-preserve-v1"/);
+  assert.match(journey,/Save & submit for review/);
   assert.match(journey,/real-change-spec-review-role-gates-and-manager-approval/);
   assert.match(journey,/evidence-linked-resolution-and-company-controlled-execution/);
   assert.match(journey,/ordinary-reviewed-zero-citation-second-cycle-noncausal-tenant-scoped-result/);
