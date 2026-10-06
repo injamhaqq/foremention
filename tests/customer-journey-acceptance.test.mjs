@@ -38,8 +38,9 @@ test("a nontechnical customer can follow website to question to collection to Re
   assert.match(retiredSourceRoute, /redirect\("\/app\/source-map"\)/);
   assert.match(sources, /Human review queue/);
   assert.match(opportunities, /No composite score hides weak evidence/);
-  assert.match(opportunityList, /Create action/);
-  assert.match(opportunityList, /disabled=.*source\.score === null/);
+  assert.match(opportunityList, /Review decision/);
+  assert.doesNotMatch(opportunityList, /\/api\/placements|Demo action created locally/);
+  assert.match(opportunityList, /source\.score === null \|\| demo \? "\/app\/source-map#source-review-queue"/);
   assert.match(actions, /Every action keeps the source/);
 });
 

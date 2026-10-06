@@ -302,7 +302,8 @@ test("customer insight pages use real evidence without pseudo-priority scores or
   assert.match(opportunities, /score: reviewed \?/);
   assert.match(opportunityList, /source\.score === null \? "Evidence"/);
   assert.match(opportunityList, /source\.score === null \? <strong>Review<\/strong> :/);
-  assert.match(opportunityList, /disabled=.*source\.score === null/);
+  assert.match(opportunityList, /source\.score === null \|\| demo \? "\/app\/source-map#source-review-queue"/);
+  assert.doesNotMatch(opportunityList, /\/api\/placements/);
   assert.match(overview, /latestAnswer\.answer/);
   assert.match(sourceRecord, /Observed evidence chain/);
   assert.match(analytics, /Current reviewed baseline/);

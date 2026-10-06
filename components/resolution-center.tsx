@@ -146,7 +146,7 @@ function EmptyState({ demo }: { demo: boolean }) {
   return <section className={styles.emptyState}><span className="eyebrow">No measured problem selected</span><h2>{demo ? "Resolution actions are not available in the fictional demo." : "Measure and review evidence before proposing a fix."}</h2><p>{demo ? "The demo stays read-only and cannot create customer approval records, applied references, or follow-up runs." : "Resolution Center starts with an observed problem from your own reviewed workspace records. It never manufactures a problem, solution, or result to make the page look populated."}</p><div className={styles.buttonRow}><Link className="button button--ink" href="/app/runs">Review answer runs</Link><Link className="button button--outline" href="/app/opportunities">Inspect priority gaps</Link></div></section>;
 }
 
-export function ResolutionCenter({ demo, role }: { demo: boolean; role: WorkspaceRole }) {
+export function ResolutionCenter({ demo, role, sourceUrl = "" }: { demo: boolean; role: WorkspaceRole; sourceUrl?: string }) {
   const router = useRouter();
   const creationLock = useRef(false);
   const [creationUncertain, setCreationUncertain] = useState(false);
@@ -166,7 +166,8 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
   const canWrite = !demo && role !== "viewer";
   const canManage = !demo && (role === "owner" || role === "admin");
 
-  const active = useMemo(() => records.find((record) => record.id === selectedId) || records[0] || null, [records, selectedId]);
+  const visibleRecords = useMemo(() => sourceUrl ? records.filter((record) => record.evidence.some((item) => item.sourceUrl === sourceUrl)) : records, [records, sourceUrl]);
+  const active = useMemo(() => visibleRecords.find((record) => record.id === selectedId) || visibleRecords[0] || null, [visibleRecords, selectedId]);
 
   const hydrateEditor = useCallback((record: ResolutionRecord) => {
     selectedIdRef.current = record.id;
@@ -210,7 +211,8 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
         const opportunityDecision = !record.proposal ? changeByOpportunity.get(record.problem.id) || null : null;
         return { ...record, changeSpecification: linked || opportunityDecision };
       });
-      const selected = next.find((record) => record.id === selectedIdRef.current) || next[0];
+      const candidates = sourceUrl ? next.filter((record) => record.evidence.some((item) => item.sourceUrl === sourceUrl)) : next;
+      const selected = candidates.find((record) => record.id === selectedIdRef.current) || candidates[0];
       setError("");
       setRecords(next);
       if (selected) hydrateEditor(selected);
@@ -219,7 +221,7 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
       if (caught instanceof DOMException && caught.name === "AbortError") return;
       setError(caught instanceof Error ? caught.message : "Resolution records could not be loaded.");
     } finally { setLoading(false); }
-  }, [demo, hydrateEditor]);
+  }, [demo, hydrateEditor, sourceUrl]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -316,7 +318,7 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
   }
 
   if (loading) return <section className={styles.clientLoading} aria-busy="true"><span className={styles.pulse} /><h2>Loading measured problems…</h2><p>Foremention is retrieving this workspace’s reviewed evidence and existing approval records.</p></section>;
-  if (!active) return <>{error && <div className={styles.errorBanner} role="alert"><strong>Resolution Center is unavailable.</strong><span>{error}</span><button type="button" onClick={() => { setLoading(true); void load(); }}>Try again</button></div>}<EmptyState demo={demo} /></>;
+  if (!active) return <>{error && <div className={styles.errorBanner} role="alert"><strong>Resolution Center is unavailable.</strong><span>{error}</span><button type="button" onClick={() => { setLoading(true); void load(); }}>Try again</button></div>}{sourceUrl && !demo ? <section className={styles.emptyState}><h2>No reviewed decision evidence is available for this cited page.</h2><p>The page may need source and answer review, or its problem may be unavailable in this project. Foremention has not selected an unrelated problem or created an action.</p><div className={styles.buttonRow}><Link className="button button--ink" href="/app/source-map#source-review-queue">Review source evidence</Link><Link className="button button--outline" href="/app/resolutions">Browse reviewed problems</Link></div></section> : <EmptyState demo={demo} />}</>;
 
   const proposalSaved = Boolean(active.proposal);
   const approved = active.approval.status === "approved";
@@ -332,8 +334,8 @@ export function ResolutionCenter({ demo, role }: { demo: boolean; role: Workspac
 
     <div className={styles.centerGrid}>
       <aside className={styles.problemRail} aria-label="Measured problems">
-        <div className={styles.railHeading}><span>Measured problems</span><strong>{records.length}</strong></div>
-        <div className={styles.problemList}>{records.map((record) => <button className={record.id === active.id ? styles.selectedProblem : ""} type="button" key={record.id} disabled={busy !== ""} onClick={() => hydrateEditor(record)}><span>{readable(record.problem.type)}</span><strong>{record.problem.title}</strong><small>{readable(record.status)}</small></button>)}</div>
+        <div className={styles.railHeading}><span>Measured problems</span><strong>{visibleRecords.length}</strong></div>
+        <div className={styles.problemList}>{visibleRecords.map((record) => <button className={record.id === active.id ? styles.selectedProblem : ""} type="button" key={record.id} disabled={busy !== ""} onClick={() => hydrateEditor(record)}><span>{readable(record.problem.type)}</span><strong>{record.problem.title}</strong><small>{readable(record.status)}</small></button>)}</div>
         <p className={styles.railNote}>Only workspace problems backed by persisted records belong here.</p>
       </aside>
 
