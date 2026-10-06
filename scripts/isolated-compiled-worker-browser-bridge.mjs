@@ -63,6 +63,12 @@ try {
           for (const item of value) headers.append(name,item);
         } else if (value !== undefined) headers.set(name,value);
       }
+      // Preserve the browser-facing same-origin boundary through the loopback
+      // harness transport. The application already recognizes validated
+      // forwarded host/protocol metadata for reverse-proxy execution.
+      headers.set("x-forwarded-host", new URL(appOrigin).host);
+      headers.set("x-forwarded-proto", new URL(appOrigin).protocol.replace(":", ""));
+
       const chunks = [];
       let received = 0;
       for await (const chunk of request) {
