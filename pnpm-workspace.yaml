@@ -6,7 +6,9 @@ allowBuilds:
   unrs-resolver: true
   workerd: true
 overrides:
-  sharp: 0.35.4
+  # Security hotfix for fixable HIGH advisories detected after the website release.
+  sharp: 0.35.5
+  source-map-js: 1.2.2
   postcss: 8.5.23
   # Refresh the reviewed security patches; keep scanner gates enabled.
   '@grpc/grpc-js@>=1.14.0 <1.14.5': 1.14.5
