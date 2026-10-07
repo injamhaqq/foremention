@@ -1,0 +1,28 @@
+name: Billing Provider Contract
+
+on:
+  pull_request:
+    paths:
+      - "lib/billing-provider.ts"
+      - "lib/creem-billing.ts"
+      - "lib/stripe-billing.ts"
+      - "app/api/billing/**"
+      - "components/billing-control.tsx"
+      - "tests/billing-provider-creem.test.mjs"
+      - ".env.example"
+      - ".github/workflows/billing-provider-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  billing-provider-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.13.0"
+      - name: Run provider-neutral billing contract
+        run: node --experimental-strip-types --test tests/billing-provider-creem.test.mjs
