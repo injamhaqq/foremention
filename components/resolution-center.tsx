@@ -29,6 +29,19 @@ type ChangeExecutionLink = {
   executionRole: string;
 };
 
+type FollowUpMetric = { before: number; after: number; delta: number };
+type FollowUpComparison = {
+  baselineRunId: string;
+  followUpRunId: string;
+  baselineCompletedAt: string | null;
+  followUpCompletedAt: string | null;
+  brandPresencePct: FollowUpMetric;
+  firstMentionPct: FollowUpMetric;
+  citationCount: FollowUpMetric;
+  newSourceCount: FollowUpMetric;
+  interpretation: string;
+};
+
 export type ResolutionEvidence = {
   id: string;
   kind: string;
@@ -82,6 +95,8 @@ export type ResolutionRecord = {
     requestedAt?: string | null;
     completedAt?: string | null;
     summary?: string | null;
+    limitation?: string | null;
+    comparison?: FollowUpComparison | null;
   };
 };
 
@@ -100,6 +115,10 @@ function formatDate(value?: string | null) {
   if (!value) return "Not recorded";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "Not recorded" : new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function formatDelta(value: number, unit = "") {
+  return `${value > 0 ? "+" : ""}${value}${unit}`;
 }
 
 function isExternalHttpUrl(value: string) {
@@ -382,7 +401,28 @@ export function ResolutionCenter({ demo, role, sourceUrl = "" }: { demo: boolean
           <div className={styles.sectionPanel}><div className={styles.sectionHeading}><div><span>05 · Applied reference</span><h3>Record where your team applied it.</h3></div><small>{readable(active.application.status)}</small></div><label className={styles.stackLabel}>Applied reference<input type="text" value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} placeholder="Page, pull request, document, ticket, release, policy, or other reference" /></label><button className="button button--ink" type="button" disabled={!canManage || busy !== "" || !approved} onClick={() => void markApplied()}>{busy === "apply" ? "Recording…" : applied ? "Update applied reference" : "Record applied reference"}</button><p className={styles.auditLine}>{approved ? "Foremention records the customer-controlled reference. It does not publish, rank, or change provider behavior from this action." : "Customer approval is required before an applied reference can be recorded."}</p>{active.application.appliedAt && <p className={styles.auditLine}>Applied {formatDate(active.application.appliedAt)}.</p>}{active.application.error && <p className={styles.inlineError}>{active.application.error}</p>}</div>
         </section>
 
-        <section className={`${styles.sectionPanel} ${styles.followUp}`}><div><span>06 · Follow-up measurement</span><h3>Measure the same question and conditions again.</h3><p>A comparable follow-up preserves the baseline, provider, model, and question so the customer can inspect change without turning correlation into a causal claim.</p>{active.followUp.summary && <blockquote>{active.followUp.summary}</blockquote>}</div><div className={styles.followUpAction}><strong>{readable(active.followUp.status)}</strong>{active.followUp.followUpRunId && <Link className={styles.inlineLink} href={`/app/runs/${encodeURIComponent(active.followUp.followUpRunId)}`}>Inspect follow-up run →</Link>}<button className="button button--ink" type="button" disabled={!canWrite || busy !== "" || !applied || followUpBusy} onClick={() => void requestRemeasurement()}>{busy === "remeasure" || followUpBusy ? "Measurement queued…" : active.followUp.status === "complete" || active.followUp.status === "incomparable" ? "Run another comparison" : "Request comparable measurement"}</button></div></section>
+        <section className={`${styles.sectionPanel} ${styles.followUp}`}>
+          <div>
+            <span>06 · Follow-up measurement</span>
+            <h3>Measure the same question and conditions again.</h3>
+            <p>A comparable follow-up preserves the baseline, provider, model, and question so the customer can inspect change without turning correlation into a causal claim.</p>
+            {active.followUp.comparison ? <>
+              <strong>Exact comparable result</strong>
+              <div className="metric-grid metric-grid--compact">
+                <article><span>Brand presence</span><strong>{formatDelta(active.followUp.comparison.brandPresencePct.delta, " pts")}</strong><small>{active.followUp.comparison.brandPresencePct.before}% → {active.followUp.comparison.brandPresencePct.after}%</small></article>
+                <article><span>First mention</span><strong>{formatDelta(active.followUp.comparison.firstMentionPct.delta, " pts")}</strong><small>{active.followUp.comparison.firstMentionPct.before}% → {active.followUp.comparison.firstMentionPct.after}%</small></article>
+                <article><span>Citations</span><strong>{formatDelta(active.followUp.comparison.citationCount.delta)}</strong><small>{active.followUp.comparison.citationCount.before} → {active.followUp.comparison.citationCount.after}</small></article>
+                <article><span>New sources</span><strong>{formatDelta(active.followUp.comparison.newSourceCount.delta)}</strong><small>{active.followUp.comparison.newSourceCount.before} → {active.followUp.comparison.newSourceCount.after}</small></article>
+              </div>
+              <p className={styles.limitNote}>Observed association only. {active.followUp.comparison.interpretation}</p>
+            </> : active.followUp.status === "incomparable" ? <div className={styles.inlineEmpty}><strong>Comparison withheld</strong><p>A later measurement exists, but Foremention could not prove the exact methodology and buyer-question/provider/model comparison boundary. No directional result is shown.</p>{active.followUp.limitation && <p>{active.followUp.limitation}</p>}</div> : active.followUp.status === "complete" ? <div className={styles.inlineEmpty}><strong>Comparison details unavailable</strong><p>The follow-up completed, but its persisted comparison packet could not be validated. Foremention withholds before-and-after metrics instead of guessing or reconstructing them in the browser.</p></div> : active.followUp.summary ? <blockquote>{active.followUp.summary}</blockquote> : null}
+          </div>
+          <div className={styles.followUpAction}>
+            <strong>{readable(active.followUp.status)}</strong>
+            {active.followUp.followUpRunId && <Link className={styles.inlineLink} href={`/app/runs/${encodeURIComponent(active.followUp.followUpRunId)}`}>Inspect follow-up run →</Link>}
+            <button className="button button--ink" type="button" disabled={!canWrite || busy !== "" || !applied || followUpBusy} onClick={() => void requestRemeasurement()}>{busy === "remeasure" || followUpBusy ? "Measurement queued…" : active.followUp.status === "complete" || active.followUp.status === "incomparable" ? "Run another comparison" : "Request comparable measurement"}</button>
+          </div>
+        </section>
         </>}
       </div>
     </div>

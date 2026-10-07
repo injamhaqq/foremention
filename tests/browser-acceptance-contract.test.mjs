@@ -155,7 +155,9 @@ test("failed browser responses persist privacy-safe status and pathname diagnost
 });
 
 test("browser acceptance covers WebKit, low-height laptop, and mobile landscape", () => {
-  assert.match(workflow, /playwright install --with-deps chromium firefox webkit/);
+  assert.match(workflow, /playwright install chromium firefox webkit/);
+  assert.match(workflow, /playwright install-deps chromium firefox webkit/);
+  assert.match(workflow, /browser_smoke/);
   assert.match(workflow, /node scripts\/browser-zoom-reflow\.mjs/);
   assert.match(hardening, /const \{ chromium, webkit \}/);
   assert.match(hardening, /name: "chromium-low-height"[\s\S]{0,140}width: 1366[\s\S]{0,80}height: 768/);

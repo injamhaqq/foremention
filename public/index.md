@@ -1,18 +1,18 @@
 ---
 title: "Recommendation Intelligence for B2B Software | Foremention"
-description: "Understand why competitors are being recommended, what your company should change next, and how to verify what happened after the change."
+description: "See where AI recommends your brand. Track recommendations, inspect supporting sources, and decide what to improve."
 canonical: "https://foremention.com/"
-updated: "2026-09-26"
-last_updated: "2026-09-26"
+updated: "2026-10-05"
+last_updated: "2026-10-05"
 ---
 
-# Know what your company should change next to become the stronger recommendation.
+# See where AI recommends your brand.
 
-Foremention is recommendation intelligence for B2B software. It observes how AI systems answer buyers' questions, preserves the evidence behind those recommendations, separates controllable gaps from structural ones, and turns reviewed gaps into exact company changes a team can evaluate and verify.
+Track recommendations, inspect supporting sources, and decide what to improve. Foremention is recommendation intelligence for B2B software: it preserves buyer-question observations and their evidence, separates what a company can prove from what remains uncertain, and helps teams turn reviewed gaps into exact company decisions.
 
 No fake reviews. No hidden promotion. No ranking guarantees. No fabricated scores. No causal claims without evidence.
 
-[Apply as Design Partner](https://foremention.com/contact)
+[Explore a sample Recommendation Record](https://foremention.com/recommendation-record) · [Request a pilot](https://foremention.com/contact)
 
 ## Current live measurement surface
 
@@ -49,11 +49,12 @@ The current design-partner workflow uses one real B2B software category, up to f
 
 Applying does not create a paid subscription, guarantee an outcome, or authorize a company change.
 
-[Apply as Design Partner](https://foremention.com/contact)
+[Request a pilot](https://foremention.com/contact)
 
 ## Sitemap
 
 - [Product](https://foremention.com/product)
+- [Use Cases](https://foremention.com/use-cases)
 - [Recommendation Intelligence](https://foremention.com/recommendation-intelligence)
 - [Recommendation Record](https://foremention.com/recommendation-record)
 - [Methodology](https://foremention.com/methodology)

@@ -13,7 +13,7 @@ test("public primary navigation exposes pricing and research while Explore prese
 
   for (const pair of [
     '["/product", "Product"]',
-    '["/#how-it-works", "How it works"]',
+    '["/use-cases", "Use cases"]',
     '["/pricing", "Pricing"]',
     '["/insights", "Research"]',
     '["/trust", "Trust"]',
@@ -21,10 +21,10 @@ test("public primary navigation exposes pricing and research while Explore prese
 
   assert.ok(shell.includes('href="/explore">Explore Foremention</Link>'));
   assert.ok(shell.includes('href="/login">Sign in</Link>'));
-  assert.ok(shell.includes("Apply as Design Partner"));
+  assert.ok(shell.includes("Request a pilot"));
   assert.doesNotMatch(shell, /href="\/(?:standards|honesty)"/);
 
-  for (const route of ["/product", "/pricing", "/score", "/prompt-check", "/sample-report", "/roi", "/methodology", "/source-map", "/trust", "/privacy", "/subprocessors", "/terms", "/recommendation-intelligence", "/ai-mediated-buying", "/monitoring-vs-execution", "/insights", "/glossary", "/teardowns", "/about", "/partners", "/api-docs/webhooks", "/source-gap", "/contact", "/compare"]) {
+  for (const route of ["/product", "/use-cases", "/pricing", "/score", "/prompt-check", "/sample-report", "/roi", "/methodology", "/source-map", "/trust", "/privacy", "/subprocessors", "/terms", "/recommendation-intelligence", "/ai-mediated-buying", "/monitoring-vs-execution", "/insights", "/glossary", "/teardowns", "/about", "/partners", "/api-docs/webhooks", "/source-gap", "/contact", "/compare"]) {
     assert.ok(explore.includes(route), "missing Explore destination: " + route);
   }
 });

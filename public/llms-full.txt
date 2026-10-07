@@ -36,6 +36,7 @@ Foremention publicly uses the category Recommendation Intelligence. Broader cate
 ## Canonical public routes
 
 - Product: https://foremention.com/product
+- Use Cases: https://foremention.com/use-cases
 - Recommendation Intelligence: https://foremention.com/recommendation-intelligence
 - Recommendation Record: https://foremention.com/recommendation-record
 - Methodology: https://foremention.com/methodology
@@ -52,4 +53,5 @@ Foremention publicly uses the category Recommendation Intelligence. Broader cate
 - llms.txt: https://foremention.com/llms.txt
 - Markdown sitemap: https://foremention.com/sitemap.md
 - Homepage markdown: https://foremention.com/index.md
+- Use Cases markdown: https://foremention.com/use-cases.md
 - Agent guide: https://foremention.com/AGENTS.md
