@@ -277,7 +277,7 @@ test("optional model gateways use truthful endpoints and evidence handling", asy
   assert.match(helper, /resolveGatewayEndpoint/);
   assert.match(helper, /process\.env\.NODE_ENV === "production"/);
   assert.match(helper, /Gateway endpoint is not configured safely/);
-  assert.match(helper, /hostname === "\\[::1\\]"/);
+  assert.match(helper, /hostname === "\[::1\]"/);
   assert.doesNotMatch(helper, /extractUrls/);
   assert.match(types, /"zenmux"/);
   assert.match(types, /"omniroute"/);
