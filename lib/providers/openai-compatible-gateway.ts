@@ -59,7 +59,7 @@ function resolveGatewayEndpoint(config: GatewayConfig) {
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
     if (url.username || url.password) return null;
     const hostname = url.hostname.toLowerCase();
-    const loopback = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    const loopback = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
     if (process.env.NODE_ENV === "production" && (url.protocol !== "https:" || loopback)) return null;
     url.search = "";
     url.hash = "";
