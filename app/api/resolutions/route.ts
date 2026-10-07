@@ -135,7 +135,7 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
     const objective = clean(asset.proposal.objective, 1200);
     const content = proposalContent(asset.proposal);
     const outcomeSummary = followUp ? clean(followUp.outcome.interpretation, 1000) || null : null;
-    const comparison = followUp?.status === "complete" ? readStoredOutcomeComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
+    const comparison = followUp && followUp.status === "complete" ? readStoredOutcomeComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
     return {
       id: asset.id,
       status: asset.status,
