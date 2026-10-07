@@ -105,7 +105,7 @@ const readMetricDelta = (value: unknown, range: "percentage" | "count"): MetricD
   return { before, after, delta };
 };
 
-const readStoredComparison = (
+export const readStoredOutcomeComparison = (
   outcome: Record<string, unknown>,
   baselineRunId: string,
   followUpRunId: string | null,
@@ -163,7 +163,7 @@ export function buildOutcomeLedger(input: {
     const opportunity = opportunityById.get(asset.opportunity_id) || null;
     const baseline = asset.baseline_run_id ? runById.get(asset.baseline_run_id) : undefined;
     const rerun = followUp?.rerun_id ? runById.get(followUp.rerun_id) : undefined;
-    const storedCandidate = followUp?.status === "complete" ? readStoredComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
+    const storedCandidate = followUp?.status === "complete" ? readStoredOutcomeComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
     const storedComparison = storedCandidate && (!baseline || isComparableBaselineRun(baseline)) && (!rerun || isComparableFollowUpRun(rerun)) ? storedCandidate : null;
     const comparison = storedComparison || (followUp?.status === "complete" && isComparableBaselineRun(baseline) && isComparableFollowUpRun(rerun) ? compareResolutionRuns(toMeasurement(baseline as OutcomeLedgerRunRow), toMeasurement(rerun as OutcomeLedgerRunRow)) : null);
     const baselineMeasured = isComparableBaselineRun(baseline) || Boolean(storedComparison);
