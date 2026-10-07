@@ -53,10 +53,10 @@ export function BillingControl() {
       <p>Self-serve paid checkout is not configured for this environment. Current access remains founder-led; no card or paid package is implied.</p>
       <Link className="button button--outline" href="/contact">Discuss commercial access</Link>
     </> : !status.owner ? <p>Only the workspace owner can start or manage a subscription.</p> : status.canManage ? <>
-      <p>Stripe Customer Portal is the self-service surface for payment methods, invoices, and any upgrade, downgrade, or cancellation options enabled in the provider configuration.</p>
+      <p>The billing portal is the self-service surface for payment methods, invoices, and any upgrade, downgrade, or cancellation options enabled by the configured billing provider.</p>
       <form action="/api/billing/portal" method="post"><button className="button button--outline" type="submit">Manage billing</button></form>
     </> : <>
-      <p>Hosted subscription checkout is available only for the package and billing intervals backed by configured Stripe Prices. Intelligence remains custom-scoped.</p>
+      <p>Hosted subscription checkout is available only for package and billing intervals explicitly configured with the active billing provider. Intelligence remains custom-scoped.</p>
       <div className="settings-actions">
         {status.checkoutOffers.map((offer) => <form action="/api/billing/checkout" method="post" key={`${offer.packageKey}:${offer.billingInterval}`}>
           <input type="hidden" name="packageKey" value={offer.packageKey} />
