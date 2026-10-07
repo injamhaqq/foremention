@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ChangeSpecificationStatus = "draft" | "in_review" | "approved" | "in_execution" | "completed" | "rejected";
 type ChangeSpecificationRecord = {
@@ -82,26 +82,37 @@ async function loadChangeSpecification(id: string) {
   return found;
 }
 
-export function ChangeSpecificationDetail({ id }: { id: string }) {
+export function ChangeSpecificationDetail({ id, demo = false, role = "viewer" }: { id: string; demo?: boolean; role?: "owner" | "admin" | "analyst" | "viewer" }) {
   const [record, setRecord] = useState<ChangeSpecificationRecord | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [approvalNote, setApprovalNote] = useState("");
+  const [uncertain, setUncertain] = useState(false);
+  const writing = useRef(false);
+  const activeId = useRef(id);
+  useEffect(() => { activeId.current = id; return () => { activeId.current = ""; }; }, [id]);
+  const writable = !demo && (role === "owner" || role === "admin" || role === "analyst");
+  const canEdit = writable && record?.id === id && record.status === "draft";
+  const dirty = Boolean(record && draft && JSON.stringify(draft) !== JSON.stringify(draftFrom(record)));
+  const canSubmit = canEdit;
+  const canDecide = !demo && (role === "owner" || role === "admin") && record?.id === id && record.status === "in_review";
 
   const applyLoadedRecord = useCallback((found: ChangeSpecificationRecord) => {
     setRecord(found);
     setDraft(draftFrom(found));
     setApprovalNote(found.approvalNote || "");
     setError("");
+    setUncertain(false);
   }, []);
 
   const load = useCallback(async () => {
     try {
-      applyLoadedRecord(await loadChangeSpecification(id));
+      const found = await loadChangeSpecification(id);
+      if (activeId.current === id) applyLoadedRecord(found);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Change Specification could not be loaded.");
+      if (activeId.current === id) setError(caught instanceof Error ? caught.message : "Change Specification could not be loaded.");
     }
   }, [applyLoadedRecord, id]);
 
@@ -119,10 +130,15 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
   }, [applyLoadedRecord, id]);
 
   const mutate = useCallback(async (body: Record<string, unknown>, success: string) => {
-    if (busy) return;
+    if (writing.current || uncertain || !writable || record?.id !== id) return;
+    if (body.action === "update_draft" && !canEdit) return;
+    if (body.action === "submit" && (!canSubmit || dirty)) return;
+    if (body.action === "decision" && !canDecide) return;
+    writing.current = true;
     setBusy(String(body.action || "save"));
     setError("");
     setNotice("");
+    let mayHaveSaved = true;
     try {
       const response = await fetch("/api/change-specifications", {
         method: "PATCH",
@@ -131,28 +147,35 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
       });
       const payload = await readPayload(response);
       if (!response.ok) {
+        mayHaveSaved = response.status >= 500;
         const missing = Array.isArray(payload.missing) ? ` Missing: ${payload.missing.join(", ")}.` : "";
         const invalid = Array.isArray(payload.invalid) ? ` Invalid: ${payload.invalid.join(", ")}.` : "";
         throw new Error(`${typeof payload.error === "string" ? payload.error : "The decision could not be updated."}${missing}${invalid}`);
       }
-      await load();
-      setNotice(success);
+      const saved = payload.data as ChangeSpecificationRecord | undefined;
+      const expectedStatus = body.action === "submit" ? "in_review" : body.action === "decision" ? body.decision : "draft";
+      if (!saved || saved.id !== id || saved.status !== expectedStatus || !Array.isArray(saved.acceptanceCriteria) || !saved.verificationPlan || typeof saved.verificationPlan !== "object") {
+        throw new Error("The saved decision could not be confirmed. Reload the saved decision before trying again; this will replace the local form with persisted state.");
+      }
+      if (activeId.current === id) { applyLoadedRecord(saved); setNotice(success); }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The decision could not be updated.");
+      if (activeId.current === id) {
+        setUncertain(mayHaveSaved);
+        setError(caught instanceof Error ? caught.message : "The decision could not be updated.");
+      }
     } finally {
+      writing.current = false;
       setBusy("");
     }
-  }, [busy, id, load]);
+  }, [applyLoadedRecord, canDecide, canEdit, canSubmit, dirty, id, record, uncertain, writable]);
 
-  const canEdit = record?.status === "draft";
-  const canSubmit = canEdit;
-  const canDecide = record?.status === "in_review";
   const verificationRecorded = useMemo(() => Boolean(draft?.verificationIntent.trim()), [draft]);
 
-  if (!record || !draft) return <section className="panel"><div className="empty-state"><h2>{error ? "Change Specification unavailable." : "Loading Change Specification…"}</h2><p>{error || "Reading the persisted company decision and its evidence boundary."}</p>{error && <Link className="button button--outline" href="/app">Back to Attention →</Link>}</div></section>;
+  if (!record || !draft || record.id !== id) return <section className="panel"><div className="empty-state"><h2>{error ? "Change Specification unavailable." : "Loading Change Specification…"}</h2><p>{error || "Reading the persisted company decision and its evidence boundary."}</p>{error && <Link className="button button--outline" href="/app">Back to Attention →</Link>}</div></section>;
 
   return <>
     {(error || notice) && <div className="inline-notice" role={error ? "alert" : "status"}><strong>{error ? "Decision update failed." : "Decision updated."}</strong><p>{error || notice}</p></div>}
+    {uncertain && <section className="panel" aria-label="Unconfirmed decision update"><p>The update may have been saved. Reload to review persisted state before sending another update. Reloading replaces the local form.</p><button className="button button--outline" disabled={Boolean(busy)} onClick={() => void load()}>Reload saved decision</button></section>}
 
     <section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">Change Specification · {readable(record.status)}</span><h2>{record.title}</h2><p>{record.problemStatement}</p></div><Link className="button button--outline" href="/app/resolutions">Open Resolution Center</Link></div>
@@ -162,10 +185,13 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
         <article><span>Evidence</span><strong>{record.linkedEvidenceCount}</strong><small>verified linked record{record.linkedEvidenceCount === 1 ? "" : "s"}</small></article>
         <article><span>Verification</span><strong>{verificationRecorded ? "recorded" : "not specified"}</strong><small>future verification intent</small></article>
       </div>
+      {demo ? <p className="table-caption">This fictional demo is read-only.</p> : role === "viewer" ? <p className="table-caption">Viewer access is read-only.</p> : null}
+      {record.baselineRunId && <Link className="button button--outline" href={`/app/runs/${encodeURIComponent(record.baselineRunId)}`}>Inspect baseline evidence →</Link>}
     </section>
 
     <section className="panel">
-      <div className="panel-heading"><div><span className="eyebrow">Decision body</span><h2>{canEdit ? "Define the exact company change." : "Submitted decision body is immutable."}</h2></div></div>
+      <div className="panel-heading"><div><span className="eyebrow">Decision body</span><h2>{canEdit ? "Define the exact company change." : "Read the saved company decision."}</h2></div></div>
+      {canEdit && <p className="table-caption">{dirty ? "Save your changes before submitting this decision for review." : "Only the saved decision is submitted. An owner or admin must approve it before execution."}</p>}
       <form className="form-stack" onSubmit={(event) => { event.preventDefault(); if (!canEdit) return; void mutate({
         action: "update_draft",
         title: draft.title,
@@ -181,25 +207,25 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
         priorityRank: draft.priorityRank ? Number(draft.priorityRank) : null,
         effort: draft.effort || null,
         acceptanceCriteria: draft.acceptanceCriteria.split("\n").map((item) => item.trim()).filter(Boolean),
-        verificationPlan: draft.verificationIntent.trim() ? { intent: draft.verificationIntent.trim() } : {},
+        verificationPlan: (() => { const plan = { ...record.verificationPlan }; if (draft.verificationIntent.trim()) plan.intent = draft.verificationIntent.trim(); else delete plan.intent; return plan; })(),
       }, "Draft saved. The decision remains unsubmitted until you explicitly submit it for review."); }}>
-        <label>Title<input disabled={!canEdit} value={draft.title} onChange={(event) => setDraft((current) => current && ({ ...current, title: event.target.value }))} /></label>
-        <label>Observed problem<textarea disabled={!canEdit} rows={4} value={draft.problemStatement} onChange={(event) => setDraft((current) => current && ({ ...current, problemStatement: event.target.value }))} /></label>
-        <label>Exact company change<textarea disabled={!canEdit} rows={5} value={draft.exactChange} onChange={(event) => setDraft((current) => current && ({ ...current, exactChange: event.target.value }))} placeholder="Describe the exact customer-owned change. Do not describe control of an AI provider." /></label>
+        <label>Title<input disabled={!canEdit || Boolean(busy) || uncertain} value={draft.title} onChange={(event) => setDraft((current) => current && ({ ...current, title: event.target.value }))} /></label>
+        <label>Observed problem<textarea disabled={!canEdit || Boolean(busy) || uncertain} rows={4} value={draft.problemStatement} onChange={(event) => setDraft((current) => current && ({ ...current, problemStatement: event.target.value }))} /></label>
+        <label>Exact company change<textarea disabled={!canEdit || Boolean(busy) || uncertain} rows={5} value={draft.exactChange} onChange={(event) => setDraft((current) => current && ({ ...current, exactChange: event.target.value }))} placeholder="Describe the exact customer-owned change. Do not describe control of an AI provider." /></label>
         <div className="form-grid">
-          <label>Control class<select disabled={!canEdit} value={draft.controlClass} onChange={(event) => setDraft((current) => current && ({ ...current, controlClass: event.target.value as Draft["controlClass"] }))}><option value="">Unknown</option><option>CONTROLLABLE</option><option>INFLUENCEABLE</option><option>UNCONTROLLABLE</option></select></label>
-          <label>Control surface<input disabled={!canEdit} value={draft.controlSurface} onChange={(event) => setDraft((current) => current && ({ ...current, controlSurface: event.target.value }))} placeholder="Website, product, pricing, documentation…" /></label>
-          <label>Decision<select disabled={!canEdit} value={draft.decisionState} onChange={(event) => setDraft((current) => current && ({ ...current, decisionState: event.target.value as Draft["decisionState"] }))}><option>DO_NOW</option><option>TEST_FIRST</option><option>DO_NOT_DO</option><option>MONITOR_ONLY</option><option>INSUFFICIENT_EVIDENCE</option></select></label>
-          <label>Eligibility<select disabled={!canEdit} value={draft.eligibilityState} onChange={(event) => setDraft((current) => current && ({ ...current, eligibilityState: event.target.value as Draft["eligibilityState"] }))}><option>ELIGIBLE</option><option>PARTIALLY_ELIGIBLE</option><option>STRUCTURALLY_INELIGIBLE</option><option>UNKNOWN</option></select></label>
-          <label>Confidence<select disabled={!canEdit} value={draft.confidenceState} onChange={(event) => setDraft((current) => current && ({ ...current, confidenceState: event.target.value as Draft["confidenceState"] }))}><option>HIGH</option><option>MEDIUM</option><option>LOW</option><option>INSUFFICIENT</option></select></label>
-          <label>Truth state<select disabled={!canEdit} value={draft.truthState} onChange={(event) => setDraft((current) => current && ({ ...current, truthState: event.target.value as Draft["truthState"] }))}><option>OBSERVED_FACT</option><option>LIKELY_EXPLANATION</option><option>HYPOTHESIS</option><option>RECOMMENDED_EXPERIMENT</option><option>VERIFIED_OUTCOME</option></select></label>
-          <label>Owner role<input disabled={!canEdit} value={draft.ownerRole} onChange={(event) => setDraft((current) => current && ({ ...current, ownerRole: event.target.value }))} /></label>
-          <label>Effort<select disabled={!canEdit} value={draft.effort} onChange={(event) => setDraft((current) => current && ({ ...current, effort: event.target.value as Draft["effort"] }))}><option value="">Not specified</option><option>LOW</option><option>MEDIUM</option><option>HIGH</option></select></label>
-          <label>Priority rank<input disabled={!canEdit} inputMode="numeric" value={draft.priorityRank} onChange={(event) => setDraft((current) => current && ({ ...current, priorityRank: event.target.value.replace(/\D/g, "") }))} /></label>
+          <label>Control class<select disabled={!canEdit || Boolean(busy) || uncertain} value={draft.controlClass} onChange={(event) => setDraft((current) => current && ({ ...current, controlClass: event.target.value as Draft["controlClass"] }))}><option value="">Unknown</option><option value="CONTROLLABLE">{readable("CONTROLLABLE")}</option><option value="INFLUENCEABLE">{readable("INFLUENCEABLE")}</option><option value="UNCONTROLLABLE">{readable("UNCONTROLLABLE")}</option></select></label>
+          <label>Control surface<input disabled={!canEdit || Boolean(busy) || uncertain} value={draft.controlSurface} onChange={(event) => setDraft((current) => current && ({ ...current, controlSurface: event.target.value }))} placeholder="Website, product, pricing, documentation…" /></label>
+          <label>Decision<select disabled={!canEdit || Boolean(busy) || uncertain} value={draft.decisionState} onChange={(event) => setDraft((current) => current && ({ ...current, decisionState: event.target.value as Draft["decisionState"] }))}><option value="DO_NOW">{readable("DO_NOW")}</option><option value="TEST_FIRST">{readable("TEST_FIRST")}</option><option value="DO_NOT_DO">{readable("DO_NOT_DO")}</option><option value="MONITOR_ONLY">{readable("MONITOR_ONLY")}</option><option value="INSUFFICIENT_EVIDENCE">{readable("INSUFFICIENT_EVIDENCE")}</option></select></label>
+          <label>Eligibility<select disabled={!canEdit || Boolean(busy) || uncertain} value={draft.eligibilityState} onChange={(event) => setDraft((current) => current && ({ ...current, eligibilityState: event.target.value as Draft["eligibilityState"] }))}><option value="ELIGIBLE">{readable("ELIGIBLE")}</option><option value="PARTIALLY_ELIGIBLE">{readable("PARTIALLY_ELIGIBLE")}</option><option value="STRUCTURALLY_INELIGIBLE">{readable("STRUCTURALLY_INELIGIBLE")}</option><option value="UNKNOWN">{readable("UNKNOWN")}</option></select></label>
+          <label>Confidence<select disabled={!canEdit || Boolean(busy) || uncertain} value={draft.confidenceState} onChange={(event) => setDraft((current) => current && ({ ...current, confidenceState: event.target.value as Draft["confidenceState"] }))}><option value="HIGH">{readable("HIGH")}</option><option value="MEDIUM">{readable("MEDIUM")}</option><option value="LOW">{readable("LOW")}</option><option value="INSUFFICIENT">{readable("INSUFFICIENT")}</option></select></label>
+          <label>Truth state<select disabled={!canEdit || Boolean(busy) || uncertain} value={draft.truthState} onChange={(event) => setDraft((current) => current && ({ ...current, truthState: event.target.value as Draft["truthState"] }))}><option value="OBSERVED_FACT">{readable("OBSERVED_FACT")}</option><option value="LIKELY_EXPLANATION">{readable("LIKELY_EXPLANATION")}</option><option value="HYPOTHESIS">{readable("HYPOTHESIS")}</option><option value="RECOMMENDED_EXPERIMENT">{readable("RECOMMENDED_EXPERIMENT")}</option><option value="VERIFIED_OUTCOME">{readable("VERIFIED_OUTCOME")}</option></select></label>
+          <label>Owner role<input disabled={!canEdit || Boolean(busy) || uncertain} value={draft.ownerRole} onChange={(event) => setDraft((current) => current && ({ ...current, ownerRole: event.target.value }))} /></label>
+          <label>Effort<select disabled={!canEdit || Boolean(busy) || uncertain} value={draft.effort} onChange={(event) => setDraft((current) => current && ({ ...current, effort: event.target.value as Draft["effort"] }))}><option value="">Not specified</option><option value="LOW">{readable("LOW")}</option><option value="MEDIUM">{readable("MEDIUM")}</option><option value="HIGH">{readable("HIGH")}</option></select></label>
+          <label>Priority rank<input disabled={!canEdit || Boolean(busy) || uncertain} inputMode="numeric" value={draft.priorityRank} onChange={(event) => setDraft((current) => current && ({ ...current, priorityRank: event.target.value.replace(/\D/g, "") }))} /></label>
         </div>
-        <label>Acceptance criteria<textarea disabled={!canEdit} rows={5} value={draft.acceptanceCriteria} onChange={(event) => setDraft((current) => current && ({ ...current, acceptanceCriteria: event.target.value }))} placeholder="One criterion per line" /></label>
-        <label>Verification intent<textarea disabled={!canEdit} rows={4} value={draft.verificationIntent} onChange={(event) => setDraft((current) => current && ({ ...current, verificationIntent: event.target.value }))} placeholder="What later evidence would verify or falsify this decision?" /></label>
-        {canEdit && <button className="button button--ink" type="submit" disabled={Boolean(busy)}>{busy === "update_draft" ? "Saving…" : "Save decision draft"}</button>}
+        <label>Acceptance criteria<textarea disabled={!canEdit || Boolean(busy) || uncertain} rows={5} value={draft.acceptanceCriteria} onChange={(event) => setDraft((current) => current && ({ ...current, acceptanceCriteria: event.target.value }))} placeholder="One criterion per line" /></label>
+        <label>Verification intent<textarea disabled={!canEdit || Boolean(busy) || uncertain} rows={4} value={draft.verificationIntent} onChange={(event) => setDraft((current) => current && ({ ...current, verificationIntent: event.target.value }))} placeholder="What later evidence would verify or falsify this decision?" /></label>
+        {canEdit && <button className="button button--ink" type="submit" disabled={Boolean(busy) || uncertain}>{busy === "update_draft" ? "Saving…" : "Save decision draft"}</button>}
       </form>
     </section>
 
@@ -207,9 +233,10 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
       <div className="panel-heading"><div><span className="eyebrow">Human approval boundary</span><h2>Submission and decision are explicit.</h2></div></div>
       <p>Foremention can preserve evidence and structure the decision. It does not approve the company change, publish it, control an AI provider, or claim that a later AI result was caused by the change.</p>
       <div className="workspace-heading__actions">
-        {canSubmit && <button className="button button--ink" type="button" disabled={Boolean(busy)} onClick={() => void mutate({ action: "submit" }, "Submitted for human review. The decision body is now immutable.")}>{busy === "submit" ? "Submitting…" : "Submit for review"}</button>}
-        {canDecide && <><button className="button button--ink" type="button" disabled={Boolean(busy)} onClick={() => void mutate({ action: "decision", decision: "approved", approvalNote }, "Change Specification approved by the workspace reviewer.")}>{busy === "decision" ? "Recording…" : "Approve"}</button><button className="button button--outline" type="button" disabled={Boolean(busy)} onClick={() => void mutate({ action: "decision", decision: "rejected", approvalNote }, "Change Specification rejected by the workspace reviewer.")}>Reject</button></>}
+        {canSubmit && <button className="button button--ink" type="button" disabled={Boolean(busy) || dirty || uncertain} onClick={() => void mutate({ action: "submit" }, "Submitted for human review. The decision body is now immutable.")}>{busy === "submit" ? "Submitting…" : "Submit for review"}</button>}
+        {canDecide && <><button className="button button--ink" type="button" disabled={Boolean(busy) || uncertain} onClick={() => void mutate({ action: "decision", decision: "approved", approvalNote }, "Change Specification approved by the workspace reviewer.")}>{busy === "decision" ? "Recording…" : "Approve"}</button><button className="button button--outline" type="button" disabled={Boolean(busy) || uncertain} onClick={() => void mutate({ action: "decision", decision: "rejected", approvalNote }, "Change Specification rejected by the workspace reviewer.")}>Reject</button></>}
       </div>
+      {record.status === "in_review" && !canDecide && <p className="table-caption">An owner or admin must approve or reject this decision.</p>}
       {canDecide && <label>Decision note<textarea rows={3} value={approvalNote} onChange={(event) => setApprovalNote(event.target.value)} /></label>}
       {record.decisionAt && <p className="table-caption">Decision recorded · {record.decisionAt}</p>}
     </section>

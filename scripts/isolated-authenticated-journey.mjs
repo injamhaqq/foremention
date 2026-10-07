@@ -334,9 +334,23 @@ async function main() {
       confidenceState:"LOW",exactChange:"Add a fixture-only source disclosure",
       ownerRole:"synthetic owner",effort:"LOW",
       acceptanceCriteria:["Test reviewer confirms local-only example"],
-      verificationPlan:{intent:"repeat five unchanged fictional questions"},
+      verificationPlan:{intent:"repeat five unchanged fictional questions",fixtureMarker:"preserve-local-contract"},
     }),200,"customer-authored exact change");
-    must(await appCall(analystCtx,"PATCH","/api/change-specifications",{action:"submit",id:spec.id}),200,"decision submitted");
+    // Actual hydrated form interaction supplements the API-owned fixture.
+    // Local synthetic evidence only; never production or provider proof.
+    const editor=await analystCtx.newPage();
+    await editor.goto(new URL("/app/change-specifications/"+spec.id,app).toString());
+    await editor.getByRole("textbox",{name:"Verification intent",exact:true}).fill("Inspect a comparable synthetic later result");
+    assert.equal(await editor.getByRole("button",{name:"Submit for review"}).isDisabled(),true,"Unsaved edits must not submit the old persisted decision");
+    await editor.getByRole("button",{name:"Save decision draft"}).click();
+    await editor.getByRole("status").filter({hasText:"Draft saved."}).waitFor();
+    const savedPlan=(await db("GET","change_specifications?select=verification_plan_json&id=eq."+spec.id+"&organization_id=eq."+tenant.org))[0].verification_plan_json;
+    assert.equal(savedPlan.fixtureMarker,"preserve-local-contract");
+    assert.equal(savedPlan.intent,"Inspect a comparable synthetic later result");
+    await editor.getByRole("button",{name:"Submit for review"}).click();
+    await editor.getByRole("status").filter({hasText:"Submitted for human review."}).waitFor();
+    assert.equal(await editor.getByRole("button",{name:"Approve",exact:true}).count(),0,"Analyst UI cannot approve the submitted decision");
+    step("hydrated-analyst-editor-preserved-verification-saved-then-submitted");
     const forbidden=await appCall(analystCtx,"PATCH","/api/change-specifications",{
       action:"decision",id:spec.id,decision:"approved"
     });
