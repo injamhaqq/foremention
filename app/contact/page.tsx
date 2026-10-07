@@ -13,11 +13,14 @@ export const metadata: Metadata = pageMetadata({
 
 const validPlans = new Set(["core", "signal", "intelligence"]);
 
-export default async function ContactPage({ searchParams }: { searchParams: Promise<{ plan?: string; submitted?: string; error?: string }> }) {
+const intakeIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export default async function ContactPage({ searchParams }: { searchParams: Promise<{ plan?: string; submitted?: string; error?: string; intake?: string }> }) {
   const query = await searchParams;
   const plan = validPlans.has((query.plan || "").toLowerCase()) ? (query.plan || "").toLowerCase() : "";
   const submitted = query.submitted === "1";
   const failed = Boolean(query.error);
+  const intakeId = query.intake && intakeIdPattern.test(query.intake) ? query.intake : "";
 
   return (
     <PublicShell>
@@ -51,7 +54,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           <article>
             <span>Design partner</span>
             <h2>Apply as Design Partner.</h2>
-            {submitted ? <div className="inline-notice"><strong>Application received.</strong><p>Founder review target: one business day. If the application fits the current design-partner scope, the reply will include scheduling instructions for the working session.</p></div> : <>
+            {submitted ? <div className="inline-notice"><strong>Application received.</strong><p>Your application has been saved. Founder review target: one business day. If the application fits the current design-partner scope, the reply will include scheduling instructions for the working session.</p>{intakeId ? <p><strong>Application reference:</strong> <code>{intakeId}</code></p> : null}</div> : <>
               {failed && <p className="inline-error" role="alert">The application could not be saved. Please try again or email hello@foremention.com.</p>}
               <form className="intake-form" data-design-partner-form action="/api/design-partner" method="post">
                 {plan && <input type="hidden" name="planInterest" value={plan} />}

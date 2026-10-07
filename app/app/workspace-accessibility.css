@@ -9,3 +9,18 @@
 .workspace .data-row--head {
   color: #455a55;
 }
+
+/* Authenticated run estimate sits on a warm light card inside the dark-token app shell. */
+.app-frame .run-estimate {
+  --muted: #455a55;
+  color: #10110f;
+}
+
+.app-frame .run-estimate strong {
+  color: #10110f;
+}
+
+.app-frame .run-estimate span,
+.app-frame .run-estimate p {
+  color: #455a55;
+}

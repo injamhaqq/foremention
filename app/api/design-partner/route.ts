@@ -4,18 +4,26 @@ import { designPartnerSubmissionKey, normalizeDesignPartnerApplication, type Des
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
+type IntakeReceipt = {
+  intakeId?: string;
+};
+
 function wantsFormResponse(request: Request) {
   const contentType = request.headers.get("content-type") || "";
   return contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
 }
 
-function responseFor(request: Request, status: number, message: string) {
+function responseFor(request: Request, status: number, message: string, receipt: IntakeReceipt = {}) {
   if (wantsFormResponse(request)) {
     const target = new URL("/contact", request.url);
     target.searchParams.set(status < 300 ? "submitted" : "error", "1");
+    if (status < 300 && receipt.intakeId) target.searchParams.set("intake", receipt.intakeId);
     return NextResponse.redirect(target, 303);
   }
-  return NextResponse.json(status < 300 ? { received: true } : { error: message }, { status });
+  return NextResponse.json(
+    status < 300 ? { received: true, ...receipt } : { error: message },
+    { status },
+  );
 }
 
 function limitedResponse(request: Request) {
@@ -37,7 +45,10 @@ function operatorRecipients() {
     .slice(0, 5);
 }
 
-async function notifyDesignPartnerOperators(application: DesignPartnerApplication, keyHash: string) {
+async function notifyDesignPartnerOperators(
+  application: DesignPartnerApplication,
+  keyHash: string,
+) {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return;
   const recipients = operatorRecipients();
   if (!recipients.length) return;
@@ -104,10 +115,10 @@ export async function POST(request: Request) {
     if (claim === "limited") return limitedResponse(request);
     if (claim !== "accepted") throw new Error("Unexpected submission claim state.");
 
-    await supabaseRest("design_partner_applications", {
+    const rows = await supabaseRest("design_partner_applications", {
       method: "POST",
       serviceRole: true,
-      prefer: "return=minimal",
+      prefer: "return=representation",
       body: {
         email: normalized.value.email,
         company: normalized.value.company,
@@ -119,10 +130,12 @@ export async function POST(request: Request) {
         source: "website_design_partner",
       },
     });
+    const intakeId = (rows as Array<{ id: string }>)[0]?.id;
+    if (!intakeId) throw new Error("Application was not returned after persistence.");
+
     await notifyDesignPartnerOperators(normalized.value, keyHash);
+    return responseFor(request, 201, "Application received.", { intakeId });
   } catch {
     return responseFor(request, 503, "Applications are temporarily unavailable. Email hello@foremention.com instead.");
   }
-
-  return responseFor(request, 201, "Application received.");
 }

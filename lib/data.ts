@@ -555,10 +555,12 @@ export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceCon
   const projectCategory = project.category?.trim() || "";
   const category = projectCategory
     ? categories.find((candidate) => candidate.name.trim().toLocaleLowerCase() === projectCategory.toLocaleLowerCase()) || null
-    : categories[0] || null;
-  // Never silently run a named project category under another category ID.
+    : categories.length === 1 ? categories[0] : null;
+  // Never silently borrow identity or category metadata from a sibling project.
+  // Legacy projects without a category are accepted only when one active
+  // organization category exists, so the mapping is unambiguous.
   if (!category) return null;
-  return { organizationId, projectId: project.id, projectName: project.name, projectBrand: project.projectBrand, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website || organizations[0].website, category: projectCategory || category.name };
+  return { organizationId, projectId: project.id, projectName: project.name, projectBrand: project.projectBrand, categoryId: category.id, clusterId: clusters[0]?.id || null, organizationName: organizations[0].name, website: project.website, category: projectCategory || category.name };
 }
 
 export async function loadEvidence(viewer: Viewer, options: { limit?: number; offset?: number } = {}): Promise<WorkspaceEvidence[]> {

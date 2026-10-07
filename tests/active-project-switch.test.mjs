@@ -16,6 +16,9 @@ test("active project selection is authorized, server-scoped, and cleared with th
   assert.match(data, /projects\?select=id,name,client_brand,website,category&organization_id=eq\.\$\{organizationId\}&status=eq\.active/);
   assert.match(data, /projectBrand: row\.client_brand\.trim\(\)/);
   assert.match(data, /projectBrand: project\.projectBrand/);
+  assert.match(data, /categories\.length === 1 \? categories\[0\] : null/);
+  assert.match(data, /website: project\.website/);
+  assert.doesNotMatch(data, /website: project\.website \|\| organizations\[0\]\.website/);
 
   assert.match(route, /isTrustedMutationOrigin/);
   assert.match(route, /getPrimaryOrganizationId/);
