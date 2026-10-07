@@ -1,4 +1,3 @@
-// RED contract: provider-neutral Creem billing implementation intentionally absent.
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
