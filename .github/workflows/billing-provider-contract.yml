@@ -25,5 +25,5 @@ jobs:
         with:
           node-version: "22.13.0"
           package-manager-cache: false
-      - name: Run provider-neutral billing contract
-        run: node --experimental-strip-types --test tests/billing-provider-creem.test.mjs
+      - name: Run billing provider and regression contracts
+        run: node --experimental-strip-types --test tests/billing*.test.mjs
