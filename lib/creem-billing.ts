@@ -191,6 +191,7 @@ function customerIdFrom(object: CreemObject) {
 }
 
 function subscriptionIdFrom(object: CreemObject) {
+  if (typeof object.id === "string" && object.id.startsWith("sub_")) return object.id;
   if (object.object === "subscription" && typeof object.id === "string") return object.id;
   return objectId(object.subscription);
 }
