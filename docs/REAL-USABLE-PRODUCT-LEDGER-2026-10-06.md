@@ -245,6 +245,8 @@ D4 first-candidate failures retained: #430 head `3d1e2f5424564eaceaf8889a8f2fe1c
 
 ## Security S2 — sharp/librsvg patch prerequisite (6 October 2026)
 
+Resumed 7 October: exact #432 head `e9a6255a4558916738287e6882b86d550b68f06d` passed all six workflows, including Isolated Authenticated Journey 37485314549. #431 externally merged the same dependency pins into main; reconcile, do not merge duplicate fixes independently. #430 exact head passed CI/browser/authenticated (15 synthetic stages) while its historical old-lock Security remains red. Receipts are in the respective PR bodies.
+
 Problem/evidence: #430 Security run 37482898936, job 112335400444, rejected locked sharp 0.35.4 for newly indexed GHSA-wq5f-xc86-pv6w. Maintainer advisory https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w identifies 0.35.5 as patched with librsvg 2.63.2. Prior green #428 is a dated receipt, not proof against later advisory-index updates. No exploit or production impact is asserted.
 
 Reuse/files: existing `pnpm-workspace.yaml` sharp override now pins 0.35.5; pnpm 10.25.0 regenerated `pnpm-lock.yaml`; one regression in existing `tests/dependency-security-lock.test.mjs`; this ledger. No scanner ignore, waiver, dependency family expansion or new security architecture. All changed package versions belong to sharp/prebuilt libvips (1.3.4); pnpm also normalizes same-version ESLint peer snapshot references. Frozen installation succeeds. No schema/auth/RLS/provider/customer-data/secret change.
@@ -274,6 +276,20 @@ Known limits/next dependency: this proves the existing decision editor in a disp
 
 
 ### D5 verification follow-up — isolate browser transport failures without weakening assertions
+
+## R2 — reconcile uncertain saved decisions (7 October 2026)
+
+Checkpoint: current main `c3d356a0a16ee6f736e021d1b58bd93127ae7adf` includes external #416/#431/#418 merges. Main CI/security are green; production Browser Acceptance 37490680493 failed. Refreshed all open PRs and reviewed #433/#436/#438/#440. #433 exact head `e7ca71ca136657b69d936dce74351be0f0e52784` and clean integration #438 have all six required workflows green. Duplicate restored draft #441 was closed unmerged; no second editor implementation is retained. This branch reuses final #433, not the stale workspace candidate; #440 owns second-cycle results separately.
+
+Problem: after a save or submit may have persisted but the response is missing/malformed/5xx, existing editor permits another write without reconciling the canonical saved decision. Two executable tests reproduced this before repair. A validation refusal is distinct from an ambiguous network outcome.
+
+Acceptance/reuse: preserve #433's role metadata, verification-context merge, explicit Save & submit, synchronous lock and server authorization. Validate returned canonical ID/status/acceptance/verification shape. An ambiguous response blocks further writes and editing until explicit scoped reload succeeds; explain that reload replaces local edits. Failed reload retains edits and uncertainty. Definite 4xx validation refusal retains editable local state. No automatic mutation retry or fake success. Existing load endpoint and canonical object own reconciliation; no duplicate truth store.
+
+Six files: existing `components/change-specification-detail.tsx`, `scripts/isolated-authenticated-journey.mjs`, `scripts/browser-decision-draft.mjs`; actual-component `tests/decision-uncertain-save.test.mjs` and shared rendering helper; this ledger. No schema, dependency, RLS/auth/server privilege, provider, secret, analytics or commercial claim changes. Server tenant/project/origin/role/manager boundaries remain authoritative.
+
+Verification: three executable tests cover ambiguous response/reload, definite rejection and interrupted dirty Save & submit. Full pinned pnpm 10.25.0 test/lint/typecheck/build must pass; exact-head CI/security/CodeQL/AI/browser/authenticated receipts go in PR body. Existing local authenticated Chromium fixture deliberately persists a real local save then replaces only its acknowledgement with synthetic 503, asserts no automatic retry and disabled controls, reloads actual persisted title/status, then completes original analyst submit/manager approval/tenant-denial/comparable synthetic follow-up. Existing five-width actual CSS fixture audits recovery keyboard focus, disabled controls, overflow and axe. Synthetic transport loss is labeled; no production/provider request intercepted.
+
+Limits/next dependency: no multi-editor versioning, mutation timeout, transaction/idempotency service or causal proof. HTTP 408/5xx/network/unreadable response is conservatively uncertain. Local synthetic proof is not deployed staging, licensed retrieval or real customer activation. Integrate this bounded delta with clean #438 and separate #440 only through authorized dependency-aware release review, then verify exact deployed SHA. No merge/deploy performed.
 
 The first #433 exact-candidate browser run failed after the public 48-page observations and five-width decision-draft rendering had already passed. Its archived diagnostics showed the later demo page remained on the server-rendered Attention loading state, the local Wrangler process returned HTTP 500 for a generated core framework JavaScript asset, Chromium reported a failed dynamic import, and the intercepted Attention endpoint was never requested. That receipt establishes missing hydration in the local acceptance transport; it does not establish an Attention API/product failure. The workflow now starts a fresh local Wrangler process for each independent browser suite while retaining every existing outage, deadline, retry, accessibility and responsive assertion.
 
