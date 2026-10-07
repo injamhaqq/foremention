@@ -12,9 +12,6 @@ import { getDemoSourceMap } from "@/lib/demo-data";
 import { assessCompleteCompetitorHistory, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
 import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS, MAX_COMPLETE_RUN_HISTORY_RUNS } from "@/lib/complete-run-evidence.mjs";
 import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
-import { assessCompleteCompetitorHistory, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
-import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS, MAX_COMPLETE_RUN_HISTORY_RUNS } from "@/lib/complete-run-evidence.mjs";
-import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
