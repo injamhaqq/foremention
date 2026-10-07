@@ -100,3 +100,40 @@ test("autopilot issue template scopes work to a single safe cycle", () => {
   assert.match(template, /acceptance criteria/i);
   assert.match(template, /founder approval/i);
 });
+
+
+test("OmniRoute builder is manual, privilege-separated, secret-scoped, and review-only", () => {
+  const workflow = read(".github/workflows/omniroute-builder.yml");
+  const prompt = read(".github/autopilot/OMNIROUTE_BUILDER_PROMPT.md");
+  const docs = read("docs/OMNIROUTE-BUILDER.md");
+
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /\n\s+schedule:/);
+  assert.doesNotMatch(workflow, /\n\s+push:/);
+  assert.match(workflow, /concurrency:/);
+  assert.match(workflow, /@openai\/codex@0\.142\.4/);
+  assert.match(workflow, /OMNIROUTE_BASE_URL/);
+  assert.match(workflow, /OMNIROUTE_API_KEY/);
+  assert.match(workflow, /auto\/coding/);
+  assert.match(workflow, /model_provider = "omniroute"/);
+  assert.match(workflow, /requires_openai_auth = false/);
+  assert.match(workflow, /wire_api = "responses"/);
+  assert.match(workflow, /sandbox_mode = "workspace-write"/);
+  assert.match(workflow, /validate-autopilot-diff\.mjs/);
+  assert.match(workflow, /omniroute-builder\/run-/);
+  assert.match(workflow, /Refusing to package a patch containing the OmniRoute credential/);
+  assert.doesNotMatch(workflow, /OPENAI_API_KEY/);
+  assert.doesNotMatch(workflow, /gh\s+pr\s+merge/i);
+  assert.doesNotMatch(workflow, /enable_auto_merge/i);
+  assert.doesNotMatch(workflow, /cp .*codex-output/i);
+
+  assert.match(prompt, /Do not.*push/i);
+  assert.match(prompt, /never inspect or output `OMNIROUTE_API_KEY`/i);
+  assert.match(prompt, /outer non-AI publisher/i);
+  assert.match(prompt, /one bounded engineering task/i);
+  assert.match(prompt, /pr-summary\.md/);
+
+  assert.match(docs, /iPhone \/ GitHub Actions/i);
+  assert.match(docs, /does not make model usage unlimited/i);
+  assert.match(docs, /manual-dispatch only/i);
+});
