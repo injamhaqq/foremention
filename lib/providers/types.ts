@@ -1,6 +1,6 @@
 import { redactOperationalText } from "../operational-error.js";
 
-export type ProviderId = "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter" | "zenmux" | "omnirouters" | "mock";
+export type ProviderId = "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter" | "zenmux" | "omniroute" | "omnirouters" | "mock";
 
 export type ProviderPrompt = {
   promptId: string;
