@@ -11,6 +11,7 @@ import {
 import { estimateReservedRunCost, getProviderCostRates } from "@/lib/collection-policy";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
+import { omniRouteAdapter } from "@/lib/providers/omniroute";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { demoAnswerRows, demoPlacements, demoPrompts, demoRuns, getDemoRunAnswers, sourceMapEntries } from "@/lib/demo-data";
@@ -467,7 +468,7 @@ export function getProviderStatuses(): ProviderStatus[] {
     { id: "cloudflare", label: "Cloudflare Workers AI + Bing Search RSS", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(cloudflareAiConfigured() && getProviderCostRates("cloudflare")), supportsCitations: true, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "openrouter", label: "OpenRouter · GLM 5.2", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL && getProviderCostRates("openrouter")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "zenmux", label: "ZenMux Gateway", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.ZENMUX_API_KEY && process.env.ZENMUX_MODEL && getProviderCostRates("zenmux")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
-    { id: "omniroute", label: "OmniRoute Gateway", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.OMNIROUTE_BASE_URL && process.env.OMNIROUTE_API_KEY && process.env.OMNIROUTE_MODEL && getProviderCostRates("omniroute")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
+    { id: "omniroute", label: "OmniRoute Gateway", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(omniRouteAdapter.configured() && getProviderCostRates("omniroute")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
     { id: "omnirouters", label: "OmniRouters Gateway", estimatedMaxCostPerQuestionUsd: null, configured: Boolean(process.env.OMNIROUTERS_API_KEY && process.env.OMNIROUTERS_MODEL && getProviderCostRates("omnirouters")), supportsCitations: false, health: "untested", latestStatus: null, lastTestedAt: null, verifiedAnswers: 0, presencePct: null },
   ];
   return statuses.map((provider) => {
