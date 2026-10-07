@@ -8,6 +8,7 @@ import {
   type ResolutionProblem,
   type VerifiedResolutionEvidence,
 } from "@/lib/resolution-engine";
+import { readStoredOutcomeComparison } from "@/lib/outcome-ledger";
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { isMissingRelationError, SupabaseRequestError, supabaseRest } from "@/lib/supabase-rest";
@@ -134,6 +135,7 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
     const objective = clean(asset.proposal.objective, 1200);
     const content = proposalContent(asset.proposal);
     const outcomeSummary = followUp ? clean(followUp.outcome.interpretation, 1000) || null : null;
+    const comparison = followUp?.status === "complete" ? readStoredOutcomeComparison(followUp.outcome, followUp.baseline_run_id, followUp.rerun_id) : null;
     return {
       id: asset.id,
       status: asset.status,
@@ -149,7 +151,7 @@ async function loadResolutionRecords(viewer: Viewer, context: WorkspaceContext) 
       proposal: { assetType: uiAssetType(asset.asset_type), title: asset.title, summary: objective || asset.problem_statement, content, limitations: asset.limitations.join("\n"), version: asset.customer_edited_at ? 2 : 1, updatedAt: asset.updated_at },
       approval: { status: asset.review_decision, note: asset.approval_note || "", decidedAt: asset.decision_at, decidedBy: asset.decision_by },
       application: { status: asset.status === "applied" ? "applied" : "not_applied", targetUrl: asset.application_reference || "", appliedAt: asset.applied_at, error: null },
-      followUp: followUp ? { status: followUp.status, baselineRunId: followUp.baseline_run_id, followUpRunId: followUp.rerun_id, requestedAt: followUp.requested_at, completedAt: followUp.completed_at, summary: outcomeSummary } : { status: "not_requested", baselineRunId: asset.baseline_run_id, followUpRunId: null, requestedAt: null, completedAt: null, summary: null },
+      followUp: followUp ? { status: followUp.status, baselineRunId: followUp.baseline_run_id, followUpRunId: followUp.rerun_id, requestedAt: followUp.requested_at, completedAt: followUp.completed_at, summary: outcomeSummary, limitation: followUp.limitation || null, comparison } : { status: "not_requested", baselineRunId: asset.baseline_run_id, followUpRunId: null, requestedAt: null, completedAt: null, summary: null, limitation: null, comparison: null },
     };
   });
   const resolvedProblems = new Set(assets.map((row) => row.opportunity_id));
