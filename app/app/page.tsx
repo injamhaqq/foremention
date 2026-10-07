@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Arrow, StatusDot } from "@/components/brand";
 import { ChangeSpecificationPriorityList } from "@/components/change-specification-priority-list";
 import { ProductTruthPanel } from "@/components/product-truth-panel";
+import { buildBaselineGuidance } from "@/lib/baseline-guidance";
 import { demoCompany } from "@/lib/demo-data";
 import { requireViewer } from "@/lib/auth";
 import { loadPlacements, loadPrompts, loadProviderStatuses, loadRunAnswers, loadRuns, loadSourceEvidenceContexts, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
@@ -44,17 +45,17 @@ export default async function DashboardPage() {
   const newestFailed = newestRun?.status === "failed";
   const newestCollecting = newestRun?.status === "running" || newestRun?.status === "queued";
   const pendingOrFailedRun = newestFailed || newestCollecting ? newestRun : null;
-  const firstReviewedSource = sources.find((source) => Boolean(source.reviewedAt));
-  const firstObservedRun = runs.find((run) => run.answers > 0);
-  const activation = [
-    { label: "Add your website", detail: "Tell Foremention which company and category this workspace measures.", done: Boolean(context?.website), href: "/app/onboarding" },
-    { label: "Review buyer questions", detail: "Approve the questions real buyers might ask an AI system.", done: prompts.some((prompt) => prompt.approved), href: "/app/prompts" },
-    { label: "Start your first collection", detail: providers.some((provider) => provider.configured) ? "Collect the approved questions with one monitored AI system." : "A monitoring connection must be available before collection can start.", done: runs.length > 0, href: providers.some((provider) => provider.configured) ? "/app/runs" : "/app/settings#providers" },
-    { label: "See your first AI result", detail: "Read the persisted answer and any URLs the AI system actually returned.", done: Boolean(firstObservedRun), href: firstObservedRun ? `/app/runs/${firstObservedRun.id}` : "/app/runs" },
-    { label: "Review your first source", detail: "Check one cited page before treating it as evidence for an opportunity.", done: Boolean(firstReviewedSource), href: firstReviewedSource ? `/app/sources/${firstReviewedSource.id}` : "/app/source-map" },
-  ];
-  const activationComplete = activation.every((item) => item.done);
-  const next = activation.find((item) => !item.done) || { label: reviewedOpportunities.length ? "Choose an opportunity" : "Review your Sources", href: reviewedOpportunities.length ? "/app/opportunities" : "/app/source-map" };
+  const guidance = buildBaselineGuidance({
+    website: context?.website,
+    approvedQuestions: prompts.filter((prompt) => prompt.approved).length,
+    providerAvailable: providers.some((provider) => provider.configured),
+    newestRun, observedRun: latest, answers: observedAnswers,
+    sourceCount: sources.length,
+    reviewedSourceCount: sources.filter((source) => Boolean(source.reviewedAt)).length,
+  });
+  const activation = guidance.steps;
+  const activationComplete = guidance.complete;
+  const next = guidance.next;
   const changeSpecifications = activationComplete ? await loadPriorityChangeSpecifications(viewer, context) : [];
   const state = pendingOrFailedRun
     ? stateForRun({ status: pendingOrFailedRun.status, answerCount: pendingOrFailedRun.answers, citationCount: pendingOrFailedRun.citations })
@@ -76,11 +77,12 @@ export default async function DashboardPage() {
       <div>
         <span className="eyebrow">{activationComplete ? "Recommendation Engineering" : viewer.mode === "demo" ? demoCompany.category : context?.category || "Customer workspace"}</span>
         <h1>{activationComplete ? "What should we change next?" : latest ? "What changed in your AI evidence?" : "Build your first trustworthy baseline."}</h1>
-        <p>{activationComplete ? "Prioritize explicit company decisions backed by reviewed evidence. Foremention separates what your company can change from what it can only influence or monitor, and it does not manufacture an action to fill an empty state." : viewer.mode === "demo" ? "Every metric below comes from fictional sample observations and fictional sample answers created only for this isolated demo." : latest ? "Start with the latest observed answer, the cited pages behind it, and the next reviewed opportunity. Unreviewed evidence stays clearly labelled." : "Five clear steps take you from your website to a reviewed cited source. No fake metrics appear while Foremention is waiting for real observations."}</p>
+        <p>{activationComplete ? "Prioritize explicit company decisions backed by reviewed evidence. Foremention separates what your company can change from what it can only influence or monitor, and it does not manufacture an action to fill an empty state." : viewer.mode === "demo" ? "Every metric below comes from fictional sample observations and fictional sample answers created only for this isolated demo." : latest ? "Start with the latest observed answer, the cited pages behind it, and the next reviewed opportunity. Unreviewed evidence stays clearly labelled." : "Five clear steps take you from your website to a reviewed Recommendation Record and its evidence limits. No fake metrics appear while Foremention is waiting for real observations."}</p>
         <p className="table-caption"><strong>{productStateLabel(state)}</strong>{latest ? ` · Baseline collected ${latest.date} · ${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}` : ""}</p>
       </div>
       <Link className="button button--ink" href={next.href}>{next.label} <Arrow /></Link>
     </div>
+    <p className="table-caption">{next.detail}</p>
 
     {pendingOrFailedRun && <section className="inline-notice" role={newestFailed ? "alert" : "status"}><strong>{newestFailed ? "The newest collection failed." : "A newer collection is running now."}</strong><p>{newestFailed ? `${latest ? "The prior reviewed baseline remains visible below; it has not been replaced by the failed run. " : ""}No fake metrics were added. Open the newest collection to inspect the failure and retry safely.` : `${latest ? "The prior reviewed baseline remains visible below until this collection reaches a reviewable state. " : ""}Foremention is collecting answers and preserving returned citations without rewriting historical evidence.`}</p><Link href={`/app/runs/${pendingOrFailedRun.id}`}>Open newest collection <Arrow /></Link></section>}
 
@@ -89,8 +91,10 @@ export default async function DashboardPage() {
       <ol>{activation.map((item) => <li className={item.done ? "is-complete" : item.label === next.label ? "is-next" : ""} key={item.label}><Link href={item.href}><span className="getting-started__check" aria-hidden="true">{item.done ? "✓" : ""}</span><span><strong>{item.label}</strong><small>{item.detail}</small></span><Arrow /></Link></li>)}</ol>
     </section> : <>
       <section aria-label="Prioritized Change Specifications"><ChangeSpecificationPriorityList items={changeSpecifications} /></section>
-      <section className="setup-complete"><strong>First-use setup complete.</strong><span>Your workspace has a reviewed evidence baseline. Attention now leads with explicit Change Specifications rather than a synthetic score.</span><Link href={next.href}>{next.label} <Arrow /></Link></section>
+      <section className="setup-complete"><strong>First-use setup complete.</strong><span>Your current Record has reviewed answers. This is baseline readiness, not proof of an accepted action, customer value, or a comparable second cycle.</span><Link href={next.href}>{next.label} <Arrow /></Link></section>
     </>}
+
+    {guidance.noCitations && <section className="inline-notice"><strong>No citations were returned.</strong><p>The recorded answer can be reviewed, but no source-backed opportunity or explanation of why a brand was recommended is established.</p><Link href={latest ? `/app/runs/${latest.id}` : "/app/runs"}>Inspect answer limitations <Arrow /></Link></section>}
 
     <div className="metric-grid">
       <article><span>Observed brand presence</span><strong>{latest ? `${latest.presence}%` : "—"}</strong><small>{latest ? `Across ${latest.answers} recorded answer${latest.answers === 1 ? "" : "s"}${latest.status === "review" ? " · awaiting review" : ""}` : "First audit has not completed"}</small></article>

@@ -5,10 +5,11 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-const [workflow, runner, hardening, lighthouse] = await Promise.all([
+const [workflow, runner, hardening, demoBaseline, lighthouse] = await Promise.all([
   text(".github/workflows/browser-acceptance.yml"),
   text("scripts/browser-acceptance.mjs"),
   text("scripts/browser-zoom-reflow.mjs"),
+  text("scripts/browser-demo-baseline.mjs"),
   text("lighthouserc.cjs"),
 ]);
 
@@ -20,6 +21,26 @@ test("browser acceptance is permanent on pull requests and exact main releases",
   assert.match(workflow, /wrangler dev --local --config dist\/server\/wrangler\.json --ip 127\.0\.0\.1 --port 4173/);
   assert.match(workflow, /FOREMENTION_BROWSER_BASE_URL=http:\/\/127\.0\.0\.1:4173/);
   assert.match(workflow, /Waiting for local Worker \(\$\{attempt\}\/60\)/);
+});
+
+test("pull request browser suites do not share one long-lived local Worker", () => {
+  const prStep = workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?rm -rf \.lighthouseci/)?.[0] || "";
+  for (const script of [
+    "browser-decision-draft.mjs",
+    "browser-acceptance.mjs",
+    "browser-demo-baseline.mjs",
+    "browser-zoom-reflow.mjs",
+    "canonical-brand-visual-proof.mjs",
+  ]) assert.match(prStep, new RegExp(`start_worker[\\s\\S]*?${script.replaceAll(".", "\\.")}[\\s\\S]*?stop_worker`));
+});
+
+test("demo Attention failure acceptance uses client workspace navigation instead of hard app-shell reloads", () => {
+  assert.match(demoBaseline, /const clientNavigate = async \(href\)/);
+  assert.match(demoBaseline, /await clientNavigate\("\/app"\)/);
+  assert.match(demoBaseline, /await clientNavigate\("\/app\/runs"\)/);
+  assert.doesNotMatch(demoBaseline, /page\.goto\(new URL\("\/app", base\)\.href\)/);
+  assert.match(demoBaseline, /Attention is temporarily unavailable\./);
+  assert.match(demoBaseline, /Retry attention/);
 });
 
 test("pull request Lighthouse audits isolate every route behind a fresh local Worker", () => {

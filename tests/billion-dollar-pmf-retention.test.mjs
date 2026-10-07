@@ -36,7 +36,7 @@ test("activation is the exact eight-stage PMF loop, including action assignment"
 test("Attention derives action assignment and transparent retention health from persisted state", () => {
   assert.match(attentionRoute, /owner_id/);
   assert.match(attentionRoute, /firstActionAssigned/);
-  assert.match(attentionRoute, /firstAction\.some\([\s\S]{0,100}owner_id/);
+  assert.match(attentionRoute, /actions\.some\([\s\S]{0,100}owner_id/);
   assert.match(attentionRoute, /firstActionAssigned,/);
   assert.match(attentionRoute, /deriveRetentionHealth/);
   assert.match(attentionRoute, /retentionHealth/);

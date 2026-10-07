@@ -468,6 +468,28 @@ textarea { resize: vertical; }
 .table-tools--source-map select { width: 100%; padding: 10px; border: 1px solid var(--ink); background: var(--paper); font-size: 9px; }
 .table-tools--source-map .toggle { align-items: center; align-self: center; }
 .table-tools--source-map .toggle span { margin-bottom: 0; }
+.attention-surface { padding: 28px 36px 0; }
+.attention-inbox { border: 1px solid var(--line); padding: 20px; }
+.attention-inbox .retention-panel__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+.attention-inbox .eyebrow { margin-bottom: 8px; }
+.attention-inbox h2 { margin-bottom: 0; font-size: clamp(22px, 2.2vw, 30px); }
+.attention-inbox .retention-panel__heading > a { flex-shrink: 0; padding: 8px 0; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
+.attention-inbox__list { display: grid; gap: 10px; }
+.attention-inbox__item { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 16px; border: 1px solid var(--line); min-width: 0; }
+.attention-inbox__item strong, .attention-inbox__item small { display: block; overflow-wrap: anywhere; }
+.attention-inbox__item strong { font-size: 15px; line-height: 1.4; }
+.attention-inbox__item small { margin-top: 6px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.attention-inbox__item b { font-size: 12px; line-height: 1.75; white-space: nowrap; }
+.attention-inbox__signal { width: 6px; height: 6px; margin-top: 8px; background: var(--marker); border-radius: 50%; }
+.attention-inbox__item:hover, .attention-inbox__item:focus-visible { border-color: var(--marker); }
+.attention-surface .retention-context-tools { margin-top: 12px; }
+@media (max-width: 700px) {
+  .attention-surface { padding: 20px 16px 0; }
+  .attention-inbox { padding: 16px; }
+  .attention-inbox .retention-panel__heading { flex-direction: column; gap: 8px; }
+  .attention-inbox__item { grid-template-columns: 6px minmax(0, 1fr); padding: 12px; gap: 10px; }
+  .attention-inbox__item b { grid-column: 2; }
+}
 .workspace { padding: 44px 36px 80px; }
 .workspace-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 34px; }
 .workspace-heading .eyebrow { margin-bottom: 13px; }
