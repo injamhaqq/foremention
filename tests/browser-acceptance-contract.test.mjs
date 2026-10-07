@@ -117,6 +117,22 @@ test("accessibility is blocking for serious regressions while Lighthouse starts 
   assert.match(lighthouse, /"categories:best-practices": \["warn", \{ minScore: 0\.9 \}\]/);
 });
 
+test("trusted production acceptance distinguishes modeled Attention 503 degradation from unexpected runtime failures", () => {
+  assert.match(runner, /const attentionUnavailablePath = "\/api\/retention\/attention"/);
+  assert.match(runner, /function assessAuthenticatedRuntime/);
+  assert.match(runner, /response\.status === 503 && response\.pathname === attentionUnavailablePath/);
+  assert.match(runner, /function settleAttentionState/);
+  assert.match(runner, /Attention is temporarily unavailable\./);
+  assert.match(runner, /Retry attention/);
+  assert.match(runner, /Open Records →/);
+  assert.match(runner, /timeout: 16_500/);
+  assert.match(runner, /acceptedAttentionUnavailable/);
+  assert.match(runner, /Authenticated Attention did not settle into a truthful ready or unavailable state/);
+  assert.match(runner, /Authenticated Attention unavailable state is missing Retry or Records recovery controls/);
+  assert.match(runner, /unexpectedConsoleErrors/);
+  assert.match(runner, /unexpectedFailedResponses/);
+});
+
 test("trusted production authenticated browser acceptance fails closed while pull requests remain secret-free", () => {
   for (const path of ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"]) {
     assert.match(runner, new RegExp(`"${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
