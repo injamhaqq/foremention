@@ -252,9 +252,10 @@ test("OpenRouter uses an explicit GLM model and never fabricates citation eviden
 });
 
 test("optional model gateways use fixed official endpoints and truthful evidence handling", async () => {
-  const [helper, zenmux, omnirouters, types, registry, policy, data, route, sourceMap, env] = await Promise.all([
+  const [helper, zenmux, omniroute, omnirouters, types, registry, policy, data, route, sourceMap, env] = await Promise.all([
     text("lib/providers/openai-compatible-gateway.ts"),
     text("lib/providers/zenmux.ts"),
+    text("lib/providers/omniroute.ts"),
     text("lib/providers/omnirouters.ts"),
     text("lib/providers/types.ts"),
     text("lib/providers/index.ts"),
@@ -266,28 +267,43 @@ test("optional model gateways use fixed official endpoints and truthful evidence
   ]);
   assert.match(zenmux, /https:\/\/zenmux\.ai\/api\/v1\/chat\/completions/);
   assert.match(zenmux, /max_completion_tokens/);
+  assert.match(omniroute, /baseUrlEnv: "OMNIROUTE_BASE_URL"/);
+  assert.match(omniroute, /apiKeyEnv: "OMNIROUTE_API_KEY"/);
+  assert.match(omniroute, /modelEnv: "OMNIROUTE_MODEL"/);
   assert.match(omnirouters, /https:\/\/omnirouters\.com\/v1\/chat\/completions/);
   assert.match(omnirouters, /max_tokens/);
   assert.match(helper, /Only structured URLs returned by the provider are recorded as citations/);
   assert.match(helper, /structuredCitations/);
+  assert.match(helper, /resolveGatewayEndpoint/);
+  assert.match(helper, /process\.env\.NODE_ENV === "production"/);
+  assert.match(helper, /Gateway endpoint is not configured safely/);
   assert.doesNotMatch(helper, /extractUrls/);
-  assert.doesNotMatch(helper, /process\.env\.(?:BASE_URL|ENDPOINT)/);
   assert.match(types, /"zenmux"/);
+  assert.match(types, /"omniroute"/);
   assert.match(types, /"omnirouters"/);
   assert.match(registry, /zenMuxAdapter/);
+  assert.match(registry, /omniRouteAdapter/);
   assert.match(registry, /omniRoutersAdapter/);
   assert.match(policy, /zenmux: "ZENMUX"/);
+  assert.match(policy, /omniroute: "OMNIROUTE"/);
   assert.match(policy, /omnirouters: "OMNIROUTERS"/);
   assert.match(data, /id: "zenmux"[\s\S]*supportsCitations: false/);
+  assert.match(data, /id: "omniroute"[\s\S]*supportsCitations: false/);
   assert.match(data, /id: "omnirouters"[\s\S]*supportsCitations: false/);
   assert.match(route, /"zenmux"/);
+  assert.match(route, /"omniroute"/);
   assert.match(route, /"omnirouters"/);
   assert.match(sourceMap, /zenmux: "ZenMux"/);
+  assert.match(sourceMap, /omniroute: "OmniRoute"/);
   assert.match(sourceMap, /omnirouters: "OmniRouters"/);
   for (const name of [
     "ZENMUX_API_KEY",
     "ZENMUX_MODEL",
     "ZENMUX_INPUT_COST_PER_MILLION_USD",
+    "OMNIROUTE_BASE_URL",
+    "OMNIROUTE_API_KEY",
+    "OMNIROUTE_MODEL",
+    "OMNIROUTE_INPUT_COST_PER_MILLION_USD",
     "OMNIROUTERS_API_KEY",
     "OMNIROUTERS_MODEL",
     "OMNIROUTERS_INPUT_COST_PER_MILLION_USD",
