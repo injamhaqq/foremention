@@ -10,6 +10,8 @@ const policy = await readFile(new URL("../docs/PRIVATE-BETA-OPERATING-POLICY.md"
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
 const firstWaveMerge = await readFile(new URL("../docs/FIRST-WAVE-MERGE.md", import.meta.url), "utf8");
 const stripe = await readFile(new URL("../lib/stripe-billing.ts", import.meta.url), "utf8");
+const creem = await readFile(new URL("../lib/creem-billing.ts", import.meta.url), "utf8");
+const billingProvider = await readFile(new URL("../lib/billing-provider.ts", import.meta.url), "utf8");
 
 test("design-partner access stays free while self-serve billing is configuration-gated", () => {
   assert.match(entitlement, /plan text not null default 'free_beta'/);
@@ -22,6 +24,10 @@ test("design-partner access stays free while self-serve billing is configuration
   for (const key of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_CORE_PRICE_ID", "STRIPE_SIGNAL_PRICE_ID"]) assert.match(stripe, new RegExp(key));
   assert.match(stripe, /mode:\s*"subscription"/);
   assert.match(stripe, /billing_portal\/sessions/);
+  assert.match(creem, /\/v1\/checkouts/);
+  assert.match(creem, /\/v1\/customers\/billing/);
+  assert.match(creem, /CREEM_LIVE_ENABLED/);
+  assert.match(billingProvider, /"stripe" \| "creem"/);
 });
 
 test("repository documentation matches the configuration-gated commercial boundary", () => {
@@ -30,7 +36,9 @@ test("repository documentation matches the configuration-gated commercial bounda
     assert.match(document, /Signal/);
     assert.match(document, /Intelligence/);
     assert.match(document, /design-partner/i);
+    assert.match(document, /provider-neutral/i);
     assert.match(document, /Stripe/i);
+    assert.match(document, /Creem/i);
     assert.match(document, /fail-closed/i);
     assert.doesNotMatch(document, /\$149|\$499|149\/month|499\/month/);
   }
