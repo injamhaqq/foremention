@@ -143,6 +143,12 @@ No laptop, browser tab, Codex session, OpenAI API key, or model API server needs
 - **Another Autopilot PR is open:** preflight skips the cycle unless a maintainer manually dispatches with `force=true`.
 - **PR workflow approval is pending:** approve the workflows in the PR UI; the agent's code remains unmerged until that happens.
 
+## Optional OmniRoute builder
+
+Foremention also has an optional, separate OmniRoute-backed Codex runner documented in `docs/OMNIROUTE-BUILDER.md`. It exists to **build Foremention**, not to replace the product's runtime AI-provider layer. It preserves the same core privilege separation: model execution can edit only a disposable checkout, while a different non-AI job validates and publishes a review-only PR.
+
+It is manual-dispatch only during Stage 0 and requires a remote HTTPS OmniRoute endpoint plus a scoped inference credential stored in GitHub Actions secrets. OmniRoute routing can improve availability and cost flexibility, but it is not treated as unlimited capacity.
+
 ## Optional future upgrade
 
 If Foremention later needs truly zero-click PR CI and merge orchestration, introduce a dedicated least-privilege GitHub App as the publication identity and keep the AI job isolated from that credential. Do not solve this by giving the Copilot process a broad long-lived token.
