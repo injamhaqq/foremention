@@ -82,14 +82,16 @@ test("recurring measurement stops when a grace entitlement expires", async () =>
   assert.match(dispatcher, /new Date\(entitlement\.expires_at\)/);
 });
 
-test("checkout and status expose annual offers only through server-configured Price IDs", async () => {
+test("checkout and status expose offers only through server-configured provider product IDs", async () => {
   const [checkout, status] = await Promise.all([
     readFile(new URL("../app/api/billing/checkout/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/billing/status/route.ts", import.meta.url), "utf8"),
   ]);
   assert.match(checkout, /billingInterval/);
-  assert.match(checkout, /stripePriceIdFor\(/);
+  assert.match(checkout, /provider\.checkoutOffers\(\)/);
   assert.match(checkout, /That package and billing interval are not configured for self-serve checkout/);
+  assert.match(status, /billingProvider/);
+  assert.match(status, /provider\.checkoutOffers\(\)/);
   assert.match(status, /checkoutOffers/);
   assert.doesNotMatch(checkout, /amount|unit_amount|price_data/);
 });
