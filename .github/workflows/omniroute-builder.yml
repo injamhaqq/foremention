@@ -1,0 +1,390 @@
+name: Foremention OmniRoute Builder
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: One Foremention engineering objective for this run
+        required: true
+        type: string
+      model:
+        description: OmniRoute model or router ID
+        required: false
+        type: string
+        default: auto/coding
+      force:
+        description: Run even if another autonomous proposal PR is open
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: foremention-omniroute-builder
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Builder preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run_agent: ${{ steps.gate.outputs.run_agent }}
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Refuse competing autonomous product branches
+        id: gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          FORCE_RUN: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+          active="$(gh pr list --repo "$REPO" --state open --limit 100 --json headRefName,url,title)"
+          active_count="$(jq '[.[] | select((.headRefName | startswith("autopilot/")) or (.headRefName | startswith("omniroute-builder/")))] | length' <<<"$active")"
+          if [[ "$active_count" -gt 0 && "$FORCE_RUN" != "true" ]]; then
+            echo "An autonomous Foremention proposal is already open; refusing competing work."
+            echo "run_agent=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_agent=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  agent:
+    name: OmniRoute Codex execution
+    needs: preflight
+    if: needs.preflight.outputs.run_agent == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout latest main without persisted write credentials
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # current v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # current v6
+        with:
+          version: 10.25.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # current v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install repository dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install pinned Codex CLI
+        run: npm install --global @openai/codex@0.142.4
+
+      - name: Capture immutable cycle base and read-only GitHub context
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p .builder-run .autopilot-output
+          base_sha="$(git rev-parse HEAD)"
+          echo "$base_sha" > .builder-run/base-sha.txt
+          echo "BASE_SHA=$base_sha" >> "$GITHUB_ENV"
+          gh pr list --repo "$REPO" --state open --limit 50 --json number,title,headRefName,url > .builder-run/open-prs.json
+          gh issue list --repo "$REPO" --state open --limit 100 --json number,title,labels,url > .builder-run/open-issues.json
+
+      - name: Configure Codex for remote OmniRoute
+        shell: bash
+        env:
+          OMNIROUTE_BASE_URL: ${{ secrets.OMNIROUTE_BASE_URL }}
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+          OMNIROUTE_MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$OMNIROUTE_BASE_URL" || -z "$OMNIROUTE_API_KEY" || -z "$OMNIROUTE_MODEL" ]]; then
+            echo "Configure repository secrets OMNIROUTE_BASE_URL and OMNIROUTE_API_KEY before running this workflow."
+            exit 2
+          fi
+
+          export CODEX_HOME="$RUNNER_TEMP/foremention-codex"
+          echo "CODEX_HOME=$CODEX_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$CODEX_HOME"
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import path from "node:path";
+
+          const raw = process.env.OMNIROUTE_BASE_URL?.trim() || "";
+          const model = process.env.OMNIROUTE_MODEL?.trim() || "";
+          const url = new URL(raw);
+          if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+            throw new Error("OMNIROUTE_BASE_URL must be a credential-free HTTPS URL without query/hash.");
+          }
+          if (!url.pathname.replace(/\/+$/, "").endsWith("/v1")) {
+            throw new Error("OMNIROUTE_BASE_URL must end in /v1 for Codex.");
+          }
+          if (!model || /[\r\n]/.test(model)) throw new Error("Invalid OmniRoute model ID.");
+
+          const q = JSON.stringify;
+          const config = [
+            `model = ${q(model)}`,
+            'model_provider = "omniroute"',
+            'approval_policy = "never"',
+            'sandbox_mode = "workspace-write"',
+            "",
+            "[model_providers.omniroute]",
+            'name = "OmniRoute"',
+            `base_url = ${q(url.toString().replace(/\/+$/, ""))}`,
+            'env_key = "OMNIROUTE_API_KEY"',
+            "requires_openai_auth = false",
+            'wire_api = "responses"',
+            "",
+          ].join("\n");
+          fs.writeFileSync(path.join(process.env.CODEX_HOME, "config.toml"), config, { mode: 0o600 });
+          NODE
+
+      - name: Build bounded founder task prompt
+        shell: bash
+        env:
+          FOUNDER_TASK: ${{ inputs.task }}
+        run: |
+          set -euo pipefail
+          cp .github/autopilot/OMNIROUTE_BUILDER_PROMPT.md .builder-run/prompt.md
+          printf '\n## Founder-requested task\n\n%s\n' "$FOUNDER_TASK" >> .builder-run/prompt.md
+          printf '\n## Read-only run context\n\nStarting SHA: `%s`\nOpen PR/issue snapshots are available in `.builder-run/`.\n' "$BASE_SHA" >> .builder-run/prompt.md
+
+      - name: Run one bounded Foremention builder cycle through OmniRoute
+        id: codex
+        shell: bash
+        env:
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+        run: |
+          set -uo pipefail
+          mkdir -p .builder-run .autopilot-output
+          codex exec             --sandbox workspace-write             --ask-for-approval never             --output-last-message .builder-run/last-message.txt             - < .builder-run/prompt.md             2>&1 | tee .builder-run/codex-output.txt
+          exit_code="${PIPESTATUS[0]}"
+          echo "$exit_code" > .builder-run/agent-exit-code.txt
+          exit 0
+
+      - name: Package only the isolated proposed patch and handoff
+        shell: bash
+        env:
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p .builder-run/handoff
+
+          if [[ -f .autopilot-output/pr-summary.md ]]; then
+            cp .autopilot-output/pr-summary.md .builder-run/handoff/pr-summary.md
+          fi
+          if [[ -f .autopilot-output/founder-decision.md ]]; then
+            cp .autopilot-output/founder-decision.md .builder-run/handoff/founder-decision.md
+          fi
+          rm -rf .autopilot-output
+
+          if [[ "$(git rev-parse HEAD)" != "$BASE_SHA" ]]; then
+            git reset --soft "$BASE_SHA"
+          fi
+
+          git add -A
+          git reset -- .builder-run
+          git diff --cached --check
+
+          if [[ -n "$OMNIROUTE_API_KEY" ]] && git diff --cached --binary | grep -Fq -- "$OMNIROUTE_API_KEY"; then
+            echo "Refusing to package a patch containing the OmniRoute credential."
+            exit 3
+          fi
+          if [[ -n "$OMNIROUTE_API_KEY" ]] && grep -R -Fq -- "$OMNIROUTE_API_KEY" .builder-run/handoff 2>/dev/null; then
+            echo "Refusing to package a handoff containing the OmniRoute credential."
+            exit 3
+          fi
+
+          git diff --cached --binary > .builder-run/handoff/autopilot.patch
+          git diff --cached --name-status > .builder-run/handoff/changed-files.txt
+          git diff --cached --stat > .builder-run/handoff/diff-stat.txt
+          cp .builder-run/base-sha.txt .builder-run/handoff/base-sha.txt
+          cp .builder-run/agent-exit-code.txt .builder-run/handoff/agent-exit-code.txt
+
+          if [[ ! -s .builder-run/handoff/autopilot.patch ]]; then
+            touch .builder-run/handoff/no-change
+          fi
+
+      - name: Upload isolated OmniRoute builder result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: foremention-omniroute-builder-${{ github.run_id }}
+          path: .builder-run/handoff
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    name: Publish bounded OmniRoute proposal
+    needs:
+      - preflight
+      - agent
+    if: needs.preflight.outputs.run_agent == 'true' && needs.agent.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout clean main for privileged publication
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # current v6
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # current v6
+        with:
+          node-version: 22.13.0
+
+      - name: Download unprivileged builder result
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: foremention-omniroute-builder-${{ github.run_id }}
+          path: .builder-result
+
+      - name: Verify result is complete and still based on current main
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_sha="$(cat .builder-result/base-sha.txt)"
+          exit_code="$(cat .builder-result/agent-exit-code.txt)"
+          current_main="$(git rev-parse HEAD)"
+
+          if [[ "$exit_code" != "0" ]]; then
+            echo "Codex exited with code $exit_code; refusing to publish a partial patch."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$base_sha" != "$current_main" ]]; then
+            echo "main moved during the run; refusing a stale autonomous patch."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ -f .builder-result/no-change ]]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "no_change=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "no_change=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open founder decision issue when builder is safely blocked
+        if: steps.verify.outputs.no_change == 'true' && hashFiles('.builder-result/founder-decision.md') != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh issue create             --repo "$REPO"             --title "[FOUNDER DECISION] OmniRoute Builder needs input"             --body-file .builder-result/founder-decision.md
+
+      - name: Apply and validate the unprivileged patch
+        if: steps.verify.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --index --binary .builder-result/autopilot.patch
+          node scripts/validate-autopilot-diff.mjs
+          git diff --cached --check
+
+      - name: Commit proposal on an isolated branch
+        if: steps.verify.outputs.publish == 'true'
+        id: commit
+        shell: bash
+        env:
+          BRANCH: omniroute-builder/run-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name "foremention-omniroute-builder[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -m "builder: complete one bounded OmniRoute cycle"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Push isolated proposal branch
+        if: steps.verify.outputs.publish == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+      - name: Create review-only pull request
+        if: steps.verify.outputs.publish == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+          HEAD_SHA: ${{ steps.commit.outputs.sha }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          summary_file=.builder-result/pr-summary.md
+          if [[ ! -s "$summary_file" ]]; then
+            cat > "$summary_file" <<'EOF'
+          ## OmniRoute builder cycle
+
+          A bounded Codex/OmniRoute cycle proposed this patch. Review the diff and independent repository checks before merge.
+          EOF
+          fi
+
+          cat > .builder-result/pr-body.md <<EOF
+          ## Foremention OmniRoute Builder
+
+          - Base SHA: `$(cat .builder-result/base-sha.txt)`
+          - Proposed head SHA: `$HEAD_SHA`
+          - Coding harness: OpenAI Codex CLI
+          - Model route: `$MODEL` through OmniRoute
+          - AI job GitHub write permission: **none**
+          - Merge policy: **human approval required; this workflow never auto-merges**
+
+          $(cat "$summary_file")
+
+          ### Patch summary
+
+          ```
+          $(cat .builder-result/diff-stat.txt)
+          ```
+
+          ### Verification boundary
+
+          The model runs in a read-only-GitHub / workspace-write sandbox. A separate non-AI publisher validates the exact-base patch with Foremention's deterministic diff guard before opening this PR. Existing CI, security, browser, and exact-SHA release gates remain authoritative.
+          EOF
+
+          gh pr create             --repo "$REPO"             --base main             --head "$BRANCH"             --title "OmniRoute Builder: bounded Foremention execution cycle"             --body-file .builder-result/pr-body.md
