@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { decisionDraftClientFixture, decisionDraftRecord } from "../tests/helpers/decision-draft-client-fixture.mjs";
 import { opportunityEntryMarkup, opportunitySourceUrl } from "../tests/helpers/opportunity-entry-fixture.mjs";
+import { decisionEditorFixture } from "../tests/helpers/decision-editor-fixture.mjs";
 const requireTools = createRequire(new URL("../.ci-tools/package.json", import.meta.url));
 const { chromium } = requireTools("playwright");
 const axeModule = requireTools("@axe-core/playwright");
@@ -71,6 +72,14 @@ try {
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1),false);
       assert.deepEqual((await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa"]).analyze()).violations,[]);
       await page.screenshot({path:resolve(output,`opportunity-unavailable-${width}.png`),fullPage:true});
+      await setFixture(renderToStaticMarkup(decisionEditorFixture({uncertain:true}).render()),"Unconfirmed saved decision fixture");
+      const reload=page.getByRole("button",{name:"Reload saved decision",exact:true});
+      await reload.focus();assert.equal(await reload.evaluate(e=>e===document.activeElement),true);
+      assert.equal(await page.getByRole("button",{name:"Submit for review",exact:true}).isDisabled(),true);
+      assert.equal(await page.getByLabel("Title",{exact:true}).isDisabled(),true);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1),false,`Saved-state recovery overflows at ${width}px`);
+      assert.deepEqual((await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa"]).analyze()).violations,[]);
+      await page.screenshot({path:resolve(output,`decision-recovery-${width}.png`),fullPage:true});
       summary.profiles.push({width,passed:true,violations:audit.violations});
     } finally { await page.screenshot({path:resolve(output,`final-${width}.png`),fullPage:true}).catch(()=>{});await context.close(); }
   }
