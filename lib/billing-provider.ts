@@ -115,6 +115,15 @@ const creemProvider: BillingProviderAdapter = {
   },
 };
 
+export function billingProviderTransitionAllowed(
+  activeProvider: BillingProviderId,
+  existingProvider: string | null | undefined,
+  existingState: string | null | undefined,
+) {
+  if (!existingProvider || existingProvider === activeProvider) return true;
+  return existingState === "cancelled";
+}
+
 export function reconcileBillingOrganization(
   metadataOrganizationId: string | null | undefined,
   subscriptionOrganizationId: string | null | undefined,
