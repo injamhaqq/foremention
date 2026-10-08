@@ -5,6 +5,11 @@ import {
   type ProviderAnswer,
   type ProviderPrompt,
 } from "@/lib/providers/types";
+import {
+  assessGatewayRoutedResponse,
+  gatewayMeasurementPin,
+  openRouterProviderRouting,
+} from "@/lib/measurement-lane.mjs";
 
 type OpenRouterResponse = {
   id?: string;
@@ -28,7 +33,13 @@ export const openRouterAdapter: AnswerProviderAdapter = {
   configured: () => Boolean(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL),
   async run(prompt: ProviderPrompt, options): Promise<ProviderAnswer> {
     const started = Date.now();
-    const model = String(process.env.OPENROUTER_MODEL);
+    // Lane A: the upstream host must be pinned. Without OPENROUTER_UPSTREAM_PROVIDER
+    // and an exact non-routing model id, OpenRouter is not a measurement provider.
+    const pin = gatewayMeasurementPin("openrouter", process.env);
+    if (!pin.pinned) {
+      throw new ProviderRequestError("OpenRouter", 422, `Measurement requires an exact pinned upstream provider and model (${pin.reason}).`);
+    }
+    const model = pin.model;
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       signal: options.signal,
@@ -40,6 +51,7 @@ export const openRouterAdapter: AnswerProviderAdapter = {
       },
       body: JSON.stringify({
         model,
+        provider: openRouterProviderRouting(pin),
         max_tokens: options.maxOutputTokens,
         temperature: 0.2,
         messages: [
@@ -54,6 +66,10 @@ export const openRouterAdapter: AnswerProviderAdapter = {
     const raw = await response.json().catch(() => ({})) as OpenRouterResponse;
     if (!response.ok) throw new ProviderRequestError("OpenRouter", response.status, raw.error?.message);
 
+    const routing = assessGatewayRoutedResponse(pin, { model: raw.model, provider: raw.provider });
+    if (!routing.ok) {
+      throw new ProviderRequestError("OpenRouter", 422, `The response was not served by the pinned upstream provider and model (${routing.reason}); it is not comparable measurement evidence.`);
+    }
     const answer = raw.choices?.[0]?.message?.content?.trim() || "";
     if (!answer) throw new ProviderRequestError("OpenRouter", 502, "The selected model returned no answer text.");
     const usage = raw.usage ? {
@@ -73,6 +89,7 @@ export const openRouterAdapter: AnswerProviderAdapter = {
         id: raw.id,
         model: raw.model || model,
         routedProvider: raw.provider,
+        pinnedUpstreamProvider: pin.upstreamProvider,
         grounded: false,
         citationCount: 0,
         finishReason,
