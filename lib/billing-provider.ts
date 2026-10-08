@@ -119,9 +119,20 @@ export function billingProviderTransitionAllowed(
   _activeProvider: BillingProviderId,
   existingProvider: string | null | undefined,
   existingState: string | null | undefined,
+  entitlementStatus?: string | null,
+  entitlementExpiresAt?: string | null,
+  now = new Date(),
 ) {
   if (!existingProvider || existingProvider === "unconfigured") return true;
-  return !existingState || existingState === "unconfigured" || existingState === "cancelled";
+  if (!existingState || existingState === "unconfigured") return true;
+  if (existingState !== "cancelled") return false;
+
+  if (entitlementStatus !== "active") return true;
+  if (!entitlementExpiresAt) return false;
+  const expiry = new Date(entitlementExpiresAt);
+  return Number.isFinite(now.getTime())
+    && Number.isFinite(expiry.getTime())
+    && expiry <= now;
 }
 
 export function reconcileBillingOrganization(
