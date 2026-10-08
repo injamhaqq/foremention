@@ -58,6 +58,19 @@ test("Creem stays fail-closed and exposes only explicitly configured product off
   assert.equal(billing.creemBillingConfigured(), true);
 });
 
+test("Creem rejects product IDs that ambiguously map across packages", async () => {
+  const billing = await import("../lib/creem-billing.ts");
+  process.env.BILLING_PROVIDER_ID = "creem";
+  process.env.CREEM_ENVIRONMENT = "test";
+  process.env.CREEM_API_KEY = "creem_test_example";
+  process.env.CREEM_WEBHOOK_SECRET = "creem_whsec_example";
+  process.env.NODE_ENV = "test";
+  process.env.CREEM_CORE_MONTHLY_PRODUCT_ID = "prod_shared";
+  process.env.CREEM_SIGNAL_MONTHLY_PRODUCT_ID = "prod_shared";
+  assert.equal(billing.creemBillingConfigured(), false);
+  assert.equal(billing.creemPackageForProductId("prod_shared"), null);
+});
+
 test("Creem webhook verification uses the raw body HMAC-SHA256 signature", async () => {
   const { verifyCreemWebhook } = await import("../lib/creem-billing.ts");
   process.env.CREEM_WEBHOOK_SECRET = "test_creem_secret";
@@ -214,6 +227,17 @@ test("provider changes cannot start a second live subscription before the prior 
   assert.match(checkout, /billingProviderTransitionAllowed/);
   assert.match(checkout, /existing non-terminal billing lifecycle/i);
   assert.match(status, /billingProviderTransitionAllowed/);
+});
+
+test("billing state read failures cannot be interpreted as an empty account", async () => {
+  const [checkout, status] = await Promise.all([
+    read("app/api/billing/checkout/route.ts"),
+    read("app/api/billing/status/route.ts"),
+  ]);
+  assert.doesNotMatch(checkout, /billing_accounts[\s\S]{0,500}\.catch\(\(\) => \[\]\)/);
+  assert.match(checkout, /Billing state could not be verified before checkout/i);
+  assert.doesNotMatch(status, /billing_accounts[\s\S]{0,500}\.catch\(\(\) => \[\]\)/);
+  assert.match(status, /Billing status could not be verified/i);
 });
 
 test("Creem environment is documented but live activation remains explicit and disabled by default", async () => {
