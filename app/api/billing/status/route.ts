@@ -27,16 +27,22 @@ export async function GET() {
     } });
   }
 
-  const [billingRows, entitlementRows] = await Promise.all([
-    supabaseRest<BillingAccountRow[]>(
-      "billing_accounts?select=provider,state,external_customer_id,grace_period_ends_at&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
-      { token: viewer.accessToken },
-    ).catch(() => []),
-    supabaseRest<EntitlementRow[]>(
-      "organization_entitlements?select=package_key,status,expires_at&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
-      { token: viewer.accessToken },
-    ).catch(() => []),
-  ]);
+  let billingRows: BillingAccountRow[];
+  let entitlementRows: EntitlementRow[];
+  try {
+    [billingRows, entitlementRows] = await Promise.all([
+      supabaseRest<BillingAccountRow[]>(
+        "billing_accounts?select=provider,state,external_customer_id,grace_period_ends_at&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+        { token: viewer.accessToken },
+      ),
+      supabaseRest<EntitlementRow[]>(
+        "organization_entitlements?select=package_key,status,expires_at&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+        { token: viewer.accessToken },
+      ),
+    ]);
+  } catch {
+    return NextResponse.json({ error: "Billing status could not be verified." }, { status: 503 });
+  }
   const billing = billingRows[0];
   const entitlement = entitlementRows[0];
   const provider = billingProvider();
