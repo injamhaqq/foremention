@@ -6,6 +6,7 @@ import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type BillingAccountRow = { provider: string; state: string; external_customer_id: string | null };
+type EntitlementRow = { status: string; expires_at: string | null };
 
 function canonicalBillingOrigin() {
   const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -64,11 +65,18 @@ export async function POST(request: Request) {
   }
 
   let billingRows: BillingAccountRow[];
+  let entitlementRows: EntitlementRow[];
   try {
-    billingRows = await supabaseRest<BillingAccountRow[]>(
-      "billing_accounts?select=provider,state,external_customer_id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
-      { token: viewer.accessToken },
-    );
+    [billingRows, entitlementRows] = await Promise.all([
+      supabaseRest<BillingAccountRow[]>(
+        "billing_accounts?select=provider,state,external_customer_id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+        { token: viewer.accessToken },
+      ),
+      supabaseRest<EntitlementRow[]>(
+        "organization_entitlements?select=status,expires_at&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+        { token: viewer.accessToken },
+      ),
+    ]);
   } catch {
     return NextResponse.json({ error: "Billing state could not be verified before checkout." }, { status: 503 });
   }
@@ -81,9 +89,16 @@ export async function POST(request: Request) {
   }
 
   const existingBilling = billingRows[0];
-  if (!billingProviderTransitionAllowed(provider.id, existingBilling?.provider, existingBilling?.state)) {
+  const entitlement = entitlementRows[0];
+  if (!billingProviderTransitionAllowed(
+    provider.id,
+    existingBilling?.provider,
+    existingBilling?.state,
+    entitlement?.status,
+    entitlement?.expires_at,
+  )) {
     return NextResponse.json({
-      error: "An existing non-terminal billing lifecycle is already present. Manage or complete that billing lifecycle before starting another subscription.",
+      error: "An existing non-terminal or paid-through billing lifecycle is already present. Manage or complete that billing lifecycle before starting another subscription.",
     }, { status: 409 });
   }
   const customerId = existingBilling?.provider === provider.id ? existingBilling.external_customer_id : null;
