@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireViewer } from "@/lib/auth";
-import { billingProvider, type BillingCheckoutPackage, type BillingInterval } from "@/lib/billing-provider";
+import { billingProvider, billingProviderTransitionAllowed, type BillingCheckoutPackage, type BillingInterval } from "@/lib/billing-provider";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 
-type BillingAccountRow = { provider: string; external_customer_id: string | null };
+type BillingAccountRow = { provider: string; state: string; external_customer_id: string | null };
 
 function canonicalBillingOrigin() {
   const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   }
 
   const billingRows = await supabaseRest<BillingAccountRow[]>(
-    "billing_accounts?select=provider,external_customer_id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+    "billing_accounts?select=provider,state,external_customer_id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
     { token: viewer.accessToken },
   ).catch(() => []);
 
@@ -76,6 +76,11 @@ export async function POST(request: Request) {
   }
 
   const existingBilling = billingRows[0];
+  if (!billingProviderTransitionAllowed(provider.id, existingBilling?.provider, existingBilling?.state)) {
+    return NextResponse.json({
+      error: "The existing billing lifecycle belongs to a different provider. Complete an explicit billing migration before starting another subscription.",
+    }, { status: 409 });
+  }
   const customerId = existingBilling?.provider === provider.id ? existingBilling.external_customer_id : null;
 
   try {
