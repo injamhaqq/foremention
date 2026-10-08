@@ -9,7 +9,8 @@ import {
   type QuestionPerformance,
 } from "@/lib/data";
 import { getDemoSourceMap } from "@/lib/demo-data";
-import { assessCompleteCompetitorHistory, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
+import { assessCompleteCompetitorHistory, competitorPairDelta, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
+import { assessWorkspaceRunPairComparability } from "@/lib/run-pair-comparability";
 import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS, MAX_COMPLETE_RUN_HISTORY_RUNS } from "@/lib/complete-run-evidence.mjs";
 import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -176,6 +177,14 @@ export async function loadTruthfulCompetitorTracking(
     }
   }
 
+  // A previously approved ID pair does not make this later read atomic: re-read
+  // both runs in the active org/project and prove each complete verified answer
+  // set (positive answer_count, terminal status, methodology, chronology, all
+  // nine measurement-context fields) BEFORE any competitor delta is computed.
+  const pairEvidence = comparablePair
+    ? await assessWorkspaceRunPairComparability(viewer, comparablePair.previousId, comparablePair.latestId)
+    : null;
+
   return competitors.map((competitor) => {
     const total = mentionFrequency(historyAnswers, competitor.name);
     const trendPoints = answerHistoryComplete
@@ -189,12 +198,11 @@ export async function loadTruthfulCompetitorTracking(
       Boolean(entry.reviewedAt)
       && entry.competitors.some((name) => name.toLocaleLowerCase() === competitor.name.toLocaleLowerCase()));
 
-    let trendDelta: number | null = null;
-    if (answerHistoryComplete && comparablePair) {
-      const latestPoint = trendPoints.find((point) => point.runId === comparablePair.latestId);
-      const previousPoint = trendPoints.find((point) => point.runId === comparablePair.previousId);
-      if (latestPoint && previousPoint) trendDelta = latestPoint.frequencyPct - previousPoint.frequencyPct;
-    }
+    // #387: the pair delta comes only from the independent, complete re-read of
+    // the exact pair, never from the bounded historical research window.
+    const trendDelta: number | null = comparablePair && pairEvidence?.comparable
+      ? competitorPairDelta(pairEvidence.answers, comparablePair, competitor.name)
+      : null;
 
     return {
       id: competitor.id,
