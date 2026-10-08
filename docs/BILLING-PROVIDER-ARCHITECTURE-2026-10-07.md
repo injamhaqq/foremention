@@ -87,17 +87,16 @@ Supported lifecycle mappings:
 - subscription.paid -> active
 - subscription.trialing -> trialing
 - subscription.paused -> paused
-- subscription.canceled -> cancelled
-- subscription.expired -> cancelled
-- subscription.past_due -> past_due
-- subscription.unpaid -> past_due
-- subscription.update -> map from documented status
-- subscription.scheduled_cancel -> ignored
+- subscription.canceled -> billing state cancelled; when Creem supplies a valid future current_period_end_date, paid entitlement remains active only through that verified timestamp
+- subscription.expired -> ignored for entitlement mutation because Creem documents that payment retries may still occur and subscription status can remain active
+- subscription.update -> map from documented subscription status
+- defensive explicit past_due/unpaid event handling may normalize to past_due if Creem emits those event types, but production activation does not depend on them
+- subscription.scheduled_cancel -> ignored; scheduled cancellation is not terminal
 - refund.created/dispute.created -> ignored in this slice pending explicit entitlement policy
 
 Product/package is derived from configured Creem product IDs, not packageKey metadata.
 
-Initial organization identity may come from validated checkout/subscription metadata. Later lifecycle events that omit metadata resolve organizationId from Foremention billing_accounts using verified provider + external subscription/customer IDs.
+Initial organization identity may come from validated checkout/subscription metadata. Later lifecycle events that omit metadata resolve organizationId from Foremention billing_accounts using verified provider + external subscription/customer IDs. When stored customer/subscription identity exists, it must agree with metadata; conflicting or ambiguous identity fails closed rather than mutating entitlements.
 
 No browser success redirect grants entitlement.
 
