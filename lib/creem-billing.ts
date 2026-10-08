@@ -59,12 +59,15 @@ export function creemBillingConfigured() {
   if (process.env.NODE_ENV === "production" && environment !== "live") return false;
   if (environment === "live" && process.env.CREEM_LIVE_ENABLED !== "1") return false;
   if (!envValue("CREEM_API_KEY") || !envValue("CREEM_WEBHOOK_SECRET")) return false;
-  return Boolean(
-    creemProductIdFor("core", "monthly")
-    || creemProductIdFor("core", "annual")
-    || creemProductIdFor("signal", "monthly")
-    || creemProductIdFor("signal", "annual"),
-  );
+  const entries = configuredProductEntries();
+  if (!entries.length) return false;
+  const packageByProduct = new Map<string, CreemCheckoutPackage>();
+  for (const entry of entries) {
+    const existingPackage = packageByProduct.get(entry.productId);
+    if (existingPackage && existingPackage !== entry.packageKey) return false;
+    packageByProduct.set(entry.productId, entry.packageKey);
+  }
+  return true;
 }
 
 function configuredProductEntries() {
