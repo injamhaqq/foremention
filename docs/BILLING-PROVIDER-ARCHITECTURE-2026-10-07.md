@@ -63,6 +63,8 @@ Safety:
 - live mode is unavailable unless CREEM_LIVE_ENABLED=1
 - in NODE_ENV=production, test-mode self-serve billing must fail closed
 - at least one configured Core/Signal product is required
+- one Creem product ID may be reused across monthly/annual intervals of the same package, but a product ID may never map to both Core and Signal
+- if current billing-account state cannot be read, checkout and billing status fail closed; database failure is never interpreted as "no subscription"
 
 No prices are invented by application code.
 
@@ -108,4 +110,4 @@ Billing UI uses provider-neutral copy such as "billing portal" and "hosted check
 
 Do not alter billing_webhook_events idempotency, apply_billing_event_atomic_v2, organization_entitlements, grace-period behavior, or usage_events as Foremention's authoritative product usage ledger.
 
-No multi-provider routing is enabled in this slice.
+No multi-provider routing is enabled in this slice. A new hosted checkout is blocked while any non-terminal billing lifecycle already exists, including with the same provider; active/trialing/past-due/paused subscriptions must be managed rather than duplicated. A provider change becomes eligible only after the stored lifecycle is terminal.
