@@ -238,7 +238,7 @@ export function parseCreemBillingEvent(rawBody: string): ParsedCreemBillingEvent
   const object = objectValue(event.object);
   if (!eventId || !object) throw new Error("Creem webhook body is invalid.");
 
-  const ignored = new Set(["subscription.scheduled_cancel", "refund.created", "dispute.created"]);
+  const ignored = new Set(["subscription.scheduled_cancel", "subscription.expired", "refund.created", "dispute.created"]);
   if (ignored.has(eventType)) return null;
 
   let state: BillingLifecycleState | null = null;
@@ -250,7 +250,7 @@ export function parseCreemBillingEvent(rawBody: string): ParsedCreemBillingEvent
   } else if (eventType === "subscription.active" || eventType === "subscription.paid") state = "active";
   else if (eventType === "subscription.trialing") state = "trialing";
   else if (eventType === "subscription.paused") state = "paused";
-  else if (eventType === "subscription.canceled" || eventType === "subscription.expired") state = "cancelled";
+  else if (eventType === "subscription.canceled") state = "cancelled";
   else if (eventType === "subscription.past_due" || eventType === "subscription.unpaid") state = "past_due";
   else if (eventType === "subscription.update") state = subscriptionState(object.status);
   else return null;
@@ -268,5 +268,6 @@ export function parseCreemBillingEvent(rawBody: string): ParsedCreemBillingEvent
     externalSubscriptionId: subscriptionIdFrom(object),
     eventId,
     occurredAt: occurredAtFrom(event.created_at),
+    accessUntil: state === "cancelled" ? occurredAtFrom(object.current_period_end_date) : null,
   };
 }
