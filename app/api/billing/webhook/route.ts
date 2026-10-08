@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { entitlementGrantForBillingEvent, entitlementsForBillingEvent, type VerifiedBillingEvent } from "@/lib/billing";
-import { billingProvider, type ParsedBillingProviderEvent } from "@/lib/billing-provider";
+import { billingProvider, reconcileBillingOrganization, type ParsedBillingProviderEvent } from "@/lib/billing-provider";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type BillingReceiptRow = { provider: string; event_id: string; processed_at: string | null };
@@ -93,19 +93,23 @@ async function lookupBillingOrganization(
 }
 
 async function resolveBillingOrganization(event: ParsedBillingProviderEvent, provider: string) {
-  if (event.organizationId) return event.organizationId;
+  const [subscriptionOrganization, customerOrganization] = await Promise.all([
+    lookupBillingOrganization(
+      provider,
+      "external_subscription_id",
+      event.externalSubscriptionId,
+    ),
+    lookupBillingOrganization(
+      provider,
+      "external_customer_id",
+      event.externalCustomerId,
+    ),
+  ]);
 
-  const subscriptionOrganization = await lookupBillingOrganization(
-    provider,
-    "external_subscription_id",
-    event.externalSubscriptionId,
-  );
-  if (subscriptionOrganization) return subscriptionOrganization;
-
-  return lookupBillingOrganization(
-    provider,
-    "external_customer_id",
-    event.externalCustomerId,
+  return reconcileBillingOrganization(
+    event.organizationId,
+    subscriptionOrganization,
+    customerOrganization,
   );
 }
 
