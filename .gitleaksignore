@@ -1,3 +1,7 @@
 002aefc9ea7143eb5317862faafd14eeac284d41:lib/product-analytics.ts:generic-api-key:12
 63b06c53ceceb5f946fb01a83399cbbf11ef9038:.github/workflows/final-acceptance-synthetic.yml:generic-api-key:215
 22c20a270d04a68b3c0225addaf302a3964eaec6:.github/workflows/live-final-acceptance.yml:generic-api-key:143
+# Historical SQL predicates select a synthetic buyer question, not credentials.
+# Exact commit/path/rule/line only; no directory/rule exclusion or new-secret waiver.
+3e0f9302e17e11ff484258bc934cfade013b7c06:scripts/verify-isolated-reviewed-second-cycle.sql:generic-api-key:59
+3e0f9302e17e11ff484258bc934cfade013b7c06:scripts/verify-isolated-reviewed-second-cycle.sql:generic-api-key:322

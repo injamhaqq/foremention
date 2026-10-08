@@ -245,6 +245,16 @@ D4 first-candidate failures retained: #430 head `3d1e2f5424564eaceaf8889a8f2fe1c
 
 ## Security S2 — sharp/librsvg patch prerequisite (6 October 2026)
 
+## S3 — refreshed Next security prerequisite (8 October 2026)
+
+Fresh main `601fc24cae3181637682fc5285c821144a2aeb22` now contains external #445 customer-workflow/second-cycle integration and #447 production browser-gate correction. Prior main CI/browser/authenticated canary receipts passed; scheduled Security 37756550480 subsequently failed. All open PR heads/dependencies refreshed; #446 billing and #448/#449 OmniRoute remain separate/unverified product expansion, not imported.
+
+OSV job 113242406251 identified six fixable advisories on locked Next 16.3.6, patched in 16.3.8. Verified maintainer release https://github.com/vercel/next.js/releases/tag/v16.3.8 and primary SSRF advisory. Pin existing Next dependency and its existing exact release-age exception to 16.3.8, regenerate pnpm 10.25.0 lock. No OSV waiver/severity reduction, runtime redesign or unrelated dependency family upgrade. Existing dependency-lock regression requires patched version and prohibits suppressing the six advisory IDs.
+
+Gitleaks job 113242406069 classified two historical SQL fixture predicates in commit `3e0f9302e17e11ff484258bc934cfade013b7c06`, file `scripts/verify-isolated-reviewed-second-cycle.sql` at lines 59/322, as generic API keys. Inspected source: both select the same synthetic buyer-question identifier; no credential, token or secret. Existing `.gitleaksignore` receives only those two exact commit/path/rule/line fingerprints with explanation. No rule/path/directory exclusion, new-secret waiver, history rewrite, secret rotation or scan disablement. New findings remain blocking; classification is transparently reviewable.
+
+Files: package manifest, existing workspace pin exception, frozen lock, two precise historical-finding classifications, existing dependency-security regression and this ledger. No schema, RLS/auth, provider/cost, customer object or secret change. Full pinned checks and exact-head security/browser/authenticated receipts are required and recorded in PR body. Production installed version is not changed by a draft. Next dependency: carry only missing verified #443 recovery delta onto this fresh-main prerequisite and rerun combined acceptance. No merge/deploy performed.
+
 Problem/evidence: #430 Security run 37482898936, job 112335400444, rejected locked sharp 0.35.4 for newly indexed GHSA-wq5f-xc86-pv6w. Maintainer advisory https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w identifies 0.35.5 as patched with librsvg 2.63.2. Prior green #428 is a dated receipt, not proof against later advisory-index updates. No exploit or production impact is asserted.
 
 Reuse/files: existing `pnpm-workspace.yaml` sharp override now pins 0.35.5; pnpm 10.25.0 regenerated `pnpm-lock.yaml`; one regression in existing `tests/dependency-security-lock.test.mjs`; this ledger. No scanner ignore, waiver, dependency family expansion or new security architecture. All changed package versions belong to sharp/prebuilt libvips (1.3.4); pnpm also normalizes same-version ESLint peer snapshot references. Frozen installation succeeds. No schema/auth/RLS/provider/customer-data/secret change.

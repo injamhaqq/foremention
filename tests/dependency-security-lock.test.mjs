@@ -6,6 +6,16 @@ const root = new URL("../", import.meta.url);
 const read = path => readFile(new URL(path, root), "utf8");
 const advisories = ["GHSA-5p2g-fcmc-qvqq", "GHSA-w3rx-r6r6-pgpr"];
 
+test("Next security release is frozen without suppressing the newly indexed advisories", async () => {
+  const [pkg, lock, config] = await Promise.all([read("package.json"), read("pnpm-lock.yaml"), read("osv-scanner.toml")]);
+  assert.equal(JSON.parse(pkg).dependencies.next, "16.3.8");
+  assert.match(lock, /^  next@16\.3\.8:$/m);
+  assert.doesNotMatch(lock, /next(?:@|: )16\.3\.6/);
+  for (const id of ["GHSA-39w2-rjm5-chcv", "GHSA-3w37-wq28-93x7", "GHSA-4jqv-mc3x-m676", "GHSA-cjq9-62q9-8jv4", "GHSA-f87g-xv8r-7p7x", "GHSA-mcj8-r9mp-w47p"]) {
+    assert.equal(config.includes(`id = "${id}"`), false);
+  }
+});
+
 test("sharp librsvg patch is frozen without suppressing GHSA-wq5f-xc86-pv6w", async () => {
   const [workspace, lock, config] = await Promise.all([
     read("pnpm-workspace.yaml"), read("pnpm-lock.yaml"), read("osv-scanner.toml"),
