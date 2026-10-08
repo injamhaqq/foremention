@@ -260,6 +260,7 @@ export function parseCreemBillingEvent(rawBody: string): ParsedCreemBillingEvent
   const packageKey = creemPackageForProductId(productId);
   if (!packageKey) return null;
 
+  const accessUntil = state === "cancelled" ? occurredAtFrom(object.current_period_end_date) : null;
   return {
     organizationId: organizationIdFrom(object),
     packageKey,
@@ -268,6 +269,6 @@ export function parseCreemBillingEvent(rawBody: string): ParsedCreemBillingEvent
     externalSubscriptionId: subscriptionIdFrom(object),
     eventId,
     occurredAt: occurredAtFrom(event.created_at),
-    accessUntil: state === "cancelled" ? occurredAtFrom(object.current_period_end_date) : null,
+    ...(accessUntil ? { accessUntil } : {}),
   };
 }
