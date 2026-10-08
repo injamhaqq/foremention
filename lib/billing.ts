@@ -82,7 +82,7 @@ export function parseVerifiedBillingEvent(rawBody: string): VerifiedBillingEvent
     externalSubscriptionId: typeof data.externalSubscriptionId === "string" ? data.externalSubscriptionId.slice(0, 255) : null,
     eventId,
     occurredAt,
-    accessUntil,
+    ...(accessUntil ? { accessUntil } : {}),
   };
 }
 
