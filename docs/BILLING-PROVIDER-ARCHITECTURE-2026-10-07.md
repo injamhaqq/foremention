@@ -110,4 +110,4 @@ Billing UI uses provider-neutral copy such as "billing portal" and "hosted check
 
 Do not alter billing_webhook_events idempotency, apply_billing_event_atomic_v2, organization_entitlements, grace-period behavior, or usage_events as Foremention's authoritative product usage ledger.
 
-No multi-provider routing is enabled in this slice. A new hosted checkout is blocked while any non-terminal billing lifecycle already exists, including with the same provider; active/trialing/past-due/paused subscriptions must be managed rather than duplicated. A provider change becomes eligible only after the stored lifecycle is terminal.
+No multi-provider routing is enabled in this slice. A new hosted checkout is blocked while any non-terminal billing lifecycle already exists, including with the same provider; active/trialing/past-due/paused subscriptions must be managed rather than duplicated. A terminal cancellation is also blocked from new checkout while its verified paid-through entitlement is still active. A provider change becomes eligible only after the stored lifecycle is terminal and any paid-through entitlement has expired.
