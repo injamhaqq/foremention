@@ -1,4 +1,4 @@
-import { extractUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderPrompt } from "@/lib/providers/types";
+import { extractModelMentionedUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderPrompt } from "@/lib/providers/types";
 
 export const anthropicAdapter: AnswerProviderAdapter = {
   id: "anthropic",
@@ -26,7 +26,10 @@ export const anthropicAdapter: AnswerProviderAdapter = {
     if (!response.ok) throw new ProviderRequestError("Anthropic", response.status);
     const answer = (raw.content || []).map((item) => item.text || "").join("\n");
     const suppliedCitations = (raw.content || []).flatMap((item) => item.citations || []).filter((citation) => Boolean(citation.url)).map((citation) => ({ url: citation.url!, title: citation.title }));
-    const citations = suppliedCitations.length ? suppliedCitations : extractUrls(answer);
+    // Only citations attached by the Messages API web_search tool are citations.
+    // URLs the model typed into its answer are kept apart as mentionedUrls, never as a fallback.
+    const citations = suppliedCitations;
+    const mentionedUrls = extractModelMentionedUrls(answer);
     const usage = raw.usage ? {
       inputTokens: raw.usage.input_tokens,
       outputTokens: raw.usage.output_tokens,
@@ -38,7 +41,8 @@ export const anthropicAdapter: AnswerProviderAdapter = {
       promptId: prompt.promptId,
       answer,
       citations,
-      raw: { id: raw.id, model: raw.model, stopReason: raw.stop_reason, usage, citationCount: citations.length },
+      mentionedUrls,
+      raw: { id: raw.id, model: raw.model, stopReason: raw.stop_reason, usage, grounded: citations.length > 0, citationCount: citations.length, mentioned_urls: mentionedUrls.map((item) => item.url), mentioned_urls_note: "Model-written URLs from answer text; not provider citations and never evidence." },
       collectedAt: new Date().toISOString(),
       latencyMs: Date.now() - started,
       usage,
