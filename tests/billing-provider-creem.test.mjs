@@ -119,6 +119,57 @@ test("Creem lifecycle parsing derives package from configured product IDs and no
   assert.equal(parseCreemBillingEvent(scheduled), null);
 });
 
+test("Creem cancellation preserves paid-through access and expired retry events do not revoke access", async () => {
+  const { parseCreemBillingEvent } = await import("../lib/creem-billing.ts");
+  process.env.CREEM_CORE_MONTHLY_PRODUCT_ID = "prod_core";
+  const periodEnd = "2026-11-01T00:00:00.000Z";
+  const canceled = parseCreemBillingEvent(JSON.stringify({
+    id: "evt_cancel",
+    eventType: "subscription.canceled",
+    created_at: 1791360002000,
+    object: {
+      id: "sub_cancel",
+      object: "subscription",
+      status: "canceled",
+      product: { id: "prod_core" },
+      customer: { id: "cust_cancel" },
+      current_period_end_date: periodEnd,
+      metadata: {}
+    }
+  }));
+  assert.equal(canceled?.state, "cancelled");
+  assert.equal(canceled?.accessUntil, periodEnd);
+
+  const expired = parseCreemBillingEvent(JSON.stringify({
+    id: "evt_expired",
+    eventType: "subscription.expired",
+    created_at: 1791360003000,
+    object: {
+      id: "sub_cancel",
+      object: "subscription",
+      status: "active",
+      product: { id: "prod_core" },
+      customer: { id: "cust_cancel" },
+      current_period_end_date: periodEnd,
+      metadata: {}
+    }
+  }));
+  assert.equal(expired, null);
+});
+
+test("provider identity reconciliation rejects metadata conflicts and ambiguous external mappings", async () => {
+  const { reconcileBillingOrganization } = await import("../lib/billing-provider.ts");
+  const orgA = "11111111-1111-4111-8111-111111111111";
+  const orgB = "22222222-2222-4222-8222-222222222222";
+
+  assert.equal(reconcileBillingOrganization(orgA, null, null), orgA);
+  assert.equal(reconcileBillingOrganization(null, orgA, null), orgA);
+  assert.equal(reconcileBillingOrganization(null, null, orgA), orgA);
+  assert.equal(reconcileBillingOrganization(orgA, orgA, orgA), orgA);
+  assert.equal(reconcileBillingOrganization(orgB, orgA, orgA), null);
+  assert.equal(reconcileBillingOrganization(null, orgA, orgB), null);
+});
+
 test("Creem checkout and portal use the official REST endpoints and server-derived metadata", async () => {
   const source = await read("lib/creem-billing.ts");
   assert.match(source, /test-api\.creem\.io/);
