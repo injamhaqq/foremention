@@ -9,6 +9,7 @@ export type VerifiedBillingEvent = {
   externalSubscriptionId?: string | null;
   eventId: string;
   occurredAt?: string | null;
+  accessUntil?: string | null;
 };
 
 export type BillingEntitlementGrant = {
@@ -70,6 +71,9 @@ export function parseVerifiedBillingEvent(rawBody: string): VerifiedBillingEvent
   const occurredAt = typeof data.occurredAt === "string" && Number.isFinite(new Date(data.occurredAt).getTime())
     ? new Date(data.occurredAt).toISOString()
     : null;
+  const accessUntil = typeof data.accessUntil === "string" && Number.isFinite(new Date(data.accessUntil).getTime())
+    ? new Date(data.accessUntil).toISOString()
+    : null;
   return {
     organizationId,
     packageKey: packageKey as VerifiedBillingEvent["packageKey"],
@@ -78,6 +82,7 @@ export function parseVerifiedBillingEvent(rawBody: string): VerifiedBillingEvent
     externalSubscriptionId: typeof data.externalSubscriptionId === "string" ? data.externalSubscriptionId.slice(0, 255) : null,
     eventId,
     occurredAt,
+    accessUntil,
   };
 }
 
@@ -86,7 +91,19 @@ export function entitlementsForBillingEvent(event: VerifiedBillingEvent) {
 }
 
 export function entitlementGrantForBillingEvent(event: VerifiedBillingEvent, now?: Date): BillingEntitlementGrant {
-  if (event.state === "cancelled") return { status: "cancelled", expiresAt: null, gracePeriodEndsAt: null };
+  if (event.state === "cancelled") {
+    const reference = now || new Date();
+    const paidThrough = event.accessUntil ? new Date(event.accessUntil) : null;
+    if (
+      paidThrough
+      && Number.isFinite(reference.getTime())
+      && Number.isFinite(paidThrough.getTime())
+      && paidThrough > reference
+    ) {
+      return { status: "active", expiresAt: paidThrough.toISOString(), gracePeriodEndsAt: null };
+    }
+    return { status: "cancelled", expiresAt: null, gracePeriodEndsAt: null };
+  }
   if (event.state === "paused") return { status: "paused", expiresAt: null, gracePeriodEndsAt: null };
   if (event.state !== "past_due") return { status: "active", expiresAt: null, gracePeriodEndsAt: null };
 
