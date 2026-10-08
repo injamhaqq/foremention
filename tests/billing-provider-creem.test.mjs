@@ -196,6 +196,24 @@ test("Creem lifecycle events without metadata resolve organization from Forement
   assert.match(webhook, /resolveBillingOrganization/);
 });
 
+test("provider changes cannot start a second live subscription before the prior provider is terminal", async () => {
+  const { billingProviderTransitionAllowed } = await import("../lib/billing-provider.ts");
+  assert.equal(billingProviderTransitionAllowed("creem", null, null), true);
+  assert.equal(billingProviderTransitionAllowed("creem", "creem", "active"), true);
+  assert.equal(billingProviderTransitionAllowed("creem", "stripe", "cancelled"), true);
+  for (const state of ["trialing", "active", "past_due", "paused"]) {
+    assert.equal(billingProviderTransitionAllowed("creem", "stripe", state), false);
+  }
+
+  const [checkout, status] = await Promise.all([
+    read("app/api/billing/checkout/route.ts"),
+    read("app/api/billing/status/route.ts"),
+  ]);
+  assert.match(checkout, /billingProviderTransitionAllowed/);
+  assert.match(checkout, /existing billing lifecycle belongs to a different provider/i);
+  assert.match(status, /billingProviderTransitionAllowed/);
+});
+
 test("Creem environment is documented but live activation remains explicit and disabled by default", async () => {
   const env = await read(".env.example");
   for (const name of [
