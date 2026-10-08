@@ -20,10 +20,11 @@ type GeminiResponse = {
 
 export const geminiAdapter: AnswerProviderAdapter = {
   id: "gemini",
-  configured: () => Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL),
+  configured: () => Boolean(process.env.GEMINI_API_KEY && configuredGeminiModel()),
   async run(prompt: ProviderPrompt, options): Promise<ProviderAnswer> {
     const started = Date.now();
     const model = configuredGeminiModel();
+    if (!model) throw new Error("Gemini is not configured: GEMINI_MODEL must name the exact pinned model. No default model is used.");
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       signal: options.signal,
