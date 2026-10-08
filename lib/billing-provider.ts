@@ -116,12 +116,12 @@ const creemProvider: BillingProviderAdapter = {
 };
 
 export function billingProviderTransitionAllowed(
-  activeProvider: BillingProviderId,
+  _activeProvider: BillingProviderId,
   existingProvider: string | null | undefined,
   existingState: string | null | undefined,
 ) {
-  if (!existingProvider || existingProvider === activeProvider) return true;
-  return existingState === "cancelled";
+  if (!existingProvider || existingProvider === "unconfigured") return true;
+  return !existingState || existingState === "unconfigured" || existingState === "cancelled";
 }
 
 export function reconcileBillingOrganization(
