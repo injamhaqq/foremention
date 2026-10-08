@@ -212,7 +212,7 @@ test("provider changes cannot start a second live subscription before the prior 
     read("app/api/billing/status/route.ts"),
   ]);
   assert.match(checkout, /billingProviderTransitionAllowed/);
-  assert.match(checkout, /existing billing lifecycle belongs to a different provider/i);
+  assert.match(checkout, /existing non-terminal billing lifecycle/i);
   assert.match(status, /billingProviderTransitionAllowed/);
 });
 
