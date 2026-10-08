@@ -78,7 +78,7 @@ export async function POST(request: Request) {
   const existingBilling = billingRows[0];
   if (!billingProviderTransitionAllowed(provider.id, existingBilling?.provider, existingBilling?.state)) {
     return NextResponse.json({
-      error: "The existing billing lifecycle belongs to a different provider. Complete an explicit billing migration before starting another subscription.",
+      error: "An existing non-terminal billing lifecycle is already present. Manage or complete that billing lifecycle before starting another subscription.",
     }, { status: 409 });
   }
   const customerId = existingBilling?.provider === provider.id ? existingBilling.external_customer_id : null;
