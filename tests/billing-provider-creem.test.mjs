@@ -209,14 +209,20 @@ test("Creem lifecycle events without metadata resolve organization from Forement
   assert.match(webhook, /resolveBillingOrganization/);
 });
 
-test("provider changes cannot start a second live subscription before the prior provider is terminal", async () => {
+test("provider changes and paid-through cancellations cannot start overlapping subscriptions", async () => {
   const { billingProviderTransitionAllowed } = await import("../lib/billing-provider.ts");
-  assert.equal(billingProviderTransitionAllowed("creem", null, null), true);
-  assert.equal(billingProviderTransitionAllowed("creem", "creem", "cancelled"), true);
-  assert.equal(billingProviderTransitionAllowed("creem", "stripe", "cancelled"), true);
+  const now = new Date("2026-10-08T00:00:00.000Z");
+
+  assert.equal(billingProviderTransitionAllowed("creem", null, null, null, null, now), true);
+  assert.equal(billingProviderTransitionAllowed("creem", "creem", "cancelled", "cancelled", null, now), true);
+  assert.equal(billingProviderTransitionAllowed("creem", "stripe", "cancelled", "cancelled", null, now), true);
+  assert.equal(billingProviderTransitionAllowed("creem", "creem", "cancelled", "active", "2026-11-01T00:00:00.000Z", now), false);
+  assert.equal(billingProviderTransitionAllowed("creem", "stripe", "cancelled", "active", "2026-10-01T00:00:00.000Z", now), true);
+  assert.equal(billingProviderTransitionAllowed("creem", "creem", "cancelled", "active", null, now), false);
+
   for (const provider of ["creem", "stripe"]) {
     for (const state of ["trialing", "active", "past_due", "paused"]) {
-      assert.equal(billingProviderTransitionAllowed("creem", provider, state), false);
+      assert.equal(billingProviderTransitionAllowed("creem", provider, state, "active", null, now), false);
     }
   }
 
@@ -224,8 +230,9 @@ test("provider changes cannot start a second live subscription before the prior 
     read("app/api/billing/checkout/route.ts"),
     read("app/api/billing/status/route.ts"),
   ]);
+  assert.match(checkout, /organization_entitlements/);
   assert.match(checkout, /billingProviderTransitionAllowed/);
-  assert.match(checkout, /existing non-terminal billing lifecycle/i);
+  assert.match(checkout, /existing non-terminal or paid-through billing lifecycle/i);
   assert.match(status, /billingProviderTransitionAllowed/);
 });
 
