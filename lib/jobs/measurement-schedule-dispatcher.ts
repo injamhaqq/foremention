@@ -1,4 +1,5 @@
 import { estimateReservedRunCost, getProviderCostRates, safeOperationalError } from "@/lib/collection-policy";
+import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { nextScheduleAt, scheduleIdempotencyKey } from "@/lib/measurement-schedules";
@@ -72,6 +73,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   const providerId = schedule.provider_ids[0];
   if (!providerId || schedule.provider_ids.length !== 1 || !schedule.project_id || !schedule.category_id) return null;
   if (!providerAllowedForLiveCollection(providerId)) return null;
+  if (!providerAllowedForMeasurementLane(providerId)) return null;
   const provider = getProvider(providerId);
   const rates = getProviderCostRates(providerId);
   if (!provider.configured() || !rates) return null;
