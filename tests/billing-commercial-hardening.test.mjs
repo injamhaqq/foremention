@@ -61,6 +61,32 @@ test("payment-failure grace is opt-in and defaults to immediate entitlement paus
   });
 });
 
+test("cancelled billing can preserve paid-through access until a verified provider period end", async () => {
+  const { entitlementGrantForBillingEvent } = await import("../lib/billing.ts");
+  const base = {
+    organizationId: "11111111-1111-4111-8111-111111111111",
+    packageKey: "core",
+    state: "cancelled",
+    eventId: "evt_cancelled",
+  };
+  assert.deepEqual(entitlementGrantForBillingEvent({
+    ...base,
+    accessUntil: "2026-10-10T00:00:00.000Z",
+  }, new Date("2026-10-08T00:00:00.000Z")), {
+    status: "active",
+    expiresAt: "2026-10-10T00:00:00.000Z",
+    gracePeriodEndsAt: null,
+  });
+  assert.deepEqual(entitlementGrantForBillingEvent({
+    ...base,
+    accessUntil: "2026-10-07T00:00:00.000Z",
+  }, new Date("2026-10-08T00:00:00.000Z")), {
+    status: "cancelled",
+    expiresAt: null,
+    gracePeriodEndsAt: null,
+  });
+});
+
 test("billing state, entitlement expiry and audit history are committed atomically", async () => {
   const [migration, webhook] = await Promise.all([
     readFile(new URL("../supabase/migrations/20260830000500_billing_commercial_hardening.sql", import.meta.url), "utf8"),
