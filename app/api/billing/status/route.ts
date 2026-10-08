@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireViewer } from "@/lib/auth";
-import { billingProvider } from "@/lib/billing-provider";
+import { billingProvider, billingProviderTransitionAllowed } from "@/lib/billing-provider";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { supabaseRest } from "@/lib/supabase-rest";
 
@@ -41,7 +41,10 @@ export async function GET() {
   const entitlement = entitlementRows[0];
   const provider = billingProvider();
   const configured = Boolean(provider?.configured());
-  const checkoutOffers = configured && role === "owner" && provider ? provider.checkoutOffers() : [];
+  const transitionAllowed = provider
+    ? billingProviderTransitionAllowed(provider.id, billing?.provider, billing?.state)
+    : false;
+  const checkoutOffers = configured && transitionAllowed && role === "owner" && provider ? provider.checkoutOffers() : [];
   const checkoutPackages = Array.from(new Set(checkoutOffers.map((offer) => offer.packageKey)));
 
   return NextResponse.json({ data: {
