@@ -48,7 +48,13 @@ export async function GET() {
   const provider = billingProvider();
   const configured = Boolean(provider?.configured());
   const transitionAllowed = provider
-    ? billingProviderTransitionAllowed(provider.id, billing?.provider, billing?.state)
+    ? billingProviderTransitionAllowed(
+      provider.id,
+      billing?.provider,
+      billing?.state,
+      entitlement?.status,
+      entitlement?.expires_at,
+    )
     : false;
   const checkoutOffers = configured && transitionAllowed && role === "owner" && provider ? provider.checkoutOffers() : [];
   const checkoutPackages = Array.from(new Set(checkoutOffers.map((offer) => offer.packageKey)));
