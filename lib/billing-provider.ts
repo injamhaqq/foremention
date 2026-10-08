@@ -115,6 +115,22 @@ const creemProvider: BillingProviderAdapter = {
   },
 };
 
+export function reconcileBillingOrganization(
+  metadataOrganizationId: string | null | undefined,
+  subscriptionOrganizationId: string | null | undefined,
+  customerOrganizationId: string | null | undefined,
+) {
+  const mapped = Array.from(new Set(
+    [subscriptionOrganizationId, customerOrganizationId].filter((value): value is string => Boolean(value)),
+  ));
+  if (mapped.length > 1) return null;
+  if (mapped.length === 1) {
+    if (metadataOrganizationId && metadataOrganizationId !== mapped[0]) return null;
+    return mapped[0];
+  }
+  return metadataOrganizationId || null;
+}
+
 export function billingProviderId(): BillingProviderId | null {
   const provider = process.env.BILLING_PROVIDER_ID?.trim().toLowerCase();
   return provider === "stripe" || provider === "creem" ? provider : null;
