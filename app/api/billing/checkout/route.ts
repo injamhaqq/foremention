@@ -63,10 +63,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That package and billing interval are not configured for self-serve checkout." }, { status: 503 });
   }
 
-  const billingRows = await supabaseRest<BillingAccountRow[]>(
-    "billing_accounts?select=provider,state,external_customer_id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
-    { token: viewer.accessToken },
-  ).catch(() => []);
+  let billingRows: BillingAccountRow[];
+  try {
+    billingRows = await supabaseRest<BillingAccountRow[]>(
+      "billing_accounts?select=provider,state,external_customer_id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+      { token: viewer.accessToken },
+    );
+  } catch {
+    return NextResponse.json({ error: "Billing state could not be verified before checkout." }, { status: 503 });
+  }
 
   let origin: string;
   try {
