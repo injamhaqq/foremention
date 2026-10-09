@@ -401,7 +401,7 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
         // demonstrates meaningful body evidence for an absence claim.
         const bodyMatch = contentType === "text/plain"
           ? null
-          : body.match(/<body\\b[^>]*>([\\s\\S]*?)(?:<\\/body>|$)/i);
+          : body.match(/<body\b[^>]*>([\s\S]*?)(?:<\/body>|$)/i);
         const bodyText = contentType === "text/plain"
           ? visibleText
           : bodyMatch ? extractUsefulPageText(bodyMatch[1], 80_000) : "";
