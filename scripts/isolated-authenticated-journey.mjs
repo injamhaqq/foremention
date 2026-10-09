@@ -487,6 +487,33 @@ async function main() {
     const rendered=await page.locator("body").innerText();
     assert.match(rendered,/resolution|evidence/i,"authenticated customer UI must render");
     step("real-authenticated-browser-rendered-isolated-audited-journey");
+    // FM-05: exercise the ACTUAL authenticated Worker-to-PostgREST RPC
+    // after the five-question comparison journey is already complete.
+    // Contract-only and direct SQL tests cannot prove this route is wired.
+    const questionText="Which source provides independently verified evidence for this local-only buyer question?";
+    const question=must(await appCall(ownerCtx,"POST","/api/prompts",{
+      text:questionText,cluster:"FM05 isolated question provenance"
+    }),201,"atomic buyer-question POST after the reviewed journey").data;
+    assert.match(question.id,/^[0-9a-f-]{36}$/i);
+    let versions=await db("GET",
+      "prompt_versions?select=version,prompt_text,organization_id&prompt_id=eq."+question.id+"&order=version.asc");
+    assert.equal(versions.length,1,"atomic question POST must persist exactly one initial history row");
+    assert.equal(Number(versions[0].version),1);
+    assert.equal(versions[0].organization_id,tenant.org);
+    assert.equal(versions[0].prompt_text,questionText);
+    step("fm05-authenticated-question-post-creates-version-one-atomically");
+
+    const revisedText="Which independently reviewed source provides the best documented evidence for this buyer question?";
+    must(await appCall(ownerCtx,"PATCH","/api/prompts",{
+      id:question.id,text:revisedText
+    }),200,"atomic buyer-question revision");
+    versions=await db("GET",
+      "prompt_versions?select=version,prompt_text&prompt_id=eq."+question.id+"&order=version.asc");
+    assert.equal(versions.length,2,"question edit must append history without rewriting the initial version");
+    assert.deepEqual(versions.map(v=>Number(v.version)),[1,2]);
+    assert.deepEqual(versions.map(v=>v.prompt_text),[questionText,revisedText]);
+    step("fm05-authenticated-question-patch-preserves-immutable-version-history");
+
     process.stdout.write("[isolated-journey] PASSED "+stages.length+" synthetic-only stages; no providers, no production, no customer-value claim.\n");
   } finally {
     await Promise.all(clients.map(async c => c.close().catch(()=>{})));
