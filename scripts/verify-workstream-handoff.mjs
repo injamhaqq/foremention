@@ -19,13 +19,17 @@ export function validateHandoff(packet, snapshot, currentMainSha, nowMs = Date.n
   const errors = [];
   const add = (message) => errors.push(message);
   const worker = packet?.workstream;
+  const workerNumber = (worker ?? "").slice(3);
   if (!/^FM-(?:0[1-9]|1[01])$/.test(worker ?? "")) add("Invalid workstream: expected FM-01 to FM-11");
   if (!shaPattern.test(currentMainSha ?? "")) add("Invalid current main SHA");
   if (!shaPattern.test(packet?.baseSha ?? "") || packet.baseSha !== currentMainSha) add("Stale or invalid baseSha");
-  if (typeof packet?.branch !== "string" ||
-      !packet.branch.startsWith("fm-" + (worker ?? "").slice(3) + "/") ||
-      packet.branch.endsWith("/") || packet.branch.includes("..") ||
-      packet.branch.includes(" ")) add("Invalid workstream branch");
+  const validBranch = typeof packet?.branch === "string" &&
+    (packet.branch.startsWith(`fm-${workerNumber}/`) ||
+     packet.branch.startsWith(`fm${workerNumber}/`) ||
+     packet.branch.startsWith(`audit/fm-${workerNumber}-`)) &&
+    !packet.branch.endsWith("/") && !packet.branch.includes("..") &&
+    !/[\\\s:*?[\]~^]/.test(packet.branch);
+  if (!validBranch) add("Invalid workstream branch");
   if (packet?.prNumber !== null &&
       (!Number.isInteger(packet?.prNumber) || packet.prNumber < 1)) add("Invalid prNumber");
   if (!Array.isArray(packet?.writeSet) || !packet.writeSet.length) add("Missing writeSet");
@@ -53,11 +57,16 @@ export function validateHandoff(packet, snapshot, currentMainSha, nowMs = Date.n
     const time = Date.parse(snapshot.capturedAt);
     if (!Number.isFinite(time) || time > nowMs + 60000 || nowMs - time > 900000)
       add("Stale PR snapshot (15-minute maximum)");
+    if (packet?.prNumber != null && !snapshot.prs.some((pr) => pr.number === packet.prNumber))
+      add("Claimed own PR is missing from open-PR snapshot");
     for (const pr of snapshot.prs) {
       if (!Number.isInteger(pr.number) || !Array.isArray(pr.files) || !pr.files.every(safePath)) {
         add("Malformed open PR file inventory"); continue;
       }
-      if (pr.number === packet?.prNumber) continue;
+      if (pr.number === packet?.prNumber) {
+        if (pr.headBranch !== packet.branch) add("Claimed own PR does not match worker branch");
+        continue;
+      }
       for (const file of packet?.writeSet ?? [])
         if (pr.files.includes(file)) add("Open PR #" + pr.number + " also edits: " + file);
     }
