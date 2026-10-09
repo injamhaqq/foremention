@@ -396,6 +396,15 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
         const pageText = options.includePageText
           ? normalizedPageText.slice(0, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
           : undefined;
+        // A static <title> can be readable even when the <body> contains only
+        // a JS mount point. Neither that title nor a successful HTTP status
+        // demonstrates meaningful body evidence for an absence claim.
+        const bodyMatch = contentType === "text/plain"
+          ? null
+          : body.match(/<body\\b[^>]*>([\\s\\S]*?)(?:<\\/body>|$)/i);
+        const bodyText = contentType === "text/plain"
+          ? visibleText
+          : bodyMatch ? extractUsefulPageText(bodyMatch[1], 80_000) : "";
         // Length equality by itself can incorrectly call different text
         // representations "complete". Require the exact same extracted text,
         // no response/body truncation and neither extraction cap exhausted.
@@ -405,6 +414,7 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
           // Empty static responses and JS-only application shells do not
           // provide any readable evidence from which absence can be inferred.
           && visibleText.length > 0
+          && bodyText.length > 0
           && visibleText.length < 80_000
           && normalizedPageText === visibleText
           // Plain-text angle brackets are data, but the shared HTML stripper
