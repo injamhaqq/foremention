@@ -144,7 +144,15 @@ export function validatePublicSourceUrl(value: string) {
 
 function isPublicResolvedAddress(address: string) {
   const normalized = address.toLowerCase().replace(/^\[|\]$/g, "");
-  return !isPrivateIpv4(normalized) && !(normalized.includes(":") && isPrivateIpv6(normalized));
+  if (parseIpv4(normalized)) return !isPrivateIpv4(normalized);
+  if (!normalized.includes(":")) return false;
+  try {
+    // DNS answers must be actual IP literals, not hostnames or arbitrary text.
+    new URL(`https://[${normalized}]/`);
+    return !isPrivateIpv6(normalized);
+  } catch {
+    return false;
+  }
 }
 
 async function resolveWithCloudflare(hostname: string, signal: AbortSignal) {
@@ -170,6 +178,24 @@ async function assertPublicResolution(url: URL, resolver: Resolver, signal: Abor
   if (!addresses.length || addresses.some((address) => !isPublicResolvedAddress(address))) {
     throw new SourceInspectionError("unsafe_url", "The source did not resolve exclusively to public internet addresses.");
   }
+}
+
+/**
+ * Fail closed before sending customer-configured outbound HTTP requests.
+ * The egress layer must ALSO block private networks because DNS can change
+ * between this lookup and the runtime's own outbound connection.
+ */
+export async function assertPublicSourceResolution(
+  value: string,
+  options: { resolver?: Resolver; signal?: AbortSignal } = {},
+) {
+  const url = validatePublicSourceUrl(value);
+  await assertPublicResolution(
+    url,
+    options.resolver || resolveWithCloudflare,
+    options.signal || AbortSignal.timeout(5_000),
+  );
+  return url.toString();
 }
 
 function decodeTitle(value: string) {
