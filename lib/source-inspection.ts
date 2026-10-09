@@ -404,6 +404,9 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
           && !truncated
           && visibleText.length < 80_000
           && normalizedPageText === visibleText
+          // Plain-text angle brackets are data, but the shared HTML stripper
+          // interprets them as markup; absence must remain unknown.
+          && (contentType !== "text/plain" || !body.includes("<"))
           && pageText === visibleText
           ? "complete" : "partial";
         return result({
