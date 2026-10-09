@@ -11,6 +11,12 @@ export type SourceInspectionResult = {
   contentSignature?: string;
   pageDescription?: string | null;
   pageText?: string;
+  /**
+   * Whether the returned pageText covers the entire bounded, server-returned
+   * static visible-text representation. This is never a claim about
+   * JavaScript-rendered or otherwise unavailable content.
+   */
+  pageTextCoverage?: "complete" | "partial";
   pageTitle: string | null;
   redirectCount: number;
 };
@@ -378,6 +384,16 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
         const pageText = options.includePageText
           ? normalizedPageText.slice(0, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
           : undefined;
+        // Length equality by itself can incorrectly call different text
+        // representations "complete". Require the exact same extracted text,
+        // no response/body truncation and neither extraction cap exhausted.
+        const pageTextCoverage = pageText !== undefined
+          && response.status !== 206
+          && !truncated
+          && visibleText.length < 80_000
+          && normalizedPageText === visibleText
+          && pageText === visibleText
+          ? "complete" : "partial";
         return result({
           access: response.status === 206 || truncated ? "partial" : "open",
           contentType,
@@ -387,7 +403,8 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
           contentLength: visibleText.length,
           contentSignature: contentSignature(visibleText) || undefined,
           pageDescription: contentType === "text/plain" ? null : extractMetaDescription(body),
-          ...(pageText ? { pageText } : {}),
+          ...(pageText !== undefined ? { pageText } : {}),
+          pageTextCoverage,
           pageTitle: contentType === "text/plain" ? null : extractPageTitle(body),
           redirectCount: redirects,
         }, now);
