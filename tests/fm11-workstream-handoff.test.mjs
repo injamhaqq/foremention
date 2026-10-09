@@ -90,3 +90,8 @@ test("rejects undisclosed own-PR edits and a stale head SHA", () => {
   proposed.headSha = "b".repeat(40);
   assert.match(validateHandoff(proposed, active, sha, now).errors.join(" "), /head SHA/);
 });
+
+test("accepts FM-05's existing audit/fm05 naming without relaxing workstream ID", () => {
+  const proposed = { ...packet(), workstream: "FM-05", branch: "audit/fm05-readonly-data-boundary-preflight-20261009" };
+  assert.equal(validateHandoff(proposed, snapshot(), sha, now).ok, true);
+});
