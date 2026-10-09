@@ -11,7 +11,7 @@ do $$
 declare
   relation_name text;
 begin
-  foreach relation_name in array array['prompts','prompt_versions','run_attempts'] loop
+  foreach relation_name in array array['prompts','prompt_versions','run_attempts','run_answers','citations','source_maps','source_observations'] loop
     if has_table_privilege('authenticated', format('public.%I',relation_name),'INSERT')
        or has_table_privilege('authenticated', format('public.%I',relation_name),'UPDATE')
        or has_table_privilege('authenticated', format('public.%I',relation_name),'DELETE') then
@@ -22,11 +22,13 @@ begin
     end if;
   end loop;
 
-  if not has_table_privilege('service_role','public.run_attempts','INSERT')
-     or not has_table_privilege('service_role','public.run_attempts','UPDATE')
-     or not has_table_privilege('service_role','public.run_attempts','DELETE') then
-    raise exception 'FM-05: provider service-role receipts lost writer privileges';
-  end if;
+  foreach relation_name in array array['run_attempts','run_answers','citations','source_maps','source_observations'] loop
+    if not has_table_privilege('service_role',format('public.%I',relation_name),'INSERT')
+       or not has_table_privilege('service_role',format('public.%I',relation_name),'UPDATE')
+       or not has_table_privilege('service_role',format('public.%I',relation_name),'DELETE') then
+      raise exception 'FM-05: service-role evidence writer lost privileges on %', relation_name;
+    end if;
+  end loop;
   if not has_function_privilege('authenticated',
     'public.create_prompt_versioned(uuid,uuid,uuid,uuid,text,text)', 'EXECUTE')
     or has_function_privilege('anon',
