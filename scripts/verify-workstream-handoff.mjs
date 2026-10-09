@@ -66,6 +66,11 @@ export function validateHandoff(packet, snapshot, currentMainSha, nowMs = Date.n
       }
       if (pr.number === packet?.prNumber) {
         if (pr.headBranch !== packet.branch) add("Claimed own PR does not match worker branch");
+        if (!shaPattern.test(packet?.headSha ?? "") || packet.headSha !== pr.headSha)
+          add("Claimed own PR head SHA does not match GitHub inventory");
+        const declared = new Set(packet?.writeSet ?? []);
+        for (const actualPath of pr.files)
+          if (!declared.has(actualPath)) add("Own PR contains undeclared path: " + actualPath);
         continue;
       }
       for (const file of packet?.writeSet ?? [])
