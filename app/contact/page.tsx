@@ -32,6 +32,11 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             category, preserve the recommendation evidence, check what the company can actually substantiate, and review
             one exact company change before returning for comparable remeasurement.
           </p>
+          <div className="outreach-contact-hero__action">
+            <Link className="canonical-button canonical-button--primary" href="#design-partner-application">
+              Go to pilot application <Arrow />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -53,7 +58,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
 
           <article>
             <span>Design partner</span>
-            <h2>Apply as Design Partner.</h2>
+            <h2 id="design-partner-application" tabIndex={-1}>Apply as Design Partner.</h2>
             {submitted ? <div className="inline-notice"><strong>Application received.</strong><p>Your application has been saved. Founder review target: one business day. If the application fits the current design-partner scope, the reply will include scheduling instructions for the working session.</p>{intakeId ? <p><strong>Application reference:</strong> <code>{intakeId}</code></p> : null}</div> : <>
               {failed && <p className="inline-error" role="alert">The application could not be saved. Please try again or email hello@foremention.com.</p>}
               <form className="intake-form" data-design-partner-form action="/api/design-partner" method="post">
