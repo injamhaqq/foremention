@@ -149,8 +149,20 @@ export function validatePublicSourceUrl(value: string) {
 }
 
 function isPublicResolvedAddress(address: string) {
-  const normalized = address.toLowerCase().replace(/^\[|\]$/g, "");
-  return !isPrivateIpv4(normalized) && !(normalized.includes(":") && isPrivateIpv6(normalized));
+  const candidate = address.trim().toLowerCase();
+  const bracketed = candidate.startsWith("[") || candidate.endsWith("]");
+  if (bracketed && !(candidate.startsWith("[") && candidate.endsWith("]"))) return false;
+  const normalized = bracketed ? candidate.slice(1, -1) : candidate;
+  if (parseIpv4(normalized)) return !isPrivateIpv4(normalized);
+  if (!normalized.includes(":")) return false;
+  try {
+    // WHATWG URL validation rejects malformed IPv6 and arbitrary strings
+    // that a resolver might incorrectly label as A/AAAA DNS answers.
+    const parsed = new URL(`http://[${normalized}]/`);
+    return !isPrivateIpv6(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 async function resolveWithCloudflare(hostname: string, signal: AbortSignal) {
