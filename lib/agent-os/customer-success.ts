@@ -1,7 +1,7 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
 import { runCustomerSuccessDraftReasoner } from "@/lib/agent-os/customer-success-draft";
 import { placementBelongsToProject } from "@/lib/agent-os/customer-success-core";
-import { reviewedRecordReadyForCustomerSuccess } from "@/lib/agent-os/customer-success-record-gate";
+import { reviewedRecordReadyForOperatingAgent } from "@/lib/agent-os/reviewed-record-gate";
 import { loadRecordIntegrity } from "@/lib/record-integrity";
 import { deriveActivationStage } from "@/lib/retention-loop";
 import { deriveRetentionHealth } from "@/lib/retention-health";
@@ -21,7 +21,7 @@ export async function runCustomerSuccessAgent(input: {
     runId: input.runId,
     serviceRole: true,
   });
-  if (!reviewedRecordReadyForCustomerSuccess(record)) {
+  if (!reviewedRecordReadyForOperatingAgent(record)) {
     return { skipped: true, reason: "reviewed_record_not_eligible" } as const;
   }
 
