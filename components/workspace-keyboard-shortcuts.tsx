@@ -54,7 +54,7 @@ export function WorkspaceKeyboardShortcuts() {
       } else if (key === "a") {
         if (activate("[data-workspace-action]", () => router.push("/app/placements"))) {
           event.preventDefault();
-          setAnnouncement("Action control activated or opening Actions.");
+          setAnnouncement("Action shortcut activated.");
         }
       } else if (key === "e") {
         if (activate("[data-workspace-export]")) {
