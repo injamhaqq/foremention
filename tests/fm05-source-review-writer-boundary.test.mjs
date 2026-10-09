@@ -26,6 +26,8 @@ test("RPC enforces role, published project graph and exact review-only column li
   assert.match(migration, /m\.status='published'/);
   assert.match(migration, /r\.project_id=p_project_id/);
   assert.match(migration, /m\.category_id=p_category_id/);
+  assert.match(migration, /join public\.projects p/);
+  assert.match(migration, /p\.organization_id=r\.organization_id/);
   assert.match(migration, /join public\.sources s/);
   assert.match(migration, /for update of e/);
   assert.match(migration, /reviewed_by=v_actor/);
