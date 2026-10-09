@@ -196,4 +196,88 @@ begin
 end
 $$;
 
+-- Root graph isolation: privileged job/measurement writers must not forge
+-- an organization/project pairing, even when RLS is bypassed.
+reset role;
+
+do $
+declare
+  relation_name text;
+  expected_name text;
+  fk_def text;
+  valid_fk boolean;
+begin
+  foreach relation_name in array array['prompts','prompt_clusters','runs','jobs'] loop
+    expected_name := relation_name || '_project_id_fkey';
+    select pg_get_constraintdef(c.oid), c.convalidated into fk_def, valid_fk
+      from pg_constraint c
+      where c.conrelid = format('public.%I',relation_name)::regclass
+        and c.conname = expected_name
+        and c.contype = 'f';
+    if fk_def is null
+       or position('FOREIGN KEY (organization_id, project_id)' in fk_def) <> 1
+       or position('REFERENCES projects(organization_id, id)' in fk_def) = 0
+       or position('ON DELETE CASCADE' in fk_def) = 0
+       or not coalesce(valid_fk, false) then
+      raise exception 'FM-05: composite root FK missing or unvalidated on %', relation_name;
+    end if;
+  end loop;
+end
+$;
+
+do $
+declare
+  rejected boolean;
+begin
+  rejected := false;
+  begin
+    insert into public.prompts (organization_id,project_id,category_id,prompt_key,prompt_text)
+    values ('f5200000-0000-4000-8000-000000000001'::uuid,
+      'f5300000-0000-4000-8000-000000000003'::uuid,
+      'f5400000-0000-4000-8000-000000000001'::uuid,
+      'fm05-forged-cross-org-prompt',
+      'Attempted project contamination must be blocked here');
+  exception when foreign_key_violation then rejected := true;
+  end;
+  if not rejected then raise exception 'FM-05: project mismatch accepted in prompts'; end if;
+
+  rejected := false;
+  begin
+    insert into public.prompt_clusters (organization_id,project_id,name,intent)
+    values ('f5200000-0000-4000-8000-000000000001'::uuid,
+      'f5300000-0000-4000-8000-000000000003'::uuid,
+      'FM05 forged cross-org cluster','Must not be persisted');
+  exception when foreign_key_violation then rejected := true;
+  end;
+  if not rejected then raise exception 'FM-05: project mismatch accepted in clusters'; end if;
+
+  rejected := false;
+  begin
+    insert into public.runs (organization_id,project_id,category_id,created_by)
+    values ('f5200000-0000-4000-8000-000000000001'::uuid,
+      'f5300000-0000-4000-8000-000000000003'::uuid,
+      'f5400000-0000-4000-8000-000000000001'::uuid,
+      'f5100000-0000-4000-8000-000000000001'::uuid);
+  exception when foreign_key_violation then rejected := true;
+  end;
+  if not rejected then raise exception 'FM-05: project mismatch accepted in runs'; end if;
+
+  rejected := false;
+  begin
+    insert into public.jobs (organization_id,project_id,job_type,status)
+    values ('f5200000-0000-4000-8000-000000000001'::uuid,
+      'f5300000-0000-4000-8000-000000000003'::uuid,
+      'fm05-root-fk-negative','queued');
+  exception when foreign_key_violation then rejected := true;
+  end;
+  if not rejected then raise exception 'FM-05: project mismatch accepted in jobs'; end if;
+end
+$;
+
+-- Confirm a valid same-org pairing remains writable for the service executor.
+insert into public.jobs (organization_id,project_id,job_type,status)
+values ('f5200000-0000-4000-8000-000000000001'::uuid,
+  'f5300000-0000-4000-8000-000000000001'::uuid,
+  'fm05-root-fk-positive','queued');
+
 rollback;
