@@ -132,3 +132,30 @@ test("plain text with angle-bracketed source terms cannot prove absence", async 
   assert.equal(result.pageTextCoverage, "partial");
   assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "unknown");
 });
+
+test("blank but HTTP 200 static HTML is unknown, not absent", async () => {
+  const result = await inspect("<html><body>   </body></html>");
+  assert.equal(result.access, "open");
+  assert.equal(result.pageText, "");
+  assert.equal(result.pageTextCoverage, "partial");
+  assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "unknown");
+});
+
+test("JavaScript-only application shell is unknown, not evidence of brand absence", async () => {
+  const result = await inspect("<html><body><div id=\"root\"></div><script>document.getElementById('root').textContent='Acme';</script></body></html>");
+  assert.equal(result.access, "open");
+  assert.equal(result.pageText, "");
+  assert.equal(result.pageTextCoverage, "partial");
+  assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "unknown");
+});
+
+test("blank HTTP 200 plain text cannot support an absence finding", async () => {
+  const result = await inspectSourceUrl("https://example.com/blank.txt", {
+    fetcher: async () => new Response("   ", { headers: { "content-type": "text/plain" } }),
+    resolver: async () => ["93.184.216.34"],
+    includePageText: true,
+  });
+  assert.equal(result.access, "open");
+  assert.equal(result.pageTextCoverage, "partial");
+  assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "unknown");
+});
