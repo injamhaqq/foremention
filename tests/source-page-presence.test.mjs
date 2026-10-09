@@ -159,3 +159,20 @@ test("blank HTTP 200 plain text cannot support an absence finding", async () => 
   assert.equal(result.pageTextCoverage, "partial");
   assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "unknown");
 });
+
+test("page title without readable body does not establish missing-brand evidence", async () => {
+  const result = await inspect(
+    "<html><head><title>Loading your dashboard</title></head><body><div id=\"root\"></div><script>document.querySelector('#root').textContent='Acme';</script></body></html>"
+  );
+  assert.equal(result.access, "open");
+  assert.match(result.pageText, /Loading your dashboard/);
+  assert.equal(result.pageTextCoverage, "partial");
+  assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "unknown");
+});
+
+test("meaningful static body text still permits bounded negative observation", async () => {
+  const result = await inspect("<html><head><title>Welcome</title></head><body><main><p>A static article about reliable evidence collection.</p></main></body></html>");
+  assert.equal(result.access, "open");
+  assert.equal(result.pageTextCoverage, "complete");
+  assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "absent");
+});
