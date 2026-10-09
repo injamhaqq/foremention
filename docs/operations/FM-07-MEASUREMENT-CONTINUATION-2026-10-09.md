@@ -126,14 +126,14 @@ Vendor license/pricing and product-feature terms require dated procurement confi
 
 ## Red / green / verify handoff
 - **RED:** synthetic release quality gate could accept duplicated observations while omitting another golden category; PostHog project IP anonymization off; full funnel not observed; production DSN and invoiced costs unavailable; URL-param submission analytics can be spoofed; release fixture defaults mimic assessed output quality.
-- **GREEN proposed via FM-07 PR:** case-set integrity validator + four negative tests; no shared schema, UI, provider or orchestration modifications.
-- **VERIFY still required:** `node --test tests/fm07-release-quality-integrity.test.mjs`, `node scripts/verify-ai-evaluation-gate.mjs`, full `pnpm test`, lint, typecheck, build, security, exact-head CI and deployment evidence. **Do not merge until green.**
+- **GREEN proposed via FM-07 PR #463:** exact case-set integrity validator + four negative tests; `lib/evaluation/release-fixture-validation.mjs` requires explicit provider outcomes, assessed safety flags, citations, output structure and assertions. The 15 synthetic golden observation rows now declare those states individually; failed provider output is explicitly unassessed, and missing latency/cost remains null instead of becoming fake measurements. Six additional regression tests cover absent assessments and invalid cost/latency. No shared schema, UI, provider or orchestration modifications.
+- **Verification checkpoint:** exact-head `cf1ea381076ff1f07effabf6e949a4b607476f60` passed full CI, deterministic evaluation gate, browser acceptance, isolated authenticated journey, CodeQL and security on 2026-10-09. Subsequent fixture-integrity edits **invalidate that head's verification** and require fresh checks at the new final SHA: `pnpm test`, `pnpm eval:gate`, lint, typecheck, build, security and browser acceptance. Production deployment is not verified and remains FM-00-controlled.
 
 ## FM-07 continuation packet to FM-00
 - **Branch:** `fm07/evaluation-case-integrity-20261009`.
 - **Base main SHA:** `d4fea60a7bb8e047f2282cea9134121e9496c67e`.
-- **Owned touched files:** `lib/evaluation/release-quality-gate.mjs`, `tests/fm07-release-quality-integrity.test.mjs`, this new handoff document.
-- **Changes:** fail-closed golden-case identity and category validation; synthetic-only coverage regression tests.
+- **Owned touched files:** `lib/evaluation/release-quality-gate.mjs`, `lib/evaluation/release-fixture-validation.mjs`, `scripts/verify-ai-evaluation-gate.mjs`, `evals/release-quality-observations.json`, `tests/fm07-release-quality-integrity.test.mjs`, `tests/fm07-release-fixture-validation.test.mjs`, and this continuation document.
+- **Changes:** fail-closed golden-case identity/category validation plus strict explicit assessor verdicts; no fabricated timing, cost, claims, or unmeasured safety pass-defaults.
 - **External dependencies:** FM-01 provider model identity/usage quality; FM-05 applied migration + cohort classification; FM-06 terminal attempt ledger and schedules; FM-08 production DSN/alert/source-map/release verification; FM-03 chart/UX display; FM-00 event contract and cutover.
 - **Release blockers:** green tests on exact PR SHA, production telemetry validation, missing-scope catalog query, project-level IP privacy decision, independent real billing and customer proof evidence.
 - **Non-claims:** no verified external customers, new signed pilots, ARR, model winner, production cost margin, live Sentry delivery or current production SHA established in this FM-07 review.
