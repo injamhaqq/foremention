@@ -5,6 +5,11 @@ import {
 } from "@/lib/agent-os/reasoning-core";
 import { runStructuredReasoning } from "@/lib/agent-os/reasoning-runtime";
 import { supabaseRest } from "@/lib/supabase-rest";
+import {
+  MAX_RESEARCH_REASONING_ANSWERS,
+  MAX_RESEARCH_REASONING_SOURCES,
+  assessResearchReasoningCoverage,
+} from "@/lib/agent-os/research-reasoning-coverage";
 
 type AnswerRow = {
   id: string;
@@ -79,6 +84,7 @@ export async function runResearchInsightReasoner(input: {
   runId: string;
   organizationId: string;
   projectId: string;
+  verifiedAnswerCount: number;
 }) {
   const [projects, competitors, answers, maps] = await Promise.all([
     supabaseRest<Array<{ client_brand: string; category: string | null }>>(
@@ -90,7 +96,7 @@ export async function runResearchInsightReasoner(input: {
       { serviceRole: true },
     ),
     supabaseRest<AnswerRow[]>(
-      `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present,brand_position&organization_id=eq.${encodeURIComponent(input.organizationId)}&run_id=eq.${encodeURIComponent(input.runId)}&review_status=eq.verified&order=collected_at.asc&limit=100`,
+      `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present,brand_position&organization_id=eq.${encodeURIComponent(input.organizationId)}&run_id=eq.${encodeURIComponent(input.runId)}&review_status=eq.verified&order=collected_at.asc&limit=${MAX_RESEARCH_REASONING_ANSWERS + 1}`,
       { serviceRole: true },
     ),
     supabaseRest<Array<{ id: string }>>(
@@ -98,14 +104,18 @@ export async function runResearchInsightReasoner(input: {
       { serviceRole: true },
     ),
   ]);
-  if (!answers.length) return { skipped: true as const, reason: "no_verified_answers" };
+  const answerCoverage = assessResearchReasoningCoverage(input.verifiedAnswerCount, answers.length, 0);
+  if (!answerCoverage.ok) return { skipped: true as const, reason: answerCoverage.reason };
 
   const sources = maps[0] ? await supabaseRest<SourceRow[]>(
-    `source_map_entries?select=id,rank,citation_observations,engines,client_present,page_presence_state,competitors_present,entry_route,feasibility,influence,reviewed_at,source:sources(domain,page_title,canonical_url,crawler_access)&organization_id=eq.${encodeURIComponent(input.organizationId)}&source_map_id=eq.${encodeURIComponent(maps[0].id)}&order=rank.asc&limit=40`,
+    `source_map_entries?select=id,rank,citation_observations,engines,client_present,page_presence_state,competitors_present,entry_route,feasibility,influence,reviewed_at,source:sources(domain,page_title,canonical_url,crawler_access)&organization_id=eq.${encodeURIComponent(input.organizationId)}&source_map_id=eq.${encodeURIComponent(maps[0].id)}&order=rank.asc&limit=${MAX_RESEARCH_REASONING_SOURCES + 1}`,
     { serviceRole: true },
   ) : [];
 
-  const answerPacket = answers.slice(0, 24).map((answer) => ({
+  const sourceCoverage = assessResearchReasoningCoverage(input.verifiedAnswerCount, answers.length, sources.length);
+  if (!sourceCoverage.ok) return { skipped: true as const, reason: sourceCoverage.reason };
+
+  const answerPacket = answers.map((answer) => ({
     evidence_key: `answer:${answer.id}`,
     question: clean(answer.prompt_text || answer.prompt_key, 700),
     provider: answer.provider,
