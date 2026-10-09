@@ -580,3 +580,44 @@ button.fm-graph-node:disabled {
     inset: auto;
   }
 }
+
+/* FM-03: explain the founder-led offer without changing the approved hero or graph. */
+.fm-cinematic-hero__pilot {
+  max-width: 590px;
+  margin-top: 27px;
+  padding-top: 17px;
+  border-top: 1px solid rgba(101, 181, 142, .28);
+}
+
+.fm-cinematic-hero__audience {
+  margin: 0 0 10px;
+  color: #d2dbd4;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.fm-cinematic-hero__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #aebeb2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fm-cinematic-hero__steps li:not(:first-child)::before {
+  content: "→";
+  color: #65b58e;
+  margin-right: 10px;
+}
+
+@media (max-width: 620px) {
+  .fm-cinematic-hero__pilot { margin-top: 22px; }
+  .fm-cinematic-hero__steps { display: grid; gap: 8px; }
+  .fm-cinematic-hero__steps li:not(:first-child)::before { content: none; }
+  .fm-cinematic-hero__steps li { padding-left: 12px; border-left: 2px solid #35705d; }
+}
