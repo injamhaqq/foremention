@@ -8,6 +8,7 @@ const reserved = new Set([
   "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml",
   "docs/AUTOPILOT.md", "docs/billion-dollar-build/EXECUTION-STATUS.md",
   "scripts/validate-autopilot-diff.mjs", "scripts/verify-workstream-handoff.mjs",
+  "scripts/capture-workstream-prs.mjs",
 ]);
 const reservedPrefixes = [".github/", ".claude/", "supabase/migrations/"];
 
