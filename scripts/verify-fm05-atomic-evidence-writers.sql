@@ -202,7 +202,7 @@ $$;
 -- an organization/project pairing, even when RLS is bypassed.
 reset role;
 
-do $
+do $$
 declare
   relation_name text;
   expected_name text;
@@ -225,9 +225,9 @@ begin
     end if;
   end loop;
 end
-$;
+$$;
 
-do $
+do $$
 declare
   rejected boolean;
 begin
@@ -274,7 +274,7 @@ begin
   end;
   if not rejected then raise exception 'FM-05: project mismatch accepted in jobs'; end if;
 end
-$;
+$$;
 
 -- Confirm a valid same-org pairing remains writable for the service executor.
 insert into public.jobs (organization_id,project_id,job_type,status)
