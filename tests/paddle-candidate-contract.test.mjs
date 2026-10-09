@@ -4,7 +4,7 @@ import test from "node:test";
 import { readFile } from "node:fs/promises";
 import {
   paddleCandidateConfigured, paddlePackageForPriceId, paddlePriceIdFor,
-  verifyPaddleCandidateWebhook, parsePaddleCandidateEvent,
+  verifyPaddleCandidateWebhook, parsePaddleCandidateEvent, parsePaddleCandidateAdjustment,
   createPaddleCandidateCheckout, createPaddleCandidatePortal,
 } from "../lib/paddle-billing.ts";
 
@@ -227,3 +227,73 @@ test("customer portal requests use Paddle customer IDs and never cache links", a
   assert.equal(captured.options.cache, "no-store");
   await assert.rejects(() => createPaddleCandidatePortal("cust_creem"), /customer/i);
 });
+
+test("financial adjustments classify refund, credit, chargeback and reversals without entitlement grants", () => {
+  envSetup();
+  const financialCases = [
+    ["refund", "pending_approval"],
+    ["refund", "approved"],
+    ["refund", "rejected"],
+    ["credit", "approved"],
+    ["chargeback", "approved"],
+    ["chargeback_warning", "approved"],
+    ["chargeback_reverse", "approved"],
+    ["chargeback_warning_reverse", "reversed"],
+    ["credit_reverse", "reversed"],
+  ];
+  for (const [action, status] of financialCases) {
+    const payload = event("adjustment.created", {
+      id: "adj_" + "g".repeat(26),
+      action, status, type: "partial",
+      transaction_id: identifiers.transaction,
+      subscription_id: identifiers.subscription,
+      customer_id: identifiers.customer,
+    });
+    assert.equal(parsePaddleCandidateEvent(payload), null);
+    assert.deepEqual(parsePaddleCandidateAdjustment(payload), {
+      eventId: identifiers.event,
+      occurredAt: occurred_at,
+      adjustmentId: "adj_" + "g".repeat(26),
+      eventType: "adjustment.created",
+      action, status, adjustmentType: "partial",
+      transactionId: identifiers.transaction,
+      subscriptionId: identifiers.subscription,
+      customerId: identifiers.customer,
+      requiresReview: true,
+    });
+    const updated = payload.replace("adjustment.created", "adjustment.updated");
+    assert.equal(parsePaddleCandidateAdjustment(updated)?.eventType, "adjustment.updated");
+  }
+});
+
+test("malformed financial events are errors, not silently acknowledged as ignorable", () => {
+  envSetup();
+  const valid = {
+    id: "adj_" + "g".repeat(26), action: "refund",
+    status: "pending_approval", type: "full",
+    transaction_id: identifiers.transaction,
+    subscription_id: null, customer_id: identifiers.customer,
+  };
+  assert.equal(parsePaddleCandidateAdjustment(event("transaction.completed")), null);
+  assert.equal(parsePaddleCandidateAdjustment(event("adjustment.created", valid))?.subscriptionId, null);
+  for (const patch of [
+    { transaction_id: "txn_bad" },
+    { customer_id: "cust_unrelated" },
+    { id: "adj_bad" },
+    { status: "unknown" },
+    { action: "unknown" },
+    { type: "unknown" },
+    { subscription_id: "sub_bad" },
+  ]) {
+    assert.throws(
+      () => parsePaddleCandidateAdjustment(event("adjustment.updated", { ...valid, ...patch })),
+      /adjustment/i,
+    );
+  }
+  assert.throws(() => parsePaddleCandidateAdjustment("{invalid"), /adjustment/i);
+  assert.throws(
+    () => parsePaddleCandidateAdjustment(event("adjustment.created", valid, { event_id: "" })),
+    /adjustment/i,
+  );
+});
+
