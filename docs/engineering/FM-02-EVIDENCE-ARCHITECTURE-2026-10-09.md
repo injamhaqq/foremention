@@ -71,6 +71,12 @@ aggregate integrity. Do not copy or supersede those changes.
   Security review must validate an execution-layer egress policy or a
   provider-mediated fetch where destination restrictions are enforced at
   connection time. Do not advertise complete SSRF mitigation.
+- **Additional FM-02 DNS patch:** reject malformed/non-IP A/AAAA answers in
+  `lib/source-inspection.ts` before the first fetch and on every manually
+  validated redirect. Offline tests assert zero fetches for fake hostnames,
+  malformed IPv6, private IPv4/IPv6, mapped private IPv4, and mixed address
+  sets. This closes an input-validation weakness; it is **not** a rebinding
+  solution because the actual transport destination remains unpinned.
 - Fail closed for malformed IP answers; every redirect needs fresh destination
   validation; reserved/unicast and numeric-host evasion cases need negative tests.
 - Reject credentialed URLs, private/metadata destinations, unexpected ports,
@@ -191,6 +197,9 @@ the absence of script-rendered content, future updates or uninspected content.
 New deterministic tests exercise actual HTTP 206, text truncation, static
 HTML, omitted navigation/footer, oversized representations, blocked and
 unknown responses.
+Source DNS regression tests additionally require validation of actual IP
+syntax (including IPv6 literals), rejection of malformed A/AAAA records, and
+zero network requests on invalid resolution.
 
 **Verification:** Previous patch CI failed an outdated structural regression
 test that asserted the old unsafe direct ternary. That test was updated to
