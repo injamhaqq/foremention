@@ -10,7 +10,7 @@ Reviewed at exact base SHA: `CLAUDE.md`, `FOREMENTION_STATE.md`, `README.md`, `d
 Do **not** treat older handoff ledger SHAs or `design-qa.md` PR #12 historical metrics as current production evidence. Do **not** assume all open PRs are merged.
 
 ## 2. Hard invariants — do not change
-- Brand, full lockups and marks from `public/brand/foremention-logo.svg`, `foremention-logo-white.svg`, `foremention-mark.svg`, `foremention-mark-white.svg` only; never redraw, recolor, derive, or substitute. Preserve approved graphite/registered green/warm evidence surfaces and `Register. Prove. Prepare.`.
+- Preserve the **current runtime-approved reverse identity assets** `public/brand/foremention-logo-white.svg` and `public/brand/foremention-mark-white.svg`; never redraw, recolor, derive, or substitute. `tests/canonical-visual-system.test.mjs` explicitly requires legacy/light asset paths `public/brand/foremention-logo.svg` and `public/brand/foremention-mark.svg` to be **retired**. Note that `docs/FOREMENTION-BRAND-ASSETS.md` still lists those retired light assets; resolve the documentation discrepancy via FM-00 rather than reintroducing removed artwork. Preserve graphite/registered green/warm evidence surfaces and `Register. Prove. Prepare.`.
 - Public category: **Recommendation Intelligence for B2B software** until approved migration. Category Leadership OS remains future ambition.
 - Eight primary navigation destinations in this order: Overview `/app`, Questions `/app/prompts`, Records `/app/runs`, Evidence `/app/source-map`, Opportunities `/app/opportunities`, Comparisons `/app/analytics`, All tools `/app/tools`, Settings `/app/settings`.
 - Source X-Ray is retired as a standalone offering. Inspection must remain inside Recommendation Records and supporting evidence workspace.
@@ -161,3 +161,26 @@ The docs-only [PR #465](https://github.com/injamhaqq/foremention/pull/465) head 
 
 ### Definitive disposition
 **FM-03 code and audit: IMPLEMENTED, AUTOMATED CHECKS GREEN, AWAITING AUTHORIZED INTEGRATION.** GitHub reported both #465 and #467 cleanly mergeable at the recheck before this documentation update. The developer workstream **must not** merge or deploy: FM-00 controls integration, FM-08 release/security signoff, and the founder approves any material visual direction. If FM-00 elects to land the bounded fix, recheck live main, branch diff and reviewer policy, merge **only its final reviewed SHA**, run exact merge SHA tests, verify production health/build SHA and relevant keyboard behavior, and preserve rollback. Do not equate a green PR with a released customer-facing correction. Leave P1/P2 redesign items gated rather than creating overlapping patches in #440/#438/#426.
+
+## 13. CI artifact inspection — performance warnings and actual visual proof
+**Evidence source:** [PR #467's exact-head browser acceptance run](https://github.com/injamhaqq/foremention/actions/runs/37948084099) at `defeec71d5e85acc2ac4520f141ef896bb7f001a`; GitHub Actions artifact ID **11624524285**. The artifact ZIP (190 files, including actual screenshots, axe reports, responsive checks and Lighthouse JSON) was downloaded and independently inspected by FM-03 on 2026-10-10. These are **local isolated build** findings; not field data or real production signed-in tests.
+
+### Lighthouse lab values — one run per public route
+| Local route | Performance /100 | Accessibility /100 | Best practices /100 | SEO /100 | LCP (lab) | Observed interpretation |
+|---|---:|---:|---:|---:|---:|---|
+| `/` | **74** | 100 | 96 | 100 | **5.14 s** | Below configured performance warning floor of 75 |
+| `/product` | 77 | 100 | 96 | 100 | **4.14 s** | Above score warning floor; lab LCP still warrants investigation |
+| `/pricing` | 85 | 100 | 96 | 69 | **3.33 s** | Public pricing `noindex` is an intentional separate FM-00 business/SEO decision; do not automatically index |
+| `/score` | **72** | 100 | 96 | 100 | **4.54 s** | Below configured performance warning floor of 75 |
+
+**Important:** The two performance assertion results (`/`: 74 < 75, `/score`: 72 < 75) were emitted at Lighthouse **warning severity**, so GitHub's browser acceptance job correctly finished SUCCESS despite these warnings. **Never interpret CI success as meeting performance targets.** Scores are single-run synthetic Lighthouse values; **Core Web Vitals field p75 LCP, INP and CLS remain unverified**. The category accessibility score of 100 is an automated audit result, not proof of WCAG 2.2 conformance or manual assistive-technology approval.
+
+The Lighthouse audits flagged render-blocking Google Fonts CSS requests and approximately 88–91 KiB of unused JavaScript estimates across the inspected routes, notably a shared `product-analytics` bundle. These are candidates for **controlled, measured investigation**, not proof a dependency can be deleted safely; analytics collection and privacy semantics are owned by FM-07/FM-08. Public stylesheet ownership overlaps #440; do not ship speculative CSS/font replacement or shift measured attribution behavior without a separate reviewed change. Re-run warm/cold repeat tests and inspect waterfall/font cache/bundle before accepting savings.
+
+### Screenshot and responsive test coverage
+The downloaded artifact includes homepage screenshots at 1440, 1024, 768, 375 and 320 pixels; 375 and 320 show the approved reverse logo, hero heading, two distinct pilot/example actions and illustrative graph without reported horizontal overflow. Brand-proof screenshots are also saved for the fictional workspace shell and show no horizontal overflow at the five supported widths; **these are not a screen-reader/manual interaction signoff**. The automated WebKit-mobile reflow suite had `failures=[]` and all documented normal views unclipped in its JSON summary; zoom, reduced motion and responsive evidence require their exact respective test receipts, not generic claims.
+
+### Brand documentation mismatch discovered
+Repository test `tests/canonical-visual-system.test.mjs` confirms the **approved reverse white SVGs only**, while `docs/FOREMENTION-BRAND-ASSETS.md` still calls two now-retired light SVGs canonical. The runtime brand-proof check received HTTP 200 on `foremention-logo-white.svg` and `foremention-mark-white.svg`, and HTTP 404 for `foremention-logo.svg`, `foremention-mark.svg` and known legacy paths. The earlier Section 2 brand statement in this audit has been corrected; **FM-00 should reconcile the older asset documentation with the current tests, not reintroduce retired assets.** No artwork or runtime style has been changed in this workstream.
+
+**Disposition:** FM-03 accessibility correction remains code-complete and all relevant exact-head checks GREEN. Further performance tuning (especially home and score) and public presentation simplification are **not** implemented; they require measured ownership/approval and should be tracked as separate P1 decisions rather than falsely declared fixed.
