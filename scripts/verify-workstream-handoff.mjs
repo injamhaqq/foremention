@@ -27,7 +27,8 @@ export function validateHandoff(packet, snapshot, currentMainSha, nowMs = Date.n
   const validBranch = typeof packet?.branch === "string" &&
     (packet.branch.startsWith(`fm-${workerNumber}/`) ||
      packet.branch.startsWith(`fm${workerNumber}/`) ||
-     packet.branch.startsWith(`audit/fm-${workerNumber}-`)) &&
+     packet.branch.startsWith(`audit/fm-${workerNumber}-`) ||
+     packet.branch.startsWith(`audit/fm${workerNumber}-`)) &&
     !packet.branch.endsWith("/") && !packet.branch.includes("..") &&
     !/[\\\s:*?[\]~^]/.test(packet.branch);
   if (!validBranch) add("Invalid workstream branch");
