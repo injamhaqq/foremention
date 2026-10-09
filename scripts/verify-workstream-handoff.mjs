@@ -9,6 +9,8 @@ const reserved = new Set([
   "docs/AUTOPILOT.md", "docs/billion-dollar-build/EXECUTION-STATUS.md",
   "scripts/validate-autopilot-diff.mjs", "scripts/verify-workstream-handoff.mjs",
   "scripts/capture-workstream-prs.mjs",
+  "docs/operations/FM-11-WORKSTREAM-PROTOCOL.md",
+  "docs/operations/FM-11-CONTINUATION-2026-10-09.md",
 ]);
 const reservedPrefixes = [".github/", ".claude/", "supabase/migrations/"];
 
