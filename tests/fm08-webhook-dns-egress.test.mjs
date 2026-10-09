@@ -52,3 +52,11 @@ test("workspace webhook DNS preflight runs before every outbound fetch", async (
   assert.ok(loopStart >= 0 && preflight > loopStart && outbound > preflight);
   assert.match(source, /redirect: "error"/);
 });
+
+test("registration refuses non-public DNS before persisting a webhook", async () => {
+  const source = await readFile(new URL("../app/api/webhooks/route.ts", import.meta.url), "utf8");
+  assert.match(source, /await assertPublicSourceResolution\(destinationUrl\)/);
+  const validated = source.indexOf("await assertPublicSourceResolution(destinationUrl)");
+  const persisted = source.indexOf('supabaseRest("workspace_webhook_endpoints"');
+  assert.ok(validated >= 0 && persisted > validated);
+});
