@@ -1,5 +1,5 @@
 import { safeOperationalError } from "@/lib/collection-policy";
-import { validatePublicSourceUrl } from "@/lib/source-inspection";
+import { assertPublicSourceResolution, validatePublicSourceUrl } from "@/lib/source-inspection";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export const WORKSPACE_WEBHOOK_EVENTS = ["collection.completed", "source.reviewed", "action.completed", "evidence.reviewed"] as const;
@@ -51,6 +51,10 @@ export async function deliverWorkspaceWebhooks(event: DeliveryEvent) {
     const body = JSON.stringify({ id: event.eventKey, type: event.eventType, occurred_at: event.occurredAt, organization_id: event.organizationId, project_id: event.projectId, data: { href: event.href, project_id: event.projectId } });
     try {
       const destination = validateWebhookDestination(endpoint.destination_url);
+      // URL syntax alone cannot detect private DNS targets. Recheck each
+      // delivery attempt before the outbound request; private-network egress
+      // must additionally be denied at the runtime/network boundary.
+      await assertPublicSourceResolution(destination);
       const secret = await deriveWebhookSigningSecret(endpoint.id, masterSecret);
       const signature = bytesToHex(await hmac(encoder.encode(secret), `${timestamp}.${body}`));
       const response = await fetch(destination, { method: "POST", redirect: "error", signal: AbortSignal.timeout(8_000), headers: { "content-type": "application/json", "user-agent": "Foremention-Webhooks/1.0", "x-foremention-event": event.eventType, "x-foremention-timestamp": timestamp, "x-foremention-signature": `v1=${signature}` }, body });
