@@ -872,7 +872,7 @@ export const scheduleWeeklyWorkspaceDigests = inngest.createFunction(
 );
 
 export const deliverWorkspaceWebhookEvents = inngest.createFunction(
-  { id: "deliver-workspace-webhook-events", retries: 3, triggers: { event: "foremention/workspace.event" } },
+  { id: "deliver-workspace-webhook-events", retries: 3, triggers: { event: "foremention/workspace.event" }, concurrency: { limit: 1, key: 'event.data.organizationId + ":" + event.data.eventKey' } },
   async ({ event, step }) => step.run("deliver-signed-webhooks", () => deliverWorkspaceWebhooks(event.data as DeliveryEvent)),
 );
 
