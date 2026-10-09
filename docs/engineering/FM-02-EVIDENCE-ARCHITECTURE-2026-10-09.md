@@ -2,7 +2,7 @@
 
 **Authority:** FM-02 extraction and evidence inspection only. FM-00 owns integration.
 **Main baseline:** `d4fea60a7bb8e047f2282cea9134121e9496c67e`.
-**Status:** Code fix proposed on branch, not released. Vendor extraction benchmark NOT RUN. Commercial search license NOT CLEARED.
+**Status:** Code fix proposed on branch, not released. Existing 12-fixture native/Readability benchmark rerun; no live-page or vendor-crawler head-to-head. Commercial search license NOT CLEARED.
 
 ## Decision — KEEP / ADAPT / ADOPT
 
@@ -61,7 +61,7 @@ aggregate integrity. Do not copy or supersede those changes.
 | Historical bounded snapshots | Implemented | KEEP existing RLS and representation version |
 | Canonical redirects/duplicates | Partial URL normalization, source IDs, final URL | Evaluate cross-redirect dedup in corpus |
 | Source support for exact assertions | Mention/substring heuristic, human review | Evidence-span support check, coordinated FM-05 |
-| Crawl benchmark | No verified representative corpus | Required prior to vendor quality claims |
+| Existing extraction benchmark | Twelve fixture cases and native vs Readability workflow implemented | Preserve and extend the benchmark before any new vendor quality claim |
 
 ## Security, privacy and legal acceptance
 
@@ -135,9 +135,29 @@ provider terms and data-processing terms** before adopting. Cloudflare
 Browser Run is a hosted platform feature, not a license to scrape content.
 No free tier implies unlimited production capacity.
 
-## Extraction benchmark: mandatory corpus, NOT YET EXECUTED
+## Extraction benchmark: existing receipt and unexecuted expansion
 
-Assemble licensed, explicitly permitted public pages, fixture copies or test
+**Existing benchmark must not be duplicated:** `scripts/source-extraction-benchmark.mjs`,
+`benchmarks/source-extraction/cases.json`, and
+`.github/workflows/source-extraction-benchmark.yml` already compare Foremention
+native extraction with Mozilla Readability/JSDOM on twelve checked-in deterministic
+HTML fixtures. See `docs/SOURCE-EXTRACTION-DECISION-2026-08-14.md` for the
+original dated baseline. This benchmark does not execute JavaScript or prove
+current live-web accuracy.
+
+**Current recheck receipt:** the existing Source Extraction Benchmark workflow
+run `37923431253` succeeded at code SHA
+`b63bc5b1c863c97e1dc6842438606081a304186f` on 2026-10-09:
+native average fixture quality `0.977`, Readability `0.962`;
+native and Readability article-like quality both `1.000`;
+zero material Readability wins, one large-bounded-page Readability regression,
+quality decision `do-not-adopt`. These are phrase-recall / boilerplate-rejection
+scores on test fixtures, NOT independent URL fidelity, vendor accuracy or
+real-world search coverage. Workflow artifact:
+`https://github.com/injamhaqq/foremention/actions/runs/37923431253`.
+
+**Expansion not yet executed:** Assemble licensed, explicitly permitted public
+pages, fixture copies or test
 servers: 4 clean static articles, 3 complex-nav pages, 3 JS-rendered pages,
 2 redirected/canonical duplicates, 2 blocked/robots pages, 2 malformed HTML
 pages, 2 PDFs with selectable text (separate PDF pipeline), 2 changed-over-time
@@ -163,14 +183,21 @@ including operational and legal costs, not merely produce prettier Markdown.
 
 New `lib/source-page-presence.ts` supplies a deterministic coverage gate:
 a found mention may be recorded on a partial retrieved page; a missing brand
-is `unknown` unless `access=open` AND the full bounded visible text
-representation was inspected (length equality), otherwise `absent` is never
-inferred. This does not prove page-wide rendered absence beyond retrieved HTML.
-Unit cases cover partial, stripped, blocked, unknown and positive mentions.
+is `unknown` unless `access=open` and the inspector explicitly attests
+complete coverage of its static bounded visible-text representation: exact
+text identity (not merely equal lengths), no HTTP/body truncation, no
+boilerplate excluded, and no extracted-text cap reached. This does not prove
+the absence of script-rendered content, future updates or uninspected content.
+New deterministic tests exercise actual HTTP 206, text truncation, static
+HTML, omitted navigation/footer, oversized representations, blocked and
+unknown responses.
 
-**Verification pending**: PR CI / full tests / lint / TS / build / production;
-no vendor corpus or live provider spend was authorized. Do not merge solely on
-a green isolated unit test. FM-00 owns integration after exact-SHA gates.
+**Verification:** Previous patch CI failed an outdated structural regression
+test that asserted the old unsafe direct ternary. That test was updated to
+assert the new source inspector coverage contract. Current exact-head CI remains
+an independent required gate; successful 12-fixture benchmark and security
+workflows do not prove production readiness. No live provider spend authorized.
+FM-00 owns integration after exact-SHA gates.
 
 ## FM-02 continuation packet to FM-00
 
@@ -184,8 +211,10 @@ a green isolated unit test. FM-00 owns integration after exact-SHA gates.
 5. FM-06: own any future job queue/browser budget, retries and idempotency.
 6. Security owner: test DNS rebinding at network connection time, robots and
    external resource isolation; block broad untrusted crawling until corrected.
-7. Run and publish genuine fixed-corpus comparative extraction receipts before
-   deciding on Crawlee/Crawl4AI/Firecrawl/Browser Run; no winner claims before.
+7. Keep the successful existing 12-fixture native/Readability receipt, and
+   extend the permitted corpus with real-world and adversarial cases before
+   deciding on Crawlee/Crawl4AI/Firecrawl/Browser Run. Do not infer a vendor
+   winner from the native/Readability-only fixture benchmark.
 8. No secrets changed, no paid services activated, no retention changes,
    no production actions, no merge or auto-deployment from this workstream.
 
