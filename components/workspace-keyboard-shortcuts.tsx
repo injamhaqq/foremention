@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { activateShortcutTarget } from "@/lib/workspace-shortcut-activation";
+import { activateFirstAvailableShortcutTarget } from "@/lib/workspace-shortcut-activation";
 
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
@@ -21,8 +21,10 @@ export function WorkspaceKeyboardShortcuts() {
   useEffect(() => {
     function activate(selector: string, fallback?: () => void) {
       const activeItem = document.activeElement instanceof HTMLElement ? document.activeElement.closest<HTMLElement>("[data-workspace-item]") : null;
-      const target = activeItem?.querySelector<HTMLElement>(selector) || document.querySelector<HTMLElement>(selector);
-      if (activateShortcutTarget(target)) return true;
+      // A disabled bulk action must not hide an available per-row review link.
+      const preferred = activeItem ? Array.from(activeItem.querySelectorAll<HTMLElement>(selector)) : [];
+      const candidates = [...preferred, ...document.querySelectorAll<HTMLElement>(selector)];
+      if (activateFirstAvailableShortcutTarget(candidates)) return true;
       if (fallback) {
         fallback();
         return true;
