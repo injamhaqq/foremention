@@ -7,6 +7,7 @@ const read = path => readFile(new URL("../" + path, import.meta.url), "utf8");
 test("review route uses authenticated narrow RPC, derives actor and time from DB", async () => {
   const source = await read("app/api/sources/[id]/review/route.ts");
   assert.match(source, /rpc\/review_source_map_entry/);
+  assert.match(source, /!\["owner", "admin", "analyst"\]\.includes\(role\)/);
   assert.match(source, /token: accessToken/);
   assert.match(source, /p_organization_id: organizationId/);
   assert.match(source, /p_project_id: context\.projectId/);
