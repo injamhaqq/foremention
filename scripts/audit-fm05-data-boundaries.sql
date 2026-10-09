@@ -84,7 +84,42 @@ SELECT 'support_tickets_to_projects', count(*)
 FROM public.support_tickets a JOIN public.projects b ON b.id = a.project_id
 WHERE a.organization_id IS DISTINCT FROM b.organization_id;
 
--- 7. Reconciliation receipts only: recorded SQL stays inside the database.
+-- 7. Question-history completeness: aggregate only, no buyer-question text.
+-- Missing history MUST NOT be reconstructed from current prompt text when
+-- historical run selections might have used an earlier revision.
+WITH prompt_integrity AS (
+  SELECT p.id, p.active,
+    EXISTS (
+      SELECT 1 FROM public.prompt_versions v
+      WHERE v.prompt_id = p.id AND v.version = 1
+    ) AS initial_version_exists,
+    EXISTS (
+      SELECT 1 FROM public.prompt_versions v
+      WHERE v.prompt_id = p.id AND v.version = p.version
+    ) AS current_version_exists,
+    EXISTS (
+      SELECT 1 FROM public.run_prompt_selections s
+      WHERE s.prompt_id = p.id
+    ) AS has_historical_run_selection
+  FROM public.prompts p
+)
+SELECT count(*) AS questions_total,
+       count(*) FILTER (WHERE NOT initial_version_exists)
+         AS missing_initial_version,
+       count(*) FILTER (WHERE NOT current_version_exists)
+         AS missing_current_version,
+       count(*) FILTER (
+         WHERE NOT initial_version_exists AND NOT current_version_exists
+       ) AS both_missing_same_question,
+       count(*) FILTER (
+         WHERE NOT initial_version_exists AND has_historical_run_selection
+       ) AS history_gap_with_run_selection,
+       count(*) FILTER (
+         WHERE NOT initial_version_exists AND active
+       ) AS active_questions_missing_initial_version
+FROM prompt_integrity;
+
+-- 8. Reconciliation receipts only: recorded SQL stays inside the database.
 -- Hash-only evidence is NOT permission to rewrite migration history.
 SELECT version, name, cardinality(statements) AS statement_count,
   CASE WHEN cardinality(statements)=1 AND statements[1] IS NOT NULL
