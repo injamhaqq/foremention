@@ -12,6 +12,8 @@ export function approvedWorkspaceWebhookOrigins(raw = process.env.WORKSPACE_WEBH
   const origins = new Set<string>();
   try {
     for (const part of parts) {
+      const submitted = new URL(part);
+      if (submitted.hash) return new Set();
       const url = validatePublicSourceUrl(part);
       if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || url.pathname !== "/") {
         return new Set();
