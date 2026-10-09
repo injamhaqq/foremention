@@ -6,7 +6,7 @@
 
 1. Refresh the **current main SHA**, all open PRs (including drafts), all changed-file lists and pertinent repository instructions. Historical chat statements are not live evidence.
 2. Propose an **exact filename write-set** to FM-00 before editing. FM-00 assigns competing files to one integration owner.
-3. Use one independent checkout/worktree and branch per task. Suggested branch prefixes are **fm-01/** through **fm-11/**, without displacing already authorized conventions. Never let different PRs share an editable branch.
+3. Use one independent checkout/worktree and branch per task. Suggested branch prefixes are **fm-01/** through **fm-11/**; the validator also recognizes existing **fm07/**, **fm04/**, **audit/fm05-** and **audit/fm-03-** formats for the matching workstream, without displacing already authorized conventions. Never let different PRs share an editable branch.
 4. If another open PR already edits a proposed file, stop; have FM-00 sequence, reassign or require a fresh rebase. A green status check does not prove compatibility.
 5. Produce a review-only PR with actual test results and exact head SHA. Never self-merge, force-push a colleague's branch, deploy, use secrets, spend AI credits or contact customers without permission.
 
