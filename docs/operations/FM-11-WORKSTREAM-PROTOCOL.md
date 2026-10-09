@@ -16,7 +16,7 @@ Do not edit these from an independent FM-01 through FM-11 worker PR: CLAUDE.md, 
 
 ## Required handoff fields
 
-Each worker must report a JSON packet containing **workstream**, **baseSha**, **branch**, **prNumber** (null until created), **writeSet** (exact paths), **tests** (command plus actual status pass/fail/blocked/not-run), **dependencies**, **blockers**, and **nextTask**. In the PR body include the exact head SHA, relevant PR and CI links, rollback, tenant/security implications, migrations and environment-variable names only (never values). Never report an unrun test as passing.
+Each worker must report a JSON packet containing **workstream**, **baseSha**, **branch**, **prNumber** (null until created), **headSha** (exact PR head when a PR exists), **writeSet** (exact paths), **tests** (command plus actual status pass/fail/blocked/not-run), **dependencies**, **blockers**, and **nextTask**. In the PR body include the exact head SHA, relevant PR and CI links, rollback, tenant/security implications, migrations and environment-variable names only (never values). Never report an unrun test as passing.
 
 Run the **read-only inventory collector** before validating a worker packet:
 
@@ -44,7 +44,7 @@ The supplied open PR snapshot has this structure:
 }
 ~~~
 
-**This example is illustrative, not a live PR snapshot.** The collector obtains **every page** of all open PRs and all changed filenames, reserves both old and new filenames for renames, and rechecks main and the open-PR identities before marking an inventory complete. It fails closed on GitHub API failures, pagination limits, main/PR drift and stale capture time. The validator checks supplied snapshot shape, base SHA, freshness (15-minute maximum), own-PR branch provenance and exact-file collisions. The collector is not a cryptographic GitHub snapshot: a PR can still change after capture, and semantic overlaps between different filenames require FM-00 review. Re-run immediately before integration; never bypass failed checks by manufacturing a snapshot.
+**This example is illustrative, not a live PR snapshot.** The collector obtains **every page** of all open PRs and all changed filenames, reserves both old and new filenames for renames, and rechecks main and the open-PR identities before marking an inventory complete. It fails closed on GitHub API failures, pagination limits, main/PR drift and stale capture time. The validator checks supplied snapshot shape, base SHA, freshness (15-minute maximum), own-PR branch/head-SHA provenance, actual PR diff coverage against the declared write-set, and exact-file collisions. The collector is not a cryptographic GitHub snapshot: a PR can still change after capture, and semantic overlaps between different filenames require FM-00 review. Re-run immediately before integration; never bypass failed checks by manufacturing a snapshot.
 
 ## RED -> GREEN -> VERIFY and release authority
 
