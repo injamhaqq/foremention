@@ -138,3 +138,26 @@ Other FM-04/FM-08 PRs may mutate application APIs and auth boundaries at any tim
 - **Regression test:** `tests/workspace-keyboard-shortcuts.test.mjs` now covers absent, disabled, inert, aria-disabled and usable targets, plus conditional-announcement integration checks.
 - **Collision scan:** every open PR at branch selection was checked for all three touched paths; no overlap was reported. **No app-wide CSS, brand or product contracts changed.**
 - **FM-00 action:** review #467 as a nonmaterial accessibility correction, not a new design proposal. Requires passing exact head CI and FM-08/browser checks before merge. Neither #465 nor #467 is approved for automatic merge or deployment.
+
+## 12. Final automated verification and FM-00 merge gate — 2026-10-10
+
+### Exact-SHA engineering result
+The isolated, nonvisual accessibility patch is [PR #467](https://github.com/injamhaqq/foremention/pull/467), head **`defeec71d5e85acc2ac4520f141ef896bb7f001a`**, still based on main **`d4fea60a7bb8e047f2282cea9134121e9496c67e`** at recheck on 2026-10-10. The earlier test head `d790c56f322551a8e9f67bd8b059b8fe00dcade2` is superseded.
+
+The patch changes exactly:
+- `components/workspace-keyboard-shortcuts.tsx`: guarded truthful live-region announcements; skip background shortcuts while a modal is open; select active-row control first, then first usable matching control.
+- `lib/workspace-shortcut-activation.ts`: skip missing, disabled, inert, hidden, aria-disabled and nonrendered targets; report that a control was activated, **not** whether an asynchronous review/export completed.
+- `tests/workspace-keyboard-shortcuts.test.mjs`: missing/disabled/inert/hidden target guards, conditional announcement and skip-disabled-bulk-to-per-row regression.
+
+**All 12 applicable checks on exact #467 head passed, zero failed/pending**: CI, browser-acceptance, isolated authenticated journey, Workers Builds, CodeQL, JS/TS analysis, quality, secrets, dependency-review, actions-security, OSV, and Trivy. GitHub release attestation was skipped by the pull-request workflow, not falsely reported as completed. The CI log reported **1,035 passing tests, zero failed, zero skipped**, plus lint/typecheck/build and **15/15 synthetic quality golden cases**. Browser acceptance log reported **60 public browser/page observations** across Chromium widths 1440/1024/768/375/320 and Firefox desktop, with fictional-demo and local Lighthouse checks on the homepage, product, pricing and score routes. The separate isolated authenticated journey passed with synthetic local resources. Workflow browser evidence: https://github.com/injamhaqq/foremention/actions/runs/37948084099.
+
+The docs-only [PR #465](https://github.com/injamhaqq/foremention/pull/465) head before this section was `3b957e12bb63ba8005c1a1fba358bb498aafea7d` and had **12 applicable checks passing**. This documentation amendment creates a new head and **must receive fresh check confirmation**; prior checks do not automatically transfer.
+
+### Release proof still explicitly unavailable
+1. The PR browser suite skipped **production-authenticated** routes because dedicated acceptance credentials were not configured. Local synthetic authenticated tests are not a substitute for production-user proof.
+2. No human screen-reader/assistive-technology signoff, real production field CWV p75 metrics, controlled before/after screenshot review of material visual changes, or post-merge exact-SHA production smoke has been established by FM-03.
+3. No submitted GitHub PR reviewer approval was present on #465 or #467 at final inspection; neither PR was merged/deployed. The existing public website still serves the unchanged production baseline.
+4. No unapproved material redesign, pricing/indexing change, category migration, new library, new buyer/customer numbers, or public evidence claim has been introduced.
+
+### Definitive disposition
+**FM-03 code and audit: IMPLEMENTED, AUTOMATED CHECKS GREEN, AWAITING AUTHORIZED INTEGRATION.** GitHub reported both #465 and #467 cleanly mergeable at the recheck before this documentation update. The developer workstream **must not** merge or deploy: FM-00 controls integration, FM-08 release/security signoff, and the founder approves any material visual direction. If FM-00 elects to land the bounded fix, recheck live main, branch diff and reviewer policy, merge **only its final reviewed SHA**, run exact merge SHA tests, verify production health/build SHA and relevant keyboard behavior, and preserve rollback. Do not equate a green PR with a released customer-facing correction. Leave P1/P2 redesign items gated rather than creating overlapping patches in #440/#438/#426.
