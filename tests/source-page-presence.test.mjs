@@ -119,3 +119,16 @@ test("real oversized visible-text cap is not mistaken for complete coverage", as
   assert.equal(result.pageTextCoverage, "partial");
   assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "unknown");
 });
+
+test("plain text with angle-bracketed source terms cannot prove absence", async () => {
+  const result = await inspectSourceUrl("https://example.com/readme.txt", {
+    fetcher: async () => new Response("Comparison notes for <Acme> and other brands", {
+      headers: { "content-type": "text/plain" },
+    }),
+    resolver: async () => ["93.184.216.34"],
+    includePageText: true,
+  });
+  assert.equal(result.access, "open");
+  assert.equal(result.pageTextCoverage, "partial");
+  assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "unknown");
+});
