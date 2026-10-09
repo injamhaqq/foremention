@@ -185,6 +185,17 @@ page or unreviewed automated promotion is a veto. A new vendor must
 materially outperform the existing baseline on permitted pages *after*
 including operational and legal costs, not merely produce prettier Markdown.
 
+## Additional source-coverage safety hardening
+
+A successful HTTP 200 response is **not** proof that a page has inspectable
+content. On blank HTML, blank plain text, or a JavaScript-only application
+shell, the static extractor can return an empty string while the HTTP status
+is `open`. Such results now receive `pageTextCoverage: partial` and
+`pagePresenceState: unknown`, not `absent`. Deterministic response fixtures
+cover these three cases. This is intentionally conservative: only the
+returned, fully captured static text can support a narrow negative
+observation; nothing here proves JavaScript-rendered absence.
+
 ## FM-02 submitted change and verification limits
 
 New `lib/source-page-presence.ts` supplies a deterministic coverage gate:
