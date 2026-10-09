@@ -70,3 +70,8 @@ test("accepts established FM-07 and FM-03 branch conventions", () => {
     assert.equal(validateHandoff(proposed, snapshot(), sha, now).ok, true);
   }
 });
+
+test("keeps the inventory collector FM-00-owned", () => {
+  const proposed = { ...packet(), writeSet: ["scripts/capture-workstream-prs.mjs"] };
+  assert.match(validateHandoff(proposed, snapshot(), sha, now).errors.join(" "), /FM-00-owned/);
+});
