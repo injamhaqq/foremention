@@ -95,3 +95,13 @@ test("accepts FM-05's existing audit/fm05 naming without relaxing workstream ID"
   const proposed = { ...packet(), workstream: "FM-05", branch: "audit/fm05-readonly-data-boundary-preflight-20261009" };
   assert.equal(validateHandoff(proposed, snapshot(), sha, now).ok, true);
 });
+
+test("protects FM-11 cross-workstream policy records as FM-00 integration files", () => {
+  for (const file of [
+    "docs/operations/FM-11-WORKSTREAM-PROTOCOL.md",
+    "docs/operations/FM-11-CONTINUATION-2026-10-09.md",
+  ]) {
+    const proposed = { ...packet(), writeSet: [file] };
+    assert.match(validateHandoff(proposed, snapshot(), sha, now).errors.join(" "), /FM-00-owned/);
+  }
+});
