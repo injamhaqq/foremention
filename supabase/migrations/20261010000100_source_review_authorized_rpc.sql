@@ -67,6 +67,8 @@ begin
     on m.id=e.source_map_id and m.organization_id=e.organization_id
   join public.runs r
     on r.id=m.run_id and r.organization_id=m.organization_id
+  join public.projects p
+    on p.id=r.project_id and p.organization_id=r.organization_id
   join public.sources s
     on s.id=e.source_id and s.organization_id=e.organization_id
   where e.id=p_entry_id
@@ -76,6 +78,7 @@ begin
     and m.status='published'
     and m.review_state='reviewed'
     and r.project_id=p_project_id
+    and p.id=p_project_id
     and r.category_id=p_category_id
   for update of e;
 
