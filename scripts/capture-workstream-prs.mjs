@@ -101,6 +101,6 @@ export async function capturePrSnapshot({
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   capturePrSnapshot({ token: process.env.GH_TOKEN || process.env.GITHUB_TOKEN || "" })
-    .then((snapshot) => process.stdout.write(`${JSON.stringify(snapshot, null, 2)}\\n`))
+    .then((snapshot) => process.stdout.write(`${JSON.stringify(snapshot, null, 2)}\n`))
     .catch((error) => { console.error(error.message); process.exitCode = 1; });
 }
