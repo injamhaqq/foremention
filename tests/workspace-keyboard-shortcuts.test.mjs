@@ -41,8 +41,9 @@ test("shortcuts report activation only when the target is actionable", () => {
 
 test("shortcut announcements cannot claim an unavailable review or export succeeded", async () => {
   const source = await readFile(new URL("../components/workspace-keyboard-shortcuts.tsx", import.meta.url), "utf8");
-  assert.match(source, /if \\(activate\\("\\[data-workspace-review\\]"\\)\\) \\{/);
-  assert.match(source, /if \\(activate\\("\\[data-workspace-export\\]"\\)\\) \\{/);
-  assert.match(source, /document\\.querySelector\\('\\[aria-modal="true"\\], dialog\\[open\\]'\\)/);
-  assert.doesNotMatch(source, /Started the available export\\.|Opened the review action\\./);
+  assert.ok(source.includes('if (activate("[data-workspace-review]")) {'));
+  assert.ok(source.includes('if (activate("[data-workspace-export]")) {'));
+  assert.ok(source.includes('document.querySelector(\'[aria-modal="true"], dialog[open]\')'));
+  assert.ok(!source.includes("Started the available export."));
+  assert.ok(!source.includes("Opened the review action."));
 });
