@@ -2,7 +2,7 @@ import type { SourceInspectionResult } from "./source-inspection";
 
 type SourcePageObservation = Pick<
   SourceInspectionResult,
-  "access" | "pageTitle" | "pageDescription" | "pageText" | "contentLength"
+  "access" | "pageTitle" | "pageDescription" | "pageText" | "pageTextCoverage"
 >;
 
 export type ObservedPagePresenceState = "unknown" | "present" | "absent";
@@ -33,15 +33,12 @@ export function assessObservedPagePresence(
     return Boolean(term) && text.includes(term);
   });
 
-  // contentLength describes the broader visible-text representation while
-  // pageText may drop boilerplate or stop at the 24k extraction cap.
-  // Never classify a missing term as absent when coverage is not complete.
+  // The inspector attests coverage only for identical bounded static text,
+  // without truncation or omitted boilerplate. Missing this attestation
+  // means absence is unknown, even if text lengths happen to match.
   const fullTextCoverage = inspection.access === "open"
     && typeof inspection.pageText === "string"
-    && typeof inspection.contentLength === "number"
-    && Number.isSafeInteger(inspection.contentLength)
-    && inspection.contentLength >= 0
-    && inspection.pageText.length === inspection.contentLength;
+    && inspection.pageTextCoverage === "complete";
 
   const pagePresenceState: ObservedPagePresenceState = clientPresent
     ? "present"
