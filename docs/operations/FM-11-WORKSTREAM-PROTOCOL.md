@@ -12,7 +12,7 @@
 
 ## Cross-cutting files owned by FM-00
 
-Do not edit these from an independent FM-01 through FM-11 worker PR: CLAUDE.md, FOREMENTION_STATE.md, .github/**, .claude/**, .mcp.json, package.json, pnpm-lock.yaml, pnpm-workspace.yaml, supabase/migrations/**, docs/AUTOPILOT.md, docs/billion-dollar-build/EXECUTION-STATUS.md, scripts/validate-autopilot-diff.mjs, scripts/verify-workstream-handoff.mjs or scripts/capture-workstream-prs.mjs. Instead supply a proposed patch for a separately sequenced FM-00 integration PR. This is a concurrency policy, not a restriction on normal authorized maintenance.
+Do not edit these from an independent FM-01 through FM-11 worker PR: CLAUDE.md, FOREMENTION_STATE.md, .github/**, .claude/**, .mcp.json, package.json, pnpm-lock.yaml, pnpm-workspace.yaml, supabase/migrations/**, docs/AUTOPILOT.md, docs/billion-dollar-build/EXECUTION-STATUS.md, scripts/validate-autopilot-diff.mjs, scripts/verify-workstream-handoff.mjs, scripts/capture-workstream-prs.mjs, docs/operations/FM-11-WORKSTREAM-PROTOCOL.md or docs/operations/FM-11-CONTINUATION-2026-10-09.md. Instead supply a proposed patch for a separately sequenced FM-00 integration PR. This is a concurrency policy, not a restriction on normal authorized maintenance.
 
 ## Required handoff fields
 
