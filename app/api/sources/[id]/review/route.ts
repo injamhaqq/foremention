@@ -130,7 +130,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const accessToken = viewer.accessToken;
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context) return NextResponse.json({ error: "Complete onboarding before reviewing a source." }, { status: 409 });
-  if (!role || role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
+  if (!role || !["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
   const organizationId = context.organizationId;
   const scopedEntry = await loadProjectSourceMapEntryRef({
     organizationId,
