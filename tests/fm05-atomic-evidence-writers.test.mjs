@@ -46,3 +46,16 @@ test("provider receipts and buyer-question records can only be written through p
   const edit = await read("app/api/prompts/route.ts");
   assert.match(edit.slice(edit.indexOf("export async function PATCH")), /rpc\/update_prompt_versioned/);
 });
+
+test("four core project relationships are composite, validated and preserve FK names", async () => {
+  const migration = await read("supabase/migrations/20261009000300_core_project_ownership_fks.sql");
+  const liveFixture = await read("scripts/verify-fm05-atomic-evidence-writers.sql");
+  for (const table of ["prompts", "prompt_clusters", "runs", "jobs"]) {
+    assert.match(migration, new RegExp(`alter table public\\.${table}\\s+drop constraint ${table}_project_id_fkey`, "i"));
+    assert.match(migration, new RegExp(`add constraint ${table}_project_id_fkey\\s+foreign key \\(organization_id, project_id\\)`, "i"));
+    assert.match(migration, new RegExp(`alter table public\\.${table} validate constraint ${table}_project_id_fkey`, "i"));
+    assert.match(liveFixture, new RegExp(`FM-05: project mismatch accepted in ${table === "prompt_clusters" ? "clusters" : table}`));
+  }
+  assert.match(migration, /on delete cascade not valid/gi);
+  assert.match(liveFixture, /FM-05: composite root FK missing or unvalidated/);
+});
