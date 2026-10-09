@@ -1,5 +1,7 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
 import { runResearchInsightReasoner } from "@/lib/agent-os/research-reasoning";
+import { reviewedRecordReadyForOperatingAgent } from "@/lib/agent-os/reviewed-record-gate";
+import { loadRecordIntegrity } from "@/lib/record-integrity";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type ReviewedRunRow = {
@@ -19,7 +21,21 @@ export async function runResearchInsightAgent(input: {
   organizationId: string;
   projectId: string;
 }) {
+  // A terminal status alone does not prove complete, verified record evidence.
+  // Re-check the persisted manifest and all observed answers under the exact
+  // organization/project scope before publishing an evidence-ready action.
+  const record = await loadRecordIntegrity({
+    organizationId: input.organizationId,
+    projectId: input.projectId,
+    runId: input.runId,
+    serviceRole: true,
+  });
+  if (!reviewedRecordReadyForOperatingAgent(record)) {
+    return { skipped: true, reason: "reviewed_record_not_eligible" } as const;
+  }
+
   const rows = await supabaseRest<ReviewedRunRow[]>(
+
     `runs?select=id,organization_id,project_id,status,answer_count,citation_count,new_source_count,brand_presence_pct,first_mention_pct&id=eq.${encodeURIComponent(input.runId)}&organization_id=eq.${encodeURIComponent(input.organizationId)}&project_id=eq.${encodeURIComponent(input.projectId)}&status=in.(complete,partial)&limit=1`,
     { serviceRole: true },
   );
