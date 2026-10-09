@@ -69,6 +69,9 @@ test("Research reasoning packet is complete, bounded and refuses truncated input
   assert.match(reasoner, /limit=\$\{MAX_RESEARCH_REASONING_ANSWERS \+ 1\}/);
   assert.match(reasoner, /limit=\$\{MAX_RESEARCH_REASONING_SOURCES \+ 1\}/);
   assert.doesNotMatch(reasoner, /answers\.slice\(0, 24\)/);
+  assert.match(reasoner, /answer_is_excerpt:/);
+  assert.match(reasoner, /citation_list_truncated:/);
+  assert.match(reasoner, /packet_limitations:/);
   assert.match(reasoner, /if \(!sourceCoverage\.ok\) return \{ skipped: true/);
   assert.match(researchAgent, /verifiedAnswerCount: record\.answers\.length/);
 });
