@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { activateShortcutTarget } from "@/lib/workspace-shortcut-activation";
 
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
@@ -21,11 +22,17 @@ export function WorkspaceKeyboardShortcuts() {
     function activate(selector: string, fallback?: () => void) {
       const activeItem = document.activeElement instanceof HTMLElement ? document.activeElement.closest<HTMLElement>("[data-workspace-item]") : null;
       const target = activeItem?.querySelector<HTMLElement>(selector) || document.querySelector<HTMLElement>(selector);
-      if (target && !target.hasAttribute("disabled")) target.click();
-      else fallback?.();
+      if (activateShortcutTarget(target)) return true;
+      if (fallback) {
+        fallback();
+        return true;
+      }
+      return false;
     }
     function onKeyDown(event: KeyboardEvent) {
       if (event.defaultPrevented || event.repeat || event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event.target)) return;
+      // A background shortcut must not activate controls behind an open modal.
+      if (document.querySelector('[aria-modal="true"], dialog[open]')) return;
       const key = event.key.toLowerCase();
       if (key === "j" || key === "k") {
         const items = availableItems();
@@ -40,17 +47,20 @@ export function WorkspaceKeyboardShortcuts() {
         return;
       }
       if (key === "r") {
-        event.preventDefault();
-        activate("[data-workspace-review]");
-        setAnnouncement("Opened the review action.");
+        if (activate("[data-workspace-review]")) {
+          event.preventDefault();
+          setAnnouncement("Review control activated.");
+        }
       } else if (key === "a") {
-        event.preventDefault();
-        activate("[data-workspace-action]", () => router.push("/app/placements"));
-        setAnnouncement("Opened the action workflow.");
+        if (activate("[data-workspace-action]", () => router.push("/app/placements"))) {
+          event.preventDefault();
+          setAnnouncement("Action control activated or opening Actions.");
+        }
       } else if (key === "e") {
-        event.preventDefault();
-        activate("[data-workspace-export]");
-        setAnnouncement("Started the available export.");
+        if (activate("[data-workspace-export]")) {
+          event.preventDefault();
+          setAnnouncement("Export control activated.");
+        }
       }
     }
     window.addEventListener("keydown", onKeyDown);
