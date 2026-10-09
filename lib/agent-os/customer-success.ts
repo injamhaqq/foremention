@@ -1,6 +1,8 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
 import { runCustomerSuccessDraftReasoner } from "@/lib/agent-os/customer-success-draft";
 import { placementBelongsToProject } from "@/lib/agent-os/customer-success-core";
+import { reviewedRecordReadyForCustomerSuccess } from "@/lib/agent-os/customer-success-record-gate";
+import { loadRecordIntegrity } from "@/lib/record-integrity";
 import { deriveActivationStage } from "@/lib/retention-loop";
 import { deriveRetentionHealth } from "@/lib/retention-health";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -10,6 +12,19 @@ export async function runCustomerSuccessAgent(input: {
   organizationId: string;
   projectId: string;
 }) {
+  // A delivery event is not evidence of a completed review. Re-read the exact
+  // organization/project record, including its frozen manifest and verified
+  // answers, before storing activation claims or generating a message draft.
+  const record = await loadRecordIntegrity({
+    organizationId: input.organizationId,
+    projectId: input.projectId,
+    runId: input.runId,
+    serviceRole: true,
+  });
+  if (!reviewedRecordReadyForCustomerSuccess(record)) {
+    return { skipped: true, reason: "reviewed_record_not_eligible" } as const;
+  }
+
   const [prompts, organizationPlacements, schedules, projectRuns] = await Promise.all([
     supabaseRest<Array<{ id: string }>>(
       `prompts?select=id&organization_id=eq.${encodeURIComponent(input.organizationId)}&project_id=eq.${encodeURIComponent(input.projectId)}&active=eq.true&limit=100`,
@@ -124,6 +139,7 @@ export async function runCustomerSuccessAgent(input: {
   });
 
   return {
+    skipped: false as const,
     action,
     activation,
     retentionHealth,
