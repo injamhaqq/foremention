@@ -49,6 +49,7 @@ test("the Research agent independently validates full reviewed record integrity 
   assert.match(src, /organizationId: input.organizationId/);
   assert.match(src, /projectId: input.projectId/);
   assert.match(src, /reviewedRecordReadyForOperatingAgent\(record\)/);
+  assert.match(src, /if \(!record \|\| !reviewedRecordReadyForOperatingAgent\(record\)\)/);
   assert.ok(src.indexOf("reviewedRecordReadyForOperatingAgent(record)") < src.indexOf("proposeAgentAction({"));
   assert.ok(src.indexOf("reviewedRecordReadyForOperatingAgent(record)") < src.indexOf("runResearchInsightReasoner({"));
 });
