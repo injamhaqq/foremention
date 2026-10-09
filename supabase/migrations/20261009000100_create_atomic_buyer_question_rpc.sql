@@ -103,8 +103,26 @@ grant execute on function public.create_prompt_versioned(uuid,uuid,uuid,uuid,tex
 -- Provider response and cost facts are service-produced receipts; direct
 -- writes by authenticated workspace members are not part of the customer API.
 -- Preserve their SELECT access and service_role's DML permissions.
-revoke insert, update, delete on table public.run_attempts from authenticated;
+-- These tables hold provider-collected evidence. Their normal writes come
+-- from service_role workers and authorized server-side review routes, NOT
+-- directly from an authenticated member. Preserve member SELECT access.
+revoke insert, update, delete on table
+  public.run_attempts,
+  public.run_answers,
+  public.citations,
+  public.source_maps,
+  public.source_observations
+from authenticated;
+
 drop policy if exists run_attempts_write_admin on public.run_attempts;
 drop policy if exists run_attempts_write_analyst on public.run_attempts;
+drop policy if exists run_answers_write_admin on public.run_answers;
+drop policy if exists run_answers_write_analyst on public.run_answers;
+drop policy if exists citations_write_admin on public.citations;
+drop policy if exists citations_write_analyst on public.citations;
+drop policy if exists source_maps_write_admin on public.source_maps;
+drop policy if exists source_maps_write_analyst on public.source_maps;
+drop policy if exists source_observations_write_admin on public.source_observations;
+drop policy if exists source_observations_write_analyst on public.source_observations;
 
 commit;
