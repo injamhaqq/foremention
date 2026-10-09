@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { activateShortcutTarget } from "../lib/workspace-shortcut-activation.ts";
+import { activateFirstAvailableShortcutTarget, activateShortcutTarget } from "../lib/workspace-shortcut-activation.ts";
 
 test("workspace shortcuts are global, safe while typing, and expose J K R A E", async () => {
   const source = await readFile(new URL("../components/workspace-keyboard-shortcuts.tsx", import.meta.url), "utf8");
@@ -46,4 +46,31 @@ test("shortcut announcements cannot claim an unavailable review or export succee
   assert.ok(source.includes('document.querySelector(\'[aria-modal="true"], dialog[open]\')'));
   assert.ok(!source.includes("Started the available export."));
   assert.ok(!source.includes("Opened the review action."));
+});
+
+test("review shortcut skips disabled and invisible bulk actions for the next available source link", () => {
+  const clicked = [];
+  const target = (name, attributes = {}, visible = true) => ({
+    hasAttribute: (key) => Object.hasOwn(attributes, key),
+    getAttribute: (key) => attributes[key] ?? null,
+    getClientRects: () => visible ? [{}] : [],
+    click: () => clicked.push(name),
+  });
+  assert.equal(activateFirstAvailableShortcutTarget([
+    target("disabled bulk review", { disabled: "" }),
+    target("hidden bulk review", {}, false),
+    target("enabled per-source review"),
+    target("later row review"),
+  ]), true);
+  assert.deepEqual(clicked, ["enabled per-source review"], "Only the first usable review target can be activated");
+  assert.equal(activateFirstAvailableShortcutTarget([target("disabled", { disabled: "" })]), false);
+  assert.equal(activateFirstAvailableShortcutTarget([]), false);
+  assert.equal(activateShortcutTarget(target("aria-hidden", { "aria-hidden": "true" })), false);
+  assert.equal(activateShortcutTarget(target("hidden", { hidden: "" })), false);
+});
+test("source map keyboard lookup scans usable links after a disabled bulk action", async () => {
+  const source = await readFile(new URL("../components/workspace-keyboard-shortcuts.tsx", import.meta.url), "utf8");
+  assert.match(source, /Array\.from\(activeItem\.querySelectorAll/);
+  assert.match(source, /\.\.\.document\.querySelectorAll/);
+  assert.match(source, /activateFirstAvailableShortcutTarget\(candidates\)/);
 });
