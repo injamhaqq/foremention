@@ -13,6 +13,12 @@
 - `authenticated` has `INSERT/UPDATE/DELETE` table privileges on `prompt_versions`, `run_attempts`, `source_observations` and `jobs`. RLS allows owner/admin/analyst writes on those tables. This is an **authorized-member evidence-integrity/tampering risk**; a credentialed exploit was NOT performed or claimed.
 - The `update_prompt_versioned` definer RPC is callable by authenticated members, but contains a role check, organization predicate, and row lock. Do not revoke without replacing its essential customer workflow.
 
+## Independently verified buyer-question history gap (9 October 2026)
+
+- Live read-only aggregate: 50 buyer questions and 50 version rows, but **one active question is missing both version 1 and its current version**, and **that same question has already been referenced in a monitoring-run selection**. The checks refer to the same question, not two separate customer records. No question text or UUID was exported.
+- Historical immutability is not repairable through guesswork. Do not insert a retroactive version row based on the question's mutable current text, and do not alter old run selections. Investigate source records and decision provenance under restricted access; retain an explicit `history_missing`/unverifiable classification in any customer-facing proof derived from that question until provenance is proved.
+- The preflight now outputs only aggregate counts for missing initial/current versions and historical selection overlap. This prevents false "everything is versioned" claims without disclosing customer content.
+
 ## Added non-destructive preflight
 
 `scripts/audit-fm05-data-boundaries.sql` is **read-only** and returns *only* catalog metadata, policy predicates, grant flags, six mismatch counts, and hash-only migration receipts; no raw customer or SQL-body data. Run through authorized read-only SQL tooling against a verified project, after reading it. It must not be wired into a production migration or scheduled blindly.
