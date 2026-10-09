@@ -1,13 +1,13 @@
 # FM-07 — Measurement, AI Evaluation and Cost Intelligence
 **Checkpoint:** 2026-10-09 UTC; `main` at `d4fea60a7bb8e047f2282cea9134121e9496c67e`
-**Owner:** FM-07 only. **Integration authority:** FM-00. **Status:** repository and connected-PostHog inspection; no verified production release, live Sentry project, production Supabase ledger query, invoice reconciliation or verified revenue data.
+**Owner:** FM-07 only. **Integration authority:** FM-00. **Status:** repository, connected PostHog and read-only production Supabase aggregate inspection; no verified production release SHA, live Sentry account delivery, invoice reconciliation or verified revenue data.
 
 ## Source of truth and conflict control
 - Constitution: `CLAUDE.md` and `FOREMENTION_STATE.md`. Public product is Recommendation Intelligence for B2B software; Change Specification is the company decision, Recommendation Record is the measurement object; no Source X-Ray product or event.
 - Existing first-party implementations: `lib/product-analytics-contract.ts`, `lib/product-analytics.ts`, `lib/pmf-metrics.ts`, `lib/evaluation/*`, `scripts/*ai-evaluation*`, `lib/sentry-privacy.ts`, `lib/company-operational-cost-readiness.ts`, and Supabase operational-cost and provider-attempt migrations.
 - Open conflict boundary at inspection: PRs #459 (measurement citations and pinned Gemini), #457 (gateway pinning), #458 (repeat-cycle reliability), #455 (answer-set integrity), #446 (billing), #440 (comparable second-cycle UX). They are **not on main** and must not be counted as shipped.
 - PostHog connected project is "Default project", UTC, organization group type registered. SDK project token in the repo matched the connected project. 2026-10-09 event taxonomy listed `$pageview`, `performance_observed`, `design_partner_cta_impression`, `score_viewed`, `category_page_viewed`, `design_partner_page_viewed`, `workflow_completed`, `auth_session_established`, and `research_page_viewed` among observed recent events. This proves ingestion of those event names, **not a working full customer funnel**. IP anonymization was false at project level; privacy owner must configure or justify it. A catalog metric read was blocked by missing `data_catalog:read` MCP scope. Do not invent counts.
-- Live endpoint and infrastructure invoice verification were inaccessible. Existing migration SQL is not proof it is applied. No claims about production Sentry DSN, alert rules, costs, paid pilots, ARR or retention are established by this audit.
+- Production Supabase was independently queried read-only on 2026-10-09; the cost-ledger and operational-readiness views/trigger exist and relevant migration history is present. This does not verify all production code or invoice reconciliation. Live production build SHA, Sentry DSN/event delivery, paid pilots, ARR and retention remain unverified.
 
 ## Event dictionary: privacy-safe browser signals
 Properties are strictly allowlisted in `sanitizeProductAnalyticsEvent`, with unknown properties removed. Captures below are **behavioral telemetry**, not durable commercial proof. The application is production-hostname-gated, disables autocapture/replay, uses UUID-only identification and normalized organization groups. The event names are exact contract names.
@@ -64,6 +64,29 @@ Every metric has a report window, ingestion/extraction timestamp, numerator, den
 | Gross margin / retention economics | Verified recognized revenue less reconciled COGS; currently unverified. Costs alone do not imply margin or LTV/CAC. |
 
 **Canonical cohort classification:** Only organizations explicitly included by `company_organization_classifications` as real design partners/customers qualify for business KPIs. Prospect, demo, internal, seeded, benchmark, unidentified, synthetic and unknown are excluded. No inferred external classification from email domain.
+
+## Read-only production Supabase evidence — October 9, 2026
+
+**Scope/authority:** Connected Foremention Supabase project in `ap-northeast-2`, PostgreSQL 17; only grouped/count SELECT queries. No production writes, provider invocations, prompts, customer names, raw answers, invoice documents or organization identifiers extracted. October view observed through **2026-10-09 11:45 UTC**. Cohort and cost measures are snapshots, not an ongoing certified dashboard.
+
+- `company_operational_cost_readiness`, `ai_cost_events`, `provider_attempt_operational_facts`, `run_attempts`, `infrastructure_cost_allocations`, `company_organization_classifications`, `outcome_ledger_events` all exist. The cost ledger trigger `ledger_run_attempt_cost_after_write` is enabled (`tgenabled='O'`) on `run_attempts`; relevant migration history lists `20260915184836` (provider ledger) and `20260926063633` (operational view).
+- October current-month view: **11 AI cost events**, **0 provider-reported**, **11 estimated/unknown**, **$0.000000 recorded AI estimates**, **0 infrastructure allocations**, **0 external human-reviewed decision events**, **0 current-month missing terminal-cost receipts**, **11 unclassified organizations**, and **NULL verified total cost per reviewed decision**. There are **0 records** in the classification ledger, so no organization can be asserted KPI eligible. Recorded zero costs are **not actual zero cost**.
+- All available history: **251 provider attempts**, **248 terminal attempts with nonnull `estimated_cost_usd`**, **228 distinct AI cost ledger rows** and **20 unmatched terminal attempt receipts** under organization+attempt matching. Missing receipt cohorts: Aug 16 (3 failed, $0.018750 estimated); Sept 7 (2 failed, $0.006200); Sept 14 (3 failed, $0.009300); Sept 20 (9 failed + 3 rate-limited, $0 estimated). **Eight positive estimates total $0.034250**; none are confirmed vendor charges.
+- [Existing issue #329](https://github.com/injamhaqq/foremention/issues/329) already tracks **17 September** legacy cost discrepancies; FM-07 added the August 3 and the current aggregate production snapshot as a comment. [Issue #348](https://github.com/injamhaqq/foremention/issues/348) documents a historical CI direct-terminal-insert anomaly without establishing production malfunction. Do not create a duplicate issue, automatically backfill or override invoice evidence.
+- Required FM-05/FM-06 work: compare historical transaction/migration timing, provider-failure/zero outcomes, and receipt transaction behavior in an isolated DB. Any forward-only repair needs FM-00 approval; product economics remain NULL/UNKNOWN until invoice/allocated cost completeness exists.
+- Required FM-00 customer-proof work: classify organizations using verified real external-client evidence. Never assume that any of the 11 unclassified organizations is a paying customer, nor automatically mark them internal/demo.
+
+**Diagnostic query (non-destructive):**
+```sql
+SELECT count(*) AS all_history_eligible_attempts_without_ledger
+FROM public.run_attempts ra
+WHERE ra.status IN ('complete', 'failed', 'rate_limited')
+  AND ra.estimated_cost_usd IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM public.ai_cost_events ace
+    WHERE ace.run_attempt_id = ra.id AND ace.organization_id = ra.organization_id
+  );
+```
 
 ## Data lineage, quality and production checks
 1. Web UI -> `captureProductEvent` -> strict contract and `before_send` allowlist -> PostHog browser ingestion -> UTC event table. Audit event loss at disabled-host/identity boundaries, duplicates, delayed events, bot/preview traffic, and data retention. Client app has production domain guard but `PostHog` project-level IP anonymization was disabled at inspection. Obtain privacy review of retention, IP handling, consent, deletion and processors.
@@ -125,7 +148,7 @@ Weighted architecture-fit rubric (judgment, not measured performance): customer 
 Vendor license/pricing and product-feature terms require dated procurement confirmation before an adoption decision. Model-vendor scores must be blind paired measurements on the same corpus and same budget with explicit abstentions; architectural judgments above are **not** benchmark results.
 
 ## Red / green / verify handoff
-- **RED:** synthetic release quality gate could accept duplicated observations while omitting another golden category; PostHog project IP anonymization off; full funnel not observed; production DSN and invoiced costs unavailable; URL-param submission analytics can be spoofed; release fixture defaults mimic assessed output quality.
+- **RED:** synthetic release quality gate could accept duplicated observations while omitting another golden category; PostHog project IP anonymization off; full funnel not observed; production Sentry DSN and invoiced costs unavailable; all 11 production organizations unclassified; 20 historical missing cost-ledger rows require triage; URL-param submission analytics can be spoofed; release fixture defaults mimic assessed output quality.
 - **GREEN proposed via FM-07 PR #463:** exact case-set integrity validator + four negative tests; `lib/evaluation/release-fixture-validation.mjs` requires explicit provider outcomes, assessed safety flags, citations, output structure and assertions. The 15 synthetic golden observation rows now declare those states individually; failed provider output is explicitly unassessed, and missing latency/cost remains null instead of becoming fake measurements. Six additional regression tests cover absent assessments and invalid cost/latency. No shared schema, UI, provider or orchestration modifications.
 - **Verification checkpoint:** exact-head `cf1ea381076ff1f07effabf6e949a4b607476f60` passed full CI, deterministic evaluation gate, browser acceptance, isolated authenticated journey, CodeQL and security on 2026-10-09. Subsequent fixture-integrity edits **invalidate that head's verification** and require fresh checks at the new final SHA: `pnpm test`, `pnpm eval:gate`, lint, typecheck, build, security and browser acceptance. Production deployment is not verified and remains FM-00-controlled.
 
@@ -135,5 +158,5 @@ Vendor license/pricing and product-feature terms require dated procurement confi
 - **Owned touched files:** `lib/evaluation/release-quality-gate.mjs`, `lib/evaluation/release-fixture-validation.mjs`, `scripts/verify-ai-evaluation-gate.mjs`, `evals/release-quality-observations.json`, `tests/fm07-release-quality-integrity.test.mjs`, `tests/fm07-release-fixture-validation.test.mjs`, and this continuation document.
 - **Changes:** fail-closed golden-case identity/category validation plus strict explicit assessor verdicts; no fabricated timing, cost, claims, or unmeasured safety pass-defaults.
 - **External dependencies:** FM-01 provider model identity/usage quality; FM-05 applied migration + cohort classification; FM-06 terminal attempt ledger and schedules; FM-08 production DSN/alert/source-map/release verification; FM-03 chart/UX display; FM-00 event contract and cutover.
-- **Release blockers:** green tests on exact PR SHA, production telemetry validation, missing-scope catalog query, project-level IP privacy decision, independent real billing and customer proof evidence.
+- **Release blockers:** green tests on exact PR SHA, production build SHA validation, missing-scope PostHog catalog query, project-level IP privacy decision, FM-05/FM-06 historical ledger triage, classification of organizations using real first-party proof, independent billing and external customer evidence.
 - **Non-claims:** no verified external customers, new signed pilots, ARR, model winner, production cost margin, live Sentry delivery or current production SHA established in this FM-07 review.
