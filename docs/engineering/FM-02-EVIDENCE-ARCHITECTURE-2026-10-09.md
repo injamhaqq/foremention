@@ -192,7 +192,10 @@ content. On blank HTML, blank plain text, or a JavaScript-only application
 shell, the static extractor can return an empty string while the HTTP status
 is `open`. Such results now receive `pageTextCoverage: partial` and
 `pagePresenceState: unknown`, not `absent`. Deterministic response fixtures
-cover these three cases. This is intentionally conservative: only the
+cover these three cases. A JavaScript-only shell with a nonempty static
+`<title>` is also `unknown` unless the HTML response contains readable
+static body text. The stored fingerprint and extracted text are unchanged;
+only the internal coverage attestation is tightened. This is intentionally conservative: only the
 returned, fully captured static text can support a narrow negative
 observation; nothing here proves JavaScript-rendered absence.
 
