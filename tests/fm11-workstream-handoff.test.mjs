@@ -48,6 +48,8 @@ test("skips own PR only, not other PRs", () => {
   const active = snapshot();
   active.prs[0].files = ["docs/existing.md"];
   active.prs[0].headBranch = proposed.branch;
+  active.prs[0].headSha = sha;
+  proposed.headSha = sha;
   assert.equal(validateHandoff(proposed, active, sha, now).ok, true);
   active.prs.push({ number: 450, files: ["docs/existing.md"] });
   assert.equal(validateHandoff(proposed, active, sha, now).ok, false);
@@ -74,4 +76,17 @@ test("accepts established FM-07 and FM-03 branch conventions", () => {
 test("keeps the inventory collector FM-00-owned", () => {
   const proposed = { ...packet(), writeSet: ["scripts/capture-workstream-prs.mjs"] };
   assert.match(validateHandoff(proposed, snapshot(), sha, now).errors.join(" "), /FM-00-owned/);
+});
+
+test("rejects undisclosed own-PR edits and a stale head SHA", () => {
+  const proposed = { ...packet(), prNumber: 449, headSha: sha };
+  const active = snapshot();
+  active.prs[0] = {
+    number: 449, headBranch: proposed.branch, headSha: sha,
+    files: [...proposed.writeSet, "lib/unreported.ts"],
+  };
+  assert.match(validateHandoff(proposed, active, sha, now).errors.join(" "), /undeclared path/);
+  active.prs[0].files = [...proposed.writeSet];
+  proposed.headSha = "b".repeat(40);
+  assert.match(validateHandoff(proposed, active, sha, now).errors.join(" "), /head SHA/);
 });
