@@ -96,6 +96,21 @@ Existing golden dataset contains 15 **synthetic** categories and no live-provide
 ## Technology decisions and scoring
 Weighted architecture-fit rubric (judgment, not measured performance): customer relevance 20, data correctness 15, privacy/provenance 15, integration effort 15, running cost 10, ongoing maintenance 10, reliability 10, testability 5; 0–5 per dimension; hard rejection for fake traction, unsafe payload logging or model comparisons missing pinned identity. Compare each tool **within its own role**, not as a single vendor leaderboard.
 
+**Provisional integration-fit scores** (0–100, based on the specified weighted architecture rubric, not empirical vendor benchmarks): each eight-value vector below corresponds to the rubric's eight dimensions in order, with 0=unfit and 5=best fit. Scores favor Foremention's already-deployed integration and Stage-0 implementation cost; they do not imply superior model or tool quality. No tool can be adopted if it requires unsafe payload capture, fictional customer metrics, or unpinned comparative model identity.
+
+| Option | Eight 0–5 dimension ratings | Weighted /100 |
+|---|---|---:|
+| Existing custom evaluation harness | 5/4/5/5/5/4/3/5 | **91** |
+| Existing PostHog | 5/4/4/5/4/4/4/5 | **88** |
+| Existing Sentry integration | 4/4/4/5/4/4/4/5 | **84** |
+| Existing Promptfoo | 4/4/4/5/4/4/4/5 | **84** |
+| Langfuse pilot | 4/4/3/2/3/2/4/4 | **65** |
+| Arize Phoenix pilot | 4/4/3/2/3/2/4/4 | **65** |
+| OpenMeter expansion | 2/4/4/2/2/2/4/4 | **58** |
+| Helicone gateway | 3/3/2/2/3/3/4/4 | **57** |
+
+**Important:** the options solve different problems and this table is a *Foremention implementation decision aid*, not a substitutable-vendor performance ranking. Scores are qualitative and must be updated if requirements or integrations change.
+
 | Tool | Decision | Role and evidence boundary |
 |---|---|---|
 | PostHog | **KEEP / IMPROVE** | Already integrated with strict client contract and observed ingestion. Audit consent/IP retention, lost/uncaptured events and authoritative transaction joins before any executive funnel. No second product-event system. |
