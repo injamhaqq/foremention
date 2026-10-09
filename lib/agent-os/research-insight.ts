@@ -30,7 +30,7 @@ export async function runResearchInsightAgent(input: {
     runId: input.runId,
     serviceRole: true,
   });
-  if (!reviewedRecordReadyForOperatingAgent(record)) {
+  if (!record || !reviewedRecordReadyForOperatingAgent(record)) {
     return { skipped: true, reason: "reviewed_record_not_eligible" } as const;
   }
 
