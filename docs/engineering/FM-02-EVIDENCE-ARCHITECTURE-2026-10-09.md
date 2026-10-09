@@ -1,7 +1,7 @@
 # FM-02 — Evidence Retrieval, Inspection and Extraction Decision (2026-10-09)
 
-**Authority:** FM-02 extraction and evidence inspection only. FM-00 owns integration.  
-**Main baseline:** `d4fea60a7bb8e047f2282cea9134121e9496c67e`.  
+**Authority:** FM-02 extraction and evidence inspection only. FM-00 owns integration.
+**Main baseline:** `d4fea60a7bb8e047f2282cea9134121e9496c67e`.
 **Status:** Code fix proposed on branch, not released. Vendor extraction benchmark NOT RUN. Commercial search license NOT CLEARED.
 
 ## Decision — KEEP / ADAPT / ADOPT
