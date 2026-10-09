@@ -1,8 +1,8 @@
 # FM-03 — Pilot comprehension and mobile navigation patch
 
-**Date:** 2026-10-10  
-**Base:** `d4fea60a7bb8e047f2282cea9134121e9496c67e`  
-**Owner:** FM-03; **integration authority:** FM-00  
+**Date:** 2026-10-10
+**Base:** `d4fea60a7bb8e047f2282cea9134121e9496c67e`
+**Owner:** FM-03; **integration authority:** FM-00
 **Status:** Draft, review-only; **not approved for merge or deployment**.
 
 ## Before / after design preview
