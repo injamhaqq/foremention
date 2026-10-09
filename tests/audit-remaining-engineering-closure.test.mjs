@@ -6,9 +6,11 @@ const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
 test("F04 keeps failed page retrieval unknown, records reference origin, and withholds unsupported absence", async () => {
-  const [migration, generator, types, publicExplorer, sourceTable] = await Promise.all([
+  const [migration, generator, pagePresence, inspector, types, publicExplorer, sourceTable] = await Promise.all([
     text("supabase/migrations/20260915170000_evidence_semantics_hardening.sql"),
     text("lib/source-map-generation.ts"),
+    text("lib/source-page-presence.ts"),
+    text("lib/source-inspection.ts"),
     text("lib/types.ts"),
     text("components/public-source-map-explorer.tsx"),
     text("components/source-map-table.tsx"),
@@ -19,7 +21,13 @@ test("F04 keeps failed page retrieval unknown, records reference origin, and wit
   assert.match(migration, /reference_origin in \('provider_citation'\)/i);
   assert.match(migration, /normalize_source_map_entry_presence_state/);
   assert.match(generator, /pagePresenceState:\s*"unknown"/);
-  assert.match(generator, /isReachable[\s\S]*clientPresent \? "present" : "absent"[\s\S]*"unknown"/);
+  assert.match(generator, /assessObservedPagePresence\\(result, brand, competitors\\)/);
+  assert.match(pagePresence, /inspection\\.access === "open"/);
+  assert.match(pagePresence, /inspection\\.pageTextCoverage === "complete"/);
+  assert.match(pagePresence, /fullTextCoverage \\? "absent" : "unknown"/);
+  assert.match(inspector, /normalizedPageText === visibleText/);
+  assert.match(inspector, /pageText === visibleText/);
+  assert.match(inspector, /!truncated/);
   assert.match(generator, /page_presence_state:\s*pagePresenceState/);
   assert.match(generator, /reference_origin:\s*"provider_citation"/);
   assert.match(types, /pagePresence\?:\s*"present" \| "absent" \| "unknown"/);
