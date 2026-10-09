@@ -74,6 +74,7 @@ export async function runResearchInsightAgent(input: {
     runId: run.id,
     organizationId: run.organization_id,
     projectId: run.project_id,
+    verifiedAnswerCount: record.answers.length,
   }).catch((error) => {
     console.warn("Research / Insight reasoning unavailable.", error instanceof Error ? error.message : String(error));
     return { skipped: true as const, reason: "reasoning_failed" };
