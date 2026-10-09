@@ -52,3 +52,23 @@ test("the Research agent independently validates full reviewed record integrity 
   assert.ok(src.indexOf("reviewedRecordReadyForOperatingAgent(record)") < src.indexOf("proposeAgentAction({"));
   assert.ok(src.indexOf("reviewedRecordReadyForOperatingAgent(record)") < src.indexOf("runResearchInsightReasoner({"));
 });
+
+test("Research reasoning packet is complete, bounded and refuses truncated inputs", async () => {
+  const { assessResearchReasoningCoverage, MAX_RESEARCH_REASONING_ANSWERS, MAX_RESEARCH_REASONING_SOURCES } =
+    await import("../lib/agent-os/research-reasoning-coverage.ts");
+  assert.equal(assessResearchReasoningCoverage(5, 5, 2).ok, true);
+  assert.equal(assessResearchReasoningCoverage(MAX_RESEARCH_REASONING_ANSWERS, MAX_RESEARCH_REASONING_ANSWERS, MAX_RESEARCH_REASONING_SOURCES).ok, true);
+  assert.equal(assessResearchReasoningCoverage(0, 0, 0).ok, false);
+  assert.equal(assessResearchReasoningCoverage(5, 4, 0).reason, "reasoning_verified_answer_set_incomplete");
+  assert.equal(assessResearchReasoningCoverage(MAX_RESEARCH_REASONING_ANSWERS + 1, MAX_RESEARCH_REASONING_ANSWERS + 1, 0).reason, "reasoning_answer_budget_exceeded");
+  assert.equal(assessResearchReasoningCoverage(5, 5, MAX_RESEARCH_REASONING_SOURCES + 1).reason, "reasoning_source_budget_exceeded");
+
+  const reasoner = await readFile(new URL("../lib/agent-os/research-reasoning.ts", import.meta.url), "utf8");
+  const researchAgent = await readFile(new URL("../lib/agent-os/research-insight.ts", import.meta.url), "utf8");
+  assert.match(reasoner, /verifiedAnswerCount: number/);
+  assert.match(reasoner, /limit=\$\{MAX_RESEARCH_REASONING_ANSWERS \+ 1\}/);
+  assert.match(reasoner, /limit=\$\{MAX_RESEARCH_REASONING_SOURCES \+ 1\}/);
+  assert.doesNotMatch(reasoner, /answers\.slice\(0, 24\)/);
+  assert.match(reasoner, /if \(!sourceCoverage\.ok\) return \{ skipped: true/);
+  assert.match(researchAgent, /verifiedAnswerCount: record\.answers\.length/);
+});
