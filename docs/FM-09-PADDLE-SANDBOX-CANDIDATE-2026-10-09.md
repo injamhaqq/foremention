@@ -1,51 +1,51 @@
 # FM-09 — Paddle standalone sandbox candidate
 
 Date: 2026-10-09
-Repository: \`injamhaqq/foremention\`
-Branch: \`fm09/paddle-candidate-sandbox-20261009\`
+Repository: `injamhaqq/foremention`
+Branch: `fm09/paddle-candidate-sandbox-20261009`
 Status: **NOT CONNECTED TO BILLING ROUTES, NOT APPROVED FOR LIVE CHECKOUT**
 
 ## Scope and ownership
 
-This independent FM-09 branch adds only \`lib/paddle-billing.ts\`, \`tests/paddle-candidate-contract.test.mjs\` and this document. It must NOT modify the existing \`lib/billing-provider.ts\` or the checkout/portal/webhook/status routes owned by PR #446. FM-00 decides integration and merging after conflict checks and merchant approval.
+This independent FM-09 branch adds only `lib/paddle-billing.ts`, `tests/paddle-candidate-contract.test.mjs` and this document. It must NOT modify the existing `lib/billing-provider.ts` or the checkout/portal/webhook/status routes owned by PR #446. FM-00 decides integration and merging after conflict checks and merchant approval.
 
 **Do not merge and deploy this candidate with the expectation that Paddle checkout works.** It is a non-wired adapter under test: no route imports it, no prices are published, no live provider is activated, and no Postgres schema is modified.
 
 ## Critical payment distinction
 
-Paddle automatically creates a subscription from either (1) paid \`automatic\` transactions (\`completed\`) or (2) \`manual\` transactions that have merely been marked \`billed\`. A subscription can therefore exist and become "active" **before the related manual invoice is paid**. For Foremention, the paid entitlement event must follow authoritative payment completion, not subscription creation/activation alone.
+Paddle automatically creates a subscription from either (1) paid `automatic` transactions (`completed`) or (2) `manual` transactions that have merely been marked `billed`. A subscription can therefore exist and become "active" **before the related manual invoice is paid**. For Foremention, the paid entitlement event must follow authoritative payment completion, not subscription creation/activation alone.
 
-The candidate permits \`transaction.completed\` with exact server-configured single-price mapping to produce \`active\`. It permits \`subscription.past_due\`, \`subscription.paused\` and \`subscription.canceled\` to produce nonactive or grace-policy states. It intentionally does **not** grant on \`subscription.created\`, \`subscription.activated\`, \`subscription.updated\`, \`subscription.trialing\`, \`subscription.resumed\`, \`transaction.billed\` or \`transaction.paid\`.
+The candidate permits `transaction.completed` with exact server-configured single-price mapping to produce `active`. It permits `subscription.past_due`, `subscription.paused` and `subscription.canceled` to produce nonactive or grace-policy states. It intentionally does **not** grant on `subscription.created`, `subscription.activated`, `subscription.updated`, `subscription.trialing`, `subscription.resumed`, `transaction.billed` or `transaction.paid`.
 
-There is an important deferred requirement: \`adjustment.created\`/\`adjustment.updated\` (refund, credit, chargeback) need their **own durable event receipts and owner-approved account / entitlement policy** before any activation. The candidate intentionally ignores those events because its parser is **not wired**. When FM-00 wires the provider, it must route adjustment events into durable case storage before acknowledging them, not drop them.
+There is an important deferred requirement: `adjustment.created`/`adjustment.updated` (refund, credit, chargeback) need their **own durable event receipts and owner-approved account / entitlement policy** before any activation. The candidate now exports a **non-wired** `parsePaddleCandidateAdjustment()` classifier for `adjustment.created` / `adjustment.updated` payloads. It validates event, adjustment, transaction, customer and optional subscription identities; action, type and status; and returns a mandatory-review summary **without granting or revoking entitlements**. Malformed adjustment payloads throw instead of appearing safe to ignore. This parser does **not** persist cases, so FM-00 must implement durable receipts, identity reconciliation and the approved entitlement/refund/dispute policy before any live webhook acknowledges adjustment events.
 
 ## Environment contract (examples only, never set live values without approval)
 
-- \`BILLING_PROVIDER_ID=paddle\` (**currently not recognized by the active selector**).
-- \`PADDLE_ENVIRONMENT=sandbox\`
-- \`PADDLE_API_KEY=<from official Paddle sandbox account>\`
-- \`PADDLE_WEBHOOK_SECRET=<from official Paddle sandbox notification destination>\`
-- \`PADDLE_CORE_MONTHLY_PRICE_ID=pri_...\` (26-character Paddle ID suffix)
-- \`PADDLE_CORE_ANNUAL_PRICE_ID=pri_...\`
-- \`PADDLE_SIGNAL_MONTHLY_PRICE_ID=pri_...\`
-- \`PADDLE_SIGNAL_ANNUAL_PRICE_ID=pri_...\`
-- \`PADDLE_LIVE_ENABLED=0\`
+- `BILLING_PROVIDER_ID=paddle` (**currently not recognized by the active selector**).
+- `PADDLE_ENVIRONMENT=sandbox`
+- `PADDLE_API_KEY=<from official Paddle sandbox account>`
+- `PADDLE_WEBHOOK_SECRET=<from official Paddle sandbox notification destination>`
+- `PADDLE_CORE_MONTHLY_PRICE_ID=pri_...` (26-character Paddle ID suffix)
+- `PADDLE_CORE_ANNUAL_PRICE_ID=pri_...`
+- `PADDLE_SIGNAL_MONTHLY_PRICE_ID=pri_...`
+- `PADDLE_SIGNAL_ANNUAL_PRICE_ID=pri_...`
+- `PADDLE_LIVE_ENABLED=0`
 
-The candidate rejects production sandbox configuration, live mode without \`PADDLE_LIVE_ENABLED=1\`, invalid price IDs, cross-offer price collisions and missing key/secret. **Do not set \`PADDLE_LIVE_ENABLED=1\`.** The real app ignores \`BILLING_PROVIDER_ID=paddle\` until a separately reviewed selector change.
+The candidate rejects production sandbox configuration, live mode without `PADDLE_LIVE_ENABLED=1`, invalid price IDs, cross-offer price collisions and missing key/secret. **Do not set `PADDLE_LIVE_ENABLED=1`.** The real app ignores `BILLING_PROVIDER_ID=paddle` until a separately reviewed selector change.
 
 Official base endpoints:
-- Sandbox \`https://sandbox-api.paddle.com\`
-- Production \`https://api.paddle.com\`
+- Sandbox `https://sandbox-api.paddle.com`
+- Production `https://api.paddle.com`
 
 ## Checkout and portal
 
-The candidate creates an **automatic** transaction with exactly one server-configured catalog price, quantity 1, and correlation-only \`custom_data\`. Paddle's transaction response must include \`data.id\` and \`data.checkout.url\`. An official default payment-link page on an approved website **with Paddle.js** must be configured at Paddle. The candidate fails closed if an HTTPS checkout URL is not returned. Checkout success redirects never grant entitlements.
+The candidate creates an **automatic** transaction with exactly one server-configured catalog price, quantity 1, and correlation-only `custom_data`. Paddle's transaction response must include `data.id` and `data.checkout.url`. An official default payment-link page on an approved website **with Paddle.js** must be configured at Paddle. The candidate fails closed if an HTTPS checkout URL is not returned. Checkout success redirects never grant entitlements.
 
-Paddle customer portal uses \`POST /customers/{customer_id}/portal-sessions\` and returns \`data.urls.general.overview\`; generated URLs contain temporary tokens and must not be persisted. Future integration must ensure the customer ID belongs to the authenticated workspace before calling it. The independent candidate accepts only already-verified Paddle-shaped customer IDs.
+Paddle customer portal uses `POST /customers/{customer_id}/portal-sessions` and returns `data.urls.general.overview`; generated URLs contain temporary tokens and must not be persisted. Future integration must ensure the customer ID belongs to the authenticated workspace before calling it. The independent candidate accepts only already-verified Paddle-shaped customer IDs.
 
 ## Webhook security
 
-Paddle sends a \`Paddle-Signature\` of \`ts=<Unix-seconds>;h1=<HMAC-SHA256 hex>\`. The candidate signs the exact \`ts:rawBody\` payload and uses five-second timestamp tolerance (official SDK default) and constant-time digest comparisons. The future HTTP route must retain the **raw** body, avoid inspecting before verification, store replay-safe event receipts, reconcile stored subscription/customer/organization identity and apply \`apply_billing_event_atomic_v2\` in one transaction.
+Paddle sends a `Paddle-Signature` of `ts=<Unix-seconds>;h1=<HMAC-SHA256 hex>`. The candidate signs the exact `ts:rawBody` payload and uses five-second timestamp tolerance (official SDK default) and constant-time digest comparisons. The future HTTP route must retain the **raw** body, avoid inspecting before verification, store replay-safe event receipts, reconcile stored subscription/customer/organization identity and apply `apply_billing_event_atomic_v2` in one transaction.
 
 ## Mandatory open blockers for a genuinely live Paddle adapter
 
@@ -70,6 +70,6 @@ Paddle sends a \`Paddle-Signature\` of \`ts=<Unix-seconds>;h1=<HMAC-SHA256 hex>\
 
 ## FM-00 integration interface note
 
-PR #446's \`BillingProviderAdapter\` expects \`createCheckout({organizationId,packageKey,billingInterval,customerEmail,customerId,successUrl,cancelUrl})\`, \`createPortal\`, \`verifyWebhook\`, \`parseWebhook\`, \`configured\`, \`checkoutOffers\`. This candidate exports corresponding primitives **without importing or editing** PR #446's \`billing-provider.ts\`. FM-00 must implement the adapter wrapper and write route-level authorization, event receipts, adjustment persistence, concurrency tests and rollback-safe migration before enabling provider selection.
+PR #446's `BillingProviderAdapter` expects `createCheckout({organizationId,packageKey,billingInterval,customerEmail,customerId,successUrl,cancelUrl})`, `createPortal`, `verifyWebhook`, `parseWebhook`, `configured`, `checkoutOffers`. This candidate exports corresponding primitives **without importing or editing** PR #446's `billing-provider.ts`. FM-00 must implement the adapter wrapper and write route-level authorization, event receipts, adjustment persistence, concurrency tests and rollback-safe migration before enabling provider selection.
 
 Weighted provider score (customer 20, compatibility 15, correctness 15, security 15, reliability 10, costs 10, reversibility 10, license/legal 5) is **not computed as merchant eligibility is unconfirmed**. Among providers, an ineligible seller means disqualification regardless of score. Commercial choice and deployment remain on HOLD.
