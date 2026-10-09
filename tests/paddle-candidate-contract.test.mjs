@@ -296,4 +296,3 @@ test("malformed financial events are errors, not silently acknowledged as ignora
     /adjustment/i,
   );
 });
-
