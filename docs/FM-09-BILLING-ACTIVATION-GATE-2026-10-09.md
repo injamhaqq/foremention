@@ -16,7 +16,7 @@ Canonical repository: `injamhaqq/foremention`
 
 ## Architecture decision
 
-Preserve exactly one active provider selection for new checkout (`BILLING_PROVIDER_ID`). Keep the Stripe compatibility path; integrate Creem from PR #446 **only after verification and FM-00 approval**. Dodo Payments and Paddle are onboarding candidates, not implemented switches. Never infer paid access from browser redirects.
+Preserve exactly one active provider selection for new checkout (`BILLING_PROVIDER_ID`). Keep the Stripe compatibility path; integrate Creem from PR #446 **only after verification and FM-00 approval**. Paddle, Polar and Lemon Squeezy remain eligibility-screening candidates, not implemented switches. **Dodo Payments is not eligible for new Bangladesh onboarding under its current 2026-08-27 country policy; do not treat it as a fallback without explicit written provider exception.** Never infer paid access from browser redirects.
 
 `Verified provider webhook -> durable replay-safe receipt -> service-only atomic entitlement RPC -> billing state history`
 
@@ -27,7 +27,7 @@ Do not alter shared DB schema or other workstream files without FM-05 / FM-00 au
 | Provider | Official merchant evidence | Commercial issue to verify | Source |
 | --- | --- | --- | --- |
 | Creem | Bangladesh marked ** on the supported merchant payout list | Bank-transfer partner may allow individual accounts but restrict business accounts; written decision required on actual account type; published fee 3.9% + $0.40, **plus bank transfer fee $7 or 1% of payout, whichever is higher** and potentially FX/hold/other charges | https://github.com/armitage-labs/creem/blob/main/packages/docs/merchant-of-record/supported-countries.mdx ; https://github.com/armitage-labs/creem/blob/main/packages/docs/merchant-of-record/finance/payout-accounts.mdx ; https://www.creem.io/pricing |
-| Dodo Payments | Bangladesh on accepted merchant list | May reject prelaunch products with no usable value, excessive manual services, scraping, mass outreach/spam or certain marketing products. Direct compliance review required for Foremention. Standard base 4% + $0.40, plus applicable international card, subscription, payouts, FX, refund/dispute charges | https://docs.dodopayments.com/miscellaneous/countries-eligible-for-merchant-acceptance ; https://docs.dodopayments.com/miscellaneous/merchant-acceptance ; https://dodopayments.com/pricing |
+| Dodo Payments | **Not eligible for new Bangladesh merchants** as of current 2026-08-27 policy; Bangladesh appears only in grandfathering for existing accounts | DO NOT integrate for a new Bangladesh seller without explicit written eligibility exception. The separate merchant AUP also excludes prelaunch products, scraping/spam and certain manual services. Published Standard base 4% + $0.40 plus extras is irrelevant while ineligible | https://docs.dodopayments.com/miscellaneous/accepted-countries-and-territories ; https://docs.dodopayments.com/miscellaneous/merchant-acceptance ; https://dodopayments.com/pricing |
 | Paddle | Bangladesh absent from supplier unsupported-country list | Approval remains discretionary, software versus manual-service classification, banking and payouts; payout threshold >= $100 and monthly payouts | https://www.paddle.com/help/start/intro-to-paddle/which-countries-are-supported-by-paddle ; https://www.paddle.com/help/start/intro-to-paddle/what-am-i-not-allowed-to-sell-on-paddle ; https://www.paddle.com/help/manage/get-paid/when-and-how-do-i-get-paid |
 
 **Do not choose by published nominal transaction fee alone.** Fees above are directional, country/customer/payment-method and bank specific. Merchant onboarding and payout eligibility must be proved first. Merchant-of-Record indirect-tax handling does not remove Foremention's local Bangladesh tax, foreign-exchange, recordkeeping or legal obligations.
@@ -76,7 +76,7 @@ Record actual written provider responses and approved banking details in a **pri
 - KEEP: `apply_billing_event_atomic_v2`, historical Stripe integration and replay receipts.
 - IMPROVE: PR #446 after concurrency/refund review, current-main rebase, exact-head checks.
 - ADOPT: first *approved* eligible MoR; minimal transactional emails after deliverability proof.
-- DEFER: Dodo/Paddle adapter code until primary provider fails eligibility, OpenMeter/Lago until usage-metered pricing is validated, multi-provider routing, public checkout without operator signoff.
+- DEFER: Dodo adapter (Bangladesh new-merchant eligibility currently blocked), Paddle/Polar/Lemon Squeezy adapters until the relevant merchant is independently approved, OpenMeter/Lago until usage-metered pricing is validated, multi-provider routing, public checkout without operator signoff.
 
 ## FM-09 -> FM-00 continuation
 
