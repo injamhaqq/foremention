@@ -47,7 +47,26 @@ test("skips own PR only, not other PRs", () => {
   proposed.writeSet = ["docs/existing.md"];
   const active = snapshot();
   active.prs[0].files = ["docs/existing.md"];
+  active.prs[0].headBranch = proposed.branch;
   assert.equal(validateHandoff(proposed, active, sha, now).ok, true);
   active.prs.push({ number: 450, files: ["docs/existing.md"] });
   assert.equal(validateHandoff(proposed, active, sha, now).ok, false);
+});
+
+test("rejects own-PR spoofing when branch or PR identifier does not match", () => {
+  const own = packet();
+  own.prNumber = 449;
+  const active = snapshot();
+  active.prs[0].files = [own.writeSet[0]];
+  assert.match(validateHandoff(own, active, sha, now).errors.join(" "), /does not match/);
+  active.prs = [];
+  assert.match(validateHandoff(own, active, sha, now).errors.join(" "), /missing from/);
+});
+
+test("accepts established FM-07 and FM-03 branch conventions", () => {
+  for (const branch of ["fm07/eval-contract", "audit/fm-03-ux-20261009"]) {
+    const workstream = branch.includes("03") ? "FM-03" : "FM-07";
+    const proposed = { ...packet(), workstream, branch };
+    assert.equal(validateHandoff(proposed, snapshot(), sha, now).ok, true);
+  }
 });
