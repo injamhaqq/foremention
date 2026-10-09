@@ -18,11 +18,15 @@ Do not edit these from an independent FM-01 through FM-11 worker PR: CLAUDE.md, 
 
 Each worker must report a JSON packet containing **workstream**, **baseSha**, **branch**, **prNumber** (null until created), **writeSet** (exact paths), **tests** (command plus actual status pass/fail/blocked/not-run), **dependencies**, **blockers**, and **nextTask**. In the PR body include the exact head SHA, relevant PR and CI links, rollback, tenant/security implications, migrations and environment-variable names only (never values). Never report an unrun test as passing.
 
-Run:
+Run the **read-only inventory collector** before validating a worker packet:
 
 ~~~bash
-node scripts/verify-workstream-handoff.mjs packet.json open-prs.json "$(git rev-parse origin/main)"
+# Requires public GitHub API access; optional read-only GH_TOKEN if rate-limited.
+node scripts/capture-workstream-prs.mjs > /tmp/fm11-open-prs.json
+node scripts/verify-workstream-handoff.mjs packet.json /tmp/fm11-open-prs.json "$(git rev-parse origin/main)"
 ~~~
+
+Never commit the temporary inventory or supply your private GitHub credentials in a packet. Both tools are local/manual utilities; the collector performs GET requests only, never creates a PR, triggers a workflow or deploys code. If the public API hits rate limits, re-run with a separately authorized read-only GitHub authentication context.
 
 The supplied open PR snapshot has this structure:
 
@@ -31,11 +35,16 @@ The supplied open PR snapshot has this structure:
   "complete": true,
   "mainSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "capturedAt": "2026-10-09T10:00:00Z",
-  "prs": [{ "number": 449, "files": [".github/workflows/agent-harness.yml"] }]
+  "prs": [{
+    "number": 449,
+    "headBranch": "fm-11/example-task",
+    "headSha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "files": [".github/workflows/agent-harness.yml"]
+  }]
 }
 ~~~
 
-**This is illustrative, not a live PR snapshot.** Build the actual snapshot from all pages of GitHub's GET /repos/injamhaqq/foremention/pulls?state=open&per_page=100&page=N and GET /repos/injamhaqq/foremention/pulls/{number}/files?per_page=100&page=N for **every** open PR. Only assert complete=true after verifying full pagination. The checker validates the supplied snapshot's shape, base SHA, freshness (15-minute maximum) and exact-file collisions, but it cannot verify whether the supplied inventory is truthful or complete. It cannot detect semantic overlaps between different files. Refresh immediately before any integration decision.
+**This example is illustrative, not a live PR snapshot.** The collector obtains **every page** of all open PRs and all changed filenames, reserves both old and new filenames for renames, and rechecks main and the open-PR identities before marking an inventory complete. It fails closed on GitHub API failures, pagination limits, main/PR drift and stale capture time. The validator checks supplied snapshot shape, base SHA, freshness (15-minute maximum), own-PR branch provenance and exact-file collisions. The collector is not a cryptographic GitHub snapshot: a PR can still change after capture, and semantic overlaps between different filenames require FM-00 review. Re-run immediately before integration; never bypass failed checks by manufacturing a snapshot.
 
 ## RED -> GREEN -> VERIFY and release authority
 
