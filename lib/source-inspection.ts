@@ -402,6 +402,9 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
         const pageTextCoverage = pageText !== undefined
           && response.status !== 206
           && !truncated
+          // Empty static responses and JS-only application shells do not
+          // provide any readable evidence from which absence can be inferred.
+          && visibleText.length > 0
           && visibleText.length < 80_000
           && normalizedPageText === visibleText
           // Plain-text angle brackets are data, but the shared HTML stripper
