@@ -2,7 +2,7 @@ import { Inngest } from "inngest";
 import { toInngestProviderStepError } from "./provider-step-error";
 import { measureRunPhase } from "./run-phase-timing";
 import { attachProviderAttempt, resolveProviderAttempt, type ProviderAttemptReceipt } from "./provider-attempt-receipt";
-import { confirmRunReviewTransition } from "./run-review-transition";
+import { confirmRunReviewTransition, type ReviewTransitionSnapshot } from "./run-review-transition";
 import { recordAgentExecution } from "@/lib/agent-control-plane";
 import {
   canonicalizeEvidenceUrl,
@@ -754,7 +754,7 @@ export const runMultiEngineScan = inngest.createFunction(
               },
             },
           ),
-          reload: () => supabaseRest(
+          reload: () => supabaseRest<ReviewTransitionSnapshot[]>(
             `runs?select=id,status,answer_count,citation_count,actual_cost_usd&id=eq.${run.id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&limit=1`,
             { serviceRole: true },
           ),
