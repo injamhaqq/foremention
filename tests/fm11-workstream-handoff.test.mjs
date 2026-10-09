@@ -6,7 +6,7 @@ const sha = "a".repeat(40);
 const now = Date.parse("2026-10-09T10:00:00Z");
 const packet = () => ({
   workstream: "FM-11", baseSha: sha, branch: "fm-11/handoff-guard", prNumber: null,
-  writeSet: ["docs/operations/FM-11-WORKSTREAM-PROTOCOL.md"],
+  writeSet: ["lib/fm11-independent-worker-fixture.ts"],
   tests: [{ command: "node --test tests/fm11-workstream-handoff.test.mjs", status: "pass" }],
   dependencies: [], blockers: [], nextTask: "FM-00 review",
 });
