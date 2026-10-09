@@ -195,6 +195,89 @@ function singleConfiguredPackage(data: Json) {
 }
 
 /**
+ * A non-entitlement financial adjustment classification. This candidate does
+ * not persist or acknowledge adjustment webhooks. FM-00 must create an atomic,
+ * durable case receipt keyed by provider+eventId before returning HTTP 2xx.
+ * Never directly revoke or grant an entitlement based on this classification.
+ *
+ * https://developer.paddle.com/webhooks/adjustments/adjustment-created/
+ * https://developer.paddle.com/webhooks/adjustments/adjustment-updated/
+ */
+export type PaddleCandidateAdjustment = {
+  eventId: string;
+  occurredAt: string;
+  adjustmentId: string;
+  eventType: "adjustment.created" | "adjustment.updated";
+  action:
+    | "credit"
+    | "refund"
+    | "chargeback"
+    | "chargeback_reverse"
+    | "chargeback_warning"
+    | "chargeback_warning_reverse"
+    | "credit_reverse";
+  status: "pending_approval" | "approved" | "rejected" | "reversed";
+  adjustmentType: "full" | "partial";
+  transactionId: string;
+  subscriptionId: string | null;
+  customerId: string;
+  // Always true: a refund, credit or dispute requires audit and reconciliation.
+  requiresReview: true;
+};
+
+const ADJUSTMENT_ACTIONS = new Set<PaddleCandidateAdjustment["action"]>([
+  "credit", "refund", "chargeback", "chargeback_reverse",
+  "chargeback_warning", "chargeback_warning_reverse", "credit_reverse",
+]);
+const ADJUSTMENT_STATES = new Set<PaddleCandidateAdjustment["status"]>([
+  "pending_approval", "approved", "rejected", "reversed",
+]);
+const ADJUSTMENT_ID = /^adj_[a-z0-9]{26}$/;
+
+/** Return null only for unrelated event types; malformed adjustments throw. */
+export function parsePaddleCandidateAdjustment(rawBody: string): PaddleCandidateAdjustment | null {
+  let event: Json | null;
+  try { event = object(JSON.parse(rawBody)); } catch { throw new Error("Invalid Paddle adjustment JSON."); }
+  if (!event) throw new Error("Invalid Paddle adjustment envelope.");
+  if (event.event_type !== "adjustment.created" && event.event_type !== "adjustment.updated") return null;
+  const eventId = idFrom(event.event_id);
+  const occurred = occurredAt(event.occurred_at);
+  const data = object(event.data);
+  if (!eventId || !/^evt_[a-z0-9]{26}$/.test(eventId) || !occurred || !data) {
+    throw new Error("Invalid Paddle adjustment envelope.");
+  }
+  const adjustmentId = idFrom(data.id);
+  const action = idFrom(data.action) as PaddleCandidateAdjustment["action"] | null;
+  const status = idFrom(data.status) as PaddleCandidateAdjustment["status"] | null;
+  const adjustmentType = idFrom(data.type);
+  const transactionId = idFrom(data.transaction_id);
+  const subscriptionId = idFrom(data.subscription_id);
+  const customerId = idFrom(data.customer_id);
+  if (!adjustmentId || !ADJUSTMENT_ID.test(adjustmentId)
+    || !action || !ADJUSTMENT_ACTIONS.has(action)
+    || !status || !ADJUSTMENT_STATES.has(status)
+    || (adjustmentType !== "full" && adjustmentType !== "partial")
+    || !transactionId || !TRANSACTION_ID.test(transactionId)
+    || !customerId || !CUSTOMER_ID.test(customerId)
+    || (subscriptionId !== null && !SUBSCRIPTION_ID.test(subscriptionId))) {
+    throw new Error("Paddle adjustment requires valid financial and identity fields.");
+  }
+  return {
+    eventId,
+    occurredAt: occurred,
+    adjustmentId,
+    eventType: event.event_type,
+    action,
+    status,
+    adjustmentType,
+    transactionId,
+    subscriptionId,
+    customerId,
+    requiresReview: true,
+  };
+}
+
+/**
  * Entitlement changes deliberately exclude subscription.created / activated,
  * trialing / updated / resumed and transaction.billed / paid: Paddle may create
  * or activate a manually billed subscription before its invoice is paid.
