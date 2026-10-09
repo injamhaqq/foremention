@@ -38,8 +38,9 @@ export function assessObservedPagePresence(
   // Never classify a missing term as absent when coverage is not complete.
   const fullTextCoverage = inspection.access === "open"
     && typeof inspection.pageText === "string"
+    && typeof inspection.contentLength === "number"
     && Number.isSafeInteger(inspection.contentLength)
-    && inspection.contentLength! >= 0
+    && inspection.contentLength >= 0
     && inspection.pageText.length === inspection.contentLength;
 
   const pagePresenceState: ObservedPagePresenceState = clientPresent
