@@ -1,8 +1,10 @@
+import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { NextResponse } from "next/server";
 import { supabaseConfigured } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const body = await readJsonObject(request);
   if (!body) return NextResponse.json({ error: "Send a valid recovery form." }, { status: 400 });
   const email = cleanText(body.email, 254).toLowerCase();
