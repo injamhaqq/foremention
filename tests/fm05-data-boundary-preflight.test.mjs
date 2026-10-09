@@ -23,6 +23,8 @@ test("FM-05 preflight covers project relationships, role grants and migration ha
     "sql_sha256", "git_blob_sha", "runs_to_projects",
     "prompts_to_projects", "jobs_to_projects", "run_answers_to_runs",
     "source_maps_to_runs", "support_tickets_to_projects",
+    "missing_initial_version", "missing_current_version",
+    "history_gap_with_run_selection", "both_missing_same_question",
   ]) assert.ok(sql.includes(required), `Missing FM-05 boundary: ${required}`);
   assert.doesNotMatch(sql, /SELECT\s+\*\s+FROM\s+public\./i);
 });
