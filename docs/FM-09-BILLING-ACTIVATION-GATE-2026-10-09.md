@@ -5,6 +5,29 @@ Owner: FM-09 (review/eligibility); integration and release authority: FM-00
 Status: **NOT APPROVED FOR LIVE CHECKOUT**
 Canonical repository: `injamhaqq/foremention`
 
+
+## 2026-10-09 superseding commercial decision — Paddle first
+
+**Commercial first application: Paddle; next application: Polar; cost option: Creem if Bangladesh payout/KYB approved.** The Creem-first references elsewhere in this document describe an **existing tested engineering adapter**, not final commercial preference. Do not blindly merge or turn on Creem because its code is further along. Dodo is ineligible for new Bangladesh onboarding under the current dated merchant policy.
+
+Why Paddle: published recurring software billing, merchant-of-record invoices, self-serve checkout, enterprise-style bank-transfer invoicing, portal, subscription changes and dunning. Official supplier country policy does not exclude Bangladesh, but Foremention **must receive individual merchant/product/bank approval**; its AUP restricts some marketing services/automated marketing products. Describe Foremention honestly as B2B recommendation intelligence SaaS with human-reviewed evidence, not guaranteed AI ranking manipulation, mass marketing or a consulting-only package.
+
+**October 6, 2026 Paddle Master Services Agreement** states baseline:
+- Checkout: **5% + USD 0.50** per checkout transaction.
+- Invoicing: **3.5% of sale** for bank-transfer payments; if an invoice buyer pays through Paddle Checkout instead, checkout rate applies.
+- FX margin converting buyer currency to selected settlement: **2% USD/EUR/GBP major currencies, 2.5% CZK/DKK/NOK/THB, 3% others** under those terms.
+- International bank transfer can carry **USD 15** charge, plus beneficiary/intermediary bank costs.
+- Payouts monthly when thresholds are met (at least USD/EUR/GBP 100).
+- Separate service fees may apply (e.g. Checkout Recovery 10% of successfully recovered checkout under current legal terms), and specific agreed rates may supersede.
+
+Source: https://www.paddle.com/legal/terms (last updated 2026-10-06) and https://www.paddle.com/help/manage/get-paid/when-and-how-do-i-get-paid .
+
+**Critical B2B invoice semantics:** Paddle creates subscription records when a manual invoice is merely *billed*, before bank-transfer settlement. A verified \`subscription.created\` or \`subscription.activated\` is **not sufficient proof of payment**. Gate paid access on \`transaction.completed\` (payment settled/processed) and verified subscription/organization/price mapping; route chargebacks/refunds into durable financial adjustment audit/case policy. Source: https://developer.paddle.com/api-reference/transactions/create-transaction .
+
+**New independent prototype PR #482:** \`lib/paddle-billing.ts\` + \`tests/paddle-candidate-contract.test.mjs\` + \`docs/FM-09-PADDLE-SANDBOX-CANDIDATE-2026-10-09.md\`, based on main. It is **not wired into the active billing routes**; does not touch PR #446 files. FM-00 owns any later integration. Paddle requires an approved default payment URL hosting Paddle.js before transaction checkout works. Source: https://developer.paddle.com/build/transactions/default-payment-link .
+
+Do not activate checkout, create real products/charges, or upload merchant/bank documents without owner approval.
+
 ## Verified repository checkpoint (not production verification)
 
 - Main as returned by latest GitHub commit search: `d4fea60a7bb8e047f2282cea9134121e9496c67e`.
