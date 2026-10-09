@@ -130,3 +130,11 @@ Other FM-04/FM-08 PRs may mutate application APIs and auth boundaries at any tim
 4. Add a specific regression test; gather real after screenshot + manual accessibility + Playwright/axe + Lighthouse + CI exact SHA.
 5. Return task patch/CI/visual evidence and founder approval receipt to FM-00. FM-08 owns merge/release signoff.
 **Stop conditions:** if live main SHA changed, refresh. If another workstream claims target file, stop. If feature copy implies native ChatGPT/Gemini consumer monitoring from Cloudflare path, stop. If visual requires new identity, request founder approval. If test/CI/screenshot unavailable, say **UNVERIFIED**.
+
+## 11. Implementation continuation — 2026-10-09
+- **New isolated PR:** [#467](https://github.com/injamhaqq/foremention/pull/467), `fix/fm03-keyboard-shortcut-announcements-20261009`, based on exact audited main `d4fea60a7bb8e047f2282cea9134121e9496c67e`.
+- **Real defect:** `components/workspace-keyboard-shortcuts.tsx` unconditionally announced “Opened the review action” or “Started the available export” after a keypress even when the current page did not contain a usable action control; misleading accessibility feedback.
+- **Bounded fix:** `lib/workspace-shortcut-activation.ts` returns a truthy activation signal only when a control is present and not disabled, inert or `aria-disabled=true`. Component sends an `aria-live` announcement only on activation and uses “activated” rather than implying asynchronous completion. Suppresses global shortcuts under an open modal dialog. Preserves `A` fallback, `J/K` navigation and eight canonical signed-in destinations.
+- **Regression test:** `tests/workspace-keyboard-shortcuts.test.mjs` now covers absent, disabled, inert, aria-disabled and usable targets, plus conditional-announcement integration checks.
+- **Collision scan:** every open PR at branch selection was checked for all three touched paths; no overlap was reported. **No app-wide CSS, brand or product contracts changed.**
+- **FM-00 action:** review #467 as a nonmaterial accessibility correction, not a new design proposal. Requires passing exact head CI and FM-08/browser checks before merge. Neither #465 nor #467 is approved for automatic merge or deployment.
