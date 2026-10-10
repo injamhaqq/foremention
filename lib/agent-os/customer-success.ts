@@ -1,6 +1,10 @@
 import { proposeAgentAction } from "@/lib/agent-os/actions";
 import { runCustomerSuccessDraftReasoner } from "@/lib/agent-os/customer-success-draft";
 import { placementBelongsToProject } from "@/lib/agent-os/customer-success-core";
+import { customerSuccessSnapshotComplete } from "@/lib/agent-os/customer-success-snapshot";
+import { reviewedRecordReadyForOperatingAgent } from "@/lib/agent-os/reviewed-record-gate";
+import { loadRecordIntegrity } from "@/lib/record-integrity";
+import { loadProjectPlacementScope, MAX_PROJECT_PLACEMENTS, MAX_PROJECT_PLACEMENT_SCOPE_LINKS } from "@/lib/project-placement-scope";
 import { deriveActivationStage } from "@/lib/retention-loop";
 import { deriveRetentionHealth } from "@/lib/retention-health";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -10,9 +14,29 @@ export async function runCustomerSuccessAgent(input: {
   organizationId: string;
   projectId: string;
 }) {
-  const [prompts, organizationPlacements, schedules, projectRuns] = await Promise.all([
-    supabaseRest<Array<{ id: string }>>(
-      `prompts?select=id&organization_id=eq.${encodeURIComponent(input.organizationId)}&project_id=eq.${encodeURIComponent(input.projectId)}&active=eq.true&limit=100`,
+  // A delivery event is not evidence of a completed review. Re-read the exact
+  // organization/project record, including its frozen manifest and verified
+  // answers, before storing activation claims or generating a message draft.
+  const record = await loadRecordIntegrity({
+    organizationId: input.organizationId,
+    projectId: input.projectId,
+    runId: input.runId,
+    serviceRole: true,
+  });
+  if (!reviewedRecordReadyForOperatingAgent(record)) {
+    return { skipped: true, reason: "reviewed_record_not_eligible" } as const;
+  }
+
+  const scope = await loadProjectPlacementScope({
+    organizationId: input.organizationId,
+    projectId: input.projectId,
+    serviceRole: true,
+  });
+  if (!scope) return { skipped: true, reason: "project_reference_scope_incomplete" } as const;
+
+  const [prompts, organizationPlacements, schedules] = await Promise.all([
+    supabaseRest<Array<{ id: string; active: boolean }>>(
+      `prompts?select=id,active&organization_id=eq.${encodeURIComponent(input.organizationId)}&project_id=eq.${encodeURIComponent(input.projectId)}&order=created_at.asc&limit=${MAX_PROJECT_PLACEMENT_SCOPE_LINKS + 1}`,
       { serviceRole: true },
     ),
     supabaseRest<Array<{
@@ -24,15 +48,11 @@ export async function runCustomerSuccessAgent(input: {
       baseline_run_id: string | null;
       remeasurement_run_id: string | null;
     }>>(
-      `placements?select=id,owner_id,due_at,remeasurement_due_at,target_prompt_ids,baseline_run_id,remeasurement_run_id&organization_id=eq.${encodeURIComponent(input.organizationId)}&order=created_at.asc&limit=1000`,
+      `placements?select=id,owner_id,due_at,remeasurement_due_at,target_prompt_ids,baseline_run_id,remeasurement_run_id&organization_id=eq.${encodeURIComponent(input.organizationId)}&order=created_at.asc&limit=${MAX_PROJECT_PLACEMENTS + 1}`,
       { serviceRole: true },
     ),
     supabaseRest<Array<{ id: string }>>(
       `measurement_schedules?select=id&organization_id=eq.${encodeURIComponent(input.organizationId)}&project_id=eq.${encodeURIComponent(input.projectId)}&enabled=eq.true&limit=1`,
-      { serviceRole: true },
-    ).catch(() => []),
-    supabaseRest<Array<{ id: string }>>(
-      `runs?select=id&organization_id=eq.${encodeURIComponent(input.organizationId)}&project_id=eq.${encodeURIComponent(input.projectId)}&order=created_at.desc&limit=1000`,
       { serviceRole: true },
     ),
   ]);
@@ -40,8 +60,20 @@ export async function runCustomerSuccessAgent(input: {
   // placements is intentionally organization-scoped in the database. Derive
   // project membership only from durable project-owned prompt/run links; an
   // unlinked placement is excluded rather than guessed into this project.
-  const projectPromptIds = new Set(prompts.map((item) => item.id));
-  const projectRunIds = new Set(projectRuns.map((item) => item.id));
+  if (!customerSuccessSnapshotComplete({
+    promptScopeIds: scope.promptIds,
+    runScopeCount: scope.runIds.size,
+    prompts,
+    organizationPlacementCount: organizationPlacements.length,
+    promptLimit: MAX_PROJECT_PLACEMENT_SCOPE_LINKS,
+    placementLimit: MAX_PROJECT_PLACEMENTS,
+  })) return { skipped: true, reason: "customer_success_snapshot_incomplete" } as const;
+
+  // Historical/inactive question links still establish project ownership.
+  // Only active questions count toward the five-question activation boundary.
+  const projectPromptIds = scope.promptIds;
+  const projectRunIds = scope.runIds;
+  const approvedQuestionCount = prompts.filter((item) => item.active).length;
   const placements = organizationPlacements.filter((item) =>
     placementBelongsToProject(item, projectPromptIds, projectRunIds));
 
@@ -53,14 +85,14 @@ export async function runCustomerSuccessAgent(input: {
     const at = new Date(raw).getTime();
     return Number.isFinite(at) && at < Date.now();
   }).length;
-  const activated = prompts.length >= 5 && firstActionCreated && firstActionAssigned;
+  const activated = approvedQuestionCount >= 5 && firstActionCreated && firstActionAssigned;
 
   // This trigger proves one human-reviewed collection. Exact second-cycle
   // comparability is intentionally not inferred here; the existing intelligence
   // layer remains authoritative for that determination.
   const activation = deriveActivationStage({
     workspaceConfigured: true,
-    approvedQuestions: prompts.length,
+    approvedQuestions: approvedQuestionCount,
     firstCollectionCompleted: true,
     firstRecordReviewed: true,
     firstActionCreated,
@@ -92,7 +124,7 @@ export async function runCustomerSuccessAgent(input: {
       activationStage: activation.key,
       activationHref: activation.href,
       retentionStatus: retentionHealth.status,
-      approvedQuestionCount: prompts.length,
+      approvedQuestionCount,
       firstActionCreated,
       firstActionAssigned,
       scheduleEnabled: schedules.length > 0,
@@ -113,7 +145,7 @@ export async function runCustomerSuccessAgent(input: {
     retentionStatus: retentionHealth.status,
     retentionLabel: retentionHealth.label,
     retentionReason: retentionHealth.reason,
-    approvedQuestionCount: prompts.length,
+    approvedQuestionCount,
     firstActionCreated,
     firstActionAssigned,
     scheduleEnabled: schedules.length > 0,
@@ -124,6 +156,7 @@ export async function runCustomerSuccessAgent(input: {
   });
 
   return {
+    skipped: false as const,
     action,
     activation,
     retentionHealth,
