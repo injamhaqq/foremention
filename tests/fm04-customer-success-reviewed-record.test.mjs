@@ -81,6 +81,7 @@ test("Customer Success snapshot rejects truncated, ambiguous and foreign ownersh
   const { customerSuccessSnapshotComplete } = await import("../lib/agent-os/customer-success-snapshot.ts");
   const base = {
     promptScopeIds: new Set(["active", "historical-inactive"]),
+    runScopeCount: 3,
     prompts: [{ id: "active", active: true }, { id: "historical-inactive", active: false }],
     organizationPlacementCount: 4,
     promptLimit: 1000,
@@ -92,12 +93,16 @@ test("Customer Success snapshot rejects truncated, ambiguous and foreign ownersh
   assert.equal(customerSuccessSnapshotComplete({ ...base, prompts: [{ id: "active", active: true }, { id: "active", active: true }] }), false);
   assert.equal(customerSuccessSnapshotComplete({ ...base, promptLimit: 1 }), false);
   assert.equal(customerSuccessSnapshotComplete({ ...base, organizationPlacementCount: 1001 }), false);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, organizationPlacementCount: 1000 }), false);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, runScopeCount: 1000 }), false);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, promptLimit: 2 }), false);
   assert.equal(customerSuccessSnapshotComplete({ ...base, organizationPlacementCount: -1 }), false);
 
   const agent = await readFile(new URL("../lib/agent-os/customer-success.ts", import.meta.url), "utf8");
   assert.match(agent, /loadProjectPlacementScope\(\{/);
   assert.match(agent, /if \(!scope\) return \{ skipped: true/);
   assert.match(agent, /customerSuccessSnapshotComplete\(\{/);
+  assert.match(agent, /runScopeCount: scope\.runIds\.size/);
   assert.match(agent, /limit=\$\{MAX_PROJECT_PLACEMENT_SCOPE_LINKS \+ 1\}/);
   assert.match(agent, /limit=\$\{MAX_PROJECT_PLACEMENTS \+ 1\}/);
   assert.match(agent, /approvedQuestionCount = prompts\.filter\(\(item\) => item\.active\)\.length/);
