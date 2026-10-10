@@ -76,3 +76,31 @@ test("Research reasoning packet is complete, bounded and refuses truncated input
   assert.match(reasoner, /if \(!sourceCoverage\.ok\) return \{ skipped: true/);
   assert.match(researchAgent, /verifiedAnswerCount: record\.answers\.length/);
 });
+
+test("Customer Success snapshot rejects truncated, ambiguous and foreign ownership references", async () => {
+  const { customerSuccessSnapshotComplete } = await import("../lib/agent-os/customer-success-snapshot.ts");
+  const base = {
+    promptScopeIds: new Set(["active", "historical-inactive"]),
+    prompts: [{ id: "active", active: true }, { id: "historical-inactive", active: false }],
+    organizationPlacementCount: 4,
+    promptLimit: 1000,
+    placementLimit: 1000,
+  };
+  assert.equal(customerSuccessSnapshotComplete(base), true);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, prompts: base.prompts.slice(0, 1) }), false);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, prompts: [{ id: "active", active: true }, { id: "foreign", active: true }] }), false);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, prompts: [{ id: "active", active: true }, { id: "active", active: true }] }), false);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, promptLimit: 1 }), false);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, organizationPlacementCount: 1001 }), false);
+  assert.equal(customerSuccessSnapshotComplete({ ...base, organizationPlacementCount: -1 }), false);
+
+  const agent = await readFile(new URL("../lib/agent-os/customer-success.ts", import.meta.url), "utf8");
+  assert.match(agent, /loadProjectPlacementScope\(\{/);
+  assert.match(agent, /if \(!scope\) return \{ skipped: true/);
+  assert.match(agent, /customerSuccessSnapshotComplete\(\{/);
+  assert.match(agent, /limit=\$\{MAX_PROJECT_PLACEMENT_SCOPE_LINKS \+ 1\}/);
+  assert.match(agent, /limit=\$\{MAX_PROJECT_PLACEMENTS \+ 1\}/);
+  assert.match(agent, /approvedQuestionCount = prompts\.filter\(\(item\) => item\.active\)\.length/);
+  assert.doesNotMatch(agent, /projectRuns/);
+  assert.ok(agent.indexOf("customerSuccessSnapshotComplete({") < agent.indexOf("proposeAgentAction({"));
+});
