@@ -10,7 +10,7 @@ export type ObservedPagePresenceState = "unknown" | "present" | "absent";
 // A substring inside another word is not evidence that the brand was named.
 // Apply boundaries only to letter/number edges; punctuation stays significant
 // for names like "Acme.ai". This checks mentions, not semantic endorsement.
-const mentionWordChar = /[\\p{L}\\p{M}\\p{N}_]/u;
+const mentionWordChar = /[\p{L}\p{M}\p{N}_]/u;
 
 function containsBoundedMention(text: string, rawTerm: string) {
   const term = rawTerm.trim().toLocaleLowerCase();
