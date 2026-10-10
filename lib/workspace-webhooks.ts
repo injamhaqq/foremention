@@ -30,7 +30,8 @@ export async function deriveWebhookSigningSecret(endpointId: string, masterSecre
   return `whsec_${bytesToBase64Url(await hmac(encoder.encode(masterSecret), `foremention:webhook:${endpointId}`))}`;
 }
 
-type WebhookClaim = { delivery_id: string; attempt_count: number };
+type WebhookClaim = { state: "claimed"; delivery_id: string; attempt_count: number };
+type WebhookClaimResponse = WebhookClaim | { state: "leased" } | null;
 
 async function settleWebhookAttempt(
   organizationId: string,
@@ -71,12 +72,13 @@ export async function deliverWorkspaceWebhooks(event: DeliveryEvent) {
   );
   let delivered = 0;
   let failed = 0;
+  let deferred = 0;
   for (const endpoint of endpoints.filter((row) => row.event_types.includes(event.eventType))) {
     let claim: WebhookClaim | null = null;
     try {
       const destination = assertApprovedWorkspaceWebhookDestination(validateWebhookDestination(endpoint.destination_url));
       await assertPublicSourceResolution(destination);
-      claim = await supabaseRest<WebhookClaim | null>("rpc/claim_workspace_webhook_delivery", {
+      const claimResponse = await supabaseRest<WebhookClaimResponse>("rpc/claim_workspace_webhook_delivery", {
         method: "POST", serviceRole: true,
         body: {
           p_organization_id: event.organizationId,
@@ -86,7 +88,10 @@ export async function deliverWorkspaceWebhooks(event: DeliveryEvent) {
           p_event_type: event.eventType,
         },
       });
-      if (!claim) continue; // Already delivered, actively leased, or exhausted.
+      if (claimResponse?.state === "leased") { deferred += 1; continue; }
+      if (!claimResponse) continue; // Already delivered, invalid, or exhausted.
+      if (claimResponse.state !== "claimed") throw new Error("Invalid webhook receipt state.");
+      claim = claimResponse;
       if (!Number.isInteger(claim.attempt_count) || claim.attempt_count < 1 || claim.attempt_count > 4) {
         throw new Error("Unexpected webhook attempt receipt.");
       }
@@ -135,6 +140,7 @@ export async function deliverWorkspaceWebhooks(event: DeliveryEvent) {
     }
   }
   if (failed) throw new Error("One or more workspace webhook deliveries failed and may be retried.");
+  if (deferred) return { delivered, failed, status: "deferred" as const };
   return { delivered, failed, status: "processed" as const };
 }
 
