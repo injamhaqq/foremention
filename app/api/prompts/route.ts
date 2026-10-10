@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadPrompts, loadWorkspaceContext } from "@/lib/data";
-import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
@@ -23,11 +22,46 @@ export async function POST(request: Request) {
   if (text.length < 10) return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: crypto.randomUUID(), text, cluster: clusterName, approved: true }, mode: "demo" }, { status: 201 });
 
-  const [context, role, existing] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer), loadPrompts(viewer)]);
+  const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
   if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
   if (!(["owner", "admin", "analyst"] as string[]).includes(role)) return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
-  if (existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions) return NextResponse.json({ error: `This access level allows ${FOUNDATION_ACCESS_LIMITS.buyerQuestions} buyer questions. Paid capacity is enabled only after billing activation.` }, { status: 429 });
+  // The trusted, RLS-protected entitlement is the capacity authority. Do not infer
+  // paid access from checkout redirects, requested package names or browser state.
+  const entitlementRows = await supabaseRest<Array<{
+    max_prompts: number;
+    status: string;
+    expires_at: string | null;
+  }>>(
+    `organization_entitlements?select=max_prompts,status,expires_at&organization_id=eq.${context.organizationId}&limit=1`,
+    { token: viewer.accessToken },
+  );
+  const entitlement = entitlementRows[0];
+  const validExpiry = entitlement?.expires_at === null
+    || (typeof entitlement?.expires_at === "string"
+      && Number.isFinite(Date.parse(entitlement.expires_at))
+      && Date.parse(entitlement.expires_at) > Date.now());
+  const questionLimit = entitlement?.status === "active"
+    && Number.isSafeInteger(entitlement.max_prompts)
+    && entitlement.max_prompts > 0
+    && validExpiry
+    ? entitlement.max_prompts
+    : 0;
+  if (!questionLimit) {
+    return NextResponse.json({ error: "Buyer-question access is not active for this workspace." }, { status: 403 });
+  }
+  // Enforce the organization entitlement across all projects rather than
+  // granting every project a fresh quota. Database-atomic admission is a
+  // separate migration/reconciliation gate before paid multi-project launch.
+  const activeQuestions = await supabaseRest<Array<{ id: string }>>(
+    `prompts?select=id&organization_id=eq.${context.organizationId}&active=eq.true&limit=${questionLimit + 1}`,
+    { token: viewer.accessToken },
+  );
+  if (activeQuestions.length >= questionLimit) {
+    return NextResponse.json({
+      error: `This workspace has reached its ${questionLimit}-question entitlement. Additional capacity requires verified plan activation.`,
+    }, { status: 429 });
+  }
 
   let clusterId = context.clusterId;
   if (!clusterId) {
@@ -93,11 +127,47 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Only owners and analysts can edit buyer questions." }, { status: 403 });
   }
 
-  const scopedPrompt = await supabaseRest<Array<{ id: string }>>(
-    `prompts?select=id&id=eq.${id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+  const scopedPrompt = await supabaseRest<Array<{ id: string; active: boolean }>>(
+    `prompts?select=id,active&id=eq.${id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   if (!scopedPrompt[0]) return NextResponse.json({ error: "Buyer question not found." }, { status: 404 });
+
+  // Reactivation must obey the same organization capacity as creation.
+  // This read-side guard does not replace atomic database enforcement.
+  if (hasActive && body.active === true && !scopedPrompt[0].active) {
+    const entitlements = await supabaseRest<Array<{
+      max_prompts: number;
+      status: string;
+      expires_at: string | null;
+    }>>(
+      `organization_entitlements?select=max_prompts,status,expires_at&organization_id=eq.${context.organizationId}&limit=1`,
+      { token: viewer.accessToken },
+    );
+    const entitlement = entitlements[0];
+    const validExpiry = entitlement?.expires_at === null
+      || (typeof entitlement?.expires_at === "string"
+        && Number.isFinite(Date.parse(entitlement.expires_at))
+        && Date.parse(entitlement.expires_at) > Date.now());
+    const questionLimit = entitlement?.status === "active"
+      && Number.isSafeInteger(entitlement.max_prompts)
+      && entitlement.max_prompts > 0
+      && validExpiry
+      ? entitlement.max_prompts
+      : 0;
+    if (!questionLimit) {
+      return NextResponse.json({ error: "Buyer-question access is not active for this workspace." }, { status: 403 });
+    }
+    const activeQuestions = await supabaseRest<Array<{ id: string }>>(
+      `prompts?select=id&organization_id=eq.${context.organizationId}&active=eq.true&limit=${questionLimit + 1}`,
+      { token: viewer.accessToken },
+    );
+    if (activeQuestions.length >= questionLimit) {
+      return NextResponse.json({
+        error: `This workspace has reached its ${questionLimit}-question entitlement. Additional capacity requires verified plan activation.`,
+      }, { status: 429 });
+    }
+  }
 
   const updated = await supabaseRest<{
     id: string;
