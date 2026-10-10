@@ -21,7 +21,17 @@ import {
   type StripeCheckoutPackage,
 } from "./stripe-billing.ts";
 
-export type BillingProviderId = "stripe" | "creem";
+import {
+  createPaddleCandidateCheckout,
+  createPaddleCandidatePortal,
+  paddleCandidateConfigured,
+  paddlePriceIdFor,
+  parsePaddleCandidateAdjustment,
+  parsePaddleCandidateEvent,
+  verifyPaddleCandidateWebhook,
+} from "./paddle-billing.ts";
+
+export type BillingProviderId = "stripe" | "creem" | "paddle";
 export type BillingCheckoutPackage = "core" | "signal";
 export type BillingInterval = "monthly" | "annual";
 export type BillingCheckoutOffer = {
@@ -74,6 +84,57 @@ function creemCheckoutOffers(): BillingCheckoutOffer[] {
   }
   return offers;
 }
+
+// FM-09 sandbox integration ONLY. Production deliberately refuses Paddle even
+// with live credentials or flags. FM-00 must authorize a separate live adapter
+// after verified merchant/bank approval and durable financial controls.
+function paddleSandboxConfigured() {
+  return process.env.NODE_ENV !== "production"
+    && process.env.PADDLE_ENVIRONMENT === "sandbox"
+    && process.env.PADDLE_SANDBOX_ADAPTER_ENABLED === "1"
+    && paddleCandidateConfigured();
+}
+function paddleSandboxCheckoutOffers(): BillingCheckoutOffer[] {
+  const offers: BillingCheckoutOffer[] = [];
+  for (const packageKey of ["core", "signal"] as const) {
+    for (const billingInterval of ["monthly", "annual"] as const) {
+      if (paddlePriceIdFor(packageKey, billingInterval)) offers.push({ packageKey, billingInterval });
+    }
+  }
+  return offers;
+}
+const paddleSandboxProvider: BillingProviderAdapter = {
+  id: "paddle",
+  configured: paddleSandboxConfigured,
+  checkoutOffers: paddleSandboxCheckoutOffers,
+  async createCheckout(input) {
+    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    return createPaddleCandidateCheckout({
+      packageKey: input.packageKey,
+      billingInterval: input.billingInterval,
+      organizationId: input.organizationId,
+      customerId: input.customerId,
+    });
+  },
+  async createPortal(input) {
+    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    return createPaddleCandidatePortal(input.customerId);
+  },
+  async verifyWebhook(rawBody, headers) {
+    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    return verifyPaddleCandidateWebhook(rawBody, headers.get("paddle-signature"));
+  },
+  parseWebhook(rawBody) {
+    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    // Never respond with a falsely successful "ignored" result for a
+    // financial adjustment. FM-05 must implement a durable case receipt
+    // before enabling a production billing webhook for Paddle.
+    if (parsePaddleCandidateAdjustment(rawBody)) {
+      throw new Error("Paddle financial adjustment requires durable audit handling.");
+    }
+    return parsePaddleCandidateEvent(rawBody);
+  },
+};
 
 const stripeProvider: BillingProviderAdapter = {
   id: "stripe",
@@ -153,13 +214,14 @@ export function reconcileBillingOrganization(
 
 export function billingProviderId(): BillingProviderId | null {
   const provider = process.env.BILLING_PROVIDER_ID?.trim().toLowerCase();
-  return provider === "stripe" || provider === "creem" ? provider : null;
+  return provider === "stripe" || provider === "creem" || provider === "paddle" ? provider : null;
 }
 
 export function billingProvider(): BillingProviderAdapter | null {
   const provider = billingProviderId();
   if (provider === "stripe") return stripeProvider;
   if (provider === "creem") return creemProvider;
+  if (provider === "paddle") return paddleSandboxProvider;
   return null;
 }
 
