@@ -38,6 +38,7 @@ const providerPrefix: Record<Exclude<ProviderId, "mock">, string> = {
   cloudflare: "CLOUDFLARE",
   openrouter: "OPENROUTER",
   zenmux: "ZENMUX",
+  omniroute: "OMNIROUTE",
   omnirouters: "OMNIROUTERS",
 };
 

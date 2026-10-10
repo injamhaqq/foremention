@@ -10,6 +10,7 @@ const ALLOWED_PROVIDERS = new Set<ProviderId>([
   "anthropic",
   "cloudflare",
   "zenmux",
+  "omniroute",
   "omnirouters",
 ]);
 const DEFAULT_PROVIDER_ORDER: ProviderId[] = ["cloudflare", "gemini", "groq", "perplexity", "openai", "openrouter"];

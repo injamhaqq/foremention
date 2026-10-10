@@ -54,7 +54,7 @@ function initialValues(demo: boolean) {
   };
 }
 
-type FirstAuditProvider = { id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter" | "zenmux" | "omnirouters"; label: string } | null;
+type FirstAuditProvider = { id: "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter" | "zenmux" | "omniroute" | "omnirouters"; label: string } | null;
 
 export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo: boolean; draftKey: string; firstAuditProvider: FirstAuditProvider }) {
   const [step, setStep] = useState(0);

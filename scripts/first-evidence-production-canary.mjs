@@ -21,7 +21,7 @@ const maxCostUsd = Number(process.env.FOREMENTION_ACCEPTANCE_MAX_COST_USD || "")
 const timeoutMs = Math.max(60_000, Math.min(Number(process.env.FOREMENTION_ACCEPTANCE_CANARY_TIMEOUT_MS || 1_200_000), 1_200_000));
 const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-acceptance");
 const outputPath = resolve(outputRoot, "first-evidence-production-canary.json");
-const liveProviders = new Set(["openai", "gemini", "anthropic", "perplexity", "groq", "cloudflare", "openrouter", "zenmux", "omnirouters"]);
+const liveProviders = new Set(["openai", "gemini", "anthropic", "perplexity", "groq", "cloudflare", "openrouter", "zenmux", "omniroute", "omnirouters"]);
 const expectedAcceptanceFixtureFingerprint = "10387d827457605531a1a2c469385f2adbd158206a50f7dd5d566bdc65dcdedd";
 
 const summary = {

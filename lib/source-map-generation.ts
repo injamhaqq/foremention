@@ -55,6 +55,7 @@ const engineLabels: Record<string, string> = {
   cloudflare: "Cloudflare Workers AI + Bing Search RSS",
   openrouter: "OpenRouter",
   zenmux: "ZenMux",
+  omniroute: "OmniRoute",
   omnirouters: "OmniRouters",
 };
 

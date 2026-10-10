@@ -8,7 +8,7 @@ import {
   type ProviderPrompt,
 } from "@/lib/providers/types";
 
-type GatewayProviderId = Extract<ProviderId, "zenmux" | "omnirouters">;
+type GatewayProviderId = Extract<ProviderId, "zenmux" | "omniroute" | "omnirouters">;
 
 type GatewayAnnotation = {
   url?: string;
@@ -42,11 +42,33 @@ type GatewayResponse = {
 type GatewayConfig = {
   id: GatewayProviderId;
   label: string;
-  endpoint: string;
-  apiKeyEnv: "ZENMUX_API_KEY" | "OMNIROUTERS_API_KEY";
-  modelEnv: "ZENMUX_MODEL" | "OMNIROUTERS_MODEL";
+  endpoint?: string;
+  baseUrlEnv?: "OMNIROUTE_BASE_URL";
+  apiKeyEnv: "ZENMUX_API_KEY" | "OMNIROUTE_API_KEY" | "OMNIROUTERS_API_KEY";
+  modelEnv: "ZENMUX_MODEL" | "OMNIROUTE_MODEL" | "OMNIROUTERS_MODEL";
   maxTokensField: "max_tokens" | "max_completion_tokens";
 };
+
+function resolveGatewayEndpoint(config: GatewayConfig) {
+  if (config.endpoint) return config.endpoint;
+  if (!config.baseUrlEnv) return null;
+  const rawBaseUrl = process.env[config.baseUrlEnv]?.trim();
+  if (!rawBaseUrl) return null;
+  try {
+    const url = new URL(rawBaseUrl);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
+    const hostname = url.hostname.toLowerCase();
+    const loopback = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+    if (process.env.NODE_ENV === "production" && (url.protocol !== "https:" || loopback)) return null;
+    url.search = "";
+    url.hash = "";
+    const base = url.toString().replace(/\/+$/, "");
+    return `${base}/chat/completions`;
+  } catch {
+    return null;
+  }
+}
 
 function safeCitation(urlValue: unknown, title?: unknown, startIndex?: unknown, endIndex?: unknown): ProviderCitation | null {
   if (typeof urlValue !== "string") return null;
@@ -87,11 +109,13 @@ function structuredCitations(raw: GatewayResponse) {
 export function createOpenAiCompatibleGateway(config: GatewayConfig): AnswerProviderAdapter {
   return {
     id: config.id,
-    configured: () => Boolean(process.env[config.apiKeyEnv] && process.env[config.modelEnv]),
+    configured: () => Boolean(process.env[config.apiKeyEnv] && process.env[config.modelEnv] && resolveGatewayEndpoint(config)),
     async run(prompt: ProviderPrompt, options): Promise<ProviderAnswer> {
       const started = Date.now();
       const model = String(process.env[config.modelEnv]);
-      const response = await fetch(config.endpoint, {
+      const endpoint = resolveGatewayEndpoint(config);
+      if (!endpoint) throw new ProviderRequestError(config.label, 503, "Gateway endpoint is not configured safely.");
+      const response = await fetch(endpoint, {
         method: "POST",
         signal: options.signal,
         headers: {
