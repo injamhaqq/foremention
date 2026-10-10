@@ -13,18 +13,21 @@ test("workspace delivery has per-tenant event-key step concurrency = 1", async (
   assert.match(section, /id: "deliver-workspace-webhook-events"/);
   assert.match(section, /triggers: \{ event: "foremention\/workspace\.event" \}/);
   assert.match(section, /concurrency: \{ limit: 1, key: 'event\.data\.organizationId \+ ":" \+ event\.data\.eventKey' \}/);
-  assert.match(section, /step\.run\("deliver-signed-webhooks"/);
+  assert.match(section, /leaseRetry === 0 \? "deliver-signed-webhooks"/);
+  assert.match(section, /step\.sleep\(/);
+  assert.match(section, /"95s"/);
+  assert.match(section, /result\.status !== "deferred"/);
   assert.match(section, /deliverWorkspaceWebhooks\(event\.data as DeliveryEvent\)/);
 });
 
-test("webhook concurrency remains a mitigation, not proof of atomic receipt claiming", async () => {
+test("webhook concurrency combines with atomic fenced receipt claims", async () => {
   const [delivery, sql] = await Promise.all([
     text("lib/workspace-webhooks.ts"),
     text("supabase/migrations/20260802000600_workspace_webhooks.sql"),
   ]);
-  assert.match(delivery, /on_conflict=endpoint_id,event_key/);
+  assert.ok(delivery.includes("rpc/claim_workspace_webhook_delivery"));
   assert.match(sql, /unique \(endpoint_id, event_key\)/);
-  assert.match(delivery, /delivery\.status === "delivered"/);
+  assert.ok(delivery.includes("rpc/settle_workspace_webhook_delivery"));
   assert.match(delivery, /redirect: "error"/);
   // Do not mutate database state or call an outbound webhook in this regression.
 });
