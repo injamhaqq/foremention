@@ -1,3 +1,5 @@
+import { activationMilestoneTimestamp, completedActivationStageAt, observedTimestamp } from "./pmf-activation-boundary.ts";
+
 export type PmfMetricKey =
   | "activation_rate"
   | "first_record_review_rate"
@@ -177,15 +179,8 @@ function hasActivityBetween(account: PmfAccountFacts, start: number, end: number
   });
 }
 
-function activated(account: PmfAccountFacts) {
-  return Boolean(
-    timestamp(account.workspaceConfiguredAt) !== null
-    && timestamp(account.fiveQuestionsApprovedAt) !== null
-    && timestamp(account.firstMeasurementAt) !== null
-    && timestamp(account.firstRecordReviewedAt) !== null
-    && timestamp(account.firstActionCreatedAt) !== null
-    && timestamp(account.firstActionAssignedAt) !== null,
-  );
+function activated(account: PmfAccountFacts, nowMs: number) {
+  return activationMilestoneTimestamp(account, nowMs) !== null;
 }
 
 /**
@@ -200,32 +195,44 @@ export function derivePmfMetrics(accounts: PmfAccountFacts[], now = new Date()):
   const prior30Start = nowMs - 60 * DAY_MS;
   const wauStart = nowMs - 7 * DAY_MS;
 
-  const activatedAccounts = eligible.filter(activated);
-  const firstMeasured = eligible.filter((account) => timestamp(account.firstMeasurementAt) !== null);
-  const firstReviewed = firstMeasured.filter((account) => timestamp(account.firstRecordReviewedAt) !== null);
-  const actionCreated = firstReviewed.filter((account) => timestamp(account.firstActionCreatedAt) !== null);
-  const secondCycle = activatedAccounts.filter((account) => timestamp(account.secondComparableCycleAt) !== null);
+  const activatedAccounts = eligible.filter((account) => activated(account, nowMs));
+  // A measured/reviewed Record is only meaningful if every prerequisite
+  // actually occurred in order, even when the later activation step is absent.
+  const firstMeasured = eligible.filter((account) => completedActivationStageAt(account, nowMs, 3) !== null);
+  const firstReviewed = firstMeasured.filter((account) => completedActivationStageAt(account, nowMs, 4) !== null);
+  const actionCreated = firstReviewed.filter((account) => completedActivationStageAt(account, nowMs, 5) !== null);
+  const secondCycle = activatedAccounts.filter((account) => {
+    const activatedAt = activationMilestoneTimestamp(account, nowMs);
+    const secondAt = observedTimestamp(account.secondComparableCycleAt, nowMs);
+    return activatedAt !== null && secondAt !== null && secondAt >= activatedAt;
+  });
 
   const current30 = eligible.filter((account) => hasActivityBetween(account, current30Start, nowMs + 1));
   const prior30 = eligible.filter((account) => hasActivityBetween(account, prior30Start, current30Start));
   const retained = prior30.filter((account) => hasActivityBetween(account, current30Start, nowMs + 1));
   const wau = eligible.filter((account) => hasActivityBetween(account, wauStart, nowMs + 1));
 
-  const ttfvHours = eligible.flatMap((account) => {
-    const created = timestamp(account.createdAt);
-    const reviewed = timestamp(account.firstRecordReviewedAt);
+  const ttfvHours = firstReviewed.flatMap((account) => {
+    const created = observedTimestamp(account.createdAt, nowMs);
+    const reviewed = observedTimestamp(account.firstRecordReviewedAt, nowMs);
     return created !== null && reviewed !== null && reviewed >= created ? [(reviewed - created) / 3_600_000] : [];
   });
-  const secondCycleHours = eligible.flatMap((account) => {
-    const first = timestamp(account.firstMeasurementAt);
-    const second = timestamp(account.secondComparableCycleAt);
+  const secondCycleHours = secondCycle.flatMap((account) => {
+    const first = observedTimestamp(account.firstMeasurementAt, nowMs);
+    const second = observedTimestamp(account.secondComparableCycleAt, nowMs);
     return first !== null && second !== null && second >= first ? [(second - first) / 3_600_000] : [];
   });
 
-  const designPartners = eligible.filter((account) => timestamp(account.designPartnerAcceptedAt) !== null);
-  const convertedDesignPartners = designPartners.filter((account) => timestamp(account.payingStartedAt) !== null && account.billingVerified);
+  const designPartners = eligible.filter((account) => observedTimestamp(account.designPartnerAcceptedAt, nowMs) !== null);
+  const convertedDesignPartners = designPartners.filter((account) => {
+    const accepted = observedTimestamp(account.designPartnerAcceptedAt, nowMs);
+    const paying = observedTimestamp(account.payingStartedAt, nowMs);
+    return accepted !== null && paying !== null && paying >= accepted && account.billingVerified;
+  });
   const realBillingExists = eligible.some((account) => account.billingVerified);
-  const paidActivated = activatedAccounts.filter((account) => account.billingVerified && timestamp(account.payingStartedAt) !== null);
+  const paidActivated = activatedAccounts.filter((account) =>
+    account.billingVerified && observedTimestamp(account.payingStartedAt, nowMs) !== null
+  );
 
   return {
     activation_rate: rate("activation_rate", activatedAccounts.length, eligible.length),
