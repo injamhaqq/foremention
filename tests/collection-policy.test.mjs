@@ -27,11 +27,15 @@ test("Groq reservation supports the bounded five-question pilot without hiding c
   assert.equal(policy.estimateReservedRunCost("groq", 1, rates), 0.10);
   assert.equal(policy.estimateReservedRunCost("groq", 5, rates), 0.50);
   assert.equal(policy.estimateReservedRunCost("groq", 6, rates), 0.60);
-  assert.equal(product.FOUNDATION_ACCESS_LIMITS.runUnitsPerMonth, 20);
-  assert.equal(product.FOUNDATION_ACCESS_LIMITS.monthlyAiSpendCapUsd, 2);
+  // Weekly pilot capacity (gap 5): 10 questions x 1 provider x 5 weeks.
+  assert.equal(product.FOUNDATION_ACCESS_DEFAULTS.runUnitsPerMonth, 50);
+  assert.equal(product.weeklyPilotFits(product.FOUNDATION_ACCESS_DEFAULTS), true);
+  // The dollar cap is unchanged; the budget RPC still stops Groq at $2.00,
+  // i.e. after 20 reserved Groq observations, whatever units remain.
+  assert.equal(product.FOUNDATION_ACCESS_DEFAULTS.monthlyAiSpendCapUsd, 2);
   assert.equal(
-    product.FOUNDATION_ACCESS_LIMITS.runUnitsPerMonth * policy.GROQ_SPEND_LIMITS.reservedCostPerPromptUsd,
-    product.FOUNDATION_ACCESS_LIMITS.monthlyAiSpendCapUsd,
+    Math.floor(product.FOUNDATION_ACCESS_DEFAULTS.monthlyAiSpendCapUsd / policy.GROQ_SPEND_LIMITS.reservedCostPerPromptUsd),
+    20,
   );
 });
 

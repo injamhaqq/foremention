@@ -1,3 +1,4 @@
+import { confirmRunReviewTransition, type ReviewTransitionSnapshot } from "./run-review-transition";
 import { Inngest } from "inngest";
 import { toInngestProviderStepError } from "./provider-step-error";
 import { measureRunPhase } from "./run-phase-timing";
@@ -16,6 +17,7 @@ import {
   safeOperationalError,
 } from "@/lib/collection-policy";
 import { getProvider } from "@/lib/providers";
+import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
@@ -497,6 +499,10 @@ export const runMultiEngineScan = inngest.createFunction(
       await markRunFailed(data, "The queued provider is disabled by Foremention free-only mode.", true);
       return { runId: run.id, answers: 0, citations: 0, failures: prompts.length, freeOnlyBlocked: true };
     }
+    if (!providerAllowedForMeasurementLane(providerId)) {
+      await markRunFailed(data, "The queued model gateway is not pinned to one exact upstream provider and model, so it cannot produce comparable measurement evidence.", true);
+      return { runId: run.id, answers: 0, citations: 0, failures: prompts.length, unpinnedGatewayBlocked: true };
+    }
     const adapter = getProvider(providerId);
     const model = String(process.env[`${providerId.toUpperCase()}_MODEL`] || "");
     const providerRates = getProviderCostRates(providerId);
@@ -728,23 +734,41 @@ export const runMultiEngineScan = inngest.createFunction(
     ]);
 
     const completedAt = new Date().toISOString();
-    await step.run("mark-run-for-human-review", () => measureRunPhase("mark_for_review", run.id, () =>
-      supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}`, {
-        method: "PATCH",
-        serviceRole: true,
-        prefer: "return=minimal",
-        body: {
-          status: "review",
-          answer_count: answerCount,
-          citation_count: citationCount,
-          brand_presence_pct: Math.round((presenceAnswers.length / answerCount) * 10_000) / 100,
-          first_mention_pct: Math.round((firstMentionAnswers.length / answerCount) * 10_000) / 100,
-          new_source_count: uniqueSources,
-          actual_cost_usd: actualCostUsd,
-          completed_at: completedAt,
-          error_summary: failures.length ? `${failures.length} provider attempt(s) failed. Review the successful evidence before publishing.` : null,
+    const reviewTransition = await step.run("mark-run-for-human-review", () => measureRunPhase("mark_for_review", run.id, () =>
+      confirmRunReviewTransition(
+        { runId: run.id, answerCount, citationCount, actualCostUsd },
+        {
+          // Compare-and-set is essential: cancellation may arrive after the
+          // earlier read but before the collector attempts completion.
+          markReviewIfRunning: () => supabaseRest<Array<{ id: string }>>(
+            `runs?select=id&id=eq.${run.id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&status=eq.running`,
+            {
+              method: "PATCH",
+              serviceRole: true,
+              prefer: "return=representation",
+              body: {
+                status: "review",
+                answer_count: answerCount,
+                citation_count: citationCount,
+                brand_presence_pct: Math.round((presenceAnswers.length / answerCount) * 10_000) / 100,
+                first_mention_pct: Math.round((firstMentionAnswers.length / answerCount) * 10_000) / 100,
+                new_source_count: uniqueSources,
+                actual_cost_usd: actualCostUsd,
+                completed_at: completedAt,
+                error_summary: failures.length ? `${failures.length} provider attempt(s) failed. Review the successful evidence before publishing.` : null,
+              },
+            },
+          ),
+          reload: () => supabaseRest<ReviewTransitionSnapshot[]>(
+            `runs?select=id,status,answer_count,citation_count,actual_cost_usd&id=eq.${run.id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&limit=1`,
+            { serviceRole: true },
+          ),
         },
-      })));
+      )));
+    if (reviewTransition === "terminal") {
+      logOperationalEvent("collection_review_skipped_terminal", { runId: run.id, reason: "terminal_state" });
+      return { runId: run.id, skipped: true, reason: "terminal_state" };
+    }
     let mappedSourceCount = 0;
     try {
       const generated = await step.run("generate-observed-source-map", () =>
