@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 import { billingProviderConfigured, billingProviderId } from "@/lib/billing-provider";
@@ -48,7 +49,7 @@ export default function PaymentPage() {
       ) : (
         <section className="section section--paper">
           <div className="shell narrow-heading">
-            <p><a href="/contact">Contact Foremention about a pilot or subscription.</a></p>
+            <p><Link href="/contact">Contact Foremention about a pilot or subscription.</Link></p>
           </div>
         </section>
       )}
