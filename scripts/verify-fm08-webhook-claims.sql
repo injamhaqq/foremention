@@ -1,4 +1,4 @@
-\\set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 -- Disposable proof only. Run AFTER the candidate functions on local Supabase.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
