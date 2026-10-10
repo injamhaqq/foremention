@@ -13,7 +13,10 @@ test("workspace delivery has per-tenant event-key step concurrency = 1", async (
   assert.match(section, /id: "deliver-workspace-webhook-events"/);
   assert.match(section, /triggers: \{ event: "foremention\/workspace\.event" \}/);
   assert.match(section, /concurrency: \{ limit: 1, key: 'event\.data\.organizationId \+ ":" \+ event\.data\.eventKey' \}/);
-  assert.match(section, /step\.run\("deliver-signed-webhooks"/);
+  assert.match(section, /leaseRetry === 0 \? "deliver-signed-webhooks"/);
+  assert.match(section, /step\.sleep\(/);
+  assert.match(section, /"95s"/);
+  assert.match(section, /result\.status !== "deferred"/);
   assert.match(section, /deliverWorkspaceWebhooks\(event\.data as DeliveryEvent\)/);
 });
 
