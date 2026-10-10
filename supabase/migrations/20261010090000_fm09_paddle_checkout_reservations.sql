@@ -192,7 +192,28 @@ create index if not exists billing_financial_adjustment_org_idx
   on public.billing_financial_adjustment_events (organization_id, occurred_at desc);
 alter table public.billing_financial_adjustment_events enable row level security;
 revoke all on public.billing_financial_adjustment_events from public, anon, authenticated;
+revoke all on public.billing_financial_adjustment_events from service_role;
 grant select, insert on public.billing_financial_adjustment_events to service_role;
+
+-- Enforce append-only receipts at the database boundary, including callers
+-- who have accidentally retained inherited UPDATE/DELETE table privileges.
+create or replace function public.prevent_financial_adjustment_receipt_mutation()
+returns trigger
+language plpgsql
+set search_path = public
+as $
+begin
+  raise exception 'Financial adjustment receipts are immutable';
+end;
+$;
+
+create trigger billing_financial_adjustment_receipt_immutable
+  before update or delete on public.billing_financial_adjustment_events
+  for each row execute function public.prevent_financial_adjustment_receipt_mutation();
+
+revoke all on function public.prevent_financial_adjustment_receipt_mutation()
+  from public, anon, authenticated;
+
 comment on table public.billing_financial_adjustment_events is
   'Verified provider adjustment receipts only; every refund/dispute case requires separate reviewed policy before entitlement mutation.';
 
