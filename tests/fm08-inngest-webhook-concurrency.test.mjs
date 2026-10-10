@@ -17,12 +17,12 @@ test("workspace delivery has per-tenant event-key step concurrency = 1", async (
   assert.match(section, /deliverWorkspaceWebhooks\(event\.data as DeliveryEvent\)/);
 });
 
-test("webhook concurrency remains a mitigation, not proof of atomic receipt claiming", async () => {
+test("webhook concurrency combines with atomic fenced receipt claims", async () => {
   const [delivery, sql] = await Promise.all([
     text("lib/workspace-webhooks.ts"),
     text("supabase/migrations/20260802000600_workspace_webhooks.sql"),
   ]);
-  assert.match(delivery, /on_conflict=endpoint_id,event_key/);
+  assert.match(delivery, /rpc\\/claim_workspace_webhook_delivery/);
   assert.match(sql, /unique \(endpoint_id, event_key\)/);
   assert.match(delivery, /delivery\.status === "delivered"/);
   assert.match(delivery, /redirect: "error"/);
