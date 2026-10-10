@@ -10,6 +10,10 @@ This branch starts from draft #479 and combines the exact source changes from dr
 - The combined CI local database resets, then **explicitly** applies three release-gate SQL candidates to its disposable PostgreSQL instance only: `FM05-activate-question-history-privileges.sql`, `FM05-activate-composite-project-fks.sql`, `FM05-source-review-activation.sql`. It then runs both SQL denial fixtures. The isolated authenticated journey applies all three candidates on its isolated stack before testing the real Worker.
 - **No automatic production migration may apply any of the three activation candidates**: their originals are under `scripts/release-gates/`, NOT timestamped `supabase/migrations/`. Later FM-00 owner-authorized migration files must be materialized separately when application deployment and live DB provenance gates are satisfied.
 
+## Latest main movement and revalidation
+
+Main advanced from the initial FM-05 base `d4fea60a7bb8e047f2282cea9134121e9496c67e` to `3ab01d39436ef3ac885454ab841ce56b03ad03fd` with FM-11 workstream coordination guards ([#464](https://github.com/injamhaqq/foremention/pull/464)). The update adds six read-only tool/test/doc files, none overlapping the changed files in this combined FM-05 branch. This documentation-only commit exists to request **fresh GitHub pull-request merge-ref checks against current main**, rather than relying on the earlier exact-head test results that may precede the main movement. FM-00 must still review exact main and branch heads at integration time.
+
 ## Manual release decision gates
 
 1. Confirm actual production deployed code SHA, identify any other pending merged migrations, and independently compare state to this main base SHA: `d4fea60a7bb8e047f2282cea9134121e9496c67e`.
