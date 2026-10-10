@@ -176,3 +176,52 @@ test("meaningful static body text still permits bounded negative observation", a
   assert.equal(result.pageTextCoverage, "complete");
   assert.equal(assessObservedPagePresence(result, "Acme").pagePresenceState, "absent");
 });
+
+test("embedded word fragments do not count as observed brand mentions", () => {
+  for (const text of ["NotAcme", "AcmePlus", "SuperAcmeWorks", "contosoAcmeLabs"]) {
+    const observation = assessObservedPagePresence(open({ pageText: text }), "Acme");
+    assert.equal(observation.clientPresent, false, text);
+    assert.equal(observation.pagePresenceState, "absent", text);
+  }
+});
+
+test("partial inspections with only nested-word matches remain unknown", () => {
+  const observed = assessObservedPagePresence(
+    open({ access: "partial", pageTextCoverage: "partial", pageText: "The NotAcme platform" }),
+    "Acme",
+  );
+  assert.equal(observed.clientPresent, false);
+  assert.equal(observed.pagePresenceState, "unknown");
+});
+
+test("brands and competitors count only bounded mentions", () => {
+  const observed = assessObservedPagePresence(
+    open({ pageText: "SuperContosoWorks uses Acme.io, with Contoso as an alternative." }),
+    "Acme.io", ["Contoso", "Toso", "Acme"],
+  );
+  assert.equal(observed.pagePresenceState, "present");
+  assert.deepEqual(observed.competitorsPresent, ["Contoso", "Acme"]);
+});
+
+test("ordinary punctuation and Unicode letters preserve true mentions", () => {
+  const cases = [
+    { brand: "Acme", text: "(Acme) is cited here" },
+    { brand: "München", text: "MÜNCHEN is mentioned" },
+    { brand: "Beta Labs", text: "See: Beta Labs, for details" },
+    { brand: "Acme.ai", text: "The official page: https://acme.ai/docs" },
+  ];
+  for (const { brand, text } of cases) {
+    const result = assessObservedPagePresence(open({ pageText: text }), brand);
+    assert.equal(result.pagePresenceState, "present", brand);
+  }
+});
+
+test("Unicode word prefixes are not stripped into false ASCII brand mentions", () => {
+  const observation = assessObservedPagePresence(
+    open({ pageText: "préAcme is not the Acme brand" }),
+    "Acme",
+  );
+  assert.equal(observation.pagePresenceState, "present");
+  const nestedOnly = assessObservedPagePresence(open({ pageText: "préAcme" }), "Acme");
+  assert.equal(nestedOnly.pagePresenceState, "absent");
+});
