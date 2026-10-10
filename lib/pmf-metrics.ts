@@ -1,4 +1,4 @@
-import { activationMilestoneTimestamp, observedTimestamp } from "./pmf-activation-boundary.ts";
+import { activationMilestoneTimestamp, completedActivationStageAt, observedTimestamp } from "./pmf-activation-boundary.ts";
 
 export type PmfMetricKey =
   | "activation_rate"
@@ -196,17 +196,11 @@ export function derivePmfMetrics(accounts: PmfAccountFacts[], now = new Date()):
   const wauStart = nowMs - 7 * DAY_MS;
 
   const activatedAccounts = eligible.filter((account) => activated(account, nowMs));
-  const firstMeasured = eligible.filter((account) => observedTimestamp(account.firstMeasurementAt, nowMs) !== null);
-  const firstReviewed = firstMeasured.filter((account) => {
-    const measuredAt = observedTimestamp(account.firstMeasurementAt, nowMs);
-    const reviewedAt = observedTimestamp(account.firstRecordReviewedAt, nowMs);
-    return measuredAt !== null && reviewedAt !== null && reviewedAt >= measuredAt;
-  });
-  const actionCreated = firstReviewed.filter((account) => {
-    const reviewedAt = observedTimestamp(account.firstRecordReviewedAt, nowMs);
-    const createdAt = observedTimestamp(account.firstActionCreatedAt, nowMs);
-    return reviewedAt !== null && createdAt !== null && createdAt >= reviewedAt;
-  });
+  // A measured/reviewed Record is only meaningful if every prerequisite
+  // actually occurred in order, even when the later activation step is absent.
+  const firstMeasured = eligible.filter((account) => completedActivationStageAt(account, nowMs, 3) !== null);
+  const firstReviewed = firstMeasured.filter((account) => completedActivationStageAt(account, nowMs, 4) !== null);
+  const actionCreated = firstReviewed.filter((account) => completedActivationStageAt(account, nowMs, 5) !== null);
   const secondCycle = activatedAccounts.filter((account) => {
     const activatedAt = activationMilestoneTimestamp(account, nowMs);
     const secondAt = observedTimestamp(account.secondComparableCycleAt, nowMs);
