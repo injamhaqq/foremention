@@ -44,6 +44,10 @@ test("verified provider adjustments persist durable cases before 2xx, never touc
   assert.match(sql, /unique \(provider, event_id\)/i);
   assert.match(sql, /review_status text not null default 'review_required'/i);
   assert.match(sql, /grant select, insert on public\.billing_financial_adjustment_events to service_role/i);
+  assert.match(sql, /revoke all on public\.billing_financial_adjustment_events from service_role/i);
+  assert.match(sql, /create trigger billing_financial_adjustment_receipt_immutable/i);
+  assert.match(sql, /before update or delete on public\.billing_financial_adjustment_events/i);
+  assert.match(sql, /raise exception 'Financial adjustment receipts are immutable'/i);
   assert.doesNotMatch(sql, /grant (?:update|delete) on public\.billing_financial_adjustment_events to authenticated/i);
   assert.match(provider, /parseFinancialAdjustment/);
   assert.match(webhook, /provider\.parseFinancialAdjustment/);
