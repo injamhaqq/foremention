@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
-import { billingConfigured, entitlementGrantForBillingEvent, entitlementsForBillingEvent, parseVerifiedBillingEvent, verifyBillingWebhook, type VerifiedBillingEvent } from "@/lib/billing";
-import { parseStripeBillingEvent, stripeBillingConfigured, verifyStripeWebhook } from "@/lib/stripe-billing";
+import { entitlementGrantForBillingEvent, entitlementsForBillingEvent, type VerifiedBillingEvent } from "@/lib/billing";
+import { billingProvider, reconcileBillingOrganization, type ParsedBillingProviderEvent } from "@/lib/billing-provider";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type BillingReceiptRow = { provider: string; event_id: string; processed_at: string | null };
+type BillingAccountIdentityRow = {
+  organization_id: string;
+  external_customer_id: string | null;
+  external_subscription_id: string | null;
+};
 
 async function claimBillingEvent(event: VerifiedBillingEvent, provider: string) {
   const rows = await supabaseRest<BillingReceiptRow[]>("billing_webhook_events?on_conflict=provider,event_id", {
@@ -21,7 +26,9 @@ async function claimBillingEvent(event: VerifiedBillingEvent, provider: string) 
 
 async function releaseBillingEvent(event: VerifiedBillingEvent, provider: string) {
   await supabaseRest(
-    `billing_webhook_events?provider=eq.${encodeURIComponent(provider)}&event_id=eq.${encodeURIComponent(event.eventId)}&processed_at=is.null`,
+    "billing_webhook_events?provider=eq." + encodeURIComponent(provider)
+      + "&event_id=eq." + encodeURIComponent(event.eventId)
+      + "&processed_at=is.null",
     { method: "DELETE", serviceRole: true, prefer: "return=minimal" },
   );
 }
@@ -56,8 +63,6 @@ async function processBillingEvent(event: VerifiedBillingEvent, provider: string
     await applyBillingEventAtomic(event, provider);
     return { duplicate: false } as const;
   } catch (error) {
-    // The atomic RPC either commits all billing state + audit + receipt completion or
-    // rolls back. A failed mutation therefore remains safe to release/retry.
     await releaseBillingEvent(event, provider).catch(() => undefined);
     throw error;
   }
@@ -73,32 +78,83 @@ async function billingMutationResponse(event: VerifiedBillingEvent, provider: st
   }
 }
 
+async function lookupBillingOrganization(
+  provider: string,
+  field: "external_subscription_id" | "external_customer_id",
+  value: string | null | undefined,
+) {
+  if (!value) return null;
+  const path = "billing_accounts?select=organization_id,external_customer_id,external_subscription_id"
+    + "&provider=eq." + encodeURIComponent(provider)
+    + "&" + field + "=eq." + encodeURIComponent(value)
+    + "&limit=2";
+  const rows = await supabaseRest<BillingAccountIdentityRow[]>(path, { serviceRole: true });
+  return rows.length === 1 ? rows[0].organization_id : null;
+}
+
+async function resolveBillingOrganization(event: ParsedBillingProviderEvent, provider: string) {
+  const [subscriptionOrganization, customerOrganization] = await Promise.all([
+    lookupBillingOrganization(
+      provider,
+      "external_subscription_id",
+      event.externalSubscriptionId,
+    ),
+    lookupBillingOrganization(
+      provider,
+      "external_customer_id",
+      event.externalCustomerId,
+    ),
+  ]);
+
+  return reconcileBillingOrganization(
+    event.organizationId,
+    subscriptionOrganization,
+    customerOrganization,
+  );
+}
+
 export async function POST(request: Request) {
-  const provider = process.env.BILLING_PROVIDER_ID?.trim() || "";
+  const provider = billingProvider();
+  if (!provider?.configured()) {
+    return NextResponse.json({ error: "Billing is not configured." }, { status: 503 });
+  }
+
   const rawBody = await request.text();
-
-  if (provider === "stripe") {
-    if (!stripeBillingConfigured()) return NextResponse.json({ error: "Stripe billing is not configured." }, { status: 503 });
-    try {
-      await verifyStripeWebhook(rawBody, request.headers.get("stripe-signature"));
-    } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : "Stripe signature is invalid." }, { status: 401 });
-    }
-    let event: VerifiedBillingEvent | null;
-    try { event = parseStripeBillingEvent(rawBody); }
-    catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Stripe event is invalid." }, { status: 400 }); }
-    if (!event) return NextResponse.json({ received: true, ignored: true });
-    return billingMutationResponse(event, "stripe");
-  }
-
-  if (!billingConfigured()) return NextResponse.json({ error: "Billing is not configured." }, { status: 503 });
   try {
-    await verifyBillingWebhook(rawBody, request.headers.get("x-foremention-signature"));
+    await provider.verifyWebhook(rawBody, request.headers);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Billing signature is invalid." }, { status: 401 });
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "Billing signature is invalid.",
+    }, { status: 401 });
   }
-  let event: VerifiedBillingEvent;
-  try { event = parseVerifiedBillingEvent(rawBody); }
-  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Billing event is invalid." }, { status: 400 }); }
-  return billingMutationResponse(event, provider);
+
+  let parsed: ParsedBillingProviderEvent | null;
+  try {
+    parsed = provider.parseWebhook(rawBody);
+  } catch (error) {
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "Billing event is invalid.",
+    }, { status: 400 });
+  }
+  if (!parsed) return NextResponse.json({ received: true, ignored: true });
+
+  let organizationId: string | null;
+  try {
+    organizationId = await resolveBillingOrganization(parsed, provider.id);
+  } catch {
+    return NextResponse.json({
+      error: "Billing identity could not be resolved. The provider may retry this event.",
+    }, { status: 503 });
+  }
+  if (!organizationId) {
+    return NextResponse.json({
+      error: "Billing identity could not be resolved. The provider may retry this event.",
+    }, { status: 503 });
+  }
+
+  const event: VerifiedBillingEvent = {
+    ...parsed,
+    organizationId,
+  };
+  return billingMutationResponse(event, provider.id);
 }

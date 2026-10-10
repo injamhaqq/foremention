@@ -101,7 +101,8 @@ test("scheduled execution attention record actions sharing billing and SSO stay 
   assert.match(bridge, /remeasure/i);
   assert.match(shareApi, /record-sharing/);
   assert.match(sharePage, /read-only/i);
-  assert.match(billing, /verifyBillingWebhook/);
+  assert.match(billing, /billingProvider/);
+  assert.match(billing, /provider\.verifyWebhook/);
   assert.match(billing, /not configured/i);
   assert.match(sso, /startEnterpriseSso/);
   assert.match(sso, /not configured/i);

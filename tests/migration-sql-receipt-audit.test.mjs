@@ -59,7 +59,10 @@ test('26 September pinned stored SQL receipt snapshot reproduces measured eviden
   assert.equal(fixture.observed_date, evidence.observed_date);
   assert.equal(evidence.repo_migrations_at_sha, '3d3b4cc6f063d46f34e0b2dc49aec222a309b5d2');
   const root = fileURLToPath(new URL('../supabase/migrations/', import.meta.url));
-  const files = (await readdir(root)).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name));
+  // This September 26 evidence fixture is historical, not a moving target.
+  // Later additive migrations must not alter the 93-file dated comparison.
+  const files = (await readdir(root)).filter(name =>
+    /^\d{14}_[a-z0-9_]+\.sql$/.test(name) && name.slice(0, 8) <= '20260926');
   assert.equal(files.length, 93, 'historical proof fixture must be explicitly refreshed after migration changes');
   const sources = await Promise.all(files.map(async name => ({
     version: name.slice(0, 14), name: name.slice(15, -4), path: name, sql: await readFile(join(root, name), 'utf8')

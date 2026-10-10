@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadPrompts, loadWorkspaceContext } from "@/lib/data";
-import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
+import { buyerQuestionLimit, type CapacityEntitlementRow } from "@/lib/product-limits";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
@@ -23,11 +23,30 @@ export async function POST(request: Request) {
   if (text.length < 10) return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: crypto.randomUUID(), text, cluster: clusterName, approved: true }, mode: "demo" }, { status: 201 });
 
-  const [context, role, existing] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer), loadPrompts(viewer)]);
+  const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
   if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
   if (!(["owner", "admin", "analyst"] as string[]).includes(role)) return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
-  if (existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions) return NextResponse.json({ error: `This access level allows ${FOUNDATION_ACCESS_LIMITS.buyerQuestions} buyer questions. Paid capacity is enabled only after billing activation.` }, { status: 429 });
+  // Capacity comes only from the verified-billing entitlement row (Refs #516);
+  // an unreadable, inactive or expired entitlement fails closed to Foundation.
+  let entitlementRows: CapacityEntitlementRow[] = [];
+  try {
+    entitlementRows = await supabaseRest<CapacityEntitlementRow[]>(
+      "organization_entitlements?select=status,package_key,billing_source,expires_at,max_prompts&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+      { token: viewer.accessToken },
+    );
+  } catch {
+    entitlementRows = [];
+  }
+  const questionLimit = buyerQuestionLimit(entitlementRows[0]);
+  // Count ACTIVE questions across the whole organization, matching the
+  // database admission trigger (Refs #532), which remains the atomic authority
+  // for concurrent requests; this read only gives the ordinary case a clear 429.
+  const activeQuestions = await supabaseRest<Array<{ id: string }>>(
+    "prompts?select=id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&active=eq.true&limit=" + (questionLimit + 1),
+    { token: viewer.accessToken },
+  );
+  if (activeQuestions.length >= questionLimit) return NextResponse.json({ error: `This access level allows ${questionLimit} buyer questions. Paid capacity is enabled only after verified billing activation.` }, { status: 429 });
 
   let clusterId = context.clusterId;
   if (!clusterId) {
