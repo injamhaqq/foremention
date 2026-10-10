@@ -6,13 +6,13 @@ The canonical Foremention identity is the supplied vector artwork. This record r
 
 ## Runtime source of truth
 
-- Full lockup, light surfaces: `public/brand/foremention-logo.svg`
-- Full lockup, dark surfaces: `public/brand/foremention-logo-white.svg`
-- Symbol only, light surfaces: `public/brand/foremention-mark.svg`
-- Symbol only, dark surfaces: `public/brand/foremention-mark-white.svg`
+- Approved reverse full lockup: `public/brand/foremention-logo-white.svg`
+- Approved reverse symbol: `public/brand/foremention-mark-white.svg`
 - Browser tab icon: `app/favicon.ico`
 
-`components/brand.tsx` must render these assets. The visible wordmark must not be reconstructed with typed text, a substitute font, CSS geometry, or a regenerated approximation.
+`components/brand.tsx` renders the approved reverse assets on the existing graphite/black backgrounds. The older light-background paths `public/brand/foremention-logo.svg` and `public/brand/foremention-mark.svg` are retired and absent from the current runtime. They must **not** be restored, recreated, or inferred from the reverse artwork without a separate founder-approved brand-asset migration.
+
+The visible wordmark must not be reconstructed with typed text, a substitute font, CSS geometry, or a regenerated approximation.
 
 ## Locked geometry and color
 
