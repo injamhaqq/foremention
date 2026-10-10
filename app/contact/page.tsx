@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
+import { hasPersistedDesignPartnerReceipt } from "@/lib/design-partner-receipt";
 
 export const metadata: Metadata = pageMetadata({
   title: "Apply as a Foremention Design Partner",
@@ -18,9 +19,13 @@ const intakeIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f
 export default async function ContactPage({ searchParams }: { searchParams: Promise<{ plan?: string; submitted?: string; error?: string; intake?: string }> }) {
   const query = await searchParams;
   const plan = validPlans.has((query.plan || "").toLowerCase()) ? (query.plan || "").toLowerCase() : "";
-  const submitted = query.submitted === "1";
   const failed = Boolean(query.error);
   const intakeId = query.intake && intakeIdPattern.test(query.intake) ? query.intake : "";
+  // A success query flag (or an arbitrary well-formed UUID) is not proof of
+  // persistence. An actual first-party receipt is mandatory before showing it.
+  const submitted = query.submitted === "1"
+    && Boolean(intakeId)
+    && await hasPersistedDesignPartnerReceipt(intakeId);
 
   return (
     <PublicShell>
@@ -32,6 +37,11 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             category, preserve the recommendation evidence, check what the company can actually substantiate, and review
             one exact company change before returning for comparable remeasurement.
           </p>
+          <div className="outreach-contact-hero__action">
+            <Link className="canonical-button canonical-button--primary" href="#design-partner-application">
+              Go to pilot application <Arrow />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -53,7 +63,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
 
           <article>
             <span>Design partner</span>
-            <h2>Apply as Design Partner.</h2>
+            <h2 id="design-partner-application" tabIndex={-1}>Apply as Design Partner.</h2>
             {submitted ? <div className="inline-notice"><strong>Application received.</strong><p>Your application has been saved. Founder review target: one business day. If the application fits the current design-partner scope, the reply will include scheduling instructions for the working session.</p>{intakeId ? <p><strong>Application reference:</strong> <code>{intakeId}</code></p> : null}</div> : <>
               {failed && <p className="inline-error" role="alert">The application could not be saved. Please try again or email hello@foremention.com.</p>}
               <form className="intake-form" data-design-partner-form action="/api/design-partner" method="post">
