@@ -19,28 +19,44 @@ export function observedTimestamp(value: string | null | undefined, asOfMs: numb
   return Number.isFinite(at) && at <= asOfMs ? at : null;
 }
 
-export function activationMilestoneTimestamp(
+const ACTIVATION_STAGES: Array<keyof Omit<ActivationMilestoneFacts, "createdAt">> = [
+  "workspaceConfiguredAt",
+  "fiveQuestionsApprovedAt",
+  "firstMeasurementAt",
+  "firstRecordReviewedAt",
+  "firstActionCreatedAt",
+  "firstActionAssignedAt",
+];
+
+/**
+ * Return the timestamp of a completed, chronological activation stage.
+ * Every earlier stage must actually have occurred by the as-of time; later
+ * stages are not required to measure legitimate partial-funnel conversion.
+ * Stage 3 is first measurement, 4 is reviewed Record, 5 is created action.
+ */
+export function completedActivationStageAt(
   account: ActivationMilestoneFacts,
   asOfMs: number,
+  stageCount: number,
 ): number | null {
-  const milestones = [
-    account.workspaceConfiguredAt,
-    account.fiveQuestionsApprovedAt,
-    account.firstMeasurementAt,
-    account.firstRecordReviewedAt,
-    account.firstActionCreatedAt,
-    account.firstActionAssignedAt,
-  ];
+  if (!Number.isInteger(stageCount) || stageCount < 1 || stageCount > ACTIVATION_STAGES.length) return null;
   let previous = Number.NEGATIVE_INFINITY;
   if (account.createdAt !== undefined && account.createdAt !== null) {
     const created = observedTimestamp(account.createdAt, asOfMs);
     if (created === null) return null;
     previous = created;
   }
-  for (const value of milestones) {
-    const at = observedTimestamp(value, asOfMs);
+  for (const field of ACTIVATION_STAGES.slice(0, stageCount)) {
+    const at = observedTimestamp(account[field], asOfMs);
     if (at === null || at < previous) return null;
     previous = at;
   }
   return previous;
+}
+
+export function activationMilestoneTimestamp(
+  account: ActivationMilestoneFacts,
+  asOfMs: number,
+): number | null {
+  return completedActivationStageAt(account, asOfMs, ACTIVATION_STAGES.length);
 }
