@@ -103,6 +103,34 @@ export async function POST(request: Request) {
   }
   const customerId = existingBilling?.provider === provider.id ? existingBilling.external_customer_id : null;
 
+  // Paddle does not support client-supplied idempotency keys for arbitrary
+  // transaction creates. A durable reservation MUST precede the HTTP call.
+  // An uncertain create is never automatically released on a timer.
+  let paddleReservationId: string | null = null;
+  if (provider.id === "paddle") {
+    paddleReservationId = crypto.randomUUID();
+    let reserved: boolean;
+    try {
+      reserved = await supabaseRest<boolean>("rpc/reserve_paddle_checkout", {
+        method: "POST",
+        serviceRole: true,
+        body: {
+          p_reservation_id: paddleReservationId,
+          p_organization_id: context.organizationId,
+          p_package_key: packageKey,
+          p_billing_interval: billingInterval,
+        },
+      });
+    } catch {
+      return NextResponse.json({ error: "The billing reservation could not be verified." }, { status: 503 });
+    }
+    if (!reserved) {
+      return NextResponse.json({
+        error: "An unresolved billing checkout already exists for this workspace. Contact support to reconcile it.",
+      }, { status: 409 });
+    }
+  }
+
   try {
     const session = await provider.createCheckout({
       packageKey: packageKey as BillingCheckoutPackage,
@@ -110,12 +138,41 @@ export async function POST(request: Request) {
       organizationId: context.organizationId,
       customerEmail: viewer.email,
       customerId,
+      checkoutReservationId: paddleReservationId,
       successUrl: origin + "/app/settings?billing=success",
       cancelUrl: origin + "/app/settings?billing=cancelled",
     });
+    if (paddleReservationId) {
+      const stored = await supabaseRest<boolean>("rpc/record_paddle_checkout_session", {
+        method: "POST",
+        serviceRole: true,
+        body: {
+          p_reservation_id: paddleReservationId,
+          p_organization_id: context.organizationId,
+          p_transaction_id: session.id,
+          p_checkout_url: session.url,
+        },
+      });
+      if (!stored) throw new Error("The Paddle checkout could not be reconciled.");
+    }
     if (contentType.includes("application/json")) return NextResponse.json({ data: { url: session.url } });
     return NextResponse.redirect(session.url, 303);
   } catch (error) {
+    if (paddleReservationId) {
+      // Never clear this reservation after a network error; Paddle may have
+      // created a payable transaction even when its response was lost.
+      await supabaseRest<boolean>("rpc/mark_paddle_checkout_uncertain", {
+        method: "POST",
+        serviceRole: true,
+        body: {
+          p_reservation_id: paddleReservationId,
+          p_organization_id: context.organizationId,
+        },
+      }).catch(() => false);
+      return NextResponse.json({
+        error: "Paddle checkout needs reconciliation before a new attempt. Contact support.",
+      }, { status: 503 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : "Checkout could not be started." }, { status: 503 });
   }
 }

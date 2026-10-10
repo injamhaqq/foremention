@@ -20,6 +20,11 @@ export type PaddlePackage = "core" | "signal";
 export type PaddleInterval = "monthly" | "annual";
 export type PaddleParsedEvent = Omit<VerifiedBillingEvent, "organizationId"> & {
   organizationId: string | null;
+  // These are correlation hints only; webhook route must corroborate against
+  // the service-side checkout reservation or already verified subscription.
+  externalTransactionId?: string | null;
+  transactionOrigin?: string | null;
+  billingInterval?: PaddleInterval;
 };
 type Json = Record<string, unknown>;
 const PRICE_ID = /^pri_[a-z0-9]{26}$/;
@@ -106,8 +111,12 @@ export async function createPaddleCandidateCheckout(input: {
   billingInterval: PaddleInterval;
   organizationId: string;
   customerId?: string | null;
+  checkoutReservationId?: string | null;
 }) {
   if (!UUID.test(input.organizationId)) throw new Error("Invalid billing organization.");
+  if (input.checkoutReservationId && !UUID.test(input.checkoutReservationId)) {
+    throw new Error("Invalid Paddle checkout reservation.");
+  }
   const priceId = paddlePriceIdFor(input.packageKey, input.billingInterval);
   if (!priceId) throw new Error("Paddle offer is not configured.");
   const customerId = input.customerId || null;
@@ -121,6 +130,7 @@ export async function createPaddleCandidateCheckout(input: {
       organizationId: input.organizationId.toLowerCase(),
       packageKey: input.packageKey,
       billingInterval: input.billingInterval,
+      ...(input.checkoutReservationId ? { checkoutReservationId: input.checkoutReservationId.toLowerCase() } : {}),
     },
   };
   if (customerId) payload.customer_id = customerId;
@@ -341,6 +351,13 @@ export function parsePaddleCandidateEvent(rawBody: string): PaddleParsedEvent | 
     state,
     externalCustomerId,
     externalSubscriptionId: subscriptionId,
+    ...(eventType === "transaction.completed"
+      ? {
+        externalTransactionId: idFrom(data.id),
+        transactionOrigin: idFrom(data.origin),
+        billingInterval: offer.billingInterval,
+      }
+      : {}),
     eventId,
     occurredAt: effectiveAt,
   };

@@ -111,6 +111,9 @@ test("payment-completed transaction grants only server-mapped package, not forge
     organizationId: org, packageKey: "core", state: "active",
     externalCustomerId: identifiers.customer,
     externalSubscriptionId: identifiers.subscription,
+    externalTransactionId: identifiers.transaction,
+    transactionOrigin: "api",
+    billingInterval: "monthly",
     eventId: identifiers.event, occurredAt: occurred_at,
   });
   // When correlation context is absent, a future webhook route must look up
@@ -131,6 +134,22 @@ test("issued/unpaid manual invoices and subscription activation cannot grant pai
   // Unlike 'billed', 'completed' is a paid and processed transaction.
   assert.equal(parsePaddleCandidateEvent(event("transaction.completed", { collection_mode: "manual" }))?.state, "active");
   assert.equal(parsePaddleCandidateEvent(event("transaction.completed", { status: "billed" })), null);
+});
+
+test("Paddle paid events carry exact transaction, origin and interval for durable admission checks", () => {
+  envSetup();
+  for (const origin of ["api", "web", "subscription_recurring", "subscription_update"]) {
+    const parsed = parsePaddleCandidateEvent(event("transaction.completed", { origin }));
+    assert.equal(parsed?.externalTransactionId, identifiers.transaction);
+    assert.equal(parsed?.transactionOrigin, origin);
+    assert.equal(parsed?.billingInterval, "monthly");
+    assert.equal(parsed?.organizationId, org);
+  }
+  const cancelled = parsePaddleCandidateEvent(event("subscription.canceled", {
+    id: identifiers.subscription, status: "canceled",
+  }));
+  assert.equal(cancelled?.externalTransactionId, undefined);
+  assert.equal(cancelled?.transactionOrigin, undefined);
 });
 
 test("zero-value and payment-method-update transactions cannot grant paid access", () => {

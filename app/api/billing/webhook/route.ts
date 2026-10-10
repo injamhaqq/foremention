@@ -113,6 +113,54 @@ async function resolveBillingOrganization(event: ParsedBillingProviderEvent, pro
   );
 }
 
+type PaddleReservationIdentityRow = {
+  organization_id: string;
+  package_key: string;
+  billing_interval: string;
+  state: string;
+};
+async function paddlePaidTransactionAdmitted(
+  parsed: ParsedBillingProviderEvent,
+  organizationId: string,
+): Promise<boolean> {
+  if (!parsed.externalTransactionId || !parsed.transactionOrigin || !parsed.externalSubscriptionId
+    || !parsed.externalCustomerId || !parsed.billingInterval) return false;
+  if (parsed.transactionOrigin === "api" || parsed.transactionOrigin === "web") {
+    // New paid checkout must be one created by Foremention and durably bound
+    // to this organization, package and interval before any paid entitlement.
+    const rows = await supabaseRest<PaddleReservationIdentityRow[]>(
+      "billing_checkout_reservations?select=organization_id,package_key,billing_interval,state"
+      + "&provider=eq.paddle"
+      + "&external_transaction_id=eq." + encodeURIComponent(parsed.externalTransactionId)
+      + "&limit=2",
+      { serviceRole: true },
+    );
+    return rows.length === 1
+      && rows[0].organization_id === organizationId
+      && rows[0].package_key === parsed.packageKey
+      && rows[0].billing_interval === parsed.billingInterval
+      && rows[0].state === "ready";
+  }
+  if (parsed.transactionOrigin === "subscription_recurring"
+    || parsed.transactionOrigin === "subscription_update") {
+    // A recurring/upgrade charge has a new transaction ID. Do not grant
+    // based on provider metadata or customer mapping alone; bind to the
+    // previously verified exact subscription + customer of this workspace.
+    const rows = await supabaseRest<BillingAccountIdentityRow[]>(
+      "billing_accounts?select=organization_id,external_customer_id,external_subscription_id"
+      + "&provider=eq.paddle"
+      + "&external_subscription_id=eq." + encodeURIComponent(parsed.externalSubscriptionId)
+      + "&limit=2",
+      { serviceRole: true },
+    );
+    return rows.length === 1
+      && rows[0].organization_id === organizationId
+      && rows[0].external_customer_id === parsed.externalCustomerId
+      && rows[0].external_subscription_id === parsed.externalSubscriptionId;
+  }
+  return false;
+}
+
 export async function POST(request: Request) {
   const provider = billingProvider();
   if (!provider?.configured()) {
@@ -126,6 +174,61 @@ export async function POST(request: Request) {
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Billing signature is invalid.",
     }, { status: 401 });
+  }
+
+  // Financial adjustments are separate accounting cases, not entitlement
+  // lifecycle events. Only acknowledge them after a durable, replay-safe
+  // service-only receipt has been persisted for a verified billing customer.
+  if (provider.parseFinancialAdjustment) {
+    let adjustment: ReturnType<NonNullable<typeof provider.parseFinancialAdjustment>>;
+    try {
+      adjustment = provider.parseFinancialAdjustment(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Billing financial adjustment event is invalid." }, { status: 400 });
+    }
+    if (adjustment) {
+      try {
+        const [subscriptionOrganization, customerOrganization] = await Promise.all([
+          lookupBillingOrganization(provider.id, "external_subscription_id", adjustment.subscriptionId),
+          lookupBillingOrganization(provider.id, "external_customer_id", adjustment.customerId),
+        ]);
+        const organizationId = reconcileBillingOrganization(
+          null, subscriptionOrganization, customerOrganization,
+        );
+        if (!organizationId) {
+          return NextResponse.json({
+            error: "Financial adjustment identity could not be reconciled. Provider retry required.",
+          }, { status: 503 });
+        }
+        const inserted = await supabaseRest<{ event_id: string }[]>(
+          "billing_financial_adjustment_events?on_conflict=provider,event_id",
+          {
+            method: "POST",
+            serviceRole: true,
+            prefer: "resolution=ignore-duplicates,return=representation",
+            body: {
+              organization_id: organizationId,
+              provider: provider.id,
+              event_id: adjustment.eventId,
+              adjustment_id: adjustment.adjustmentId,
+              transaction_id: adjustment.transactionId,
+              external_subscription_id: adjustment.subscriptionId,
+              external_customer_id: adjustment.customerId,
+              action: adjustment.action,
+              status: adjustment.status,
+              adjustment_type: adjustment.adjustmentType,
+              event_type: adjustment.eventType,
+              occurred_at: adjustment.occurredAt,
+            },
+          },
+        );
+        return NextResponse.json({ received: true, adjustment: true, duplicate: inserted.length === 0 });
+      } catch {
+        return NextResponse.json({
+          error: "Financial adjustment case could not be persisted. Provider retry required.",
+        }, { status: 503 });
+      }
+    }
   }
 
   let parsed: ParsedBillingProviderEvent | null;
@@ -150,6 +253,20 @@ export async function POST(request: Request) {
     return NextResponse.json({
       error: "Billing identity could not be resolved. The provider may retry this event.",
     }, { status: 503 });
+  }
+
+  if (provider.id === "paddle" && parsed.externalTransactionId) {
+    try {
+      if (!await paddlePaidTransactionAdmitted(parsed, organizationId)) {
+        return NextResponse.json({
+          error: "Paddle payment has no matching reserved checkout or existing subscription. Provider retry required.",
+        }, { status: 503 });
+      }
+    } catch {
+      return NextResponse.json({
+        error: "Paddle payment correlation could not be verified. Provider retry required.",
+      }, { status: 503 });
+    }
   }
 
   const event: VerifiedBillingEvent = {

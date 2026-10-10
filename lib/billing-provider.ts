@@ -44,6 +44,7 @@ export type BillingCheckoutInput = {
   organizationId: string;
   customerEmail: string;
   customerId?: string | null;
+  checkoutReservationId?: string | null;
   successUrl: string;
   cancelUrl: string;
 };
@@ -53,6 +54,11 @@ export type BillingPortalInput = {
 };
 export type ParsedBillingProviderEvent = Omit<VerifiedBillingEvent, "organizationId"> & {
   organizationId: string | null;
+  // Optional Paddle correlation. Never trust it without matching stored
+  // service-created checkout or an established subscription identity.
+  externalTransactionId?: string | null;
+  transactionOrigin?: string | null;
+  billingInterval?: BillingInterval;
 };
 
 export interface BillingProviderAdapter {
@@ -63,6 +69,7 @@ export interface BillingProviderAdapter {
   createPortal(input: BillingPortalInput): Promise<{ url: string }>;
   verifyWebhook(rawBody: string, headers: Headers): Promise<boolean>;
   parseWebhook(rawBody: string): ParsedBillingProviderEvent | null;
+  parseFinancialAdjustment?(rawBody: string): ReturnType<typeof parsePaddleCandidateAdjustment>;
 }
 
 function stripeCheckoutOffers(): BillingCheckoutOffer[] {
@@ -114,6 +121,7 @@ const paddleSandboxProvider: BillingProviderAdapter = {
       billingInterval: input.billingInterval,
       organizationId: input.organizationId,
       customerId: input.customerId,
+      checkoutReservationId: input.checkoutReservationId,
     });
   },
   async createPortal(input) {
@@ -130,9 +138,13 @@ const paddleSandboxProvider: BillingProviderAdapter = {
     // financial adjustment. FM-05 must implement a durable case receipt
     // before enabling a production billing webhook for Paddle.
     if (parsePaddleCandidateAdjustment(rawBody)) {
-      throw new Error("Paddle financial adjustment requires durable audit handling.");
+      throw new Error("Paddle financial adjustment requires dedicated durable audit processing.");
     }
     return parsePaddleCandidateEvent(rawBody);
+  },
+  parseFinancialAdjustment(rawBody) {
+    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    return parsePaddleCandidateAdjustment(rawBody);
   },
 };
 
