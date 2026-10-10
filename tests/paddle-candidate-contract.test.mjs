@@ -36,6 +36,8 @@ function event(event_type, data, patch = {}) {
       id: identifiers.transaction,
       status: "completed",
       collection_mode: "automatic",
+      origin: "api",
+      details: { totals: { grand_total: "49900" } },
       customer_id: identifiers.customer,
       subscription_id: identifiers.subscription,
       custom_data: { organizationId: org, packageKey: "signal" },
@@ -129,6 +131,32 @@ test("issued/unpaid manual invoices and subscription activation cannot grant pai
   // Unlike 'billed', 'completed' is a paid and processed transaction.
   assert.equal(parsePaddleCandidateEvent(event("transaction.completed", { collection_mode: "manual" }))?.state, "active");
   assert.equal(parsePaddleCandidateEvent(event("transaction.completed", { status: "billed" })), null);
+});
+
+test("zero-value and payment-method-update transactions cannot grant paid access", () => {
+  envSetup();
+  for (const data of [
+    { origin: "subscription_payment_method_change" },
+    { origin: "subscription_charge" },
+    { origin: "unknown_origin" },
+    { origin: null },
+    { details: { totals: { grand_total: "0" } } },
+    { details: { totals: { grand_total: "-1" } } },
+    { details: { totals: { grand_total: "0.00" } } },
+    { details: { totals: { grand_total: "not money" } } },
+    { details: { totals: {} } },
+    { details: null },
+    { id: "txn_invalid" },
+  ]) {
+    assert.equal(parsePaddleCandidateEvent(event("transaction.completed", data)), null, JSON.stringify(data));
+  }
+  for (const origin of ["api", "web", "subscription_recurring", "subscription_update"]) {
+    assert.equal(parsePaddleCandidateEvent(event("transaction.completed", { origin }))?.state, "active");
+  }
+  assert.equal(parsePaddleCandidateEvent(event("transaction.completed", {
+    collection_mode: "manual",
+    details: { totals: { grand_total: "49900" } },
+  }))?.state, "active");
 });
 
 test("unknown, multiple, or quantity-increased price lines never grant entitlements", () => {
@@ -295,4 +323,21 @@ test("malformed financial events are errors, not silently acknowledged as ignora
     () => parsePaddleCandidateAdjustment(event("adjustment.created", valid, { event_id: "" })),
     /adjustment/i,
   );
+});
+test("nullable adjustment type is documented by Paddle and must not be mistaken for missing", () => {
+  envSetup();
+  const fields = {
+    id: "adj_" + "g".repeat(26),
+    action: "chargeback",
+    status: "approved",
+    type: null,
+    transaction_id: identifiers.transaction,
+    subscription_id: null,
+    customer_id: identifiers.customer,
+  };
+  const parsed = parsePaddleCandidateAdjustment(event("adjustment.created", fields));
+  assert.equal(parsed?.adjustmentType, null);
+  const missing = { ...fields };
+  delete missing.type;
+  assert.throws(() => parsePaddleCandidateAdjustment(event("adjustment.created", missing)), /adjustment/i);
 });
