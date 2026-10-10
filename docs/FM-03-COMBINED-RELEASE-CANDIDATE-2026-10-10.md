@@ -34,3 +34,30 @@ These estimates do not prove this change will improve p75 real-user web vitals. 
 3. Browser Acceptance on exact built Worker: Chromium/Firefox/WebKit as configured, axe, 1440/1024/768/375/320 captures, keyboard/screen reader checks, reduced motion and Lighthouse reports.
 4. Explicit screenshot approval of copy and placement from founder; reconcile FM-00 and FM-08 release signoff.
 5. Only FM-00-authorized exact SHA may merge and deploy; verify production SHA and comparable public routes afterward.
+
+## Integrated FM-03 finalization — 2026-10-10
+
+The combined release branch now also contains the already reviewed [#467](https://github.com/injamhaqq/foremention/pull/467) keyboard-accessibility correction and complete [#465](https://github.com/injamhaqq/foremention/pull/465) UX/performance audit. These were copied by exact committed source content into four additional files:
+- `components/workspace-keyboard-shortcuts.tsx`
+- `lib/workspace-shortcut-activation.ts`
+- `tests/workspace-keyboard-shortcuts.test.mjs`
+- `docs/FM-03-WEBSITE-UX-AUDIT-2026-10-09.md`
+
+The result is a single FM-03 review candidate instead of four separately landing FM-03 PRs. Original #465, #467, #491 and #492 remain open as provenance until FM-00 confirms a successful merge or directs closing them as superseded. Their previous independent passing checks cannot substitute for a full exact-HEAD integrated test; GitHub Actions must complete on this branch after those additions.
+
+### Performance comparison from GitHub PR browser artifacts (single synthetic Lighthouse run per route)
+
+| Route | Original candidate #491 score | Combined site #496 before additional audit/keyboard files | Combined local LCP | Interpretation |
+| --- | ---: | ---: | ---: | --- |
+| Home `/` | 69 | 70 | 5.20 s | One-run noise; not proof of meaningful faster render |
+| `/product` | 83 | 68 | 5.21 s | Worse single-run result; investigate before claiming improvement |
+| `/pricing` | 74 | 73 | 4.48 s | `noindex` remains intentional SEO policy, not changed |
+| `/score` | 67 | 67 | 5.25 s | No measured improvement |
+
+This comparison is from two different isolated browser CI runs and **not** an A/B experiment; do not attribute a 15-point product-route change causally to removing one duplicated font import. The combined branch retains the exact same runtime production files after addition of only review docs/shortcut code; final browser build should be rechecked. Lighthouse warning thresholds are not blocking. P1 performance work remains documented in [#493](https://github.com/injamhaqq/foremention/issues/493).
+
+### Integrated-release acceptance and ownership
+- Founder's instruction to continue to completion is an instruction to make FM-03 engineering progress. This document **does not invent explicit signoff for an unreviewed final combined visual** or waive FM-00/FM-08 integration controls.
+- **FM-00** reconciles conflict ownership with stacked #440 (homepage, contact, public shell and CSS), reviews combined PR #496 alongside specialist PRs, obtains founder visual acceptance of the final *combined* render, and authorizes merge sequencing.
+- **FM-08** validates final code/security and production release policy, including manual screen-reader testing where required and trustworthy production-authenticated acceptance. The existing local synthetic authenticated journey is not production proof.
+- Do not merge or deploy a PR while draft, pending exact-SHA CI, without authorization, or without exact-main release-plan verification. After authorized merge, validate the production `/api/health` `buildCommit` equals the resulting deployed commit, then perform live public-route and pilot-anchor smoke checks. Preserve rollback.
