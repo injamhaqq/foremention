@@ -12,6 +12,22 @@ export type ObservedPagePresenceState = "unknown" | "present" | "absent";
 // for names like "Acme.ai". This checks mentions, not semantic endorsement.
 const mentionWordChar = /[\p{L}\p{M}\p{N}_]/u;
 
+// JavaScript string offsets are UTF-16 positions, but Unicode word
+// boundaries must inspect whole code points, including astral letters.
+function codePointBefore(text: string, index: number): string {
+  if (index <= 0) return "";
+  const tail = text.charCodeAt(index - 1);
+  if (tail >= 0xdc00 && tail <= 0xdfff && index >= 2) {
+    const lead = text.charCodeAt(index - 2);
+    if (lead >= 0xd800 && lead <= 0xdbff) return text.slice(index - 2, index);
+  }
+  return text[index - 1];
+}
+
+function codePointAtIndex(text: string, index: number): string {
+  return index < text.length ? String.fromCodePoint(text.codePointAt(index)!) : "";
+}
+
 function containsBoundedMention(text: string, rawTerm: string) {
   const term = rawTerm.trim().toLocaleLowerCase();
   if (!term) return false;
@@ -20,10 +36,10 @@ function containsBoundedMention(text: string, rawTerm: string) {
     const index = text.indexOf(term, from);
     if (index < 0) return false;
     const after = index + term.length;
-    const startsWithWord = mentionWordChar.test(term[0]);
-    const endsWithWord = mentionWordChar.test(term[term.length - 1]);
-    const leftBoundary = !startsWithWord || index === 0 || !mentionWordChar.test(text[index - 1]);
-    const rightBoundary = !endsWithWord || after === text.length || !mentionWordChar.test(text[after]);
+    const startsWithWord = mentionWordChar.test(codePointAtIndex(term, 0));
+    const endsWithWord = mentionWordChar.test(codePointBefore(term, term.length));
+    const leftBoundary = !startsWithWord || index === 0 || !mentionWordChar.test(codePointBefore(text, index));
+    const rightBoundary = !endsWithWord || after === text.length || !mentionWordChar.test(codePointAtIndex(text, after));
     if (leftBoundary && rightBoundary) return true;
     from = index + 1;
   }
