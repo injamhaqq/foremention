@@ -77,10 +77,11 @@ test("product page explains Recommendation Engineering value without changing th
 });
 
 test("design-partner conversion is the primary contact flow and is measured without form-value capture", async () => {
-  const [contact, analytics, contract] = await Promise.all([
+  const [contact, analytics, contract, serverRoute] = await Promise.all([
     read("app/contact/page.tsx"),
     read("components/public-activation-analytics.tsx"),
     read("lib/product-analytics-contract.ts"),
+    read("app/api/design-partner/route.ts"),
   ]);
 
   assert.match(contact, /Apply as Design Partner/);
@@ -88,7 +89,8 @@ test("design-partner conversion is the primary contact flow and is measured with
   assert.match(contact, /comparable remeasurement/);
   assert.match(analytics, /design_partner_page_viewed/);
   assert.match(analytics, /design_partner_application_started/);
-  assert.match(analytics, /design_partner_application_submitted/);
+  assert.doesNotMatch(analytics, /captureProductEvent\("design_partner_application_submitted"/);
+  assert.match(serverRoute, /capturePersistedDesignPartnerSubmission/);
   assert.match(analytics, /design_partner_cta_impression/);
   assert.match(analytics, /design_partner_cta_clicked/);
   assert.match(contract, /design_partner_cta_impression/);
