@@ -253,7 +253,7 @@ export function parsePaddleCandidateAdjustment(rawBody: string): PaddleCandidate
   const transactionId = idFrom(data.transaction_id);
   const subscriptionId = idFrom(data.subscription_id);
   const customerId = idFrom(data.customer_id);
-  if (!adjustmentId || !ADJUSTMENT_ID.test(adjustmentId)
+  if (!Object.hasOwn(data, "type") || !adjustmentId || !ADJUSTMENT_ID.test(adjustmentId)
     || !action || !ADJUSTMENT_ACTIONS.has(action)
     || !status || !ADJUSTMENT_STATES.has(status)
     || (adjustmentType !== "full" && adjustmentType !== "partial" && adjustmentType !== null)
