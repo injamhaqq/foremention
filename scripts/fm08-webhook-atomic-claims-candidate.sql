@@ -54,7 +54,7 @@ BEGIN
   -- A crashed worker's lease can expire; this is at-least-once delivery.
   IF v_receipt.status = 'pending' AND v_receipt.attempt_count > 0
     AND v_receipt.updated_at > clock_timestamp() - interval '90 seconds' THEN
-    RETURN NULL;
+    RETURN jsonb_build_object('state', 'leased');
   END IF;
 
   UPDATE public.workspace_webhook_deliveries d
@@ -64,7 +64,7 @@ BEGIN
   RETURNING d.attempt_count INTO v_attempt;
 
   -- Attempt number is a monotonic fencing token for this endpoint+event.
-  RETURN jsonb_build_object('delivery_id', v_receipt.id, 'attempt_count', v_attempt);
+  RETURN jsonb_build_object('state', 'claimed', 'delivery_id', v_receipt.id, 'attempt_count', v_attempt);
 END;
 $$;
 
