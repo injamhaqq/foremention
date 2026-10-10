@@ -150,6 +150,9 @@ test("the ledger page is tenant-scoped, demo-isolated, executive-readable, and f
   assert.doesNotMatch(page, /inngest|getProvider\(|service_role/);
   assert.doesNotMatch(page, /guarantee|rank you|will recommend|increase revenue/i);
   assert.match(page, /Economic ROI: not demonstrated/);
+  assert.match(page, /Decision evidence/);
+  assert.match(page, /Complete chains/);
+  assert.match(page, /Proof boundary/);
   assert.match(page, /Board-ready export/);
   assert.match(page, /What changed\?/);
   assert.match(page, /What needs attention\?/);

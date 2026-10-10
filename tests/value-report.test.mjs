@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildBusinessValueReport, buildExecutiveDigest, buildPeriodSummaries } from "../lib/value-report.ts";
+import { buildBusinessValueReport, buildDecisionEvidenceSummary, buildExecutiveDigest, buildPeriodSummaries } from "../lib/value-report.ts";
 
 const at = "2026-08-28T12:00:00.000Z";
 const step = (key, done = true, date = at) => ({ key, label: key, done, at: done ? date : null, actorId: null, detail: key });
@@ -97,4 +97,69 @@ test("weekly, monthly, and quarterly summaries use the requested windows", () =>
   assert.equal(periods[0].report.actionsCompleted, 1);
   assert.equal(periods[1].report.actionsCompleted, 1);
   assert.equal(periods[2].report.actionsCompleted, 1);
+});
+
+
+test("decision evidence summary distinguishes a complete inspectable chain from unfinished and incomparable work", () => {
+  const complete = record({ id: "complete" });
+  const awaiting = record({
+    id: "awaiting",
+    comparison: null,
+    comparisonEligible: null,
+    measurementStatus: "not_requested",
+    outcomeState: "pending",
+    steps: ["observation","evidence","recommendation","decision","action","owner","completion"].map((key) => step(key))
+      .concat([step("measurement", false), step("outcome", false)]),
+  });
+  const incomparable = record({
+    id: "incomparable",
+    comparison: null,
+    comparisonEligible: false,
+    measurementStatus: "incomparable",
+    outcomeState: "incomparable",
+    steps: ["observation","evidence","recommendation","decision","action","owner","completion","measurement"].map((key) => step(key))
+      .concat(step("outcome", false)),
+  });
+  const open = record({
+    id: "open",
+    comparison: null,
+    comparisonEligible: null,
+    measurementStatus: "not_requested",
+    outcomeState: "pending",
+    steps: ["observation","evidence","recommendation","decision","action","owner"].map((key) => step(key))
+      .concat([step("completion", false), step("measurement", false), step("outcome", false)]),
+  });
+  const summary = buildDecisionEvidenceSummary([complete, awaiting, incomparable, open]);
+  assert.deepEqual({
+    totalRecords: summary.totalRecords,
+    completeDecisionChains: summary.completeDecisionChains,
+    executedAwaitingMeasurement: summary.executedAwaitingMeasurement,
+    incomparableMeasurements: summary.incomparableMeasurements,
+    openApprovedActions: summary.openApprovedActions,
+    status: summary.status,
+  }, {
+    totalRecords: 4,
+    completeDecisionChains: 1,
+    executedAwaitingMeasurement: 1,
+    incomparableMeasurements: 1,
+    openApprovedActions: 1,
+    status: "inspectable_chain_available",
+  });
+  assert.match(summary.statement, /1 inspectable decision-evidence chain/i);
+  assert.match(summary.limitation, /does not prove causation, economic ROI, or independent customer value/i);
+});
+
+test("decision evidence summary refuses to call incomplete work proof", () => {
+  const summary = buildDecisionEvidenceSummary([record({
+    comparison: null,
+    comparisonEligible: null,
+    measurementStatus: "not_requested",
+    outcomeState: "pending",
+    steps: ["observation","evidence","recommendation","decision","action"].map((key) => step(key))
+      .concat([step("owner", false), step("completion", false), step("measurement", false), step("outcome", false)]),
+  })]);
+  assert.equal(summary.completeDecisionChains, 0);
+  assert.equal(summary.status, "chain_in_progress");
+  assert.match(summary.statement, /No complete decision-evidence chain/i);
+  assert.doesNotMatch(summary.statement, /impact achieved|ROI demonstrated|caused/i);
 });
