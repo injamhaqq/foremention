@@ -48,6 +48,8 @@ test("usage controls are explicit and enforced by the run path", async () => {
   assert.match(questions, /organization_entitlements\?select=max_prompts,status,expires_at/);
   assert.match(questions, /entitlement\?\.status === "active"/);
   assert.match(questions, /active=eq.true/);
+  assert.match(questions, /body\.active === true && !scopedPrompt\[0\]\.active/);
+  assert.match(questions, /prompts\?select=id,active/);
   assert.doesNotMatch(questions, /existing\.length >= FOUNDATION_ACCESS_LIMITS\.buyerQuestions/);
   assert.doesNotMatch(route, /body\.organizationId/);
   assert.match(migration, /create table public\.usage_events/i);
