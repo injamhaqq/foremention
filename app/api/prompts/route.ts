@@ -37,35 +37,21 @@ export async function POST(request: Request) {
     });
     clusterId = clusters[0]?.id || null;
   }
-  const rows = await supabaseRest<Array<{ id: string; version: number }>>("prompts", {
-    method: "POST", token: viewer.accessToken, prefer: "return=representation",
-    body: {
-      organization_id: context.organizationId,
-      project_id: context.projectId,
-      category_id: context.categoryId,
-      cluster_id: clusterId,
-      prompt_key: `customer-${crypto.randomUUID().slice(0, 8)}`,
-      prompt_text: text,
-      buyer_stage: "evaluation",
-      locale: "en-US",
-      version: 1,
-      active: true,
-    },
-  });
-  await supabaseRest("prompt_versions", {
+  // The database RPC inserts the question and immutable version 1 in one
+  // transaction. A failed RPC must never leave a question without its history.
+  const created = await supabaseRest<{ id: string; version: number }>("rpc/create_prompt_versioned", {
     method: "POST",
     token: viewer.accessToken,
-    prefer: "return=minimal",
     body: {
-      organization_id: context.organizationId,
-      prompt_id: rows[0].id,
-      version: rows[0].version,
-      prompt_text: text,
-      change_reason: "Created by workspace member",
-      created_by: viewer.id,
+      p_organization_id: context.organizationId,
+      p_project_id: context.projectId,
+      p_category_id: context.categoryId,
+      p_cluster_id: clusterId,
+      p_prompt_key: `customer-${crypto.randomUUID()}`,
+      p_prompt_text: text,
     },
   });
-  return NextResponse.json({ data: { id: rows[0].id, text, cluster: clusterName, approved: true } }, { status: 201 });
+  return NextResponse.json({ data: { id: created.id, text, cluster: clusterName, approved: true } }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {

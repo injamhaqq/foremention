@@ -64,8 +64,15 @@ jobs:
 
           # All connected services run inside this disposable Actions runner.
           # Redirect local CLI output since it can contain generated test keys.
-          supabase start > .isolated-supabase-start.log 2>&1
-          supabase db reset >> .isolated-supabase-start.log 2>&1
+          # Keep disposable setup logs together without per-command append redirects.
+          {
+            supabase start
+            supabase db reset
+            # Disposable integration only: rehearse approved post-app activation.
+            docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-activate-question-history-privileges.sql
+            docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-activate-composite-project-fks.sql
+            docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-source-review-activation.sql
+          } > .isolated-supabase-start.log 2>&1
           supabase status -o env > .local-cli-status
           node scripts/prepare-isolated-local-env.mjs .local-cli-status
           set -a
