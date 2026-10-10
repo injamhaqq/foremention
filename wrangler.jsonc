@@ -12,6 +12,9 @@
   "ai": {
     "binding": "AI"
   },
+  "triggers": {
+    "crons": ["47 * * * *", "13 */6 * * *"]
+  },
   "vars": {
     "GROQ_MODEL": "openai/gpt-oss-20b",
     "GROQ_INPUT_COST_PER_MILLION_USD": "0.075",
