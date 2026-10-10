@@ -199,6 +199,17 @@ only the internal coverage attestation is tightened. This is intentionally conse
 returned, fully captured static text can support a narrow negative
 observation; nothing here proves JavaScript-rendered absence.
 
+## Bounded mention matching correction
+
+Page observations previously used raw substring checks. That can turn a
+different product name such as `NotAcme` or `AcmePlus` into a false positive
+for `Acme`. The FM-02 matcher now checks Unicode letter/number/mark/underscore
+boundaries on both ends of brand and competitor terms. Ordinary punctuation,
+multiword brand names and domain-style references remain matchable. It is a
+deterministic lexical mention check, **not** proof of semantic endorsement,
+recommendation causality, source authority or independent attribution. Tests
+cover nested terms, partial pages, competing labels and Unicode punctuation.
+
 ## FM-02 submitted change and verification limits
 
 New `lib/source-page-presence.ts` supplies a deterministic coverage gate:
