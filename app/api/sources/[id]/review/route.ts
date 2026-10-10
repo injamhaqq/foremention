@@ -11,7 +11,8 @@ import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
 
 const crawlerValues: SourceMapEntry["crawlerAccess"][] = ["open", "partial", "blocked"];
 const feasibilityValues: SourceMapEntry["feasibility"][] = ["high", "medium", "low", "unknown"];
-const influenceValues: SourceMapEntry["influence"][] = ["high", "medium", "low", "emerging", "unknown"];
+// The backing PostgreSQL feasibility_level enum does not include "emerging".
+const influenceValues: SourceMapEntry["influence"][] = ["high", "medium", "low", "unknown"];
 const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
 const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
 
@@ -129,7 +130,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const accessToken = viewer.accessToken;
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context) return NextResponse.json({ error: "Complete onboarding before reviewing a source." }, { status: 409 });
-  if (!role || role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
+  if (!role || !["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
   const organizationId = context.organizationId;
   const scopedEntry = await loadProjectSourceMapEntryRef({
     organizationId,
@@ -152,26 +153,36 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const source = sourceRows[0];
   if (!source) return NextResponse.json({ error: "The reviewed Source Map record no longer has a source in this workspace." }, { status: 409 });
 
-  const reviewedAt = new Date().toISOString();
-  // Human review and machine retrieval are different provenance facts. The
-  // automated crawler owns sources.crawler_access/crawler_checked_at. A review
-  // records the reviewer's judgment on the reviewed entry and in the audit log
-  // without rewriting the crawler's retrieval timestamp.
-  await supabaseRest(`source_map_entries?id=eq.${entry.id}&organization_id=eq.${organizationId}`, {
-    method: "PATCH",
+  // A reviewer cannot directly mutate collector-owned facts. This RPC
+  // rechecks the exact published project/map/source graph at the DB boundary
+  // and derives reviewed_at + reviewed_by from the signed-in database actor.
+  const reviewed = await supabaseRest<{
+    id: string;
+    source_id: string;
+    reviewed_at: string;
+    reviewed_by: string;
+    client_present: boolean;
+  }>("rpc/review_source_map_entry", {
+    method: "POST",
     token: accessToken,
-    prefer: "return=minimal",
     body: {
-      client_present: Boolean(body.clientPresent),
-      competitors_present: competitors,
-      entry_route: body.route,
-      feasibility: body.feasibility,
-      influence: body.influence,
-      analyst_note: note || null,
-      reviewed_at: reviewedAt,
-      reviewed_by: viewer.id,
+      p_entry_id: entry.id,
+      p_organization_id: organizationId,
+      p_project_id: context.projectId,
+      p_category_id: context.categoryId,
+      p_client_present: Boolean(body.clientPresent),
+      p_competitors: competitors,
+      p_route: body.route,
+      p_feasibility: body.feasibility,
+      p_influence: body.influence,
+      p_note: note,
     },
   });
+  if (reviewed.id !== entry.id || reviewed.source_id !== source.id ||
+      reviewed.reviewed_by !== viewer.id) {
+    throw new Error("The persisted Source Map review did not match its authorized actor and source.");
+  }
+  const reviewedAt = reviewed.reviewed_at;
 
   const opportunity = await syncReviewedOpportunity({
     token: accessToken,
@@ -209,7 +220,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         influence: body.influence,
         analyst_note: note || null,
         reviewed_at: reviewedAt,
-        reviewed_by: viewer.id,
+        reviewed_by: reviewed.reviewed_by,
         opportunity_sync: opportunity,
       },
     },
