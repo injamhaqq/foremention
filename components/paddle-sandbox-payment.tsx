@@ -52,7 +52,7 @@ export function PaddleSandboxPayment({ clientToken }: { clientToken: string }) {
       <p role="status" aria-live="polite">{message}</p>
       <p>
         Payment and refund assistance: <a href="https://paddle.net" target="_blank" rel="noreferrer">Paddle buyer support</a>.
-        See the <a href="/refund-policy">refund and cancellation policy</a> before a live purchase.
+        Review <a href="/terms">Foremention terms</a> before a live purchase.
       </p>
     </>
   );
