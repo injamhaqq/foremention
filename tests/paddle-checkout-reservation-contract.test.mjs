@@ -64,3 +64,26 @@ test("Paddle sandbox-only activation remains enforced after reservation layer", 
   assert.match(env, /PADDLE_SANDBOX_ADAPTER_ENABLED=0/);
   assert.match(env, /PADDLE_LIVE_ENABLED=0/);
 });
+test("initial paid Paddle webhook must match a stored transaction reservation before atomic entitlements", async () => {
+  const [source, adapter, parser] = await Promise.all([
+    load("app/api/billing/webhook/route.ts"),
+    load("lib/billing-provider.ts"),
+    load("lib/paddle-billing.ts"),
+  ]);
+  assert.match(source, /async function paddlePaidTransactionAdmitted/);
+  assert.match(source, /billing_checkout_reservations\?select=organization_id,package_key,billing_interval,state/);
+  assert.match(source, /external_transaction_id=eq\./);
+  assert.match(source, /rows\[0\]\.organization_id === organizationId/);
+  assert.match(source, /rows\[0\]\.package_key === parsed\.packageKey/);
+  assert.match(source, /rows\[0\]\.billing_interval === parsed\.billingInterval/);
+  assert.match(source, /rows\[0\]\.state === "ready"/);
+  assert.match(source, /parsed\.transactionOrigin === "subscription_recurring"/);
+  assert.match(source, /parsed\.transactionOrigin === "subscription_update"/);
+  assert.match(source, /rows\[0\]\.external_customer_id === parsed\.externalCustomerId/);
+  assert.match(source, /rows\[0\]\.external_subscription_id === parsed\.externalSubscriptionId/);
+  const correlation = source.indexOf("paddlePaidTransactionAdmitted(parsed, organizationId)");
+  const mutation = source.indexOf("return billingMutationResponse(event, provider.id)");
+  assert.ok(correlation > -1 && mutation > correlation);
+  assert.match(adapter, /externalTransactionId\?: string \| null/);
+  assert.match(parser, /externalTransactionId: idFrom\(data\.id\)/);
+});
