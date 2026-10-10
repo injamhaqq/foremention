@@ -104,13 +104,25 @@ const contentSecurityPolicy = [
   "worker-src 'self' blob:",
 ].join("; ");
 
+// FM-09: /pay alone may load Paddle.js and frame the Paddle SANDBOX checkout.
+// The page itself still refuses to render checkout outside the explicit
+// sandbox staging gate. Live buy.paddle.com is deliberately not allowed.
+const paddleSandboxPayContentSecurityPolicy = contentSecurityPolicy
+  .replace("script-src 'self'", "script-src 'self' https://cdn.paddle.com")
+  .replace("style-src 'self'", "style-src 'self' https://cdn.paddle.com")
+  .replace("connect-src 'self'", "connect-src 'self' https://cdn.paddle.com https://sandbox-checkout-service.paddle.com")
+  .replace("frame-src 'self'", "frame-src 'self' https://sandbox-buy.paddle.com");
+
 function secureResponse(response: Response, url: URL, correlationId?: string) {
   const secured = new Response(response.body, response);
   // Vinext currently bootstraps its client with inline module imports, so
   // unsafe-inline is narrowly retained until the runtime supports per-request
   // nonces. External scripts, framing, objects, and cross-origin form targets
   // remain blocked by the enforced policy.
-  secured.headers.set("Content-Security-Policy", contentSecurityPolicy);
+  secured.headers.set(
+    "Content-Security-Policy",
+    url.pathname === "/pay" ? paddleSandboxPayContentSecurityPolicy : contentSecurityPolicy,
+  );
   secured.headers.set("Cross-Origin-Opener-Policy", "same-origin");
   secured.headers.set("Origin-Agent-Cluster", "?1");
   secured.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");

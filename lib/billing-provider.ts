@@ -30,6 +30,7 @@ import {
   parsePaddleCandidateEvent,
   verifyPaddleCandidateWebhook,
 } from "./paddle-billing.ts";
+import { paddleSandboxRuntimeAllowed } from "./paddle-sandbox-staging.ts";
 
 export type BillingProviderId = "stripe" | "creem" | "paddle";
 export type BillingCheckoutPackage = "core" | "signal";
@@ -88,10 +89,12 @@ function creemCheckoutOffers(): BillingCheckoutOffer[] {
 }
 
 // FM-09 sandbox integration ONLY. Production deliberately refuses Paddle even
-// with live credentials or flags. FM-00 must authorize a separate live adapter
-// after verified merchant/bank approval and durable financial controls.
+// with live credentials or flags, except the explicit isolated Sandbox staging
+// host gate (sandbox key + sandbox env + non-foremention.com staging host).
+// FM-00 must authorize a separate live adapter after verified merchant/bank
+// approval and durable financial controls.
 function paddleSandboxConfigured() {
-  return process.env.NODE_ENV !== "production"
+  return paddleSandboxRuntimeAllowed()
     && process.env.PADDLE_ENVIRONMENT === "sandbox"
     && process.env.PADDLE_SANDBOX_ADAPTER_ENABLED === "1"
     && paddleCandidateConfigured();

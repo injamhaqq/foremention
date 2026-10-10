@@ -10,6 +10,7 @@
  * https://developer.paddle.com/webhooks/about/signature-verification
  */
 import type { VerifiedBillingEvent, BillingLifecycleState } from "./billing.ts";
+import { paddleSandboxRuntimeAllowed } from "./paddle-sandbox-staging.ts";
 
 const API_URLS = {
   sandbox: "https://sandbox-api.paddle.com",
@@ -75,7 +76,9 @@ export function paddleCandidateConfigured() {
   if (env("BILLING_PROVIDER_ID") !== "paddle") return false;
   const mode = env("PADDLE_ENVIRONMENT");
   if (mode !== "sandbox" && mode !== "live") return false;
-  if (process.env.NODE_ENV === "production" && mode !== "live") return false;
+  // Production builds refuse sandbox unless the explicit isolated staging gate
+  // (lib/paddle-sandbox-staging.ts) is satisfied. It never enables Live.
+  if (process.env.NODE_ENV === "production" && mode !== "live" && !paddleSandboxRuntimeAllowed()) return false;
   if (mode === "live" && env("PADDLE_LIVE_ENABLED") !== "1") return false;
   if (!env("PADDLE_API_KEY") || !env("PADDLE_WEBHOOK_SECRET")) return false;
   const rows = configuredPrices();

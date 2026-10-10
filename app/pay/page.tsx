@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 import { billingProviderConfigured, billingProviderId } from "@/lib/billing-provider";
 import { PaddleSandboxPayment } from "@/components/paddle-sandbox-payment";
+import { paddleSandboxRequestAllowed } from "@/lib/paddle-sandbox-staging";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = pageMetadata({
@@ -13,19 +15,23 @@ export const metadata: Metadata = pageMetadata({
   noIndex: true,
 });
 
-function sandboxPaymentAvailable(): boolean {
-  // Never load Paddle checkout scripts or tokens into a production build.
-  // A separately approved live integration must replace this gate.
-  return process.env.NODE_ENV !== "production"
+function sandboxPaymentAvailable(requestHost: string | null): boolean {
+  // Never load Paddle checkout scripts or tokens into a production build,
+  // except on the explicitly configured isolated Sandbox staging host
+  // (lib/paddle-sandbox-staging.ts). foremention.com and Paddle Live stay
+  // fail-closed. A separately approved live integration must replace this gate.
+  return paddleSandboxRequestAllowed(requestHost)
     && process.env.PADDLE_ENVIRONMENT === "sandbox"
     && process.env.PADDLE_SANDBOX_ADAPTER_ENABLED === "1"
     && billingProviderId() === "paddle"
     && billingProviderConfigured();
 }
 
-export default function PaymentPage() {
+export default async function PaymentPage() {
+  const requestHeaders = await headers();
+  const requestHost = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
   const token = process.env.PADDLE_SANDBOX_CLIENT_TOKEN?.trim() || "";
-  const available = sandboxPaymentAvailable() && /^test_[a-z0-9]+$/i.test(token);
+  const available = sandboxPaymentAvailable(requestHost) && /^test_[a-z0-9]+$/i.test(token);
 
   return (
     <PublicShell>

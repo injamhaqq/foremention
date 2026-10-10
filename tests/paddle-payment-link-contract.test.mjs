@@ -7,7 +7,9 @@ test("payment URL is non-indexed and production checkout fails closed", () => {
   assert.ok(page.includes('path: "/pay"'));
   assert.ok(page.includes("noIndex: true"));
   assert.ok(page.includes('dynamic = "force-dynamic"'));
-  assert.ok(page.includes('process.env.NODE_ENV !== "production"'));
+  // Production refusal is delegated to the narrow staging gate helper.
+  assert.ok(page.includes("paddleSandboxRequestAllowed(requestHost)"));
+  assert.ok(source("lib/paddle-sandbox-staging.ts").includes('process.env.NODE_ENV !== "production"'));
   assert.ok(page.includes('PADDLE_ENVIRONMENT === "sandbox"'));
   assert.ok(page.includes("PADDLE_SANDBOX_ADAPTER_ENABLED"));
   assert.ok(page.includes("billingProviderConfigured()"));

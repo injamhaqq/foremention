@@ -31,3 +31,9 @@ Reference: https://developer.paddle.com/build/transactions/default-payment-link/
 - There is no paddle-sandbox connector available in this chat, so this PR cannot truthfully claim real sandbox payment proof.
 - The production main branch remains Stripe-based; Paddle is stacked in #446 -> #499 -> #505. A new /pay route alone cannot accept payments.
 - Draft refund/legal PR #509 is separately awaiting founder/legal review. Do not configure a live default link or enable checkout prematurely.
+
+## 2026-10-11 update — isolated Sandbox staging gate and real sandbox acceptance
+
+- New `lib/paddle-sandbox-staging.ts`: a production build (NODE_ENV=production) may run the Paddle **sandbox** adapter and render `/pay` only when `PADDLE_SANDBOX_STAGING_HOST` is set to a non-`foremention.com` hostname that equals the `NEXT_PUBLIC_SITE_URL` (https) host, `PADDLE_ENVIRONMENT=sandbox`, `PADDLE_SANDBOX_ADAPTER_ENABLED=1`, `PADDLE_LIVE_ENABLED` is not `1`, and `PADDLE_API_KEY` is a `pdl_sdbx_` key. `/pay` additionally requires the request Host to equal the staging host. foremention.com and Paddle Live remain fail-closed (tests: `tests/paddle-sandbox-staging-gate.test.mjs`).
+- Worker CSP: `/pay` alone allows `cdn.paddle.com` scripts/styles and frames `sandbox-buy.paddle.com` (Live `buy.paddle.com` is not allowed). Without this the enforced CSP would block Paddle.js on any worker-served `/pay`.
+- Real Paddle Sandbox acceptance (hosted overlay, test cards, signed webhooks, isolated database) was run on 2026-10-11; evidence is kept outside Git in the project research notes. No secrets are stored in this repository.
