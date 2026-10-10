@@ -365,6 +365,30 @@ async function main() {
     assert.equal(afterSave.verification_plan_json.intent,"repeat five unchanged fictional questions");
     assert.equal(afterSave.verification_plan_json.comparison_contract,"fixture-preserve-v1","editor save must preserve non-UI verification context");
 
+    // Let a genuine local save persist, then simulate losing its acknowledgement.
+    // No second mutation is permitted until an explicit scoped reload reconciles it.
+    let interruptedWrites=0;
+    const interruptSaved=async(route)=>{
+      if(route.request().method()!=="PATCH") return route.continue();
+      interruptedWrites++;
+      const persisted=await route.fetch();
+      assert.equal(persisted.status(),200,"local save must persist before acknowledgement is lost");
+      await route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error:"Synthetic acknowledgement loss"})});
+    };
+    await analystPage.route("**/api/change-specifications",interruptSaved);
+    await analystPage.getByLabel("Title").fill("Synthetic recovered decision");
+    await analystPage.getByRole("button",{name:"Save decision draft"}).click();
+    await analystPage.getByText("We cannot confirm what was saved.",{exact:true}).waitFor();
+    assert.equal(await analystPage.getByRole("button",{name:"Save & submit for review"}).isDisabled(),true);
+    assert.equal(await analystPage.getByLabel("Title").isDisabled(),true);
+    assert.equal(interruptedWrites,1,"uncertainty must not trigger an automatic mutation retry");
+    await analystPage.unroute("**/api/change-specifications",interruptSaved);
+    await analystPage.getByRole("button",{name:"Reload saved decision"}).click();
+    await analystPage.getByRole("button",{name:"Submit for review",exact:true}).waitFor();
+    assert.equal(await analystPage.getByLabel("Title").inputValue(),"Synthetic recovered decision");
+    assert.equal(await analystPage.getByRole("button",{name:"Submit for review",exact:true}).isEnabled(),true);
+    step("authenticated-ambiguous-save-blocked-until-persisted-reload");
+
     // Change one field and submit without pressing Save. The UI must persist
     // current edits first, then submit exactly once through the normal API.
     await analystPage.getByLabel("Exact company change").fill("Add a fixture-only source disclosure with unsaved-submit proof");
