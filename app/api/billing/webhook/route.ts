@@ -128,6 +128,61 @@ export async function POST(request: Request) {
     }, { status: 401 });
   }
 
+  // Financial adjustments are separate accounting cases, not entitlement
+  // lifecycle events. Only acknowledge them after a durable, replay-safe
+  // service-only receipt has been persisted for a verified billing customer.
+  if (provider.parseFinancialAdjustment) {
+    let adjustment: ReturnType<NonNullable<typeof provider.parseFinancialAdjustment>>;
+    try {
+      adjustment = provider.parseFinancialAdjustment(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Billing financial adjustment event is invalid." }, { status: 400 });
+    }
+    if (adjustment) {
+      try {
+        const [subscriptionOrganization, customerOrganization] = await Promise.all([
+          lookupBillingOrganization(provider.id, "external_subscription_id", adjustment.subscriptionId),
+          lookupBillingOrganization(provider.id, "external_customer_id", adjustment.customerId),
+        ]);
+        const organizationId = reconcileBillingOrganization(
+          null, subscriptionOrganization, customerOrganization,
+        );
+        if (!organizationId) {
+          return NextResponse.json({
+            error: "Financial adjustment identity could not be reconciled. Provider retry required.",
+          }, { status: 503 });
+        }
+        const inserted = await supabaseRest<{ event_id: string }[]>(
+          "billing_financial_adjustment_events?on_conflict=provider,event_id",
+          {
+            method: "POST",
+            serviceRole: true,
+            prefer: "resolution=ignore-duplicates,return=representation",
+            body: {
+              organization_id: organizationId,
+              provider: provider.id,
+              event_id: adjustment.eventId,
+              adjustment_id: adjustment.adjustmentId,
+              transaction_id: adjustment.transactionId,
+              external_subscription_id: adjustment.subscriptionId,
+              external_customer_id: adjustment.customerId,
+              action: adjustment.action,
+              status: adjustment.status,
+              adjustment_type: adjustment.adjustmentType,
+              event_type: adjustment.eventType,
+              occurred_at: adjustment.occurredAt,
+            },
+          },
+        );
+        return NextResponse.json({ received: true, adjustment: true, duplicate: inserted.length === 0 });
+      } catch {
+        return NextResponse.json({
+          error: "Financial adjustment case could not be persisted. Provider retry required.",
+        }, { status: 503 });
+      }
+    }
+  }
+
   let parsed: ParsedBillingProviderEvent | null;
   try {
     parsed = provider.parseWebhook(rawBody);
