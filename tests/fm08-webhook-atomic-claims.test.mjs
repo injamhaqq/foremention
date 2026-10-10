@@ -45,6 +45,8 @@ test("isolated SQL RPCs use explicit service-role execution grants and fenced se
     "jsonb_build_object('state', 'leased')", "jsonb_build_object('state', 'claimed'"]) {
     assert.ok(sql.includes(marker), "missing SQL boundary: " + marker);
   }
+  assert.ok(sql.includes("IF NOT FOUND THEN RETURN jsonb_build_object('state', 'leased')"),
+    "conflicting, snapshot-invisible concurrent receipts must be deferred");
   const leasedClassification = sql.indexOf("RETURN jsonb_build_object('state', 'leased')");
   const exhaustedClassification = sql.indexOf("IF v_receipt.attempt_count >= 4 THEN");
   assert.ok(leasedClassification >= 0 && exhaustedClassification > leasedClassification,
