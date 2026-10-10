@@ -1,15 +1,15 @@
 # FM-11 Continuation Packet — 2026-10-09
 
-**Status:** Review-only engineering change proposed in [PR #464](https://github.com/injamhaqq/foremention/pull/464). **Not merged; not deployed to production.** FM-00 remains the sole integration authority.
+**Status (updated 2026-10-10):** [PR #464](https://github.com/injamhaqq/foremention/pull/464) **merged to `main` and verified in production** as `3ab01d39436ef3ac885454ab841ce56b03ad03fd`. All 12 applicable release checks passed following one browser acceptance retry. The first browser run saw authenticated mobile HTTP 503s; [issue #504](https://github.com/injamhaqq/foremention/issues/504) remains open for root-cause investigation. GitHub approval/ruleset shortcomings remain tracked in [issue #490](https://github.com/injamhaqq/foremention/issues/490). FM-00 remains the integration authority.
 
 ## Exact observed baseline
 
 - Canonical repository: `injamhaqq/foremention`; default branch: `main`.
-- Audited main SHA at handoff: `d4fea60a7bb8e047f2282cea9134121e9496c67e`.
-- Changes are on `fm-11/workstream-handoff-guard-20261009`. Refresh the **actual** PR head and main SHA before review; do not rely on a recorded head that may change.
+- Audited main SHA at the original handoff: `d4fea60a7bb8e047f2282cea9134121e9496c67e`. The merged and verified release SHA was `3ab01d39436ef3ac885454ab841ce56b03ad03fd`; refresh live main before acting.
+- The original review branch was `fm-11/workstream-handoff-guard-20261009`; the squash merge is recorded in closed PR #464. For new proposals, refresh the current head and main SHA before review.
 - Node requirement `>=22.13.0`; package manager `pnpm@10.25.0`.
 - `CLAUDE.md` and `FOREMENTION_STATE.md` govern Stage 0 customer proof, the product's truth boundaries, and manual-dispatch-only Copilot Autopilot.
-- PR #464 adds only development tooling, deterministic tests and FM-11 operating documentation. No customer application, payment provider, live AI inference, database migration, secrets, or production configuration was intentionally modified.
+- PR #464 added only development tooling, deterministic tests and FM-11 operating documentation. No customer application, payment provider, live AI inference, database migration, secrets, or production configuration was intentionally modified.
 
 ## Existing automation — preserve it
 
@@ -56,16 +56,17 @@ The shared-head pairs must not be treated as independent patches. Cross-file sem
 - Third-party CLI, agent skill, scanner, prompt evaluator, browser runner and model router versions, license grants, extension trust, supply chain and data processing must be evaluated before adoption. Do not describe bundled credits as unlimited.
 - The main ruleset observed at audit requires `CI` but zero mandatory approving reviews and includes an always-active repository-role bypass. FM-00 should assess independent-review and bypass policy without weakening existing checks.
 - Existing Autopilot uses `npm install --global @github/copilot@latest`; an approved, tested pin would improve reproduction.
-- Every PR, including #464, requires current-head evidence. Successful checks on prior commits are not substitute evidence. Passing checks do not constitute a production deployment.
+- Future PRs require exact current-head evidence. For #464, verified deployment and production checks are recorded on the squash-merged SHA; passing checks on a different commit are not a substitute.
 
-## FM-00 next integration decisions
+## FM-00 post-integration decisions
 
-1. Refresh `main`, every open PR's head, changed-file list and GitHub ruleset. Confirm #464's latest complete security/CI/browser run and absence of overlapping filenames.
-2. Perform human review of PR #464's collector and validator, including authorization, snapshot integrity, denial on incomplete data, path handling and no GitHub write actions.
-3. Approve or request changes explicitly. Retain human-reviewed merge and exact-SHA production proof; no FM-11 worker may bypass branch rules or enable auto-merge.
-4. Coordinate the shared-head PRs and consolidate overlapping product/gateway/DevSecOps work. Do not bulk-close PRs without author/integration review.
-5. Keep Autopilot manual-only while Stage 0 customer proof is the priority. Consider pinning Copilot CLI and read-only inventory integration as separate reviewed work only after customer or reliability need justifies it.
+PR #464 is merged and its exact release has passed production verification. These separate company-wide operating risks remain:
+
+1. [Issue #490](https://github.com/injamhaqq/foremention/issues/490): the protected-main ruleset requires only CI, currently zero approving reviews and an always-active repository-role bypass. Enforce additional stable PR check contexts and arrange an independent reviewer through the authorized GitHub administrator; do not make speculative ruleset changes or disable checks.
+2. [Issue #504](https://github.com/injamhaqq/foremention/issues/504): investigate the first trusted mobile-browser run's two authenticated HTTP 503 responses using Cloudflare/Worker logs. A clean retry does not establish that the intermittent root cause has been eliminated.
+3. Re-capture the complete open-PR inventory and current main immediately before *future* integrations. Resolve shared-head/overlapping ownership with FM-00 rather than treating previously green checks as enduring evidence.
+4. Keep GitHub Copilot Autopilot manual-dispatch only during Stage 0. Evaluate any further coding-agent automation against actual pilot blockers, cost bounds and human review; this package did not enable unattended 24/7 coding.
 
 ## FM-11 completion criterion
 
-The engineering proposal is considered **ready for FM-00 review** once its exact head passes required checks and the complete open-PR inventory is refreshed. It is **integrated** only after separate FM-00 human review, authorized merge, and confirmation that the merge/release corresponds to the verified SHA. Unknown customer traction, cost data and production state remain unknown.
+FM-11's original engineering package **is integrated and production-verified** at main SHA `3ab01d39436ef3ac885454ab841ce56b03ad03fd`. This does not imply that autonomous unattended engineering was enabled or that separate incidents #490 and #504 have been resolved. Any subsequent FM-11 enhancement is a new, separately reviewed exact-head change; do not conflate a proposal with a deployed release or infer customer traction, revenue or return on investment.
