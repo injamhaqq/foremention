@@ -106,8 +106,12 @@ export async function createPaddleCandidateCheckout(input: {
   billingInterval: PaddleInterval;
   organizationId: string;
   customerId?: string | null;
+  checkoutReservationId?: string | null;
 }) {
   if (!UUID.test(input.organizationId)) throw new Error("Invalid billing organization.");
+  if (input.checkoutReservationId && !UUID.test(input.checkoutReservationId)) {
+    throw new Error("Invalid Paddle checkout reservation.");
+  }
   const priceId = paddlePriceIdFor(input.packageKey, input.billingInterval);
   if (!priceId) throw new Error("Paddle offer is not configured.");
   const customerId = input.customerId || null;
@@ -121,6 +125,7 @@ export async function createPaddleCandidateCheckout(input: {
       organizationId: input.organizationId.toLowerCase(),
       packageKey: input.packageKey,
       billingInterval: input.billingInterval,
+      ...(input.checkoutReservationId ? { checkoutReservationId: input.checkoutReservationId.toLowerCase() } : {}),
     },
   };
   if (customerId) payload.customer_id = customerId;
