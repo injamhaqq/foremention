@@ -51,10 +51,10 @@ BEGIN
   END IF;
 
   c1 := public.claim_workspace_webhook_delivery(org_a,project_a,endpoint_a,'shared-event','collection.completed');
-  IF c1 IS NULL OR (c1->>'attempt_count')::int <> 1 THEN
+  IF c1 IS NULL OR c1->>'state' IS DISTINCT FROM 'claimed' OR (c1->>'attempt_count')::int <> 1 THEN
     RAISE EXCEPTION 'Failed to claim the first attempt';
   END IF;
-  IF public.claim_workspace_webhook_delivery(org_a,project_a,endpoint_a,'shared-event','collection.completed') IS NOT NULL THEN
+  IF public.claim_workspace_webhook_delivery(org_a,project_a,endpoint_a,'shared-event','collection.completed')->>'state' IS DISTINCT FROM 'leased' THEN
     RAISE EXCEPTION 'Second active claim was not blocked';
   END IF;
   IF public.settle_workspace_webhook_delivery(org_a,(c1->>'delivery_id')::uuid,2,'delivered',200,NULL)
@@ -81,7 +81,7 @@ BEGIN
   END IF;
   c4 := public.claim_workspace_webhook_delivery(org_a,project_a,endpoint_a,'shared-event','collection.completed');
   IF c4 IS NULL OR (c4->>'attempt_count')::int <> 4 THEN RAISE EXCEPTION 'Attempt 4 rejected'; END IF;
-  IF public.claim_workspace_webhook_delivery(org_a,project_a,endpoint_a,'shared-event','collection.completed') IS NOT NULL THEN
+  IF public.claim_workspace_webhook_delivery(org_a,project_a,endpoint_a,'shared-event','collection.completed')->>'state' IS DISTINCT FROM 'leased' THEN
     RAISE EXCEPTION 'Actively leased attempt was reclaimed';
   END IF;
   IF NOT public.settle_workspace_webhook_delivery(org_a,(c4->>'delivery_id')::uuid,4,'failed',NULL,'synthetic exhaustion') THEN
