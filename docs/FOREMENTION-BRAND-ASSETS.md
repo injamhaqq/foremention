@@ -8,7 +8,7 @@ The canonical Foremention identity is the supplied vector artwork. This record r
 
 - Approved reverse full lockup: `public/brand/foremention-logo-white.svg`
 - Approved reverse symbol: `public/brand/foremention-mark-white.svg`
-- Browser tab icon: `app/favicon.ico`
+- Browser tab icon: **not currently published as an approved standalone artwork**. `app/favicon.ico` is absent and explicitly required to remain retired by `tests/canonical-visual-system.test.mjs`; do not restore it or invent an icon without a separate approved identity/metadata review.
 
 `components/brand.tsx` renders the approved reverse assets on the existing graphite/black backgrounds. The older light-background paths `public/brand/foremention-logo.svg` and `public/brand/foremention-mark.svg` are retired and absent from the current runtime. They must **not** be restored, recreated, or inferred from the reverse artwork without a separate founder-approved brand-asset migration.
 
