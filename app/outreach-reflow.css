@@ -7,3 +7,21 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* FM-03: a keyboard-friendly shortcut to the existing founder-led application. */
+.outreach-contact-hero__action {
+  display: flex;
+  margin-top: 26px;
+}
+
+.outreach-contact-hero__action .canonical-button {
+  min-height: 48px;
+}
+
+#design-partner-application {
+  scroll-margin-top: 110px;
+}
+
+@media (max-width: 620px) {
+  .outreach-contact-hero__action .canonical-button { width: 100%; }
+}
