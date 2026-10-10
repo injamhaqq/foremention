@@ -873,7 +873,19 @@ export const scheduleWeeklyWorkspaceDigests = inngest.createFunction(
 
 export const deliverWorkspaceWebhookEvents = inngest.createFunction(
   { id: "deliver-workspace-webhook-events", retries: 3, triggers: { event: "foremention/workspace.event" }, concurrency: { limit: 1, key: 'event.data.organizationId + ":" + event.data.eventKey' } },
-  async ({ event, step }) => step.run("deliver-signed-webhooks", () => deliverWorkspaceWebhooks(event.data as DeliveryEvent)),
+  async ({ event, step }) => {
+    // A crashed sender can leave a 90s fenced receipt lease. Retries must not
+    // silently acknowledge an event while the claim is still held.
+    for (let leaseRetry = 0; leaseRetry < 4; leaseRetry += 1) {
+      const result = await step.run(
+        leaseRetry === 0 ? "deliver-signed-webhooks" : `resume-webhook-lease-${leaseRetry}`,
+        () => deliverWorkspaceWebhooks(event.data as DeliveryEvent),
+      );
+      if (result.status !== "deferred") return result;
+      if (leaseRetry < 3) await step.sleep(`wait-webhook-lease-${leaseRetry}`, "95s");
+    }
+    throw new Error("Workspace webhook leases remained active after bounded recovery.");
+  },
 );
 
 export const deliverHubSpotActionEvents = inngest.createFunction(
