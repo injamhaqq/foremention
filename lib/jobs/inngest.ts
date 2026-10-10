@@ -16,6 +16,7 @@ import {
   safeOperationalError,
 } from "@/lib/collection-policy";
 import { getProvider } from "@/lib/providers";
+import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
@@ -496,6 +497,10 @@ export const runMultiEngineScan = inngest.createFunction(
     if (!providerAllowedForLiveCollection(providerId)) {
       await markRunFailed(data, "The queued provider is disabled by Foremention free-only mode.", true);
       return { runId: run.id, answers: 0, citations: 0, failures: prompts.length, freeOnlyBlocked: true };
+    }
+    if (!providerAllowedForMeasurementLane(providerId)) {
+      await markRunFailed(data, "The queued model gateway is not pinned to one exact upstream provider and model, so it cannot produce comparable measurement evidence.", true);
+      return { runId: run.id, answers: 0, citations: 0, failures: prompts.length, unpinnedGatewayBlocked: true };
     }
     const adapter = getProvider(providerId);
     const model = String(process.env[`${providerId.toUpperCase()}_MODEL`] || "");
