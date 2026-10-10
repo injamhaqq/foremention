@@ -46,7 +46,12 @@ BEGIN
     AND d.event_key = p_event_key
   FOR UPDATE;
 
-  IF NOT FOUND OR v_receipt.event_type IS DISTINCT FROM p_event_type
+  -- In READ COMMITTED, a competing INSERT ... ON CONFLICT DO NOTHING
+  -- can wait for an uncommitted unique key and then see no row under its
+  -- statement snapshot. Treat an invisible in-flight receipt as leased,
+  -- never as a terminal/no-work acknowledgement.
+  IF NOT FOUND THEN RETURN jsonb_build_object('state', 'leased'); END IF;
+  IF v_receipt.event_type IS DISTINCT FROM p_event_type
     OR v_receipt.status = 'delivered' THEN RETURN NULL; END IF;
 
   -- An ACTIVE fourth/final attempt is leased, not yet exhausted. Check
