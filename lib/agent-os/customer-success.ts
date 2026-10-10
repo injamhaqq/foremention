@@ -62,6 +62,7 @@ export async function runCustomerSuccessAgent(input: {
   // unlinked placement is excluded rather than guessed into this project.
   if (!customerSuccessSnapshotComplete({
     promptScopeIds: scope.promptIds,
+    runScopeCount: scope.runIds.size,
     prompts,
     organizationPlacementCount: organizationPlacements.length,
     promptLimit: MAX_PROJECT_PLACEMENT_SCOPE_LINKS,
