@@ -201,11 +201,11 @@ create or replace function public.prevent_financial_adjustment_receipt_mutation(
 returns trigger
 language plpgsql
 set search_path = public
-as $
+as $fm09_receipt$
 begin
   raise exception 'Financial adjustment receipts are immutable';
 end;
-$;
+$fm09_receipt$;
 
 create trigger billing_financial_adjustment_receipt_immutable
   before update or delete on public.billing_financial_adjustment_events
