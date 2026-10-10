@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import Script from "next/script";
+import Link from "next/link";
 
 type PaddleJs = {
   Environment: { set(value: "sandbox"): void };
@@ -52,7 +53,7 @@ export function PaddleSandboxPayment({ clientToken }: { clientToken: string }) {
       <p role="status" aria-live="polite">{message}</p>
       <p>
         Payment and refund assistance: <a href="https://paddle.net" target="_blank" rel="noreferrer">Paddle buyer support</a>.
-        Review <a href="/terms">Foremention terms</a> before a live purchase.
+        Review <Link href="/terms">Foremention terms</Link> before a live purchase.
       </p>
     </>
   );
