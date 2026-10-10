@@ -26,7 +26,7 @@ test("rejects an open-PR exact-path collision and FM-00-reserved file", () => {
   const proposed = packet();
   proposed.writeSet.push(".github/workflows/ci.yml");
   const active = snapshot();
-  active.prs.push({ number: 450, files: [proposed.writeSet[0]] });
+  active.prs.push({ number: 450, headBranch: "fm-11/parallel-task", headSha: sha, files: [proposed.writeSet[0]] });
   const result = validateHandoff(proposed, active, sha, now);
   assert.equal(result.ok, false);
   assert.match(result.errors.join(" "), /FM-00-owned integration path/);
