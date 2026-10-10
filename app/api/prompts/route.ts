@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadPrompts, loadWorkspaceContext } from "@/lib/data";
-import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
+import { buyerQuestionLimit, type CapacityEntitlementRow } from "@/lib/product-limits";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
@@ -27,7 +27,19 @@ export async function POST(request: Request) {
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
   if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
   if (!(["owner", "admin", "analyst"] as string[]).includes(role)) return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
-  if (existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions) return NextResponse.json({ error: `This access level allows ${FOUNDATION_ACCESS_LIMITS.buyerQuestions} buyer questions. Paid capacity is enabled only after billing activation.` }, { status: 429 });
+  // Capacity comes only from the verified-billing entitlement row (Refs #516);
+  // an unreadable, inactive or expired entitlement fails closed to Foundation.
+  let entitlementRows: CapacityEntitlementRow[] = [];
+  try {
+    entitlementRows = await supabaseRest<CapacityEntitlementRow[]>(
+      "organization_entitlements?select=status,package_key,billing_source,expires_at,max_prompts&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+      { token: viewer.accessToken },
+    );
+  } catch {
+    entitlementRows = [];
+  }
+  const questionLimit = buyerQuestionLimit(entitlementRows[0]);
+  if (existing.length >= questionLimit) return NextResponse.json({ error: `This access level allows ${questionLimit} buyer questions. Paid capacity is enabled only after verified billing activation.` }, { status: 429 });
 
   let clusterId = context.clusterId;
   if (!clusterId) {
