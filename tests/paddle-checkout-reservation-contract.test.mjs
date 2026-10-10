@@ -63,7 +63,8 @@ test("verified provider adjustments persist durable cases before 2xx, never touc
 
 test("Paddle sandbox-only activation remains enforced after reservation layer", async () => {
   const [adapter, env] = await Promise.all([load("lib/billing-provider.ts"), load(".env.example")]);
-  assert.match(adapter, /process\.env\.NODE_ENV !== "production"/);
+  assert.match(adapter, /return paddleSandboxRuntimeAllowed\(\)/);
+  assert.match(await load("lib/paddle-sandbox-staging.ts"), /process\.env\.NODE_ENV !== "production"/);
   assert.match(adapter, /PADDLE_SANDBOX_ADAPTER_ENABLED/);
   assert.match(env, /PADDLE_SANDBOX_ADAPTER_ENABLED=0/);
   assert.match(env, /PADDLE_LIVE_ENABLED=0/);

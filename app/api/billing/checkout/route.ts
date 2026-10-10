@@ -30,7 +30,14 @@ export async function POST(request: Request) {
 
   const viewer = await requireViewer("/app/settings");
   if (viewer.mode === "demo") return NextResponse.json({ error: "Demo workspaces cannot start billing." }, { status: 403 });
-  const [role, context] = await Promise.all([getPrimaryWorkspaceRole(viewer), loadWorkspaceContext(viewer)]);
+  let role: Awaited<ReturnType<typeof getPrimaryWorkspaceRole>>;
+  let context: Awaited<ReturnType<typeof loadWorkspaceContext>>;
+  try {
+    [role, context] = await Promise.all([getPrimaryWorkspaceRole(viewer), loadWorkspaceContext(viewer)]);
+  } catch {
+    // A database outage must fail closed with a retryable 503, never a bare 500.
+    return NextResponse.json({ error: "Workspace authorization could not be verified." }, { status: 503 });
+  }
   if (role !== "owner") return NextResponse.json({ error: "Only the workspace owner can start checkout." }, { status: 403 });
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
 
