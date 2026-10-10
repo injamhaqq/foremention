@@ -66,6 +66,9 @@ jobs:
           # Redirect local CLI output since it can contain generated test keys.
           supabase start > .isolated-supabase-start.log 2>&1
           supabase db reset >> .isolated-supabase-start.log 2>&1
+          # Disposable integration only: test the permission state AFTER staged application rollout.
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-activate-question-history-privileges.sql >> .isolated-supabase-start.log 2>&1
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-activate-composite-project-fks.sql >> .isolated-supabase-start.log 2>&1
           supabase status -o env > .local-cli-status
           node scripts/prepare-isolated-local-env.mjs .local-cli-status
           set -a
