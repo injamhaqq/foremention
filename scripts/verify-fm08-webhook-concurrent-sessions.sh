@@ -80,7 +80,7 @@ if [ "$blocked" != "1" ]; then echo "No observed DB lock contention between inde
 wait "$first_pid"; first_pid=""
 wait "$second_pid"; second_pid=""
 grep -Fqx 'CLAIM1:1' "$TMP/first.log" || { cat "$TMP/first.log"; exit 1; }
-grep -Fqx 'CLAIM2:null' "$TMP/second.log" || { cat "$TMP/second.log"; exit 1; }
+grep -Fqx 'CLAIM2:leased' "$TMP/second.log" || { cat "$TMP/second.log"; exit 1; }
 count="$(db -c "SELECT count(*) || ':' || max(attempt_count) FROM public.workspace_webhook_deliveries WHERE endpoint_id='f8640000-0000-4000-8000-000000000001'::uuid AND event_key='concurrent-event';")"
 if [ "$count" != "1:1" ]; then echo "Expected 1 receipt and 1 claim, got $count" >&2; exit 1; fi
 echo "PASS: two independent SQL sessions contended; only one active event claim."
