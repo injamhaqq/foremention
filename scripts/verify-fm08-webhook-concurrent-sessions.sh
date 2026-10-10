@@ -65,7 +65,7 @@ SELECT 'CLAIM2:' || COALESCE((public.claim_workspace_webhook_delivery(
   'f8630000-0000-4000-8000-000000000001'::uuid,
   'f8640000-0000-4000-8000-000000000001'::uuid,
   'concurrent-event', 'collection.completed'
-)->>'attempt_count'), 'null');
+)->>'state'), 'null');
 SQL
 second_pid=$!
 
