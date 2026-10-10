@@ -64,21 +64,98 @@ export function validateMeasurementSchedule(input: MeasurementScheduleInput): Va
   };
 }
 
+type WallTime = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+  millisecond: number;
+};
+
+function zonedWallTime(instant: Date, formatter: Intl.DateTimeFormat): WallTime {
+  const parts = new Map(formatter.formatToParts(instant).map((part) => [part.type, Number(part.value)]));
+  const read = (field: string) => {
+    const value = parts.get(field);
+    if (value === undefined || !Number.isFinite(value)) throw new Error("Timezone calendar components are unavailable.");
+    return value;
+  };
+  return {
+    year: read("year"), month: read("month"), day: read("day"),
+    hour: read("hour"), minute: read("minute"), second: read("second"),
+    millisecond: instant.getUTCMilliseconds(),
+  };
+}
+
+function wallTimeAsUtcMillis(value: WallTime) {
+  return Date.UTC(value.year, value.month - 1, value.day, value.hour, value.minute, value.second, value.millisecond);
+}
+
+/**
+ * Advance in the customer's IANA timezone rather than adding UTC days.
+ *
+ * Clock policy:
+ * - Normal weeks/months keep the same local wall-clock time.
+ * - At a fall-back fold choose the earlier occurrence of the repeated time.
+ * - In a spring-forward gap shift the missing time forward by the gap.
+ * - Monthly dates beyond the target month's length clamp to its final day.
+ *
+ * For gap-adjusted or month-end-clamped occurrences, the *next* recurrence
+ * starts from the adjusted occurrence: preserving an original anchor across
+ * multiple gaps/months would require a separate persisted recurrence anchor.
+ */
 export function nextScheduleAt(from: Date | string, cadence: MeasurementCadence, timezone = "UTC") {
   assertTimeZone(timezone);
   const current = new Date(from);
   if (!Number.isFinite(current.getTime())) throw new Error("Schedule start time is invalid.");
-  const next = new Date(current.getTime());
-  if (cadence === "weekly") next.setUTCDate(next.getUTCDate() + 7);
-  else if (cadence === "biweekly") next.setUTCDate(next.getUTCDate() + 14);
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    calendar: "gregory",
+    numberingSystem: "latn",
+    hourCycle: "h23",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+
+  // Interpret the zoned calendar fields as a naive UTC date only for arithmetic;
+  // this is NOT the actual execution instant until converted below.
+  const local = new Date(wallTimeAsUtcMillis(zonedWallTime(current, formatter)));
+  if (cadence === "weekly") local.setUTCDate(local.getUTCDate() + 7);
+  else if (cadence === "biweekly") local.setUTCDate(local.getUTCDate() + 14);
   else if (cadence === "monthly") {
-    const day = next.getUTCDate();
-    next.setUTCDate(1);
-    next.setUTCMonth(next.getUTCMonth() + 1);
-    const lastDay = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate();
-    next.setUTCDate(Math.min(day, lastDay));
+    const day = local.getUTCDate();
+    local.setUTCDate(1);
+    local.setUTCMonth(local.getUTCMonth() + 1);
+    const lastDay = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + 1, 0)).getUTCDate();
+    local.setUTCDate(Math.min(day, lastDay));
   } else throw new Error("Unsupported measurement cadence.");
-  return next;
+
+  const targetWallMillis = local.getTime();
+  // Resolve the local wall time by sampling IANA offsets around the desired
+  // date; this handles UTC offsets including 30/45 minute regions and DST.
+  const offsets = new Set<number>();
+  for (let hours = -48; hours <= 48; hours += 12) {
+    const sample = new Date(targetWallMillis + hours * 3_600_000);
+    offsets.add(wallTimeAsUtcMillis(zonedWallTime(sample, formatter)) - sample.getTime());
+  }
+
+  const exact: Date[] = [];
+  const shifted: Array<{ instant: Date; delta: number }> = [];
+  for (const offset of offsets) {
+    const instant = new Date(targetWallMillis - offset);
+    if (instant <= current) continue;
+    const delta = wallTimeAsUtcMillis(zonedWallTime(instant, formatter)) - targetWallMillis;
+    if (delta === 0) exact.push(instant);
+    else if (delta > 0) shifted.push({ instant, delta });
+  }
+  if (exact.length) return exact.sort((a, b) => a.getTime() - b.getTime())[0];
+  if (shifted.length) {
+    shifted.sort((a, b) => a.delta - b.delta || a.instant.getTime() - b.instant.getTime());
+    return shifted[0].instant;
+  }
+  throw new Error("The next measurement occurrence could not be resolved safely in this timezone.");
 }
 
 export function scheduleIdempotencyKey(schedule: { id: string; methodologySnapshot?: string | null; modelSnapshot?: string | null }, dueAt: Date | string) {
