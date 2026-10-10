@@ -229,10 +229,10 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
     case "design_partner_application_started":
     case "design_partner_application_submitted":
       break;
-    case "design_partner_cta_impression":
-    case "design_partner_cta_clicked":
     case "public_sample_cta_clicked":
     case "public_evidence_inspection_cta_clicked":
+    case "design_partner_cta_impression":
+    case "design_partner_cta_clicked":
       addEnum(properties, "surface", normalizedInput.surface, surfaces);
       break;
     case "score_completed":
