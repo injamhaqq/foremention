@@ -225,3 +225,29 @@ test("Unicode word prefixes are not stripped into false ASCII brand mentions", (
   const nestedOnly = assessObservedPagePresence(open({ pageText: "préAcme" }), "Acme");
   assert.equal(nestedOnly.pagePresenceState, "absent");
 });
+
+test("astral Unicode letters are word boundaries, not half-surrogate punctuation", () => {
+  for (const pageText of ["𐐀Acme", "Acme𐐀", "𐐀Acme𐐀"]) {
+    const result = assessObservedPagePresence(open({ pageText }), "Acme");
+    assert.equal(result.clientPresent, false, pageText);
+    assert.equal(result.pagePresenceState, "absent", pageText);
+  }
+  for (const pageText of ["𐐀Acme", "Acme𐐀"]) {
+    const result = assessObservedPagePresence(
+      open({ access: "partial", pageTextCoverage: "partial", pageText }), "Acme"
+    );
+    assert.equal(result.pagePresenceState, "unknown", pageText);
+  }
+});
+
+test("astral Unicode brand names still match as independent full code points", () => {
+  const result = assessObservedPagePresence(
+    open({ pageText: "See (𐐀cme), plus the Not𐐀cme product" }),
+    "𐐀cme",
+    ["𐐀cme", "Acme"],
+  );
+  assert.equal(result.pagePresenceState, "present");
+  assert.deepEqual(result.competitorsPresent, ["𐐀cme"]);
+  const onlyNested = assessObservedPagePresence(open({ pageText: "Not𐐀cmePlus" }), "𐐀cme");
+  assert.equal(onlyNested.pagePresenceState, "absent");
+});
