@@ -72,6 +72,7 @@ jobs:
           # FM-08 isolated SQL candidate ONLY: not a production migration.
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/fm08-webhook-atomic-claims-candidate.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-fm08-webhook-claims.sql
+          bash scripts/verify-fm08-webhook-concurrent-sessions.sh
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-company-migrations.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-tenant-isolation.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-run-accounting.sql
