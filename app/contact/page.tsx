@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
+import { hasPersistedDesignPartnerReceipt } from "@/lib/design-partner-receipt";
 
 export const metadata: Metadata = pageMetadata({
   title: "Apply as a Foremention Design Partner",
@@ -18,9 +19,13 @@ const intakeIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f
 export default async function ContactPage({ searchParams }: { searchParams: Promise<{ plan?: string; submitted?: string; error?: string; intake?: string }> }) {
   const query = await searchParams;
   const plan = validPlans.has((query.plan || "").toLowerCase()) ? (query.plan || "").toLowerCase() : "";
-  const submitted = query.submitted === "1";
   const failed = Boolean(query.error);
   const intakeId = query.intake && intakeIdPattern.test(query.intake) ? query.intake : "";
+  // A success query flag (or an arbitrary well-formed UUID) is not proof of
+  // persistence. An actual first-party receipt is mandatory before showing it.
+  const submitted = query.submitted === "1"
+    && Boolean(intakeId)
+    && await hasPersistedDesignPartnerReceipt(intakeId);
 
   return (
     <PublicShell>
