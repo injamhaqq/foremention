@@ -1,7 +1,9 @@
+import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { NextResponse } from "next/server";
 import { clearRecoverySession, markRecoverySession, setSessionCookies } from "@/lib/session-cookies";
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const { access_token, expires_in, refresh_token, recovery } = await request.json().catch(() => ({})) as {
     access_token?: string;
     expires_in?: number;
