@@ -459,7 +459,10 @@ async function main() {
 
     const page=await ownerCtx.newPage();
     await page.goto(new URL("/app/resolutions",app).toString(),{waitUntil:"domcontentloaded",timeout:30000});
-    await page.waitForTimeout(600);
+    // Wait for the rendered customer text itself instead of a fixed delay:
+    // a cold Worker can leave <body> empty for longer than any fixed sleep.
+    // A timeout falls through to the same strict assertion below.
+    await page.waitForFunction(()=>/resolution|evidence/i.test(document.body?.innerText||""),undefined,{timeout:30000}).catch(()=>{});
     const rendered=await page.locator("body").innerText();
     assert.match(rendered,/resolution|evidence/i,"authenticated customer UI must render");
     step("real-authenticated-browser-rendered-isolated-audited-journey");
