@@ -7,6 +7,29 @@ type SourcePageObservation = Pick<
 
 export type ObservedPagePresenceState = "unknown" | "present" | "absent";
 
+// A substring inside another word is not evidence that the brand was named.
+// Apply boundaries only to letter/number edges; punctuation stays significant
+// for names like "Acme.ai". This checks mentions, not semantic endorsement.
+const mentionWordChar = /[\\p{L}\\p{M}\\p{N}_]/u;
+
+function containsBoundedMention(text: string, rawTerm: string) {
+  const term = rawTerm.trim().toLocaleLowerCase();
+  if (!term) return false;
+  let from = 0;
+  while (from < text.length) {
+    const index = text.indexOf(term, from);
+    if (index < 0) return false;
+    const after = index + term.length;
+    const startsWithWord = mentionWordChar.test(term[0]);
+    const endsWithWord = mentionWordChar.test(term[term.length - 1]);
+    const leftBoundary = !startsWithWord || index === 0 || !mentionWordChar.test(text[index - 1]);
+    const rightBoundary = !endsWithWord || after === text.length || !mentionWordChar.test(text[after]);
+    if (leftBoundary && rightBoundary) return true;
+    from = index + 1;
+  }
+  return false;
+}
+
 /**
  * A positive mention is supportable in the text actually retrieved.
  * A negative observation is supportable only when the bounded representation
@@ -27,10 +50,10 @@ export function assessObservedPagePresence(
       .filter(Boolean).join(" ").toLocaleLowerCase()
     : "";
   const normalizedBrand = brand.trim().toLocaleLowerCase();
-  const clientPresent = Boolean(normalizedBrand) && text.includes(normalizedBrand);
+  const clientPresent = containsBoundedMention(text, normalizedBrand);
   const competitorsPresent = competitors.filter((competitor) => {
     const term = competitor.trim().toLocaleLowerCase();
-    return Boolean(term) && text.includes(term);
+    return containsBoundedMention(text, term);
   });
 
   // The inspector attests coverage only for identical bounded static text,
