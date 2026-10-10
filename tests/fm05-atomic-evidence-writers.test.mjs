@@ -35,7 +35,7 @@ test("creation RPC preserves tenant authorization, project and cluster checks, s
 
 test("provider receipts and buyer-question records can only be written through privileged code paths", async () => {
   const phase1 = await read("supabase/migrations/20261009000100_create_atomic_buyer_question_rpc.sql");
-  const phase2 = await read("supabase/migrations/20261009000200_harden_evidence_writer_privileges.sql");
+  const phase2 = await read("scripts/release-gates/FM05-activate-question-history-privileges.sql");
   assert.match(phase1, /revoke insert, update, delete on table/);
   for (const table of ["run_attempts","run_answers","citations","source_maps","source_observations"]) {
     assert.ok(phase1.includes("public." + table), "missing service-owned evidence table " + table);
@@ -45,6 +45,14 @@ test("provider receipts and buyer-question records can only be written through p
   assert.match(phase2, /revoke insert, update, delete on table public\.prompts from authenticated/i);
   assert.match(phase2, /revoke insert, update, delete on table public\.prompt_versions from authenticated/i);
   assert.match(phase2, /drop policy if exists prompt_versions_write_analyst/i);
+  const {readdir}=await import("node:fs/promises");
+  const migrations=await readdir(new URL("../supabase/migrations/",import.meta.url));
+  assert.ok(!migrations.includes("20261009000200_harden_evidence_writer_privileges.sql"),"history grant activation must not auto-run before the app");
+  assert.ok(!migrations.includes("20261009000300_core_project_ownership_fks.sql"),"composite FK activation requires independent approval");
+  for(const workflow of [await read(".github/workflows/ci.yml"),await read(".github/workflows/isolated-authenticated-journey.yml")]) {
+    assert.match(workflow,/scripts\/release-gates\/FM05-activate-question-history-privileges\.sql/);
+    assert.match(workflow,/scripts\/release-gates\/FM05-activate-composite-project-fks\.sql/);
+  }
   const job = await read("lib/jobs/inngest.ts");
   assert.match(job, /"run_attempts[?"]/);
   assert.match(job, /serviceRole: true/);
@@ -53,7 +61,7 @@ test("provider receipts and buyer-question records can only be written through p
 });
 
 test("four core project relationships are composite, validated and preserve FK names", async () => {
-  const migration = await read("supabase/migrations/20261009000300_core_project_ownership_fks.sql");
+  const migration = await read("scripts/release-gates/FM05-activate-composite-project-fks.sql");
   const liveFixture = await read("scripts/verify-fm05-atomic-evidence-writers.sql");
   for (const table of ["prompts", "prompt_clusters", "runs", "jobs"]) {
     assert.match(migration, new RegExp(`alter table public\\.${table}\\s+drop constraint ${table}_project_id_fkey`, "i"));
