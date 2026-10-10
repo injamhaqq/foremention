@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { assertPublicSourceResolution } from "@/lib/source-inspection";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { webhookSecretForDisplay, validateWebhookDestination, WORKSPACE_WEBHOOK_EVENTS, type WorkspaceWebhookEvent } from "@/lib/workspace-webhooks";
+import { assertApprovedWorkspaceWebhookDestination } from "@/lib/webhook-egress-policy";
 
 export async function GET() {
   const viewer = await getViewer(); if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,7 +24,10 @@ export async function POST(request: Request) {
   if (!role || !["owner", "admin"].includes(role)) return NextResponse.json({ error: "Only owners and admins can create webhooks." }, { status: 403 });
   const body = await request.json().catch(() => ({})) as { label?: string; url?: string; events?: string[] };
   const label = String(body.label || "").trim().slice(0, 80); if (!label) return NextResponse.json({ error: "Name this webhook." }, { status: 400 });
-  let destinationUrl = ""; try { destinationUrl = validateWebhookDestination(String(body.url || "")); } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Enter a public HTTPS URL." }, { status: 400 }); }
+  let destinationUrl = ""; try { destinationUrl = assertApprovedWorkspaceWebhookDestination(validateWebhookDestination(String(body.url || ""))); } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Enter a public HTTPS URL." }, { status: 400 }); }
+  // An allowed hostname is not proof of a public DNS answer at registration time.
+  try { await assertPublicSourceResolution(destinationUrl); }
+  catch { return NextResponse.json({ error: "Webhook destination must resolve exclusively to public IP addresses." }, { status: 400 }); }
   const eventTypes = Array.from(new Set((body.events || []).filter((event): event is WorkspaceWebhookEvent => WORKSPACE_WEBHOOK_EVENTS.includes(event as WorkspaceWebhookEvent))));
   if (!eventTypes.length) return NextResponse.json({ error: "Choose at least one event." }, { status: 400 });
   const masterSecret = process.env.WEBHOOK_SIGNING_SECRET; if (!masterSecret) return NextResponse.json({ error: "Webhook signing is not configured." }, { status: 503 });
