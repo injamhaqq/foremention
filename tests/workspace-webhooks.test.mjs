@@ -11,9 +11,9 @@ test("workspace webhooks are tenant-scoped, signed, idempotent, and background-d
     text("app/api/webhooks/route.ts"), text("lib/jobs/inngest.ts"), text("app/api-docs/webhooks/page.tsx"),
   ]);
   assert.match(delivery, /x-foremention-signature/);
-  assert.match(delivery, /rpc\\/claim_workspace_webhook_delivery/);
-  assert.match(delivery, /delivery\.status === "delivered"/);
-  assert.match(delivery, /claim\\.attempt_count > 4/);
+  assert.ok(delivery.includes("rpc/claim_workspace_webhook_delivery"));
+  assert.ok(delivery.includes("rpc/settle_workspace_webhook_delivery"));
+  assert.ok(delivery.includes("claim.attempt_count > 4"));
   assert.match(delivery, /redirect: "error"/);
   assert.match(delivery, /url\.protocol !== "https:"/);
   assert.match(delivery, /validatePublicSourceUrl/);
