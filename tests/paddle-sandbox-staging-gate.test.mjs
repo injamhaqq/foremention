@@ -100,3 +100,11 @@ test("/pay CSP allows only Paddle SANDBOX checkout origins, and only on /pay", (
   const page = readFileSync(new URL("../app/pay/page.tsx", import.meta.url), "utf8");
   assert.ok(page.includes("paddleSandboxRequestAllowed(requestHost)"));
 });
+
+test("checkout fails closed with 503 when workspace authorization cannot be read (DB outage)", () => {
+  const route = readFileSync(new URL("../app/api/billing/checkout/route.ts", import.meta.url), "utf8");
+  const guard = route.indexOf("Workspace authorization could not be verified.");
+  assert.ok(guard > 0);
+  assert.ok(guard < route.indexOf("rpc/reserve_paddle_checkout"), "authorization outage must stop before any reservation or provider call");
+  assert.match(route, /status: 503 \}\);\n  \}\n  if \(role !== "owner"\)/);
+});
