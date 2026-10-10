@@ -217,7 +217,7 @@ export type PaddleCandidateAdjustment = {
     | "chargeback_warning_reverse"
     | "credit_reverse";
   status: "pending_approval" | "approved" | "rejected" | "reversed";
-  adjustmentType: "full" | "partial";
+  adjustmentType: "full" | "partial" | null;
   transactionId: string;
   subscriptionId: string | null;
   customerId: string;
@@ -249,14 +249,14 @@ export function parsePaddleCandidateAdjustment(rawBody: string): PaddleCandidate
   const adjustmentId = idFrom(data.id);
   const action = idFrom(data.action) as PaddleCandidateAdjustment["action"] | null;
   const status = idFrom(data.status) as PaddleCandidateAdjustment["status"] | null;
-  const adjustmentType = idFrom(data.type);
+  const adjustmentType = data.type === null ? null : idFrom(data.type);
   const transactionId = idFrom(data.transaction_id);
   const subscriptionId = idFrom(data.subscription_id);
   const customerId = idFrom(data.customer_id);
   if (!adjustmentId || !ADJUSTMENT_ID.test(adjustmentId)
     || !action || !ADJUSTMENT_ACTIONS.has(action)
     || !status || !ADJUSTMENT_STATES.has(status)
-    || (adjustmentType !== "full" && adjustmentType !== "partial")
+    || (adjustmentType !== "full" && adjustmentType !== "partial" && adjustmentType !== null)
     || !transactionId || !TRANSACTION_ID.test(transactionId)
     || !customerId || !CUSTOMER_ID.test(customerId)
     || (subscriptionId !== null && !SUBSCRIPTION_ID.test(subscriptionId))) {
@@ -306,6 +306,17 @@ export function parsePaddleCandidateEvent(rawBody: string): PaddleParsedEvent | 
   let subscriptionId: string | null;
   if (eventType === "transaction.completed") {
     if (data.status !== "completed") return null;
+    // Paddle generates zero-value transactions for payment-method updates.
+    // Only a completed monetary charge is suitable for paid entitlement.
+    // Credit-funded or 100%-discounted cases require separate owner policy.
+    const totals = object(object(data.details)?.totals);
+    const grandTotal = totals?.grand_total;
+    const origin = idFrom(data.origin);
+    if (!TRANSACTION_ID.test(idFrom(data.id) || "")
+      || !["api", "web", "subscription_recurring", "subscription_update"].includes(origin || "")
+      || (data.collection_mode !== "automatic" && data.collection_mode !== "manual")
+      || typeof grandTotal !== "string"
+      || !/^[1-9][0-9]*$/.test(grandTotal)) return null;
     subscriptionId = idFrom(data.subscription_id);
     if (!subscriptionId || !SUBSCRIPTION_ID.test(subscriptionId)) return null;
     state = "active";
