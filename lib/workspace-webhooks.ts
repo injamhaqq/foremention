@@ -1,5 +1,6 @@
 import { safeOperationalError } from "@/lib/collection-policy";
 import { validatePublicSourceUrl } from "@/lib/source-inspection";
+import { assertApprovedWorkspaceWebhookDestination, workspaceWebhookDeliveryEnabled } from "@/lib/webhook-egress-policy";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export const WORKSPACE_WEBHOOK_EVENTS = ["collection.completed", "source.reviewed", "action.completed", "evidence.reviewed"] as const;
@@ -31,7 +32,7 @@ export async function deriveWebhookSigningSecret(endpointId: string, masterSecre
 
 export async function deliverWorkspaceWebhooks(event: DeliveryEvent) {
   const masterSecret = process.env.WEBHOOK_SIGNING_SECRET;
-  if (!masterSecret) return { delivered: 0, failed: 0, status: "not_configured" as const };
+  if (!masterSecret || !workspaceWebhookDeliveryEnabled()) return { delivered: 0, failed: 0, status: "not_configured" as const };
   const projects = await supabaseRest<Array<{ id: string }>>(
     `projects?select=id&id=eq.${encodeURIComponent(event.projectId)}&organization_id=eq.${event.organizationId}&status=eq.active&limit=1`,
     { serviceRole: true },
@@ -50,7 +51,7 @@ export async function deliverWorkspaceWebhooks(event: DeliveryEvent) {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const body = JSON.stringify({ id: event.eventKey, type: event.eventType, occurred_at: event.occurredAt, organization_id: event.organizationId, project_id: event.projectId, data: { href: event.href, project_id: event.projectId } });
     try {
-      const destination = validateWebhookDestination(endpoint.destination_url);
+      const destination = assertApprovedWorkspaceWebhookDestination(validateWebhookDestination(endpoint.destination_url));
       const secret = await deriveWebhookSigningSecret(endpoint.id, masterSecret);
       const signature = bytesToHex(await hmac(encoder.encode(secret), `${timestamp}.${body}`));
       const response = await fetch(destination, { method: "POST", redirect: "error", signal: AbortSignal.timeout(8_000), headers: { "content-type": "application/json", "user-agent": "Foremention-Webhooks/1.0", "x-foremention-event": event.eventType, "x-foremention-timestamp": timestamp, "x-foremention-signature": `v1=${signature}` }, body });
