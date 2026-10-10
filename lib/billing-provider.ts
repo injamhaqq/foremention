@@ -133,7 +133,7 @@ const paddleSandboxProvider: BillingProviderAdapter = {
     // financial adjustment. FM-05 must implement a durable case receipt
     // before enabling a production billing webhook for Paddle.
     if (parsePaddleCandidateAdjustment(rawBody)) {
-      throw new Error("Paddle financial adjustment requires dedicated audit processing.");
+      throw new Error("Paddle financial adjustment requires dedicated durable audit processing.");
     }
     return parsePaddleCandidateEvent(rawBody);
   },
