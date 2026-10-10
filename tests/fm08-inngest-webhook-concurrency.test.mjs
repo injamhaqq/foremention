@@ -22,9 +22,9 @@ test("webhook concurrency combines with atomic fenced receipt claims", async () 
     text("lib/workspace-webhooks.ts"),
     text("supabase/migrations/20260802000600_workspace_webhooks.sql"),
   ]);
-  assert.match(delivery, /rpc\\/claim_workspace_webhook_delivery/);
+  assert.ok(delivery.includes("rpc/claim_workspace_webhook_delivery"));
   assert.match(sql, /unique \(endpoint_id, event_key\)/);
-  assert.match(delivery, /delivery\.status === "delivered"/);
+  assert.ok(delivery.includes("rpc/settle_workspace_webhook_delivery"));
   assert.match(delivery, /redirect: "error"/);
   // Do not mutate database state or call an outbound webhook in this regression.
 });
