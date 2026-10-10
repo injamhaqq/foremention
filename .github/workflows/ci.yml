@@ -69,6 +69,8 @@ jobs:
           set -euo pipefail
           supabase db start
           supabase db reset
+          # Only in disposable CI: simulate owner-approved post-app activation, never migrate this in production before the Worker route.
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-source-review-activation.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-company-migrations.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-tenant-isolation.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-fm05-source-review-boundary.sql
