@@ -86,11 +86,19 @@ export function MissingAnswerExperience() {
           <span className="fm-cinematic-hero__kicker">RECOMMENDATION INTELLIGENCE FOR B2B SOFTWARE</span>
           <h1 id="fm-cinematic-hero-title">See where AI recommends your brand.</h1>
           <p className="fm-cinematic-hero__lead">Track recommendations, inspect supporting sources, and decide what to improve.</p>
+          <div className="fm-cinematic-hero__pilot" aria-label="Founder-led pilot overview">
+            <p className="fm-cinematic-hero__audience">For B2B software marketing and growth teams</p>
+            <ol className="fm-cinematic-hero__steps">
+              <li>Five buyer questions</li>
+              <li>Inspectable evidence</li>
+              <li>One approved change to test</li>
+            </ol>
+          </div>
           <div className="fm-cinematic-hero__actions">
             <Link data-public-sample-open className="canonical-button canonical-button--primary" href="#sample-recommendation-graph">Explore a sample <Arrow /></Link>
             <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--secondary" href="/contact">Request a pilot <Arrow /></Link>
           </div>
-          <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records.</p>
+          <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records. The example uses Workers AI + Bing RSS grounded synthesis, not direct ChatGPT, Gemini, or Perplexity application monitoring.</p>
         </div>
 
         <div id="sample-recommendation-graph" className="fm-recommendation-graph" role="group" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
