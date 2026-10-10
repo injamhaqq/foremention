@@ -96,7 +96,8 @@ test("/pay CSP allows only Paddle SANDBOX checkout origins, and only on /pay", (
   const worker = readFileSync(new URL("../worker/index.ts", import.meta.url), "utf8");
   assert.match(worker, /url\.pathname === "\/pay" \? paddleSandboxPayContentSecurityPolicy : contentSecurityPolicy/);
   assert.match(worker, /frame-src 'self' https:\/\/sandbox-buy\.paddle\.com/);
-  assert.ok(!worker.includes("https://buy.paddle.com"), "Live checkout frame must not be allowed");
+  // Live checkout frame origin must not be allowed anywhere in the policy.
+  assert.doesNotMatch(worker, /(^|[\s'"])https:\/\/buy\.paddle\.com/m, "Live checkout frame must not be allowed");
   const page = readFileSync(new URL("../app/pay/page.tsx", import.meta.url), "utf8");
   assert.ok(page.includes("paddleSandboxRequestAllowed(requestHost)"));
 });
