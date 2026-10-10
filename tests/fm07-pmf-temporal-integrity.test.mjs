@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { activationMilestoneTimestamp } from "../lib/pmf-activation-boundary.ts";
+import { activationMilestoneTimestamp, completedActivationStageAt } from "../lib/pmf-activation-boundary.ts";
 import { deriveMonthlyActivationCohorts } from "../lib/pmf-cohorts.ts";
 import { derivePmfMetrics } from "../lib/pmf-metrics.ts";
 
@@ -56,6 +56,48 @@ test("reversed activation milestones fail closed in both direct PMF and monthly 
     assert.deepEqual(deriveMonthlyActivationCohorts([facts], NOW), [], JSON.stringify(change));
     assert.equal(activationMilestoneTimestamp(facts, NOW.getTime()), null);
   }
+});
+
+test("intermediate review/action metrics require every earlier completed workflow stage", () => {
+  for (const changes of [
+    { workspaceConfiguredAt: null },
+    { fiveQuestionsApprovedAt: null },
+    { fiveQuestionsApprovedAt: "2026-06-03T00:00:00.000Z" },
+    { firstMeasurementAt: "2026-05-31T00:00:00.000Z" },
+    { workspaceConfiguredAt: "2026-09-01T00:00:00.000Z" },
+  ]) {
+    const facts = account(changes);
+    const metrics = derivePmfMetrics([facts], NOW);
+    assert.equal(completedActivationStageAt(facts, NOW.getTime(), 3), null, JSON.stringify(changes));
+    assert.equal(metrics.first_record_review_rate.status, "insufficient_data", JSON.stringify(changes));
+    assert.equal(metrics.action_creation_rate.status, "insufficient_data", JSON.stringify(changes));
+    assert.equal(metrics.time_to_first_value.sampleSize, 0, JSON.stringify(changes));
+    assert.equal(metrics.activation_rate.value, 0, JSON.stringify(changes));
+  }
+});
+
+test("legitimate incomplete activation can count reached stages without inventing activation", () => {
+  const facts = account({
+    firstActionAssignedAt: null,
+    secondComparableCycleAt: null,
+  });
+  const metrics = derivePmfMetrics([facts], NOW);
+  assert.ok(completedActivationStageAt(facts, NOW.getTime(), 5) !== null);
+  assert.equal(completedActivationStageAt(facts, NOW.getTime(), 6), null);
+  assert.equal(metrics.first_record_review_rate.value, 100);
+  assert.equal(metrics.action_creation_rate.value, 100);
+  assert.equal(metrics.activation_rate.value, 0);
+  assert.equal(metrics.second_cycle_rate.status, "insufficient_data");
+  assert.deepEqual(deriveMonthlyActivationCohorts([facts], NOW), []);
+});
+
+test("invalid or future as-of timestamps cannot establish an intermediate workflow stage", () => {
+  const facts = account();
+  for (const stageCount of [0, -1, 2.5, 7]) {
+    assert.equal(completedActivationStageAt(facts, NOW.getTime(), stageCount), null);
+  }
+  assert.equal(completedActivationStageAt(facts, Number.NaN, 3), null);
+  assert.equal(completedActivationStageAt(facts, NOW.getTime(), 3) !== null, true);
 });
 
 test("future-dated events cannot count as activation, reviewed first value or cohort membership", () => {
