@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (text.length < 10) return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: crypto.randomUUID(), text, cluster: clusterName, approved: true }, mode: "demo" }, { status: 201 });
 
-  const [context, role, existing] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer), loadPrompts(viewer)]);
+  const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before adding buyer questions." }, { status: 409 });
   if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
   if (!(["owner", "admin", "analyst"] as string[]).includes(role)) return NextResponse.json({ error: "Only owners and analysts can add buyer questions." }, { status: 403 });
@@ -39,7 +39,14 @@ export async function POST(request: Request) {
     entitlementRows = [];
   }
   const questionLimit = buyerQuestionLimit(entitlementRows[0]);
-  if (existing.length >= questionLimit) return NextResponse.json({ error: `This access level allows ${questionLimit} buyer questions. Paid capacity is enabled only after verified billing activation.` }, { status: 429 });
+  // Count ACTIVE questions across the whole organization, matching the
+  // database admission trigger (Refs #532), which remains the atomic authority
+  // for concurrent requests; this read only gives the ordinary case a clear 429.
+  const activeQuestions = await supabaseRest<Array<{ id: string }>>(
+    "prompts?select=id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&active=eq.true&limit=" + (questionLimit + 1),
+    { token: viewer.accessToken },
+  );
+  if (activeQuestions.length >= questionLimit) return NextResponse.json({ error: `This access level allows ${questionLimit} buyer questions. Paid capacity is enabled only after verified billing activation.` }, { status: 429 });
 
   let clusterId = context.clusterId;
   if (!clusterId) {
