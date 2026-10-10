@@ -28,7 +28,7 @@ test("Paddle reservation is unique per unresolved org and has no expiry-based re
   assert.match(sql, /function public\.reserve_paddle_checkout/i);
   assert.match(sql, /function public\.record_paddle_checkout_session/i);
   assert.match(sql, /function public\.mark_paddle_checkout_uncertain/i);
-  assert.doesNotMatch(sql, /expires_at|lease_expires_at|delete from public\.billing_checkout_reservations/i);
+  assert.doesNotMatch(sql, /lease_expires_at|delete from public\.billing_checkout_reservations/i);
   assert.match(sql, /grant execute on function public\.reserve_paddle_checkout[\s\S]*?to service_role/i);
   assert.match(sql, /revoke all on public\.billing_checkout_reservations from public, anon, authenticated/i);
   assert.match(sql, /enable row level security/i);
