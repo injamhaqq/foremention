@@ -47,15 +47,16 @@ BEGIN
   FOR UPDATE;
 
   IF NOT FOUND OR v_receipt.event_type IS DISTINCT FROM p_event_type
-    OR v_receipt.status = 'delivered'
-    OR v_receipt.attempt_count >= 4 THEN RETURN NULL; END IF;
+    OR v_receipt.status = 'delivered' THEN RETURN NULL; END IF;
 
-  -- 90-second lease gives the 5s DNS + 8s outbound timeout ample margin.
-  -- A crashed worker's lease can expire; this is at-least-once delivery.
+  -- An ACTIVE fourth/final attempt is leased, not yet exhausted. Check
+  -- the in-flight lease before the terminal attempt ceiling.
   IF v_receipt.status = 'pending' AND v_receipt.attempt_count > 0
     AND v_receipt.updated_at > clock_timestamp() - interval '90 seconds' THEN
     RETURN jsonb_build_object('state', 'leased');
   END IF;
+  -- After a final failed settlement (or expired fourth lease), no new send.
+  IF v_receipt.attempt_count >= 4 THEN RETURN NULL; END IF;
 
   UPDATE public.workspace_webhook_deliveries d
   SET status = 'pending', attempt_count = d.attempt_count + 1,
