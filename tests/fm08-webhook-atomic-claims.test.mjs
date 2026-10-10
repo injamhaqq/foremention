@@ -45,6 +45,10 @@ test("isolated SQL RPCs use explicit service-role execution grants and fenced se
     "jsonb_build_object('state', 'leased')", "jsonb_build_object('state', 'claimed'"]) {
     assert.ok(sql.includes(marker), "missing SQL boundary: " + marker);
   }
+  const leasedClassification = sql.indexOf("RETURN jsonb_build_object('state', 'leased')");
+  const exhaustedClassification = sql.indexOf("IF v_receipt.attempt_count >= 4 THEN");
+  assert.ok(leasedClassification >= 0 && exhaustedClassification > leasedClassification,
+    "active final attempt must be leased before the exhausted-attempt terminal branch");
   assert.ok(verify.includes("Stale token settlement accepted"));
   assert.ok(verify.includes("Second active claim was not blocked"));
   assert.ok(verify.includes("Cross-tenant/project/type or empty-event claim accepted"));
