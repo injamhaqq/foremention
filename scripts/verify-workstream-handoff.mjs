@@ -15,7 +15,7 @@ const reserved = new Set([
 const reservedPrefixes = [".github/", ".claude/", "supabase/migrations/"];
 
 const safePath = (p) => typeof p === "string" && !!p &&
-  !p.startsWith("/") && !p.includes("\\") && !/[?*]/.test(p) &&
+  !p.startsWith("/") && !p.includes("\\") && !/[?*:\x00-\x1f\x7f]/.test(p) &&
   p.split("/").every((part) => part && part !== "." && part !== "..");
 
 export function validateHandoff(packet, snapshot, currentMainSha, nowMs = Date.now()) {
@@ -63,10 +63,17 @@ export function validateHandoff(packet, snapshot, currentMainSha, nowMs = Date.n
       add("Stale PR snapshot (15-minute maximum)");
     if (packet?.prNumber != null && !snapshot.prs.some((pr) => pr.number === packet.prNumber))
       add("Claimed own PR is missing from open-PR snapshot");
+    const seenPrNumbers = new Set();
     for (const pr of snapshot.prs) {
-      if (!Number.isInteger(pr.number) || !Array.isArray(pr.files) || !pr.files.every(safePath)) {
-        add("Malformed open PR file inventory"); continue;
+      if (!Number.isInteger(pr?.number) || pr.number < 1 ||
+          typeof pr?.headBranch !== "string" || !pr.headBranch ||
+          !shaPattern.test(pr?.headSha ?? "") ||
+          !Array.isArray(pr?.files) || !pr.files.every(safePath) ||
+          new Set(pr.files).size !== pr.files.length ||
+          seenPrNumbers.has(pr.number)) {
+        add("Malformed or duplicate open PR inventory entry"); continue;
       }
+      seenPrNumbers.add(pr.number);
       if (pr.number === packet?.prNumber) {
         if (pr.headBranch !== packet.branch) add("Claimed own PR does not match worker branch");
         if (!shaPattern.test(packet?.headSha ?? "") || packet.headSha !== pr.headSha)
