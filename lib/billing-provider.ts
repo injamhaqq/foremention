@@ -55,6 +55,11 @@ export type BillingPortalInput = {
 };
 export type ParsedBillingProviderEvent = Omit<VerifiedBillingEvent, "organizationId"> & {
   organizationId: string | null;
+  // Optional Paddle correlation. Never trust it without matching stored
+  // service-created checkout or an established subscription identity.
+  externalTransactionId?: string | null;
+  transactionOrigin?: string | null;
+  billingInterval?: BillingInterval;
 };
 
 export interface BillingProviderAdapter {

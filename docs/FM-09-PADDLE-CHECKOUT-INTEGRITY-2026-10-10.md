@@ -35,6 +35,20 @@ Adjustment receipts record provider, event ID, adjustment ID, transaction/subscr
 
 Only service_role has insert/select permissions. Neither authenticated clients nor webhook metadata can designate an organization as final financial truth.
 
+## Paid-transaction ownership verification (2026-10-10 additional hardening)
+
+The signed `transaction.completed` payload is not enough, by itself, to select a Foremention organization. The adapter now carries `externalTransactionId`, `transactionOrigin`, and the server-resolved `billingInterval`. The webhook route then checks these against **service-only stored identity**:
+
+- **Initial `api` or `web` transaction:** must match one `ready` Paddle checkout reservation with exactly the same external transaction ID, organization, Core/Signal package and monthly/annual interval. Unmatched events return retryable 503 and cannot change entitlements.
+- **`subscription_recurring` or `subscription_update`:** must match the exact previously verified Paddle subscription, customer and organization in `billing_accounts`. Mere customer metadata is insufficient.
+- Unsupported origins, unknown transaction IDs, missing product/amount/identity fields, unready reservations, database errors, and absent subscriptions deny paid activation.
+
+This is intentionally conservative. Paddle manual invoicing, credits, grandfathered/foreign subscription migration, and transactions created outside the reserved Foremention checkout must have an independently designed and approved billing identity workflow before onboarding. The current setup is sandbox-only and does **not** activate live paid checkout. The first `transaction.completed` arriving before the provider transaction ID is durably stored will be rejected for retry; an uncertain/lost response requires separate operator reconciliation.
+
+## Verified live-account observations (read-only)
+
+On the connected Paddle live account, onboarding verification and domain verification were reported `completed`. The checkout domain `foremention.com` was `approved`; Apple Pay domain verification was `verified`. The live product catalog, price catalog and webhook notification destination list each returned zero records. The connected Foremention Supabase production database has the older billing tables and `apply_billing_event_atomic_v2` function but **does not contain** this draft's checkout reservation and adjustment tables or reservation RPC. These are observations only and do **not** prove merchant bank payout readiness or customer payment functionality.
+
 ## External and integration gates
 
 - FM-05 must approve, replay and performance-test the new migration in an isolated database, including two concurrent reservation transactions, DB crash/retry, no expired lease, duplicate provider transaction IDs and RLS denial to unrelated tenants.
