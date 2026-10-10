@@ -47,6 +47,16 @@ Paddle customer portal uses `POST /customers/{customer_id}/portal-sessions` and 
 
 Paddle sends a `Paddle-Signature` of `ts=<Unix-seconds>;h1=<HMAC-SHA256 hex>`. The candidate signs the exact `ts:rawBody` payload and uses five-second timestamp tolerance (official SDK default) and constant-time digest comparisons. The future HTTP route must retain the **raw** body, avoid inspecting before verification, store replay-safe event receipts, reconcile stored subscription/customer/organization identity and apply `apply_billing_event_atomic_v2` in one transaction.
 
+## Additional provider-contract hardening (2026-10-10)
+
+Current official Paddle API documentation specifies `origin=subscription_payment_method_change` transactions can be **zero-value** and `transaction.completed.details.totals.grand_total` is reported in lowest-denomination currency units. A completed status alone is therefore **not sufficient for Foremention's paid-plan grant**.
+
+The candidate now requires the paid transaction event to have a valid Paddle transaction ID, a permitted monetary transaction origin (`api`, `web`, `subscription_recurring`, or `subscription_update`), a recognized `automatic` or `manual` collection mode, and a strictly **positive integer-string grand_total** before mapping it to `active`. It rejects payment-method changes, one-time subscription charges, malformed/missing amount fields, negative amounts, and zero-balance transactions. This is deliberately conservative: 100%-discounted subscriptions or customer-credit-funded renewals require a separately reviewed policy, not implicit paid access. These constraints have focused regression tests.
+
+The official adjustment webhook schema permits `type: null`; `parsePaddleCandidateAdjustment()` distinguishes an explicitly present `null` from a missing type and retains the mandatory review outcome. It does not mutate financial state or entitlements.
+
+Official docs: https://developer.paddle.com/webhooks/transactions/transaction-completed ; https://developer.paddle.com/errors/transactions/transaction_payment_method_change_field_immutable ; https://developer.paddle.com/webhooks/adjustments/adjustment-created .
+
 ## Mandatory open blockers for a genuinely live Paddle adapter
 
 1. Paddle merchant acceptance for the actual Bangladesh seller, legal entity, owners and company website, especially its **marketing-related acceptable-use restrictions**; written approval required.
