@@ -33,11 +33,14 @@ test("Stage-0 funnel analytics measures CTA impression through application submi
     "design_partner_cta_clicked",
     "design_partner_page_viewed",
     "design_partner_application_started",
-    "design_partner_application_submitted",
   ]) {
     assert.match(analytics, new RegExp(event));
     assert.match(contract, new RegExp(event));
   }
+  const serverRoute = await read("app/api/design-partner/route.ts");
+  assert.match(serverRoute, /capturePersistedDesignPartnerSubmission/);
+  assert.match(contract, /"design_partner_application_submitted"/);
+  assert.doesNotMatch(analytics, /captureProductEvent\("design_partner_application_submitted"/);
   assert.doesNotMatch(analytics, /FormData|\.elements\b|\[name=|\.value\b/);
 });
 
