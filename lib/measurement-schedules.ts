@@ -75,7 +75,7 @@ type WallTime = {
 };
 
 function zonedWallTime(instant: Date, formatter: Intl.DateTimeFormat): WallTime {
-  const parts = new Map(formatter.formatToParts(instant).map((part) => [part.type, Number(part.value)]));
+  const parts = new Map<string, number>(formatter.formatToParts(instant).map((part) => [part.type, Number(part.value)]));
   const read = (field: string) => {
     const value = parts.get(field);
     if (value === undefined || !Number.isFinite(value)) throw new Error("Timezone calendar components are unavailable.");
