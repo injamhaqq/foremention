@@ -45,10 +45,11 @@ test("prompts route enforces the entitlement ceiling server-side, not the old ha
   const route = source("app/api/prompts/route.ts");
   assert.match(route, /buyerQuestionLimit\(entitlementRows\[0\]\)/);
   assert.match(route, /organization_entitlements\?select=status,package_key,billing_source,expires_at,max_prompts/);
-  assert.match(route, /existing\.length >= questionLimit/);
+  assert.match(route, /activeQuestions\.length >= questionLimit/);
+  assert.match(route, /prompts\?select=id&organization_id=eq\." \+ encodeURIComponent\(context\.organizationId\) \+ "&active=eq\.true/);
   assert.ok(!route.includes("existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions"));
   // The ceiling check must run before any prompt row is written.
-  assert.ok(route.indexOf("existing.length >= questionLimit") < route.indexOf('supabaseRest<Array<{ id: string; version: number }>>("prompts"'));
+  assert.ok(route.indexOf("activeQuestions.length >= questionLimit") < route.indexOf('supabaseRest<Array<{ id: string; version: number }>>("prompts"'));
 });
 
 test("database derives capacity from verified provider billing only, in the same transaction", () => {
@@ -63,4 +64,20 @@ test("database derives capacity from verified provider billing only, in the same
   const runUnits = PACKAGE_CAPACITY.signal.runUnitsPerMonth;
   assert.equal(runUnits, 500);
   assert.equal(PACKAGE_CAPACITY.core.runUnitsPerMonth, 25);
+});
+
+test("buyer-question admission is atomic and organization-wide in the database (Refs #532)", () => {
+  const sql = source("supabase/migrations/20261011090000_package_capacity_from_verified_billing.sql");
+  assert.match(sql, /create or replace function public\.enforce_buyer_question_capacity_v1\(\)/);
+  assert.match(sql, /pg_advisory_xact_lock\(hashtextextended\('foremention\.buyer_question_admission:' \|\| new\.organization_id::text, 0\)\)/);
+  // Lock is taken before the count, and the count spans every project of the organization.
+  assert.ok(sql.indexOf("pg_advisory_xact_lock") < sql.indexOf("select count(*) into v_active"));
+  assert.match(sql, /from public\.prompts p\s+where p\.organization_id = new\.organization_id\s+and p\.active/);
+  assert.doesNotMatch(sql.slice(sql.indexOf("select count(*) into v_active")), /project_id/);
+  assert.match(sql, /e\.status = 'active' and \(e\.expires_at is null or e\.expires_at > now\(\)\) and e\.max_prompts > 0\s+then e\.max_prompts\s+else 10/);
+  assert.match(sql, /v_limit := coalesce\(v_limit, 10\);/);
+  assert.match(sql, /raise sqlstate 'PT429'/);
+  assert.match(sql, /before insert or update of active, organization_id on public\.prompts/);
+  assert.match(sql, /revoke all on function public\.enforce_buyer_question_capacity_v1\(\) from public, anon, authenticated;/);
+  assert.match(sql, /if v_role <> 'authenticated' then\s+return new;/);
 });
