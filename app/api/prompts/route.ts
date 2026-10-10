@@ -127,11 +127,47 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Only owners and analysts can edit buyer questions." }, { status: 403 });
   }
 
-  const scopedPrompt = await supabaseRest<Array<{ id: string }>>(
-    `prompts?select=id&id=eq.${id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+  const scopedPrompt = await supabaseRest<Array<{ id: string; active: boolean }>>(
+    `prompts?select=id,active&id=eq.${id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   if (!scopedPrompt[0]) return NextResponse.json({ error: "Buyer question not found." }, { status: 404 });
+
+  // Reactivation must obey the same organization capacity as creation.
+  // This read-side guard does not replace atomic database enforcement.
+  if (hasActive && body.active === true && !scopedPrompt[0].active) {
+    const entitlements = await supabaseRest<Array<{
+      max_prompts: number;
+      status: string;
+      expires_at: string | null;
+    }>>(
+      `organization_entitlements?select=max_prompts,status,expires_at&organization_id=eq.${context.organizationId}&limit=1`,
+      { token: viewer.accessToken },
+    );
+    const entitlement = entitlements[0];
+    const validExpiry = entitlement?.expires_at === null
+      || (typeof entitlement?.expires_at === "string"
+        && Number.isFinite(Date.parse(entitlement.expires_at))
+        && Date.parse(entitlement.expires_at) > Date.now());
+    const questionLimit = entitlement?.status === "active"
+      && Number.isSafeInteger(entitlement.max_prompts)
+      && entitlement.max_prompts > 0
+      && validExpiry
+      ? entitlement.max_prompts
+      : 0;
+    if (!questionLimit) {
+      return NextResponse.json({ error: "Buyer-question access is not active for this workspace." }, { status: 403 });
+    }
+    const activeQuestions = await supabaseRest<Array<{ id: string }>>(
+      `prompts?select=id&organization_id=eq.${context.organizationId}&active=eq.true&limit=${questionLimit + 1}`,
+      { token: viewer.accessToken },
+    );
+    if (activeQuestions.length >= questionLimit) {
+      return NextResponse.json({
+        error: `This workspace has reached its ${questionLimit}-question entitlement. Additional capacity requires verified plan activation.`,
+      }, { status: 429 });
+    }
+  }
 
   const updated = await supabaseRest<{
     id: string;
