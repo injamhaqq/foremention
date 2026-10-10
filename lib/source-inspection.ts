@@ -11,6 +11,12 @@ export type SourceInspectionResult = {
   contentSignature?: string;
   pageDescription?: string | null;
   pageText?: string;
+  /**
+   * Whether the returned pageText covers the entire bounded, server-returned
+   * static visible-text representation. This is never a claim about
+   * JavaScript-rendered or otherwise unavailable content.
+   */
+  pageTextCoverage?: "complete" | "partial";
   pageTitle: string | null;
   redirectCount: number;
 };
@@ -143,8 +149,20 @@ export function validatePublicSourceUrl(value: string) {
 }
 
 function isPublicResolvedAddress(address: string) {
-  const normalized = address.toLowerCase().replace(/^\[|\]$/g, "");
-  return !isPrivateIpv4(normalized) && !(normalized.includes(":") && isPrivateIpv6(normalized));
+  const candidate = address.trim().toLowerCase();
+  const bracketed = candidate.startsWith("[") || candidate.endsWith("]");
+  if (bracketed && !(candidate.startsWith("[") && candidate.endsWith("]"))) return false;
+  const normalized = bracketed ? candidate.slice(1, -1) : candidate;
+  if (parseIpv4(normalized)) return !isPrivateIpv4(normalized);
+  if (!normalized.includes(":")) return false;
+  try {
+    // WHATWG URL validation rejects malformed IPv6 and arbitrary strings
+    // that a resolver might incorrectly label as A/AAAA DNS answers.
+    const parsed = new URL(`http://[${normalized}]/`);
+    return !isPrivateIpv6(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 async function resolveWithCloudflare(hostname: string, signal: AbortSignal) {
@@ -378,6 +396,32 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
         const pageText = options.includePageText
           ? normalizedPageText.slice(0, Math.max(1_000, Math.min(options.maxExtractedTextChars || 24_000, 40_000)))
           : undefined;
+        // A static <title> can be readable even when the <body> contains only
+        // a JS mount point. Neither that title nor a successful HTTP status
+        // demonstrates meaningful body evidence for an absence claim.
+        const bodyMatch = contentType === "text/plain"
+          ? null
+          : body.match(/<body\b[^>]*>([\s\S]*?)(?:<\/body>|$)/i);
+        const bodyText = contentType === "text/plain"
+          ? visibleText
+          : bodyMatch ? extractUsefulPageText(bodyMatch[1], 80_000) : "";
+        // Length equality by itself can incorrectly call different text
+        // representations "complete". Require the exact same extracted text,
+        // no response/body truncation and neither extraction cap exhausted.
+        const pageTextCoverage = pageText !== undefined
+          && response.status !== 206
+          && !truncated
+          // Empty static responses and JS-only application shells do not
+          // provide any readable evidence from which absence can be inferred.
+          && visibleText.length > 0
+          && bodyText.length > 0
+          && visibleText.length < 80_000
+          && normalizedPageText === visibleText
+          // Plain-text angle brackets are data, but the shared HTML stripper
+          // interprets them as markup; absence must remain unknown.
+          && (contentType !== "text/plain" || !body.includes("<"))
+          && pageText === visibleText
+          ? "complete" : "partial";
         return result({
           access: response.status === 206 || truncated ? "partial" : "open",
           contentType,
@@ -387,7 +431,8 @@ export async function inspectSourceUrl(value: string, options: InspectionOptions
           contentLength: visibleText.length,
           contentSignature: contentSignature(visibleText) || undefined,
           pageDescription: contentType === "text/plain" ? null : extractMetaDescription(body),
-          ...(pageText ? { pageText } : {}),
+          ...(pageText !== undefined ? { pageText } : {}),
+          pageTextCoverage,
           pageTitle: contentType === "text/plain" ? null : extractPageTitle(body),
           redirectCount: redirects,
         }, now);
