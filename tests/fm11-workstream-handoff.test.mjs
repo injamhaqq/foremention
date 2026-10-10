@@ -12,7 +12,7 @@ const packet = () => ({
 });
 const snapshot = () => ({
   complete: true, mainSha: sha, capturedAt: new Date(now).toISOString(),
-  prs: [{ number: 449, files: [".github/workflows/agent-harness.yml"] }],
+  prs: [{ number: 449, headBranch: "fm-11/other-workstream", headSha: sha, files: [".github/workflows/agent-harness.yml"] }],
 });
 
 test("permits bounded exact-base nonconflicting worker handoff", () => {
@@ -103,5 +103,41 @@ test("protects FM-11 cross-workstream policy records as FM-00 integration files"
   ]) {
     const proposed = { ...packet(), writeSet: [file] };
     assert.match(validateHandoff(proposed, snapshot(), sha, now).errors.join(" "), /FM-00-owned/);
+  }
+});
+
+test("rejects incomplete and duplicate PR metadata even when no direct file collision exists", () => {
+  const invalidEntries = [
+    { number: 449, headBranch: "", headSha: sha, files: ["lib/unrelated.ts"] },
+    { number: 449, headBranch: "fm-11/other", headSha: "not-a-sha", files: ["lib/unrelated.ts"] },
+    { number: 449, headBranch: "fm-11/other", headSha: sha, files: ["lib/unrelated.ts", "lib/unrelated.ts"] },
+    { number: 0, headBranch: "fm-11/other", headSha: sha, files: ["lib/unrelated.ts"] },
+  ];
+  for (const entry of invalidEntries) {
+    const result = validateHandoff(packet(), { ...snapshot(), prs: [entry] }, sha, now);
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(" "), /Malformed or duplicate open PR inventory entry/);
+  }
+  const entry = snapshot().prs[0];
+  const repeated = validateHandoff(packet(), { ...snapshot(), prs: [entry, entry] }, sha, now);
+  assert.equal(repeated.ok, false);
+  assert.match(repeated.errors.join(" "), /Malformed or duplicate open PR inventory entry/);
+});
+
+test("rejects control characters and platform-unsafe colon in packet and inventory file paths", () => {
+  const unsafePaths = [
+    "lib/unsafe:stream.ts",
+    "lib/" + String.fromCharCode(0) + "null.ts",
+    "lib/" + String.fromCharCode(10) + "newline.ts",
+  ];
+  for (const file of unsafePaths) {
+    const result = validateHandoff({ ...packet(), writeSet: [file] }, snapshot(), sha, now);
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(" "), /Unsafe writeSet path/);
+    const altered = snapshot();
+    altered.prs[0].files = [file];
+    const inventory = validateHandoff(packet(), altered, sha, now);
+    assert.equal(inventory.ok, false);
+    assert.match(inventory.errors.join(" "), /Malformed or duplicate open PR inventory entry/);
   }
 });
