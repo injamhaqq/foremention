@@ -66,6 +66,8 @@ jobs:
           # Redirect local CLI output since it can contain generated test keys.
           supabase start > .isolated-supabase-start.log 2>&1
           supabase db reset >> .isolated-supabase-start.log 2>&1
+          # Isolated integration only: enforce the eventual post-application grant state.
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-source-review-activation.sql >> .isolated-supabase-start.log 2>&1
           supabase status -o env > .local-cli-status
           node scripts/prepare-isolated-local-env.mjs .local-cli-status
           set -a
