@@ -59,7 +59,15 @@ test("pricing leads with coverage value while preserving commercial truth", () =
   assert.match(pricing, /self-serve paid checkout/i);
   assert.match(pricing, /only when billing is configured/i);
   assert.doesNotMatch(pricing, /Commercial packaging is not final yet/i);
-  assert.doesNotMatch(pricing, /\$\d{2,5}/);
+  // Price hypotheses may be disclosed to buyers, but they must never
+  // masquerade as activated subscriptions or a live checkout.
+  assert.match(pricing, /price: "\$99 \/ month"/);
+  assert.match(pricing, /price: "\$299 \/ month"/);
+  assert.match(pricing, /Proposed · not yet purchasable/);
+  assert.match(pricing, /not currently available checkout offers/i);
+  assert.match(pricing, /10 buyer questions unless a verified workspace entitlement grants more/i);
+  assert.match(pricing, /founder-led design-partner/i);
+  assert.doesNotMatch(pricing, /href: "\/api\/billing\/checkout"|href="\/checkout"/i);
 });
 
 test("contact page makes the design-partner retention loop concrete", () => {
