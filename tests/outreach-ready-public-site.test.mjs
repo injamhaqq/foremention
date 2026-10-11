@@ -41,7 +41,8 @@ test("homepage leads with the approved recommendation promise and shows the comp
   assert.match(home, /Track recommendations, inspect supporting sources, and decide what to improve\./);
   assert.match(home, /Request a pilot/);
   assert.match(home, /Explore a sample/);
-  assert.match(home, /LIVE RECORD \/ ILLUSTRATIVE/);
+  assert.match(home, /ILLUSTRATIVE RECOMMENDATION RECORD/);
+  assert.doesNotMatch(home, /LIVE RECORD/);
   assert.match(home, /Evidence inspection/);
   assert.match(home, /Why are competitors being recommended/);
   assert.match(home, /Buyer question/);
@@ -85,7 +86,8 @@ test("design-partner conversion is the primary contact flow and is measured with
   ]);
 
   assert.match(contact, /Apply as Design Partner/);
-  assert.match(contact, /Bring 5 priority buyer questions/);
+  assert.match(contact, /Bring five buyer questions\. Review the evidence and choose a change worth testing\./);
+  assert.match(contact, /We could not verify a saved application/);
   assert.match(contact, /comparable remeasurement/);
   assert.match(analytics, /design_partner_page_viewed/);
   assert.match(analytics, /design_partner_application_started/);

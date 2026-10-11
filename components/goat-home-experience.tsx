@@ -220,7 +220,7 @@ export function MissingAnswerExperience() {
 
     <div className="shell">
       <section className="canonical-record" id="recommendation-record" aria-labelledby="outreach-record-title">
-        <div className="canonical-record__eyebrow">LIVE RECORD / ILLUSTRATIVE</div>
+        <div className="canonical-record__eyebrow">ILLUSTRATIVE RECOMMENDATION RECORD</div>
         <div className="canonical-record__heading">
           <div>
             <span>RECOMMENDATION RECORD</span>

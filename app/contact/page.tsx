@@ -31,7 +31,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
     <PublicShell>
       <section className="page-hero page-hero--ink outreach-contact-hero">
         <div className="shell narrow-heading">
-          <h1>Bring 5 priority buyer questions. Leave with one company change worth testing.</h1>
+          <h1>Bring five buyer questions. Review the evidence and choose a change worth testing.</h1>
           <p>
             The Foremention design-partner cycle is founder-led and deliberately small. We start with a real B2B software
             category, preserve the recommendation evidence, check what the company can actually substantiate, and review
@@ -65,6 +65,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             <span>Design partner</span>
             <h2 id="design-partner-application" tabIndex={-1}>Apply as Design Partner.</h2>
             {submitted ? <div className="inline-notice"><strong>Application received.</strong><p>Your application has been saved. Founder review target: one business day. If the application fits the current design-partner scope, the reply will include scheduling instructions for the working session.</p>{intakeId ? <p><strong>Application reference:</strong> <code>{intakeId}</code></p> : null}</div> : <>
+              {query.submitted === "1" && !submitted && <p className="inline-error" role="alert">We could not verify a saved application. Please submit the form, or contact hello@foremention.com.</p>}
               {failed && <p className="inline-error" role="alert">The application could not be saved. Please try again or email hello@foremention.com.</p>}
               <form className="intake-form" data-design-partner-form action="/api/design-partner" method="post">
                 {plan && <input type="hidden" name="planInterest" value={plan} />}
