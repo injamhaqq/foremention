@@ -113,12 +113,13 @@ function paddleSandboxCheckoutOffers(): BillingCheckoutOffer[] {
   }
   return offers;
 }
-const paddleSandboxProvider: BillingProviderAdapter = {
+function paddleAdapter(isConfigured: () => boolean, label: string): BillingProviderAdapter {
+  return {
   id: "paddle",
-  configured: paddleSandboxConfigured,
+  configured: isConfigured,
   checkoutOffers: paddleSandboxCheckoutOffers,
   async createCheckout(input) {
-    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
     return createPaddleCandidateCheckout({
       packageKey: input.packageKey,
       billingInterval: input.billingInterval,
@@ -128,15 +129,15 @@ const paddleSandboxProvider: BillingProviderAdapter = {
     });
   },
   async createPortal(input) {
-    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
     return createPaddleCandidatePortal(input.customerId);
   },
   async verifyWebhook(rawBody, headers) {
-    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
     return verifyPaddleCandidateWebhook(rawBody, headers.get("paddle-signature"));
   },
   parseWebhook(rawBody) {
-    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
     // Never respond with a falsely successful "ignored" result for a
     // financial adjustment. FM-05 must implement a durable case receipt
     // before enabling a production billing webhook for Paddle.
@@ -146,10 +147,24 @@ const paddleSandboxProvider: BillingProviderAdapter = {
     return parsePaddleCandidateEvent(rawBody);
   },
   parseFinancialAdjustment(rawBody) {
-    if (!paddleSandboxConfigured()) throw new Error("Paddle sandbox adapter is not enabled.");
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
     return parsePaddleCandidateAdjustment(rawBody);
   },
-};
+  };
+}
+
+// Paddle LIVE adapter. Activates only with every explicit owner gate set:
+// BILLING_PROVIDER_ID=paddle, PADDLE_ENVIRONMENT=live, PADDLE_LIVE_ENABLED=1,
+// a live API key (pdl_live_), the webhook secret and unambiguous live prices.
+// Sandbox staging gates never apply here, and a live key never runs sandbox.
+export function paddleLiveConfigured() {
+  return process.env.PADDLE_ENVIRONMENT?.trim() === "live"
+    && process.env.PADDLE_LIVE_ENABLED?.trim() === "1"
+    && (process.env.PADDLE_API_KEY?.trim() || "").startsWith("pdl_live_")
+    && paddleCandidateConfigured();
+}
+const paddleSandboxProvider = paddleAdapter(paddleSandboxConfigured, "Paddle sandbox adapter");
+const paddleLiveProvider = paddleAdapter(paddleLiveConfigured, "Paddle live adapter");
 
 const stripeProvider: BillingProviderAdapter = {
   id: "stripe",
@@ -236,7 +251,9 @@ export function billingProvider(): BillingProviderAdapter | null {
   const provider = billingProviderId();
   if (provider === "stripe") return stripeProvider;
   if (provider === "creem") return creemProvider;
-  if (provider === "paddle") return paddleSandboxProvider;
+  if (provider === "paddle") {
+    return process.env.PADDLE_ENVIRONMENT?.trim() === "live" ? paddleLiveProvider : paddleSandboxProvider;
+  }
   return null;
 }
 
