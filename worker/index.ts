@@ -4,6 +4,8 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, publicToolRateLimitsTable, publicVisibilityScoresTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
 import { runGroundedCloudflareWithBinding, setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
+import { runMeasurementScheduleBackupPass } from "../lib/jobs/measurement-schedule-dispatcher";
+import { MEASUREMENT_BACKUP_CRON, INNGEST_SELF_SYNC_CRON, scheduledBackupPlan } from "../lib/jobs/schedule-backup-plan.mjs";
 import { scrubSentryEvent } from "../lib/sentry-privacy";
 import { logOperationalEvent } from "../lib/structured-logger";
 
@@ -50,6 +52,9 @@ interface Env {
   EMAIL_UNSUBSCRIBE_SECRET?: string;
   INNGEST_EVENT_KEY?: string;
   INNGEST_SIGNING_KEY?: string;
+  FOREMENTION_SCHEDULE_BACKUP_CRON?: string;
+  FOREMENTION_INNGEST_SELF_SYNC?: string;
+  NEXT_PUBLIC_SITE_URL?: string;
   GROQ_MODEL?: string;
   GROQ_MODEL_VERSION?: string;
   GROQ_REQUEST_COST_USD?: string;
@@ -68,6 +73,11 @@ interface Env {
 interface ExecutionContext {
   waitUntil(promise: Promise<unknown>): void;
   passThroughOnException(): void;
+}
+
+interface ScheduledController {
+  cron: string;
+  scheduledTime: number;
 }
 
 const PUBLIC_MARKDOWN_MIRRORS: Record<string, string> = {
@@ -104,13 +114,25 @@ const contentSecurityPolicy = [
   "worker-src 'self' blob:",
 ].join("; ");
 
+// FM-09: /pay alone may load Paddle.js and frame the Paddle SANDBOX checkout.
+// The page itself still refuses to render checkout outside the explicit
+// sandbox staging gate. Live buy.paddle.com is deliberately not allowed.
+const paddleSandboxPayContentSecurityPolicy = contentSecurityPolicy
+  .replace("script-src 'self'", "script-src 'self' https://cdn.paddle.com")
+  .replace("style-src 'self'", "style-src 'self' https://cdn.paddle.com")
+  .replace("connect-src 'self'", "connect-src 'self' https://cdn.paddle.com https://sandbox-checkout-service.paddle.com")
+  .replace("frame-src 'self'", "frame-src 'self' https://sandbox-buy.paddle.com");
+
 function secureResponse(response: Response, url: URL, correlationId?: string) {
   const secured = new Response(response.body, response);
   // Vinext currently bootstraps its client with inline module imports, so
   // unsafe-inline is narrowly retained until the runtime supports per-request
   // nonces. External scripts, framing, objects, and cross-origin form targets
   // remain blocked by the enforced policy.
-  secured.headers.set("Content-Security-Policy", contentSecurityPolicy);
+  secured.headers.set(
+    "Content-Security-Policy",
+    url.pathname === "/pay" ? paddleSandboxPayContentSecurityPolicy : contentSecurityPolicy,
+  );
   secured.headers.set("Cross-Origin-Opener-Policy", "same-origin");
   secured.headers.set("Origin-Agent-Cluster", "?1");
   secured.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
@@ -527,6 +549,31 @@ const worker = {
 
     const response = await handler.fetch(correlatedRequest, env, ctx);
     return complete(response);
+  },
+
+  /**
+   * Cloudflare cron backup for second-cycle reliability (gap 5). The hourly
+   * Inngest dispatcher stays primary; this re-runs the SAME idempotent pass at
+   * a different minute so a due cadence is still prepared and queued if the
+   * Inngest cron is not firing. Optional self-sync re-registers the Inngest app
+   * from inside the Worker when FOREMENTION_INNGEST_SELF_SYNC=1.
+   */
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    const plan = scheduledBackupPlan(controller.cron, env);
+    if (plan.dispatch) {
+      ctx.waitUntil(runMeasurementScheduleBackupPass()
+        .then((result) => logOperationalEvent("measurement_schedule_backup_pass", {
+          route: MEASUREMENT_BACKUP_CRON,
+          phase: "skipped" in result ? `skipped:${result.skipped}` : `due=${result.due};queued=${result.queued};advanced=${result.advanced}`,
+        }))
+        .catch((error) => logOperationalEvent("measurement_schedule_backup_failed", { route: MEASUREMENT_BACKUP_CRON, errorCode: error instanceof Error ? error.name : "unknown" })));
+    }
+    if (plan.selfSync) {
+      const siteUrl = (env.NEXT_PUBLIC_SITE_URL || "https://foremention.com").replace(/\/$/, "");
+      ctx.waitUntil(Promise.resolve(handler.fetch(new Request(`${siteUrl}/api/inngest`, { method: "PUT" }), env, ctx))
+        .then((response) => logOperationalEvent("inngest_self_sync", { route: INNGEST_SELF_SYNC_CRON, status: response.status }))
+        .catch((error) => logOperationalEvent("inngest_self_sync_failed", { route: INNGEST_SELF_SYNC_CRON, errorCode: error instanceof Error ? error.name : "unknown" })));
+    }
   },
 };
 

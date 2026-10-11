@@ -12,6 +12,6 @@ test("source bulk actions require reviewed facts and remain organization-authori
   assert.match(table, /data-workspace-action/);
   assert.match(table, /!entry\.reviewedAt \|\| !entry\.sourceId \|\| entry\.route === "unknown"/);
   assert.match(reviewRoute, /organization_id=eq\.\$\{organizationId\}/);
-  assert.match(reviewRoute, /role === "viewer"/);
+  assert.match(reviewRoute, /!\["owner", "admin", "analyst"\]\.includes\(role\)/);
   assert.match(actionRoute, /organization_id=eq\.\$\{context\.organizationId\}/);
 });

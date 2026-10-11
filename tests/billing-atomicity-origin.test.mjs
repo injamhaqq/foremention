@@ -28,6 +28,6 @@ test("checkout redirects are anchored to the configured canonical public origin"
   assert.match(checkout, /new URL\(configuredSiteUrl\)\.origin/);
   assert.match(checkout, /canonical public site origin/i);
   assert.doesNotMatch(checkout, /const origin = new URL\(request\.url\)\.origin/);
-  assert.match(checkout, /successUrl: `\$\{origin\}\/app\/settings\?billing=success`/);
-  assert.match(checkout, /cancelUrl: `\$\{origin\}\/app\/settings\?billing=cancelled`/);
+  assert.match(checkout, /successUrl: origin \+ "\/app\/settings\?billing=success"/);
+  assert.match(checkout, /cancelUrl: origin \+ "\/app\/settings\?billing=cancelled"/);
 });

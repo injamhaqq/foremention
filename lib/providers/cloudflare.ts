@@ -1,4 +1,9 @@
-import { retrieveFreeWebEvidence } from "@/lib/free-web-retrieval";
+import {
+  domainScopedQuery,
+  retrieveFreeWebEvidence,
+  SourceScopeUnavailableError,
+  sourceDomainScopeFromPrompt,
+} from "@/lib/free-web-retrieval";
 import {
   ProviderRequestError,
   type AnswerProviderAdapter,
@@ -158,7 +163,19 @@ export async function runGroundedCloudflareWithBinding(input: {
   maxOutputTokens: number;
   signal?: AbortSignal;
 }) {
-  const evidence = await retrieveFreeWebEvidence(input.searchQuery || input.prompt, input.signal);
+  // #345: an explicit official-domain requirement scopes retrieval to that
+  // domain and never passes off-domain results to the model as support.
+  const scope = sourceDomainScopeFromPrompt(input.prompt);
+  const query = scope ? domainScopedQuery(input.searchQuery || input.prompt, scope) : input.searchQuery || input.prompt;
+  let evidence: Awaited<ReturnType<typeof retrieveFreeWebEvidence>>;
+  try {
+    evidence = await retrieveFreeWebEvidence(query, input.signal, scope);
+  } catch (error) {
+    if (error instanceof SourceScopeUnavailableError) {
+      throw new ProviderRequestError("Cloudflare Workers AI + Bing Search RSS", 422, `Evidence unavailable: ${error.message}`);
+    }
+    throw error;
+  }
   const sourceIndex = citationIndex(evidence.citations);
 
   const raw = await runWithAbort(

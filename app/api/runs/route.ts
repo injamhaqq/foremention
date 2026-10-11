@@ -10,6 +10,7 @@ import {
 } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, getProviderStatuses, loadPrompts, loadRuns, loadWorkspaceContext } from "@/lib/data";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
+import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { inngest } from "@/lib/jobs/inngest";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { runUnits } from "@/lib/product-limits";
@@ -73,6 +74,11 @@ export async function POST(request: Request) {
   if (!providerAllowedForLiveCollection(providerId)) {
     return NextResponse.json({
       error: "Production is in free-only mode. Grounded Cloudflare Workers AI with Bing Search RSS is the only live customer-evidence provider enabled.",
+    }, { status: 403 });
+  }
+  if (!providerAllowedForMeasurementLane(providerId)) {
+    return NextResponse.json({
+      error: "Model gateways can be used for customer measurement only when pinned to one exact upstream provider and model.",
     }, { status: 403 });
   }
   const idempotencyKey = request.headers.get("idempotency-key")?.trim();

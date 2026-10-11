@@ -23,7 +23,7 @@ test("human source review is persisted separately from automated crawler checks"
   assert.match(integrity, /reviewedAt:\s*row\.reviewed_at\s*\?/i);
   assert.doesNotMatch(integrity, /reviewedAt:\s*row\.source!?\.crawler_checked_at/i);
   assert.match(reviewRoute, /reviewed_at:\s*reviewedAt/);
-  assert.match(reviewRoute, /reviewed_by:\s*viewer\.id/);
+  assert.match(reviewRoute, /reviewed_by:\s*reviewed\.reviewed_by/);
   assert.match(sourceMapPage, /!entry\.reviewedAt/);
   assert.match(sourceMapPage, /Boolean\(entry\.reviewedAt\)\s*&&\s*!entry\.clientPresent/);
   assert.match(containedEvidence, /const reviewed = Boolean\(source\.reviewedAt\)/);

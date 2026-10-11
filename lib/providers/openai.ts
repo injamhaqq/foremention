@@ -1,4 +1,4 @@
-import { extractUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
+import { extractModelMentionedUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderCitation, type ProviderPrompt } from "@/lib/providers/types";
 
 type OpenAIResponse = {
   id?: string;
@@ -33,7 +33,10 @@ export const openAIAdapter: AnswerProviderAdapter = {
     const content = (raw.output || []).flatMap((item) => item.content || []);
     const answer = raw.output_text || content.map((item) => item.text || "").join("\n");
     const annotated: ProviderCitation[] = content.flatMap((item) => item.annotations || []).filter((item) => item.type === "url_citation" && item.url).map((item) => ({ url: item.url as string, title: item.title, startIndex: item.start_index, endIndex: item.end_index }));
-    const citations = annotated.length ? annotated : extractUrls(answer);
+    // Only url_citation annotations returned by the Responses API are citations.
+    // URLs the model typed into its answer are kept apart as mentionedUrls, never as a fallback.
+    const citations = annotated;
+    const mentionedUrls = extractModelMentionedUrls(answer);
     const usage = raw.usage ? { inputTokens: raw.usage.input_tokens, outputTokens: raw.usage.output_tokens, totalTokens: raw.usage.total_tokens } : undefined;
     return {
       provider: "openai",
@@ -41,7 +44,8 @@ export const openAIAdapter: AnswerProviderAdapter = {
       promptId: prompt.promptId,
       answer,
       citations,
-      raw: { id: raw.id, model: raw.model || model, status: raw.status, usage, citationCount: citations.length },
+      mentionedUrls,
+      raw: { id: raw.id, model: raw.model || model, status: raw.status, usage, grounded: citations.length > 0, citationCount: citations.length, mentioned_urls: mentionedUrls.map((item) => item.url), mentioned_urls_note: "Model-written URLs from answer text; not provider citations and never evidence." },
       collectedAt: new Date().toISOString(),
       latencyMs: Date.now() - started,
       usage,

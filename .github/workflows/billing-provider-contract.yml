@@ -1,0 +1,29 @@
+name: Billing Provider Contract
+
+on:
+  pull_request:
+    paths:
+      - "lib/billing-provider.ts"
+      - "lib/creem-billing.ts"
+      - "lib/stripe-billing.ts"
+      - "app/api/billing/**"
+      - "components/billing-control.tsx"
+      - "tests/billing-provider-creem.test.mjs"
+      - ".env.example"
+      - ".github/workflows/billing-provider-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  billing-provider-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.13.0"
+          package-manager-cache: false
+      - name: Run billing provider and regression contracts
+        run: node --experimental-strip-types --test tests/billing*.test.mjs

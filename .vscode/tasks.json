@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Paddle Sandbox: Check catalog setup",
+      "type": "shell",
+      "command": "node scripts/setup-paddle-sandbox-catalog.mjs",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Paddle Sandbox: Create or reuse Core + Signal",
+      "type": "shell",
+      "command": "node scripts/setup-paddle-sandbox-catalog.mjs --apply",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    }
+  ]
+}

@@ -41,12 +41,13 @@ test("commercial platform positioning and brand contract are encoded", async () 
 test("usage controls are explicit and enforced by the run path", async () => {
   const [limits, route, questions, migration] = await Promise.all([text("lib/product-limits.ts"), text("app/api/runs/route.ts"), text("app/api/prompts/route.ts"), text("supabase/migrations/20260724000100_free_beta_usage_controls.sql")]);
   assert.match(limits, /FOUNDATION_ACCESS_LIMITS/);
-  assert.match(limits, /runUnitsPerMonth: 20/);
+  assert.match(limits, /runUnitsPerMonth: 50/);
   assert.match(limits, /buyerQuestions: 10/);
   assert.match(route, /reserve_run_quota/);
   assert.match(route, /loadWorkspaceContext/);
-  assert.match(questions, /organization_entitlements\?select=max_prompts,status,expires_at/);
-  assert.match(questions, /entitlement\?\.status === "active"/);
+  assert.match(questions, /organization_entitlements\?select=status,package_key,billing_source,expires_at,max_prompts/);
+  assert.match(questions, /buyerQuestionLimit\(entitlementRows\[0\]\)/);
+  assert.match(limits, /row\.status !== "active"\) return foundation/);
   assert.match(questions, /active=eq.true/);
   assert.match(questions, /body\.active === true && !scopedPrompt\[0\]\.active/);
   assert.match(questions, /prompts\?select=id,active/);

@@ -100,9 +100,15 @@ begin
     raise exception 'Citation read isolation failed for Tenant A';
   end if;
 
-  update public.prompts set prompt_text = 'forged cross-tenant update'
-  where id = 'f0400000-0000-4000-8000-000000000002'::uuid;
-  get diagnostics changed = row_count;
+  -- Both RLS returning zero rows and the stricter table-level write
+  -- revocation are valid denials of this forged cross-tenant mutation.
+  begin
+    update public.prompts set prompt_text = 'forged cross-tenant update'
+    where id = 'f0400000-0000-4000-8000-000000000002'::uuid;
+    get diagnostics changed = row_count;
+  exception when insufficient_privilege then
+    changed := 0;
+  end;
   if changed <> 0 then raise exception 'Cross-tenant update was permitted'; end if;
 
   delete from public.sources where id = 'f0700000-0000-4000-8000-000000000002'::uuid;

@@ -48,3 +48,55 @@ test("customer success never filters placements by nonexistent project_id", asyn
   assert.doesNotMatch(source, /placements\?[^\n]*project_id=eq\./);
   assert.match(source, /placementBelongsToProject/);
 });
+
+test("customer success fails closed on mixed project links even when one link matches", () => {
+  const promptIds = new Set(["prompt-a", "prompt-b"]);
+  const runIds = new Set(["run-a", "run-b"]);
+
+  assert.equal(placementBelongsToProject({
+    target_prompt_ids: ["prompt-a", "prompt-other"],
+    baseline_run_id: null,
+    remeasurement_run_id: null,
+  }, promptIds, runIds), false);
+
+  assert.equal(placementBelongsToProject({
+    target_prompt_ids: ["prompt-a"],
+    baseline_run_id: "run-other",
+    remeasurement_run_id: null,
+  }, promptIds, runIds), false);
+
+  assert.equal(placementBelongsToProject({
+    target_prompt_ids: [],
+    baseline_run_id: "run-a",
+    remeasurement_run_id: "run-other",
+  }, promptIds, runIds), false);
+
+  assert.equal(placementBelongsToProject({
+    target_prompt_ids: ["prompt-a", "prompt-b"],
+    baseline_run_id: "run-a",
+    remeasurement_run_id: "run-b",
+  }, promptIds, runIds), true);
+});
+
+test("customer success never infers project ownership from missing or unknown links", () => {
+  const promptIds = new Set(["prompt-a"]);
+  const runIds = new Set(["run-a"]);
+
+  assert.equal(placementBelongsToProject({
+    target_prompt_ids: ["prompt-missing"],
+    baseline_run_id: null,
+    remeasurement_run_id: null,
+  }, promptIds, runIds), false);
+
+  assert.equal(placementBelongsToProject({
+    target_prompt_ids: [],
+    baseline_run_id: null,
+    remeasurement_run_id: null,
+  }, promptIds, runIds), false);
+
+  assert.equal(placementBelongsToProject({
+    target_prompt_ids: null,
+    baseline_run_id: "run-a",
+    remeasurement_run_id: null,
+  }, promptIds, runIds), true);
+});
