@@ -21,7 +21,7 @@ export function PublicHeader() {
         <Link data-design-partner-cta="header" className="registered-header__demo canonical-header__demo" href="/contact">Request a pilot <span aria-hidden="true">→</span></Link>
       </nav>
       <details className="mobile-nav registered-mobile-nav canonical-mobile-nav">
-        <summary aria-label="Open navigation"><Arrow /></summary>
+        <summary aria-label="Site navigation"><Arrow /></summary>
         <div className="mobile-nav__panel">
           {links.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
           <Link href="/explore">Explore Foremention</Link>

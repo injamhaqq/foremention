@@ -81,10 +81,8 @@ export function PublicActivationAnalytics() {
 
     if (pathname === "/contact") {
       captureProductEvent("design_partner_page_viewed");
-      if (new URLSearchParams(window.location.search).get("submitted") === "1") {
-        captureProductEvent("design_partner_application_submitted");
-      }
-
+      // Server-proven persistence is the only source of a submitted-application
+      // milestone; browser URL flags and page refreshes are not conversions.
       const form = document.querySelector<HTMLFormElement>("[data-design-partner-form]");
       if (!form) return;
       designPartnerStartCaptured.current = false;
