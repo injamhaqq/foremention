@@ -15,6 +15,17 @@ export type ProviderCitation = {
   endIndex?: number;
 };
 
+/**
+ * A URL the model wrote inside its own answer text. This is NOT a citation and
+ * NOT evidence: the provider did not return it as a grounding/search source, so
+ * it may be invented, stale or paraphrased. Keep it strictly separate from
+ * `ProviderAnswer.citations`; it must never feed sources, citation counts,
+ * source maps or evidence review.
+ */
+export type ModelMentionedUrl = {
+  url: string;
+};
+
 export type ProviderUsage = {
   inputTokens?: number;
   outputTokens?: number;
@@ -33,7 +44,10 @@ export type ProviderAnswer = {
   model: string;
   promptId: string;
   answer: string;
+  /** Only structured citations the provider API itself returned. Never URLs scraped from answer text. */
   citations: ProviderCitation[];
+  /** URLs the model typed into its answer text. Informational only; never citations or evidence. */
+  mentionedUrls?: ModelMentionedUrl[];
   raw: unknown;
   collectedAt: string;
   latencyMs: number;
@@ -77,6 +91,12 @@ export function requestIdFrom(response: Response, bodyId?: string) {
     || undefined;
 }
 
-export function extractUrls(text: string) {
-  return Array.from(new Set(text.match(/https?:\/\/[^\s)\]}>,"']+/gi) || [])).map((url) => ({ url: url.replace(/[.;:]+$/, "") }));
+/**
+ * URLs the model wrote in its answer text. The result is deliberately typed as
+ * `ModelMentionedUrl` rather than `ProviderCitation`: callers must store it as
+ * `mentionedUrls` (labelled model-written), never as citations or evidence, and
+ * never as a fallback when the provider returned no structured citations.
+ */
+export function extractModelMentionedUrls(text: string): ModelMentionedUrl[] {
+  return Array.from(new Set((text.match(/https?:\/\/[^\s)\]}>,"']+/gi) || []).map((url) => url.replace(/[.;:]+$/, "")))).map((url) => ({ url }));
 }
