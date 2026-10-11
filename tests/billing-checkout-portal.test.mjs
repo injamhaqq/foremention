@@ -82,6 +82,10 @@ test("checkout and portal routes derive workspace/customer identity server-side"
     assert.match(source, /isTrustedMutationOrigin/);
     assert.doesNotMatch(source, /body\.organizationId|body\.customerId/);
   }
-  assert.match(checkout, /createStripeCheckoutSession/);
-  assert.match(portal, /createStripePortalSession/);
+  assert.match(checkout, /billingProvider/);
+  assert.match(checkout, /provider\.createCheckout/);
+  assert.match(checkout, /existingBilling\?\.provider === provider\.id/);
+  assert.match(portal, /billingProvider/);
+  assert.match(portal, /provider\.createPortal/);
+  assert.match(portal, /billing\.provider !== provider\.id/);
 });
