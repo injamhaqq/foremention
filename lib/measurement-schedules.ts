@@ -19,6 +19,12 @@ export type ValidMeasurementSchedule = Required<Omit<MeasurementScheduleInput, "
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PROVIDER = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
 
+// These limits deliberately mirror LIVE_COLLECTION_LIMITS in collection-policy;
+// the behavioral test fails if either side changes without aligning the other.
+// Persisting more questions/providers would create schedules the collector rejects.
+export const MAX_SCHEDULE_QUESTION_COUNT = 10;
+export const MAX_SCHEDULE_PROVIDER_COUNT = 1;
+
 function assertTimeZone(timezone: string) {
   try {
     // Keep timezone validation tied to the runtime's IANA database instead of
@@ -35,8 +41,8 @@ export function validateMeasurementSchedule(input: MeasurementScheduleInput): Va
   assertTimeZone(timezone);
   const questionIds = Array.from(new Set(input.questionIds || []));
   const providerIds = Array.from(new Set((input.providerIds || []).map((value) => String(value).trim().toLowerCase())));
-  if (!questionIds.length || questionIds.length > 100 || questionIds.some((id) => !UUID.test(id))) throw new Error("Choose between 1 and 100 workspace buyer questions.");
-  if (!providerIds.length || providerIds.length > 8 || providerIds.some((id) => !PROVIDER.test(id))) throw new Error("Choose between 1 and 8 supported providers.");
+  if (!questionIds.length || questionIds.length > MAX_SCHEDULE_QUESTION_COUNT || questionIds.some((id) => !UUID.test(id))) throw new Error(`Choose between 1 and ${MAX_SCHEDULE_QUESTION_COUNT} workspace buyer questions.`);
+  if (providerIds.length !== MAX_SCHEDULE_PROVIDER_COUNT || providerIds.some((id) => !PROVIDER.test(id))) throw new Error("Choose exactly one supported provider.");
   const methodologySnapshot = String(input.methodologySnapshot || "").trim();
   if (!methodologySnapshot || methodologySnapshot.length > 80) throw new Error("A methodology snapshot is required.");
   const modelSnapshot = input.modelSnapshot === null ? null : String(input.modelSnapshot || "").trim() || null;

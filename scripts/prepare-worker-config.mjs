@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { WORKER_CRONS } from "../lib/jobs/schedule-backup-plan.mjs";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const configPath = new URL("../dist/server/wrangler.json", import.meta.url);
@@ -36,6 +37,8 @@ config.compatibility_date = "2026-05-15";
 config.compatibility_flags = ["nodejs_compat"];
 config.keep_vars = true;
 config.ai = { binding: "AI" };
+// Cloudflare cron backup for repeat measurement; see lib/jobs/schedule-backup-plan.mjs.
+config.triggers = { ...(config.triggers || {}), crons: [...WORKER_CRONS] };
 config.vars = {
   ...(config.vars || {}),
   ...(buildCommit ? { FOREMENTION_BUILD_COMMIT: buildCommit } : {}),
