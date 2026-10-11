@@ -49,7 +49,8 @@ test("prompts route enforces the entitlement ceiling server-side, not the old ha
   assert.match(route, /prompts\?select=id&organization_id=eq\." \+ encodeURIComponent\(context\.organizationId\) \+ "&active=eq\.true/);
   assert.ok(!route.includes("existing.length >= FOUNDATION_ACCESS_LIMITS.buyerQuestions"));
   // The ceiling check must run before any prompt row is written.
-  assert.ok(route.indexOf("activeQuestions.length >= questionLimit") < route.indexOf('supabaseRest<Array<{ id: string; version: number }>>("prompts"'));
+  assert.ok(route.includes('("rpc/create_prompt_versioned"'));
+  assert.ok(route.indexOf("activeQuestions.length >= questionLimit") < route.indexOf('supabaseRest<{ id: string; version: number }>("rpc/create_prompt_versioned"'));
 });
 
 test("database derives capacity from verified provider billing only, in the same transaction", () => {
