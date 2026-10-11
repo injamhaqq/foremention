@@ -64,8 +64,11 @@ test("analyst-scoped source and change writes preserve admin-write-only audit re
     assert.match(code, /supabaseRest\("audit_logs",\s*\{[\s\S]*?serviceRole: true/);
     assert.match(code, /actor_id: viewer\.id/);
   }
-  assert.match(sourceReview, /source_map_entries\?id=eq\.\$\{entry\.id\}[\s\S]*?method: "PATCH",[\s\S]*?token: accessToken/);
-  assert.match(sourceReview, /if \(!role \|\| role === "viewer"\)/);
+  assert.match(sourceReview, /rpc\/review_source_map_entry/);
+  assert.match(sourceReview, /token: accessToken/);
+  assert.match(sourceReview, /reviewed\.reviewed_by !== viewer\.id/);
+  assert.doesNotMatch(sourceReview, /source_map_entries\?id=eq\.\$\{entry\.id\}[\s\S]*?method: "PATCH"/);
+  assert.match(sourceReview, /!\["owner", "admin", "analyst"\]\.includes\(role\)/);
   assert.match(changes, /if \(!writable\(role\)\)/);
   assert.match(resolutions, /if \(!writable\(role\)\)/);
 });
