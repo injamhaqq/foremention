@@ -210,8 +210,11 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
       applyMutationRecord(next);
       setNotice(success);
     } catch (caught) {
-      setUncertain(Boolean(caught && typeof caught === "object" && "ambiguous" in caught && caught.ambiguous));
-      setError(caught instanceof Error ? caught.message : "The decision could not be updated.");
+      const ambiguousSave = Boolean(caught && typeof caught === "object" && "ambiguous" in caught && caught.ambiguous);
+      setUncertain(ambiguousSave);
+      setError(ambiguousSave
+        ? "We could not confirm this save. Reload the record to check its status before trying again."
+        : caught instanceof Error ? caught.message : "The decision could not be updated.");
     } finally {
       mutationLock.current = false;
       setBusy("");
