@@ -1,3 +1,4 @@
+import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { NextResponse } from "next/server";
 import { getApplicationEmailStatus, sendWelcomeEmail } from "@/lib/application-email";
 import { safeAuthNext } from "@/lib/google-auth";
@@ -18,6 +19,7 @@ async function attemptWelcomeEmail(email: string, origin: string) {
 }
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   try {
     const body = await readJsonObject(request);
     if (!body) return NextResponse.json({ error: "Send a valid signup form." }, { status: 400 });
