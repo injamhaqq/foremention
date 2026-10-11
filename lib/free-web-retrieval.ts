@@ -141,7 +141,92 @@ export type FreeWebEvidence = {
   retrievalProvider: "bing-rss";
 };
 
-export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal): Promise<FreeWebEvidence> {
+/**
+ * Explicit source-domain requirement extracted from a buyer question (#345).
+ *
+ * A scope is produced ONLY when the request names exactly one web domain and
+ * explicitly requires that provenance (for example "according to the official
+ * OpenAI website ... openai.com/news" or "cite the exact openai.com source URL").
+ * Ordinary comparison questions, and questions naming several domains, are
+ * never site-scoped.
+ */
+export type SourceDomainScope = {
+  domain: string;
+  pathPrefix: string | null;
+};
+
+const DOMAIN_PATTERN = /\b((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|org|net|io|ai|co|dev|app|gov|edu|info|news|blog|tech|cloud|so|xyz|us|uk|de|fr|in|bd))(\/[a-z0-9\-._~/%]*)?/gi;
+const PROVENANCE_REQUIREMENT = /\b(official\s+(?:[\w.-]+\s+){0,3}(?:website|site|domain|blog|newsroom|page|source)|from\s+the\s+official|exact\s+(?:[\w.-]+\s+){0,2}(?:source\s+)?url|only\s+(?:cite|use)\s+(?:sources?\s+)?from)\b/i;
+const QUERY_STOPWORDS = new Set([
+  "a", "about", "according", "after", "an", "and", "answer", "answering", "are", "as", "at", "be", "by", "can", "cannot",
+  "cite", "current", "date", "did", "do", "does", "evidence", "exact", "for", "from", "has", "have", "how", "i", "if", "in",
+  "is", "it", "its", "memory", "most", "now", "of", "official", "on", "or", "rather", "recent", "recently", "say", "search",
+  "site", "so", "source", "than", "that", "the", "their", "this", "time", "to", "url", "use", "used", "verify", "was", "web",
+  "website", "what", "when", "which", "with", "you", "your",
+]);
+
+export function sourceDomainScopeFromPrompt(prompt: string): SourceDomainScope | null {
+  const text = prompt.normalize("NFKC");
+  if (!PROVENANCE_REQUIREMENT.test(text)) return null;
+  const found = new Map<string, string | null>();
+  for (const match of text.matchAll(DOMAIN_PATTERN)) {
+    const domain = match[1].toLowerCase().replace(/^www\./, "");
+    const rawPath = (match[2] || "").replace(/[.,;:!?)]+$/, "").replace(/\/+$/, "");
+    const pathPrefix = rawPath && rawPath !== "/" ? rawPath.toLowerCase() : null;
+    const existing = found.get(domain);
+    // Keep a path prefix only if every mention of the domain agrees on it.
+    found.set(domain, found.has(domain) && existing !== pathPrefix ? null : pathPrefix);
+  }
+  if (found.size !== 1) return null;
+  const [[domain, pathPrefix]] = Array.from(found.entries());
+  return { domain, pathPrefix };
+}
+
+/** Concise, bounded, domain-qualified retrieval query (documented normalization). */
+export function domainScopedQuery(prompt: string, scope: SourceDomainScope) {
+  const withoutDomains = prompt.normalize("NFKC").toLowerCase().replace(DOMAIN_PATTERN, " ");
+  const keywords: string[] = [];
+  for (const token of withoutDomains.split(/[^a-z0-9]+/)) {
+    if (token.length < 3 || QUERY_STOPWORDS.has(token) || keywords.includes(token)) continue;
+    keywords.push(token);
+    if (keywords.length >= 8) break;
+  }
+  const site = `site:${scope.domain}${scope.pathPrefix || ""}`;
+  return [site, ...keywords].join(" ").slice(0, 200).trim();
+}
+
+export function citationMatchesScope(url: string, scope: SourceDomainScope) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (host !== scope.domain && !host.endsWith(`.${scope.domain}`)) return false;
+    if (!scope.pathPrefix) return true;
+    const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
+    return path === scope.pathPrefix || path.startsWith(`${scope.pathPrefix}/`);
+  } catch {
+    return false;
+  }
+}
+
+export class SourceScopeUnavailableError extends Error {
+  readonly scope: SourceDomainScope;
+  readonly retrievedCount: number;
+  constructor(scope: SourceDomainScope, retrievedCount: number) {
+    super(`No retrieved source matched the explicitly required ${scope.domain}${scope.pathPrefix || ""} provenance; ${retrievedCount} off-scope result(s) were withheld rather than presented as supporting evidence.`);
+    this.name = "SourceScopeUnavailableError";
+    this.scope = scope;
+    this.retrievedCount = retrievedCount;
+  }
+}
+
+export function restrictResultsToScope<T extends { url: string }>(results: T[], scope: SourceDomainScope | null): T[] {
+  if (!scope) return results;
+  const matching = results.filter((result) => citationMatchesScope(result.url, scope));
+  if (!matching.length) throw new SourceScopeUnavailableError(scope, results.length);
+  return matching;
+}
+
+export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal, scope: SourceDomainScope | null = null): Promise<FreeWebEvidence> {
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
@@ -164,8 +249,9 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const raw = (await response.text()).slice(0, MAX_RSS_CHARS).trim();
   if (!raw) throw new Error("Bing RSS returned no evidence content.");
 
-  const results = parseBingSearchRss(raw);
-  if (!results.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+  const parsed = parseBingSearchRss(raw);
+  if (!parsed.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+  const results = restrictResultsToScope(parsed, scope);
 
   const evidenceText = results.map((result, index) => [
     `SOURCE [${index + 1}]`,
