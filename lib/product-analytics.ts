@@ -1,6 +1,7 @@
 "use client";
 
 import posthog from "posthog-js";
+import { isServerVerifiedProductEvent } from "@/lib/product-analytics-authority";
 import {
   normalizeInternalAnalyticsId,
   sanitizeProductAnalyticsEvent,
@@ -69,6 +70,11 @@ function sanitizePostHogPayload(event: PostHogCapturePayload | null): PostHogCap
   const rawProperties = event.properties;
   const transport = transportProperties(rawProperties);
 
+  // A client capture call, including PostHog direct calls, cannot prove that
+  // a first-party application was persisted. This boundary is deliberately
+  // enforced before event sanitizer/transport allowlists.
+  if (isServerVerifiedProductEvent(event.event)) return null;
+
   if (event.event === "$identify") {
     if (!currentViewerId) return null;
     const anonymousId = safeAnonymousTransportId(rawProperties.$anon_distinct_id);
@@ -123,6 +129,9 @@ export function initializeProductAnalytics() {
 }
 
 export function captureProductEvent(event: string, properties: Record<string, unknown> = {}) {
+  // Reject browser-only claims of server-verified commercial milestones, even
+  // when a valid event name or spoofed success query parameter is supplied.
+  if (isServerVerifiedProductEvent(event)) return;
   if (!initializeProductAnalytics()) return;
   const sanitized = sanitizeProductAnalyticsEvent(event, properties);
   if (!sanitized) return;

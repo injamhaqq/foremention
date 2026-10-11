@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendProductAlertEmail } from "@/lib/application-email";
+import { capturePersistedDesignPartnerSubmission } from "@/lib/design-partner-server-analytics";
 import { designPartnerSubmissionKey, normalizeDesignPartnerApplication, type DesignPartnerApplication } from "@/lib/design-partner";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -134,6 +135,9 @@ export async function POST(request: Request) {
     if (!intakeId) throw new Error("Application was not returned after persistence.");
 
     await notifyDesignPartnerOperators(normalized.value, keyHash);
+    // Only a NEW persisted application reaches this point. PostHog is a
+    // best-effort projection; its result never determines business truth.
+    await capturePersistedDesignPartnerSubmission(intakeId);
     return responseFor(request, 201, "Application received.", { intakeId });
   } catch {
     return responseFor(request, 503, "Applications are temporarily unavailable. Email hello@foremention.com instead.");

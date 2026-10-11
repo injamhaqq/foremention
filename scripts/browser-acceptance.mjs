@@ -408,7 +408,7 @@ async function verifyRecommendationRecordEvidence(page, profileName) {
   }
 
   const recordText = await record.innerText();
-  for (const token of ["LIVE RECORD / ILLUSTRATIVE", "ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) {
+  for (const token of ["ILLUSTRATIVE RECOMMENDATION RECORD", "ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) {
     if (!recordText.includes(token)) {
       recordFailure("Recommendation Record is missing a required inspectable evidence state.", { profile: profileName, token });
     }
