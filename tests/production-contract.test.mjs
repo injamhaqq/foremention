@@ -372,7 +372,7 @@ test("the customer journey distinguishes collected citations from reviewed decis
   assert.match(questions, /not search-volume claims or collected evidence/);
   assert.match(launcher, /provider-state/);
   assert.match(decision, /Review sources/);
-  assert.match(home, /LIVE RECORD \/ ILLUSTRATIVE/);
+  assert.match(home, /ILLUSTRATIVE RECOMMENDATION RECORD/);
   assert.doesNotMatch(home, />24<|>87<|>6</);
   assert.match(review, /provider-returned citations/);
   assert.match(data, /Page-level review is still required/);
