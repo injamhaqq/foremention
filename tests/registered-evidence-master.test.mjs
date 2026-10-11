@@ -45,7 +45,7 @@ test("homepage carries the approved recommendation promise while retaining the c
   assert.match(hero, /Track recommendations, inspect supporting sources, and decide what to improve\./);
   assert.match(hero, /Request a pilot/);
   assert.match(hero, /Explore a sample/);
-  assert.match(hero, /LIVE RECORD \/ ILLUSTRATIVE/);
+  assert.match(hero, /ILLUSTRATIVE RECOMMENDATION RECORD/);
   assert.match(hero, /ANSWER/);
   assert.match(hero, /Observed/);
   assert.match(hero, /REFERENCE/);
