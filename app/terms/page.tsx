@@ -27,6 +27,7 @@ export default function TermsPage() {
       <p>AI providers, publishers, databases, email services, analytics systems, and payment processors are independent services. Their availability, terms, models, access rules, and outputs may change. Foremention is not responsible for a third party&apos;s independent decision or outage.</p>
       <h2>Plans, billing, and changes</h2>
       <p>Current self-serve signup does not activate a paid plan or charge a card. Price, currency, billing cadence, included capacity, renewal, cancellation, and any refund terms apply only when paid activation is explicitly available and confirmed during that activation or in an order form. Material plan changes will be communicated before they take effect.</p>
+      <p>When paid checkout is enabled, orders are processed by Paddle.com, which acts as merchant of record and reseller. Paddle&apos;s buyer terms then govern payment, tax, invoicing, cancellation and refund handling for that purchase, alongside these terms for use of Foremention.</p>
       <h2>Suspension and termination</h2>
       <p>Access may be limited or suspended to protect the service, investigate misuse, comply with law, address nonpayment when a paid agreement applies, or prevent harm. You may stop using the service and request account closure. Export and deletion windows may depend on plan, security, backup, and legal obligations.</p>
       <h2>Ownership</h2>
