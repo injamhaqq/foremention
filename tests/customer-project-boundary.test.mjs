@@ -49,7 +49,7 @@ test("direct-id customer mutations prove active-project ownership", async () => 
     text("app/api/sources/[id]/review/route.ts"),
   ]);
 
-  assert.match(prompts, /prompts\?select=id&id=eq\.\$\{id\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/);
+  assert.match(prompts, /prompts\?select=id(?:,active)?&id=eq\.\$\{id\}&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/);
   assert.match(runs, /const persistedIdempotencyKey = `\$\{context\.projectId\}:\$\{idempotencyKey\}`/);
   assert.match(runs, /const idempotencyFilter = \[idempotencyKey, persistedIdempotencyKey\]/);
   assert.match(runs, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}&idempotency_key=in\.\(\$\{idempotencyFilter\}\)/);

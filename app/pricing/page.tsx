@@ -15,7 +15,8 @@ export const metadata: Metadata = pageMetadata({
 const plans = [
   {
     name: "Core",
-    availability: "Establish the record",
+    availability: "Proposed · not yet purchasable",
+    price: "$99 / month",
     summary:
       "For one B2B software team that needs an inspectable baseline of how AI-mediated buyers are shown its category, brand, and evidence.",
     items: [
@@ -31,7 +32,8 @@ const plans = [
   },
   {
     name: "Signal",
-    availability: "Review what changed",
+    availability: "Proposed · not yet purchasable",
+    price: "$299 / month",
     lead: true,
     summary:
       "For growth and product-marketing teams that need more frequent comparable measurement, competitive context, review, and owned follow-through.",
@@ -48,7 +50,8 @@ const plans = [
   },
   {
     name: "Intelligence",
-    availability: "Operate across coverage",
+    availability: "Custom scope · request a quote",
+    price: "Custom",
     summary:
       "For multi-brand or enterprise teams that need custom measurement coverage, governance, integrations, and a recommendation-intelligence operating layer.",
     items: [
@@ -100,6 +103,7 @@ export default function PricingPage() {
             <article className={`pricing-card${plan.lead ? " pricing-card--lead" : ""}`} key={plan.name}>
               <span className="pricing-label">{plan.availability}</span>
               <h2>{plan.name}</h2>
+              <p className="pricing-summary"><strong>{plan.price}</strong></p>
               <p className="pricing-summary">{plan.summary}</p>
               <ul>{plan.items.map((item) => <li key={item}>{item}</li>)}</ul>
               <Link className={`button ${plan.lead ? "button--ink" : "button--outline"}`} href={plan.href}>
@@ -112,7 +116,10 @@ export default function PricingPage() {
         <div className="shell pricing-activation">
           <strong>Commercial status</strong>
           <p>
-            Founder-led design-partner pricing is being validated with real teams. Self-serve paid checkout is shown
+            Founder-led design-partner pricing is being validated with real teams. The figures above are proposed
+            monthly USD prices, not currently available checkout offers. The 25-question Core and 100-question Signal
+            capacities describe planned paid entitlements, not current access: foundation beta access is limited to
+            10 buyer questions unless a verified workspace entitlement grants more. Self-serve paid checkout is shown
             only when billing is configured for the workspace; creating a design-partner/private-beta workspace does
             not charge a card. Intelligence remains sales-led and custom-scoped.
           </p>
