@@ -37,6 +37,13 @@ const PRICE_ENV = {
   core: { monthly: "PADDLE_CORE_MONTHLY_PRICE_ID", annual: "PADDLE_CORE_ANNUAL_PRICE_ID" },
   signal: { monthly: "PADDLE_SIGNAL_MONTHLY_PRICE_ID", annual: "PADDLE_SIGNAL_ANNUAL_PRICE_ID" },
 } as const;
+// Paddle LIVE catalog (seller 242285), created 2026-10-11. Used only when
+// PADDLE_ENVIRONMENT=live and no explicit price env var is set, so the Worker
+// stays under the Workers Free 64-variable limit. Prices are not secrets.
+const LIVE_PRICE_DEFAULTS: Partial<Record<PaddlePackage, Partial<Record<PaddleInterval, string>>>> = {
+  core: { monthly: "pri_01m4nryn477avd2rv8tpr5kbb2" },
+  signal: { monthly: "pri_01m4ns078841ssg39eg15vz3m4" },
+};
 
 function env(name: string) { return process.env[name]?.trim() || null; }
 function object(value: unknown): Json | null {
@@ -55,7 +62,8 @@ function isHttpsLink(value: unknown): value is string {
 
 export function paddlePriceIdFor(pkg: PaddlePackage, interval: PaddleInterval) {
   const name = PRICE_ENV[pkg]?.[interval];
-  const value = name ? env(name) : null;
+  const value = (name ? env(name) : null)
+    || (env("PADDLE_ENVIRONMENT") === "live" ? LIVE_PRICE_DEFAULTS[pkg]?.[interval] ?? null : null);
   return value && PRICE_ID.test(value) ? value : null;
 }
 
