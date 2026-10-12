@@ -25,3 +25,6 @@ Free design-partner candidate **not certified**; paid founder-led pilot **not ce
 Refresh `fm-attach-v1/` branches and compare worker exact heads; verify tests and ownership, choose canonical base, reconcile shared migration/CI proposals, build integrated candidate and secure Chat09 independent approval. If workers absent, keep this checkpoint and pursue bounded read-only evidence. One concrete external approval is required before the separately proposed sandbox-to-production release plan; do not infer consent from this documentation PR.
 
 **Rollback:** revert this documentation-only PR. No live data changed.
+
+## 2026-10-12 — Peer discovery checkpoint (subsequent read)
+After the initial no-peer branch lookup, GitHub exposed all nine peer branches. Examined exact refs/write sets and the currently published 01, 03 and 09 status files; remaining status files were absent at inspection. See `00-proposals/peer-dependency-snapshot.md`. Narrow local helper tests (01: 8/8; 03: 3/3) are not composed-gate proof; Chat09's 30 scenario records are explicitly not executed. Coordinator has **not combined** unready worker patches. No production SHA receipt or externally verified billing/customer outcomes obtained.
