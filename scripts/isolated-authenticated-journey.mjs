@@ -407,9 +407,39 @@ async function main() {
       action:"decision",id:spec.id,decision:"approved"
     });
     assert.equal(forbidden.status,403,"analyst cannot authorize manager decision");
-    must(await appCall(ownerCtx,"PATCH","/api/change-specifications",{
-      action:"decision",id:spec.id,decision:"approved",approvalNote:"Synthetic owner approval only"
-    }),200,"owner manager approval");
+    // A15: the manager decision itself persists, but its acknowledgement is
+    // lost. The owner must not be able to decide again until an explicit
+    // scoped reload shows the decision that was actually saved.
+    const ownerPage=await ownerCtx.newPage();
+    const ownerNavigation=await ownerPage.goto(new URL("/app/change-specifications/"+spec.id,app).toString(),{waitUntil:"domcontentloaded",timeout:45000});
+    assert.equal(ownerNavigation?.status(),200,"authenticated owner decision navigation must return 200");
+    await ownerPage.getByRole("button",{name:"Approve",exact:true}).waitFor({timeout:45000});
+    let decisionWrites=0;
+    const interruptDecision=async(route)=>{
+      if(route.request().method()!=="PATCH") return route.continue();
+      decisionWrites++;
+      const persisted=await route.fetch();
+      assert.equal(persisted.status(),200,"local manager decision must persist before acknowledgement is lost");
+      await route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error:"Synthetic acknowledgement loss"})});
+    };
+    await ownerPage.route("**/api/change-specifications",interruptDecision);
+    await ownerPage.getByLabel("Decision note").fill("Synthetic owner approval only");
+    await ownerPage.getByRole("button",{name:"Approve",exact:true}).click();
+    await ownerPage.getByText("We cannot confirm what was saved.",{exact:true}).waitFor();
+    assert.equal(await ownerPage.getByRole("button",{name:"Approve",exact:true}).isDisabled(),true);
+    assert.equal(await ownerPage.getByRole("button",{name:"Reject",exact:true}).isDisabled(),true);
+    assert.equal(decisionWrites,1,"uncertain decision must not trigger an automatic or repeated write");
+    const persistedDecision=(await db("GET","change_specifications?select=status&id=eq."+spec.id))[0];
+    assert.equal(persistedDecision.status,"approved","the decision persisted despite the lost acknowledgement");
+    await ownerPage.unroute("**/api/change-specifications",interruptDecision);
+    await ownerPage.reload({waitUntil:"domcontentloaded"});
+    await ownerPage.getByText(/Decision recorded/).waitFor({timeout:45000});
+    assert.equal(await ownerPage.getByRole("button",{name:"Approve",exact:true}).count(),0,"a persisted approval survives a full page reload and cannot be decided twice");
+    assert.equal(await ownerPage.getByText("We cannot confirm what was saved.",{exact:true}).count(),0);
+    await ownerPage.close();
+    const approvals=(await db("GET","audit_logs?select=id&action=eq.change_specification.approved&entity_id=eq."+spec.id));
+    assert.equal(approvals.length,1,"exactly one persisted manager approval receipt");
+    step("authenticated-manager-decision-survives-lost-ack-and-reload-without-duplicate");
     step("real-change-spec-review-role-gates-and-manager-approval");
 
     const receipts=await db("GET","audit_logs?select=action,actor_id,organization_id,entity_id&organization_id=eq."+tenant.org);
@@ -443,12 +473,21 @@ async function main() {
     assert.ok(request.measurementRequestId);
     must(await appCall(ownerCtx,"GET","/api/resolutions"),200,"pending follow-up read");
     const second=await seedLocalRun(tenant,owner.id,"second",{review:true,cited:false,metrics:[40,20,0,0]});
+    // A15 partial job: one provider attempt failed before the retry produced
+    // the fifth answer. Review must publish the run as partial and the
+    // follow-up must still compare against the exact reviewed baseline.
+    await db("POST","run_attempts",[{
+      organization_id:tenant.org,run_id:second.run.id,prompt_id:second.prompts[0].id,prompt_key:second.prompts[0].prompt_key,
+      provider:"fixture-mock",model:"no-cost-model-v1",attempt_number:1,status:"failed",
+      error_code:"fixture_timeout",retryable:true,started_at:iso(),completed_at:iso(),
+    }]);
     must(await appCall(ownerCtx,"POST","/api/resolutions",{
       action:"remeasure",resolutionId:generated.id,rerunId:second.run.id,
       measurementId:request.measurementRequestId
     }),200,"attach exact five-question fixture run");
     const secondReview=must(await appCall(ownerCtx,"POST","/api/runs/"+second.run.id+"/review",{}),200,"second customer-visible review");
     assert.equal(secondReview.sourceCount,0,"zero-citation follow-up generated no fake sources");
+    assert.equal(secondReview.status,"partial","a failed provider attempt publishes the reviewed follow-up as partial");
     const persisted=await db("GET","resolution_follow_ups?select=status,outcome&resolution_asset_id=eq."+generated.id+"&organization_id=eq."+tenant.org);
     assert.equal(persisted.length,1,"exactly one synthetic follow-up");
     step("post-review-persisted-followup-state-"+persisted[0].status+"-"+(typeof persisted[0].outcome?.interpretation==="string"));
@@ -477,6 +516,17 @@ async function main() {
     const record=state.find(x=>x.id===generated.id);
     assert.equal(record?.followUp?.status,"complete");
     assert.match(record?.followUp?.summary||"",/does not establish|association/i);
+    // A15: the later cycle compares the exact reviewed baseline, not merely
+    // the newest run, and the stored packet's arithmetic validates.
+    assert.equal(record.followUp.baselineRunId,initial.run.id,"follow-up baseline is the exact reviewed first run");
+    assert.equal(record.followUp.followUpRunId,second.run.id,"follow-up run is the exact attached second run");
+    const comparison=record.followUp.comparison;
+    assert.ok(comparison,"validated exact comparison packet is returned");
+    assert.equal(comparison.baselineRunId,initial.run.id);
+    assert.equal(comparison.followUpRunId,second.run.id);
+    assert.deepEqual([comparison.brandPresencePct.before,comparison.brandPresencePct.after,comparison.brandPresencePct.delta].map(Number),[20,40,20]);
+    assert.deepEqual([comparison.citationCount.before,comparison.citationCount.after,comparison.citationCount.delta].map(Number),[1,0,-1]);
+    step("second-cycle-partial-run-compares-exact-reviewed-baseline");
     const absent=must(await appCall(otherCtx,"GET","/api/resolutions"),200,"other tenant cannot read completed solution").data.resolutions;
     assert.ok(!absent.some(x=>x.id===generated.id),"cross-tenant answer must be absent");
     step("ordinary-reviewed-zero-citation-second-cycle-noncausal-tenant-scoped-result");
