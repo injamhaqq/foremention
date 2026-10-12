@@ -37,7 +37,7 @@
 2. **Chat02/Chat05** provide a verified pre-workspace account-help path and consistent setup-required states without fabricated permissions.
 3. **Chat01/Chat06** provide nine-field comparable context and exact provider/model/session/locale/sampling receipts; enforce worker admission, repeat scheduling, cancellation and retry. Evaluate #500 DST patch separately rather than assuming merged.
 4. **Chat04/Chat09** complete two isolated end-to-end decision/save/reload/owner/later-cycle/export journeys and an interrupted retry on a disposable real integrated environment. Human-reviewed no-action and disagreement must persist, not be inferred from fixture clocks.
-5. **FM-00** obtain missing original `Foremention_Master_Backlog_28_v2.csv` only when possible; preserve distinction between 71 historical index rows and verified unique current defects. Uploaded package contained 7 index/instruction files only, not the 18 originals named in `Source_File_Checklist_19.csv`; the latter are therefore not individually hash-verified here.
+5. **FM-00** obtain missing original `Foremention_Master_Backlog_28_v2.csv` only when possible; preserve the distinction between 71 historical index rows and current distinct defects. Seven index/instruction files were attached, but several original historical files were recovered separately from the user's ChatGPT Library: `Foremention_Master_Backlog_29.csv` (A26–A28 rows verified), `Commercial_Backlog_18.csv` (CV-05 row verified), and corresponding audit and route/state records. The full set of 18 originals was **not individually hash-verified**; the 28_v2 file remains absent.
 
 ## No-action/safety and rollback
 
