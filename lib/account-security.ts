@@ -32,3 +32,31 @@ export function accessTokenAgeSeconds(token: string, nowSeconds = Math.floor(Dat
 export function isRecentAccessToken(token: string | undefined, maxAgeSeconds = 10 * 60) {
   return Boolean(token && accessTokenAgeSeconds(token) <= maxAgeSeconds);
 }
+
+/**
+ * Fail-closed recovery *eligibility* check. JWT claims are untrusted until
+ * Supabase Auth verifies the same bearer token (session adoption / password
+ * change); this must NEVER be used as a standalone identity verifier.
+ * A refresh-token issue time is not proof of recent password recovery.
+ */
+export function hasRecentRecoveryAmrClaim(token: string, nowSeconds = Math.floor(Date.now() / 1000)) {
+  try {
+    const claims = JSON.parse(decodeBase64Url(token.split(".")[1] || "")) as {
+      role?: unknown;
+      exp?: unknown;
+      amr?: unknown;
+    };
+    if (claims.role !== "authenticated" || typeof claims.exp !== "number" || !Number.isFinite(claims.exp) || claims.exp <= nowSeconds || !Array.isArray(claims.amr)) return false;
+    return claims.amr.some((entry: unknown) => {
+      if (!entry || typeof entry !== "object") return false;
+      const method = entry as { method?: unknown; timestamp?: unknown };
+      return method.method === "recovery"
+        && typeof method.timestamp === "number"
+        && Number.isFinite(method.timestamp)
+        && method.timestamp <= nowSeconds + 30
+        && nowSeconds - method.timestamp <= 15 * 60;
+    });
+  } catch {
+    return false;
+  }
+}
