@@ -53,3 +53,15 @@ test("A27: no mutation or export is rendered before scoped persisted eligibility
   assert.match(bridge, /Retry Record action check/);
   assert.match(bridge, /Your saved Record was not changed/);
 });
+
+test("A15: first evidence polling is bounded and an interruption is not mistaken for a failed provider call", () => {
+  const wizard = read("components/onboarding-wizard.tsx");
+  assert.match(wizard, /pollCount >= 40/);
+  assert.match(wizard, /if \(!response\.ok\) throw new Error\("Run status could not be checked\."\)/);
+  assert.match(wizard, /if \(!Array\.isArray\(result\.data\)\)/);
+  assert.match(wizard, /if \(pendingTimer !== null\) window\.clearTimeout\(pendingTimer\)/);
+  assert.match(wizard, /could not confirm the final collection state/);
+  assert.match(wizard, /Inspect saved run before retrying/);
+  assert.match(wizard, /Inspect its exact Record before deciding whether to start another provider call/);
+  assert.doesNotMatch(wizard, /automatically retry the provider/i);
+});
