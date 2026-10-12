@@ -2,7 +2,7 @@ import { estimateReservedRunCost, getProviderCostRates, safeOperationalError } f
 import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
-import { nextScheduleAt, scheduleIdempotencyKey } from "@/lib/measurement-schedules";
+import { MAX_SCHEDULE_QUESTION_COUNT, nextScheduleAt, scheduleIdempotencyKey } from "@/lib/measurement-schedules";
 import { getProvider } from "@/lib/providers";
 import type { ProviderId } from "@/lib/providers/types";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -72,6 +72,11 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   if (!schedule.created_by) return null;
   const providerId = schedule.provider_ids[0];
   if (!providerId || schedule.provider_ids.length !== 1 || !schedule.project_id || !schedule.category_id) return null;
+  // A schedule persisted before the creation-time capacity check (#472) could hold
+  // more questions than the collector accepts; never reserve quota/budget for a
+  // run the worker is guaranteed to reject.
+  const questionIds = Array.isArray(schedule.question_ids) ? schedule.question_ids : [];
+  if (!questionIds.length || questionIds.length > MAX_SCHEDULE_QUESTION_COUNT || new Set(questionIds).size !== questionIds.length) return null;
   if (!providerAllowedForLiveCollection(providerId)) return null;
   if (!providerAllowedForMeasurementLane(providerId)) return null;
   const provider = getProvider(providerId);

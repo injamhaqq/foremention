@@ -53,3 +53,13 @@ test("zero questions and zero providers remain invalid", () => {
   assert.throws(() => validateMeasurementSchedule(base({ questionIds: [] })), /between 1 and 10/);
   assert.throws(() => validateMeasurementSchedule(base({ providerIds: [] })), /exactly one supported provider/);
 });
+
+test("dispatcher refuses persisted schedules beyond live-run question capacity before reserving quota", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../lib/jobs/measurement-schedule-dispatcher.ts", import.meta.url), "utf8");
+  const guard = source.indexOf("questionIds.length > MAX_SCHEDULE_QUESTION_COUNT");
+  assert.ok(guard > 0, "dispatcher must bound persisted question_ids by MAX_SCHEDULE_QUESTION_COUNT");
+  assert.ok(guard < source.indexOf("rpc/reserve_run_quota_server"), "capacity guard must run before any quota reservation");
+  assert.ok(guard < source.indexOf('supabaseRest("runs", {'), "capacity guard must run before a run row is created");
+  assert.match(source, /new Set\(questionIds\)\.size !== questionIds\.length/);
+});
