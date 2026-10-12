@@ -1,0 +1,309 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Adversarial acceptance cases; not executable production proof",
+  "source": "Chat09 / attached packet of 2026-10-12",
+  "execution_state": "NOT_EXECUTED",
+  "fixture_policy": "synthetic only; no customer data, charges, production mutations or paid provider calls",
+  "scenarios": [
+    {
+      "id": "QA09-01",
+      "stage": "access",
+      "actor": "Tenant A",
+      "action": "Create valid session and project",
+      "expected": "Project exists only in A; B cannot see it",
+      "owner": "Chat02",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-02",
+      "stage": "recovery",
+      "actor": "Tenant A",
+      "action": "Revoke session during recovery and retry",
+      "expected": "Old token denied; new authenticated context required",
+      "owner": "Chat02",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-03",
+      "stage": "project",
+      "actor": "Tenant B",
+      "action": "Read tenant A project/run via direct ID",
+      "expected": "403/404; no data or existence leak",
+      "owner": "Chat02",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-04",
+      "stage": "questions",
+      "actor": "Tenant A analyst",
+      "action": "Create five approved buyer questions",
+      "expected": "Question versions and ownership persisted",
+      "owner": "Chat04",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-05",
+      "stage": "questions",
+      "actor": "Tenant B",
+      "action": "Mutate tenant A question via direct ID",
+      "expected": "Denied and unchanged",
+      "owner": "Chat02",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-06",
+      "stage": "measurement",
+      "actor": "Tenant A",
+      "action": "Run authorized provider capture within budget",
+      "expected": "Actual provider/model/response/usage receipt and context retained",
+      "owner": "Chat01",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-07",
+      "stage": "measurement",
+      "actor": "Tenant A",
+      "action": "Return unrelated polysemous search result",
+      "expected": "Relevance fail closed, insufficient evidence not zero visibility",
+      "owner": "Chat01",
+      "environment": "fixture",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-08",
+      "stage": "measurement",
+      "actor": "Tenant A",
+      "action": "Provider yields partial/refused/timeout result",
+      "expected": "Explicit partial/error state; no fabricated recommendation",
+      "owner": "Chat01",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-09",
+      "stage": "measurement",
+      "actor": "Tenant A",
+      "action": "Attempt provider identity substitution",
+      "expected": "Provider/model identity unverified; comparable cycle blocked",
+      "owner": "Chat01",
+      "environment": "fixture",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-10",
+      "stage": "measurement",
+      "actor": "Tenant A",
+      "action": "Exceed cost reservation or provider spend cap",
+      "expected": "Admission rejected before paid call",
+      "owner": "Chat01",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-11",
+      "stage": "evidence",
+      "actor": "Tenant A reviewer",
+      "action": "Inspect genuine raw answer and returned source",
+      "expected": "Native references vs retrieved content vs inference distinguished",
+      "owner": "Chat04",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-12",
+      "stage": "evidence",
+      "actor": "Tenant B",
+      "action": "Review tenant A source via direct ID",
+      "expected": "Denied; no cross-project leak",
+      "owner": "Chat02",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-13",
+      "stage": "decision",
+      "actor": "Tenant A reviewer",
+      "action": "Approve evidence and persist Change Specification",
+      "expected": "Decision state/owner/version/audit record survive reload",
+      "owner": "Chat04",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-14",
+      "stage": "decision",
+      "actor": "Tenant A viewer",
+      "action": "Attempt protected decision mutation",
+      "expected": "Role denied; no persistence",
+      "owner": "Chat02",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-15",
+      "stage": "interruption",
+      "actor": "Tenant A",
+      "action": "Disconnect during run and retry same idempotency key",
+      "expected": "One operation/accounting event; durable recoverable state",
+      "owner": "Chat06",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-16",
+      "stage": "comparison",
+      "actor": "Tenant A",
+      "action": "Request second cycle with changed model/context",
+      "expected": "Not comparable; no uplift claim",
+      "owner": "Chat04",
+      "environment": "fixture",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-17",
+      "stage": "comparison",
+      "actor": "Tenant A",
+      "action": "Request eligible reviewed later cycle matching matrix",
+      "expected": "Comparable only with actual later observation and review",
+      "owner": "Chat04",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-18",
+      "stage": "comparison",
+      "actor": "Tenant A",
+      "action": "Advance fixture clock without actual elapsed customer activity",
+      "expected": "Fixture never counted as real retention",
+      "owner": "Chat08",
+      "environment": "fixture",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-19",
+      "stage": "export",
+      "actor": "Tenant A",
+      "action": "Export authorized reviewed project evidence",
+      "expected": "Only A/project records with provenance and limits",
+      "owner": "Chat04",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-20",
+      "stage": "export",
+      "actor": "Tenant B",
+      "action": "Export tenant A object via ID",
+      "expected": "Denied; no secret or record exposure",
+      "owner": "Chat02",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-21",
+      "stage": "billing",
+      "actor": "Tenant A",
+      "action": "Use sandbox successful checkout and verified event",
+      "expected": "Entitlement from authoritative verified receipt only",
+      "owner": "Chat03",
+      "environment": "sandbox",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-22",
+      "stage": "billing",
+      "actor": "Tenant A",
+      "action": "Submit forged/unverified webhook",
+      "expected": "Signature/origin/admission denied; no entitlement",
+      "owner": "Chat03",
+      "environment": "fixture",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-23",
+      "stage": "billing",
+      "actor": "Tenant A",
+      "action": "Replay out-of-order and duplicate verified events",
+      "expected": "Exactly-once durable event transition; no resurrection of stale entitlement",
+      "owner": "Chat03",
+      "environment": "sandbox",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-24",
+      "stage": "billing",
+      "actor": "Tenant A",
+      "action": "Cancel, fail payment, retry, recover",
+      "expected": "State reconciled; no unauthorized paid feature access",
+      "owner": "Chat03",
+      "environment": "sandbox",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-25",
+      "stage": "billing",
+      "actor": "Tenant B",
+      "action": "Access tenant A billing portal or entitlements",
+      "expected": "Denied; account scope enforced",
+      "owner": "Chat02",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-26",
+      "stage": "recovery",
+      "actor": "Tenant A",
+      "action": "Run scheduled job after auth/credential revocation",
+      "expected": "No unsafe retry/spend; explicit operator diagnostic",
+      "owner": "Chat06",
+      "environment": "staging",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-27",
+      "stage": "web",
+      "actor": "Keyboard-only tester",
+      "action": "Complete CTA, login, question and review controls",
+      "expected": "Visible focus, labels, dialogs and error announcements",
+      "owner": "Chat05",
+      "environment": "browser",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-28",
+      "stage": "web",
+      "actor": "Mobile tester",
+      "action": "Test 320/375/768/1024/1440 viewport widths",
+      "expected": "No critical overflow, blocking sticky CTA or inaccessible controls",
+      "owner": "Chat05",
+      "environment": "browser",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-29",
+      "stage": "release",
+      "actor": "Release operator",
+      "action": "Try merge PR when security check intentionally fails",
+      "expected": "Blocked without bypass; documented emergency review required",
+      "owner": "FM-00",
+      "environment": "admin",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-30",
+      "stage": "rollback",
+      "actor": "Release operator",
+      "action": "Rehearse previous verified release after failure",
+      "expected": "Recover version+schema-compatible state; verify exact SHA",
+      "owner": "FM-00",
+      "environment": "sandbox",
+      "evidence_status": "NOT_EXECUTED"
+    }
+  ]
+}
