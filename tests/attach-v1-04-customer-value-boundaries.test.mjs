@@ -38,7 +38,7 @@ test("A28: suggestions are user-triggered after removal and collection is opt-in
 test("A27: reserved comparison route cannot acquire Record actions", () => {
   const bridge = read("components/retention-surface-bridge.tsx");
   assert.match(bridge, /isUuid\(recordMatch\[1\]\)/);
-  assert.match(bridge, /\{recordId && <RecordControls runId=\{recordId\}/);
+  assert.match(bridge, /\{recordId && <RecordControls key=\{recordId\} runId=\{recordId\}/);
   assert.doesNotMatch(bridge, /\{recordMatch && <RecordControls/);
 });
 
@@ -64,4 +64,18 @@ test("A15: first evidence polling is bounded and an interruption is not mistaken
   assert.match(wizard, /Inspect saved run before retrying/);
   assert.match(wizard, /Inspect its exact Record before deciding whether to start another provider call/);
   assert.doesNotMatch(wizard, /automatically retry the provider/i);
+});
+
+test("A27: Share is offered only after server-side active-project role capability", () => {
+  const bridge = read("components/retention-surface-bridge.tsx");
+  const route = read("app/api/records/[id]/share/route.ts");
+  assert.match(bridge, /canShareRecord && <button/);
+  assert.match(bridge, /!canShareRecord \|\| pending/);
+  assert.match(bridge, /fetch\(`\/api\/records\/\$\{encodeURIComponent\(runId\)\}\/share`/);
+  assert.match(bridge, /payload\.data\?\.canShare === true/);
+  assert.match(route, /export async function GET\(/);
+  assert.match(route, /getPrimaryWorkspaceRole\(viewer\)/);
+  assert.match(route, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/);
+  assert.match(route, /canShare: observed && canShare\(role\)/);
+  assert.match(route, /cache-control": "no-store"/);
 });
