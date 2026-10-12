@@ -4,7 +4,7 @@ import { PublicShell } from "@/components/public-shell";
 import { pageMetadata, webPageJsonLd } from "@/lib/seo";
 
 const description =
-  "See where AI recommends your brand. Track recommendations, inspect supporting sources, and decide what to improve with evidence-based Recommendation Intelligence for B2B software.";
+  "Inspect dated AI answer observations for B2B buyer questions, distinguish returned references from independently retrieved sources, and plan customer-approved next steps with Recommendation Intelligence.";
 
 export const metadata: Metadata = pageMetadata({
   title: "Recommendation Intelligence for B2B Software",
