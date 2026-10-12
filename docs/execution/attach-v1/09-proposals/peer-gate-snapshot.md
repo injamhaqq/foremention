@@ -40,3 +40,7 @@ These SHA/results are *point-in-time* facts. Re-query branch/PR HEAD and Actions
 5. Fresh verified deploy exact SHA, production canary and emergency rollback are gates for release **after** separate authorization; no consent implied by this PR.
 
 Source check: FM-00 located and SHA256-matched 18 original included files in its **separate archive**; Chat09 only received 7 index/control attachments. The named `Foremention_Master_Backlog_28_v2.csv` is still unavailable. This report does not claim to have read that file or reviewed FM-00's 18 originals.
+
+### Later same-day ref updates / added QA cases
+
+After the exact-ref table above, owners pushed **Chat01 #565 `1ccc6e86c179aa40e8dedd94e495ee591ee6196b`**, **Chat03 #566 `1b34ab87575e4962d4ebbf71d3427ee2e77b3320`** (revised source assertion preserving the shared identity helper), and **Chat04 #563 `277bd80cadd1eb6d57cb5bb6d3227ba8288b2558`** (lint refactor + export provenance), all with fresh checks still pending at their observed time. Chat05 #569 remained on the earlier failing head. Chat09 added QA09-31 (stale record-eligibility transition) and QA09-32 (CSV export formula/control-prefix injection) as new synthetic cases. Re-fetch current heads and checks before treating the earlier table as live.
