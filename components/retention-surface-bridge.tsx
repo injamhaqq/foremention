@@ -8,6 +8,7 @@ import { BillingControl } from "@/components/billing-control";
 import { EnterpriseReadiness } from "@/components/enterprise-readiness";
 import { MeasurementScheduleControl } from "@/components/measurement-schedule-control";
 import type { AttentionItem } from "@/lib/retention-loop";
+import { isUuid } from "@/lib/input-validation";
 
 function ContextLinks({ title, body, links }: { title: string; body: string; links: Array<[string, string]> }) {
   return <details className="panel retention-context-tools">
@@ -66,17 +67,46 @@ function AttentionSurface() {
 }
 
 function RecordControls({ runId }: { runId: string }) {
+  // Presentation is gated on a persisted run from the authorized active-project listing.
+  // API routes continue to enforce authorization and current state independently.
+  const [eligibility, setEligibility] = useState<"checking" | "eligible" | "unavailable">("checking");
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    setEligibility("checking");
+    void fetch("/api/runs", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Record listing unavailable");
+        return response.json() as Promise<{ data?: Array<{ id: string; status: string }> }>;
+      })
+      .then((payload) => {
+        if (!active) return;
+        const valid = Array.isArray(payload.data) && payload.data.some((run) =>
+          run.id === runId && ["review", "complete", "partial"].includes(run.status),
+        );
+        setEligibility(valid ? "eligible" : "unavailable");
+      })
+      .catch(() => { if (active) setEligibility("unavailable"); });
+    return () => { active = false; controller.abort(); };
+  }, [runId]);
   const [sharePath, setSharePath] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function share() {
+    if (eligibility !== "eligible" || pending) return;
     setPending(true); setError(null);
-    const response = await fetch(`/api/records/${encodeURIComponent(runId)}/share`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ includeEvidence: true, expiresInDays: 14 }) });
-    const payload = await response.json().catch(() => ({})) as { data?: { path?: string }; error?: string };
-    if (!response.ok || !payload.data?.path) setError(payload.error || "The read-only share could not be created.");
-    else setSharePath(payload.data.path);
-    setPending(false);
+    try {
+      const response = await fetch(`/api/records/${encodeURIComponent(runId)}/share`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ includeEvidence: true, expiresInDays: 14 }) });
+      const payload = await response.json().catch(() => ({})) as { data?: { path?: string }; error?: string };
+      if (!response.ok || !payload.data?.path) setError(payload.error || "The read-only share could not be created.");
+      else setSharePath(payload.data.path);
+    } catch {
+      setError("The read-only share is unavailable. Your saved Record was not changed. Retry when the connection recovers.");
+    } finally {
+      setPending(false);
+    }
   }
+  if (eligibility !== "eligible") return null;
   return <>
     <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
       <div className="panel-heading"><div><span className="eyebrow">Recommendation Record</span><h2>Share or export this exact evidence boundary.</h2><p>Evidence inspection remains contained in this Recommendation Record. Shared views are read-only, expiring and revocable.</p></div></div>
@@ -120,10 +150,11 @@ function ActionExtensions() {
 export function RetentionSurfaceBridge() {
   const pathname = usePathname();
   const recordMatch = pathname.match(/^\/app\/runs\/([^/]+)$/);
+  const recordId = recordMatch && isUuid(recordMatch[1]) ? recordMatch[1] : null;
   return <>
     {pathname === "/app" && <div className="attention-surface"><AttentionSurface /></div>}
     {pathname === "/app/settings" && <SettingsExtensions />}
-    {recordMatch && <RecordControls runId={decodeURIComponent(recordMatch[1])} />}
+    {recordId && <RecordControls runId={recordId} />}
     {pathname === "/app/analytics" && <AnalyticsExtensions />}
     {pathname === "/app/prompts" && <QuestionExtensions />}
     {pathname === "/app/competitors" && <CompetitorExtensions />}
