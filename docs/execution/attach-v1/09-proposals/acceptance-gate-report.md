@@ -20,7 +20,7 @@ Seven packet control/index files were uploaded directly. The checklist names **1
 
 ## Acceptance plan / owner-directed reproduction
 
-The [30-case scenario register](../../../tests/attach-v1-09/scenarios.json) defines the unexecuted nonproduction acceptance matrix. Run on disposable org A / org B identities and a composed exact SHA with appropriately provisioned sandbox, preserving evidence per case:
+The [30-case scenario register](../../../../tests/attach-v1-09/scenarios.json) defines the unexecuted nonproduction acceptance matrix. Run on disposable org A / org B identities and a composed exact SHA with appropriately provisioned sandbox, preserving evidence per case:
 
 1. **Chat02 / A04:** tenant A owner/analyst, B owner and A viewer: enumerate project, question, run, record, review, decision, export, job, billing; attempt B->A direct IDs and mixed A+B linked objects. Require denial and *unchanged storage*, even via service job. Pair with DB policy/RLS checks and inspect audit receipts. Current source-regex checks alone are insufficient.
 2. **Chat01 / observation:** capture genuinely permitted provider identity/model, buyer question/version, locale/context, raw answer and available usage/receipt. Force unrelated/polysemy, partial/refused, URL unsafe, missing provenance and budget exhaustion. Require unavailable/insufficient evidence states; no asserted source causation.
