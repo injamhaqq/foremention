@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getOperatorAlertDelivery, operatorAlertPublicState, sendOperatorAlertProbe } from "@/lib/operator-alerts";
+import { captureSentryOperatorProbe, type SentryOperatorProbeState } from "@/lib/sentry-operator-probe";
 
 const BUILD_COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -30,10 +31,15 @@ export async function POST() {
     // Deliberately accepts no request body, query parameters, recipient, message,
     // customer identifier, or SHA. The build comes only from the live Worker binding.
     const buildCommit = resolveCurrentBuild();
-    const delivery = await sendOperatorAlertProbe(buildCommit);
+    // The same bounded probe also exercises Sentry once per delivery attempt, so
+    // there is one operator monitor (email) with Sentry as a secondary signal.
+    let telemetry: SentryOperatorProbeState | "not_attempted" = "not_attempted";
+    const delivery = await sendOperatorAlertProbe(buildCommit, {
+      onDeliveryAttempt: (commit) => { telemetry = captureSentryOperatorProbe(commit); },
+    });
     const state = operatorAlertPublicState(delivery);
     const status = state.status === "sent" ? 200 : state.status === "failed" ? 503 : 202;
-    return Response.json({ buildCommit, ...state }, { status, headers: NO_STORE });
+    return Response.json({ buildCommit, ...state, telemetry }, { status, headers: NO_STORE });
   } catch {
     return Response.json({ error: "The controlled operator alert probe could not be completed." }, { status: 503, headers: NO_STORE });
   }

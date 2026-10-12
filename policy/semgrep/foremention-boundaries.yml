@@ -1,0 +1,76 @@
+# Foremention boundary invariants — custom Semgrep rules.
+# Authored by Foremention and licensed with this repository. These rules do not
+# copy or depend on Semgrep Registry rules. Run with the Semgrep OSS engine
+# (LGPL-2.1) only as an external CI tool; the engine is never bundled or shipped.
+rules:
+  - id: foremention-auth-mutation-requires-trusted-origin
+    message: >-
+      Auth mutation handlers must reject untrusted origins with
+      `if (!isTrustedMutationOrigin(request)) return ...` before doing any work.
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include:
+        - "app/api/auth/**/route.ts"
+        - "app/api/account/**/route.ts"
+        - "policy/semgrep/fixtures/auth-mutation-*.ts"
+    patterns:
+      - pattern: |
+          export async function $METHOD($REQ, ...) { ... }
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(POST|PUT|PATCH|DELETE)$
+      - pattern-not: |
+          export async function $METHOD($REQ, ...) {
+            if (!isTrustedMutationOrigin($REQ)) return $RES;
+            ...
+          }
+
+  - id: foremention-no-fetch-of-request-supplied-url
+    message: >-
+      A URL taken from the request reaches fetch() directly. Route it through
+      inspectSourceUrl/validatePublicSourceUrl (lib/source-inspection.ts), which
+      own DNS/SSRF/redirect/size/timeout safety.
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include:
+        - "app/**/*.ts"
+        - "lib/**/*.ts"
+        - "worker/**/*.ts"
+        - "policy/semgrep/fixtures/ssrf-*.ts"
+      exclude:
+        - "lib/source-inspection.ts"
+    mode: taint
+    pattern-sources:
+      - pattern: await $REQ.json()
+      - pattern: await $REQ.formData()
+      - pattern: $U.searchParams.get(...)
+    pattern-sanitizers:
+      - pattern: validatePublicSourceUrl(...)
+      - pattern: inspectSourceUrl(...)
+      - pattern: encodeURIComponent(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: fetch($TARGET, ...)
+          - focus-metavariable: $TARGET
+
+  - id: foremention-no-service-role-in-client-component
+    message: >-
+      Client components ship to the browser. Never reference the Supabase
+      service-role key (or server-only Supabase admin helpers) in a "use client" file.
+    severity: ERROR
+    languages: [typescript]
+    paths:
+      include:
+        - "app/**/*.tsx"
+        - "components/**/*.tsx"
+        - "policy/semgrep/fixtures/client-*.tsx"
+    patterns:
+      - pattern-inside: |
+          "use client";
+          ...
+      - pattern-either:
+          - pattern: process.env.SUPABASE_SERVICE_ROLE_KEY
+          - pattern: import $X from "@/lib/supabase-rest"
+          - pattern: import { ... } from "@/lib/supabase-rest"

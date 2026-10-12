@@ -47,3 +47,7 @@ next-env.d.ts
 /outputs/
 /work/
 /foremention-release-*.tar.gz
+
+# Source extraction benchmark runtime/output (CI-only)
+.source-benchmark-runtime/
+source-extraction-benchmark-results/
