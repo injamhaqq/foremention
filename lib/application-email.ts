@@ -65,6 +65,9 @@ export async function sendProductAlertEmail(input: ProductAlertEmail) {
     throw new ApplicationEmailSendUncertainError();
   }
   if (!response.ok) {
+    // A provider 5xx can occur after acceptance. Without a durable receipt,
+    // do not mark this as a definitively unsent message or retry blindly.
+    if (response.status >= 500) throw new ApplicationEmailSendUncertainError();
     throw new Error(`Application email provider rejected the request (status ${response.status}).`);
   }
   let result: { id?: string };
