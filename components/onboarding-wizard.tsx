@@ -187,27 +187,45 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
   useEffect(() => {
     if (!firstRunId || status !== "auditing") return;
     let cancelled = false;
+    let pollCount = 0;
+    let pendingTimer: ReturnType<typeof setTimeout> | null = null;
     const poll = async () => {
+      if (cancelled) return;
+      pollCount += 1;
       try {
         const response = await fetch("/api/runs", { cache: "no-store" });
+        if (!response.ok) throw new Error("Run status could not be checked.");
         const result = await response.json() as { data?: Array<{ id: string; status: string }> };
-        const run = result.data?.find((item) => item.id === firstRunId);
+        if (!Array.isArray(result.data)) throw new Error("Run status response is incomplete.");
+        const run = result.data.find((item) => item.id === firstRunId);
         if (!cancelled && run && ["review", "complete", "partial"].includes(run.status)) {
           setAuditStage(5);
-          window.setTimeout(() => window.location.assign(`/app/runs/${firstRunId}?first_evidence=1`), 600);
+          pendingTimer = window.setTimeout(() => {
+            if (!cancelled) window.location.assign(`/app/runs/${firstRunId}?first_evidence=1`);
+          }, 600);
           return;
         }
         if (!cancelled && run && ["failed", "cancelled"].includes(run.status)) {
+          setMessage("The saved collection is marked failed or cancelled. Inspect its exact Record before deciding whether to start another provider call.");
           setStatus("delayed");
           return;
         }
       } catch {
-        // The durable background run continues even when a browser poll fails.
+        // An unavailable poll does not prove the durable run failed.
       }
-      if (!cancelled) window.setTimeout(() => void poll(), 3_000);
+      if (cancelled) return;
+      if (pollCount >= 40) {
+        setMessage("The workspace and run were saved, but this browser could not confirm the final collection state. Inspect the recorded run before considering another collection.");
+        setStatus("delayed");
+        return;
+      }
+      pendingTimer = window.setTimeout(() => void poll(), 3_000);
     };
     void poll();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (pendingTimer !== null) window.clearTimeout(pendingTimer);
+    };
   }, [firstRunId, status]);
 
   async function startFirstAudit() {
@@ -298,7 +316,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
     <span className="eyebrow">Workspace created safely</span>
     <h2>Your first evidence check could not finish yet.</h2>
     <p>No evidence was invented and your setup is saved. {message || "The provider or background queue needs more time."} {firstAuditProvider ? "You can enter the workspace now and retry without repeating onboarding." : "Connect one provider in Settings when you are ready; creating the workspace did not manufacture a result."}</p>
-    <div className="settings-actions"><a className="button button--ink" href={firstAuditProvider ? "/app" : "/app/settings#providers"}>{firstAuditProvider ? "Open workspace" : "Connect a provider"} &rarr;</a>{firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}?first_evidence=1`}>Inspect run</a>}</div>
+    <div className="settings-actions"><a className="button button--ink" href={firstAuditProvider ? "/app/runs" : "/app/settings#providers"}>{firstAuditProvider ? "View collection history" : "Connect a provider"} &rarr;</a>{firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}?first_evidence=1`}>Inspect saved run before retrying</a>}</div>
   </div>;
 
   if (status === "complete") return <div className="onboarding-complete" role="status">
