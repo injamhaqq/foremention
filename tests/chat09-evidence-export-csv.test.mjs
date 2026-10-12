@@ -17,7 +17,7 @@ test("QA09-32 neutralizes formula-capable prefixes in untrusted evidence", () =>
   ];
   for (const input of inputs) {
     const encoded = csvCell(input);
-    assert.equal(encoded, JSON.stringify("'" + input), "untrusted formula prefix was not neutralized");
+    assert.equal(encoded, `"\'${input.replaceAll('"', '""')}"`, "untrusted formula prefix was not neutralized");
   }
 });
 
