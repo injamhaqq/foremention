@@ -1,6 +1,7 @@
 import { admitEvidenceCall, EvidenceCapacityExhaustedError } from "@/lib/evidence-capacity";
 import { RetrievedTopicUnavailableError } from "@/lib/retrieval-topic-relevance.mjs";
 import {
+  assertAuthorizedIndependentRetrieval,
   braveSearchApiKey,
   domainScopedQuery,
   retrieveFreeWebEvidence,
@@ -173,6 +174,9 @@ export async function runGroundedCloudflareWithBinding(input: {
   // domain and never passes off-domain results to the model as support.
   const scope = sourceDomainScopeFromPrompt(input.prompt);
   const query = scope ? domainScopedQuery(input.searchQuery || input.prompt, scope) : input.searchQuery || input.prompt;
+  // A07: prevent counting a capacity unit before a missing rights grant
+  // or removed search provider is detected. This makes no external calls.
+  assertAuthorizedIndependentRetrieval();
   // A18: admit against the platform-wide daily (and Brave monthly) cap
   // BEFORE any search request or model call is made. Fails closed.
   try {

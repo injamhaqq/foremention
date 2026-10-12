@@ -241,6 +241,24 @@ export function braveSearchApiKey(): string | null {
   return key && key.trim() ? key.trim() : null;
 }
 
+/**
+ * A07/CV-02: Bing's public RSS endpoint has no verified commercial retrieval
+ * grant in this repository. No credential/Brave capacity does NOT authorize a
+ * silent fallback to RSS. Explicit operator rights approval is required.
+ */
+export class RetrievalRightsUnavailableError extends Error {
+  constructor() {
+    super("Independent web retrieval is unavailable: no commercial Brave Search credential or explicit approved Bing RSS collection authorization is configured.");
+    this.name = "RetrievalRightsUnavailableError";
+  }
+}
+
+export function assertAuthorizedIndependentRetrieval(): "brave-search" | "bing-rss" {
+  if (braveSearchApiKey()) return "brave-search";
+  if (process.env.FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED === "1") return "bing-rss";
+  throw new RetrievalRightsUnavailableError();
+}
+
 async function retrieveBraveResults(query: string, apiKey: string, limit: number, signal?: AbortSignal) {
   const url = new URL(BRAVE_SEARCH_ENDPOINT);
   url.searchParams.set("q", query.slice(0, 400));
@@ -261,6 +279,8 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
   const candidateLimit = scope ? MAX_SCOPED_CANDIDATES : MAX_CITATIONS;
+  // Fail closed even when a caller bypasses Cloudflare's outer preflight.
+  assertAuthorizedIndependentRetrieval();
   const braveKey = braveSearchApiKey();
   let parsed: BingSearchResult[];
   let retrievalProvider: FreeWebEvidence["retrievalProvider"];
