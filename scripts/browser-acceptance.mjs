@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { verifyBoundedReleaseHealth } from "./bounded-release-health.mjs";
 
 const toolRequire = createRequire(new URL("../.ci-tools/package.json", import.meta.url));
-const { chromium, firefox } = toolRequire("playwright");
+const { chromium, firefox, webkit } = toolRequire("playwright");
 const axeModule = toolRequire("@axe-core/playwright");
 const AxeBuilder = axeModule.default || axeModule.AxeBuilder || axeModule;
 
@@ -45,7 +45,9 @@ const profiles = [
   { name: "chromium-mobile", browserType: chromium, viewport: { width: 375, height: 812 }, isMobile: true },
   { name: "chromium-narrow", browserType: chromium, viewport: { width: 320, height: 568 }, isMobile: true },
   { name: "firefox-desktop", browserType: firefox, viewport: { width: 1440, height: 1200 } },
+  { name: "webkit-desktop", browserType: webkit, viewport: { width: 1440, height: 1200 } },
 ];
+const crossEngineProfiles = new Set(["firefox-desktop", "webkit-desktop"]);
 
 const summary = {
   baseUrl: baseUrl.origin,
@@ -577,7 +579,7 @@ async function runPublicProfiles() {
       const observers = attachRuntimeObservers(page);
       for (const path of publicPaths) await auditPage({ page, observers, path, profileName: profile.name });
       await verifyAnalyticsOverlayRegression(page, profile.name);
-      if (profile.name !== "firefox-desktop") await verifyRecommendationRecordEvidence(page, profile.name);
+      if (!crossEngineProfiles.has(profile.name)) await verifyRecommendationRecordEvidence(page, profile.name);
       await context.close();
     } catch (error) {
       recordFailure("Browser profile crashed.", { profile: profile.name, error: error instanceof Error ? error.message : String(error) });

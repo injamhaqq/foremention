@@ -181,6 +181,12 @@ test("browser acceptance covers WebKit, low-height laptop, and mobile landscape"
   assert.match(hardening, /name: "webkit-mobile"[\s\S]{0,160}browserType: webkit[\s\S]{0,100}width: 390/);
 });
 
+test("public journey and axe audit run on Chromium, Firefox and WebKit engines", () => {
+  assert.match(runner, /const \{ chromium, firefox, webkit \} = toolRequire\("playwright"\)/);
+  assert.match(runner, /name: "firefox-desktop", browserType: firefox/);
+  assert.match(runner, /name: "webkit-desktop", browserType: webkit/);
+});
+
 test("browser acceptance models 200 and 400 percent zoom through the effective CSS viewport", () => {
   assert.match(hardening, /const zoomFactors = \[2, 4\]/);
   assert.match(hardening, /function effectiveViewport/);
