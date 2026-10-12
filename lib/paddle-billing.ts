@@ -325,6 +325,7 @@ export function parsePaddleCandidateEvent(rawBody: string): PaddleParsedEvent | 
 
   let state: BillingLifecycleState;
   let subscriptionId: string | null;
+  let accessUntil: string | null = null;
   if (eventType === "transaction.completed") {
     if (data.status !== "completed") return null;
     // Paddle generates zero-value transactions for payment-method updates.
@@ -341,6 +342,10 @@ export function parsePaddleCandidateEvent(rawBody: string): PaddleParsedEvent | 
     subscriptionId = idFrom(data.subscription_id);
     if (!subscriptionId || !SUBSCRIPTION_ID.test(subscriptionId)) return null;
     state = "active";
+    // The billed period end bounds the paid entitlement (A03); a renewal
+    // transaction.completed extends it. Absent or invalid -> no bound added.
+    const periodEnd = occurredAt(object(data.billing_period)?.ends_at);
+    if (periodEnd && new Date(periodEnd).getTime() > new Date(effectiveAt).getTime()) accessUntil = periodEnd;
   } else if (["subscription.past_due", "subscription.paused", "subscription.canceled"].includes(eventType)) {
     const expected: Record<string, BillingLifecycleState> = {
       "subscription.past_due": "past_due",
@@ -362,6 +367,7 @@ export function parsePaddleCandidateEvent(rawBody: string): PaddleParsedEvent | 
     state,
     externalCustomerId,
     externalSubscriptionId: subscriptionId,
+    ...(accessUntil ? { accessUntil } : {}),
     ...(eventType === "transaction.completed"
       ? {
         externalTransactionId: idFrom(data.id),

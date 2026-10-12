@@ -26,6 +26,9 @@ export function billingConfigured() {
   return Boolean(process.env.BILLING_WEBHOOK_SECRET && process.env.BILLING_PROVIDER_ID);
 }
 
+/** Days a paid period stays active after its end while the renewal charge webhook arrives. */
+export const PAID_PERIOD_RENEWAL_BUFFER_DAYS = 3;
+
 export function billingGracePeriodDays() {
   const raw = process.env.BILLING_GRACE_PERIOD_DAYS?.trim();
   if (!raw) return 0;
@@ -105,7 +108,18 @@ export function entitlementGrantForBillingEvent(event: VerifiedBillingEvent, now
     return { status: "cancelled", expiresAt: null, gracePeriodEndsAt: null };
   }
   if (event.state === "paused") return { status: "paused", expiresAt: null, gracePeriodEndsAt: null };
-  if (event.state !== "past_due") return { status: "active", expiresAt: null, gracePeriodEndsAt: null };
+  if (event.state !== "past_due") {
+    // A paid charge carries the end of the period it pays for (A03). Paid
+    // capacity then expires on its own unless a renewal charge extends it, so
+    // a lost cancellation webhook can never leave 25/100 questions open
+    // forever. The buffer covers normal renewal-webhook latency.
+    const paidThrough = event.accessUntil ? new Date(event.accessUntil) : null;
+    if (paidThrough && Number.isFinite(paidThrough.getTime())) {
+      const bufferMs = (PAID_PERIOD_RENEWAL_BUFFER_DAYS + billingGracePeriodDays()) * 24 * 60 * 60 * 1000;
+      return { status: "active", expiresAt: new Date(paidThrough.getTime() + bufferMs).toISOString(), gracePeriodEndsAt: null };
+    }
+    return { status: "active", expiresAt: null, gracePeriodEndsAt: null };
+  }
 
   const graceDays = billingGracePeriodDays();
   if (graceDays <= 0) return { status: "paused", expiresAt: null, gracePeriodEndsAt: null };
