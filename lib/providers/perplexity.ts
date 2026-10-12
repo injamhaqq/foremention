@@ -10,6 +10,6 @@ export const perplexityAdapter: AnswerProviderAdapter = {
   id: "perplexity",
   configured: () => false,
   async run(_prompt: ProviderPrompt): Promise<ProviderAnswer> {
-    throw new ProviderRequestError("Perplexity Sonar", 503, "Retired legacy Sonar API. The current Agent API adapter has not been validated or authorized.");
+    throw new ProviderRequestError("Perplexity Sonar", 410, "Retired legacy Sonar API. The current Agent API adapter has not been validated or authorized.");
   },
 };

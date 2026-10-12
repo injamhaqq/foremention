@@ -4,6 +4,7 @@ import {
   assertAuthorizedIndependentRetrieval,
   braveSearchApiKey,
   domainScopedQuery,
+  RetrievalRightsUnavailableError,
   retrieveFreeWebEvidence,
   SourceScopeUnavailableError,
   sourceDomainScopeFromPrompt,
@@ -301,6 +302,9 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
       };
     } catch (error) {
       if (error instanceof ProviderRequestError) throw error;
+      if (error instanceof RetrievalRightsUnavailableError) {
+        throw new ProviderRequestError("Independent web retrieval", 403, error.message);
+      }
       if (error instanceof DOMException && error.name === "AbortError") throw error;
       const detail = error instanceof Error ? error.message : "The grounded retrieval or model request failed.";
       throw new ProviderRequestError(GROUNDED_PROVIDER_LABEL, 502, detail);

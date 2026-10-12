@@ -35,3 +35,10 @@ test("A07: operator rights switch is explicit, not inferred from a configured mo
     if(k===undefined)delete process.env.BRAVE_SEARCH_API_KEY;else process.env.BRAVE_SEARCH_API_KEY=k;
   }
 });
+
+test("A07: unavailable collection rights are surfaced as a nonretryable error before capacity admission", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source=readFileSync(new URL("../lib/providers/cloudflare.ts",import.meta.url),"utf8");
+  assert.ok(source.indexOf("assertAuthorizedIndependentRetrieval();") < source.indexOf("await admitEvidenceCall("));
+  assert.match(source, /RetrievalRightsUnavailableError[\s\S]*ProviderRequestError\("Independent web retrieval", 403/);
+});
