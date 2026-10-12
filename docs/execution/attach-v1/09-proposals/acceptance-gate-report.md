@@ -11,7 +11,7 @@
 | A16 live ruleset | Active ruleset [20223161](https://github.com/injamhaqq/foremention/rules/20223161) requires `Analyze JavaScript and TypeScript`, `CI`, `actions-security`, `browser-acceptance`, `dependency-review`, `osv`, `secrets`, `trivy` | Independent gate enforcement against an authorized bypass actor; ruleset includes `RepositoryRole` bypass `always`, `strict_required_status_checks_policy=false` |
 | Exact baseline workflow state | Security and CodeQL successful; baseline `CI` in progress at inspection; production browser and first-evidence canary failed | Static source review is not current-head CI pass or production-readiness proof |
 | Production provenance from workflow logs | Browser workflow [38271628860](https://github.com/injamhaqq/foremention/actions/runs/38271628860) and canary [38271628656](https://github.com/injamhaqq/foremention/actions/runs/38271628656) expected `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9` but observed deployed `b13e5327ebe83dd8b3d2fb40760b657f5fb9785d` | Browser app interactions were **not** executed after the preflight failure; do not characterize as browser UX defects |
-| Chat09 fixtures | 30 synthetic cases and root-included independent source-contract tests added on this isolated branch | Actual staging, billing, provider, retention, security-negative or live traffic outcomes |
+| Chat09 fixtures | 32 synthetic cases and root-included independent source-contract tests added on this isolated branch | Actual staging, billing, provider, retention, security-negative or live traffic outcomes |
 | Historical source trace | 71 index rows individually preserved in `09-proposals/source-trace-71.csv`; original IDs appear in two backlog versions | 71 distinct current defects or inspection of the absent historical source documents |
 
 ## Source availability boundary
@@ -20,7 +20,7 @@ Seven packet control/index files were uploaded directly. The checklist names **1
 
 ## Acceptance plan / owner-directed reproduction
 
-The [30-case scenario register](../../../../tests/attach-v1-09/scenarios.json) defines the unexecuted nonproduction acceptance matrix. Run on disposable org A / org B identities and a composed exact SHA with appropriately provisioned sandbox, preserving evidence per case:
+The [32-case scenario register](../../../../tests/attach-v1-09/scenarios.json) defines the unexecuted nonproduction acceptance matrix. Run on disposable org A / org B identities and a composed exact SHA with appropriately provisioned sandbox, preserving evidence per case:
 
 1. **Chat02 / A04:** tenant A owner/analyst, B owner and A viewer: enumerate project, question, run, record, review, decision, export, job, billing; attempt B->A direct IDs and mixed A+B linked objects. Require denial and *unchanged storage*, even via service job. Pair with DB policy/RLS checks and inspect audit receipts. Current source-regex checks alone are insufficient.
 2. **Chat01 / observation:** capture genuinely permitted provider identity/model, buyer question/version, locale/context, raw answer and available usage/receipt. Force unrelated/polysemy, partial/refused, URL unsafe, missing provenance and budget exhaustion. Require unavailable/insufficient evidence states; no asserted source causation.
@@ -65,3 +65,7 @@ All ten worker branch heads and source diffs were inspected. **No file-path coll
 FM-00's own status claims 18/18 original source checksums matched in its separately accessed archive. Chat09 did not independently receive/read those originals; do not misrepresent this as a complete independent source audit. The original `Foremention_Master_Backlog_28_v2.csv` remains missing.
 
 **Readiness verdict stays unchanged.** Retest on the exact composed candidate; insist on authenticated browser and disposable two-tenant denial receipts, verified sandbox payment lifecycle, actual observed/reviewed second cycle, real receipt provenance and rollback before widening commercial access.
+
+### Expanded independent acceptance (QA09-31 / QA09-32)
+
+The synthetic scenario register now contains **32** cases; none is marked as executed end-to-end. Case QA09-31 requires an immediate fail-closed UI transition when an authorized Record ID or project changes without a React remount, before the new identity check completes. Case QA09-32 covers spreadsheet formula injection through untrusted evidence/question/reference CSV exports. A new root-discovered deterministic test exercises the existing `lib/csv.ts` encoder; it cannot prove authenticated route-level provenance or safe tenant-scoped exports.
