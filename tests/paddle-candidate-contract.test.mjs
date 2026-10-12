@@ -360,3 +360,19 @@ test("nullable adjustment type is documented by Paddle and must not be mistaken 
   delete missing.type;
   assert.throws(() => parsePaddleCandidateAdjustment(event("adjustment.created", missing)), /adjustment/i);
 });
+
+test("A03: paid Paddle period end bounds the entitlement so lost cancellations fail closed", async () => {
+  envSetup();
+  const { entitlementGrantForBillingEvent, PAID_PERIOD_RENEWAL_BUFFER_DAYS } = await import("../lib/billing.ts");
+  const periodEnd = new Date(new Date(occurred_at).getTime() + 30 * 86_400_000).toISOString();
+  const paid = parsePaddleCandidateEvent(event("transaction.completed", { billing_period: { starts_at: occurred_at, ends_at: periodEnd } }));
+  assert.equal(paid?.accessUntil, periodEnd);
+  delete process.env.BILLING_GRACE_PERIOD_DAYS;
+  const grant = entitlementGrantForBillingEvent({ ...paid, organizationId: org });
+  assert.equal(grant.status, "active");
+  assert.equal(new Date(grant.expiresAt).getTime(), new Date(periodEnd).getTime() + PAID_PERIOD_RENEWAL_BUFFER_DAYS * 86_400_000);
+  // A period end in the past or malformed adds no bound (renewal path decides).
+  assert.equal(parsePaddleCandidateEvent(event("transaction.completed", { billing_period: { ends_at: "nope" } }))?.accessUntil, undefined);
+  const past = new Date(new Date(occurred_at).getTime() - 86_400_000).toISOString();
+  assert.equal(parsePaddleCandidateEvent(event("transaction.completed", { billing_period: { ends_at: past } }))?.accessUntil, undefined);
+});
