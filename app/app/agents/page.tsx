@@ -8,18 +8,22 @@ import { isCompanyOperatorEmail } from "@/lib/company-operator";
 import { loadOpenSupportTickets } from "@/lib/agent-os/support";
 import { loadCompanyOperationalCostReadiness } from "@/lib/company-operational-cost-readiness";
 import { CompanyOperationalCostCard } from "@/components/company-operational-cost-card";
+import { EvidenceCapacityCard } from "@/components/evidence-capacity-card";
+import { readEvidenceCapacity } from "@/lib/evidence-capacity";
+import { braveSearchApiKey } from "@/lib/free-web-retrieval";
 
 export default async function AgentsPage() {
   const viewer = await requireViewer("/app/agents");
   const plane = await loadAgentControlPlane(viewer);
   const companyOperator = viewer.mode === "supabase" && isCompanyOperatorEmail(viewer.email);
-  const [operatingActions, supportTickets, costReadiness] = companyOperator
+  const [operatingActions, supportTickets, costReadiness, evidenceCapacity] = companyOperator
     ? await Promise.all([
       loadOperatingAgentActions(50).catch(() => []),
       loadOpenSupportTickets(25).catch(() => []),
       loadCompanyOperationalCostReadiness().catch(() => null),
+      readEvidenceCapacity({ brave: Boolean(braveSearchApiKey()) }).catch(() => null),
     ])
-    : [[], [], null];
+    : [[], [], null, null];
   return <main className="workspace">
     <div className="workspace-heading">
       <div>
@@ -30,6 +34,7 @@ export default async function AgentsPage() {
     </div>
     <AgentControlPlane plane={plane} />
     {companyOperator && <CompanyOperationalCostCard snapshot={costReadiness} />}
+    {companyOperator && <EvidenceCapacityCard snapshot={evidenceCapacity} />}
     {companyOperator && <SupportOperatorInbox tickets={supportTickets} />}
     {companyOperator && <OperatingAgentQueue actions={operatingActions} />}
     <div className="evidence-note"><strong>Operating rule</strong><p>Agents may validate, collect, normalize, measure, and route work. Only a human may approve evidence for customer-facing conclusions. An unavailable stage stays unavailable.</p></div>

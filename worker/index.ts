@@ -4,6 +4,8 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, publicToolRateLimitsTable, publicVisibilityScoresTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
 import { runGroundedCloudflareWithBinding, setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
+import { ProviderRequestError } from "../lib/providers/types";
+import { setEvidenceCapacityStore } from "../lib/evidence-capacity";
 import { runMeasurementScheduleBackupPass } from "../lib/jobs/measurement-schedule-dispatcher";
 import { MEASUREMENT_BACKUP_CRON, INNGEST_SELF_SYNC_CRON, scheduledBackupPlan } from "../lib/jobs/schedule-backup-plan.mjs";
 import { scrubSentryEvent } from "../lib/sentry-privacy";
@@ -279,9 +281,17 @@ async function runPublicGroundedCloudflare(env: Env, prompt: string, maxOutputTo
       maxOutputTokens,
       signal: AbortSignal.timeout(40_000),
     });
-  } catch {
+  } catch (error) {
+    // A18: a capacity refusal is reported plainly instead of as a provider failure.
+    if (error instanceof ProviderRequestError && error.status === 429) throw error;
     return null;
   }
+}
+
+function capacityRefusal(error: unknown) {
+  if (!(error instanceof ProviderRequestError) || error.status !== 429) throw error;
+  const detail = error.message.replace(/^[^:]*:\s*/, "");
+  return Response.json({ error: detail || "Live-evidence capacity is used up. No result was invented." }, { status: 429 });
 }
 
 async function handleVisibilityScore(request: Request, env: Env) {
@@ -468,6 +478,7 @@ async function handleSourceGapRequest(request: Request, env: Env) {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     setCloudflareAiBinding(env.AI);
+    setEvidenceCapacityStore(env.DB, true);
     const url = new URL(request.url);
     const correlationId = crypto.randomUUID();
     const startedAt = Date.now();
@@ -528,11 +539,11 @@ const worker = {
     }
 
     if (url.pathname === "/api/public/score" && (request.method === "GET" || request.method === "POST")) {
-      return complete(await handleVisibilityScore(correlatedRequest, env));
+      return complete(await handleVisibilityScore(correlatedRequest, env).catch(capacityRefusal));
     }
 
     if (url.pathname === "/api/public/prompt-check" && request.method === "POST") {
-      return complete(await handlePromptCoverage(correlatedRequest, env));
+      return complete(await handlePromptCoverage(correlatedRequest, env).catch(capacityRefusal));
     }
 
     if (url.pathname === "/_vinext/image") {
