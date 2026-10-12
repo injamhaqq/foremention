@@ -39,7 +39,7 @@
 | CV-03 | Perplexity adapter still uses `/v1/sonar`; **endpoint/provider contract not externally reverified**; do not activate or sell this lane until provider endpoint/model/auth/usage test and operator approval. |
 | CV-07, A29 | **Fail-closed fixed**: onboarding no longer performs unadmitted direct Groq network call; internal cost/retry/usage ledger integration remains a dependency before re-enabling. |
 | CV-11, A09 (29 + 24) | Structured references already merged via #459; **UI/reviewer/export copy contract pending** Chat04/05/09. Independent Cloudflare search candidate != native model-vendor citation. |
-| A07 (29 + 24) | **Rights gate unresolved**: existing Bing RSS fallback remains in code and surface truth documentation. Commercial-use authorization not supplied. FM-00 must decide disabling vs licensed/authorized retrieval without paid API activation; do not claim license cleared. |
+| A07 (29 + 24) | **Fail-closed runtime fixed:** no silent Bing RSS fallback without explicit rights attestation; provider error 403 before D1 admission/network. Actual authorization/contract remains **unverified**, and FM-00 must decide permitted retrieval mode. |
 | A10 (29 + 24) | Existing complete-run opt-in aggregation from merged #455; still requires exact-head acceptance and production opt-in evidence. |
 | A18 (29 + 24) | Existing D1 daily/Brave monthly caps inspected; current vendor quota, billing settings, invoice and retry-unit reconciliation **unknown**. Zero rate estimates are not invoice proof. |
 
@@ -57,3 +57,11 @@
 5. Run exact-head GitHub checks; preserve draft until green. Rollback is reverting the FM-01 implementation commit on its isolated branch (never rewrite other workers, never force-merge).
 
 **Checkpoint conclusion:** reviewable owned code is committed; cross-owner integration, real provider/rights verification and production acceptance are **not** verified.
+
+## Follow-up implementation checkpoint — 2026-10-12
+- Added explicit no-license/no-provider preflight to `lib/free-web-retrieval.ts` and `lib/providers/cloudflare.ts`; no silent Bing RSS fallback and nonretryable 403 on unavailable rights. `BRAVE_SEARCH_API_KEY` permits the separately capped Brave lane only after operator entitlement/usage verification; `FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED=1` must NOT be set absent documentary authorization.
+- Disabled retired Perplexity Sonar adapter: `lib/providers/perplexity.ts` now `configured() === false` and always throws before network. Converted its old mocked-citation regression into a fail-closed no-fetch test in `tests/provider-citation-integrity.test.mjs`.
+- Added `tests/fm01-retrieval-rights.test.mjs` and `docs/execution/attach-v1/01-proposals/provider-method-requirements.md` for source/method requirements and explicit cross-owner behavior.
+- Most recent implementation commit at this checkpoint: `4087096664dad1d18a1bbe2820889f3b03c69835`; **this status-document update changes the branch SHA again**. GitHub branch/PR head, not this embedded value, is authoritative for exact-head checks.
+- Read-only verification of external docs: Perplexity vendor support confirmed Sonar chat-completions retirement September 27, 2026; Microsoft commercial Bing Search APIs terms are not evidence of commercial authorization for the distinct public RSS URL. No live vendor credentials, quota, payments or license grants were inspected.
+- Draft PR #565 is the exchange point for FM-00 and Chat09. Security, Semgrep and CodeQL passed on the previous intermediate code revision; **none of those results certify this updated final head**. Cloudflare's separate automatic PR build check reported failure (reason inaccessible), not a deploy receipt. Other head checks remain pending. No production deployment was authorized.
