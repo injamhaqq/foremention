@@ -3,6 +3,7 @@ import {
   citationMatchesScope as sharedCitationMatchesScope,
   sourceDomainScopeFromPrompt as sharedSourceDomainScopeFromPrompt,
 } from "./official-source-relevance.mjs";
+import { assessRetrievedTopicRelevance, RetrievedTopicUnavailableError } from "./retrieval-topic-relevance.mjs";
 
 const BING_SEARCH_ENDPOINT = "https://www.bing.com/search";
 // A07: Bing RSS output is licensed for personal, non-commercial use only. When a
@@ -152,6 +153,9 @@ export type FreeWebEvidence = {
   content: string;
   citations: ProviderCitation[];
   retrievalProvider: "brave-search" | "bing-rss";
+  retrievalQuery: string;
+  retrievedCandidateCount: number;
+  relevanceRejectedCount: number;
 };
 
 /**
@@ -293,7 +297,16 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
       ? "Brave Search returned no verifiable source URLs."
       : "Bing RSS returned no verifiable source URLs.");
   }
-  const results = restrictResultsToScope(parsed, scope).slice(0, MAX_CITATIONS);
+  const scopedResults = restrictResultsToScope(parsed, scope);
+  // A08/CV-01: topical relevance is checked BEFORE inference and citation
+  // selection. Explicit official-domain requests already have a separate
+  // strict provenance gate and may legitimately ask for the newest post,
+  // whose title cannot be predicted from the question.
+  const topical = scope ? null : assessRetrievedTopicRelevance(normalized, scopedResults);
+  if (topical && !topical.accepted.length) {
+    throw new RetrievedTopicUnavailableError(topical.reason || "NO_TOPICALLY_RELEVANT_RESULTS", scopedResults.length);
+  }
+  const results = (topical ? topical.accepted : scopedResults).slice(0, MAX_CITATIONS);
 
   const evidenceText = results.map((result, index) => [
     `SOURCE [${index + 1}]`,
@@ -306,5 +319,8 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
     content: evidenceText,
     citations: results.map(({ url: sourceUrl, title }) => ({ url: sourceUrl, title })),
     retrievalProvider,
+    retrievalQuery: normalized,
+    retrievedCandidateCount: parsed.length,
+    relevanceRejectedCount: topical?.rejected.length || 0,
   };
 }

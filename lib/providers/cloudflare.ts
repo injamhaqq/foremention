@@ -1,4 +1,5 @@
 import { admitEvidenceCall, EvidenceCapacityExhaustedError } from "@/lib/evidence-capacity";
+import { RetrievedTopicUnavailableError } from "@/lib/retrieval-topic-relevance.mjs";
 import {
   braveSearchApiKey,
   domainScopedQuery,
@@ -186,7 +187,7 @@ export async function runGroundedCloudflareWithBinding(input: {
   try {
     evidence = await retrieveFreeWebEvidence(query, input.signal, scope);
   } catch (error) {
-    if (error instanceof SourceScopeUnavailableError) {
+    if (error instanceof SourceScopeUnavailableError || error instanceof RetrievedTopicUnavailableError) {
       throw new ProviderRequestError(GROUNDED_PROVIDER_LABEL, 422, `Evidence unavailable: ${error.message}`);
     }
     throw error;
@@ -246,6 +247,9 @@ export async function runGroundedCloudflareWithBinding(input: {
     finishReason: raw.choices?.[0]?.finish_reason,
     retrievalProvider: evidence.retrievalProvider,
     retrievedCitationCount: evidence.citations.length,
+    retrievalQuery: evidence.retrievalQuery,
+    retrievedCandidateCount: evidence.retrievedCandidateCount,
+    relevanceRejectedCount: evidence.relevanceRejectedCount,
   };
 }
 
@@ -279,6 +283,9 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
           grounded: true,
           retrievalProvider: grounded.retrievalProvider,
           retrievedCitationCount: grounded.retrievedCitationCount,
+          retrievalQuery: grounded.retrievalQuery,
+          retrievedCandidateCount: grounded.retrievedCandidateCount,
+          relevanceRejectedCount: grounded.relevanceRejectedCount,
           citationCount: grounded.citations.length,
           finishReason: grounded.finishReason,
           usage: grounded.usage,

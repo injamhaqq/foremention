@@ -100,25 +100,11 @@ export async function enrichOnboardingDraft(input: {
   pageDescription?: string | null;
   pageText?: string | null;
 }) {
-  const { groqAdapter } = await import("./providers/groq");
-  if (!groqAdapter.configured()) return { draft: input.draft, enriched: false as const };
-  const prompt = buildOnboardingEnrichmentPrompt(input);
-
-  try {
-    const answer = await groqAdapter.run({ promptId: crypto.randomUUID(), text: prompt }, {
-      signal: AbortSignal.timeout(20_000),
-      maxOutputTokens: 700,
-      budget: {
-        runSpendSoFarUsd: 0,
-        monthlySpendSoFarUsd: 0,
-        runLimitUsd: 0.05,
-        monthlyLimitUsd: 5,
-      },
-    });
-    const enrichment = parseOnboardingEnrichment(answer.answer);
-    if (!enrichment) return { draft: input.draft, enriched: false as const };
-    return { draft: mergeOnboardingEnrichment(input.draft, enrichment), enriched: true as const };
-  } catch {
-    return { draft: input.draft, enriched: false as const };
-  }
+  // CV-07/A29: no direct Groq enrichment from a public onboarding route.
+  // The previous hard-coded local budget was not a persisted organization
+  // admission/usage receipt, so it could bypass the common free-only and
+  // budget controls. Until FM-00 provides atomic central budget admission
+  // and accounting for internal work, return the safe editable metadata
+  // draft. No network call or paid provider substitution takes place.
+  return { draft: input.draft, enriched: false as const };
 }
