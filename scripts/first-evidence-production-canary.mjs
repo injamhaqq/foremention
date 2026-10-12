@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
+import { assessOfficialSourceAnswer, sourceDomainScopeFromPrompt } from "../lib/official-source-relevance.mjs";
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -276,6 +277,27 @@ async function verifyRunEvidenceAndPublish(page, run) {
   }
 
   stage("persisted-provider-answer-verified", { answers: Number(run.answers), citations: Number(run.citations || 0) });
+
+  // #345/A08: the pinned question explicitly requires an exact official
+  // openai.com/news source. Citation quantity is not evidence quality: a
+  // generic refusal, or links to unrelated hosts/sections, must fail this gate
+  // BEFORE the synthetic user publishes (bulk-verifies) the run.
+  const requiredOfficialScope = sourceDomainScopeFromPrompt(freshWebEvidenceQuestion);
+  if (!requiredOfficialScope) fail("The pinned official-domain provenance requirement was not recognized.");
+  const officialRecord = page.locator("article.canonical-answer-record").filter({
+    hasText: "most recently published post on openai.com/news",
+  }).first();
+  if (await officialRecord.count() !== 1) fail("The pinned official-domain Recommendation Record was not rendered.");
+  const displayedOfficialAnswer = await officialRecord.locator(":scope > p").first().innerText();
+  const displayedOfficialCitations = await officialRecord.locator(".canonical-citation-record > a").evaluateAll(
+    (anchors) => anchors.map((anchor) => ({ url: anchor.href })),
+  );
+  const officialAssessment = assessOfficialSourceAnswer(displayedOfficialAnswer, displayedOfficialCitations, requiredOfficialScope);
+  summary.evidence.officialSourceQualification = officialAssessment.ok ? "qualified" : officialAssessment.reason;
+  if (!officialAssessment.ok) {
+    fail(`The official-domain evidence qualification gate failed (${officialAssessment.reason}). A refusal or an unrelated returned link is not verified official-source evidence.`);
+  }
+  stage("official-source-provenance-minimum-verified");
 
   if (run.status === "review") {
     const review = await sameOriginFetch(page, `/api/runs/${run.id}/review`, { method: "POST" });

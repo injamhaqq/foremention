@@ -1,4 +1,8 @@
 import type { ProviderCitation } from "@/lib/providers/types";
+import {
+  citationMatchesScope as sharedCitationMatchesScope,
+  sourceDomainScopeFromPrompt as sharedSourceDomainScopeFromPrompt,
+} from "./official-source-relevance.mjs";
 
 const BING_SEARCH_ENDPOINT = "https://www.bing.com/search";
 // A07: Bing RSS output is licensed for personal, non-commercial use only. When a
@@ -8,6 +12,11 @@ const BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";
 const MAX_RSS_CHARS = 256_000;
 const MAX_RETRIEVAL_CHARS = 12_000;
 const MAX_CITATIONS = 8;
+// #345/A08: when a request explicitly scopes evidence to one official domain,
+// read deeper into the result list before filtering so an in-scope result that
+// ranks after eight off-domain hits is not silently discarded. Only in-scope
+// results survive, and at most MAX_CITATIONS of them reach the model.
+const MAX_SCOPED_CANDIDATES = 20;
 
 function decodeXml(value: string) {
   let result = "";
@@ -111,13 +120,13 @@ export type BingSearchResult = ProviderCitation & {
   snippet: string;
 };
 
-export function parseBingSearchRss(input: string): BingSearchResult[] {
+export function parseBingSearchRss(input: string, limit: number = MAX_CITATIONS): BingSearchResult[] {
   const raw = input.slice(0, MAX_RSS_CHARS);
   const lower = raw.toLowerCase();
   const results = new Map<string, BingSearchResult>();
   let cursor = 0;
 
-  while (cursor < raw.length && results.size < MAX_CITATIONS) {
+  while (cursor < raw.length && results.size < limit) {
     const itemStart = lower.indexOf("<item", cursor);
     if (itemStart < 0) break;
     const itemOpenEnd = raw.indexOf(">", itemStart);
@@ -147,20 +156,24 @@ export type FreeWebEvidence = {
 
 /**
  * Explicit source-domain requirement extracted from a buyer question (#345).
- *
- * A scope is produced ONLY when the request names exactly one web domain and
- * explicitly requires that provenance (for example "according to the official
- * OpenAI website ... openai.com/news" or "cite the exact openai.com source URL").
- * Ordinary comparison questions, and questions naming several domains, are
- * never site-scoped.
+ * The policy (detection, strict URL matching, answer qualification) lives in
+ * lib/official-source-relevance.mjs so retrieval, the review API and the
+ * production canary all enforce exactly the same rule.
  */
 export type SourceDomainScope = {
   domain: string;
   pathPrefix: string | null;
 };
 
+export function sourceDomainScopeFromPrompt(prompt: string): SourceDomainScope | null {
+  return sharedSourceDomainScopeFromPrompt(prompt);
+}
+
+export function citationMatchesScope(url: string, scope: SourceDomainScope) {
+  return sharedCitationMatchesScope(url, scope);
+}
+
 const DOMAIN_PATTERN = /\b((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|org|net|io|ai|co|dev|app|gov|edu|info|news|blog|tech|cloud|so|xyz|us|uk|de|fr|in|bd))(\/[a-z0-9\-._~/%]*)?/gi;
-const PROVENANCE_REQUIREMENT = /\b(official\s+(?:[\w.-]+\s+){0,3}(?:website|site|domain|blog|newsroom|page|source)|from\s+the\s+official|exact\s+(?:[\w.-]+\s+){0,2}(?:source\s+)?url|only\s+(?:cite|use)\s+(?:sources?\s+)?from)\b/i;
 const QUERY_STOPWORDS = new Set([
   "a", "about", "according", "after", "an", "and", "answer", "answering", "are", "as", "at", "be", "by", "can", "cannot",
   "cite", "current", "date", "did", "do", "does", "evidence", "exact", "for", "from", "has", "have", "how", "i", "if", "in",
@@ -168,23 +181,6 @@ const QUERY_STOPWORDS = new Set([
   "site", "so", "source", "than", "that", "the", "their", "this", "time", "to", "url", "use", "used", "verify", "was", "web",
   "website", "what", "when", "which", "with", "you", "your",
 ]);
-
-export function sourceDomainScopeFromPrompt(prompt: string): SourceDomainScope | null {
-  const text = prompt.normalize("NFKC");
-  if (!PROVENANCE_REQUIREMENT.test(text)) return null;
-  const found = new Map<string, string | null>();
-  for (const match of text.matchAll(DOMAIN_PATTERN)) {
-    const domain = match[1].toLowerCase().replace(/^www\./, "");
-    const rawPath = (match[2] || "").replace(/[.,;:!?)]+$/, "").replace(/\/+$/, "");
-    const pathPrefix = rawPath && rawPath !== "/" ? rawPath.toLowerCase() : null;
-    const existing = found.get(domain);
-    // Keep a path prefix only if every mention of the domain agrees on it.
-    found.set(domain, found.has(domain) && existing !== pathPrefix ? null : pathPrefix);
-  }
-  if (found.size !== 1) return null;
-  const [[domain, pathPrefix]] = Array.from(found.entries());
-  return { domain, pathPrefix };
-}
 
 /** Concise, bounded, domain-qualified retrieval query (documented normalization). */
 export function domainScopedQuery(prompt: string, scope: SourceDomainScope) {
@@ -197,19 +193,6 @@ export function domainScopedQuery(prompt: string, scope: SourceDomainScope) {
   }
   const site = `site:${scope.domain}${scope.pathPrefix || ""}`;
   return [site, ...keywords].join(" ").slice(0, 200).trim();
-}
-
-export function citationMatchesScope(url: string, scope: SourceDomainScope) {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-    if (host !== scope.domain && !host.endsWith(`.${scope.domain}`)) return false;
-    if (!scope.pathPrefix) return true;
-    const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
-    return path === scope.pathPrefix || path.startsWith(`${scope.pathPrefix}/`);
-  } catch {
-    return false;
-  }
 }
 
 export class SourceScopeUnavailableError extends Error {
@@ -232,12 +215,12 @@ export function restrictResultsToScope<T extends { url: string }>(results: T[], 
 
 type BraveWebResult = { url?: unknown; title?: unknown; description?: unknown; extra_snippets?: unknown };
 
-export function parseBraveSearchResponse(payload: unknown): BingSearchResult[] {
+export function parseBraveSearchResponse(payload: unknown, limit: number = MAX_CITATIONS): BingSearchResult[] {
   const web = (payload as { web?: { results?: unknown } } | null)?.web;
   const list = Array.isArray(web?.results) ? (web!.results as BraveWebResult[]) : [];
   const results = new Map<string, BingSearchResult>();
   for (const item of list) {
-    if (results.size >= MAX_CITATIONS) break;
+    if (results.size >= limit) break;
     const url = typeof item.url === "string" ? normalizeHttpUrl(item.url) : null;
     if (!url || results.has(url)) continue;
     const title = typeof item.title === "string" ? textFromXml(item.title).slice(0, 240) : "";
@@ -254,10 +237,10 @@ export function braveSearchApiKey(): string | null {
   return key && key.trim() ? key.trim() : null;
 }
 
-async function retrieveBraveResults(query: string, apiKey: string, signal?: AbortSignal) {
+async function retrieveBraveResults(query: string, apiKey: string, limit: number, signal?: AbortSignal) {
   const url = new URL(BRAVE_SEARCH_ENDPOINT);
   url.searchParams.set("q", query.slice(0, 400));
-  url.searchParams.set("count", String(MAX_CITATIONS));
+  url.searchParams.set("count", String(limit));
   url.searchParams.set("search_lang", "en");
   url.searchParams.set("extra_snippets", "true");
   const response = await fetch(url, {
@@ -266,26 +249,25 @@ async function retrieveBraveResults(query: string, apiKey: string, signal?: Abor
     signal,
   });
   if (!response.ok) throw new Error(`Brave Search retrieval failed with HTTP ${response.status}.`);
-  const parsed = parseBraveSearchResponse(await response.json());
-  if (!parsed.length) throw new Error("Brave Search returned no verifiable source URLs.");
-  return parsed;
+  return parseBraveSearchResponse(await response.json(), limit);
 }
 
 export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal, scope: SourceDomainScope | null = null): Promise<FreeWebEvidence> {
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
+  const candidateLimit = scope ? MAX_SCOPED_CANDIDATES : MAX_CITATIONS;
   const braveKey = braveSearchApiKey();
   let parsed: BingSearchResult[];
   let retrievalProvider: FreeWebEvidence["retrievalProvider"];
   if (braveKey) {
-    parsed = await retrieveBraveResults(normalized, braveKey, signal);
+    parsed = await retrieveBraveResults(normalized, braveKey, candidateLimit, signal);
     retrievalProvider = "brave-search";
   } else {
     const url = new URL(BING_SEARCH_ENDPOINT);
     url.searchParams.set("format", "rss");
     url.searchParams.set("q", normalized);
-    url.searchParams.set("count", String(MAX_CITATIONS));
+    url.searchParams.set("count", String(candidateLimit));
     url.searchParams.set("setlang", "en-US");
 
     const response = await fetch(url, {
@@ -299,13 +281,19 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
     if (!response.ok) throw new Error(`Bing RSS retrieval failed with HTTP ${response.status}.`);
 
     const raw = (await response.text()).slice(0, MAX_RSS_CHARS).trim();
-    if (!raw) throw new Error("Bing RSS returned no evidence content.");
-
-    parsed = parseBingSearchRss(raw);
-    if (!parsed.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+    parsed = raw ? parseBingSearchRss(raw, candidateLimit) : [];
     retrievalProvider = "bing-rss";
   }
-  const results = restrictResultsToScope(parsed, scope);
+  // An explicit official-domain request with no in-scope result is
+  // "evidence unavailable" (unknown), for both providers, never a generic
+  // retryable failure and never off-domain substitutes.
+  if (!parsed.length) {
+    if (scope) throw new SourceScopeUnavailableError(scope, 0);
+    throw new Error(retrievalProvider === "brave-search"
+      ? "Brave Search returned no verifiable source URLs."
+      : "Bing RSS returned no verifiable source URLs.");
+  }
+  const results = restrictResultsToScope(parsed, scope).slice(0, MAX_CITATIONS);
 
   const evidenceText = results.map((result, index) => [
     `SOURCE [${index + 1}]`,
