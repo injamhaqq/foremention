@@ -74,7 +74,6 @@ function RecordControls({ runId }: { runId: string }) {
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
-    setEligibility("checking");
     void fetch("/api/runs", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Record listing unavailable");
@@ -108,7 +107,7 @@ function RecordControls({ runId }: { runId: string }) {
     }
   }
   if (eligibility === "checking") return <section className="panel" role="status"><p>Verifying the saved Record and available actions…</p></section>;
-  if (eligibility === "error") return <section className="panel" role="alert"><p>Record actions could not be verified. No share or export is available until this check succeeds.</p><button type="button" className="button button--outline" onClick={() => setEligibilityAttempt((value) => value + 1)}>Retry Record action check</button></section>;
+  if (eligibility === "error") return <section className="panel" role="alert"><p>Record actions could not be verified. No share or export is available until this check succeeds.</p><button type="button" className="button button--outline" onClick={() => { setEligibility("checking"); setEligibilityAttempt((value) => value + 1); }}>Retry Record action check</button></section>;
   if (eligibility !== "eligible") return null;
   return <>
     <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
