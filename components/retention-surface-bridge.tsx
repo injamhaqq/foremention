@@ -69,7 +69,8 @@ function AttentionSurface() {
 function RecordControls({ runId }: { runId: string }) {
   // Presentation is gated on a persisted run from the authorized active-project listing.
   // API routes continue to enforce authorization and current state independently.
-  const [eligibility, setEligibility] = useState<"checking" | "eligible" | "unavailable">("checking");
+  const [eligibility, setEligibility] = useState<"checking" | "eligible" | "unavailable" | "error">("checking");
+  const [eligibilityAttempt, setEligibilityAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -86,9 +87,9 @@ function RecordControls({ runId }: { runId: string }) {
         );
         setEligibility(valid ? "eligible" : "unavailable");
       })
-      .catch(() => { if (active) setEligibility("unavailable"); });
+      .catch(() => { if (active) setEligibility("error"); });
     return () => { active = false; controller.abort(); };
-  }, [runId]);
+  }, [runId, eligibilityAttempt]);
   const [sharePath, setSharePath] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +107,8 @@ function RecordControls({ runId }: { runId: string }) {
       setPending(false);
     }
   }
+  if (eligibility === "checking") return <section className="panel" role="status"><p>Verifying the saved Record and available actions…</p></section>;
+  if (eligibility === "error") return <section className="panel" role="alert"><p>Record actions could not be verified. No share or export is available until this check succeeds.</p><button type="button" className="button button--outline" onClick={() => setEligibilityAttempt((value) => value + 1)}>Retry Record action check</button></section>;
   if (eligibility !== "eligible") return null;
   return <>
     <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
