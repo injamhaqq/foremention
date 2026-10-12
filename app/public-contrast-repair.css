@@ -122,3 +122,80 @@
 .site-audit-card dt,
 .checklist-grid > article > span { color: var(--fm-muted, #9ea69e); }
 .honesty-grid > article p a { color: var(--fm-fg, #fffdf9); text-decoration: underline; text-underline-offset: 3px; }
+
+
+/*
+ * FM-05 / A25: signed-in six-step onboarding remains in the canonical dark
+ * workspace. Legacy wizard rules used --ink (#0d0f0e) as foreground on dark
+ * cards and used inherited light foregrounds on white review cells.
+ * Restrict repairs to onboarding; keep original signal colour and hierarchy.
+ */
+.app-frame .workspace--evidence-onboarding .onboarding-wizard > ol {
+  border-color: var(--fm-border-strong);
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard > ol li {
+  color: var(--fm-fg-soft);
+  border-color: var(--fm-border-strong);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard > ol li.is-active {
+  color: var(--fm-clean);
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard > ol li.is-complete {
+  color: var(--fm-signal-light);
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard legend,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .onboarding-review strong {
+  color: var(--fm-fg);
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard label,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .field-hint,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .wizard-progress,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .onboarding-review small,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .onboarding-review span {
+  color: var(--fm-fg-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard input:not([type="checkbox"]),
+.app-frame .workspace--evidence-onboarding .onboarding-wizard textarea,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard select {
+  background: #fff;
+  color: var(--fm-bg);
+  border-color: var(--fm-muted-2);
+  font-size: 14px;
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .website-draft,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .onboarding-review > div {
+  background: var(--fm-surface);
+  color: var(--fm-fg);
+  border-color: var(--fm-border-strong);
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .website-draft strong,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .website-draft .eyebrow {
+  color: var(--fm-fg);
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .website-draft p,
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .website-draft__status {
+  color: var(--fm-fg-soft) !important;
+  font-size: 12px;
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .onboarding-review button {
+  color: var(--fm-signal-light);
+  min-height: 44px;
+}
+.app-frame .workspace--evidence-onboarding .onboarding-wizard .onboarding-security-note {
+  background: var(--fm-surface-2);
+  border-color: var(--fm-signal-light);
+  color: var(--fm-fg-soft);
+  font-size: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-frame .workspace--evidence-onboarding .onboarding-wizard .wizard-progress i {
+    transition: none;
+  }
+  .app-frame .workspace--evidence-onboarding .onboarding-wizard .audit-loader i {
+    animation: none;
+  }
+}
