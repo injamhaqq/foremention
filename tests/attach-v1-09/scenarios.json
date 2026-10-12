@@ -304,6 +304,26 @@
       "owner": "FM-00",
       "environment": "sandbox",
       "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-31",
+      "stage": "recovery",
+      "actor": "Tenant A reviewer",
+      "action": "Switch active project or navigate from authorized Record A to unrelated Record B without remount while Record B authorization request is pending",
+      "expected": "Share/export/decision actions fail closed immediately and remain unavailable until the new record plus project identity is verified; server denies direct ID",
+      "owner": "Chat04/Chat02",
+      "environment": "browser",
+      "evidence_status": "NOT_EXECUTED"
+    },
+    {
+      "id": "QA09-32",
+      "stage": "export",
+      "actor": "Tenant A reviewer",
+      "action": "Export Recommendation Record whose untrusted answer/reference/question text begins with spreadsheet formula markers, tabs, control characters or double quotes",
+      "expected": "CSV formula injection neutralized; quoting and evidence provenance retained; unknown method/model/version not fabricated",
+      "owner": "Chat04/Chat09",
+      "environment": "fixture",
+      "evidence_status": "NOT_EXECUTED"
     }
   ]
 }
