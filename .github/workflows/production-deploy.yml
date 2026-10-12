@@ -54,7 +54,7 @@ jobs:
 
       - name: Verify exact release
         run: |
-          for i in $(seq 1 12); do
+          for _ in $(seq 1 12); do
             got="$(curl -fsS https://foremention.com/api/health | python3 -c 'import json,sys;print(json.load(sys.stdin).get("buildCommit",""))' || true)"
             if [ "${got}" = "${GITHUB_SHA}" ]; then echo "Production serves ${GITHUB_SHA}"; exit 0; fi
             sleep 10
