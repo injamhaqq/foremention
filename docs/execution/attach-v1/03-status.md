@@ -46,3 +46,20 @@ No migrations, shared root config, customer data, live catalog or payment-accoun
 - Rollback: revert the helper, webhook guard and tests together; no migration rollback.
 
 **Readiness:** narrowly tested, reviewable identity patch; **NOT** integrated release or live billing acceptance.
+
+
+## Continue checkpoint — CI repair and bounded initial Paddle checkout grants
+
+**Prior PR #566 head:** `1efcd592945ace7f3af1d7332253da4fd7d7bea9`. Original exact-head GitHub Actions: **CI failed 1 of 1,320 tests**. Precise failing case: `tests/paddle-checkout-reservation-contract.test.mjs`, which looked for inline subscription/customer comparisons that were intentionally extracted into `lib/paddle-lifecycle-admission.ts`. Seven other original GitHub Actions workflows finished successfully. This is a real verified test-contract drift, not a false claim that CI passed.
+
+**Follow-up branch-only commits:**
+- `1b34ab87575e4962d4ebbf71d3427ee2e77b3320` — update existing reservation regression to test exact identity comparisons in the factored helper; do not weaken checking.
+- `0d08f8e7a890b22658a57e582877bd21d54b6f54` — `lib/paddle-paid-period.ts`: read-only Paddle subscription lookup and validated bounded expiry for initial paid transactions with null `billing_period`.
+- `2b170186c27b1378e56b0810adef9efea19709d4` and `142a7f426fbc08bb0777eae85563986e97392dc5` — webhook route allows paid period lookup only **after** reserved checkout or recurring identity admission, only for verified Paddle transactions missing the period; fail closed with HTTP 503 if unreconciled and type-narrow to Core/Signal.
+- `95463f0722b1bfa3c363fa84f3067a99f646fcf4` — new 5-case mocked fixture `tests/attach-v1-03-paddle-paid-period.test.mjs` covering valid first payment, forged subscription/customer/package/interval, invalid dates, unconfigured API, API failure and route ordering.
+
+**Official Paddle contracts checked:** `transaction.completed` may have nullable `billing_period` (documented as set for renewals). `GET /subscriptions/{id}` includes `status`, `customer_id`, one/multiple `items` and `current_billing_period`. No API call was sent to Paddle to test this path; mocked read-only fixtures only. Verified period lookup requires active subscription, exact mapped price/package/interval, same customer and subscription, one unit, currently valid period starting before the event; provider API failures cannot grant unlimited paid entitlements.
+
+**Latest CI at checkpoint:** `142a7f426fbc08bb0777eae85563986e97392dc5` had Billing Provider Contract, Security and Semgrep completed successfully while full CI/other workflows remained pending at read. Re-read exact HEAD current results; do not confuse other commit's canceled runs with passes. Terminal remains unable to clone GitHub; no local complete checkout/pnpm.
+
+**Remaining bounded-period considerations:** If Paddle subscription read is delayed, the completed-payment webhook returns retryable 503 (no premature paid access); this needs an actual sandbox test for retries and first-purchase UX. Current historical-price cancellation behavior still requires separate FM-00 design/reconciliation. Source fixtures do not establish production settlement or merchant payouts.
