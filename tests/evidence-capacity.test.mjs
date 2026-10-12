@@ -81,4 +81,3 @@ test("A18: grounded calls, public tools, collections and the operator page are w
   assert.match(runs, /readEvidenceCapacity/);
   assert.match(agents, /EvidenceCapacityCard/);
 });
-
