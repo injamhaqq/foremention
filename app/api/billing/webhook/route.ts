@@ -291,7 +291,9 @@ export async function POST(request: Request) {
       // Resolve it from the verified subscription after identity admission.
       if (parsed.externalTransactionId && !parsed.accessUntil) {
         if (!parsed.externalSubscriptionId || !parsed.externalCustomerId
-          || !parsed.billingInterval) throw new Error("Missing paid subscription identity.");
+          || !parsed.billingInterval || (parsed.packageKey !== "core" && parsed.packageKey !== "signal")) {
+          throw new Error("Missing supported paid subscription identity.");
+        }
         reconciledPaidThrough = await reconcilePaddlePaidPeriod({
           subscriptionId: parsed.externalSubscriptionId,
           customerId: parsed.externalCustomerId,
