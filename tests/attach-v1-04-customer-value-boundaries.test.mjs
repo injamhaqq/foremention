@@ -28,7 +28,7 @@ test("A28: suggestions are user-triggered after removal and collection is opt-in
   const wizard = read("components/onboarding-wizard.tsx");
   assert.doesNotMatch(wizard, /if \(step === 3 && !prompts\.length\)/);
   assert.match(wizard, /Generate five suggestions for review/);
-  assert.match(wizard, /startCollectionNow &&/);
+  assert.match(wizard, /firstAuditProvider && startCollectionNow/);
   assert.match(wizard, /!startCollectionNow \|\| !firstAuditProvider/);
   assert.match(wizard, /type="checkbox" checked=\{startCollectionNow\}/);
   assert.match(wizard, /capacity and spending limits are checked by the server/);
