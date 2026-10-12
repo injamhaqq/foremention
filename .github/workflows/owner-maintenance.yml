@@ -14,6 +14,10 @@ on:
         description: Add required security checks to ruleset "main protection"
         type: boolean
         default: true
+      cleanup_admin_token:
+        description: Delete HARK_ADMIN_TOKEN and revoke the PAT (run last)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -71,3 +75,13 @@ jobs:
                  else . end))}' ruleset.json > ruleset-new.json
           gh api -X PUT "repos/${REPO}/rulesets/${RID}" --input ruleset-new.json \
             | jq -r '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'
+
+      - name: Delete HARK_ADMIN_TOKEN and revoke the PAT
+        if: ${{ inputs.cleanup_admin_token }}
+        run: |
+          set -euo pipefail
+          gh secret delete HARK_ADMIN_TOKEN --repo "${REPO}"
+          jq -n --arg t "${GH_TOKEN}" '{credentials: [$t]}' \
+            | curl -fsS -X POST -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                https://api.github.com/credentials/revoke --data @- -o /dev/null -w "revoke HTTP %{http_code}\n"
