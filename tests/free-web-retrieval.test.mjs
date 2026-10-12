@@ -43,3 +43,23 @@ test("Bing search and click-tracking URLs are never persisted as customer eviden
   </channel></rss>`;
   assert.deepEqual(parseBingSearchRss(raw), []);
 });
+
+import { parseBraveSearchResponse } from "../lib/free-web-retrieval.ts";
+
+test("A07: Brave Search API results parse into deduplicated, bounded citations", () => {
+  const parsed = parseBraveSearchResponse({
+    web: {
+      results: [
+        { url: "https://example.com/a#frag", title: "<strong>Example</strong> A", description: "First &amp; best", extra_snippets: ["more"] },
+        { url: "https://example.com/a", title: "Duplicate" },
+        { url: "javascript:alert(1)", title: "Bad" },
+        { url: "https://example.org/b", title: "B" },
+      ],
+    },
+  });
+  assert.equal(parsed.length, 2);
+  assert.equal(parsed[0].url, "https://example.com/a");
+  assert.equal(parsed[0].title, "Example A");
+  assert.match(parsed[0].snippet, /First & best more/);
+  assert.deepEqual(parseBraveSearchResponse(null), []);
+});

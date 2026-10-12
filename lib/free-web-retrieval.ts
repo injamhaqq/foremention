@@ -1,6 +1,10 @@
 import type { ProviderCitation } from "@/lib/providers/types";
 
 const BING_SEARCH_ENDPOINT = "https://www.bing.com/search";
+// A07: Bing RSS output is licensed for personal, non-commercial use only. When a
+// commercially licensed Brave Search API key is configured, Brave is used exclusively
+// and Bing RSS is never called.
+const BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";
 const MAX_RSS_CHARS = 256_000;
 const MAX_RETRIEVAL_CHARS = 12_000;
 const MAX_CITATIONS = 8;
@@ -138,7 +142,7 @@ export function parseBingSearchRss(input: string): BingSearchResult[] {
 export type FreeWebEvidence = {
   content: string;
   citations: ProviderCitation[];
-  retrievalProvider: "bing-rss";
+  retrievalProvider: "brave-search" | "bing-rss";
 };
 
 /**
@@ -226,31 +230,81 @@ export function restrictResultsToScope<T extends { url: string }>(results: T[], 
   return matching;
 }
 
+type BraveWebResult = { url?: unknown; title?: unknown; description?: unknown; extra_snippets?: unknown };
+
+export function parseBraveSearchResponse(payload: unknown): BingSearchResult[] {
+  const web = (payload as { web?: { results?: unknown } } | null)?.web;
+  const list = Array.isArray(web?.results) ? (web!.results as BraveWebResult[]) : [];
+  const results = new Map<string, BingSearchResult>();
+  for (const item of list) {
+    if (results.size >= MAX_CITATIONS) break;
+    const url = typeof item.url === "string" ? normalizeHttpUrl(item.url) : null;
+    if (!url || results.has(url)) continue;
+    const title = typeof item.title === "string" ? textFromXml(item.title).slice(0, 240) : "";
+    const extras = Array.isArray(item.extra_snippets) ? item.extra_snippets.filter((v): v is string => typeof v === "string") : [];
+    const description = typeof item.description === "string" ? item.description : "";
+    const snippet = textFromXml([description, ...extras].join(" ")).slice(0, 1_200);
+    results.set(url, { url, title: title || undefined, snippet });
+  }
+  return Array.from(results.values());
+}
+
+export function braveSearchApiKey(): string | null {
+  const key = typeof process !== "undefined" ? process.env.BRAVE_SEARCH_API_KEY : undefined;
+  return key && key.trim() ? key.trim() : null;
+}
+
+async function retrieveBraveResults(query: string, apiKey: string, signal?: AbortSignal) {
+  const url = new URL(BRAVE_SEARCH_ENDPOINT);
+  url.searchParams.set("q", query.slice(0, 400));
+  url.searchParams.set("count", String(MAX_CITATIONS));
+  url.searchParams.set("search_lang", "en");
+  url.searchParams.set("extra_snippets", "true");
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { accept: "application/json", "x-subscription-token": apiKey },
+    signal,
+  });
+  if (!response.ok) throw new Error(`Brave Search retrieval failed with HTTP ${response.status}.`);
+  const parsed = parseBraveSearchResponse(await response.json());
+  if (!parsed.length) throw new Error("Brave Search returned no verifiable source URLs.");
+  return parsed;
+}
+
 export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal, scope: SourceDomainScope | null = null): Promise<FreeWebEvidence> {
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
-  const url = new URL(BING_SEARCH_ENDPOINT);
-  url.searchParams.set("format", "rss");
-  url.searchParams.set("q", normalized);
-  url.searchParams.set("count", String(MAX_CITATIONS));
-  url.searchParams.set("setlang", "en-US");
+  const braveKey = braveSearchApiKey();
+  let parsed: BingSearchResult[];
+  let retrievalProvider: FreeWebEvidence["retrievalProvider"];
+  if (braveKey) {
+    parsed = await retrieveBraveResults(normalized, braveKey, signal);
+    retrievalProvider = "brave-search";
+  } else {
+    const url = new URL(BING_SEARCH_ENDPOINT);
+    url.searchParams.set("format", "rss");
+    url.searchParams.set("q", normalized);
+    url.searchParams.set("count", String(MAX_CITATIONS));
+    url.searchParams.set("setlang", "en-US");
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.1",
-      "user-agent": "Foremention/1.0 evidence-retrieval",
-    },
-    signal,
-  });
-  if (!response.ok) throw new Error(`Bing RSS retrieval failed with HTTP ${response.status}.`);
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.1",
+        "user-agent": "Foremention/1.0 evidence-retrieval",
+      },
+      signal,
+    });
+    if (!response.ok) throw new Error(`Bing RSS retrieval failed with HTTP ${response.status}.`);
 
-  const raw = (await response.text()).slice(0, MAX_RSS_CHARS).trim();
-  if (!raw) throw new Error("Bing RSS returned no evidence content.");
+    const raw = (await response.text()).slice(0, MAX_RSS_CHARS).trim();
+    if (!raw) throw new Error("Bing RSS returned no evidence content.");
 
-  const parsed = parseBingSearchRss(raw);
-  if (!parsed.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+    parsed = parseBingSearchRss(raw);
+    if (!parsed.length) throw new Error("Bing RSS returned no verifiable source URLs.");
+    retrievalProvider = "bing-rss";
+  }
   const results = restrictResultsToScope(parsed, scope);
 
   const evidenceText = results.map((result, index) => [
@@ -263,6 +317,6 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   return {
     content: evidenceText,
     citations: results.map(({ url: sourceUrl, title }) => ({ url: sourceUrl, title })),
-    retrievalProvider: "bing-rss",
+    retrievalProvider,
   };
 }
