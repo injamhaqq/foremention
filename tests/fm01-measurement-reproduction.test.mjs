@@ -165,3 +165,18 @@ test("ObservationEnvelope: preserves method/provider/model/receipt/retrieval and
   assert.equal(failed.rawAnswer, null);
   assert.ok(failed.unavailable.includes("model"));
 });
+
+test("CV-01/A08: a real topic hit after eight irrelevant results is retained without a second search call", async () => {
+  const fx = await fixture("brave-b2b-late-relevance.json");
+  const result = await runCase("brave-b2b-late-relevance.json", {
+    modelResponse: { response: { answer: "AI visibility monitoring software is relevant to B2B SaaS.", source_numbers: [1] }, usage: { prompt_tokens: 70, completion_tokens: 24 } },
+  });
+  assert.equal(result.result.ok, true);
+  assert.equal(result.searchCalls.length, 1);
+  assert.equal(result.searchCalls[0].searchParams.get("count"), "20");
+  assert.equal(result.modelCalls.length, 1);
+  assert.equal(result.result.value.retrievedCandidateCount, fx.response.web.results.length);
+  assert.equal(result.result.value.relevanceRejectedCount, 9);
+  assert.deepEqual(result.result.value.citations.map((c) => c.url), ["https://research.example/ai-visibility-monitoring-b2b"]);
+  assert.doesNotMatch(result.modelCalls[0].body.messages[1].content, /dictionary\.example/);
+});

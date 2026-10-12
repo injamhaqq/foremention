@@ -1,0 +1,61 @@
+{
+  "synthetic": true,
+  "sourceNote": "Synthetic fail-closed A08 rank-10 relevance fixture; not a captured vendor or production result",
+  "question": "What should a B2B SaaS marketing team evaluate when choosing AI visibility monitoring platforms?",
+  "response": {
+    "web": {
+      "results": [
+        {
+          "url": "https://dictionary.example/should",
+          "title": "Should meaning",
+          "description": "English grammar"
+        },
+        {
+          "url": "https://grammar.example/modal-should",
+          "title": "Modal should",
+          "description": "Verb usage"
+        },
+        {
+          "url": "https://dictionary.example/choose",
+          "title": "Choose meaning",
+          "description": "Definitions"
+        },
+        {
+          "url": "https://grammar.example/evaluate",
+          "title": "Evaluate meaning",
+          "description": "English dictionary"
+        },
+        {
+          "url": "https://dictionary.example/marketing",
+          "title": "Marketing definition",
+          "description": "Basic word definition"
+        },
+        {
+          "url": "https://grammar.example/team",
+          "title": "Team noun",
+          "description": "English noun"
+        },
+        {
+          "url": "https://dictionary.example/visibility",
+          "title": "Visibility noun",
+          "description": "English meaning"
+        },
+        {
+          "url": "https://grammar.example/ai",
+          "title": "AI abbreviation",
+          "description": "Word origin"
+        },
+        {
+          "url": "https://dictionary.example/monitoring",
+          "title": "Monitoring meaning",
+          "description": "Word usage"
+        },
+        {
+          "url": "https://research.example/ai-visibility-monitoring-b2b",
+          "title": "AI visibility monitoring platforms for B2B SaaS",
+          "description": "Marketing teams evaluating AI visibility software platforms"
+        }
+      ]
+    }
+  }
+}

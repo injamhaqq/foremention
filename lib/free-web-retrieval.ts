@@ -18,6 +18,10 @@ const MAX_CITATIONS = 8;
 // ranks after eight off-domain hits is not silently discarded. Only in-scope
 // results survive, and at most MAX_CITATIONS of them reach the model.
 const MAX_SCOPED_CANDIDATES = 20;
+// Retrieve enough ranked candidates for topical screening before choosing the
+// 8 allowed model-facing citations. A page at rank 9–20 may be the first
+// question-relevant hit. This does not add a second search API request.
+const MAX_TOPICAL_CANDIDATES = 20;
 
 function decodeXml(value: string) {
   let result = "";
@@ -278,7 +282,7 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
-  const candidateLimit = scope ? MAX_SCOPED_CANDIDATES : MAX_CITATIONS;
+  const candidateLimit = scope ? MAX_SCOPED_CANDIDATES : MAX_TOPICAL_CANDIDATES;
   // Fail closed even when a caller bypasses Cloudflare's outer preflight.
   assertAuthorizedIndependentRetrieval();
   const braveKey = braveSearchApiKey();
