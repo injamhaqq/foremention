@@ -35,30 +35,36 @@ const adversarialUrls = [
   "https://openai.com/newsroom-fake/post",
 ];
 
-function bingRss(urls) {
+function bingRss(urls, titleFor = (index) => `Result ${index}`) {
   return `<rss><channel>${urls.map((url, index) =>
-    `<item><title>Result ${index}</title><link>${url}</link><description>snippet ${index}</description></item>`).join("")}</channel></rss>`;
+    `<item><title>${titleFor(index)}</title><link>${url}</link><description>snippet ${index}</description></item>`).join("")}</channel></rss>`;
 }
 
-function braveJson(urls) {
-  return JSON.stringify({ web: { results: urls.map((url, index) => ({ url, title: `Result ${index}`, description: `snippet ${index}` })) } });
+function braveJson(urls, titleFor = (index) => `Result ${index}`) {
+  return JSON.stringify({ web: { results: urls.map((url, index) => ({ url, title: titleFor(index), description: `snippet ${index}` })) } });
 }
 
-async function withProvider(provider, urls, action) {
+async function withProvider(provider, urls, action, titleFor) {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.BRAVE_SEARCH_API_KEY;
+  const originalRights = process.env.FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED;
   if (provider === "brave") process.env.BRAVE_SEARCH_API_KEY = "test-key-offline";
   else delete process.env.BRAVE_SEARCH_API_KEY;
+  // A07 (Chat01): Bing RSS is only reachable behind an explicit operator
+  // rights attestation. These offline tests exercise the scope/relevance
+  // filters on that path, so they set the attestation locally and restore it.
+  if (provider === "bing") process.env.FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED = "1";
+  else delete process.env.FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED;
   const calls = [];
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
     calls.push(url);
     if (provider === "brave") {
       assert.equal(url.hostname, "api.search.brave.com", "Bing must never be called when Brave is configured");
-      return new Response(braveJson(urls), { status: 200, headers: { "content-type": "application/json" } });
+      return new Response(braveJson(urls, titleFor), { status: 200, headers: { "content-type": "application/json" } });
     }
     assert.equal(url.hostname, "www.bing.com");
-    return new Response(bingRss(urls), { status: 200, headers: { "content-type": "application/rss+xml" } });
+    return new Response(bingRss(urls, titleFor), { status: 200, headers: { "content-type": "application/rss+xml" } });
   };
   try {
     return await action(calls);
@@ -66,6 +72,8 @@ async function withProvider(provider, urls, action) {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.BRAVE_SEARCH_API_KEY;
     else process.env.BRAVE_SEARCH_API_KEY = originalKey;
+    if (originalRights === undefined) delete process.env.FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED;
+    else process.env.FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED = originalRights;
   }
 }
 
@@ -119,12 +127,16 @@ for (const provider of ["brave", "bing"]) {
   });
 
   test(`${provider}: ordinary unscoped questions keep the multi-vendor path and existing cap`, async () => {
+    // A08/CV-01 (Chat01): unscoped results now pass a topical relevance gate
+    // before inference, so the fixture uses on-topic titles; the multi-vendor
+    // path and the 8-result cap are unchanged.
     const urls = Array.from({ length: 12 }, (_, i) => `https://vendor${i}.example/page`);
     await withProvider(provider, urls, async (calls) => {
       const evidence = await retrieveFreeWebEvidence("best CRM tools for B2B SaaS");
       assert.equal(evidence.citations.length, 8);
       assert.equal(calls[0].searchParams.get("count"), "8");
-    });
+      assert.equal(evidence.relevanceRejectedCount, 0);
+    }, (index) => `CRM software for B2B SaaS teams ${index}`);
   });
 }
 

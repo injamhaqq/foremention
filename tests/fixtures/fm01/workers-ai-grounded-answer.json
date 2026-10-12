@@ -1,0 +1,20 @@
+{
+  "_fixture_note": "SYNTHETIC Workers AI chat-completions structured JSON response (Chat01). Not a production receipt.",
+  "response": {
+    "answer": "Evaluate prompt coverage, which sources are cited, competitor benchmarking and how often results are refreshed [1][2].",
+    "source_numbers": [
+      1,
+      2
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 812,
+    "completion_tokens": 44,
+    "total_tokens": 856
+  },
+  "choices": [
+    {
+      "finish_reason": "stop"
+    }
+  ]
+}

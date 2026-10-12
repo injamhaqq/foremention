@@ -294,6 +294,13 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
           citationCount: grounded.citations.length,
           finishReason: grounded.finishReason,
           usage: grounded.usage,
+          // CV-02/CV-11/A09 (Chat01): these citations are independently
+          // retrieved search results given to a hosted model, not citations
+          // returned by a provider's own search tool, and this is an API
+          // sample, not a consumer-app observation. See lib/evidence-provenance.mjs.
+          referenceProvenance: "independent_retrieval",
+          observationMethod: "api_hosted_model_with_independent_retrieval",
+          consumerProductObservation: false,
         },
         collectedAt: new Date().toISOString(),
         latencyMs: Date.now() - started,

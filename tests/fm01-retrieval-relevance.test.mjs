@@ -48,5 +48,6 @@ test("A08: unavailable is not zero visibility", () => {
 test("A29/CV-07: no direct onboarding provider request may bypass central budget admission", async () => {
   const source = readFileSync(new URL("../lib/onboarding-enrichment.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source, /groqAdapter\.run\s*\(/);
-  assert.match(source, /budget admission/i);
+  // Behavioural coverage lives in fm01-internal-model-admission.test.mjs.
+  assert.match(source, /admitInternalModelCall/);
 });
