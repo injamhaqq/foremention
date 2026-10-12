@@ -69,3 +69,10 @@ This section supplements the prior checkpoint without rewriting historical statu
 
 ### Rollback
 Close draft PR #563 / revert only Chat04 commits; no migrations or production behavior were activated. No raw keys, customers, payments or outbound messages changed.
+
+
+## Additional A27 authorization repair — head before note f18f940bdb643e308995526d9217ce9171931404
+
+Client-side persisted-run existence alone does not establish permission to **share** a Record: viewer-role accounts may read/export but must not receive the share action. The A27 continuation therefore added a read-only, organization/project-scoped `GET /api/records/[id]/share` returning `{ canShare, observed }`, derived from the **same existing `canShare(role)` policy** used by POST/DELETE. The existing write endpoints independently revalidate role, project and run status. `RecordControls` fetches this server-computed capability after scoped Record existence, exposes Share only if `canShare===true`, preserves permitted export/print for reader roles, and remounts per run ID to avoid leaking a previous Record's capability state. A sixth source-contract test checks that split.
+
+**Verification:** pending fresh exact-head runs. No claim that this GET alone is an authenticated two-tenant negative acceptance receipt. Browser/role/run-expiry/cross-org tests still need disposable identities under Chat09/Chat02 coordination. The share endpoint's capability query is read-only and does not activate distribution or alter records.
