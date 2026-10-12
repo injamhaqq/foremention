@@ -1,3 +1,4 @@
+import { hasRecentRecoveryAmrClaim } from "@/lib/account-security";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { NextResponse } from "next/server";
 import { clearRecoverySession, markRecoverySession, setSessionCookies } from "@/lib/session-cookies";
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
     cache: "no-store",
   });
   if (!profile.ok) return NextResponse.json({ error: "This verification link is invalid or has expired. Please request a new one." }, { status: 401 });
+  if (recovery && !hasRecentRecoveryAmrClaim(access_token)) return NextResponse.json({ error: "A verified, recent recovery link is required. Please request a new one." }, { status: 401 });
 
   const response = NextResponse.json({ ok: true, recovery: Boolean(recovery) });
   setSessionCookies(response, {
