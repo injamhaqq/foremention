@@ -22,6 +22,7 @@ import "./outreach-reflow.css";
 import "./browser-acceptance-hardening.css";
 import "./navigation-discovery.css";
 import "./public-cinematic-home.css";
+import "./public-contrast-repair.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
@@ -39,6 +40,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Foremention", url: SITE_URL }],
   creator: "Foremention",
   publisher: "Foremention",
+  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }] },
   category: "Recommendation intelligence software",
   openGraph: { title: "Foremention - Recommendation intelligence for B2B software", description: publicDescription, url: SITE_URL, type: "website", siteName: "Foremention" },
   twitter: { card: "summary", title: "Foremention - Recommendation intelligence for B2B software", description: publicDescription },

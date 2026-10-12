@@ -198,7 +198,6 @@ export function MissingAnswerExperience() {
             data-public-evidence-inspect
             className="fm-graph-record"
             href="#recommendation-record"
-            aria-label="Inspect the illustrative Recommendation Record"
             aria-live="polite"
           >
             <span>{inspector.label}</span>

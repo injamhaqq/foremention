@@ -492,6 +492,13 @@ const worker = {
     };
     logOperationalEvent("request_started", { correlationId, route: url.pathname, method: request.method });
 
+    // One canonical host: www.foremention.com served a duplicate 200 copy of every
+    // public page. Permanently redirect safe navigations to the apex domain.
+    if (url.hostname === "www.foremention.com" && (request.method === "GET" || request.method === "HEAD")) {
+      const apex = new URL(url.pathname + url.search, "https://foremention.com");
+      return complete(new Response(null, { status: 301, headers: { Location: apex.toString(), "Cache-Control": "public, max-age=3600" } }));
+    }
+
     if (url.pathname === "/api/health" && request.method === "GET") return complete(await handleHealth(env));
 
     if (
