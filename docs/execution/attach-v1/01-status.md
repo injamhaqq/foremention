@@ -76,3 +76,8 @@ FM-00: review draft PR, decide the provenance migration and usage-ledger shape, 
 - ObservationEnvelope previously inferred `api_provider_native` when no method was recorded. It now preserves `method=null` and lists it as unavailable. Do not retrofit missing history with guesses.
 - Existing downstream `lib/jobs/inngest.ts` metric/denominator and schema changes remain Chat06/FM-00 proposals. No external provider call, customer mutation or release attempted.
 - Current exact head: read branch/PR ref after this status commit; rerun exact-head GitHub Actions before accepting.
+
+## Checkpoint 4 — regression from checkpoint 3 fixed (2026-10-12)
+- `44a8134` (unscoped retrieval reads 20 candidates) broke 2 tests in `tests/official-domain-evidence-adversarial.test.mjs` that still asserted `count=8`. Updated the assertion: one search request with `count=20`, at most 8 citations reach the model.
+- Local on this commit: `node --experimental-strip-types --test tests/*.test.mjs` 1350/1350 pass; `tsc --noEmit` exit 0; eslint on changed files clean. Build last run on `1fd4f76`/`6d0c56a` tree (ok); CI build covers this head.
+- Two Chat01 sessions are writing this branch in parallel. To avoid a push loop, coordinate through PR #565: fetch + fast-forward before every push, never force-push.

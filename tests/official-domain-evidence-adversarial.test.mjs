@@ -133,8 +133,11 @@ for (const provider of ["brave", "bing"]) {
     const urls = Array.from({ length: 12 }, (_, i) => `https://vendor${i}.example/page`);
     await withProvider(provider, urls, async (calls) => {
       const evidence = await retrieveFreeWebEvidence("best CRM tools for B2B SaaS");
-      assert.equal(evidence.citations.length, 8);
-      assert.equal(calls[0].searchParams.get("count"), "8");
+      assert.equal(evidence.citations.length, 8, "at most 8 citations still reach the model");
+      // Chat01 (44a8134): unscoped requests read 20 ranked candidates in ONE
+      // request for topical screening; still a single search call.
+      assert.equal(calls[0].searchParams.get("count"), "20");
+      assert.equal(calls.length, 1);
       assert.equal(evidence.relevanceRejectedCount, 0);
     }, (index) => `CRM software for B2B SaaS teams ${index}`);
   });
