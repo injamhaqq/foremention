@@ -55,3 +55,13 @@ Reproduction commands (on a **full checkout at exact composed SHA**, with Node >
 ## Rollback / handoff
 
 Only Chat09-namespaced files have been added; rollback is to close the draft PR or revert its test/docs commits on the Chat09 branch. No app logic, workflows, migrations, secrets, external providers, production settings, deployments, payment processing or real customer data were changed. FM-00 must inspect this report and matrix on the branch, refresh exact refs, then rerun composite checks. Do **not** merge the draft merely because isolated fixture tests pass.
+
+## Continuation: current evidence and peer blockers (2026-10-12)
+
+This report originally recorded an in-progress Chat09 PR. **That check has now completed successfully on exact `9e8c14d2e7335c89a7e14938b4ff559dc70e9a50`**: CI [38273528931](https://github.com/injamhaqq/foremention/actions/runs/38273528931) (1319 passing tests, disposable isolated SQL, lint/typecheck/build), Security, CodeQL, isolated local authenticated journey [38273528855](https://github.com/injamhaqq/foremention/actions/runs/38273528855), and local PR browser [38273528885](https://github.com/injamhaqq/foremention/actions/runs/38273528885). **The browser log explicitly skipped authenticated routes because acceptance credentials were absent**; the separate local authenticated-journey workflow is not proof of completed signed-in browser/real customer flows. No real elapsed cycle, live payment, production deployment, RLS-in-production or cross-worker composition is thereby certified.
+
+All ten worker branch heads and source diffs were inspected. **No file-path collisions**, but combined runtime remains untested; ownership, shared contracts and migrations are coordinator work. See [exact-ref gate snapshot](./peer-gate-snapshot.md). Blocking peers: Chat03 #566 one test failure (Paddle identity assertion), Chat04 #563 React hooks lint failure despite all 1320 tests passing, Chat05 #569 nine approved public wording/receipt failures. Repro details posted directly on each owning draft PR. Chat01 checks were in progress at inspection. **No composed FM-00 integration SHA exists in the inspected records.**
+
+FM-00's own status claims 18/18 original source checksums matched in its separately accessed archive. Chat09 did not independently receive/read those originals; do not misrepresent this as a complete independent source audit. The original `Foremention_Master_Backlog_28_v2.csv` remains missing.
+
+**Readiness verdict stays unchanged.** Retest on the exact composed candidate; insist on authenticated browser and disposable two-tenant denial receipts, verified sandbox payment lifecycle, actual observed/reviewed second cycle, real receipt provenance and rollback before widening commercial access.
