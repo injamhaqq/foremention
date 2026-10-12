@@ -49,6 +49,7 @@ test("A27: no mutation or export is rendered before scoped persisted eligibility
   assert.match(bridge, /run\.id === runId/);
   assert.match(bridge, /\["review", "complete", "partial"\]\.includes\(run\.status\)/);
   assert.match(bridge, /if \(eligibility !== "eligible"\) return null;/);
-  assert.match(bridge, /\.catch\(\(\) => \{ if \(active\) setEligibility\("unavailable"\); \}\)/);
+  assert.match(bridge, /\.catch\(\(\) => \{ if \(active\) setEligibility\("error"\); \}\)/);
+  assert.match(bridge, /Retry Record action check/);
   assert.match(bridge, /Your saved Record was not changed/);
 });
