@@ -9,7 +9,7 @@ test("Chat09 scenarios are explicit, synthetic and never masquerade as successfu
   const fixture = JSON.parse(await file("tests/attach-v1-09/scenarios.json"));
   assert.equal(fixture.execution_state, "NOT_EXECUTED");
   assert.match(fixture.fixture_policy, /no customer data/);
-  assert.ok(fixture.scenarios.length >= 25);
+  assert.ok(fixture.scenarios.length >= 32);
   const required = ["access", "recovery", "project", "questions", "measurement", "evidence", "decision", "interruption", "comparison", "export", "billing", "web", "release", "rollback"];
   for (const stage of required) assert.ok(fixture.scenarios.some((row) => row.stage === stage), "missing acceptance stage: " + stage);
   const ids = new Set();
@@ -24,6 +24,9 @@ test("Chat09 scenarios are explicit, synthetic and never masquerade as successfu
   }
   assert.ok(fixture.scenarios.some(({ expected }) => /not comparable|no uplift/i.test(expected)));
   assert.ok(fixture.scenarios.some(({ expected }) => /denied/i.test(expected)));
+  for (const newId of ["QA09-31", "QA09-32"]) {
+    assert.ok(fixture.scenarios.some(({ id }) => id === newId), `missing independent recovery/export case: ${newId}`);
+  }
 });
 
 test("A04: project-filtering source contracts fail closed on foreign or mixed references", async () => {
