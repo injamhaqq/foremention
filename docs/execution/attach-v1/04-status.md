@@ -44,3 +44,28 @@
 No production access, migrations, provider calls, spend, customer updates, billing activation, outbound messages or deployment were performed. No cross-role files were edited. No user data was fabricated. To roll back, close PR #563, delete only the isolated `fm-attach-v1/04-workflow` branch or revert its isolated commits after integration review. Do not revert shared main or a peer's worktree. `A27` server checks remain independent from the client-only control gate.
 
 **Next dependency-ready action:** inspect exact PR #563 head GitHub Actions results, repair any feature-owned regression and update this checkpoint. Then FM-00 can inspect PR/status directly; no founder copy/paste is needed.
+
+
+## Continuation checkpoint — latest code through 1541894b405deab408e8bbd61391b438205f7549
+
+This section supplements the prior checkpoint without rewriting historical status. Confirm the current branch/PR head after this status commit; **do not use the code commit above as the exact document-head SHA**.
+
+### Verification that happened after the first checkpoint
+- At the original implementation head `f34620b4e7eea6c066bf21a1cc4e7ddb2df26f9a`: CI run **38274493514** passed **1,320/1,320 Node tests** and isolated migration replay, then **failed at lint**. The actionable failure was `components/retention-surface-bridge.tsx` line 77 `react-hooks/set-state-in-effect`. Security, CodeQL, Semgrep, Browser Acceptance, AI Safety and Isolated Authenticated Journey completed **success** for that older exact head; it was **not** full CI success. A subsequent commit `46764ec` removed the synchronous effect state update and moved the reset into the explicit Retry handler.
+- GitHub connector read-only access confirmed all ten `fm-attach-v1` branches exist; FM-00 and all nine workers now have durable status files. Coordinator still reports **integration pending** and no paid launch go. Peer snapshots are contracts, not proof of composed release.
+- One newer CI run was cancelled automatically when its branch head became stale. Only the **current exact SHA's full workflow conclusions** can close a gate. No production receipt has been obtained.
+
+### Additional Chat04-owned changes
+- `app/api/export/record/[id]/route.ts`: CSV keeps the original 10 answer columns in order and appends explicit organization/project IDs, run status/time, methodology version, unique-question revision/locale/market, actual observation-surface category, consumer-app non-equivalence and reference-origin uncertainty. Absent manifest/question metadata is **unavailable**, not guessed. Comparability and causal uplift are **not** inferred by exporting a Record. Missing/failed answers are not converted into zero visibility.
+- `tests/attach-v1-04-record-export-provenance.test.mjs`: two new static contract checks covering column compatibility, unknown provenance and CSV formula-neutralization invocation. **Source-contract tests are not authenticated export/download acceptance.**
+- `components/onboarding-wizard.tsx`: first-run browser poll bounded to 40 checks, checks HTTP/payload validity, cancels its scheduled timer on cleanup, and exposes saved-run inspection on failure/cancellation or inconclusive browser polling. The durable job is **not** automatically retried; another provider call remains a separate user choice after checking the existing record.
+- `tests/attach-v1-04-customer-value-boundaries.test.mjs`: fifth explicit interruption/recovery contract added.
+
+### Remaining acceptance gates
+1. **Exact latest-head CI:** node test suite, lint, typecheck, production build, isolated migration, Browser Acceptance, Isolated Authenticated Journey, CodeQL, Semgrep, AI Safety and Security; do not count cancelled older builds.
+2. **Chat04/FM-00/Chat09 integrated acceptance:** two disposable tenant-isolated journeys through persisted human-reviewed source evidence → explicit Change Specification with DO_NOT_DO/monitor or approved human choice → owner/decision date → subsequent exact compatible run → export; one ambiguous mutation/interrupted collection must recover without duplication. No synthetic clock is actual retention.
+3. **Contract ownership:** Chat01 provider rights/method/sample/usage; Chat02 RLS and pre-workspace account authorization; Chat03 billing; Chat05 contrast/public account help; Chat06 job recovery; FM-00 schema and shared acceptance. No zero-question database change or authenticated support-before-workspace route was made on this isolated branch.
+4. **Current performance:** Record action eligibility currently reads the bounded active-project `/api/runs` list, whose default is the newest 100. Historical Records older than that may not get action controls even when individually accessible; propose exact-ID read-only action eligibility once owner-specific API contract is approved. The existing server share endpoint continues to independently enforce active org/project role and status. Do not present a UI gate as a substitute for RLS.
+
+### Rollback
+Close draft PR #563 / revert only Chat04 commits; no migrations or production behavior were activated. No raw keys, customers, payments or outbound messages changed.
