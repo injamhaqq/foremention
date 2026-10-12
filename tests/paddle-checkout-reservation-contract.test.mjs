@@ -70,10 +70,11 @@ test("Paddle sandbox-only activation remains enforced after reservation layer", 
   assert.match(env, /PADDLE_LIVE_ENABLED=0/);
 });
 test("initial paid Paddle webhook must match a stored transaction reservation before atomic entitlements", async () => {
-  const [source, adapter, parser] = await Promise.all([
+  const [source, adapter, parser, identity] = await Promise.all([
     load("app/api/billing/webhook/route.ts"),
     load("lib/billing-provider.ts"),
     load("lib/paddle-billing.ts"),
+    load("lib/paddle-lifecycle-admission.ts"),
   ]);
   assert.match(source, /async function paddlePaidTransactionAdmitted/);
   assert.match(source, /billing_checkout_reservations\?select=organization_id,package_key,billing_interval,state/);
@@ -84,8 +85,14 @@ test("initial paid Paddle webhook must match a stored transaction reservation be
   assert.match(source, /rows\[0\]\.state === "ready"/);
   assert.match(source, /parsed\.transactionOrigin === "subscription_recurring"/);
   assert.match(source, /parsed\.transactionOrigin === "subscription_update"/);
-  assert.match(source, /rows\[0\]\.external_customer_id === parsed\.externalCustomerId/);
-  assert.match(source, /rows\[0\]\.external_subscription_id === parsed\.externalSubscriptionId/);
+  // Subscription/customer checks are factored into a shared, tested helper
+  // for both recurring charges and status changes. Assert the actual guarded
+  // semantics rather than requiring comparisons to be duplicated inline.
+  assert.match(source, /paddleSubscriptionIdentityMatches\(rows, organizationId, parsed\.externalCustomerId, parsed\.externalSubscriptionId\)/);
+  assert.match(identity, /rows\[0\]\.organization_id === organizationId/);
+  assert.match(identity, /rows\[0\]\.external_customer_id === customerId/);
+  assert.match(identity, /rows\[0\]\.external_subscription_id === subscriptionId/);
+  assert.match(identity, /rows\.length === 1/);
   const correlation = source.indexOf("paddlePaidTransactionAdmitted(parsed, organizationId)");
   const mutation = source.indexOf("return billingMutationResponse(event, provider.id)");
   assert.ok(correlation > -1 && mutation > correlation);
