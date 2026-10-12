@@ -19,7 +19,8 @@ const intakeIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f
 export default async function ContactPage({ searchParams }: { searchParams: Promise<{ plan?: string; submitted?: string; error?: string; intake?: string }> }) {
   const query = await searchParams;
   const plan = validPlans.has((query.plan || "").toLowerCase()) ? (query.plan || "").toLowerCase() : "";
-  const failed = Boolean(query.error);
+  const rateLimited = query.error === "rate-limit";
+  const failed = Boolean(query.error) && !rateLimited;
   const intakeId = query.intake && intakeIdPattern.test(query.intake) ? query.intake : "";
   // A success query flag (or an arbitrary well-formed UUID) is not proof of
   // persistence. An actual first-party receipt is mandatory before showing it.
@@ -65,7 +66,8 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             <span>Design partner</span>
             <h2 id="design-partner-application" tabIndex={-1}>Apply as Design Partner.</h2>
             {submitted ? <div className="inline-notice"><strong>Application received.</strong><p>Your application has been saved. Founder review target: one business day. If the application fits the current design-partner scope, the reply will include scheduling instructions for the working session.</p>{intakeId ? <p><strong>Application reference:</strong> <code>{intakeId}</code></p> : null}</div> : <>
-              {query.submitted === "1" && !submitted && <p className="inline-error" role="alert">We could not verify a saved application. Please submit the form, or contact hello@foremention.com.</p>}
+              {query.submitted === "1" && !submitted && <p className="inline-error" role="alert">{intakeId ? "We could not verify the application reference against a saved record. Please try again or contact hello@foremention.com." : "This request did not return a verifiable application reference. It may be a repeat application; we cannot confirm a new saved record. If you previously applied, contact hello@foremention.com before resubmitting."}</p>}
+              {rateLimited && <p className="inline-error" role="alert">Too many recent applications. Please try again later or email hello@foremention.com.</p>}
               {failed && <p className="inline-error" role="alert">The application could not be saved. Please try again or email hello@foremention.com.</p>}
               <form className="intake-form" data-design-partner-form action="/api/design-partner" method="post">
                 {plan && <input type="hidden" name="planInterest" value={plan} />}
