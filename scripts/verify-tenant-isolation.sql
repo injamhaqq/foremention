@@ -111,8 +111,12 @@ begin
   end;
   if changed <> 0 then raise exception 'Cross-tenant update was permitted'; end if;
 
-  delete from public.sources where id = 'f0700000-0000-4000-8000-000000000002'::uuid;
-  get diagnostics changed = row_count;
+  begin
+    delete from public.sources where id = 'f0700000-0000-4000-8000-000000000002'::uuid;
+    get diagnostics changed = row_count;
+  exception when insufficient_privilege then
+    changed := 0;
+  end;
   if changed <> 0 then raise exception 'Cross-tenant delete was permitted'; end if;
 
   begin

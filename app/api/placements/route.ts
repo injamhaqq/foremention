@@ -9,6 +9,7 @@ import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
 import { inngest } from "@/lib/jobs/inngest";
 
 const stages = ["identified", "qualified", "pitched", "accepted", "published", "indexed", "first_cited", "repeatedly_cited", "decayed", "closed"] as const;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const routes = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
 
 export async function GET() {
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as { sourceId?: string; entryRoute?: string; targetPromptIds?: string[] };
   if (!body.sourceId || !body.entryRoute || !routes.includes(body.entryRoute)) return NextResponse.json({ error: "A mapped source and legitimate route are required." }, { status: 400 });
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: crypto.randomUUID(), stage: "identified" }, mode: "demo" }, { status: 201 });
+  if (!UUID.test(body.sourceId)) return NextResponse.json({ error: "A mapped source and legitimate route are required." }, { status: 400 });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   const sourceMap = await loadLatestProjectSourceMapRef({
@@ -40,7 +42,8 @@ export async function POST(request: Request) {
   const source = entries[0]?.source;
   if (!source || entries[0].source_id !== body.sourceId) return NextResponse.json({ error: "This source does not belong to the active project evidence set." }, { status: 403 });
 
-  const requestedPromptIds = Array.from(new Set((body.targetPromptIds || []).slice(0, 100)));
+  const requestedPromptIds = Array.from(new Set((Array.isArray(body.targetPromptIds) ? body.targetPromptIds : []).slice(0, 100)));
+  if (!requestedPromptIds.every((id) => typeof id === "string" && UUID.test(id))) return NextResponse.json({ error: "Every linked buyer question must be a valid record." }, { status: 400 });
   if (requestedPromptIds.length) {
     const scopedPrompts = await supabaseRest<Array<{ id: string }>>(
       `prompts?select=id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${requestedPromptIds.join(",")})&limit=100`,
@@ -74,6 +77,7 @@ export async function PATCH(request: Request) {
   const body = (await request.json()) as { id?: string; stage?: typeof stages[number]; note?: string; evidenceUrl?: string };
   if (!body.id || !body.stage || !stages.includes(body.stage)) return NextResponse.json({ error: "Action ID and valid stage are required." }, { status: 400 });
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo" });
+  if (!UUID.test(body.id)) return NextResponse.json({ error: "Action ID and valid stage are required." }, { status: 400 });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   const placementScope = await loadProjectPlacementScope({

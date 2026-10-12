@@ -73,6 +73,7 @@ jobs:
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-activate-question-history-privileges.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-activate-composite-project-fks.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-source-review-activation.sql
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/release-gates/FM05-collector-provenance-columns-activation.sql
           # FM-08 isolated SQL candidate ONLY: not a production migration.
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/fm08-webhook-atomic-claims-candidate.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-fm08-webhook-claims.sql
@@ -81,6 +82,7 @@ jobs:
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-tenant-isolation.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-fm05-atomic-evidence-writers.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-fm05-source-review-boundary.sql
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-collector-provenance-boundary.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-run-accounting.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-terminal-attempt-ledger.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-workspace-export-delete-restore.sql
