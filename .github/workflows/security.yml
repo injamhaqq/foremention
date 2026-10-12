@@ -52,6 +52,40 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: 'false'
+      - name: Prove gitleaks detects a synthetic secret without logging it
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Repository register acceptance (gitleaks): a freshly generated,
+          # never-committed synthetic token must be detected, and neither the
+          # console output nor the report may contain the raw value.
+          version="8.30.1"
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}" -o "${RUNNER_TEMP}/${archive}"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  ${RUNNER_TEMP}/${archive}" | sha256sum --check --strict
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" gitleaks
+          fixture_dir="${RUNNER_TEMP}/gitleaks-synthetic-fixture"
+          mkdir -p "$fixture_dir"
+          synthetic="ghp_$(openssl rand -hex 18)"
+          echo "::add-mask::${synthetic}"
+          printf 'synthetic_fixture_token = "%s"\n' "$synthetic" > "${fixture_dir}/fixture.env"
+          set +e
+          "${RUNNER_TEMP}/gitleaks" dir "$fixture_dir" --no-banner --redact \
+            --report-format json --report-path "${RUNNER_TEMP}/gitleaks-fixture-report.json" > "${RUNNER_TEMP}/gitleaks-fixture.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 1 ]; then
+            echo "gitleaks did not report the synthetic secret (exit ${status})." >&2
+            exit 1
+          fi
+          if grep -qF "$synthetic" "${RUNNER_TEMP}/gitleaks-fixture.log" "${RUNNER_TEMP}/gitleaks-fixture-report.json"; then
+            echo "gitleaks output contained the raw synthetic secret." >&2
+            exit 1
+          fi
+          jq -e 'length == 1 and .[0].RuleID == "github-pat" and .[0].Secret == "REDACTED"' "${RUNNER_TEMP}/gitleaks-fixture-report.json" > /dev/null
+          rm -rf "$fixture_dir"
+          echo "gitleaks synthetic fixture detected with redacted output."
 
   osv:
     runs-on: ubuntu-latest
