@@ -36,7 +36,7 @@
 |---|---|
 | CV-01, A08 (29 + 24) | **Partially fixed**: new broad query-topic gate, pre-inference fail-closed; exact real-canary replay and 10-question review pending. Official-domain portion merged via #456. |
 | CV-02 | Existing surface-truth contract in `docs/PROVIDER-SURFACE-TRUTH.md`; **API-hosted model + independent search is not consumer-app monitoring**; customer language/integration verification pending FM-00/Chat05. |
-| CV-03 | Perplexity adapter still uses `/v1/sonar`; **endpoint/provider contract not externally reverified**; do not activate or sell this lane until provider endpoint/model/auth/usage test and operator approval. |
+| CV-03 | **Fail-closed fixed:** retired `/v1/sonar` is disabled (`configured=false`; HTTP 410 before fetch). Agent API replacement, current model/citation/usage contract and spending permission remain unverified. |
 | CV-07, A29 | **Fail-closed fixed**: onboarding no longer performs unadmitted direct Groq network call; internal cost/retry/usage ledger integration remains a dependency before re-enabling. |
 | CV-11, A09 (29 + 24) | Structured references already merged via #459; **UI/reviewer/export copy contract pending** Chat04/05/09. Independent Cloudflare search candidate != native model-vendor citation. |
 | A07 (29 + 24) | **Fail-closed runtime fixed:** no silent Bing RSS fallback without explicit rights attestation; provider error 403 before D1 admission/network. Actual authorization/contract remains **unverified**, and FM-00 must decide permitted retrieval mode. |
