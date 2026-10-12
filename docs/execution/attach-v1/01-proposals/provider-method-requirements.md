@@ -15,7 +15,7 @@ Perplexity's September 10, 2026 vendor support reply confirms Sonar chat-complet
 `lib/providers/perplexity.ts` now reports `configured() = false` and its `run()` throws before fetch. To re-enable, separately implement approved Agent API `/v1/agent` request/response parsing, native citations, exact model identity, query/method version and usage; verify available account billing/quota without unapproved live calls. Changes to a model/method invalidate direct historic comparability.
 
 ## CV-07/A29 — internal enrichment
-Onboarding no longer makes direct Groq calls or accepts a hard-coded pseudo-budget. Metadata-only/manual editing remains available. Re-enable only after an atomic per-organization admission/receipt/retry/ledger interface is integrated and tested by FM-00 and Chat06.
+Superseded on this branch (commit after `4087096`): onboarding enrichment is no longer hard-disabled; it goes through `lib/internal-model-admission.ts` (free-only policy -> operator daily cap, default 0 -> configured -> durable D1 unit, no store = deny). With free-only mode on (default) it makes zero Groq calls. One attempt, no retry, no substitute. Persisting the usage receipt needs shared schema: see `internal-usage-ledger.md`.
 
 ## Cross-owner contracts
 - Failure due to retrieval rights is **unavailable**, not a zero-visibility buyer answer.
