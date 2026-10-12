@@ -1,0 +1,47 @@
+name: Semgrep Boundary Policy (experiment)
+
+# Non-required experiment from the repository register (semgrep: EXPERIMENT).
+# Custom Foremention rules only (policy/semgrep); no Semgrep Registry rules,
+# no Semgrep App/login, metrics off. The LGPL-2.1 engine runs as a CI tool only.
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'lib/**'
+      - 'worker/**'
+      - 'components/**'
+      - 'policy/semgrep/**'
+      - '.github/workflows/semgrep-policy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semgrep-policy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Semgrep OSS (pinned)
+        run: python3 -m pip install --user --disable-pip-version-check semgrep==1.180.0
+
+      - name: Run Foremention boundary policy
+        env:
+          SEMGREP_SEND_METRICS: 'off'
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          python3 policy/semgrep/check.py

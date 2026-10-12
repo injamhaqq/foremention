@@ -7,11 +7,24 @@ import process from "node:process";
 const inspection = await import("../lib/source-inspection.ts");
 const runtimeRequire = createRequire(path.join(process.cwd(), ".source-benchmark-runtime", "package.json"));
 const { Readability } = runtimeRequire("@mozilla/readability");
-const { JSDOM } = runtimeRequire("jsdom");
+// BENCHMARK_DOM selects the DOM used by Readability: "jsdom" (default, Node-only)
+// or "linkedom" (the Worker-compatible candidate). Neither enters production deps.
+const benchmarkDom = process.env.BENCHMARK_DOM === "linkedom" ? "linkedom" : "jsdom";
+const { JSDOM } = benchmarkDom === "jsdom" ? runtimeRequire("jsdom") : { JSDOM: null };
+const { parseHTML } = benchmarkDom === "linkedom" ? runtimeRequire("linkedom") : { parseHTML: null };
+
+function createDocument(input, url) {
+  if (benchmarkDom === "linkedom") {
+    const { document } = parseHTML(input);
+    return { document, close() {} };
+  }
+  const dom = new JSDOM(input, { url });
+  return { document: dom.window.document, close: () => dom.window.close() };
+}
 
 const root = process.cwd();
 const benchmarkDir = path.join(root, "benchmarks", "source-extraction");
-const outputDir = path.join(root, "source-extraction-benchmark-results");
+const outputDir = path.join(root, "source-extraction-benchmark-results", process.env.BENCHMARK_DOM === "linkedom" ? "linkedom" : "jsdom");
 const cases = JSON.parse(await readFile(path.join(benchmarkDir, "cases.json"), "utf8"));
 
 function normalize(value) {
@@ -113,9 +126,9 @@ async function runReadability(testCase, html) {
     return { applicable: false, reason: "network_or_content_policy_outside_readability", article: null };
   }
   const input = boundedHtml(html, testCase);
-  const dom = new JSDOM(input, { url: testCase.url });
+  const dom = createDocument(input, testCase.url);
   try {
-    const article = new Readability(dom.window.document, { maxElemsToParse: 20_000 }).parse();
+    const article = new Readability(dom.document, { maxElemsToParse: 20_000 }).parse();
     return {
       applicable: true,
       reason: article ? null : "readability_returned_null",
@@ -129,7 +142,7 @@ async function runReadability(testCase, html) {
       } : null,
     };
   } finally {
-    dom.window.close();
+    dom.close();
   }
 }
 
@@ -283,7 +296,7 @@ const markdown = [
   `- Corpus: ${summary.corpusCases} deterministic checked-in fixtures.`,
   `- Quality score: ${summary.methodology.qualityScore}.`,
   `- Latency: ${summary.methodology.latency}.`,
-  "- Mozilla Readability runs in a benchmark-only Node/JSDOM environment; this does not prove Cloudflare Worker compatibility.",
+  `- Mozilla Readability runs in a benchmark-only Node environment with DOM \`${benchmarkDom}\`; this alone does not prove Cloudflare Worker compatibility.`,
   "- Readability does not fetch URLs, validate DNS, control redirects, or replace Foremention SSRF/network policy.",
   "",
   "## Aggregate result",

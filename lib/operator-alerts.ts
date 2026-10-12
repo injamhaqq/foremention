@@ -53,7 +53,16 @@ export async function getOperatorAlertDelivery(buildCommit: string) {
   return loadDelivery(buildCommit);
 }
 
-export async function sendOperatorAlertProbe(buildCommit: string) {
+type OperatorAlertProbeOptions = {
+  /**
+   * Optional telemetry probe (Sentry) fired only when this call actually attempts
+   * a delivery (first request for a build or a bounded retry), so repeated POSTs
+   * never multiply telemetry events. Failures are swallowed by the callback.
+   */
+  onDeliveryAttempt?: (buildCommit: string) => void;
+};
+
+export async function sendOperatorAlertProbe(buildCommit: string, options: OperatorAlertProbeOptions = {}) {
   if (!BUILD_COMMIT_PATTERN.test(buildCommit)) throw new Error("invalid_build_commit");
 
   const inserted = await supabaseRest<OperatorAlertDelivery[]>(
@@ -82,6 +91,12 @@ export async function sendOperatorAlertProbe(buildCommit: string) {
       },
     );
     delivery = retry[0] || delivery;
+  }
+
+  try {
+    options.onDeliveryAttempt?.(buildCommit);
+  } catch {
+    // Telemetry never blocks the operator email path.
   }
 
   try {
