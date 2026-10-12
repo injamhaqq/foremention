@@ -1,0 +1,246 @@
+source_register,source_row,canonical_url,original_identifier,source_disposition,source_path,source_snapshot_ref,source_blob_sha,source_sha256,source_coverage
+R67,1,https://github.com/arize-ai/phoenix,Arize-ai/phoenix,REJECT,,,,,2026-10-11
+R67,2,https://github.com/berriai/litellm,BerriAI/litellm,DEFER,,,,,2026-10-11
+R67,3,https://github.com/copilotkit/opendots,CopilotKit/OpenDots,REFERENCE ONLY,,,,,2026-10-11
+R67,4,https://github.com/graphify-labs/graphify,Graphify-Labs/graphify,REFERENCE ONLY,,,,,2026-10-11
+R67,5,https://github.com/infisical/infisical,Infisical/infisical,DEFER,,,,,2026-10-11
+R67,6,https://github.com/jakeschincariol/replica-skill,Jakeschincariol/replica-skill,REFERENCE ONLY,,,,,2026-10-11
+R67,7,https://github.com/opencut-app/opencut,OpenCut-app/OpenCut,REJECT,,,,,2026-10-11
+R67,8,https://github.com/opencut-app/opencut-classic,OpenCut-app/opencut-classic,REFERENCE ONLY,,,,,2026-10-11
+R67,9,https://github.com/openhands/openhands,OpenHands/OpenHands,REFERENCE ONLY,,,,,2026-10-11
+R67,10,https://github.com/paddlepaddle/paddleocr,PaddlePaddle/PaddleOCR,DEFER,,,,,2026-10-11
+R67,11,https://github.com/portkey-ai/gateway,Portkey-AI/gateway,DEFER,,,,,2026-10-11
+R67,12,https://github.com/unstructured-io/unstructured,Unstructured-IO/unstructured,REFERENCE ONLY,,,,,2026-10-11
+R67,13,https://github.com/activepieces/activepieces,activepieces/activepieces,DEFER,,,,,2026-10-11
+R67,14,https://github.com/adbar/trafilatura,adbar/trafilatura,DEFER,,,,,2026-10-11
+R67,15,https://github.com/airbytehq/airbyte,airbytehq/airbyte,REJECT,,,,,2026-10-11
+R67,16,https://github.com/anomalyco/opencode,anomalyco/opencode,REFERENCE ONLY,,,,,2026-10-11
+R67,17,https://github.com/apify/crawlee,apify/crawlee,DEFER,,,,,2026-10-11
+R67,18,https://github.com/aquasecurity/trivy,aquasecurity/trivy,REFERENCE ONLY,,,,,2026-10-11
+R67,19,https://github.com/assafelovic/gpt-researcher,assafelovic/gpt-researcher,REFERENCE ONLY,,,,,2026-10-11
+R67,20,https://github.com/browser-use/browser-use,browser-use/browser-use,DEFER,,,,,2026-10-11
+R67,21,https://github.com/calcom/cal.diy,calcom/cal.diy,DEFER,,,,,2026-10-11
+R67,22,https://github.com/cathrynlavery/diagram-design,cathrynlavery/diagram-design,REFERENCE ONLY,,,,,2026-10-11
+R67,23,https://github.com/chatwoot/chatwoot,chatwoot/chatwoot,DEFER,,,,,2026-10-11
+R67,24,https://github.com/currents-dev/playwright-best-practices-skill,currents-dev/playwright-best-practices-skill,DEFER,,,,,2026-10-11
+R67,25,https://github.com/dlt-hub/dlt,dlt-hub/dlt,DEFER,,,,,2026-10-11
+R67,26,https://github.com/docling-project/docling,docling-project/docling,EXPERIMENT,,,,,2026-10-11
+R67,27,https://github.com/firecrawl/firecrawl,firecrawl/firecrawl,DEFER,,,,,2026-10-11
+R67,28,https://github.com/frappe/erpnext,frappe/erpnext,REFERENCE ONLY,,,,,2026-10-11
+R67,29,https://github.com/frappe/frappe,frappe/frappe,DEFER,,,,,2026-10-11
+R67,30,https://github.com/getzep/graphiti,getzep/graphiti,DEFER,,,,,2026-10-11
+R67,31,https://github.com/gitleaks/gitleaks,gitleaks/gitleaks,REFERENCE ONLY,,,,,2026-10-11
+R67,32,https://github.com/google/osv-scanner,google/osv-scanner,REFERENCE ONLY,,,,,2026-10-11
+R67,33,https://github.com/inngest/inngest,inngest/inngest,DEFER,,,,,2026-10-11
+R67,34,https://github.com/knadh/listmonk,knadh/listmonk,DEFER,,,,,2026-10-11
+R67,35,https://github.com/langchain-ai/open_deep_research,langchain-ai/open_deep_research,REFERENCE ONLY,,,,,2026-10-11
+R67,36,https://github.com/langfuse/langfuse,langfuse/langfuse,DEFER,,,,,2026-10-11
+R67,37,https://github.com/louislam/uptime-kuma,louislam/uptime-kuma,DEFER,,,,,2026-10-11
+R67,38,https://github.com/mattpocock/skills,mattpocock/skills,REFERENCE ONLY,,,,,2026-10-11
+R67,39,https://github.com/medusajs/medusa,medusajs/medusa,DEFER,,,,,2026-10-11
+R67,40,https://github.com/meltano/meltano,meltano/meltano,DEFER,,,,,2026-10-11
+R67,41,https://github.com/microsoft/markitdown,microsoft/markitdown,REFERENCE ONLY,,,,,2026-10-11
+R67,42,https://github.com/microsoft/playwright,microsoft/playwright,REFERENCE ONLY,,,,,2026-10-11
+R67,43,https://github.com/mksglu/context-mode,mksglu/context-mode,REFERENCE ONLY,,,,,2026-10-11
+R67,44,https://github.com/morluto/rea,morluto/rea,REFERENCE ONLY,,,,,2026-10-11
+R67,45,https://github.com/mozilla/readability,mozilla/readability,DEFER,,,,,2026-10-11
+R67,46,https://github.com/n8n-io/n8n,n8n-io/n8n,REJECT,,,,,2026-10-11
+R67,47,https://github.com/open-telemetry/opentelemetry-js,open-telemetry/opentelemetry-js,DEFER,,,,,2026-10-11
+R67,48,https://github.com/paperclipai/paperclip,paperclipai/paperclip,REFERENCE ONLY,,,,,2026-10-11
+R67,49,https://github.com/pgvector/pgvector,pgvector/pgvector,DEFER,,,,,2026-10-11
+R67,50,https://github.com/promptfoo/promptfoo,promptfoo/promptfoo,DEFER,,,,,2026-10-11
+R67,51,https://github.com/qdrant/qdrant,qdrant/qdrant,DEFER,,,,,2026-10-11
+R67,52,https://github.com/resend/react-email,resend/react-email,DEFER,,,,,2026-10-11
+R67,53,https://github.com/saleor/saleor,saleor/saleor,DEFER,,,,,2026-10-11
+R67,54,https://github.com/semgrep/semgrep,semgrep/semgrep,DEFER,,,,,2026-10-11
+R67,55,https://github.com/stanford-oval/storm,stanford-oval/storm,REFERENCE ONLY,,,,,2026-10-11
+R67,56,https://github.com/storytold/artcraft,storytold/artcraft,REFERENCE ONLY,,,,,2026-10-11
+R67,57,https://github.com/supabase/supabase,supabase/supabase,REFERENCE ONLY,,,,,2026-10-11
+R67,58,https://github.com/temporalio/temporal,temporalio/temporal,DEFER,,,,,2026-10-11
+R67,59,https://github.com/tensorzero/tensorzero,tensorzero/tensorzero,REJECT,,,,,2026-10-11
+R67,60,https://github.com/tester-army/e2e,tester-army/e2e,REFERENCE ONLY,,,,,2026-10-11
+R67,61,https://github.com/tldraw/tldraw,tldraw/tldraw,REJECT,,,,,2026-10-11
+R67,62,https://github.com/triggerdotdev/trigger.dev,triggerdotdev/trigger.dev,DEFER,,,,,2026-10-11
+R67,63,https://github.com/twentyhq/twenty,twentyhq/twenty,DEFER,,,,,2026-10-11
+R67,64,https://github.com/vectorize-io/hindsight,vectorize-io/hindsight,DEFER,,,,,2026-10-11
+R67,65,https://github.com/vendurehq/vendure,vendurehq/vendure,DEFER,,,,,2026-10-11
+R67,66,https://github.com/windmill-labs/windmill,windmill-labs/windmill,DEFER,,,,,2026-10-11
+R67,67,https://github.com/zaproxy/zaproxy,zaproxy/zaproxy,DEFER,,,,,2026-10-11
+R124,1,https://github.com/mui/base-ui,https://github.com/mui/base-ui,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,2,https://github.com/radix-ui/primitives,https://github.com/radix-ui/primitives,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,3,https://github.com/shadcn-ui/ui,https://github.com/shadcn-ui/ui,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,4,https://github.com/motiondivision/motion,https://github.com/motiondivision/motion,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,5,https://github.com/cathrynlavery/diagram-design,https://github.com/cathrynlavery/diagram-design,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,6,https://github.com/lucide-icons/lucide,https://github.com/lucide-icons/lucide,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,7,https://github.com/magicuidesign/magicui,https://github.com/magicuidesign/magicui,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,8,https://github.com/tremorlabs/tremor,https://github.com/tremorlabs/tremor,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,9,https://github.com/ibelick/motion-primitives,https://github.com/ibelick/motion-primitives,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,10,https://github.com/cosscom/coss,https://github.com/cosscom/coss,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,11,https://github.com/mermaid-js/mermaid,https://github.com/mermaid-js/mermaid,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,12,https://github.com/tanstack/table,https://github.com/TanStack/table,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,13,https://github.com/tanstack/query,https://github.com/TanStack/query,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,14,https://github.com/xyflow/xyflow,https://github.com/xyflow/xyflow,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,15,https://github.com/ueberdosis/tiptap,https://github.com/ueberdosis/tiptap,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,16,https://github.com/facebook/lexical,https://github.com/facebook/lexical,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,17,https://github.com/fuma-nama/fumadocs,https://github.com/fuma-nama/fumadocs,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,18,https://github.com/cure53/dompurify,https://github.com/cure53/DOMPurify,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,19,https://github.com/mozilla/readability,https://github.com/mozilla/readability,EXPERIMENT,,,,,"README retrieved, not exhaustive source review"
+R124,20,https://github.com/apify/crawlee,https://github.com/apify/crawlee,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,21,https://github.com/unclecode/crawl4ai,https://github.com/unclecode/crawl4ai,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,22,https://github.com/firecrawl/firecrawl,https://github.com/firecrawl/firecrawl,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,23,https://github.com/adbar/trafilatura,https://github.com/adbar/trafilatura,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,24,https://github.com/microsoft/markitdown,https://github.com/microsoft/markitdown,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,25,https://github.com/docling-project/docling,https://github.com/docling-project/docling,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,26,https://github.com/scrapegraphai/scrapegraph-ai,https://github.com/ScrapeGraphAI/Scrapegraph-ai,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,27,https://github.com/dgtlmoon/changedetection.io,https://github.com/dgtlmoon/changedetection.io,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,28,https://github.com/cheeriojs/cheerio,https://github.com/cheeriojs/cheerio,DEFER,,,,,README inaccessible/absent
+R124,29,https://github.com/microsoft/playwright,https://github.com/microsoft/playwright,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,30,https://github.com/browserbase/stagehand,https://github.com/browserbase/stagehand,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,31,https://github.com/browser-use/browser-use,https://github.com/browser-use/browser-use,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,32,https://github.com/skyvern-ai/skyvern,https://github.com/Skyvern-AI/skyvern,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,33,https://github.com/geo-optim/geo,https://github.com/GEO-optim/GEO,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,34,https://github.com/parameterlab/c-seo-bench,https://github.com/parameterlab/c-seo-bench,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,35,https://github.com/cxcscmu/autogeo,https://github.com/cxcscmu/AutoGEO,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,36,https://github.com/qianfengwen/safegeo,https://github.com/QianfengWen/SafeGEO,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,37,https://github.com/bristotle/ai-visibility-tracker,https://github.com/Bristotle/ai-visibility-tracker,UNRESOLVED,,,,,"README retrieved, not exhaustive source review"
+R124,38,https://github.com/samjale/ai-visibility-tracker,https://github.com/SamJale/ai-visibility-tracker,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,39,https://github.com/ak495867/liminal,https://github.com/ak495867/Liminal,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,40,https://github.com/broadcastwell/state-of-geo-2026,https://github.com/Broadcastwell/state-of-geo-2026,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,41,https://github.com/assafelovic/gpt-researcher,https://github.com/assafelovic/gpt-researcher,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,42,https://github.com/stanford-oval/storm,https://github.com/stanford-oval/storm,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,43,https://github.com/langchain-ai/deepagents,https://github.com/langchain-ai/deepagents,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,44,https://github.com/searxng/searxng,https://github.com/searxng/searxng,DEFER,,,,,README inaccessible/absent
+R124,45,https://github.com/langchain-ai/open_deep_research,https://github.com/langchain-ai/open_deep_research,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,46,https://github.com/pgvector/pgvector,https://github.com/pgvector/pgvector,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,47,https://github.com/run-llama/llama_index,https://github.com/run-llama/llama_index,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,48,https://github.com/qdrant/qdrant,https://github.com/qdrant/qdrant,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,49,https://github.com/getzep/graphiti,https://github.com/getzep/graphiti,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,50,https://github.com/meilisearch/meilisearch,https://github.com/meilisearch/meilisearch,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,51,https://github.com/openai/openai-agents-js,https://github.com/openai/openai-agents-js,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,52,https://github.com/vercel/ai,https://github.com/vercel/ai,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,53,https://github.com/copilotkit/copilotkit,https://github.com/CopilotKit/CopilotKit,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,54,https://github.com/mastra-ai/mastra,https://github.com/mastra-ai/mastra,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,55,https://github.com/langchain-ai/langgraph,https://github.com/langchain-ai/langgraph,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,56,https://github.com/colinhacks/zod,https://github.com/colinhacks/zod,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,57,https://github.com/ajv-validator/ajv,https://github.com/ajv-validator/ajv,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,58,https://github.com/inngest/inngest,https://github.com/inngest/inngest,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,59,https://github.com/paperclipai/paperclip,https://github.com/paperclipai/paperclip,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,60,https://github.com/copilotkit/opendots,https://github.com/CopilotKit/OpenDots,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,61,https://github.com/n8n-io/n8n,https://github.com/n8n-io/n8n,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,62,https://github.com/activepieces/activepieces,https://github.com/activepieces/activepieces,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,63,https://github.com/windmill-labs/windmill,https://github.com/windmill-labs/windmill,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,64,https://github.com/triggerdotdev/trigger.dev,https://github.com/triggerdotdev/trigger.dev,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,65,https://github.com/temporalio/temporal,https://github.com/temporalio/temporal,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,66,https://github.com/openclaw/openclaw,https://github.com/openclaw/openclaw,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,67,https://github.com/hkuds/nanobot,https://github.com/HKUDS/nanobot,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,68,https://github.com/crewaiinc/crewai,https://github.com/crewAIInc/crewAI,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,69,https://github.com/anomalyco/opencode,https://github.com/anomalyco/opencode,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,70,https://github.com/openai/codex,https://github.com/openai/codex,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,71,https://github.com/google-gemini/gemini-cli,https://github.com/google-gemini/gemini-cli,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,72,https://github.com/openhands/openhands,https://github.com/OpenHands/OpenHands,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,73,https://github.com/aider-ai/aider,https://github.com/Aider-AI/aider,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,74,https://github.com/aaif-goose/goose,https://github.com/aaif-goose/goose,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,75,https://github.com/codebuffai/freebuff,https://github.com/CodebuffAI/freebuff,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,76,https://github.com/addyosmani/agent-skills,https://github.com/addyosmani/agent-skills,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,77,https://github.com/obra/superpowers,https://github.com/obra/superpowers,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,78,https://github.com/ayghri/i-have-adhd,https://github.com/ayghri/i-have-adhd,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,79,https://github.com/deepseek-ai/deepseek-harness,https://github.com/deepseek-ai/deepseek-harness,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,80,https://github.com/cordiverse/cordis,https://github.com/cordiverse/cordis,REFERENCE ONLY,,,,,"README retrieved, not exhaustive source review"
+R124,81,https://github.com/diegosouzapw/omniroute,https://github.com/diegosouzapw/OmniRoute,EXPERIMENT,,,,,"README retrieved, not exhaustive source review"
+R124,82,https://github.com/berriai/litellm,https://github.com/BerriAI/litellm,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,83,https://github.com/portkey-ai/gateway,https://github.com/Portkey-AI/gateway,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,84,https://github.com/tensorzero/tensorzero,https://github.com/tensorzero/tensorzero,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,85,https://github.com/ollama/ollama,https://github.com/ollama/ollama,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,86,https://github.com/ggml-org/llama.cpp,https://github.com/ggml-org/llama.cpp,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,87,https://github.com/vllm-project/vllm,https://github.com/vllm-project/vllm,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,88,https://github.com/justvugg/colibri,https://github.com/JustVugg/colibri,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,89,https://github.com/tashfeenahmed/freellmapi,https://github.com/tashfeenahmed/freellmapi,REJECT,,,,,"README retrieved, not exhaustive source review"
+R124,90,https://github.com/posthog/posthog,https://github.com/PostHog/posthog,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,91,https://github.com/getsentry/sentry,https://github.com/getsentry/sentry,COMPLETE,,,,,"README retrieved, not exhaustive source review"
+R124,92,https://github.com/promptfoo/promptfoo,https://github.com/promptfoo/promptfoo,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,93,https://github.com/langfuse/langfuse,https://github.com/langfuse/langfuse,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,94,https://github.com/arize-ai/phoenix,https://github.com/Arize-ai/phoenix,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,95,https://github.com/open-telemetry/opentelemetry-js,https://github.com/open-telemetry/opentelemetry-js,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,96,https://github.com/louislam/uptime-kuma,https://github.com/louislam/uptime-kuma,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,97,https://github.com/grafana/grafana,https://github.com/grafana/grafana,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,98,https://github.com/semgrep/semgrep,https://github.com/semgrep/semgrep,EXPERIMENT,,,,,"README retrieved, not exhaustive source review"
+R124,99,https://github.com/gitleaks/gitleaks,https://github.com/gitleaks/gitleaks,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,100,https://github.com/trufflesecurity/trufflehog,https://github.com/trufflesecurity/trufflehog,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,101,https://github.com/aquasecurity/trivy,https://github.com/aquasecurity/trivy,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,102,https://github.com/ossf/scorecard,https://github.com/ossf/scorecard,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,103,https://github.com/google/osv-scanner,https://github.com/google/osv-scanner,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,104,https://github.com/dequelabs/axe-core,https://github.com/dequelabs/axe-core,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,105,https://github.com/googlechrome/lighthouse,https://github.com/GoogleChrome/lighthouse,KEEP,,,,,README inaccessible/absent
+R124,106,https://github.com/webpro-nl/knip,https://github.com/webpro-nl/knip,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,107,https://github.com/zaproxy/zaproxy,https://github.com/zaproxy/zaproxy,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,108,https://github.com/vitest-dev/vitest,https://github.com/vitest-dev/vitest,REJECT,,,,,"README retrieved, not exhaustive source review"
+R124,109,https://github.com/resend/react-email,https://github.com/resend/react-email,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,110,https://github.com/twentyhq/twenty,https://github.com/twentyhq/twenty,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,111,https://github.com/chatwoot/chatwoot,https://github.com/chatwoot/chatwoot,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,112,https://github.com/novuhq/novu,https://github.com/novuhq/novu,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,113,https://github.com/knadh/listmonk,https://github.com/knadh/listmonk,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,114,https://github.com/mautic/mautic,https://github.com/mautic/mautic,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,115,https://github.com/calcom/cal.diy,https://github.com/calcom/cal.diy,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,116,https://github.com/supabase/supabase,https://github.com/supabase/supabase,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,117,https://github.com/cloudflare/vinext,https://github.com/cloudflare/vinext,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,118,https://github.com/cloudflare/workers-sdk,https://github.com/cloudflare/workers-sdk,KEEP,,,,,"README retrieved, not exhaustive source review"
+R124,119,https://github.com/upstash/ratelimit-js,https://github.com/upstash/ratelimit-js,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,120,https://github.com/coollabsio/coolify,https://github.com/coollabsio/coolify,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,121,https://github.com/dokploy/dokploy,https://github.com/Dokploy/dokploy,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,122,https://github.com/epicgames/raddebugger,https://github.com/EpicGames/raddebugger,REJECT,,,,,"README retrieved, not exhaustive source review"
+R124,123,https://github.com/tldraw/tldraw,https://github.com/tldraw/tldraw,DEFER,,,,,"README retrieved, not exhaustive source review"
+R124,124,https://github.com/alvinunreal/freesubstats.com,https://github.com/alvinunreal/freesubstats.com,UNRESOLVED,,,,,"README retrieved, not exhaustive source review"
+COMP,1,https://github.com/cooper-square-technologies/profound-typescript-sdk,cooper-square-technologies/profound-typescript-sdk,,.claude/skills/profound-typescript-sdk/SKILL.md,9d1177008e25bf78663a2a0dfdbbf5318cf79a90,8dd64018153e06d5b277f6a43fe5c53977d6e6e7,4d3dd4432e42e3901376ceaa8fa8fd272fe52ce6acc5fc4fecdee88a385f3bfe,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,2,https://github.com/cooper-square-technologies/profound-typescript-sdk,cooper-square-technologies/profound-typescript-sdk,,LICENSE,9d1177008e25bf78663a2a0dfdbbf5318cf79a90,c285b1c0da7553c0bc84b7cd0e967762d69b4a55,49a807117bd8896c309809d2dd3bb265209373d88dfc3cdaec9aede5555f3d10,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,3,https://github.com/cooper-square-technologies/profound-typescript-sdk,cooper-square-technologies/profound-typescript-sdk,,README.md,9d1177008e25bf78663a2a0dfdbbf5318cf79a90,1959bfda263f721e1cdb74301b8b4c07ddae4e0e,e24cff56e3685e1e0221587bbfc60dd6904689479a7a0b2619de8101a47591ef,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,4,https://github.com/cooper-square-technologies/profound-typescript-sdk,cooper-square-technologies/profound-typescript-sdk,,SKILL.md,9d1177008e25bf78663a2a0dfdbbf5318cf79a90,b09d67af600f1f3ca6f59a66f522296edce5357e,18fa56e23c16560f7597081dafb57d3799e58a568f5134df26e9497e80a883e6,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,5,https://github.com/cooper-square-technologies/profound-typescript-sdk,cooper-square-technologies/profound-typescript-sdk,,api.md,9d1177008e25bf78663a2a0dfdbbf5318cf79a90,815262ed9587a10af5619bf03c07d2306ec86972,62586a2da1870e2276e47a85958fb1212ca781730ba6def0861ed76dbe2fc1cf,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,6,https://github.com/cooper-square-technologies/profound-typescript-sdk,cooper-square-technologies/profound-typescript-sdk,,package.json,9d1177008e25bf78663a2a0dfdbbf5318cf79a90,42ea96c6a8f265f6147e81cb43be15507914db2c,5a92f9261d1a725db8d365ae5cd06333ea4a96a9b05abd8a4633873b852c58ab,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,7,https://github.com/cooper-square-technologies/profound-python-sdk,cooper-square-technologies/profound-python-sdk,,.claude/skills/profound-python-sdk/SKILL.md,1e1fa023531c1441a25463b24b2e4c1044896350,fbb57c24c0a9f666e3e198fee1263caad907159d,2e597aa7ca9d61ef37dde64dc21c69eb3ff910439127b4dffaab18cb246bec1f,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,8,https://github.com/cooper-square-technologies/profound-python-sdk,cooper-square-technologies/profound-python-sdk,,LICENSE,1e1fa023531c1441a25463b24b2e4c1044896350,c285b1c0da7553c0bc84b7cd0e967762d69b4a55,49a807117bd8896c309809d2dd3bb265209373d88dfc3cdaec9aede5555f3d10,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,9,https://github.com/cooper-square-technologies/profound-python-sdk,cooper-square-technologies/profound-python-sdk,,README.md,1e1fa023531c1441a25463b24b2e4c1044896350,7165db190ca9b55fe5343f8fea7ae4bc3d1c53c8,a54438e1f1627b1caaaaa5796d7ce2db213233cc8560b4764632384d64082f96,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,10,https://github.com/cooper-square-technologies/profound-python-sdk,cooper-square-technologies/profound-python-sdk,,SKILL.md,1e1fa023531c1441a25463b24b2e4c1044896350,b72d2d38d43ca13f643e646e718de77f78b8066a,dc636f828ec370f1c13a0895679eaf91b12367b045fadb5a793d11b391d0af1b,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,11,https://github.com/cooper-square-technologies/profound-python-sdk,cooper-square-technologies/profound-python-sdk,,api.md,1e1fa023531c1441a25463b24b2e4c1044896350,88f32ffa284293f97115ff117acc226f50915fa1,b8b3d79e7ea64a0bec836bcf4d93e7fb5524e6612e50ef6d3f258ad6ae2da42f,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,12,https://github.com/cooper-square-technologies/profound-python-sdk,cooper-square-technologies/profound-python-sdk,,pyproject.toml,1e1fa023531c1441a25463b24b2e4c1044896350,55879f62ad88d8db7a47941ce66be43299c9383a,773a1c6c54212d19909cd180c5466ff7a74f49c5372afeb8b1c54c4afb259e52,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,13,https://github.com/cooper-square-technologies/profound-rust-sdk,cooper-square-technologies/profound-rust-sdk,,Cargo.toml,f15c80c21c9d6b1174a75a93a2aae3a23f05af25,0d471b8348631d0250a6aaaa305ae4b647de2399,4e87c5add7ae6316b5082770d26219585ec50eafcef41b915ec25a2f097f3572,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,14,https://github.com/cooper-square-technologies/profound-rust-sdk,cooper-square-technologies/profound-rust-sdk,,LICENSE,f15c80c21c9d6b1174a75a93a2aae3a23f05af25,c285b1c0da7553c0bc84b7cd0e967762d69b4a55,49a807117bd8896c309809d2dd3bb265209373d88dfc3cdaec9aede5555f3d10,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,15,https://github.com/cooper-square-technologies/profound-rust-sdk,cooper-square-technologies/profound-rust-sdk,,README.md,f15c80c21c9d6b1174a75a93a2aae3a23f05af25,8e699b921b7f773d5e16d2b2f498dd2663afe69e,f647d0dba12e11e6d658ec639bd0ad99c44ebd52bcffae224edf461871d3d6cf,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,16,https://github.com/cooper-square-technologies/profound-rust-sdk,cooper-square-technologies/profound-rust-sdk,,api.md,f15c80c21c9d6b1174a75a93a2aae3a23f05af25,2c856a468d48765e789239f8ca6793124f460cf0,ea36bfa384ebcc2d018467390130c2dc80803db2c6ae417cc0f5854b5405e06f,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,17,https://github.com/rebelytics/peec-ai-mcp,rebelytics/peec-ai-mcp,,LICENSE,5ecac7c864f94e47caec421709f03ec8f7ad5c82,b28b3b06177720355f1a4258221b69eb6c530bde,e489fe8371a8d4882e8e4671469d8d8166e2eaf0d238588e27f67429b757f689,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,18,https://github.com/rebelytics/peec-ai-mcp,rebelytics/peec-ai-mcp,,README.md,5ecac7c864f94e47caec421709f03ec8f7ad5c82,f28e91ad6441325f1817c980cac2c97d028f9b32,50672c71c87e8c1c22c956f1ff2846634a7686d2d79b301bd34211410ad2d0d1,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,19,https://github.com/rebelytics/peec-ai-mcp,rebelytics/peec-ai-mcp,,SKILL.md,5ecac7c864f94e47caec421709f03ec8f7ad5c82,77224cbe338f8cb0876fe13583522eb8854b0a99,b8660cf92036990a11eb9e471dab254d6503934316fc117aba11cbed98276aff,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,20,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,LICENSE,6be32c799bd6bb3d7eed749e7e9c2a8304352687,ff2c6c8b515e9120da994c4314af133896a58d3e,ab17005cffd29f3c21c0f642d8360444724dc1b70dfb506ebb8d0fdcc4fb966e,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,21,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,README.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,c21777b4870bdf40641a5a27c01cd79450c7488c,f8f0fb5b0c387ae0c2496144ebb6b28d440414b954810a388f6db8250d5258e2,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,22,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-agent/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,e1d6821eaf4b5fb4cbe2e00f258a6574df5bc6a4,d28c0881cc32a93f0dac41d5e10ba7e486921f9633f9182c8b5c28fdd7309490,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,23,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-checkup/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,92d7402437ed07eb90f97bf01f5874b239bae1d3,a89461ed67f4c4de6f70e2be17cb79ccf4679303ec120ee9f2f8c7114e6ec79b,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,24,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-cluster/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,f0cbfc79cf092c3326ba4182858d859dea00651f,3be5f25ee1185b6aafa92575023d0ae189b3b7d0b58320e87917741f1ba78c40,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,25,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-content-intel/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,c1fda758d38cc79d87a4f7f98385c4bae68267ee,6489b18f95e76454bc4485fa388cdea0a8845786ddcf03cca3ef30ec6794b184,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,26,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-learn/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,f6721469443a15aaac17a4cc5d578d836a8a6877,52ef16584d41927fe0b88cde1a27accae275170a43328c4b9109016bbdd566cd,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,27,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-outreach/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,e044949e55ddec2768f6097b090618270ab9f3fe,08801daefd3befb6caa2a998f12166d1fd8a01ed091125bd82f554b0f72036a6,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,28,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-report/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,0bf9af28c4377be54619569ad533c5ff35584c2c,713ef6ff55f6df304f6ae453c03de8e3e90b5651613bed843b355cf8efe2affc,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,29,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-setup/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,72cf5e02689f749f5fb8425c468dc0c0d261342b,56ae80fd36ed53152b9aa9fc4d21f8401e139d3e308fd27ac6532d06e4a553a7,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,30,https://github.com/antonioblago/peec-ai-skills,AntonioBlago/peec-ai-skills,,skills/peec-start/SKILL.md,6be32c799bd6bb3d7eed749e7e9c2a8304352687,1e8f8f1f8339eb571932804046d53f3a0edf0a2b,90e74eaec4d3ecb37968bea643c7a0a3c110d4dd9596b0c4ae3a0a5dfeb864f1,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,31,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,AGENT.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,3909b167d65f993a4c24b59a0bcb14c6773156ec,5a6ca73b3b552056ebdf6ca6e69216fee5afb334efeceb25824fce38349e3169,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,32,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,LICENSE,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,5ae5fe0faa655a824d5b79572ffe79b77a0cd930,03b1065a1f6a99272a5c36677f795423071ab060bdff1593b0ea3b3956635b0e,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,33,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,README.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,629db212fd83edadd1df7ba7db19f3528960048b,b825b6b8f39f798c12ce9d7e122901681da50af123001bc2ba37ddc6cc3f7d07,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,34,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,audit-content/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,a81e9844463b6c04ab763b816873eae2501ca600,fa5b4ac10ca5bd4d646371b804e6eddc5997e451c3a08f6dae6fbb02028b9199,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,35,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,audit-website-aeo/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,7b12ff41c16bc24df6e82539aebdd3dc89c6c541,fd2c9bc22e37055893c666fd84bcbfb6053052c794784a98df58e3916a5d3692,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,36,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,build-backlinks/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,8422aa6670d858db79e50a547e7a69ae2548bb52,a32560da9ff95d199578ac8840dd3a2371ae479bdec2c93b5093cf89d5bb83a2,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,37,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,build-resource-pages/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,a4230b738e45686839227341c090c7b715dc672d,b207baad2e8ced4eeb02b843201e85dfb569a869a0d1b03b265e0a2e76059d88,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,38,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,create-geo-charts/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,cde889b73c3be504f758803c74d89ba0675f1de4,3c4947c3ca5aeba91348ab65abe65738eabf0fcc0e75d753d28b4ed85e32f07c,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,39,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,geo-content-planning/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,31bc52d05c9aac4afe5d927c3385b7a2ed80ace0,067ce10c007f9f477a3ba58432610b6d9a5d7adecb348f3c54f5f93891fe79e0,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,40,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,geo-content-research/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,62060d28ee95b0333c4d76ccdb34311a47a846f4,38b085f50ebe2c8c17501e6863501228dfcd2240fd9683e6b41947e6e0770c4c,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,41,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,improve-aeo-geo/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,68809ee0e495a5a7cc03b47364b1d34fcfd2cb81,a2d27da45090fdd4bea6f77c1503be860dbc3b840f745ae24528d8efbd5d7407,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,42,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,package.json,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,51d9ca0275c986dd4562cc93de0e20554a725378,f9f39d4596ad67eb1e58cefa833dea7030cec3be049ecf366bf26fd662b29458,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,43,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,reddit-opportunity-research/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,7fb3686a094309aa9f3087d7c4c659653a635a73,7de26d5dc6ec689ecd25fc6c4adc962779a8a8efbb6424764da82be32d8c9665,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,44,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,research-brand/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,c2fdfd87411a3dc3df3067e0c6b5a4b0bf43c5f3,07555bc7a0968bffefb5f44bc1fb44df7fc0d0edc4ba92710e0f3ba04d1e837d,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,45,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,research-keywords/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,1ea4f072670f9321503e7ce96e9ac545800b2b18,ddbeb152b162254e7c2406e58ef870b951b61a21d7e35a57b6f788d3e98e1f46,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,46,https://github.com/onvoyage-ai/gtm-engineer-skills,onvoyage-ai/gtm-engineer-skills,,write-seo-geo-content/SKILL.md,3777930184a10b25ab36bb2fc4da6c0f6cfcc187,18a8986e1575bf5c7b5169f62a755b51e81a1de6,614dcc976599ecdd9f866ff04c82728a38051bde5a0f6f32f7f911f13b1e7b8d,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,47,https://github.com/onvoyage-ai/voyage-geo-agent,onvoyage-ai/voyage-geo-agent,,.claude/skills/geo-leaderboard/SKILL.md,2ed1cfaaf4b1638bb69c07cdb68ff7f2a7443175,990813685554a534f8af3de426a55f225ec68a89,acfa68e9e92fc3692c8a85876f613eb3c8c74b4872ee1878b07735e48b596e3d,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,48,https://github.com/onvoyage-ai/voyage-geo-agent,onvoyage-ai/voyage-geo-agent,,.claude/skills/geo-run/SKILL.md,2ed1cfaaf4b1638bb69c07cdb68ff7f2a7443175,1ce7bfd0a1daf9041617fbfe4b64c614d02dfb42,2428b23eec402a1ca7e312af44afaacd5634ae7ebcefc8954f90cc6da2443d8f,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,49,https://github.com/onvoyage-ai/voyage-geo-agent,onvoyage-ai/voyage-geo-agent,,AGENTS.md,2ed1cfaaf4b1638bb69c07cdb68ff7f2a7443175,de5aba098b4a16f6fd5e698b7b73623034093090,3efb14671693a0bcd1a311851f12de26a6e7197e48593df95936be20250a7058,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,50,https://github.com/onvoyage-ai/voyage-geo-agent,onvoyage-ai/voyage-geo-agent,,LICENSE,2ed1cfaaf4b1638bb69c07cdb68ff7f2a7443175,7592ca27196b7cacc79307f4f95451bef78b9741,72c623fa961b11e8b064de20aa29a85c1068cc89a2e8bb0fdec34cb11d486de7,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,51,https://github.com/onvoyage-ai/voyage-geo-agent,onvoyage-ai/voyage-geo-agent,,README.md,2ed1cfaaf4b1638bb69c07cdb68ff7f2a7443175,95ea993fe9c1453b8ffcdb710ac622b3720d03f5,9f5b88baf3e7c8f85c072abc2495cdb0fc4270937a2507cbe085c5545ad151dd,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,52,https://github.com/onvoyage-ai/voyage-geo-agent,onvoyage-ai/voyage-geo-agent,,pyproject.toml,2ed1cfaaf4b1638bb69c07cdb68ff7f2a7443175,e9e13354f85448402c609587e433e1b0d82e859a,629436fc034bb336e71da5e65919413ae368f46b26b83d2427debf23ebbcbbf8,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,53,https://github.com/onvoyage-ai/voyage-geo-agent,onvoyage-ai/voyage-geo-agent,,voyage-geo-aeo-analysis/SKILL.md,2ed1cfaaf4b1638bb69c07cdb68ff7f2a7443175,c714cac6e72335b5a33ac7db7eb1ed03d7416a62,b1032ef9cc63864a7a240867bc85225bd1aa71638e0c1445a7f4eeb3f3628f19,Retrieved; descriptions/headings/selected sections reviewed; not runtime tested
+COMP,54,https://github.com/peec-ai/peec-mcp-skills,peec-ai/peec-mcp-skills,,,,,,GitHub tree API returned 409 repository empty
