@@ -3,6 +3,7 @@ import { entitlementGrantForBillingEvent, entitlementsForBillingEvent, type Veri
 import { billingProvider, reconcileBillingOrganization, type ParsedBillingProviderEvent } from "@/lib/billing-provider";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { paddleSubscriptionIdentityMatches } from "@/lib/paddle-lifecycle-admission";
+import { reconcilePaddlePaidPeriod } from "@/lib/paddle-paid-period";
 
 type BillingReceiptRow = { provider: string; event_id: string; processed_at: string | null };
 type BillingAccountIdentityRow = {
@@ -274,6 +275,7 @@ export async function POST(request: Request) {
     }, { status: 503 });
   }
 
+  let reconciledPaidThrough: string | null = null;
   if (provider.id === "paddle") {
     try {
       const admitted = parsed.externalTransactionId
@@ -284,15 +286,30 @@ export async function POST(request: Request) {
           error: "Paddle event has no matching reserved checkout or verified subscription identity. Provider retry required.",
         }, { status: 503 });
       }
+      // Paddle can send billing_period=null for the initial paid checkout.
+      // A missing period must NEVER be interpreted as indefinitely paid.
+      // Resolve it from the verified subscription after identity admission.
+      if (parsed.externalTransactionId && !parsed.accessUntil) {
+        if (!parsed.externalSubscriptionId || !parsed.externalCustomerId
+          || !parsed.billingInterval) throw new Error("Missing paid subscription identity.");
+        reconciledPaidThrough = await reconcilePaddlePaidPeriod({
+          subscriptionId: parsed.externalSubscriptionId,
+          customerId: parsed.externalCustomerId,
+          packageKey: parsed.packageKey,
+          billingInterval: parsed.billingInterval,
+          occurredAt: parsed.occurredAt || "",
+        });
+      }
     } catch {
       return NextResponse.json({
-        error: "Paddle event correlation could not be verified. Provider retry required.",
+        error: "Paddle event correlation or bounded paid period could not be verified. Provider retry required.",
       }, { status: 503 });
     }
   }
 
   const event: VerifiedBillingEvent = {
     ...parsed,
+    ...(reconciledPaidThrough ? { accessUntil: reconciledPaidThrough } : {}),
     organizationId,
   };
   return billingMutationResponse(event, provider.id);
