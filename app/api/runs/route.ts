@@ -14,6 +14,8 @@ import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { inngest } from "@/lib/jobs/inngest";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { runUnits } from "@/lib/product-limits";
+import { EVIDENCE_CAPACITY_DAILY_MESSAGE, EVIDENCE_CAPACITY_MONTHLY_MESSAGE, readEvidenceCapacity } from "@/lib/evidence-capacity";
+import { braveSearchApiKey } from "@/lib/free-web-retrieval";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { getProvider } from "@/lib/providers";
 import type { ProviderId } from "@/lib/providers/types";
@@ -161,6 +163,19 @@ export async function POST(request: Request) {
     return NextResponse.json({
       error: `Groq collections are capped at $${GROQ_SPEND_LIMITS.maxRunCostUsd.toFixed(2)} per run. Select fewer questions or choose another provider.`,
     }, { status: 422 });
+  }
+
+  // A18: refuse a collection the shared free allocation cannot finish today,
+  // before any run, quota or budget is reserved. Each provider call is still
+  // admitted atomically at call time; this only gives the founder a clear answer.
+  if (providerId === "cloudflare") {
+    const capacity = await readEvidenceCapacity({ brave: Boolean(braveSearchApiKey()) }).catch(() => null);
+    if (capacity?.enforced && capacity.dailyRemaining !== null && capacity.dailyRemaining < prompts.length) {
+      return NextResponse.json({ error: EVIDENCE_CAPACITY_DAILY_MESSAGE, remainingToday: capacity.dailyRemaining }, { status: 429 });
+    }
+    if (capacity?.enforced && capacity.braveConfigured && capacity.monthlyBraveRemaining !== null && capacity.monthlyBraveRemaining < prompts.length) {
+      return NextResponse.json({ error: EVIDENCE_CAPACITY_MONTHLY_MESSAGE, remainingThisMonth: capacity.monthlyBraveRemaining }, { status: 429 });
+    }
   }
 
   const runId = crypto.randomUUID();

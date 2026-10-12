@@ -1,4 +1,6 @@
+import { admitEvidenceCall, EvidenceCapacityExhaustedError } from "@/lib/evidence-capacity";
 import {
+  braveSearchApiKey,
   domainScopedQuery,
   retrieveFreeWebEvidence,
   SourceScopeUnavailableError,
@@ -167,6 +169,16 @@ export async function runGroundedCloudflareWithBinding(input: {
   // domain and never passes off-domain results to the model as support.
   const scope = sourceDomainScopeFromPrompt(input.prompt);
   const query = scope ? domainScopedQuery(input.searchQuery || input.prompt, scope) : input.searchQuery || input.prompt;
+  // A18: admit against the platform-wide daily (and Brave monthly) cap
+  // BEFORE any search request or model call is made. Fails closed.
+  try {
+    await admitEvidenceCall({ brave: Boolean(braveSearchApiKey()) });
+  } catch (error) {
+    if (error instanceof EvidenceCapacityExhaustedError) {
+      throw new ProviderRequestError("Foremention live-evidence capacity", 429, error.message);
+    }
+    throw error;
+  }
   let evidence: Awaited<ReturnType<typeof retrieveFreeWebEvidence>>;
   try {
     evidence = await retrieveFreeWebEvidence(query, input.signal, scope);
