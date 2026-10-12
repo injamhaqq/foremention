@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   // Suggested questions are returned for review only; never persist or collect
   // from suggestions that the customer removed or did not explicitly approve.
   const approval = validateApprovedBuyerQuestions(raw.prompts);
-  if (approval.error) {
+  if (approval.questions === null) {
     return NextResponse.json({
       error: approval.error,
       ...(Array.isArray(raw.prompts) && raw.prompts.length > 0 ? {} : { suggestedQuestions: generatedPrompts }),
