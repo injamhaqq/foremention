@@ -36,3 +36,33 @@ test("dirty Save & submit stops after an uncertain submit and reloads the actual
   assert.equal(f.button("Save & submit for review").props.disabled,true);
   assert.equal(f.requests.length,2); assert.doesNotMatch(renderToStaticMarkup(f.render()),/Decision updated\./);
 });
+
+test("an ambiguous manager decision blocks Approve/Reject until the persisted decision is reloaded", async () => {
+  const f = decisionEditorFixture({ role: "owner", record: { ...editorRecord, status: "in_review", submittedAt: "2026-10-12T10:00:00Z" } });
+  f.field("Decision note").props.onChange({ target: { value: "Owner note" } });
+  f.button("Approve").props.onClick();
+  assert.equal(f.requests.length, 1);
+  assert.deepEqual({ action: f.requests[0].body.action, decision: f.requests[0].body.decision }, { action: "decision", decision: "approved" });
+  // The write may have persisted; only the acknowledgement is lost.
+  f.requests[0].resolve(editorResponse({ error: "upstream" }, 503)); await flushEditor();
+  const html = renderToStaticMarkup(f.render());
+  assert.match(html, /We cannot confirm what was saved\./);
+  assert.doesNotMatch(html, /Decision updated\./);
+  assert.equal(f.button("Approve").props.disabled, true);
+  assert.equal(f.button("Reject").props.disabled, true);
+  assert.equal(f.field("Decision note").props.disabled, true);
+  f.button("Approve").props.onClick(); f.button("Reject").props.onClick();
+  assert.equal(f.requests.length, 1, "no automatic or repeated decision write while the outcome is uncertain");
+  // A failed reload keeps the uncertainty and the reviewer's local note.
+  f.button("Reload saved decision").props.onClick(); f.requests[1].reject(new Error("offline")); await flushEditor();
+  assert.equal(f.button("Approve").props.disabled, true);
+  assert.equal(f.field("Decision note").props.value, "Owner note");
+  // A successful scoped reload shows the decision that actually persisted.
+  f.button("Reload saved decision").props.onClick();
+  f.requests[2].resolve({ ok: true, status: 200, text: async () => JSON.stringify({ data: [{ ...editorRecord, status: "approved", decisionAt: "2026-10-12T10:05:00Z", approvalNote: "Owner note" }], permissions: { role: "owner", canWrite: true, canDecide: true } }) });
+  await flushEditor();
+  assert.equal(f.button("Approve"), null, "an already-persisted approval cannot be decided twice");
+  assert.equal(f.button("Reload saved decision"), null);
+  assert.match(renderToStaticMarkup(f.render()), /Decision recorded · 2026-10-12T10:05:00Z/);
+  assert.equal(f.requests.length, 3);
+});

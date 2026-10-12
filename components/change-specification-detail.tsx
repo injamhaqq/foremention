@@ -304,10 +304,10 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
       <p>Foremention can preserve evidence and structure the decision. It does not approve the company change, publish it, control an AI provider, or claim that a later AI result was caused by the change.</p>
       <div className="workspace-heading__actions">
         {canSubmit && <button className="button button--ink" type="button" disabled={Boolean(busy) || uncertain} onClick={() => void submitForReview()}>{busy === "submit" ? (dirty ? "Saving and submitting…" : "Submitting…") : dirty ? "Save & submit for review" : "Submit for review"}</button>}
-        {canDecide && <><button className="button button--ink" type="button" disabled={Boolean(busy)} onClick={() => void decide("approved")}>{busy === "decision" ? "Recording…" : "Approve"}</button><button className="button button--outline" type="button" disabled={Boolean(busy)} onClick={() => void decide("rejected")}>Reject</button></>}
+        {canDecide && <><button className="button button--ink" type="button" disabled={Boolean(busy) || uncertain} onClick={() => void decide("approved")}>{busy === "decision" ? "Recording…" : "Approve"}</button><button className="button button--outline" type="button" disabled={Boolean(busy) || uncertain} onClick={() => void decide("rejected")}>Reject</button></>}
       </div>
       {record.status === "in_review" && !permissions.canDecide && <p className="table-caption">Waiting for a workspace owner or admin to approve or reject this Change Specification.</p>}
-      {canDecide && <label>Decision note<textarea rows={3} value={approvalNote} onChange={(event) => setApprovalNote(event.target.value)} /></label>}
+      {canDecide && <label>Decision note<textarea disabled={Boolean(busy) || uncertain} rows={3} value={approvalNote} onChange={(event) => setApprovalNote(event.target.value)} /></label>}
       {record.decisionAt && <p className="table-caption">Decision recorded · {record.decisionAt}</p>}
     </section>
   </>;

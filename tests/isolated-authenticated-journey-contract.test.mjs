@@ -92,3 +92,17 @@ test("authenticated bridge dispatches exact compiled Worker status with no remot
   assert.match(review,/supabaseRest\("audit_logs",\s*\{[\s\S]*?serviceRole: true/);
   assert.match(review,/actor_id: viewer\.id/); assert.match(review,/entity_id: run\.id/);
 });
+
+test("A15 recovery journey proves lost-ACK manager decisions, partial follow-up and the exact reviewed baseline", async () => {
+  const journey=await read("../scripts/isolated-authenticated-journey.mjs");
+  assert.match(journey,/authenticated-manager-decision-survives-lost-ack-and-reload-without-duplicate/);
+  assert.match(journey,/decisionWrites,1,"uncertain decision must not trigger an automatic or repeated write"/);
+  assert.match(journey,/ownerPage\.reload\(/);
+  assert.match(journey,/approvals\.length,1,"exactly one persisted manager approval receipt"/);
+  assert.match(journey,/secondReview\.status,"partial"/);
+  assert.match(journey,/record\.followUp\.baselineRunId,initial\.run\.id/);
+  assert.match(journey,/comparison\.followUpRunId,second\.run\.id/);
+  assert.match(journey,/second-cycle-partial-run-compares-exact-reviewed-baseline/);
+  // No manager approval shortcut through the API remains for this decision.
+  assert.doesNotMatch(journey,/action:"decision",id:spec\.id,decision:"approved",approvalNote/);
+});
