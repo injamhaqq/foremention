@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspacePrompt } from "@/lib/data";
 import { captureProductEvent } from "@/lib/product-analytics";
+import { readApiJson } from "@/lib/api-response";
 
 type SuggestedQuestion = { cluster: string; text: string; why: string };
 
@@ -42,7 +43,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category, sourceS
     setBusy("new"); setMessage("");
     try {
       const response = await fetch("/api/prompts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, cluster }) });
-      const result = (await response.json()) as { data?: WorkspacePrompt; error?: string };
+      const result = await readApiJson<{ data?: WorkspacePrompt; error?: string }>(response);
       if (!response.ok || !result.data) throw new Error(result.error || "Could not add the question.");
       setPrompts((current) => [...current, result.data!]);
       setText("");
@@ -63,7 +64,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category, sourceS
     }
     try {
       const response = await fetch("/api/prompts", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: prompt.id, active: next }) });
-      const result = (await response.json()) as { error?: string };
+      const result = await readApiJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(result.error || "Could not update the question.");
       setPrompts((current) => current.map((item) => item.id === prompt.id ? { ...item, approved: next } : item));
       router.refresh();
@@ -89,7 +90,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category, sourceS
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ id: prompt.id, text: nextText }),
       });
-      const result = (await response.json()) as { data?: { text: string }; error?: string };
+      const result = await readApiJson<{ data?: { text: string }; error?: string }>(response);
       if (!response.ok || !result.data) throw new Error(result.error || "Could not update the question.");
       setPrompts((current) => current.map((item) => item.id === prompt.id ? { ...item, text: result.data!.text } : item));
       setEditingId(""); setEditingText("");
