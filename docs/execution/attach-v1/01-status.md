@@ -69,3 +69,10 @@ Revert `1318ebe` (returns onboarding enrichment to the checkpoint-1 hard-disable
 
 ## Next action
 FM-00: review draft PR, decide the provenance migration and usage-ledger shape, route the Chat06/04/05 proposals. Chat01 on "continue": refresh peer heads, rebase on main if it moved, and fold in any FM-00 decision on shared types.
+
+## Checkpoint 3 — continuation: metric classification integrity
+- Prior branch head `6d0c56a7c1e2aeda4b675941022f6241b7b22554` achieved successful exact-head CI, Security, CodeQL, AI Safety and authenticated journey; Browser Acceptance was still in progress at last inspection. These results belong to **that commit**, not the new head.
+- Found and fixed pure contract edge: an observed answer without a boolean `brandPresent` was previously counted as false, manufacturing a zero. Now only classified observations enter the visibility denominator; unclassified counts are exposed and incomplete/unknown results withhold the appropriate aggregate. Added negative/positive regression tests.
+- ObservationEnvelope previously inferred `api_provider_native` when no method was recorded. It now preserves `method=null` and lists it as unavailable. Do not retrofit missing history with guesses.
+- Existing downstream `lib/jobs/inngest.ts` metric/denominator and schema changes remain Chat06/FM-00 proposals. No external provider call, customer mutation or release attempted.
+- Current exact head: read branch/PR ref after this status commit; rerun exact-head GitHub Actions before accepting.
