@@ -34,7 +34,7 @@ test("ordinary comparison questions are never site-scoped", () => {
 test("domain-scoped query is concise, bounded and site-qualified", () => {
   const scope = sourceDomainScopeFromPrompt(officialQuestion);
   const query = domainScopedQuery(officialQuestion, scope);
-  assert.match(query, /^site:openai\.com /);
+  assert.match(query, /^site:openai\.com\/news /);
   assert.ok(query.length <= 200);
   assert.ok(query.split(" ").length <= 9);
   assert.doesNotMatch(query, /\b(the|according|official|memory)\b/);

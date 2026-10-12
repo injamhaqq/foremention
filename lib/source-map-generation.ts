@@ -1,6 +1,7 @@
 import { supabaseRest } from "@/lib/supabase-rest";
 import { inspectSourceUrl } from "@/lib/source-inspection";
 import { buildBoundedEvidenceExcerpt, persistSourceSnapshot } from "@/lib/source-snapshots";
+import { assessObservedPagePresence } from "@/lib/source-page-presence";
 
 type RunRow = {
   id: string;
@@ -76,17 +77,12 @@ async function inspectMappedSources(run: RunRow, ranked: SourceAggregate[]) {
     await Promise.all(ranked.slice(offset, offset + 4).map(async (source) => {
       try {
         const result = await inspectSourceUrl(source.url, { includePageText: true, maxBytes: 128 * 1024, maxExtractedTextChars: 24_000, timeoutMs: 6_000 });
-        const searchable = `${result.pageTitle || ""} ${result.pageDescription || ""} ${result.pageText || ""}`.toLocaleLowerCase();
-        const clientPresent = Boolean(brand) && searchable.includes(brand.toLocaleLowerCase());
-        const competitorsPresent = competitors.filter((name) => searchable.includes(name.toLocaleLowerCase()));
+        const { clientPresent, competitorsPresent, pagePresenceState } = assessObservedPagePresence(result, brand, competitors);
         const evidenceExcerpt = buildBoundedEvidenceExcerpt(result.pageText || "", [
           ...(clientPresent ? [brand] : []),
           ...competitorsPresent,
         ]);
         const isReachable = result.access === "open" || result.access === "partial";
-        const pagePresenceState: PagePresenceState = isReachable
-          ? clientPresent ? "present" : "absent"
-          : "unknown";
 
         await persistSourceSnapshot({
           organizationId: run.organization_id,
