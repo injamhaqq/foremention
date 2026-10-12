@@ -85,7 +85,7 @@ export function MissingAnswerExperience() {
         <div className="fm-cinematic-hero__copy">
           <span className="fm-cinematic-hero__kicker">RECOMMENDATION INTELLIGENCE FOR B2B SOFTWARE</span>
           <h1 id="fm-cinematic-hero-title">See where AI recommends your brand.</h1>
-          <p className="fm-cinematic-hero__lead">Track recommendations, inspect supporting sources, and decide what to improve.</p>
+          <p className="fm-cinematic-hero__lead">Inspect recorded AI answers, review returned references when available, and decide what to test.</p>
           <div className="fm-cinematic-hero__pilot" aria-label="Founder-led pilot overview">
             <p className="fm-cinematic-hero__audience">For B2B software marketing and growth teams</p>
             <ol className="fm-cinematic-hero__steps">
