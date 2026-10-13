@@ -22,6 +22,11 @@ import {
 } from "./stripe-billing.ts";
 
 import {
+  cancelPaddleCheckoutTransaction,
+  getPaddleTransaction,
+  paddleUnmappedForementionPayment,
+  parsePaddleCatalogIndependentLifecycle,
+  type PaddleCatalogIndependentLifecycle,
   createPaddleCandidateCheckout,
   createPaddleCandidatePortal,
   paddleCandidateConfigured,
@@ -71,6 +76,14 @@ export interface BillingProviderAdapter {
   verifyWebhook(rawBody: string, headers: Headers): Promise<boolean>;
   parseWebhook(rawBody: string): ParsedBillingProviderEvent | null;
   parseFinancialAdjustment?(rawBody: string): ReturnType<typeof parsePaddleCandidateAdjustment>;
+  /** Chat03: a completed payment that is ours but not mappable to one offer. */
+  unmappedPaidTransaction?(rawBody: string): { eventId: string; transactionId: string } | null;
+  /** Chat03: subscription state change whose price left the configured catalog. */
+  parseCatalogIndependentLifecycle?(rawBody: string): PaddleCatalogIndependentLifecycle | null;
+  /** Chat03: exact-ID read of a checkout transaction (null on 404). */
+  getCheckoutTransaction?(transactionId: string): Promise<Record<string, unknown> | null>;
+  /** Chat03: cancel an abandoned never-paid checkout; returns provider status. */
+  cancelCheckoutTransaction?(transactionId: string): Promise<string | null>;
 }
 
 function stripeCheckoutOffers(): BillingCheckoutOffer[] {
@@ -149,6 +162,22 @@ function paddleAdapter(isConfigured: () => boolean, label: string): BillingProvi
   parseFinancialAdjustment(rawBody) {
     if (!isConfigured()) throw new Error(label + " is not enabled.");
     return parsePaddleCandidateAdjustment(rawBody);
+  },
+  unmappedPaidTransaction(rawBody) {
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
+    return paddleUnmappedForementionPayment(rawBody);
+  },
+  parseCatalogIndependentLifecycle(rawBody) {
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
+    return parsePaddleCatalogIndependentLifecycle(rawBody);
+  },
+  async getCheckoutTransaction(transactionId) {
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
+    return getPaddleTransaction(transactionId);
+  },
+  async cancelCheckoutTransaction(transactionId) {
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
+    return cancelPaddleCheckoutTransaction(transactionId);
   },
   };
 }

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { entitlementGrantForBillingEvent, entitlementsForBillingEvent, type VerifiedBillingEvent } from "@/lib/billing";
-import { billingProvider, reconcileBillingOrganization, type ParsedBillingProviderEvent } from "@/lib/billing-provider";
+import { billingProvider, reconcileBillingOrganization, type BillingProviderAdapter, type ParsedBillingProviderEvent } from "@/lib/billing-provider";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { paddleSubscriptionIdentityMatches } from "@/lib/paddle-lifecycle-admission";
+import { reconcilePaddlePaidPeriod } from "@/lib/paddle-paid-period";
+import { reservationAdmitsPaidTransaction } from "@/lib/paddle-checkout-reconciliation";
 
 type BillingReceiptRow = { provider: string; event_id: string; processed_at: string | null };
 type BillingAccountIdentityRow = {
@@ -68,9 +71,30 @@ async function processBillingEvent(event: VerifiedBillingEvent, provider: string
   }
 }
 
-async function billingMutationResponse(event: VerifiedBillingEvent, provider: string) {
+/**
+ * After a verified initial Paddle payment is applied, mark its checkout
+ * reservation settled so the organization is not blocked from a later
+ * checkout forever (Chat03). Best effort: entitlement is already durable, and
+ * the owner/operator reconcile route settles any reservation left behind.
+ */
+async function settlePaddleReservation(event: VerifiedBillingEvent, settlement: PaddleSettlement | null) {
+  if (!settlement) return;
+  await supabaseRest<boolean>("rpc/settle_paddle_checkout_reservation", {
+    method: "POST",
+    serviceRole: true,
+    body: {
+      p_organization_id: event.organizationId,
+      p_transaction_id: settlement.transactionId,
+      p_evidence: "paid:" + settlement.transactionId,
+    },
+  }).catch(() => false);
+}
+type PaddleSettlement = { transactionId: string };
+
+async function billingMutationResponse(event: VerifiedBillingEvent, provider: string, settlement: PaddleSettlement | null = null) {
   try {
     const result = await processBillingEvent(event, provider);
+    await settlePaddleReservation(event, settlement);
     if (result.duplicate) return NextResponse.json({ received: true, duplicate: true, eventId: event.eventId });
     return NextResponse.json({ received: true, eventId: event.eventId });
   } catch {
@@ -118,6 +142,7 @@ type PaddleReservationIdentityRow = {
   package_key: string;
   billing_interval: string;
   state: string;
+  reconciliation_evidence: string | null;
 };
 async function paddlePaidTransactionAdmitted(
   parsed: ParsedBillingProviderEvent,
@@ -129,17 +154,18 @@ async function paddlePaidTransactionAdmitted(
     // New paid checkout must be one created by Foremention and durably bound
     // to this organization, package and interval before any paid entitlement.
     const rows = await supabaseRest<PaddleReservationIdentityRow[]>(
-      "billing_checkout_reservations?select=organization_id,package_key,billing_interval,state"
+      "billing_checkout_reservations?select=organization_id,package_key,billing_interval,state,reconciliation_evidence"
       + "&provider=eq.paddle"
       + "&external_transaction_id=eq." + encodeURIComponent(parsed.externalTransactionId)
       + "&limit=2",
       { serviceRole: true },
     );
-    return rows.length === 1
-      && rows[0].organization_id === organizationId
-      && rows[0].package_key === parsed.packageKey
-      && rows[0].billing_interval === parsed.billingInterval
-      && rows[0].state === "ready";
+    return rows.length === 1 && reservationAdmitsPaidTransaction(rows[0], {
+      organizationId,
+      packageKey: parsed.packageKey,
+      billingInterval: parsed.billingInterval,
+      transactionId: parsed.externalTransactionId,
+    });
   }
   if (parsed.transactionOrigin === "subscription_recurring"
     || parsed.transactionOrigin === "subscription_update") {
@@ -153,12 +179,85 @@ async function paddlePaidTransactionAdmitted(
       + "&limit=2",
       { serviceRole: true },
     );
-    return rows.length === 1
-      && rows[0].organization_id === organizationId
-      && rows[0].external_customer_id === parsed.externalCustomerId
-      && rows[0].external_subscription_id === parsed.externalSubscriptionId;
+    return paddleSubscriptionIdentityMatches(rows, organizationId, parsed.externalCustomerId, parsed.externalSubscriptionId);
   }
   return false;
+}
+
+/**
+ * Paddle subscription-state events must be bound to an already verified
+ * subscription AND customer. An organization ID in provider custom_data is
+ * never sufficient to revoke or alter access; unresolved events receive a
+ * retryable response until the upstream completed charge is reconciled.
+ */
+async function paddleSubscriptionLifecycleAdmitted(
+  parsed: ParsedBillingProviderEvent,
+  organizationId: string,
+): Promise<boolean> {
+  if (!parsed.externalSubscriptionId || !parsed.externalCustomerId) return false;
+  const rows = await supabaseRest<BillingAccountIdentityRow[]>(
+    "billing_accounts?select=organization_id,external_customer_id,external_subscription_id"
+    + "&provider=eq.paddle"
+    + "&external_subscription_id=eq." + encodeURIComponent(parsed.externalSubscriptionId)
+    + "&limit=2",
+    { serviceRole: true },
+  );
+  return paddleSubscriptionIdentityMatches(rows, organizationId, parsed.externalCustomerId, parsed.externalSubscriptionId);
+}
+
+type StoredPaddleEntitlementRow = { package_key: string; billing_source: string | null };
+
+/**
+ * Subscription state change for a subscription whose price left the current
+ * catalog. Admit only by exact stored subscription+customer identity and take
+ * the package from the persisted verified entitlement (never from metadata).
+ */
+async function paddleCatalogIndependentLifecycleResponse(
+  lifecycle: NonNullable<ReturnType<NonNullable<BillingProviderAdapter["parseCatalogIndependentLifecycle"]>>>,
+) {
+  let organizationId: string | null = null;
+  let packageKey: "core" | "signal" | null = null;
+  try {
+    const rows = await supabaseRest<BillingAccountIdentityRow[]>(
+      "billing_accounts?select=organization_id,external_customer_id,external_subscription_id"
+      + "&provider=eq.paddle"
+      + "&external_subscription_id=eq." + encodeURIComponent(lifecycle.externalSubscriptionId)
+      + "&limit=2",
+      { serviceRole: true },
+    );
+    // Not a subscription Foremention ever verified: not ours, nothing to change.
+    if (rows.length === 0) return NextResponse.json({ received: true, ignored: true });
+    if (rows.length === 1 && paddleSubscriptionIdentityMatches(
+      rows, rows[0].organization_id, lifecycle.externalCustomerId, lifecycle.externalSubscriptionId,
+    )) {
+      organizationId = rows[0].organization_id;
+      const entitlements = await supabaseRest<StoredPaddleEntitlementRow[]>(
+        "organization_entitlements?select=package_key,billing_source&organization_id=eq."
+          + encodeURIComponent(organizationId) + "&limit=1",
+        { serviceRole: true },
+      );
+      const stored = entitlements[0];
+      if (stored?.billing_source === "paddle" && (stored.package_key === "core" || stored.package_key === "signal")) {
+        packageKey = stored.package_key;
+      }
+    }
+  } catch {
+    return NextResponse.json({ error: "Paddle subscription identity could not be verified. Provider retry required." }, { status: 503 });
+  }
+  if (!organizationId || !packageKey) {
+    return NextResponse.json({
+      error: "Paddle event has no matching reserved checkout or verified subscription identity. Provider retry required.",
+    }, { status: 503 });
+  }
+  return billingMutationResponse({
+    organizationId,
+    packageKey,
+    state: lifecycle.state,
+    externalCustomerId: lifecycle.externalCustomerId,
+    externalSubscriptionId: lifecycle.externalSubscriptionId,
+    eventId: lifecycle.eventId,
+    occurredAt: lifecycle.occurredAt,
+  }, "paddle");
 }
 
 export async function POST(request: Request) {
@@ -239,6 +338,17 @@ export async function POST(request: Request) {
       error: error instanceof Error ? error.message : "Billing event is invalid.",
     }, { status: 400 });
   }
+  if (!parsed && provider.id === "paddle") {
+    // Never acknowledge a Foremention payment we cannot map as "ignored".
+    const unmapped = provider.unmappedPaidTransaction?.(rawBody) ?? null;
+    if (unmapped) {
+      return NextResponse.json({
+        error: "Completed Paddle payment does not match a single configured Foremention offer. Operator review required; provider retry keeps it visible.",
+      }, { status: 503 });
+    }
+    const lifecycle = provider.parseCatalogIndependentLifecycle?.(rawBody) ?? null;
+    if (lifecycle) return paddleCatalogIndependentLifecycleResponse(lifecycle);
+  }
   if (!parsed) return NextResponse.json({ received: true, ignored: true });
 
   let organizationId: string | null;
@@ -255,23 +365,48 @@ export async function POST(request: Request) {
     }, { status: 503 });
   }
 
-  if (provider.id === "paddle" && parsed.externalTransactionId) {
+  let reconciledPaidThrough: string | null = null;
+  if (provider.id === "paddle") {
     try {
-      if (!await paddlePaidTransactionAdmitted(parsed, organizationId)) {
+      const admitted = parsed.externalTransactionId
+        ? await paddlePaidTransactionAdmitted(parsed, organizationId)
+        : await paddleSubscriptionLifecycleAdmitted(parsed, organizationId);
+      if (!admitted) {
         return NextResponse.json({
-          error: "Paddle payment has no matching reserved checkout or existing subscription. Provider retry required.",
+          error: "Paddle event has no matching reserved checkout or verified subscription identity. Provider retry required.",
         }, { status: 503 });
+      }
+      // Paddle can send billing_period=null for the initial paid checkout.
+      // A missing period must NEVER be interpreted as indefinitely paid.
+      // Resolve it from the verified subscription after identity admission.
+      if (parsed.externalTransactionId && !parsed.accessUntil) {
+        if (!parsed.externalSubscriptionId || !parsed.externalCustomerId
+          || !parsed.billingInterval || (parsed.packageKey !== "core" && parsed.packageKey !== "signal")) {
+          throw new Error("Missing supported paid subscription identity.");
+        }
+        reconciledPaidThrough = await reconcilePaddlePaidPeriod({
+          subscriptionId: parsed.externalSubscriptionId,
+          customerId: parsed.externalCustomerId,
+          packageKey: parsed.packageKey,
+          billingInterval: parsed.billingInterval,
+          occurredAt: parsed.occurredAt || "",
+        });
       }
     } catch {
       return NextResponse.json({
-        error: "Paddle payment correlation could not be verified. Provider retry required.",
+        error: "Paddle event correlation or bounded paid period could not be verified. Provider retry required.",
       }, { status: 503 });
     }
   }
 
   const event: VerifiedBillingEvent = {
     ...parsed,
+    ...(reconciledPaidThrough ? { accessUntil: reconciledPaidThrough } : {}),
     organizationId,
   };
-  return billingMutationResponse(event, provider.id);
+  const settlement = provider.id === "paddle" && parsed.externalTransactionId
+    && (parsed.transactionOrigin === "api" || parsed.transactionOrigin === "web")
+    ? { transactionId: parsed.externalTransactionId }
+    : null;
+  return billingMutationResponse(event, provider.id, settlement);
 }
