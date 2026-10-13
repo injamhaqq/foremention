@@ -328,7 +328,15 @@ test("CV-05 proposal SQL stays a proposal and carries the reviewed invariants", 
   const sql = await readFile(new URL("../docs/execution/attach-v1/04-proposals/migrations/20261013140000_chat04_customer_value_loop_persistence.proposal.sql", import.meta.url), "utf8");
   const { readdir } = await import("node:fs/promises");
   const applied = await readdir(new URL("../supabase/migrations/", import.meta.url));
-  assert.ok(!applied.some((f) => /chat04_customer_value_loop/.test(f)), "Chat04 does not add shared migrations directly (FM-00 adopts)");
+  // FM-00 adoption (2026-10-13): the only permitted shared migration is an unchanged copy
+  // of this proposal at the README's adoption path. Anything else is drift.
+  const adopted = applied.filter((f) => /chat04_customer_value_loop/.test(f));
+  assert.ok(adopted.length <= 1, "at most one adopted Chat04 CV-05 migration");
+  if (adopted.length === 1) {
+    assert.equal(adopted[0], "20261013140000_chat04_customer_value_loop_persistence.sql", "adopted at the README path");
+    const adoptedSql = await readFile(new URL(`../supabase/migrations/${adopted[0]}`, import.meta.url), "utf8");
+    assert.equal(adoptedSql, sql, "FM-00 adopts the reviewed proposal byte-for-byte");
+  }
   for (const pattern of [
     /record_decisions_save_key_unique unique \(organization_id, project_id, save_key\)/,
     /record_decisions_no_fabricated_owner/,
