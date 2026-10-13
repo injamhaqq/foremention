@@ -42,3 +42,33 @@ Read-only helper operates on supplied normalized immutable facts. It cannot prov
 ## Rollback and next action
 
 Revert this isolated PR (no live state altered) to remove read-only helper/tests/proposal docs. Next: check CI on the exact branch/PR SHA; resolve only Chat08-owned test/lint defects; ask FM-00 to resolve the **agency/$299 vs SaaS/$3k/$6k** experimental decision; integrate source-of-truth event contracts after owners publish exact heads; collect real qualified calls and verified customer evidence *only after approval and current compliance/reliability gates*. FM-00 and Chat09 own integrated readiness and release verdict. If resuming, fetch current Chat08 head and peer/00 statuses; continue from this checkpoint.
+
+## Continue checkpoint — 2026-10-13 (full clone, real test runs)
+
+**Resumed from** PR #571 head `50d64a93392268f859f3c84e0bb04f79cf1f5f75` (not restarted). Base main unchanged `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`. Implementation commits: `cc594967` (code/tests), `2f0c0958` (proposals); this status commit follows — read the branch ref/PR for the exact HEAD. Prior head CI (all 5 workflows) was **green** on `50d64a93`.
+
+**Sources this session:** only the 7 package metadata files. The 18 originals (Commercial_Backlog_18.csv, Financial_Model_36_Months.csv, Customer_Evidence_100_Issue_Samples.csv, Foremention_Commercial_Investment_Report.md, Startup_Decision_Report.md, etc.) are **not** in the package, repo, any `fm-attach-v1/*` branch or past PR; the 2026-10-12 Library retrieval could not be repeated. Rows used verbatim from `Backlog_Source_Index.csv`. Financial-model identity (Supplier Quote Review) is carried forward from the 2026-10-12 check, not re-verified. `Foremention_Master_Backlog_28_v2.csv` still missing.
+
+**Actual receipts (read-only):** Paddle live API 2026-10-13 — 2 active products (Core, Signal), 2 active monthly prices (USD 99, USD 299; qty max 999999), **0 transactions, 0 subscriptions, 0 customers, 0 adjustments**. foremention.com/pricing: both "Proposed · not yet purchasable". Supabase operator tables: not accessed. → paying customers 0, cash $0, MRR/ARR/retention unavailable. Live Signal $299/**month** SaaS ≠ report's $299/**four-week** agency pilot.
+
+### Delivered this checkpoint
+- `lib/commercial-operations.mjs` (new): `mapExistingCommercialEvent` (existing `commercial_events` + `company_organization_classifications` → unverified candidates; manual payments, demos, non-KPI orgs rejected), `summarizeServiceTime` (CV-13), `evaluateProofGates` 14/30/60/90 (CV-09/10/13/14, A22/A23; not_due before day, unavailable never passes), `cohortScenario` (churn/collection/refunds/fees/settlement lag/capacity; pilots not recurring), `classifyInvestorClaim` (A24).
+- `lib/commercial-proof-economics.mjs`: continuation outcomes (no default renewal), scoped+voluntary consent, urgent-spend interview count, elapsed-renewal orgs.
+- `tests/08-commercial-operations.test.mjs` (10 tests incl. source contract pinning the mapper to the current 29-value `commercial_event_type_check`).
+- 08-proposals: `customer-operations-playbook.md`, `economics-stress-tests.md` (+ `scenario-tables.mjs`), `investor-evidence-checklist.md`, `schema-and-event-proposals.md`, `migrations/20261013120000_chat08_commercial_proof_fields.proposal.sql` (proposal only), `verification/commercial-proposal-probe.mjs`, header-only `templates/*.csv`.
+
+### Commands run and results
+- `node --test tests/08-*.test.mjs`: **15/15 pass**.
+- Full suite `node --experimental-strip-types --test tests/*.test.mjs` (346 files, 5 batches): **1,331/1,331 pass, 0 fail**.
+- `npx tsc --noEmit`: 0 errors. `pnpm lint`: 0 errors (10 pre-existing warnings, none in Chat08 files).
+- PGlite 0.5.9 scratch (not a repo dep) via Chat02 replay harness: migrations **97/97**, Chat08 proposal probe **17/17**.
+- Not run: build, composed integration, real interviews/offers/payments (none exist).
+
+### Finding for FM-00/Chat03
+`qualified_paid_pilot_evidence` view accepts `revenue_source='manual_verified'` as paid-pilot proof (source-level read of `20260915172000`). Proposal in `schema-and-event-proposals.md` §2.
+
+### Disposition update
+CV-09/10/13/14/16, A22/A23/A24: operating materials + executable gates delivered; **all real-evidence criteria remain unmet/unavailable** (no interviews, offers, payments, renewals verified). CV-15 commercial part: checklist only; entity/IP/payout/legal remain founder/Chat02/Chat03 gates.
+
+### Next action
+FM-00: cohort/price disposition; adopt or reject proposal SQL; manual-payment view fix. Chat03: persist amount/currency/period + `payout.paid`. Chat04: export decision events/`closesCustomerProof`. After approvals, founder runs the playbook; Chat08 recomputes gates from verified facts only. Rollback: revert branch commits (no live state).
