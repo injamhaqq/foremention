@@ -77,3 +77,10 @@ Revert this branch's commits only (no migration, env or deploy change). Revertin
 ## Next action
 
 FM-00: review PR #570, decide items above, and integrate after Chat04's run consumers. On "continue": refresh main/peer heads, rebase if main moved, re-run `pnpm test`/typecheck/build and re-export the ledger/catalog fingerprint if any migration landed.
+
+## 2026-10-13 update — CodeQL alerts #16/#17/#18 (js/incomplete-sanitization, high)
+
+- Alerts: `06-proposals/tools/restore-rehearsal.mjs` lines 150, 151, 156 used `key.replace("\t", " ")`, replacing only the first tab when rendering catalog-diff example keys.
+- Fix: one `displayKey` helper using `replaceAll("\t", " ")`, used at all three sites. Display-only output of the rehearsal tool; no runtime/app code, migration or config touched. No suppression. The rehearsal itself was not re-run (needs PGlite, not a repo dependency); `node --check` passes.
+- Verified: `pnpm test` 1357/1357 pass; typecheck pass; lint 0 errors (10 pre-existing warnings in other owners' files).
+- Previous head `59e592ea`; new head: this commit (PR #570).

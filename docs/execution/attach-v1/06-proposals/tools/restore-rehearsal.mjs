@@ -139,6 +139,9 @@ async function dataDigest(db) {
   return digests;
 }
 
+// Catalog keys are "<kind>\t<key>"; render every tab as a space for the readable examples.
+const displayKey = (key) => key.replaceAll("\t", " ");
+
 function diffCatalog(local, prod) {
   const index = (rows) => new Map(rows.map((row) => [`${row.kind}\t${row.key}`, row.def_md5]));
   const L = index(local), P = index(prod);
@@ -147,13 +150,13 @@ function diffCatalog(local, prod) {
   const examples = { differing: [], only_production: [], only_repository_replay: [] };
   for (const [key, md5] of P) {
     const kind = key.split("\t")[0];
-    if (!L.has(key)) { bump(kind, "only_production"); if (examples.only_production.length < 40) examples.only_production.push(key.replace("\t", " ")); }
-    else if (L.get(key) !== md5) { bump(kind, "differing"); if (examples.differing.length < 40) examples.differing.push(key.replace("\t", " ")); }
+    if (!L.has(key)) { bump(kind, "only_production"); if (examples.only_production.length < 40) examples.only_production.push(displayKey(key)); }
+    else if (L.get(key) !== md5) { bump(kind, "differing"); if (examples.differing.length < 40) examples.differing.push(displayKey(key)); }
     else bump(kind, "identical");
   }
   for (const key of L.keys()) if (!P.has(key)) {
     bump(key.split("\t")[0], "only_repository_replay");
-    if (examples.only_repository_replay.length < 40) examples.only_repository_replay.push(key.replace("\t", " "));
+    if (examples.only_repository_replay.length < 40) examples.only_repository_replay.push(displayKey(key));
   }
   return { summary, examples };
 }
