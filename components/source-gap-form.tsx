@@ -1,12 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { sourceGapClientOutcome, type SourceGapResponseBody } from "@/lib/public-intake-state";
 
 type FormState = "idle" | "submitting" | "success" | "error";
 
 export function SourceGapForm() {
   const [state, setState] = useState<FormState>("idle");
   const [message, setMessage] = useState("");
+  const [reference, setReference] = useState("");
   const submissionLock = useRef(false);
 
   async function submit(formData: FormData) {
@@ -21,10 +23,14 @@ export function SourceGapForm() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await response.json()) as { message?: string; error?: string };
-      if (!response.ok) throw new Error(data.error || "Could not submit the check.");
+      let data: SourceGapResponseBody | null = null;
+      try { data = (await response.json()) as SourceGapResponseBody; } catch { data = null; }
+      // A 2xx alone is not a saved request; only an explicit stored receipt is.
+      const outcome = sourceGapClientOutcome(response.status, data);
+      if (!outcome.saved) throw new Error(outcome.message);
       setState("success");
-      setMessage(data.message || "Your request is in the queue.");
+      setReference(outcome.reference);
+      setMessage(outcome.message);
     } catch (error) {
       setState("error");
       setMessage(error instanceof Error ? error.message : "Could not submit the check.");
@@ -39,7 +45,8 @@ export function SourceGapForm() {
         <span>Request received</span>
         <h2>We’ll map the category before we make a claim.</h2>
         <p>{message}</p>
-        <button className="text-button" type="button" onClick={() => setState("idle")}>Submit another company →</button>
+        {reference ? <p><strong>Request reference:</strong> <code>{reference}</code></p> : null}
+        <button className="text-button" type="button" onClick={() => { setState("idle"); setReference(""); setMessage(""); }}>Submit another company →</button>
       </div>
     );
   }
