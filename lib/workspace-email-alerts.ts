@@ -29,6 +29,10 @@ export async function sendWorkspaceEmailAlert(input: WorkspaceEmailAlert) {
   ]);
   const preference = preferences[0]; const email = memberships[0]?.member_email?.trim().toLowerCase();
   if (!preference?.email_enabled || preference.unsubscribed_at || (input.kind === "weekly_digest" && !preference.weekly_digest_enabled) || !email) return { status: "disabled" as const };
+  // Fenced claim/settle path (CV-12). Requires the FM-00-adopted migration
+  // docs/execution/attach-v1/06-proposals/migrations/20261013150000_chat06_email_delivery_claim_settle.proposal.sql;
+  // keep the flag unset until that migration is applied in the target database.
+  if (process.env.FOREMENTION_EMAIL_DELIVERY_LEASE === "enabled") return deliverWithLease(input, href, siteUrl, secret);
   const inserted = await supabaseRest<Array<{ id: string }>>("application_email_deliveries?on_conflict=organization_id,user_id,event_key", {
     method: "POST", serviceRole: true, prefer: "resolution=ignore-duplicates,return=representation",
     body: { organization_id: input.organizationId, user_id: input.userId, event_key: input.eventKey, kind: input.kind, status: "pending" },
@@ -81,6 +85,80 @@ export async function sendWorkspaceEmailAlert(input: WorkspaceEmailAlert) {
   } catch {
     // Provider accepted the message; PostgREST settlement is uncertain.
     // Do not rewrite its ledger row as failed or resend the same event.
+    return { status: "uncertain" as const };
+  }
+}
+
+type LeaseEnqueue = { delivery_id: string; created: boolean };
+type LeaseClaim = { claimed: boolean; reason?: string; delivery_id?: string; generation?: number; lease_token?: string; idempotency_key?: string; recipient_email?: string };
+type LeaseOutcome = "sent" | "failed_permanent" | "failed_retryable" | "uncertain";
+
+async function settleLease(organizationId: string, claim: LeaseClaim, outcome: LeaseOutcome, providerMessageId: string | null, errorCode: string | null) {
+  return supabaseRest<{ settled: boolean; reason?: string; status?: string } | null>("rpc/settle_application_email_delivery", {
+    method: "POST", serviceRole: true,
+    body: {
+      p_delivery_id: claim.delivery_id, p_organization_id: organizationId, p_generation: claim.generation, p_lease_token: claim.lease_token,
+      p_outcome: outcome, p_provider_message_id: providerMessageId, p_error_code: errorCode,
+    },
+  });
+}
+
+async function deliverWithLease(input: WorkspaceEmailAlert, href: string, siteUrl: string, secret: string) {
+  const enqueued = await supabaseRest<LeaseEnqueue | null>("rpc/enqueue_application_email_delivery", {
+    method: "POST", serviceRole: true,
+    body: { p_organization_id: input.organizationId, p_user_id: input.userId, p_event_key: input.eventKey, p_kind: input.kind },
+  });
+  if (!enqueued?.delivery_id) return { status: "failed" as const };
+  // A duplicate event may still be claimable when an earlier attempt crashed
+  // and its lease expired inside the provider idempotency window; the RPC
+  // decides, never this caller.
+  const claim = await supabaseRest<LeaseClaim | null>("rpc/claim_application_email_delivery", {
+    method: "POST", serviceRole: true,
+    body: { p_delivery_id: enqueued.delivery_id, p_organization_id: input.organizationId },
+  });
+  if (!claim?.claimed) {
+    if (claim?.reason === "recipient_not_eligible") return { status: "disabled" as const };
+    if (claim?.reason === "attempts_exhausted") return { status: "failed" as const };
+    return { status: "duplicate" as const };
+  }
+  const idempotencyKey = workspaceAlertIdempotencyKey(enqueued.delivery_id);
+  if (claim.delivery_id !== enqueued.delivery_id || claim.idempotency_key !== idempotencyKey || !claim.recipient_email) {
+    await settleLease(input.organizationId, claim, "failed_permanent", null, "lease_contract_mismatch").catch(() => undefined);
+    return { status: "failed" as const };
+  }
+
+  let unsubscribe: string;
+  try {
+    const token = await createEmailUnsubscribeToken(input.organizationId, input.userId, secret);
+    unsubscribe = new URL(`/unsubscribe?token=${encodeURIComponent(token)}`, siteUrl).toString();
+  } catch {
+    await settleLease(input.organizationId, claim, "failed_permanent", null, "unsubscribe_token_unavailable").catch(() => undefined);
+    return { status: "failed" as const };
+  }
+
+  let providerMessageId: string;
+  try {
+    const result = await sendProductAlertEmail({
+      to: claim.recipient_email, subject: input.subject,
+      text: `${input.text}\n\nOpen Foremention: ${href}\n\nUnsubscribe from product alerts: ${unsubscribe}`,
+      headers: { "List-Unsubscribe": `<${unsubscribe}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+      idempotencyKey,
+    });
+    providerMessageId = result.id;
+  } catch (error) {
+    const uncertain = error instanceof ApplicationEmailSendUncertainError;
+    // Uncertain is held for reconciliation (never failed, never replayed).
+    // Definitive rejections are not auto-retried here, matching the direct path.
+    await settleLease(input.organizationId, claim, uncertain ? "uncertain" : "failed_permanent", null, uncertain ? "delivery_outcome_uncertain" : "provider_rejected").catch(() => undefined);
+    return uncertain ? { status: "uncertain" as const } : { status: "failed" as const };
+  }
+
+  try {
+    const settled = await settleLease(input.organizationId, claim, "sent", providerMessageId, null);
+    return settled?.settled ? { status: "sent" as const } : { status: "uncertain" as const };
+  } catch {
+    // Provider accepted; database settlement is uncertain. The lease expires
+    // and a reclaim inside the idempotency window reuses the same provider key.
     return { status: "uncertain" as const };
   }
 }
