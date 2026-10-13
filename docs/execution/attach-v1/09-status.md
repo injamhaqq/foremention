@@ -123,3 +123,25 @@ Commercial evidence stays separate: 0 paying customers, $0 cash, 0 interviews re
 ### Next action (on "continue")
 
 Re-fetch heads; if Chat02 fixes QA09-B7 and FM-00 publishes a composed SHA, rerun the full suite + QA09-33 on that exact SHA and read its CI; if a nonproduction Supabase + credentials are approved, execute QA09-01…35 end to end. No background work continues after this turn. Local composition worktree is scratch only and was not pushed.
+
+## 2026-10-13 update — composed dry-run after founder-approved fixes (QA09-B7 closed locally)
+
+Founder-approved fixes pushed to owner branches (each on its own branch, test/docs-tool only):
+- Chat02 `4ac867c7` → `56d6591c` (PR #567): export denial test stubs `@/lib/run-manifest`; fixes QA09-B7.
+- Chat05 `210e8f94` → `d06061cd` (PR #569): full RegExp escaping in `tests/fm05-website-ux-contract.test.mjs` (CodeQL #15).
+- Chat06 `59e592ea` → `aaecbffd` (PR #570): `replaceAll` tab rendering in `06-proposals/tools/restore-rehearsal.mjs` (CodeQL #16/#17/#18).
+
+Local composition (unpushed, scratch only): `main@6b93c88` (unchanged since last run) + 01 `92805b04`, 02 `56d6591c`, 03 `22f70e9f`, 04 `2af90b3c`, 05 `d06061cd`, 06 `aaecbffd`, 07 `28fceca3`, 08 `2a4eaaed` + Chat09 `12301e13` → merge commit `bd8554d9`, tree `93a798fe4e83ac27b005ead614c7f9d9dd8dbc6a`. Zero textual conflicts; no branch touches `package.json`, `pnpm-lock.yaml`, `.github/` or `supabase/migrations`.
+
+| Check on composed tree | Result |
+|---|---|
+| `node --experimental-strip-types --test tests/*.test.mjs` | **1530 tests: 1529 pass, 0 fail, 1 todo** (todo = Chat02 SSRF IPv6 known gap, Chat01 patch proposal) |
+| `attach02-two-tenant-denial` export test | pass (was the QA09-B7 failure) |
+| Chat09 QA09-33 composed export | 4/4 pass |
+| `npx tsc --noEmit` | pass |
+| `eslint .` (repo config, `--concurrency auto`) | 0 errors, 11 warnings (pre-existing files) |
+| `npx vinext build` + `node scripts/prepare-worker-config.mjs` | Build complete / exit 0 |
+
+GitHub at new heads (read 2026-10-13): CodeQL success on 02/05/06; alerts #15–#18 show `fixed` on `refs/pull/569/merge` and `refs/pull/570/merge`; no open high/critical alerts on PR #567/#569/#570 merge refs. `Workers Builds: foremention-mvp` fails on the new heads exactly as on the previous heads (pre-existing, open founder question 6). Remaining CI jobs: see PR comments / next run.
+
+Verdict unchanged: still **no FM-00 composed candidate**; this dry-run is not a release candidate. Composed local suite is now fully green; remaining gates are the nonproduction Supabase/credential and founder decisions listed above.
