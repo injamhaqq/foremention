@@ -5,6 +5,7 @@ import { buyerQuestionLimit, type CapacityEntitlementRow } from "@/lib/product-l
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
+import { exceedsBuyerQuestionLength } from "@/lib/approved-buyer-questions";
 
 export async function GET() {
   const viewer = await getViewer();
@@ -18,6 +19,8 @@ export async function POST(request: Request) {
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await readJsonObject(request);
   if (!body) return NextResponse.json({ error: "Send a valid buyer-question form." }, { status: 400 });
+  // A28: reviewed wording is persisted exactly or rejected, never silently truncated.
+  if (exceedsBuyerQuestionLength(body.text)) return NextResponse.json({ error: "Each buyer question must be at most 1,000 characters. Nothing was truncated." }, { status: 400 });
   const text = cleanText(body.text, 1000);
   const clusterName = cleanText(body.cluster, 80) || "Customer question";
   if (text.length < 10) return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
@@ -81,6 +84,9 @@ export async function PATCH(request: Request) {
   if (!body) return NextResponse.json({ error: "Send a valid buyer-question update." }, { status: 400 });
   const hasActive = typeof body.active === "boolean";
   const hasText = typeof body.text === "string";
+  if (hasText && exceedsBuyerQuestionLength(body.text)) {
+    return NextResponse.json({ error: "Each buyer question must be at most 1,000 characters. Nothing was truncated." }, { status: 400 });
+  }
   const text = hasText ? cleanText(body.text, 1000) : "";
   const id = cleanText(body.id, 36);
   if (!/^[0-9a-f-]{36}$/i.test(id) || (!hasActive && !hasText)) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { loadWorkspaceContext } from "@/lib/data";
 import { generateBuyerQuestions } from "@/lib/onboarding-profile";
+import { validateApprovedBuyerQuestions } from "@/lib/approved-buyer-questions";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { cleanStringArray, cleanText, readJsonObject } from "@/lib/input-validation";
@@ -40,8 +41,16 @@ export async function POST(request: Request) {
     submittedCompetitors,
     market === "Global" ? "a growing global business team" : `a growing team in ${market}`,
   );
-  const submittedPrompts = cleanStringArray(raw.prompts, 1000, 5);
-  const prompts = Array.from(new Set([...submittedPrompts, ...generatedPrompts])).slice(0, 5);
+  // Suggested questions are returned for review only; never persist or collect
+  // from suggestions that the customer removed or did not explicitly approve.
+  const approval = validateApprovedBuyerQuestions(raw.prompts);
+  if (approval.questions === null) {
+    return NextResponse.json({
+      error: approval.error,
+      ...(Array.isArray(raw.prompts) && raw.prompts.length > 0 ? {} : { suggestedQuestions: generatedPrompts }),
+    }, { status: 400 });
+  }
+  const prompts = approval.questions;
   const payload = {
     companyName,
     domain,

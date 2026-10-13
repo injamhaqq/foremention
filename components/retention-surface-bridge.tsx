@@ -8,6 +8,7 @@ import { BillingControl } from "@/components/billing-control";
 import { EnterpriseReadiness } from "@/components/enterprise-readiness";
 import { MeasurementScheduleControl } from "@/components/measurement-schedule-control";
 import type { AttentionItem } from "@/lib/retention-loop";
+import { isUuid } from "@/lib/input-validation";
 
 function ContextLinks({ title, body, links }: { title: string; body: string; links: Array<[string, string]> }) {
   return <details className="panel retention-context-tools">
@@ -66,21 +67,73 @@ function AttentionSurface() {
 }
 
 function RecordControls({ runId }: { runId: string }) {
-  const [sharePath, setSharePath] = useState<string | null>(null);
+  // Presentation is gated on a persisted run from the authorized active-project listing.
+  // API routes continue to enforce authorization and current state independently.
+  // QA09-31: every async result is stored WITH the Record ID it was computed for.
+  // If the ID changes without a remount, the derived state immediately falls back
+  // to "checking"/no-share until the new identity check completes (fail closed).
+  const [eligibilityFor, setEligibilityFor] = useState<{ runId: string; state: "eligible" | "unavailable" | "error" } | null>(null);
+  const [eligibilityAttempt, setEligibilityAttempt] = useState(0);
+  const [shareFor, setShareFor] = useState<{ runId: string; canShare: boolean } | null>(null);
+  const eligibility: "checking" | "eligible" | "unavailable" | "error" =
+    eligibilityFor && eligibilityFor.runId === runId ? eligibilityFor.state : "checking";
+  const canShareRecord = eligibility === "eligible" && shareFor?.runId === runId && shareFor.canShare === true;
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    void fetch("/api/runs", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Record listing unavailable");
+        return response.json() as Promise<{ data?: Array<{ id: string; status: string }> }>;
+      })
+      .then((payload) => {
+        if (!active) return;
+        const valid = Array.isArray(payload.data) && payload.data.some((run) =>
+          run.id === runId && ["review", "complete", "partial"].includes(run.status),
+        );
+        setEligibilityFor({ runId, state: valid ? "eligible" : "unavailable" });
+      })
+      .catch(() => { if (active) setEligibilityFor({ runId, state: "error" }); });
+    return () => { active = false; controller.abort(); };
+  }, [runId, eligibilityAttempt]);
+  useEffect(() => {
+    if (eligibility !== "eligible") return;
+    let active = true;
+    const controller = new AbortController();
+    void fetch(`/api/records/${encodeURIComponent(runId)}/share`, { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Share capability unavailable");
+        return response.json() as Promise<{ data?: { canShare?: boolean } }>;
+      })
+      .then((payload) => { if (active) setShareFor({ runId, canShare: payload.data?.canShare === true }); })
+      .catch(() => { if (active) setShareFor({ runId, canShare: false }); });
+    return () => { active = false; controller.abort(); };
+  }, [eligibility, runId]);
+  const [shareResult, setShareResult] = useState<{ runId: string; path: string } | null>(null);
+  const sharePath = shareResult?.runId === runId ? shareResult.path : null;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function share() {
+    if (eligibility !== "eligible" || !canShareRecord || pending) return;
     setPending(true); setError(null);
-    const response = await fetch(`/api/records/${encodeURIComponent(runId)}/share`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ includeEvidence: true, expiresInDays: 14 }) });
-    const payload = await response.json().catch(() => ({})) as { data?: { path?: string }; error?: string };
-    if (!response.ok || !payload.data?.path) setError(payload.error || "The read-only share could not be created.");
-    else setSharePath(payload.data.path);
-    setPending(false);
+    try {
+      const response = await fetch(`/api/records/${encodeURIComponent(runId)}/share`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ includeEvidence: true, expiresInDays: 14 }) });
+      const payload = await response.json().catch(() => ({})) as { data?: { path?: string }; error?: string };
+      if (!response.ok || !payload.data?.path) setError(payload.error || "The read-only share could not be created.");
+      else setShareResult({ runId, path: payload.data.path });
+    } catch {
+      setError("The read-only share is unavailable. Your saved Record was not changed. Retry when the connection recovers.");
+    } finally {
+      setPending(false);
+    }
   }
+  if (eligibility === "checking") return <section className="panel" role="status"><p>Verifying the saved Record and available actions…</p></section>;
+  if (eligibility === "error") return <section className="panel" role="alert"><p>Record actions could not be verified. No share or export is available until this check succeeds.</p><button type="button" className="button button--outline" onClick={() => { setEligibilityFor(null); setShareFor(null); setEligibilityAttempt((value) => value + 1); }}>Retry Record action check</button></section>;
+  if (eligibility !== "eligible") return null;
   return <>
     <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
       <div className="panel-heading"><div><span className="eyebrow">Recommendation Record</span><h2>Share or export this exact evidence boundary.</h2><p>Evidence inspection remains contained in this Recommendation Record. Shared views are read-only, expiring and revocable.</p></div></div>
-      <div className="settings-actions"><button className="button button--ink" disabled={pending} onClick={() => void share()}>{pending ? "Creating…" : "Share read-only Record"}</button><a className="button button--outline" href={`/api/export/record/${encodeURIComponent(runId)}`}>Export CSV</a><Link className="button button--outline" href={`/app/runs/${encodeURIComponent(runId)}/print`}>Print / PDF</Link></div>
+      <div className="settings-actions">{canShareRecord && <button className="button button--ink" disabled={pending} onClick={() => void share()}>{pending ? "Creating…" : "Share read-only Record"}</button>}<a className="button button--outline" href={`/api/export/record/${encodeURIComponent(runId)}`}>Export CSV</a><Link className="button button--outline" href={`/app/runs/${encodeURIComponent(runId)}/print`}>Print / PDF</Link></div>
       {sharePath && <p className="table-caption">Share created: <Link href={sharePath}>{sharePath}</Link>. Copy it now; Foremention stores only its hash.</p>}{error && <p className="inline-error" role="alert">{error}</p>}
     </section>
     <ContextLinks title="Inspect or publish only from the persisted Record." body="Evidence, vendor-passport output, and the agent execution trace are supporting Record tools. None creates replacement evidence or a second recommendation object." links={[["/app/evidence", "Evidence Vault"], ["/app/passport", "Vendor Passport"], ["/app/agents", "Agent Control Plane"]]} />
@@ -120,10 +173,11 @@ function ActionExtensions() {
 export function RetentionSurfaceBridge() {
   const pathname = usePathname();
   const recordMatch = pathname.match(/^\/app\/runs\/([^/]+)$/);
+  const recordId = recordMatch && isUuid(recordMatch[1]) ? recordMatch[1] : null;
   return <>
     {pathname === "/app" && <div className="attention-surface"><AttentionSurface /></div>}
     {pathname === "/app/settings" && <SettingsExtensions />}
-    {recordMatch && <RecordControls runId={decodeURIComponent(recordMatch[1])} />}
+    {recordId && <RecordControls key={recordId} runId={recordId} />}
     {pathname === "/app/analytics" && <AnalyticsExtensions />}
     {pathname === "/app/prompts" && <QuestionExtensions />}
     {pathname === "/app/competitors" && <CompetitorExtensions />}

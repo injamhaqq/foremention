@@ -4,6 +4,7 @@ import { getViewer } from "@/lib/auth";
 import { loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { WORKSPACE_SETUP_REQUIRED_CODE } from "@/lib/workspace-setup-state";
 
 const categories = ["account","collection","evidence","integration","billing","other"] as const;
 type Category = typeof categories[number];
@@ -25,7 +26,10 @@ async function supportContext() {
   if (!viewer) return { response: NextResponse.json({ error: "Authentication required." }, { status: 401 }) };
   if (viewer.mode === "demo") return { viewer, demo: true as const };
   const context = await loadWorkspaceContext(viewer);
-  if (!context) return { response: NextResponse.json({ error: "Workspace not found." }, { status: 404 }) };
+  // A26: no organization/project yet is a setup state, not a retryable failure.
+  // Status stays 404 (no workspace record exists); the explicit code lets the
+  // UI show one setup-required state and keep account help reachable.
+  if (!context) return { response: NextResponse.json({ error: "Finish workspace setup before sending in-app support requests.", code: WORKSPACE_SETUP_REQUIRED_CODE }, { status: 404 }) };
   return { viewer, context, demo: false as const };
 }
 

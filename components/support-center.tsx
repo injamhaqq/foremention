@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  accountHelpHref,
+  isWorkspaceSetupRequiredPayload,
+  type WorkspaceSetupState,
+} from "@/lib/workspace-setup-state";
 
 type Ticket = {
   id: string;
@@ -36,21 +41,30 @@ function dateLabel(value: string) {
   return Number.isNaN(date.getTime()) ? "Recorded" : new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
-export function SupportCenter({ demo }: { demo: boolean }) {
+export function SupportCenter({ demo, setupState }: { demo: boolean; setupState?: WorkspaceSetupState }) {
+  // A26: the server-resolved setup state wins; a later explicit API code also
+  // switches to it. Generic load errors stay errors (never "empty history").
+  const [setupRequired, setSetupRequired] = useState(setupState?.kind === "setup_required");
+  const helpHref = setupState?.kind === "setup_required" ? setupState.accountHelpHref : accountHelpHref(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [category, setCategory] = useState("collection");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(!demo);
+  const [loading, setLoading] = useState(!demo && setupState?.kind !== "setup_required");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
-    if (demo) return;
+    if (demo || setupState?.kind === "setup_required") return;
     try {
       const response = await fetch("/api/support/tickets", { headers: { accept: "application/json" } });
-      const payload = await response.json() as { data?: Ticket[]; error?: string };
+      const payload = await response.json().catch(() => ({})) as { data?: Ticket[]; error?: string; code?: string };
+      if (!response.ok && isWorkspaceSetupRequiredPayload(payload)) {
+        setSetupRequired(true);
+        setError("");
+        return;
+      }
       if (!response.ok) throw new Error(payload.error || "Support history could not be loaded.");
       setTickets(Array.isArray(payload.data) ? payload.data : []);
       setError("");
@@ -59,7 +73,7 @@ export function SupportCenter({ demo }: { demo: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [demo]);
+  }, [demo, setupState?.kind]);
 
   useEffect(() => {
     const task = window.setTimeout(() => void load(), 0);
@@ -78,7 +92,11 @@ export function SupportCenter({ demo }: { demo: boolean }) {
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ category, subject, message }),
       });
-      const payload = await response.json() as { error?: string };
+      const payload = await response.json().catch(() => ({})) as { error?: string; code?: string };
+      if (!response.ok && isWorkspaceSetupRequiredPayload(payload)) {
+        setSetupRequired(true);
+        return;
+      }
       if (!response.ok) throw new Error(payload.error || "The support request could not be submitted.");
       setSubject("");
       setMessage("");
@@ -89,6 +107,18 @@ export function SupportCenter({ demo }: { demo: boolean }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (setupRequired && !demo) {
+    return <div className="settings-grid">
+      <section className="panel panel--wide" aria-labelledby="support-setup-required">
+        <span className="eyebrow">Setup required</span>
+        <h2 id="support-setup-required">Your account does not have a workspace yet.</h2>
+        <p>In-app support requests attach workspace context, so they become available after workspace setup. You can still get account help now — it does not require a workspace.</p>
+        <div className="inline-notice" role="status"><strong>Account help is available.</strong><p>Email <a href={helpHref}>hello@foremention.com</a> from the address you signed in with. Never send passwords, API keys, recovery codes, access tokens, or other secrets.</p></div>
+        <p><a className="button button--ink" href={setupState?.kind === "setup_required" ? setupState.setupHref : "/app/onboarding"}>Continue workspace setup</a></p>
+      </section>
+    </div>;
   }
 
   return <div className="settings-grid">
