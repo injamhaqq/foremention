@@ -1,0 +1,146 @@
+{
+ "observed": "2026-10-13",
+ "dataset": "Cloudflare GraphQL workersInvocationsAdaptive (read-only)",
+ "script": "foremention-mvp",
+ "window": [
+  "2026-10-06T00:00:00Z",
+  "2026-10-13T07:30:00Z"
+ ],
+ "cpu_unit": "microseconds",
+ "by_status": [
+  {
+   "dimensions": {
+    "status": "clientDisconnected"
+   },
+   "quantiles": {
+    "cpuTimeP50": 7647,
+    "cpuTimeP99": 73299,
+    "cpuTimeP999": 124408
+   },
+   "sum": {
+    "errors": 0,
+    "requests": 1949,
+    "subrequests": 3708
+   }
+  },
+  {
+   "dimensions": {
+    "status": "success"
+   },
+   "quantiles": {
+    "cpuTimeP50": 11179,
+    "cpuTimeP99": 138877,
+    "cpuTimeP999": 208497
+   },
+   "sum": {
+    "errors": 0,
+    "requests": 44239,
+    "subrequests": 48400
+   }
+  },
+  {
+   "dimensions": {
+    "status": "scriptThrewException"
+   },
+   "quantiles": {
+    "cpuTimeP50": 7899,
+    "cpuTimeP99": 14697,
+    "cpuTimeP999": 14697
+   },
+   "sum": {
+    "errors": 5,
+    "requests": 5,
+    "subrequests": 5
+   }
+  },
+  {
+   "dimensions": {
+    "status": "exceededResources"
+   },
+   "quantiles": {
+    "cpuTimeP50": 10000,
+    "cpuTimeP99": 15101,
+    "cpuTimeP999": 15101
+   },
+   "sum": {
+    "errors": 2,
+    "requests": 2,
+    "subrequests": 20
+   }
+  }
+ ],
+ "by_day": [
+  {
+   "dimensions": {
+    "date": "2026-10-06"
+   },
+   "sum": {
+    "errors": 0,
+    "requests": 5003
+   }
+  },
+  {
+   "dimensions": {
+    "date": "2026-10-07"
+   },
+   "sum": {
+    "errors": 0,
+    "requests": 4863
+   }
+  },
+  {
+   "dimensions": {
+    "date": "2026-10-08"
+   },
+   "sum": {
+    "errors": 5,
+    "requests": 3912
+   }
+  },
+  {
+   "dimensions": {
+    "date": "2026-10-09"
+   },
+   "sum": {
+    "errors": 0,
+    "requests": 2674
+   }
+  },
+  {
+   "dimensions": {
+    "date": "2026-10-10"
+   },
+   "sum": {
+    "errors": 2,
+    "requests": 6747
+   }
+  },
+  {
+   "dimensions": {
+    "date": "2026-10-11"
+   },
+   "sum": {
+    "errors": 0,
+    "requests": 10553
+   }
+  },
+  {
+   "dimensions": {
+    "date": "2026-10-12"
+   },
+   "sum": {
+    "errors": 0,
+    "requests": 11897
+   }
+  },
+  {
+   "dimensions": {
+    "date": "2026-10-13"
+   },
+   "sum": {
+    "errors": 0,
+    "requests": 546
+   }
+  }
+ ]
+}

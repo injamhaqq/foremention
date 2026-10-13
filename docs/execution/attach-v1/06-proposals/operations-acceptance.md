@@ -1,4 +1,6 @@
-# Chat06 — recovery, external gates and operations acceptance (2026-10-12)
+# Chat06 — recovery, external gates and operations acceptance (2026-10-12; updated 2026-10-13)
+
+2026-10-13 additions: `job-recovery-contract.md` (fenced terminal states, interrupted runs, model pin, bounded schedule catch-up), `restore-and-rollback-plan.md` (A05 lineage, catalog parity, local restore/rollback receipt, **no production backup exists**), `capacity-model-1-5-20.md`, `a17-runtime-503.md`.
 
 This is an evidence-backed proposal, not an authorization for SQL, spending, email sends, migrations, customer changes, deployment or webhook activation.
 
@@ -21,17 +23,9 @@ Synthetic verification: simultaneous claims, HTTP-lost-ACK, database-lost-ACK, l
 
 Capture a verifiable production-derived backup (timestamp/hash, documented custody, retention/encryption), instantiate an **existing authorized disposable isolated database**, disable jobs/outbound/provider senders, restore there only, reconcile ordered executed statement hashes with repository SQL many-to-many, and compare catalog DDL, grants, RLS, policies, functions, constraints and triggers. Prove two synthetic organization flows including reviewed decision and second-cycle eligibility. Record replay receipts and rollback/teardown proof. No production restore, no production history patch, no claim of restore success.
 
-## 1 / 5 / 20 organization planning scenarios (illustrations only)
+## 1 / 5 / 20 organization planning scenarios
 
-Assume 5 questions/run, 2 runs/org/month and up to 3 provider attempts/question. Planned provider answers = 10 x organizations, hypothetical maximum attempts = 30 x organizations. Reservation at Groq's $0.10/question = $1/org for planned first attempts; this is a reserved estimate, not paid invoice/actual overage. Assume 25KiB per answer stored excluding indexes/citations/backups, and founder support 45min onboarding + 20min per reviewed run + 10min exceptions = 95min/org/month.
-
-| Organizations | Runs/mo | Planned answers | Hypothetical max attempt calls | Groq baseline reservation | Example raw storage | Example support h/mo |
-|---|---:|---:|---:|---:|---:|---:|
-| 1 | 2 | 10 | 30 | $1 | ~0.24 MiB | 1.6 |
-| 5 | 10 | 50 | 150 | $5 | ~1.22 MiB | 7.9 |
-| 20 | 40 | 200 | 600 | $20 | ~4.88 MiB | 31.7 |
-
-Actual retry/billable calls, effective spend guard, provider latency, object overhead, backups, aggregate CPU/storage and founder workload must be measured.
+**Superseded 2026-10-13** by `capacity-model-1-5-20.md` (measured storage per answer is ~4.4 KiB incl. indexes, not the 25 KiB assumed here; measured retry ratio 1.35 attempts/answer; Inngest executions and founder time added). The restore rehearsal is no longer "not performed": a local disposable rehearsal and production catalog parity are in `restore-and-rollback-plan.md`.
 
 ## Contract handoffs
 
