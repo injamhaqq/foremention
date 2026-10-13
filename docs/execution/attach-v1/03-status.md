@@ -67,6 +67,8 @@ No migrations, shared root config, customer data, live catalog or payment-accoun
 
 ## Continue checkpoint 2 — 2026-10-13 (full local checkout, real test runs)
 
+**Implementation commit:** `4e441bb70e0ca8d0ef1e8e3ef89b95709f728415` (the later status-only commit records this SHA; read the branch ref for the exact current HEAD).
+
 **Tooling now verified:** full clone over HTTPS with push access, Node v22.23.3, pnpm 10.25.0, `pnpm install --frozen-lockfile --ignore-scripts` succeeded. The earlier "no clone / no pnpm" limits no longer apply. Base main is unchanged at `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`. The branch was resumed from `fbf321618ca3a12151de91fecc8887023eb7af5d` (PR #566 head) and was not recreated.
 
 **Source boundary (unchanged):** only the package metadata (START_HERE, PROMPT, SHARED_RULES, OWNERSHIP, PACKAGE_ID, Source_File_Checklist_19.csv, Backlog_Source_Index.csv) was available. The 18 original Source_Files were not attached, so every historical row was re-verified against current code instead. `Foremention_Master_Backlog_28_v2.csv` is still missing.
@@ -100,3 +102,17 @@ No migrations, shared root config, customer data, live catalog or payment-accoun
 
 ### Rollback
 Revert the branch commits. No database/account rollback is needed: nothing was applied, and the proposal SQL has its own drop statements.
+
+### Founder / account actions and approvals (single list; nothing here was done by Chat03)
+1. **Approve or reject the public prices** Core USD 99/month and Signal USD 299/month (`03-proposals/offer-299-proposal.md`). They are live and active in the Paddle catalog but labelled "Proposed · not yet purchasable" on /pricing.
+2. **Paddle dashboard → Catalog:** set the quantity maximum to 1 on both live prices (currently 999999).
+3. **Paddle dashboard → Checkout → Checkout configuration:** confirm the live default payment link is `https://foremention.com/pay` (the API cannot read it).
+4. **Paddle dashboard → Developer tools → Authentication:** create a live client-side token (`live_…`) only when live checkout is approved. None exists now. It goes into `PADDLE_LIVE_CLIENT_TOKEN` (browser-safe, but still set through the deployment secret store).
+5. **Paddle sandbox account:** provide a **sandbox** API key, sandbox webhook secret, sandbox client token, sandbox catalog and an isolated staging host for the real sandbox lifecycle run. The connected key is live-only (sandbox API returns 403).
+6. **Live notification destination** already points at production and is active while production billing is unconfigured. Either deactivate it until launch, or accept that any live event would be retried for 3 days against a 503. The founder decides; Chat03 did not change it.
+7. **Payout / bank / seller entity / tax and agreement checks** in the Paddle dashboard (not visible by API), plus qualified advice where needed (CV-15 with Chat02). Confirm the first successful payout before scaling.
+8. **Approve legal copy:** terms, the refund/cancellation policy (draft PR #509) and the subprocessor list (Chat02 A20).
+9. **FM-00:** apply the settlement SQL proposal and the `/pay` CSP proposal on the composed candidate; decide whether to subscribe `payout.paid` and persist payment amount/currency for Chat08.
+10. **Live activation decision** (`BILLING_PROVIDER_ID=paddle`, `PADDLE_ENVIRONMENT=live`, `PADDLE_LIVE_ENABLED=1`, `PADDLE_LIVE_CHECKOUT_PAGE_ENABLED=1`) only after items 1–9 and a passing sandbox lifecycle on the exact head. It stays off here.
+
+**Readiness:** branch-level, test-backed billing hardening. **NOT** composed integration, sandbox-provider receipt, live checkout, settlement or self-serve GO.
