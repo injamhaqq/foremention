@@ -62,7 +62,7 @@ test("pricing leads with coverage value while preserving commercial truth", () =
   // Price hypotheses may be disclosed to buyers, but they must never
   // masquerade as activated subscriptions or a live checkout.
   assert.match(pricing, /price: "\$99 \/ month"/);
-  assert.match(pricing, /price: "\$299 \/ month"/);
+  assert.match(pricing, /price: "\$249 \/ month"/);
   assert.match(pricing, /Proposed · not yet purchasable/);
   assert.match(pricing, /not currently available checkout offers/i);
   assert.match(pricing, /10 buyer questions unless a verified workspace entitlement grants more/i);
