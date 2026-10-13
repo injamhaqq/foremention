@@ -56,6 +56,15 @@ Public `/privacy`, `/subprocessors`, and `/trust` explicitly distinguish active 
 
 Legal/company/merchant questions needing real records/qualified review: registered contracting entity and authorized signatory; jurisdiction/privacy notice and customer data-controller/processor roles; IP and third-party code/license ownership; employee/contractor assignment agreements; contract terms, DPA, subprocessor notices, breach contact; international transfer arrangements and database region; merchant-of-record eligibility and payouts; refund/cancellation/data retention on termination. No conclusion or certification is given here.
 
+## A20 update (2026-10-13): retrieval data flow missing from the processor list
+
+Verified in current code (`lib/free-web-retrieval.ts`, base `6b93c88`): `retrieveFreeWebEvidence` sends the normalized buyer-question text (up to 1,000 chars) as a search query to **Brave Search API** when `BRAVE_SEARCH_API_KEY` is configured, otherwise to **Microsoft Bing's public RSS endpoint** (`https://www.bing.com/search?format=rss`), with a `Foremention/1.0 evidence-retrieval` user agent. `/subprocessors` (`app/subprocessors/page.tsx`) lists Cloudflare Workers AI, Groq, Resend, Paddle, PostHog etc., but **neither Microsoft/Bing nor Brave**. This matches the A20 (Backlog_29) note.
+
+Proposal (owner: Chat05 for page copy, Chat01 for the retrieval contract, founder/qualified counsel for terms):
+1. Add an entry such as: *"Web search retrieval (Microsoft Bing public results, or Brave Search API when configured) — receives the buyer question text as a search query to find candidate public sources; no account, email or workspace identifiers are sent."* Only after Chat01 confirms exactly which provider production uses and that no identifiers are sent.
+2. Counsel question: whether automated use of Bing's public RSS endpoint (no API contract) is permitted by Microsoft's terms for a paid product, versus the contracted Brave Search API. Not a code decision.
+3. Disclose in `/privacy` that buyer questions and project context are transmitted to inference **and** retrieval providers, with retention per provider terms (unverified).
+
 ## Integration gates and rollback
 
 FM-00 must review proposed SQL and assign owning Chat04/03/06 changes before integration; Chat09 owns independent acceptance. Require current exact-head tests, isolated two-tenant HTTP/SQL denial receipts, safe account lifecycle, security advisory disposition, lint/typecheck/build, CI and nonproduction migration replay. Chat02 guard patch rollback is a revert of `lib/request-security.ts` change on its isolated branch; RLS/function edits are **not** in this PR and require separately planned database forward/rollback migration. No main merge or live deployment is authorized by this document.
