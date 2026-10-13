@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { verifyEmailUnsubscribeToken } from "@/lib/email-unsubscribe";
+
+// A21 (Chat05): token lifecycle page. Never index or leak the token-bearing URL.
+export const metadata: Metadata = {
+  title: "Email preferences",
+  description: "Turn off Foremention product alerts and weekly digests for a workspace.",
+  robots: { index: false, follow: false, nocache: true },
+  referrer: "no-referrer",
+};
 
 export default async function UnsubscribePage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const token = String((await searchParams).token || "");
