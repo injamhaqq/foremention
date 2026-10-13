@@ -1,17 +1,36 @@
 function parseOrigin(value: string | null) {
   if (!value) return null;
   try {
-    return new URL(value).origin;
+    const parsed = new URL(value);
+    if (!["https:", "http:"].includes(parsed.protocol) || parsed.username || parsed.password) return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function parseBrowserOrigin(value: string | null) {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    // Origin is not a full URL. Do not normalize path, credentials, or other
+    // URL syntax into an apparently trusted origin.
+    if (parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.origin !== value) return null;
+    return parseOrigin(value);
   } catch {
     return null;
   }
 }
 
 export function isTrustedMutationOrigin(request: Request) {
-  const sourceOrigin = parseOrigin(request.headers.get("origin"))
-    || (request.headers.get("sec-fetch-site") === "same-origin"
-      ? parseOrigin(request.headers.get("referer"))
-      : null);
+  const fetchSite = request.headers.get("sec-fetch-site");
+  // Fetch Metadata is a second browser signal, never an authority that can
+  // override a mismatching or malformed Origin header.
+  if (fetchSite === "cross-site") return false;
+  const originHeader = request.headers.get("origin");
+  const sourceOrigin = originHeader !== null
+    ? parseBrowserOrigin(originHeader)
+    : (fetchSite === "same-origin" ? parseOrigin(request.headers.get("referer")) : null);
   if (!sourceOrigin) return false;
 
   const allowed = new Set<string>();
