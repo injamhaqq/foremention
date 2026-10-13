@@ -66,8 +66,12 @@ export type LoopRun = {
   /** Approved question-set version this run was dispatched against. */
   questionSetVersion: number | null;
   answers: LoopAnswerSlot[];
-  /** Real elapsed customer cycle vs. clock/test fixture. Fixtures never close CV-05. */
-  origin: "customer_cycle" | "fixture";
+  /**
+   * Real elapsed customer cycle vs. clock/test fixture. Fixtures never close CV-05.
+   * "unknown" = not recorded (runs.cycle_origin NULL, e.g. pre-migration or a
+   * service-role writer that did not declare it); unknown never closes proof either.
+   */
+  origin: "customer_cycle" | "fixture" | "unknown";
 };
 
 export type LoopDecisionKind = "change_specification" | "no_action" | "reviewer_disagreement";

@@ -239,6 +239,6 @@ test("A28: question create/edit rejects over-length wording instead of truncatin
   const route = await readFile(new URL("../app/api/prompts/route.ts", import.meta.url), "utf8");
   assert.equal((route.match(/exceedsBuyerQuestionLength\(body\.text\)/g) || []).length, 2);
   const scopedRead = route.indexOf("&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1");
-  const rpc = route.indexOf('"rpc/update_prompt_versioned"');
-  assert.ok(scopedRead > 0 && rpc > scopedRead, "project-scoped prompt read precedes the org-only RPC (see 04-proposals for p_project_id)");
+  const rpc = route.indexOf("updatePromptInProject(");
+  assert.ok(scopedRead > 0 && rpc > scopedRead, "project-scoped prompt read precedes the project-bound RPC call (A11)");
 });

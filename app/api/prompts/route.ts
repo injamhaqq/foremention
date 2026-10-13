@@ -6,6 +6,7 @@ import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
 import { exceedsBuyerQuestionLength } from "@/lib/approved-buyer-questions";
+import { PROJECT_SCOPED_PROMPT_RPC, updatePromptInProject } from "@/lib/buyer-question-edit";
 
 export async function GET() {
   const viewer = await getViewer();
@@ -134,23 +135,25 @@ export async function PATCH(request: Request) {
     }
   }
 
-  const updated = await supabaseRest<{
-    id: string;
-    prompt_key: string;
-    prompt_text: string;
-    active: boolean;
-    version: number;
-  }>("rpc/update_prompt_versioned", {
-    method: "POST",
-    token: viewer.accessToken,
-    body: {
-      p_prompt_id: id,
-      p_organization_id: context.organizationId,
-      p_prompt_text: hasText ? text : null,
-      p_active: hasActive ? body.active : null,
-      p_change_reason: "Edited by workspace member",
+  // A11: the database re-checks organization + project + active project
+  // (update_prompt_versioned_in_project). The project id is the server-resolved
+  // active project, never a client value.
+  const result = await updatePromptInProject(
+    <T,>(path: string, rpcBody: Record<string, unknown>) => {
+      // The edit may only reach the two versioning RPCs (project-bound first).
+      if (path !== "rpc/update_prompt_versioned_in_project" && path !== "rpc/update_prompt_versioned") {
+        throw new Error("Unexpected buyer-question RPC.");
+      }
+      return supabaseRest<T>(path, { method: "POST", token: viewer.accessToken, body: rpcBody });
     },
-  });
+    { organizationId: context.organizationId, projectId: context.projectId },
+    { promptId: id, text: hasText ? text : null, active: hasActive ? body.active as boolean : null, changeReason: "Edited by workspace member" },
+  );
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  if (result.rpc !== PROJECT_SCOPED_PROMPT_RPC) {
+    console.warn("Buyer-question edit used the legacy org-only RPC because update_prompt_versioned_in_project is not deployed.", { organizationId: context.organizationId });
+  }
+  const updated = result.row;
 
   return NextResponse.json({
     data: {
