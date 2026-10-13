@@ -27,3 +27,10 @@ FM-00 review of `worker/index.ts`; Chat09 composed acceptance; `/pricing` noinde
 4. Confirm `/app/settings` as unsubscribe help destination.
 
 Proposals: `05-proposals/handoffs-2026-10-13.md`, `05-proposals/cross-owner-gates.md`.
+
+## 2026-10-13 update — CodeQL alert #15 (js/incomplete-sanitization, high)
+
+- Alert: `tests/fm05-website-ux-contract.test.mjs:176` built a RegExp from a path by escaping only `/` ("does not escape backslash characters").
+- Fix: added a full `escapeRegExp` helper (escapes every RegExp metacharacter including `\`) and used it for the sitemap private-path assertion. Test-only change; assertion semantics unchanged. No suppression.
+- Verified: `pnpm test` 1328/1328 pass (contract file 12/12); typecheck pass; lint 0 errors (10 pre-existing warnings in other owners' files).
+- Previous head `210e8f94`; new head: this commit (PR #569).

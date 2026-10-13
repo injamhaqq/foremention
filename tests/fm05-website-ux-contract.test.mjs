@@ -5,6 +5,8 @@ import test from "node:test";
 import { contactIntakeLookupId, contactIntakeNotice, sourceGapClientOutcome, sourceGapReceiptFromRows } from "../lib/public-intake-state.ts";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
+// Escape every RegExp metacharacter (including backslash) so a literal path is matched literally.
+const escapeRegExp = (value) => value.replace(/[\\^$.*+?()[\]{}|/-]/g, "\\$&");
 
 function luminance(hex) {
   const rgb = hex.replace("#", "").match(/.{2}/g).map((part) => {
@@ -173,7 +175,7 @@ test("A21: token lifecycle, unavailable report and not-found pages are explicitl
   assert.match(pricing, /noIndex: true/, "pricing stays noindex until the commercial truth gate");
   const sitemap = await read("app/sitemap.ts");
   for (const privatePath of ["/pricing", "/pay", "/unsubscribe", "/invite", "/share", "/report/", "/app"]) {
-    assert.doesNotMatch(sitemap, new RegExp(`["'\`]${privatePath.replace(/\//g, "\\/")}["'\`/]`), `sitemap must not list ${privatePath}`);
+    assert.doesNotMatch(sitemap, new RegExp(`["'\`]${escapeRegExp(privatePath)}["'\`/]`), `sitemap must not list ${privatePath}`);
   }
 });
 
