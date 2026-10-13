@@ -47,6 +47,20 @@ export async function POST(request: Request) {
   if (invitation.email.toLowerCase() !== viewer.email.toLowerCase()) {
     return NextResponse.json({ error: `Sign in as ${invitation.email} to accept this invitation.` }, { status: 403 });
   }
+  // Invitation possession is bound to the invited mailbox. Never grant
+  // membership to an account whose matching email address is unconfirmed.
+  if (viewer.emailVerified !== true) {
+    return NextResponse.json({ error: "Confirm your email address before accepting this invitation." }, { status: 403 });
+  }
+  // Accepting an invitation must never downgrade an existing membership
+  // (for example an owner opening a stale viewer invite to the same workspace).
+  const existing = await supabaseRest<Array<{ role: string }>>(
+    `organization_members?select=role&organization_id=eq.${invitation.organization_id}&user_id=eq.${viewer.id}&limit=1`,
+    { serviceRole: true },
+  );
+  const roleRank: Record<string, number> = { viewer: 1, analyst: 2, admin: 3, owner: 4 };
+  const currentRole = existing[0]?.role;
+  const grantedRole = currentRole && (roleRank[currentRole] || 0) >= (roleRank[invitation.role] || 0) ? currentRole : invitation.role;
 
   await supabaseRest("organization_members?on_conflict=organization_id,user_id", {
     method: "POST",
@@ -56,7 +70,7 @@ export async function POST(request: Request) {
       organization_id: invitation.organization_id,
       user_id: viewer.id,
       member_email: viewer.email.toLowerCase(),
-      role: invitation.role,
+      role: grantedRole,
       invited_by: invitation.invited_by,
     },
   });
@@ -77,7 +91,7 @@ export async function POST(request: Request) {
         action: "team.invitation.accepted",
         entity_type: "invitation",
         entity_id: invitation.id,
-        after_state: { role: invitation.role, email: invitation.email },
+        after_state: { role: grantedRole, invited_role: invitation.role, email: invitation.email },
       },
     }),
     supabaseRest("notifications?on_conflict=organization_id,event_key,user_id", {
@@ -90,7 +104,7 @@ export async function POST(request: Request) {
         event_key: `workspace-joined:${invitation.id}`,
         kind: "workspace",
         title: "Workspace access confirmed",
-        body: `You joined the workspace with ${invitation.role} access.`,
+        body: `You joined the workspace with ${grantedRole} access.`,
         href: "/app",
       },
     }),
