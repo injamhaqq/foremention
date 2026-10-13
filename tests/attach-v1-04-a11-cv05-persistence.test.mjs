@@ -39,13 +39,6 @@ function promptRpcMock({ deployed = true, prompts }) {
       row.version += 1;
       return { id: row.id, prompt_key: row.prompt_key, prompt_text: row.prompt_text, active: row.active, version: row.version };
     }
-    if (path === edit.LEGACY_PROMPT_RPC) {
-      assert.equal("p_project_id" in body, false, "legacy body must not carry a project it cannot enforce");
-      const row = prompts.find((p) => p.id === body.p_prompt_id && p.organization_id === body.p_organization_id);
-      if (!row) throw dbError(400, "P0001");
-      row.version += 1;
-      return { id: row.id, prompt_key: row.prompt_key, prompt_text: row.prompt_text, active: row.active, version: row.version };
-    }
     throw new Error(`unexpected ${path}`);
   };
   return { call, calls };
@@ -90,20 +83,30 @@ test("A11: cross-org denial and permission errors map without leaking existence;
   assert.equal(prompts[0].version, 1);
 });
 
-test("A11 compatibility bridge: only PGRST202 (function not deployed) falls back to the legacy RPC", async () => {
+test("A11 phase 2: a missing project-bound function fails closed (503) and never reaches the org-only RPC", async () => {
   assert.equal(edit.isMissingProjectScopedFunction(dbError(404, "PGRST202")), true);
   for (const other of [dbError(404, "PGRST205"), dbError(400, "P0001"), dbError(404, "PGRST116"), dbError(403, "42501"), new TypeError("fetch failed")]) {
     assert.equal(edit.isMissingProjectScopedFunction(other), false);
   }
+  assert.equal("LEGACY_PROMPT_RPC" in edit, false, "the legacy org-only RPC constant is gone");
   const prompts = [promptA2()];
   const { call, calls } = promptRpcMock({ deployed: false, prompts });
   const result = await edit.updatePromptInProject(call, { organizationId: ORG_A, projectId: PROJECT_A2 }, change());
-  assert.equal(result.ok, true);
-  assert.equal(result.rpc, "rpc/update_prompt_versioned");
-  assert.deepEqual(calls.map((c) => c.path), ["rpc/update_prompt_versioned_in_project", "rpc/update_prompt_versioned"]);
+  assert.deepEqual(result, { ok: false, status: 503, error: "Buyer-question editing is unavailable until the project-bound database update is applied." });
+  assert.deepEqual(calls.map((c) => c.path), ["rpc/update_prompt_versioned_in_project"]);
+  assert.equal(prompts[0].version, 1);
 });
 
-test("A11 route wiring: PATCH keeps the scoped read first, passes context.projectId, and can only reach the two versioning RPCs", async () => {
+test("A11 phase 2 migration: the org-only RPC is revoked from authenticated and the wrapper stays callable", async () => {
+  const revoke = await readFile(new URL("../supabase/migrations/20261013160000_a11_revoke_org_only_prompt_rpc.sql", import.meta.url), "utf8");
+  assert.match(revoke, /revoke execute on function public\.update_prompt_versioned\(uuid, uuid, text, boolean, text\) from public, anon, authenticated;/);
+  assert.match(revoke, /grant execute on function public\.update_prompt_versioned\(uuid, uuid, text, boolean, text\) to service_role;/);
+  assert.doesNotMatch(revoke, /update_prompt_versioned_in_project\([^)]*\) from/, "the project-bound wrapper is not revoked");
+  const wrapper = await readFile(new URL("../supabase/migrations/20261013100000_update_prompt_versioned_in_project.sql", import.meta.url), "utf8");
+  assert.match(wrapper, /security definer/, "wrapper runs as owner, so it still reaches the revoked inner function");
+});
+
+test("A11 route wiring: PATCH keeps the scoped read first, passes context.projectId, and can only reach the project-bound RPC", async () => {
   const route = await readFile(new URL("../app/api/prompts/route.ts", import.meta.url), "utf8");
   const patch = route.slice(route.indexOf("export async function PATCH"));
   const scopedRead = patch.indexOf("&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1");
@@ -111,7 +114,9 @@ test("A11 route wiring: PATCH keeps the scoped read first, passes context.projec
   assert.ok(scopedRead > 0 && rpcCall > scopedRead);
   assert.match(patch, /\{ organizationId: context\.organizationId, projectId: context\.projectId \}/);
   assert.doesNotMatch(patch, /body\.projectId|body\.project_id|body\.organizationId/);
-  assert.match(patch, /path !== "rpc\/update_prompt_versioned_in_project" && path !== "rpc\/update_prompt_versioned"/);
+  assert.match(patch, /if \(path !== "rpc\/update_prompt_versioned_in_project"\) \{/);
+  assert.doesNotMatch(patch, /"rpc\/update_prompt_versioned"/, "the org-only RPC path is not reachable from the route");
+  assert.doesNotMatch(patch, /legacy org-only RPC/);
   assert.doesNotMatch(patch, /supabaseRest<[^>]*>\("rpc\/update_prompt_versioned"/, "no direct org-only RPC call remains");
   const migration = await readFile(new URL("../docs/execution/attach-v1/04-status.md", import.meta.url), "utf8");
   assert.match(migration, /20261013100000/, "status records the dependency on the FM-00/Chat02 migration");
