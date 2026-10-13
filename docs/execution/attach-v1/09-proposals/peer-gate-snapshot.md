@@ -44,3 +44,7 @@ Source check: FM-00 located and SHA256-matched 18 original included files in its
 ### Later same-day ref updates / added QA cases
 
 After the exact-ref table above, owners pushed **Chat01 #565 `1ccc6e86c179aa40e8dedd94e495ee591ee6196b`**, **Chat03 #566 `1b34ab87575e4962d4ebbf71d3427ee2e77b3320`** (revised source assertion preserving the shared identity helper), and **Chat04 #563 `277bd80cadd1eb6d57cb5bb6d3227ba8288b2558`** (lint refactor + export provenance), all with fresh checks still pending at their observed time. Chat05 #569 remained on the earlier failing head. Chat09 added QA09-31 (stale record-eligibility transition) and QA09-32 (CSV export formula/control-prefix injection) as new synthetic cases. Re-fetch current heads and checks before treating the earlier table as live.
+
+### 2026-10-13 refresh
+
+Superseded by the exact-head table in `../09-status.md` (checkpoint 2026-10-13): 01 `92805b04`, 02 `4ac867c7`, 03 `22f70e9f`, 04 `2af90b3c`, 05 `210e8f94`, 06 `59e592ea`, 07 `28fceca3`, 08 `2a4eaaed`, 00 `2aa0c335`. The three 2026-10-12 blockers above (03 test, 04 lint, 05 copy) are **fixed** at these heads; new blockers are QA09-B7 (composition) and QA09-B8 (CodeQL alerts on 05/06).
