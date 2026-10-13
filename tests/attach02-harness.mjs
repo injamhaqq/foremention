@@ -29,6 +29,7 @@ const REAL_LIBS = new Set([
   "@/lib/session-cookies",
   "@/lib/google-auth",
   "@/lib/csv",
+  "@/lib/record-sharing",
 ]);
 
 export const SITE = "https://foremention.com";
@@ -207,6 +208,7 @@ export function twoTenantTables() {
       { organization_id: ORG_B, provider: "paddle", external_customer_id: "ctm_synthetic_org_b" },
     ],
     account_deletion_requests: [],
+    record_shares: [],
     audit_logs: [],
     notifications: [],
   };
@@ -226,6 +228,19 @@ export function workspaceDeps(db, viewerRef, extra = {}) {
       const project = projects.find((p) => p.id === activeProject.get(viewer.id)) || projects[0];
       const organization = db.tables.organizations.find((o) => o.id === member.organization_id);
       return project ? { organizationId: member.organization_id, projectId: project.id, organizationName: organization.name, projectName: project.name } : null;
+    },
+    // Mirrors lib/data.ts loadRuns/loadRunAnswers: token-bound, active project only.
+    loadRuns: async (viewer) => {
+      const context = await data.loadWorkspaceContext(viewer);
+      if (!context) return [];
+      const rows = await db.rest(`runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { token: viewer.accessToken });
+      return rows.map((row) => ({ id: row.id, date: "2026-10-13", status: row.status }));
+    },
+    loadRunAnswers: async (viewer, runId) => {
+      const context = await data.loadWorkspaceContext(viewer);
+      if (!context) return [];
+      const rows = await db.rest(`runs?select=id&id=eq.${runId}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { token: viewer.accessToken });
+      return rows.length ? [{ prompt: `question for ${runId}`, provider: "synthetic", model: "m", status: "verified", collectedAt: "2026-10-13", answer: `answer for ${runId}`, citations: [] }] : [];
     },
     loadPendingDeletionRequest: async (viewer) => {
       const member = membership(viewer);

@@ -198,6 +198,60 @@ test("Chat02 tenant: billing portal never opens another organization's customer"
   assert.deepEqual(portals, ["ctm_synthetic_org_b"]);
 });
 
+// ---------------------------------------------------------------- records: share + export
+test("Chat02 tenant: Record sharing and revocation are confined to role, org and active project", async () => {
+  const tables = twoTenantTables();
+  tables.runs.forEach((run) => { run.status = "complete"; });
+  const activeProject = new Map([[USERS.aAnalyst.id, PROJECT_A1], [USERS.aOwner.id, PROJECT_A1]]);
+  const env = setup({ tables, activeProject });
+  const route = loadModule("app/api/records/[id]/share/route.ts", env.deps);
+  const [runA1, runA2, runB1] = env.db.tables.runs;
+  env.db.tables.record_shares.push({ id: "5b000000-0000-4000-8000-0000000000b1", organization_id: ORG_B, run_id: runB1.id, token_hash: "h".repeat(64), revoked_at: null, expires_at: new Date(Date.now() + 86_400_000).toISOString() });
+
+  env.as(USERS.aAnalyst);
+  assert.equal((await route.POST(request("/api/records/x/share", { body: {} }), params(runB1.id))).status, 404, "cross-org run");
+  assert.equal((await route.POST(request("/api/records/x/share", { body: {} }), params(runA2.id))).status, 404, "sibling-project run");
+  assert.equal((await route.POST(request("/api/records/x/share", { body: { visibility: "public" } }), params(runA1.id))).status, 400, "public publishing disabled");
+  env.as(USERS.aViewer);
+  assert.equal((await route.POST(request("/api/records/x/share", { body: {} }), params(runA1.id))).status, 403, "viewer cannot share");
+  assert.equal(env.db.tables.record_shares.length, 1, "no share row created by any denied request");
+
+  env.as(USERS.aOwner);
+  assert.equal((await route.DELETE(request("/api/records/x/share", { method: "DELETE", body: { shareId: "5b000000-0000-4000-8000-0000000000b1" } }), params(runB1.id))).status, 404);
+  assert.equal(env.db.tables.record_shares[0].revoked_at, null, "B share not revoked by A");
+
+  env.as(USERS.aAnalyst);
+  const response = await route.POST(request("/api/records/x/share", { body: {} }), params(runA1.id));
+  assert.equal(response.status, 201);
+  const created = env.db.tables.record_shares.at(-1);
+  assert.equal(created.organization_id, ORG_A);
+  const { data } = await response.json();
+  assert.ok(!JSON.stringify(created).includes(data.path.split("/").pop()), "raw share token never persisted");
+});
+
+test("Chat02 tenant: Record CSV export only serves the caller's active-project records", async () => {
+  const env = setup({ activeProject: new Map([[USERS.aAnalyst.id, PROJECT_A1]]) });
+  const route = loadModule("app/api/export/record/[id]/route.ts", env.deps);
+  const [runA1, runA2, runB1] = env.db.tables.runs;
+  env.as(null);
+  assert.equal((await route.GET(request("/api/export/record/x", { method: "GET" }), params(runA1.id))).status, 401);
+  env.as(USERS.aAnalyst);
+  for (const run of [runB1, runA2]) {
+    const response = await route.GET(request("/api/export/record/x", { method: "GET" }), params(run.id));
+    assert.equal(response.status, 404, `export of ${run.project_id}`);
+    assert.doesNotMatch(await response.text(), new RegExp(run.id));
+  }
+  env.as(USERS.revoked);
+  assert.equal((await route.GET(request("/api/export/record/x", { method: "GET" }), params(runA1.id))).status, 404);
+  env.as(USERS.aAnalyst);
+  const ok = await route.GET(request("/api/export/record/x", { method: "GET" }), params(runA1.id));
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get("cache-control"), "no-store");
+  const csv = await ok.text();
+  assert.match(csv, new RegExp(runA1.id));
+  assert.doesNotMatch(csv, new RegExp(`${runB1.id}|${runA2.id}`));
+});
+
 // ---------------------------------------------------------------- deletion
 function deletionModules(log) {
   return {
