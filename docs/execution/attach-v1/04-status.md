@@ -153,3 +153,5 @@ Revert any of `b4f6b89e`, `21290185`, `7e253332`, `e217808f`, `251c5fcd` indepen
 
 ### Rollback
 Revert this run's commit(s) on `fm-attach-v1/04-workflow`. Nothing was applied to any shared or production database.
+
+**Exact-head CI for code commit `3ea2d0a3ff4b60d53edec9e10e303a0f95b29fc3` (this run):** CI 38401732781 **success** (node suite + migration replay + lint/typecheck/build as configured), Isolated Authenticated Journey 38401732901 **success** (its real PATCH `/api/prompts` ran against Supabase-local without 20261013100000, i.e. through the PGRST202 bridge), Browser Acceptance 38401733043, Security 38401732913, CodeQL 38401732748, AI Safety and Code Health 38401733042, Semgrep 38401732925 — all **success**. Local: 1,350/1,350 tests, typecheck, lint 0 errors (10 pre-existing warnings), build complete. Local trial merge of this head into `00@327237d6`: 1,544/1,544 tests, typecheck pass, lint 0 errors. The commit after this one changes only this status file.
