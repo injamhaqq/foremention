@@ -52,7 +52,8 @@ export function SourceGapForm() {
   }
 
   return (
-    <form className="intake-form" action={submit} aria-busy={state === "submitting"}>
+    // onSubmit (not a React form action) so typed answers survive an error or rate limit; a form action resets the fields.
+    <form className="intake-form" onSubmit={(event) => { event.preventDefault(); void submit(new FormData(event.currentTarget)); }} aria-busy={state === "submitting"}>
       <div className="form-row">
         <label>Work email<input type="email" name="email" placeholder="you@company.com" required /></label>
         <label>Your name<input type="text" name="name" placeholder="Maya Chen" required /></label>

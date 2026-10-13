@@ -56,8 +56,9 @@ test("A21: webhook documentation exposes canonical route metadata and public nav
   const page = await read("app/api-docs/webhooks/page.tsx");
   assert.match(page, /export const metadata: Metadata = pageMetadata\(/);
   assert.match(page, /path: "\/api-docs\/webhooks"/);
-  assert.match(page, /<PublicShell><main className="legal-page">/);
-  assert.match(page, /<\/main><\/PublicShell>/);
+  assert.match(page, /<PublicShell><div className="legal-page">/);
+  assert.match(page, /<\/div><\/PublicShell>/);
+  assert.doesNotMatch(page, /<main/, "PublicShell already renders the single <main> landmark");
   assert.match(page, /When a workspace webhook is configured and enabled/);
 });
 
@@ -127,6 +128,16 @@ test("A01: source-gap route never reports receipt without storage and the form g
   assert.match(form, /if \(!outcome\.saved\) throw new Error\(outcome\.message\)/);
   assert.doesNotMatch(form, /if \(!response\.ok\)/);
   assert.match(form, /Request reference:/);
+  // Recovery: a React form action resets typed fields after an error; onSubmit keeps them.
+  assert.doesNotMatch(form, /action=\{submit\}/);
+  assert.match(form, /onSubmit=\{\(event\) => \{ event\.preventDefault\(\); void submit\(new FormData\(event\.currentTarget\)\); \}\}/);
+  // Production intercepts this path in the Worker (D1 intake). It must return the same receipt contract.
+  const worker = await read("worker/index.ts");
+  const handler = worker.slice(worker.indexOf("async function handleSourceGapRequest"), worker.indexOf("async function", worker.indexOf("async function handleSourceGapRequest") + 10));
+  assert.doesNotMatch(handler, /\{ ok: true, message/);
+  assert.match(handler, /const reference = crypto\.randomUUID\(\)/);
+  assert.match(handler, /if \(!inserted\.success \|\| inserted\.meta\?\.changes !== 1\)/);
+  assert.match(handler, /Response\.json\(\{ received: true, reference, message:/);
 });
 
 test("A19: free source-gap check promises a supported gap or an explanation, not a guaranteed gap", async () => {
@@ -164,4 +175,26 @@ test("A21: token lifecycle, unavailable report and not-found pages are explicitl
   for (const privatePath of ["/pricing", "/pay", "/unsubscribe", "/invite", "/share", "/report/", "/app"]) {
     assert.doesNotMatch(sitemap, new RegExp(`["'\`]${privatePath.replace(/\//g, "\\/")}["'\`/]`), `sitemap must not list ${privatePath}`);
   }
+});
+
+test("CV-17/A21: measured layout and 404-state contrast repairs stay scoped to existing tokens", async () => {
+  const css = await read("app/public-contrast-repair.css");
+  const globals = await read("app/globals.css");
+  const canonical = await read("app/canonical-system.css");
+  assert.match(css, /@media \(min-width: 781px\) \{[\s\S]*\.report-layout \{\s*grid-template-columns: 220px minmax\(0, 1fr\);/);
+  assert.match(css, /\.report-metrics \{\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+  assert.match(css, /\.report-metrics span \{\s*font-size: 12px;/);
+  assert.match(css, /\.state-page \.eyebrow \{\s*color: var\(--fm-fg\) !important;\s*font-size: 12px;/);
+  // The 404/error state background is the --marker token; the repaired foreground must clear 4.5:1 on it.
+  const fg = canonical.match(/--fm-fg:\s*(#[0-9a-fA-F]{6})/)[1];
+  assert.match(globals, /\.state-page \{[^}]*background: var\(--marker\)/);
+  assert.ok(contrast(fg, "#176347") >= 4.5, `fm-fg on measured 404 background: ${contrast(fg, "#176347").toFixed(2)}`);
+  assert.ok(contrast("#65b58e", "#176347") < 4.5, "previous measured pair must fail");
+});
+
+test("CV-17: invalid or expired unsubscribe link is not a dead end", async () => {
+  const page = await read("app/unsubscribe/page.tsx");
+  assert.match(page, /This link is invalid or expired\./);
+  assert.match(page, /<Link href="\/app\/settings">workspace Settings<\/Link>/);
+  assert.match(page, /<Link href="\/">Foremention home page<\/Link>/);
 });

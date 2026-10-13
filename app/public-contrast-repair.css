@@ -199,3 +199,31 @@
     animation: none;
   }
 }
+
+/*
+ * FM-05 / CV-17 + A21 — measured in headless Chromium against a local build
+ * (2026-10-13): /sample-report overflowed horizontally at 1024px (scrollWidth
+ * 1071) because the report body column could not shrink below its metric grid;
+ * the 404/error state eyebrow measured 2.93:1 (#65b58e on #176347, 10px).
+ * Existing palette only; no layout redesign.
+ */
+@media (min-width: 781px) {
+  /* Below 781px globals.css already stacks both grids to one column. */
+  .report-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .report-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.report-metrics strong {
+  overflow-wrap: anywhere;
+}
+.report-metrics span {
+  font-size: 12px;
+}
+/* canonical-system.css forces eyebrow colour with !important on a zero-specificity :where(); this scoped rule outranks it. */
+.state-page .eyebrow {
+  color: var(--fm-fg) !important;
+  font-size: 12px;
+}
