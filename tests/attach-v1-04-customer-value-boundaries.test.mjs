@@ -49,7 +49,7 @@ test("A27: no mutation or export is rendered before scoped persisted eligibility
   assert.match(bridge, /run\.id === runId/);
   assert.match(bridge, /\["review", "complete", "partial"\]\.includes\(run\.status\)/);
   assert.match(bridge, /if \(eligibility !== "eligible"\) return null;/);
-  assert.match(bridge, /\.catch\(\(\) => \{ if \(active\) setEligibility\("error"\); \}\)/);
+  assert.match(bridge, /\.catch\(\(\) => \{ if \(active\) setEligibilityFor\(\{ runId, state: "error" \}\); \}\)/);
   assert.match(bridge, /Retry Record action check/);
   assert.match(bridge, /Your saved Record was not changed/);
 });
@@ -78,4 +78,12 @@ test("A27: Share is offered only after server-side active-project role capabilit
   assert.match(route, /organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/);
   assert.match(route, /canShare: observed && canShare\(role\)/);
   assert.match(route, /cache-control": "no-store"/);
+});
+
+test("QA09-31: Record eligibility and share capability fail closed when the Record ID changes without remount", () => {
+  const bridge = read("components/retention-surface-bridge.tsx");
+  assert.match(bridge, /eligibilityFor && eligibilityFor\.runId === runId \? eligibilityFor\.state : "checking"/);
+  assert.match(bridge, /eligibility === "eligible" && shareFor\?\.runId === runId && shareFor\.canShare === true/);
+  assert.match(bridge, /setShareFor\(\{ runId, canShare: false \}\)/);
+  assert.doesNotMatch(bridge, /setEligibility\(|setCanShareRecord\(/);
 });

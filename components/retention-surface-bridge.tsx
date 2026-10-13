@@ -69,9 +69,15 @@ function AttentionSurface() {
 function RecordControls({ runId }: { runId: string }) {
   // Presentation is gated on a persisted run from the authorized active-project listing.
   // API routes continue to enforce authorization and current state independently.
-  const [eligibility, setEligibility] = useState<"checking" | "eligible" | "unavailable" | "error">("checking");
+  // QA09-31: every async result is stored WITH the Record ID it was computed for.
+  // If the ID changes without a remount, the derived state immediately falls back
+  // to "checking"/no-share until the new identity check completes (fail closed).
+  const [eligibilityFor, setEligibilityFor] = useState<{ runId: string; state: "eligible" | "unavailable" | "error" } | null>(null);
   const [eligibilityAttempt, setEligibilityAttempt] = useState(0);
-  const [canShareRecord, setCanShareRecord] = useState(false);
+  const [shareFor, setShareFor] = useState<{ runId: string; canShare: boolean } | null>(null);
+  const eligibility: "checking" | "eligible" | "unavailable" | "error" =
+    eligibilityFor && eligibilityFor.runId === runId ? eligibilityFor.state : "checking";
+  const canShareRecord = eligibility === "eligible" && shareFor?.runId === runId && shareFor.canShare === true;
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -85,9 +91,9 @@ function RecordControls({ runId }: { runId: string }) {
         const valid = Array.isArray(payload.data) && payload.data.some((run) =>
           run.id === runId && ["review", "complete", "partial"].includes(run.status),
         );
-        setEligibility(valid ? "eligible" : "unavailable");
+        setEligibilityFor({ runId, state: valid ? "eligible" : "unavailable" });
       })
-      .catch(() => { if (active) setEligibility("error"); });
+      .catch(() => { if (active) setEligibilityFor({ runId, state: "error" }); });
     return () => { active = false; controller.abort(); };
   }, [runId, eligibilityAttempt]);
   useEffect(() => {
@@ -99,11 +105,12 @@ function RecordControls({ runId }: { runId: string }) {
         if (!response.ok) throw new Error("Share capability unavailable");
         return response.json() as Promise<{ data?: { canShare?: boolean } }>;
       })
-      .then((payload) => { if (active) setCanShareRecord(payload.data?.canShare === true); })
-      .catch(() => { if (active) setCanShareRecord(false); });
+      .then((payload) => { if (active) setShareFor({ runId, canShare: payload.data?.canShare === true }); })
+      .catch(() => { if (active) setShareFor({ runId, canShare: false }); });
     return () => { active = false; controller.abort(); };
   }, [eligibility, runId]);
-  const [sharePath, setSharePath] = useState<string | null>(null);
+  const [shareResult, setShareResult] = useState<{ runId: string; path: string } | null>(null);
+  const sharePath = shareResult?.runId === runId ? shareResult.path : null;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function share() {
@@ -113,7 +120,7 @@ function RecordControls({ runId }: { runId: string }) {
       const response = await fetch(`/api/records/${encodeURIComponent(runId)}/share`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ includeEvidence: true, expiresInDays: 14 }) });
       const payload = await response.json().catch(() => ({})) as { data?: { path?: string }; error?: string };
       if (!response.ok || !payload.data?.path) setError(payload.error || "The read-only share could not be created.");
-      else setSharePath(payload.data.path);
+      else setShareResult({ runId, path: payload.data.path });
     } catch {
       setError("The read-only share is unavailable. Your saved Record was not changed. Retry when the connection recovers.");
     } finally {
@@ -121,7 +128,7 @@ function RecordControls({ runId }: { runId: string }) {
     }
   }
   if (eligibility === "checking") return <section className="panel" role="status"><p>Verifying the saved Record and available actions…</p></section>;
-  if (eligibility === "error") return <section className="panel" role="alert"><p>Record actions could not be verified. No share or export is available until this check succeeds.</p><button type="button" className="button button--outline" onClick={() => { setEligibility("checking"); setEligibilityAttempt((value) => value + 1); }}>Retry Record action check</button></section>;
+  if (eligibility === "error") return <section className="panel" role="alert"><p>Record actions could not be verified. No share or export is available until this check succeeds.</p><button type="button" className="button button--outline" onClick={() => { setEligibilityFor(null); setShareFor(null); setEligibilityAttempt((value) => value + 1); }}>Retry Record action check</button></section>;
   if (eligibility !== "eligible") return null;
   return <>
     <section className="panel retention-record-controls" aria-label="Recommendation Record controls">
