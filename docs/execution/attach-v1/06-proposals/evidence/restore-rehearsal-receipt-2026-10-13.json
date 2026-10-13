@@ -1,0 +1,283 @@
+{
+ "tool": "chat06-restore-rehearsal",
+ "started_at": "2026-10-13T07:47:02.114Z",
+ "environment": "local PGlite (disposable, in-memory)",
+ "repo_head": "ref: refs/heads/fm-attach-v1/06-operations",
+ "limits": [
+  "PGlite is not Supabase: auth/storage/realtime/pg_cron/Vault and Supabase default grants are shimmed or absent.",
+  "The physical backup is a PGlite data-directory tarball, not a Supabase/WAL-G backup or PITR restore.",
+  "All data is synthetic. No production data was read, copied or restored."
+ ],
+ "replay": {
+  "total": 97,
+  "ok": 97,
+  "failed": []
+ },
+ "catalog_after_replay": {
+  "hash": "3466db4c387170d018af05015e1fbdbd060993017b4b256c8e269c8daeebc2cd",
+  "counts": {
+   "column": 1831,
+   "constraint": 1036,
+   "enum": 6,
+   "function": 75,
+   "function_body_normalized": 75,
+   "function_grant": 225,
+   "index": 434,
+   "policy": 215,
+   "rls": 126,
+   "table_grant": 232,
+   "trigger": 109,
+   "view": 14
+  }
+ },
+ "seed": {
+  "ok": 22,
+  "total": 22,
+  "failed": []
+ },
+ "seeded_data": {
+  "organizations": {
+   "rows": 2,
+   "md5": "be9ed0083b3985c1dd3ca6c91726cab7"
+  },
+  "organization_members": {
+   "rows": 2,
+   "md5": "8539d5121ae322bf1ac249788e2610e6"
+  },
+  "projects": {
+   "rows": 2,
+   "md5": "5b0ee4e2b10d36b4aa1ba78f4a7cba65"
+  },
+  "categories": {
+   "rows": 2,
+   "md5": "2be8e3c5d8d0683f7ae8acb8812b5293"
+  },
+  "prompts": {
+   "rows": 2,
+   "md5": "03e7cb9ebb959825049e2bfab371a994"
+  },
+  "runs": {
+   "rows": 2,
+   "md5": "b41a835ff62af911a286175cc838654c"
+  },
+  "run_prompt_selections": {
+   "rows": 2,
+   "md5": "bc96985c8b134398511bec62a49acece"
+  },
+  "run_answers": {
+   "rows": 2,
+   "md5": "4630687bbb29b1cab852492f2dd4c166"
+  }
+ },
+ "backup": {
+  "kind": "pglite-physical-datadir-tar.gz",
+  "bytes": 7137437,
+  "sha256": "2f2edd6441705a00ae5fa0f92e6f5f4dfaf55f06031a42efe4354f15eb767de8",
+  "taken_at": "2026-10-13T07:47:07.052Z"
+ },
+ "restore": {
+  "catalog_identical": true,
+  "data_identical": true,
+  "restored_catalog_hash": "3466db4c387170d018af05015e1fbdbd060993017b4b256c8e269c8daeebc2cd",
+  "continued_customer_loop": [
+   {
+    "step": "restored: tenant B cannot be read through tenant A RLS context",
+    "ok": true
+   },
+   {
+    "step": "restored: second (later) run for the same project and question",
+    "ok": true
+   },
+   {
+    "step": "restored: fenced cancel cannot overwrite a reviewed run",
+    "ok": true
+   }
+  ]
+ },
+ "rollback": {
+  "forward_change_hash": "f29a8d1da7fca0d59b421497fd2a46272389642af6e9a3618d255c843d40d9b9",
+  "forward_change_differs": true,
+  "restored_pre_change_hash": "3466db4c387170d018af05015e1fbdbd060993017b4b256c8e269c8daeebc2cd",
+  "returned_to_pre_change": true,
+  "data_identical_after_rollback": true
+ },
+ "production_parity": {
+  "production_fingerprint_source": "prod-catalog.json",
+  "note": "Production fingerprint is md5 digests only, exported via the Supabase read-only query endpoint. Grant differences partly reflect the local role shim.",
+  "summary": {
+   "column": {
+    "identical": 1828,
+    "differing": 0,
+    "only_production": 0,
+    "only_repository_replay": 3
+   },
+   "constraint": {
+    "identical": 1032,
+    "differing": 1,
+    "only_production": 0,
+    "only_repository_replay": 3
+   },
+   "enum": {
+    "identical": 6,
+    "differing": 0,
+    "only_production": 0,
+    "only_repository_replay": 0
+   },
+   "function": {
+    "identical": 59,
+    "differing": 15,
+    "only_production": 1,
+    "only_repository_replay": 1
+   },
+   "function_body_normalized": {
+    "identical": 74,
+    "differing": 0,
+    "only_production": 1,
+    "only_repository_replay": 1
+   },
+   "function_grant": {
+    "identical": 222,
+    "differing": 0,
+    "only_production": 3,
+    "only_repository_replay": 3
+   },
+   "index": {
+    "identical": 434,
+    "differing": 0,
+    "only_production": 0,
+    "only_repository_replay": 0
+   },
+   "policy": {
+    "identical": 215,
+    "differing": 0,
+    "only_production": 0,
+    "only_repository_replay": 0
+   },
+   "rls": {
+    "identical": 126,
+    "differing": 0,
+    "only_production": 0,
+    "only_repository_replay": 0
+   },
+   "table_grant": {
+    "identical": 5,
+    "differing": 227,
+    "only_production": 72,
+    "only_repository_replay": 0
+   },
+   "trigger": {
+    "identical": 108,
+    "differing": 0,
+    "only_production": 0,
+    "only_repository_replay": 1
+   },
+   "view": {
+    "identical": 10,
+    "differing": 4,
+    "only_production": 0,
+    "only_repository_replay": 0
+   }
+  },
+  "examples": {
+   "differing": [
+    "constraint organization_domains.organization_domains_domain_check",
+    "function apply_billing_event_atomic(p_provider text, p_event_id text, p_organization_id uuid, p_package_key text, p_state text, p_legacy_status text, p_feature_keys text[], p_external_customer_id text, p_external_subscription_id text, p_effective_at timestamp with time zone)",
+    "function apply_billing_event_atomic_v2(p_provider text, p_event_id text, p_organization_id uuid, p_package_key text, p_state text, p_legacy_status text, p_feature_keys text[], p_external_customer_id text, p_external_subscription_id text, p_entitlement_expires_at timestamp with time zone, p_grace_period_ends_at timestamp with time zone, p_effective_at timestamp with time zone)",
+    "function capture_commercial_stage_event()",
+    "function claim_design_partner_submission(p_key_hash text)",
+    "function execute_foremention_account_deletion(p_request_id uuid, p_requested_by uuid)",
+    "function finalize_resolution_follow_up_from_run()",
+    "function handle_new_user()",
+    "function normalize_source_map_entry_presence_state()",
+    "function prevent_billing_history_mutation()",
+    "function prevent_commercial_audit_mutation()",
+    "function release_queued_run(p_organization_id uuid, p_run_id uuid, p_reason text)",
+    "function reserve_run_budget(p_organization_id uuid, p_run_id uuid, p_estimated_max_cost_usd numeric)",
+    "function reserve_run_quota(p_organization_id uuid, p_units integer, p_run_id uuid)",
+    "function set_updated_at()",
+    "function validate_resolution_asset()",
+    "table_grant account_deletion_requests:authenticated",
+    "table_grant account_deletion_requests:service_role",
+    "table_grant acquisition_outreach_drafts:service_role",
+    "table_grant acquisition_outreach_webhook_events:service_role",
+    "table_grant acquisition_reply_events:service_role",
+    "table_grant acquisition_research_evidence:service_role",
+    "table_grant acquisition_research_runs:service_role",
+    "table_grant acquisition_sequence_enrollments:service_role",
+    "table_grant acquisition_shadow_qualified_candidates:service_role",
+    "table_grant acquisition_suppressions:service_role",
+    "table_grant acquisition_zoho_mail_canaries:service_role",
+    "table_grant agent_action_executions:service_role",
+    "table_grant agent_actions:service_role",
+    "table_grant agent_reasoning_runs:service_role",
+    "table_grant ai_cost_events:authenticated",
+    "table_grant ai_cost_events:service_role",
+    "table_grant answer_brand_mentions:authenticated",
+    "table_grant answer_brand_mentions:service_role",
+    "table_grant application_email_deliveries:authenticated",
+    "table_grant application_email_deliveries:service_role",
+    "table_grant approvals:authenticated",
+    "table_grant approvals:service_role",
+    "table_grant audit_events:service_role",
+    "table_grant audit_logs:authenticated"
+   ],
+   "only_production": [
+    "function rls_auto_enable()",
+    "function_body_normalized rls_auto_enable()",
+    "function_grant rls_auto_enable():anon",
+    "function_grant rls_auto_enable():authenticated",
+    "function_grant rls_auto_enable():service_role",
+    "table_grant account_deletion_requests:anon",
+    "table_grant ai_cost_events:anon",
+    "table_grant answer_brand_mentions:anon",
+    "table_grant application_email_deliveries:anon",
+    "table_grant approvals:anon",
+    "table_grant audit_logs:anon",
+    "table_grant billing_accounts:anon",
+    "table_grant billing_state_history:anon",
+    "table_grant billing_webhook_events:anon",
+    "table_grant billing_webhook_events:authenticated",
+    "table_grant categories:anon",
+    "table_grant change_execution_assets:anon",
+    "table_grant change_learning_summaries:anon",
+    "table_grant change_specification_evidence:anon",
+    "table_grant change_specifications:anon",
+    "table_grant citation_observations:anon",
+    "table_grant citations:anon",
+    "table_grant competitors:anon",
+    "table_grant crm_attribution_events:anon",
+    "table_grant customer_success_profiles:anon",
+    "table_grant customer_success_reviews:anon",
+    "table_grant design_partner_applications:anon",
+    "table_grant design_partner_applications:authenticated",
+    "table_grant design_partner_execution_progress:anon",
+    "table_grant domains:anon",
+    "table_grant evidence_items:anon",
+    "table_grant indexing_checks:anon",
+    "table_grant integration_activity_deliveries:anon",
+    "table_grant integrations:anon",
+    "table_grant invitations:anon",
+    "table_grant jobs:anon",
+    "table_grant measurement_schedules:anon",
+    "table_grant notification_preferences:anon",
+    "table_grant notifications:anon",
+    "table_grant opportunities:anon"
+   ],
+   "only_repository_replay": [
+    "column customer_success_reviews.confirmed_decision_event_id",
+    "column customer_success_reviews.confirmed_second_use_assessment_id",
+    "column customer_success_reviews.customer_confirmed_value",
+    "constraint customer_success_reviews.customer_success_reviews_confirmed_decision_event_id_fkey",
+    "constraint customer_success_reviews.customer_success_reviews_confirmed_second_use_assessment_i_fkey",
+    "constraint customer_success_reviews.customer_success_reviews_confirmed_value_evidence_check",
+    "function validate_customer_confirmed_value_evidence()",
+    "function_body_normalized validate_customer_confirmed_value_evidence()",
+    "function_grant validate_customer_confirmed_value_evidence():anon",
+    "function_grant validate_customer_confirmed_value_evidence():authenticated",
+    "function_grant validate_customer_confirmed_value_evidence():service_role",
+    "trigger customer_success_reviews.customer_success_reviews_confirmed_value_validate"
+   ]
+  }
+ },
+ "finished_at": "2026-10-13T07:47:09.093Z"
+}

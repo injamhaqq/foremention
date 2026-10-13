@@ -949,7 +949,9 @@ export const scheduleWeeklyWorkspaceDigests = inngest.createFunction(
  * the cancellation hook itself failed. Runs active far beyond the collector's
  * hard lifetime (start 5m + finish 30m) are settled through the same fenced
  * terminal write as every other failure, releasing never-started capacity.
- * No provider is called and no evidence is created.
+ * No provider is called and no evidence is created. Every 3 hours (≈480
+ * Inngest executions/month when idle) keeps worst-case detection near five
+ * hours without spending a meaningful share of the free execution quota.
  */
 export async function reconcileInterruptedCollectionRunsPass(
   step: { run<T>(id: string, fn: () => Promise<T>): Promise<T> },
@@ -971,7 +973,7 @@ export async function reconcileInterruptedCollectionRunsPass(
 }
 
 export const reconcileInterruptedCollectionRuns = inngest.createFunction(
-  { id: "reconcile-interrupted-collection-runs", retries: 2, concurrency: { limit: 1 }, triggers: { cron: "41 * * * *" } },
+  { id: "reconcile-interrupted-collection-runs", retries: 2, concurrency: { limit: 1 }, triggers: { cron: "41 */3 * * *" } },
   async ({ step }) => reconcileInterruptedCollectionRunsPass({ run: (id, fn) => step.run(id, fn) as never }),
 );
 
