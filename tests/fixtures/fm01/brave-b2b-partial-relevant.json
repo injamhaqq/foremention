@@ -1,0 +1,57 @@
+{
+  "question": "What should a B2B SaaS marketing team evaluate when choosing AI visibility monitoring platforms?",
+  "origin": "SYNTHETIC offline fixture (Chat01, 2026-10-12). Brave Search API v1 web/search response shape. Not a production receipt: the raw 2026-10-11 run abb5b16f-46ea-4d46-b769-231ea14ef47a URLs were not available to this package. No network/paid call produced it.",
+  "case": "partial source set within the 8-result window: 6 dictionary pages + 2 topically relevant pages (positions 4 and 8)",
+  "response": {
+    "_fixture_note": "SYNTHETIC offline fixture (Chat01, 2026-10-12). Brave Search API v1 web/search response shape. Not a production receipt: the raw 2026-10-11 run abb5b16f-46ea-4d46-b769-231ea14ef47a URLs were not available to this package. No network/paid call produced it.",
+    "type": "search",
+    "query": {
+      "original": "What should a B2B SaaS marketing team evaluate when choosing AI visibility monitoring platforms?"
+    },
+    "web": {
+      "type": "search",
+      "results": [
+        {
+          "url": "https://dictionary.example/browse/should",
+          "title": "Should Definition & Meaning",
+          "description": "Should is used to express obligation or duty, to express a condition, or to soften a direct statement."
+        },
+        {
+          "url": "https://grammar.example/modal-verbs/should",
+          "title": "How to use should in English grammar",
+          "description": "Modal verb should: examples and exercises for learners."
+        },
+        {
+          "url": "https://learner.example/should-vs-would",
+          "title": "Should vs would: what's the difference?",
+          "description": "Language learners often confuse should and would."
+        },
+        {
+          "url": "https://research.example/ai-visibility-monitoring-buyers-guide",
+          "title": "AI visibility monitoring platforms: a buyer's guide for B2B SaaS marketing teams",
+          "description": "How marketing teams evaluate AI visibility tracking: prompt coverage, citation sources, competitor benchmarking."
+        },
+        {
+          "url": "https://thesaurus.example/should",
+          "title": "Synonyms of should",
+          "description": "ought, must, need to."
+        },
+        {
+          "url": "https://wordorigin.example/should",
+          "title": "Etymology of should",
+          "description": "Old English sceolde, past tense of sculan."
+        },
+        {
+          "url": "https://pronounce.example/should",
+          "title": "How to pronounce should",
+          "description": "Audio pronunciation in British and American English."
+        },
+        {
+          "url": "https://analyst.example/generative-engine-visibility-tools",
+          "title": "Comparing AI visibility tools for B2B brands",
+          "description": "Evaluation criteria for monitoring brand visibility in ChatGPT, Perplexity and Gemini answers."
+        }
+      ]
+    }
+  }
+}

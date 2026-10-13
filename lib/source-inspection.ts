@@ -97,8 +97,14 @@ function isPrivateIpv6(hostname: string) {
   const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, "");
   const mapped = mappedIpv4(normalized);
   if (mapped) return isPrivateIpv4(mapped);
+  // WHATWG URL serializes IPv6 in compressed lowercase form, so prefixes must
+  // be matched on that form ("2001:0:" not "2001:0000:"). FM-00 applied the
+  // reviewed Chat02 proposal (02-proposals/ssrf-guard-ipv6-gaps.patch.md).
+  if (/^::[0-9a-f]{1,4}:[0-9a-f]{1,4}$/.test(normalized)) return true; // IPv4-compatible ::/96 (deprecated)
   return normalized === "::"
     || normalized === "::1"
+    || /^2001:0?:/.test(normalized) // Teredo 2001:0::/32
+    || /^100::/.test(normalized) || normalized.startsWith("100:0:0:0:") // discard-only 100::/64
     || /^f[cd][0-9a-f]{2}:/.test(normalized)
     || /^fe[89a-f][0-9a-f]:/.test(normalized)
     || normalized.startsWith("ff")

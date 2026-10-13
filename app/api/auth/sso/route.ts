@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { enterpriseSsoConfigured, startEnterpriseSso } from "@/lib/enterprise-sso";
+import { safeAbsoluteAuthNext } from "@/lib/google-auth";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 
 function safeNext(request: Request, value: string | null) {
   const origin = new URL(request.url).origin;
-  const path = value && value.startsWith("/") && !value.startsWith("//") ? value : "/app";
-  return new URL(path, process.env.NEXT_PUBLIC_SITE_URL?.trim() || origin).toString();
+  return safeAbsoluteAuthNext(value, process.env.NEXT_PUBLIC_SITE_URL?.trim() || origin);
 }
 
 export async function GET(request: Request) {

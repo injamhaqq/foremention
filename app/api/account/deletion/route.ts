@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isRecentAccessToken } from "@/lib/account-security";
+import { hasRecentStepUpAuthentication, isRecentAccessToken } from "@/lib/account-security";
 import { sendProductAlertEmail } from "@/lib/application-email";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadPendingDeletionRequest, loadWorkspaceContext } from "@/lib/data";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (viewer.mode === "demo") return NextResponse.json({ error: "The fictional demo has no customer account to delete." }, { status: 409 });
-  if (!isRecentAccessToken(viewer.accessToken)) {
+  if (!(isRecentAccessToken(viewer.accessToken) && hasRecentStepUpAuthentication(viewer.accessToken))) {
     return NextResponse.json({
       error: "For your security, sign out and sign in again before requesting account deletion.",
       reauthenticationRequired: true,
@@ -84,7 +84,7 @@ export async function PUT(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer || viewer.mode === "demo" || !viewer.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isRecentAccessToken(viewer.accessToken)) return NextResponse.json({ error: "Sign out and sign in again before permanently deleting this workspace.", reauthenticationRequired: true }, { status: 401 });
+  if (!(isRecentAccessToken(viewer.accessToken) && hasRecentStepUpAuthentication(viewer.accessToken))) return NextResponse.json({ error: "Sign out and sign in again before permanently deleting this workspace.", reauthenticationRequired: true }, { status: 401 });
   const [context, role, pending] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer), loadPendingDeletionRequest(viewer)]);
   if (!context || !pending) return NextResponse.json({ error: "Pending deletion request not found." }, { status: 404 });
   if (role !== "owner") return NextResponse.json({ error: "Only the workspace owner can permanently delete the organization." }, { status: 403 });
@@ -123,7 +123,7 @@ export async function DELETE(request: Request) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (viewer.mode === "demo") return NextResponse.json({ ok: true, mode: "demo" });
-  if (!isRecentAccessToken(viewer.accessToken)) return NextResponse.json({ error: "Sign out and sign in again before cancelling a deletion request." }, { status: 401 });
+  if (!(isRecentAccessToken(viewer.accessToken) && hasRecentStepUpAuthentication(viewer.accessToken))) return NextResponse.json({ error: "Sign out and sign in again before cancelling a deletion request." }, { status: 401 });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   const pending = await loadPendingDeletionRequest(viewer);

@@ -1,0 +1,70 @@
+[
+  {
+    "name": "proposal applies on top of all repo migrations with existing rows",
+    "ok": true
+  },
+  {
+    "name": "backfill: every project gets epoch 1; historical runs stay NULL (unknown), nothing inferred",
+    "ok": true
+  },
+  {
+    "name": "member-created run is stamped with the current epoch and customer_cycle; client value ignored",
+    "ok": true
+  },
+  {
+    "name": "service-role run without explicit origin stays unknown; explicit fixture is kept",
+    "ok": true
+  },
+  {
+    "name": "question-set epoch: reword/retire/add bump; inactive-only edits and no-op updates do not; sibling project untouched",
+    "ok": true
+  },
+  {
+    "name": "run cycle identity is immutable (analyst has runs write policy, still cannot rewrite)",
+    "ok": true
+  },
+  {
+    "name": "project epoch table is read-only to members and invisible across orgs",
+    "ok": true
+  },
+  {
+    "name": "answer observation method/sampling derive only from raw_json; direct edits cannot drift; missing stays NULL",
+    "ok": true
+  },
+  {
+    "name": "save_record_decision: analyst saves explicit no-action; same-key replay returns the same row (lost ACK)",
+    "ok": true
+  },
+  {
+    "name": "same save key for a different Record is a conflict (PT409), not an overwrite",
+    "ok": true
+  },
+  {
+    "name": "tenant/project/role denials: viewer, other org ids, sibling project, other-org project, outsider",
+    "ok": true
+  },
+  {
+    "name": "no-action/disagreement cannot carry an owner; analyst cannot approve; bad save key rejected",
+    "ok": true
+  },
+  {
+    "name": "Change Specification decision: saved incomplete, approval requires owner+action+date, then immutable",
+    "ok": true
+  },
+  {
+    "name": "direct table writes are denied to members; reads are org-scoped",
+    "ok": true
+  },
+  {
+    "name": "service role cannot rewrite a saved decision body either (trigger)",
+    "ok": true
+  },
+  {
+    "name": "RPC execute grants: authenticated + service_role only",
+    "ok": true
+  },
+  {
+    "name": "org deletion cascades decisions and epochs (deletion graph not blocked)",
+    "ok": true
+  }
+]

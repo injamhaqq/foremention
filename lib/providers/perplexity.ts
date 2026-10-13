@@ -1,44 +1,15 @@
-import { extractModelMentionedUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderPrompt } from "@/lib/providers/types";
+import { ProviderRequestError, type AnswerProviderAdapter, type ProviderAnswer, type ProviderPrompt } from "@/lib/providers/types";
 
+/**
+ * CV-03: Perplexity announced retirement of the Sonar API on 2026-09-27.
+ * The previous /v1/sonar adapter no longer has a supported contract.
+ * Do NOT substitute a new model/endpoint without new model+method provenance,
+ * current vendor docs, response/citation/usage fixtures and budget approval.
+ */
 export const perplexityAdapter: AnswerProviderAdapter = {
   id: "perplexity",
-  configured: () => Boolean(process.env.PERPLEXITY_API_KEY && process.env.PERPLEXITY_MODEL),
-  async run(prompt: ProviderPrompt, options): Promise<ProviderAnswer> {
-    const started = Date.now();
-    const response = await fetch("https://api.perplexity.ai/v1/sonar", {
-      method: "POST",
-      signal: options.signal,
-      headers: { authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`, "content-type": "application/json" },
-      body: JSON.stringify({ model: process.env.PERPLEXITY_MODEL, max_tokens: options.maxOutputTokens, messages: [{ role: "user", content: prompt.text }] }),
-    });
-    const raw = (await response.json()) as {
-      id?: string;
-      model?: string;
-      citations?: string[];
-      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; cost?: { total_cost?: number } };
-      choices?: Array<{ finish_reason?: string; message?: { content?: string } }>;
-    };
-    if (!response.ok) throw new ProviderRequestError("Perplexity", response.status);
-    const answer = raw.choices?.[0]?.message?.content || "";
-    // Only the API's top-level citations array counts. URLs the model typed into its
-    // answer are kept apart as mentionedUrls, never as a fallback.
-    const normalizedCitations = (raw.citations || []).filter((url): url is string => typeof url === "string" && Boolean(url)).map((url) => ({ url }));
-    const mentionedUrls = extractModelMentionedUrls(answer);
-    const usage = raw.usage ? { inputTokens: raw.usage.prompt_tokens, outputTokens: raw.usage.completion_tokens, totalTokens: raw.usage.total_tokens } : undefined;
-    return {
-      provider: "perplexity",
-      model: raw.model || process.env.PERPLEXITY_MODEL || "configured model",
-      promptId: prompt.promptId,
-      answer,
-      citations: normalizedCitations,
-      mentionedUrls,
-      raw: { id: raw.id, model: raw.model, finishReason: raw.choices?.[0]?.finish_reason, usage, grounded: normalizedCitations.length > 0, citationCount: normalizedCitations.length, mentioned_urls: mentionedUrls.map((item) => item.url), mentioned_urls_note: "Model-written URLs from answer text; not provider citations and never evidence." },
-      collectedAt: new Date().toISOString(),
-      latencyMs: Date.now() - started,
-      usage,
-      billedCostUsd: typeof raw.usage?.cost?.total_cost === "number" ? raw.usage.cost.total_cost : undefined,
-      requestId: requestIdFrom(response, raw.id),
-      finishReason: raw.choices?.[0]?.finish_reason,
-    };
+  configured: () => false,
+  async run(_prompt: ProviderPrompt): Promise<ProviderAnswer> {
+    throw new ProviderRequestError("Perplexity Sonar", 410, "Retired legacy Sonar API. The current Agent API adapter has not been validated or authorized.");
   },
 };

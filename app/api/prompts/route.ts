@@ -5,6 +5,8 @@ import { buyerQuestionLimit, type CapacityEntitlementRow } from "@/lib/product-l
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
+import { exceedsBuyerQuestionLength } from "@/lib/approved-buyer-questions";
+import { updatePromptInProject } from "@/lib/buyer-question-edit";
 
 export async function GET() {
   const viewer = await getViewer();
@@ -18,6 +20,8 @@ export async function POST(request: Request) {
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await readJsonObject(request);
   if (!body) return NextResponse.json({ error: "Send a valid buyer-question form." }, { status: 400 });
+  // A28: reviewed wording is persisted exactly or rejected, never silently truncated.
+  if (exceedsBuyerQuestionLength(body.text)) return NextResponse.json({ error: "Each buyer question must be at most 1,000 characters. Nothing was truncated." }, { status: 400 });
   const text = cleanText(body.text, 1000);
   const clusterName = cleanText(body.cluster, 80) || "Customer question";
   if (text.length < 10) return NextResponse.json({ error: "Write a specific buyer question with at least 10 characters." }, { status: 400 });
@@ -81,6 +85,9 @@ export async function PATCH(request: Request) {
   if (!body) return NextResponse.json({ error: "Send a valid buyer-question update." }, { status: 400 });
   const hasActive = typeof body.active === "boolean";
   const hasText = typeof body.text === "string";
+  if (hasText && exceedsBuyerQuestionLength(body.text)) {
+    return NextResponse.json({ error: "Each buyer question must be at most 1,000 characters. Nothing was truncated." }, { status: 400 });
+  }
   const text = hasText ? cleanText(body.text, 1000) : "";
   const id = cleanText(body.id, 36);
   if (!/^[0-9a-f-]{36}$/i.test(id) || (!hasActive && !hasText)) {
@@ -128,23 +135,22 @@ export async function PATCH(request: Request) {
     }
   }
 
-  const updated = await supabaseRest<{
-    id: string;
-    prompt_key: string;
-    prompt_text: string;
-    active: boolean;
-    version: number;
-  }>("rpc/update_prompt_versioned", {
-    method: "POST",
-    token: viewer.accessToken,
-    body: {
-      p_prompt_id: id,
-      p_organization_id: context.organizationId,
-      p_prompt_text: hasText ? text : null,
-      p_active: hasActive ? body.active : null,
-      p_change_reason: "Edited by workspace member",
+  // A11: the database re-checks organization + project + active project
+  // (update_prompt_versioned_in_project). The project id is the server-resolved
+  // active project, never a client value.
+  const result = await updatePromptInProject(
+    <T,>(path: string, rpcBody: Record<string, unknown>) => {
+      // The edit may only reach the project-bound versioning RPC (A11 phase 2).
+      if (path !== "rpc/update_prompt_versioned_in_project") {
+        throw new Error("Unexpected buyer-question RPC.");
+      }
+      return supabaseRest<T>(path, { method: "POST", token: viewer.accessToken, body: rpcBody });
     },
-  });
+    { organizationId: context.organizationId, projectId: context.projectId },
+    { promptId: id, text: hasText ? text : null, active: hasActive ? body.active as boolean : null, changeReason: "Edited by workspace member" },
+  );
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  const updated = result.row;
 
   return NextResponse.json({
     data: {

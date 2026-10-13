@@ -1,7 +1,10 @@
 import { admitEvidenceCall, EvidenceCapacityExhaustedError } from "@/lib/evidence-capacity";
+import { RetrievedTopicUnavailableError } from "@/lib/retrieval-topic-relevance.mjs";
 import {
+  assertAuthorizedIndependentRetrieval,
   braveSearchApiKey,
   domainScopedQuery,
+  RetrievalRightsUnavailableError,
   retrieveFreeWebEvidence,
   SourceScopeUnavailableError,
   sourceDomainScopeFromPrompt,
@@ -172,6 +175,9 @@ export async function runGroundedCloudflareWithBinding(input: {
   // domain and never passes off-domain results to the model as support.
   const scope = sourceDomainScopeFromPrompt(input.prompt);
   const query = scope ? domainScopedQuery(input.searchQuery || input.prompt, scope) : input.searchQuery || input.prompt;
+  // A07: prevent counting a capacity unit before a missing rights grant
+  // or removed search provider is detected. This makes no external calls.
+  assertAuthorizedIndependentRetrieval();
   // A18: admit against the platform-wide daily (and Brave monthly) cap
   // BEFORE any search request or model call is made. Fails closed.
   try {
@@ -186,7 +192,7 @@ export async function runGroundedCloudflareWithBinding(input: {
   try {
     evidence = await retrieveFreeWebEvidence(query, input.signal, scope);
   } catch (error) {
-    if (error instanceof SourceScopeUnavailableError) {
+    if (error instanceof SourceScopeUnavailableError || error instanceof RetrievedTopicUnavailableError) {
       throw new ProviderRequestError(GROUNDED_PROVIDER_LABEL, 422, `Evidence unavailable: ${error.message}`);
     }
     throw error;
@@ -246,6 +252,9 @@ export async function runGroundedCloudflareWithBinding(input: {
     finishReason: raw.choices?.[0]?.finish_reason,
     retrievalProvider: evidence.retrievalProvider,
     retrievedCitationCount: evidence.citations.length,
+    retrievalQuery: evidence.retrievalQuery,
+    retrievedCandidateCount: evidence.retrievedCandidateCount,
+    relevanceRejectedCount: evidence.relevanceRejectedCount,
   };
 }
 
@@ -279,9 +288,19 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
           grounded: true,
           retrievalProvider: grounded.retrievalProvider,
           retrievedCitationCount: grounded.retrievedCitationCount,
+          retrievalQuery: grounded.retrievalQuery,
+          retrievedCandidateCount: grounded.retrievedCandidateCount,
+          relevanceRejectedCount: grounded.relevanceRejectedCount,
           citationCount: grounded.citations.length,
           finishReason: grounded.finishReason,
           usage: grounded.usage,
+          // CV-02/CV-11/A09 (Chat01): these citations are independently
+          // retrieved search results given to a hosted model, not citations
+          // returned by a provider's own search tool, and this is an API
+          // sample, not a consumer-app observation. See lib/evidence-provenance.mjs.
+          referenceProvenance: "independent_retrieval",
+          observationMethod: "api_hosted_model_with_independent_retrieval",
+          consumerProductObservation: false,
         },
         collectedAt: new Date().toISOString(),
         latencyMs: Date.now() - started,
@@ -290,6 +309,9 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
       };
     } catch (error) {
       if (error instanceof ProviderRequestError) throw error;
+      if (error instanceof RetrievalRightsUnavailableError) {
+        throw new ProviderRequestError("Independent web retrieval", 403, error.message);
+      }
       if (error instanceof DOMException && error.name === "AbortError") throw error;
       const detail = error instanceof Error ? error.message : "The grounded retrieval or model request failed.";
       throw new ProviderRequestError(GROUNDED_PROVIDER_LABEL, 502, detail);

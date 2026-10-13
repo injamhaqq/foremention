@@ -12,15 +12,18 @@ type PaddleWindow = Window & { Paddle?: PaddleJs };
 
 const TXN_ID = /^txn_[a-z0-9]{26}$/;
 
-export function PaddleSandboxPayment({ clientToken }: { clientToken: string }) {
+export function PaddleSandboxPayment({ clientToken, environment = "sandbox" }: { clientToken: string; environment?: "sandbox" | "live" }) {
   const started = useRef(false);
-  const [message, setMessage] = useState("Loading secure Paddle sandbox checkout…");
+  const live = environment === "live";
+  const [message, setMessage] = useState(live ? "Loading secure Paddle checkout…" : "Loading secure Paddle sandbox checkout…");
 
   const initialize = useCallback(() => {
     if (started.current) return;
     const transactionId = new URLSearchParams(window.location.search).get("_ptxn");
     if (!transactionId || !TXN_ID.test(transactionId)) {
-      setMessage("A valid Paddle test transaction link is required. Open checkout from your Foremention sandbox workspace.");
+      setMessage(live
+        ? "A valid Paddle transaction link is required. Open checkout from your Foremention workspace settings."
+        : "A valid Paddle test transaction link is required. Open checkout from your Foremention sandbox workspace.");
       return;
     }
     const paddle = (window as PaddleWindow).Paddle;
@@ -31,17 +34,20 @@ export function PaddleSandboxPayment({ clientToken }: { clientToken: string }) {
     try {
       // Paddle.js automatically opens the referenced transaction when _ptxn
       // is present. Do NOT also call Checkout.open(): that can double-open.
-      paddle.Environment.set("sandbox");
+      // Live is Paddle.js's default environment; only Sandbox is set explicitly.
+      if (!live) paddle.Environment.set("sandbox");
       paddle.Initialize({
         token: clientToken,
         checkout: { settings: { displayMode: "overlay", theme: "light" } },
       });
       started.current = true;
-      setMessage("Opening the Paddle test checkout. If it does not appear, check that this is a valid sandbox transaction.");
+      setMessage(live
+        ? "Opening the Paddle checkout. If it does not appear, reload the page or contact support."
+        : "Opening the Paddle test checkout. If it does not appear, check that this is a valid sandbox transaction.");
     } catch {
       setMessage("Paddle checkout could not initialize. No payment was completed on this page.");
     }
-  }, [clientToken]);
+  }, [clientToken, live]);
 
   return (
     <>

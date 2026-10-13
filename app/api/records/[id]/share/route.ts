@@ -9,6 +9,27 @@ const canShare = (role: string | null) => ["owner", "admin", "analyst"].includes
 type ShareRow = { id: string; expires_at: string; revoked_at: string | null; include_evidence: boolean };
 type ShareVisibility = "private" | "public";
 
+// Read-only capability for the active, persisted project Record. This does
+// not grant permissions: POST/DELETE revalidate their own role and scope.
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await requireViewer("/app/runs");
+  const [role, context] = await Promise.all([
+    getPrimaryWorkspaceRole(viewer),
+    loadWorkspaceContext(viewer),
+  ]);
+  if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404, headers: { "cache-control": "no-store" } });
+  const { id } = await params;
+  const run = viewer.mode === "demo"
+    ? (await loadRuns(viewer)).find((item) => item.id === id)
+    : (await supabaseRest<Array<{ id: string; status: string }>>(
+      `runs?select=id,status&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+      { token: viewer.accessToken },
+    ))[0];
+  if (!run) return NextResponse.json({ error: "Recommendation Record not found in the active project." }, { status: 404, headers: { "cache-control": "no-store" } });
+  const observed = ["review", "complete", "partial"].includes(run.status);
+  return NextResponse.json({ data: { canShare: observed && canShare(role), observed } }, { headers: { "cache-control": "no-store" } });
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await requireViewer("/app/runs");

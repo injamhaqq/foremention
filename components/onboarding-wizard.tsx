@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { captureProductEvent } from "@/lib/product-analytics";
 import { createManualOnboardingDraft, generateBuyerQuestions } from "@/lib/onboarding-profile";
+import { validateApprovedBuyerQuestions } from "@/lib/approved-buyer-questions";
 
 const steps = ["01 / ORGANIZATION", "02 / CATEGORY", "03 / COMPETITORS", "04 / GOAL", "05 / BUYER QUESTIONS", "06 / REVIEW"];
 
@@ -63,12 +64,14 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
   const [status, setStatus] = useState<"idle" | "saving" | "auditing" | "delayed" | "complete" | "error">("idle");
   const [message, setMessage] = useState("");
   const [firstRunId, setFirstRunId] = useState<string | null>(null);
+  const [startCollectionNow, setStartCollectionNow] = useState(false);
   const [auditStage, setAuditStage] = useState(0);
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [manualContextRequired, setManualContextRequired] = useState(false);
   const [manualContext, setManualContext] = useState({ whatYouSell: "", whoBuys: "", competitors: "" });
   const prompts = values.prompts.split("\n").map((value) => value.trim()).filter(Boolean);
+  const approval = validateApprovedBuyerQuestions(prompts);
   const submissionLock = useRef(false);
   const lastAnalyzedWebsite = useRef("");
 
@@ -184,27 +187,45 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
   useEffect(() => {
     if (!firstRunId || status !== "auditing") return;
     let cancelled = false;
+    let pollCount = 0;
+    let pendingTimer: number | null = null;
     const poll = async () => {
+      if (cancelled) return;
+      pollCount += 1;
       try {
         const response = await fetch("/api/runs", { cache: "no-store" });
+        if (!response.ok) throw new Error("Run status could not be checked.");
         const result = await response.json() as { data?: Array<{ id: string; status: string }> };
-        const run = result.data?.find((item) => item.id === firstRunId);
+        if (!Array.isArray(result.data)) throw new Error("Run status response is incomplete.");
+        const run = result.data.find((item) => item.id === firstRunId);
         if (!cancelled && run && ["review", "complete", "partial"].includes(run.status)) {
           setAuditStage(5);
-          window.setTimeout(() => window.location.assign(`/app/runs/${firstRunId}?first_evidence=1`), 600);
+          pendingTimer = window.setTimeout(() => {
+            if (!cancelled) window.location.assign(`/app/runs/${firstRunId}?first_evidence=1`);
+          }, 600);
           return;
         }
         if (!cancelled && run && ["failed", "cancelled"].includes(run.status)) {
+          setMessage("The saved collection is marked failed or cancelled. Inspect its exact Record before deciding whether to start another provider call.");
           setStatus("delayed");
           return;
         }
       } catch {
-        // The durable background run continues even when a browser poll fails.
+        // An unavailable poll does not prove the durable run failed.
       }
-      if (!cancelled) window.setTimeout(() => void poll(), 3_000);
+      if (cancelled) return;
+      if (pollCount >= 40) {
+        setMessage("The workspace and run were saved, but this browser could not confirm the final collection state. Inspect the recorded run before considering another collection.");
+        setStatus("delayed");
+        return;
+      }
+      pendingTimer = window.setTimeout(() => void poll(), 3_000);
     };
     void poll();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (pendingTimer !== null) window.clearTimeout(pendingTimer);
+    };
   }, [firstRunId, status]);
 
   async function startFirstAudit() {
@@ -233,6 +254,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
 
   async function submit() {
     if (submissionLock.current) return;
+    if (approval.error) { setMessage(approval.error); setStep(4); return; }
     submissionLock.current = true;
     setStatus("saving");
     setMessage("");
@@ -251,8 +273,10 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
       if (!response.ok) throw new Error(result.error || "Could not save onboarding.");
       if (!demo) window.localStorage.removeItem(draftKey);
       if (!demo) captureProductEvent("onboarding_completed", { question_count: prompts.length, competitor_count: values.competitors.split("\n").filter((value) => value.trim()).length });
-      if (demo) setStatus("complete");
-      else {
+      if (demo || !startCollectionNow || !firstAuditProvider) {
+        // Workspace creation alone is not consent to call a live provider.
+        setStatus("complete");
+      } else {
         setAuditStage((current) => Math.max(current, 2));
         setStatus("auditing");
         try {
@@ -276,7 +300,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
     <span className="eyebrow">First evidence check in progress</span>
     <div className="audit-loader" aria-hidden="true"><i /><i /><i /></div>
     <h2>Foremention is checking your first buyer question now.</h2>
-    <p>One real answer is being collected with {firstAuditProvider?.label || "your configured provider"}. Any provider-returned citations stay attached to that exact answer, and your other approved buyer questions remain saved for later baseline collections. You can leave this page; the background run will continue safely.</p>
+    <p>One real answer is being collected with {firstAuditProvider?.label || "your configured provider"} after your explicit approval. Any provider-returned citations stay attached to that exact answer. {prompts.length === 5 ? "The full five-question baseline remains saved for later collections." : "The exact approved question set remains saved for later collections."} You can leave this page; the background run will continue safely.</p>
     <ol className="audit-progress-steps" aria-label="First evidence progress">
       {["Workspace saved", "Buyer question frozen", "Running AI observation", "Mapping returned evidence"].map((label, index) => {
         const stage = index + 1;
@@ -292,13 +316,13 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
     <span className="eyebrow">Workspace created safely</span>
     <h2>Your first evidence check could not finish yet.</h2>
     <p>No evidence was invented and your setup is saved. {message || "The provider or background queue needs more time."} {firstAuditProvider ? "You can enter the workspace now and retry without repeating onboarding." : "Connect one provider in Settings when you are ready; creating the workspace did not manufacture a result."}</p>
-    <div className="settings-actions"><a className="button button--ink" href={firstAuditProvider ? "/app" : "/app/settings#providers"}>{firstAuditProvider ? "Open workspace" : "Connect a provider"} &rarr;</a>{firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}?first_evidence=1`}>Inspect run</a>}</div>
+    <div className="settings-actions"><a className="button button--ink" href={firstAuditProvider ? "/app/runs" : "/app/settings#providers"}>{firstAuditProvider ? "View collection history" : "Connect a provider"} &rarr;</a>{firstRunId && <a className="button button--outline" href={`/app/runs/${firstRunId}?first_evidence=1`}>Inspect saved run before retrying</a>}</div>
   </div>;
 
   if (status === "complete") return <div className="onboarding-complete" role="status">
     <span className="eyebrow">Workspace ready</span>
     <h2>Your evidence boundary is saved.</h2>
-    <p>{demo ? "This was a demo walkthrough; no customer data was saved." : "Your workspace, category, competitors, and approved buyer questions are now the controlled baseline."}</p>
+    <p>{demo ? "This was a demo walkthrough; no customer data was saved." : "Your workspace, category, competitors, and approved buyer questions are saved. No initial provider collection was requested."}</p>
     <div className="settings-actions"><a className="button button--ink" href="/app/settings#providers">Connect a provider &rarr;</a><a className="button button--outline" href="/app/prompts">Review questions</a></div>
   </div>;
 
@@ -310,11 +334,8 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
     <form onSubmit={(event) => {
       event.preventDefault();
       if (step < steps.length - 1) {
-        if (step === 3 && !prompts.length) {
-          const competitors = values.competitors.split("\n").map((value) => value.trim()).filter(Boolean);
-          const audience = values.market === "Global" ? "a growing global business team" : `a growing team in ${values.market}`;
-          setValues({ ...values, prompts: generateBuyerQuestions(values.category || "B2B software", values.companyName || "the company", competitors, audience).join("\n") });
-        }
+        if (step === 4 && approval.error) { setMessage(approval.error); return; }
+        setMessage("");
         setStep(step + 1);
       } else void submit();
     }} aria-busy={status === "saving"}>
@@ -344,10 +365,17 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
       {step === 1 && <fieldset><legend>Choose the category buyers use</legend><label>Canonical category<input value={values.category} onChange={(event) => setValues({ ...values, category: event.target.value })} placeholder="Example: CRM software for small B2B teams" required /></label><label>Category definition<textarea value={values.categoryDescription} onChange={(event) => setValues({ ...values, categoryDescription: event.target.value })} placeholder="Describe what belongs in this category and who buys it." rows={4} required /></label></fieldset>}
       {step === 2 && <fieldset><legend>Map the comparison set</legend><label>Suggested direct competitors<textarea value={values.competitors} onChange={(event) => setValues({ ...values, competitors: event.target.value })} placeholder={"No reliable competitors were found. Add one company per line."} rows={5} required /></label><p className="field-hint">Suggestions come from public website context and web-assisted analysis. Review every company before approval and keep only brands a real buyer would compare.</p></fieldset>}
       {step === 3 && <fieldset><legend>Define the measurement goal</legend><label>Primary goal<select value={values.goal} onChange={(event) => setValues({ ...values, goal: event.target.value })}><option>Establish a measurement baseline</option><option>Find credible source gaps</option><option>Defend existing recommendation visibility</option></select></label><label>Evidence constraint<textarea value={values.constraint} onChange={(event) => setValues({ ...values, constraint: event.target.value })} rows={4} required /></label></fieldset>}
-      {step === 4 && <fieldset><legend>Review the questions buyers ask</legend><label>Buyer questions<textarea value={values.prompts} onChange={(event) => setValues({ ...values, prompts: event.target.value })} placeholder={"Questions are generated automatically from your category and market."} rows={8} /></label><p className="field-hint">Foremention creates five questions automatically. Editing is optional; the saved five become the stable baseline for comparable runs. {prompts.length}/5 questions prepared.</p></fieldset>}
+      {step === 4 && <fieldset><legend>Review the questions buyers ask</legend><label>Buyer questions<textarea value={values.prompts} onChange={(event) => { setValues({ ...values, prompts: event.target.value }); setMessage(""); }} placeholder={"Enter each approved buyer question on a separate line."} rows={8} /></label><p className="field-hint">Review and explicitly approve 1–5 unique questions. Suggestions are editable and are never silently restored after deletion. When all five suggestions are retained, the saved five become the stable baseline for comparable runs. {prompts.length}/5 selected.</p>{!prompts.length && <button type="button" className="button button--outline" onClick={() => {
+          const competitors = values.competitors.split("\n").map((value) => value.trim()).filter(Boolean);
+          const audience = values.market === "Global" ? "a growing global business team" : `a growing team in ${values.market}`;
+          setValues({ ...values, prompts: generateBuyerQuestions(values.category || "B2B software", values.companyName || "the company", competitors, audience).join("\n") });
+          setMessage("");
+        }}>Generate five suggestions for review</button>}{approval.error && <p className="field-hint" role="alert">{approval.error}</p>}</fieldset>}
       {step === 5 && <fieldset>
         <legend>Review your evidence boundary</legend>
-        <p className="field-hint">Review the draft before saving. {firstAuditProvider ? "After the workspace is created, Foremention checks one approved buyer question first so you can reach real evidence quickly; the full five-question baseline remains saved for later collections." : "The five approved buyer questions are saved as your baseline. Connect one provider after setup when you are ready to run the first real evidence check."}</p>
+        <p className="field-hint">Review the exact approved wording before saving. You may approve 1–5 questions. Workspace setup itself makes no live provider calls; collection is optional and requires a separate choice. The full five-question baseline remains saved for later collections only when all five were actually approved.</p>
+        {firstAuditProvider && !demo && <label><input type="checkbox" checked={startCollectionNow} onChange={(event) => setStartCollectionNow(event.target.checked)} /> After saving, collect the first approved question with {firstAuditProvider.label}. This requests one provider observation; current capacity and spending limits are checked by the server before dispatch, and provider usage may incur charges.</label>}
+        {!firstAuditProvider && !demo && <p className="field-hint">No provider is configured. Your approved questions will be saved without dispatch. Connect a provider later to start a controlled collection.</p>}
         <div className="onboarding-review">
           <div><span>Organization</span><strong>{values.companyName}</strong><small>{values.domain} · {values.market}</small><button type="button" onClick={() => setStep(0)}>Edit</button></div>
           <div><span>Category</span><strong>{values.category}</strong><small>{values.categoryDescription}</small><button type="button" onClick={() => setStep(1)}>Edit</button></div>
@@ -357,7 +385,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
         <p className="onboarding-security-note"><strong>Your workspace is private.</strong> Only you and teammates you invite can see it. You can edit this setup before any collection begins.</p>
       </fieldset>}
       {message && <p className="auth-message" role="alert">{message}</p>}
-      <div className="wizard-actions">{step > 0 && <button type="button" className="button button--outline" onClick={() => setStep(step - 1)} disabled={status === "saving"}>&larr; Back</button>}<button className="button button--ink" type="submit" disabled={status === "saving" || (step >= 4 && prompts.length > 5)}>{status === "saving" ? "Creating secure workspace..." : step === steps.length - 1 ? firstAuditProvider ? "Create workspace & check first question" : "Create my workspace" : "Continue"} &rarr;</button></div>
+      <div className="wizard-actions">{step > 0 && <button type="button" className="button button--outline" onClick={() => setStep(step - 1)} disabled={status === "saving"}>&larr; Back</button>}<button className="button button--ink" type="submit" disabled={status === "saving" || (step >= 4 && Boolean(approval.error))}>{status === "saving" ? "Creating secure workspace..." : step === steps.length - 1 ? (firstAuditProvider && startCollectionNow ? "Create workspace & collect one approved question" : "Create workspace without collection") : "Continue"} &rarr;</button></div>
     </form>
   </div>;
 }

@@ -1,3 +1,4 @@
+import { hasRecentRecoveryAmrClaim } from "@/lib/account-security";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { NextResponse } from "next/server";
 import { readJsonObject } from "@/lib/input-validation";
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   const recovery = cookieHeader.match(new RegExp(`(?:^|;\\s*)${RECOVERY_COOKIE}=([^;]+)`))?.[1];
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!token || recovery !== "1" || !url || !anon) return NextResponse.json({ error: "Your recovery session has expired. Request a new reset link." }, { status: 401 });
+  if (!token || recovery !== "1" || !hasRecentRecoveryAmrClaim(decodeURIComponent(token)) || !url || !anon) return NextResponse.json({ error: "Your recovery session has expired. Request a new reset link." }, { status: 401 });
 
   try {
     const safety = await checkPasswordSafety(password);

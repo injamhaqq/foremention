@@ -3,9 +3,17 @@ import { requireViewer } from "@/lib/auth";
 import { billingProvider, billingProviderTransitionAllowed } from "@/lib/billing-provider";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { buyerQuestionLimit } from "@/lib/product-limits";
 
 type BillingAccountRow = { provider: string; state: string; external_customer_id: string | null; grace_period_ends_at: string | null };
-type EntitlementRow = { package_key: string; status: string; expires_at: string | null };
+type EntitlementRow = {
+  package_key: string;
+  status: string;
+  expires_at: string | null;
+  billing_source?: string | null;
+  max_prompts?: number | null;
+};
+type ReservationRow = { state: string; created_at: string };
 
 export async function GET() {
   const viewer = await requireViewer("/app/settings");
@@ -24,6 +32,8 @@ export async function GET() {
       canManage: false,
       checkoutPackages: [],
       checkoutOffers: [],
+      checkoutPending: null,
+      buyerQuestionLimit: null,
     } });
   }
 
@@ -36,7 +46,7 @@ export async function GET() {
         { token: viewer.accessToken },
       ),
       supabaseRest<EntitlementRow[]>(
-        "organization_entitlements?select=package_key,status,expires_at&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
+        "organization_entitlements?select=package_key,status,expires_at,billing_source,max_prompts&organization_id=eq." + encodeURIComponent(context.organizationId) + "&limit=1",
         { token: viewer.accessToken },
       ),
     ]);
@@ -47,6 +57,22 @@ export async function GET() {
   const entitlement = entitlementRows[0];
   const provider = billingProvider();
   const configured = Boolean(provider?.configured());
+
+  // A checkout that was opened but is not yet confirmed by a signed provider
+  // event. It is shown as pending and NEVER as paid access (Chat03).
+  let checkoutPending: { state: string; createdAt: string } | null = null;
+  if (configured && provider?.id === "paddle" && role === "owner") {
+    try {
+      const reservations = await supabaseRest<ReservationRow[]>(
+        "billing_checkout_reservations?select=state,created_at&provider=eq.paddle&state=neq.reconciled&organization_id=eq."
+          + encodeURIComponent(context.organizationId) + "&limit=1",
+        { serviceRole: true },
+      );
+      if (reservations[0]) checkoutPending = { state: reservations[0].state, createdAt: reservations[0].created_at };
+    } catch {
+      return NextResponse.json({ error: "Billing status could not be verified." }, { status: 503 });
+    }
+  }
   const transitionAllowed = provider
     ? billingProviderTransitionAllowed(
       provider.id,
@@ -56,7 +82,7 @@ export async function GET() {
       entitlement?.expires_at,
     )
     : false;
-  const checkoutOffers = configured && transitionAllowed && role === "owner" && provider ? provider.checkoutOffers() : [];
+  const checkoutOffers = configured && transitionAllowed && !checkoutPending && role === "owner" && provider ? provider.checkoutOffers() : [];
   const checkoutPackages = Array.from(new Set(checkoutOffers.map((offer) => offer.packageKey)));
 
   return NextResponse.json({ data: {
@@ -75,5 +101,9 @@ export async function GET() {
       && Boolean(billing.external_customer_id),
     checkoutPackages,
     checkoutOffers,
+    checkoutPending,
+    // Effective server-side buyer-question ceiling (A03): verified-billing or
+    // explicit grant only; anything else fails closed to Foundation access.
+    buyerQuestionLimit: buyerQuestionLimit(entitlement),
   } });
 }

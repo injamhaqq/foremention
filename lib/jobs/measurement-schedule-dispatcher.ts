@@ -2,7 +2,8 @@ import { estimateReservedRunCost, getProviderCostRates, safeOperationalError } f
 import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
-import { MAX_SCHEDULE_QUESTION_COUNT, nextScheduleAt, scheduleIdempotencyKey } from "@/lib/measurement-schedules";
+import { MAX_SCHEDULE_QUESTION_COUNT, nextFutureScheduleAt, nextScheduleAt, scheduleIdempotencyKey, scheduleModelPinAdmits } from "@/lib/measurement-schedules";
+import { logOperationalEvent } from "@/lib/structured-logger";
 import { getProvider } from "@/lib/providers";
 import type { ProviderId } from "@/lib/providers/types";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -82,13 +83,27 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   const provider = getProvider(providerId);
   const rates = getProviderCostRates(providerId);
   if (!provider.configured() || !rates) return null;
+  // Later cycles stay pinned to the baseline model snapshot (A14). A drifted
+  // deployment model holds the occurrence (it stays due) instead of producing
+  // an incomparable observation; the operator sees an explicit event.
+  if (!scheduleModelPinAdmits(schedule.model_snapshot, process.env[`${providerId.toUpperCase()}_MODEL`])) {
+    logOperationalEvent("measurement_schedule_model_pin_hold", { scheduleId: schedule.id, provider: providerId });
+    return null;
+  }
 
   const key = scheduleIdempotencyKey({
     id: schedule.id,
     methodologySnapshot: schedule.methodology_snapshot,
     modelSnapshot: schedule.model_snapshot,
   }, schedule.next_run_at);
-  const nextRunAt = nextScheduleAt(schedule.next_run_at, schedule.cadence, schedule.timezone).toISOString();
+  // Collect the overdue occurrence once, then resume at the next future one.
+  // When that differs from the single-cadence advance, missed occurrences were
+  // skipped (no paid backfill); record it so the operator can see the outage.
+  const dispatchNow = new Date();
+  const nextRunAt = nextFutureScheduleAt(schedule.next_run_at, schedule.cadence, schedule.timezone, dispatchNow).toISOString();
+  if (nextRunAt !== nextScheduleAt(schedule.next_run_at, schedule.cadence, schedule.timezone).toISOString()) {
+    logOperationalEvent("measurement_schedule_catch_up_skipped_missed_occurrences", { scheduleId: schedule.id });
+  }
   const [operatorRows, entitlementRows, existingRuns, projects, categories] = await Promise.all([
     supabaseRest<OperatorRow[]>(`organization_members?select=role&organization_id=eq.${schedule.organization_id}&user_id=eq.${schedule.created_by}&limit=1`, { serviceRole: true }),
     supabaseRest<EntitlementRow[]>(`organization_entitlements?select=status,expires_at&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
