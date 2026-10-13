@@ -67,3 +67,34 @@ Fidelity limits: PGlite 0.5.9 is Postgres 18 with a shim; production is Postgres
 | `pnpm build` (`vinext build` + worker config) | Build complete, exit 0 |
 
 CI on GitHub: see `00-status.md` §Gates for the run IDs and conclusions at the exact pushed head.
+
+## 6. Rebuild — 2026-10-13 ~19:00 IST (new 01 / 04 / 06 heads)
+
+Base unchanged: `main@6b93c88cd22653fb17c9bec5ca91ca4e997d76b9` (re-fetched). Resumed from `327237d6` (not restarted). All ten `fm-attach-v1/*` heads re-fetched and matched the handoff SHAs.
+
+| Packet | PR | New head composed (`--no-ff`) | Merge commit | What changed vs the previously composed head |
+|---|---|---|---|---|
+| 01 measurement | #565 | `3db135ade5726d4b7a30c0984441577d87011857` | `94815ebe` | Adopts the FM-00/Chat02 IPv6 SSRF guard byte-identical to `5425d1ee` (no new hunk on 00; adds `tests/fm01-ssrf-ipv6-guard.test.mjs`) |
+| 04 workflow | #563 | `69a8e053934398436ddc36a9267a84ce6e4dfb94` (code `3ea2d0a3`) | `b9c75fad` | A11 caller on `update_prompt_versioned_in_project`; CV-05/A15 decision-persistence SQL proposal + callers (`app/api/records/[id]/decision`, `lib/record-decisions.ts`, `lib/customer-value-loop-snapshot.ts`) |
+| 06 operations | #570 | `99a0d9c766723e7767d507cff20a6ab2ca0c672a` | `68f1c867` | CV-12 email delivery claim/settle SQL proposal + flag-gated caller (`FOREMENTION_EMAIL_DELIVERY_LEASE`, unset) |
+
+0 conflicts. 02/03/05/07/08/09 heads unchanged and already composed.
+
+**Adopted by FM-00 in `2e318adc` (byte-identical copies, pinned by `tests/fm00-adopted-migrations.test.mjs`):**
+- `supabase/migrations/20261013140000_chat04_customer_value_loop_persistence.sql` ← `04-proposals/migrations/…proposal.sql`
+- `supabase/migrations/20261013150000_chat06_email_delivery_claim_settle.sql` ← `06-proposals/migrations/…proposal.sql` (lease caller stays **flag-off**)
+- Test edit: Chat04's adoption tripwire in `tests/attach-v1-04-a11-cv05-persistence.test.mjs` asserted the migration was *absent*; it now asserts at most one adopted copy, at the README path, byte-identical to the proposal. Chat04 should mirror this on its branch.
+
+**Still held back:** Chat08 `20261013120000_chat08_commercial_proof_fields.proposal.sql` (§3 reasons unchanged); Chat02 phase-2 revoke of the org-only `update_prompt_versioned`; live-pay CSP / offer changes.
+
+**Disposable PGlite 0.5.9 replay** (scratch dir outside the repo and lockfile; never production):
+
+| Check | Result |
+|---|---|
+| All migrations on the rebuilt tree | **101/101** |
+| Chat02 two-tenant RLS probe | **10/10** (probe 9 still reproduces the A11 SQL-level finding on the legacy org-only RPC — expected until phase-2 revoke) |
+| Chat04 probe, composed tree minus 04 file + adopted file as proposal | **100/100 + 17/17** |
+| Chat06 probe, composed tree minus 06 file + adopted file as proposal | **100/100 + 21/21** |
+| Authenticated-callable SECURITY DEFINER set | adds `save_record_decision`, `complete_record_decision_action`; the three email RPCs are service_role-only |
+
+**Local gates at `2e318adc`** (Node v22.23.3, lockfile unchanged): tests **1560/1560 pass, 0 fail, 0 todo, 0 skipped**; `tsc --noEmit` exit 0; `eslint .` 0 errors / 11 pre-existing warnings (none in changed files; run with `--cache` because the uncached run exceeds the sandbox's 120 s limit); `npm run build` complete, exit 0.

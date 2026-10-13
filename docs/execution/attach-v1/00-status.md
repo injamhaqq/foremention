@@ -1,7 +1,28 @@
-# FM-00 — coordinator status — 2026-10-13 (IST) checkpoint: COMPOSED CANDIDATE PUBLISHED
+# FM-00 — coordinator status — 2026-10-13 (IST) checkpoint: REBUILT ON NEW 01/04/06 HEADS
 
-**Branch:** `fm-attach-v1/00-coordinator` (draft PR #562). **Canonical base:** `main@6b93c88cd22653fb17c9bec5ca91ca4e997d76b9` (re-fetched, unchanged). **Composed code candidate:** `5425d1ee411fcf4ee33ba11f58b39fbeb6c8c315`. Commits after it on this branch touch only `docs/execution/attach-v1/00-*` (this status + proposals); the exact branch head handed to Chat09 is named in the PR #564 comment and the PR #562 description. **State:** INTEGRATION CANDIDATE READY FOR INDEPENDENT ACCEPTANCE — not a release; no readiness tier certified.
+**Branch:** `fm-attach-v1/00-coordinator` (draft PR #562). **Canonical base:** `main@6b93c88cd22653fb17c9bec5ca91ca4e997d76b9` (re-fetched ~19:00 IST, unchanged). **Composed code candidate:** `2e318adc` (supersedes `5425d1ee`). Commits after it touch only `docs/execution/attach-v1/00-*`. **State:** INTEGRATION CANDIDATE READY FOR INDEPENDENT ACCEPTANCE — not a release; no readiness tier certified.
 
+## 0. Rebuild checkpoint (~19:00 IST) — supersedes §1–§2 gate numbers below
+1. Re-fetched all ten heads; each matched the handoff SHA. Resumed from `327237d6`.
+2. Composed new heads `--no-ff`: 01 `3db135ad` (merge `94815ebe`), 04 `69a8e053` (merge `b9c75fad`), 06 `99a0d9c7` (merge `68f1c867`). 0 conflicts.
+3. Adopted byte-identical in `2e318adc`: Chat04 `20261013140000_chat04_customer_value_loop_persistence.sql` (CV-05/A15) and Chat06 `20261013150000_chat06_email_delivery_claim_settle.sql` (CV-12; caller flag-off). A11 route (Chat04 caller on `update_prompt_versioned_in_project`) composed. Chat08 commercial-proof migration **still held back**.
+4. PGlite 0.5.9 (scratch, outside lockfile): **101/101** migrations; RLS 10/10; Chat04 probe 17/17; Chat06 probe 21/21 (composed tree). Receipt: `00-proposals/composition-receipt.md` §6.
+
+| Gate | Local @2e318adc | GitHub @2e318adc (pull_request on #562) |
+|---|---|---|
+| Tests | **1560 / 1560 pass, 0 fail, 0 todo** | CI run 38406013939 **success** (1560/1560; Supabase-local replay applied both new migrations, 101 files ×2 replays) |
+| Typecheck / Lint / Build | pass / 0 errors, 11 pre-existing warnings / build complete | in CI — success |
+| CodeQL + Analyze JS/TS, Security (actions-security, osv, secrets, trivy, dependency-review), semgrep-policy, quality, billing-provider-contract, benchmark | — | **all success** |
+| Isolated Authenticated Journey | — | **success** (local Auth/PostgREST/Worker; not a real-Supabase receipt) |
+| Browser Acceptance | — | see PR #562 comment (was in progress at write time) |
+| Workers Builds (Cloudflare) | — | failure (fails on every head incl. main; founder decision 10) |
+
+Blocker delta (reconciliation-71.csv): **precise blocker 7 rows / 4 IDs → 4 rows / 2 IDs.** CV-05 → external/customer-evidence gate (SQL adopted; real reload + later cycle need the nonprod approval step). A15 → implemented and tested (composed; signed-in reload pending). A11 stays blocker, narrowed to the phase-2 revoke of the legacy org-only RPC (+ founder authorization-boundary decision). A16 unchanged (ruleset admin setting; re-read via API). Totals: verified 6/4, implemented 33/22, manual bridge 5/3, deferred 1/1, external gate 22/15, precise blocker 4/2 = 71 rows / 47 IDs.
+
+Pricing flag (no change made): `app/pricing/page.tsx` shows Signal **$299 / month** ("Proposed · not yet purchasable"); `scripts/setup-paddle-sandbox-catalog.mjs` and the 2026-10-11 Paddle sandbox evidence use Signal **24900 ($249)**. Founder decision 4 must reconcile before any live catalog.
+
+---
+## Previous checkpoint (5425d1ee) — kept for history
 ## 1. What was done this checkpoint
 1. Re-fetched all ten `fm-attach-v1/*` heads; each matched the expected SHA. Resumed from prior checkpoint `2aa0c335` (not restarted).
 2. Composed all nine worker heads onto this branch (`--no-ff`, provider-first order 01→02→03→06→04→05→07→08→09). 0 conflicts, 0 shared changed paths. Details: `00-proposals/composition-receipt.md`.
