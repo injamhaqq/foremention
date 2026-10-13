@@ -1,78 +1,83 @@
 # Chat02 status — access, security and privacy
 
-**Checkpoint:** 2026-10-12
-**Role:** Chat02 / packet 02
-**Branch:** `fm-attach-v1/02-security`
-**Immutable base (main at inspection):** `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`
-**Source code + test commit:** `04b4519b23d8ec803ebf07a800e47ce515e7b3c2` (preceded by security helper commit `d621bd2ac647ef90bc34b68bd6fb9a413aa345f5`)
-**Proposal commit before this status file:** `d65659ef813b65e6b6aba66687e8a886c0e39f8a`
-**Final actual PR/branch head:** use the current GitHub PR head commit SHA, because a status file cannot include its own commit's computed SHA; do not substitute the historical code snapshot for that exact head.
+**Checkpoint:** 2026-10-13 (IST), continuation of the 2026-10-12 checkpoint (not a restart)
+**Role:** Chat02 / packet 02 — auth/session/origin/security helpers, tenant/role review, privacy/deletion
+**Branch:** `fm-attach-v1/02-security` · **Draft PR:** https://github.com/injamhaqq/foremention/pull/567
+**Base (main, unchanged since 2026-10-12):** `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`
+**Last code/test/proposal commit before this status file:** `1bedee77e525c0e95ca9d911d332a8c43b6bfd24`
+**Exact head:** the PR head commit (a status file cannot contain its own SHA).
 
-## Original assigned IDs / disposition
+## Original IDs and disposition
 
-| Original ID | Current Chat02 disposition |
+| ID (sources) | Disposition at this head |
 |---|---|
-| CV-04 | Read-only RLS audit and privileged function definitions checked. Actual two-org/two-project token-bound denial matrix **not executed**; nonproduction environment and fixture accounts unavailable. See proposal. |
-| CV-08 | Checked code contracts for login/signup/verify/recovery/session cookies/project switch; no end-to-end new-account lifecycle under disposable identities. Origin hardening implemented and locally tested. |
-| CV-15 | Reviewed public privacy/trust/subprocessor text; contractual entities, processor legal records, actual termination/deletion/retention and payout proofs not verified. |
-| A06 | Historical issue #323 is closed after reported owner secure rotation/revocation and new-secret browser acceptance (runs 38229264836, 38230159562). This worker did not touch keys. Residual historical logs/retention review requires restricted owner evidence. |
-| A11 | #497/#498 merged; #402/#409 unmerged/closed historical drafts. Production metadata shows 3 callable `SECURITY DEFINER` RPCs; `update_prompt_versioned` has no project predicate and needs FM-00 + Chat04 authorization contract decision. |
-| A12 | #512 merged on main, initial report obsolete; implemented narrower strict-Origin and Fetch Metadata hardening for current code. |
-| A20 | Reviewed public disclosures and retention/deletion code. Actual active processor register, retention schedules, backup purge, legal policies and user-exercised deletion are unverified. |
+| **CV-04** (Commercial_Backlog_18 r4) | **Implemented local evidence; live gate open.** (a) Route-level two-org/three-project denial matrix runs the real handlers (14 tests). (b) SQL-level RLS probes on a local replay of all 97 migrations whose 215 policies are **identical to production** (10/10). Live token-bound HTTP matrix against a nonproduction Supabase project still required. |
+| **CV-08** (Commercial_Backlog_18 r8) | **Fixed 4 defects** (open redirects; recovery AMR binding [2026-10-12]; invitation email-confirmation; refresh-defeated step-up) with RED→GREEN tests. Live signup/recovery/expiry E2E still requires disposable identities. |
+| **CV-15** data/privacy part (Commercial_Backlog_18 r15) | Deletion step-up fixed and deletion lifecycle denials tested locally. Contract/IP/payout/processor records remain founder/counsel items (no compliance claim). |
+| **A06** (Backlog_24 r6, Backlog_29 r6) | #323 and #546 **closed** (owner records, not independently verified). No secret values in working tree by pattern scan. Owner log-retention confirmation outstanding. |
+| **A11** (Backlog_24 r11, Backlog_29 r11) | #497/#498 merged; #402/#409 closed unmerged. Sibling-project prompt edit via `update_prompt_versioned` **reproduced in SQL**; tested project-scoped RPC proposal for FM-00. Project is not an RLS boundary anywhere (product decision). |
+| **A12** (Backlog_24 r12, Backlog_29 r12) | #512 merged (login guard present). Strict Origin/Fetch-Metadata hardening [2026-10-12] + hostile-origin-before-DB test across 10 mutations [2026-10-13]. |
+| **A20** (Backlog_24 r20, Backlog_29 r20) | Verified the retrieval disclosure gap: buyer questions go to Bing public RSS or Brave Search; neither is on `/subprocessors`. Copy/terms proposal; legal review required. |
 
-Both the 24-row and 29-row original CSV references for A06/A11/A12/A20 are preserved in the supplied index; CV items stem from Commercial_Backlog_18. Only 7 directly attached manifests/indexes were accessible; checklist describes 18 original source files that were not uploaded with this execution. The `Foremention_Master_Backlog_28_v2.csv` original was explicitly missing in the package manifest. No unchecked historical source was treated as direct proof.
+Source boundary: only the package index/checklist/rules were attached; the 18 original source files were **not** available to this worker, and `Foremention_Master_Backlog_28_v2.csv` is declared missing. Work is from the index rows, current code, FOREMENTION_STATE/AGENTS/CLAUDE, PRs and read-only production metadata.
 
-## Changes made (branch only)
+## Changes on this branch (all commits since base)
 
-1. `lib/request-security.ts`: require a syntactically canonical http(s) Origin, do not use Referer when an explicit invalid Origin was supplied, reject `Sec-Fetch-Site: cross-site`. Keep the legitimate configured-host/worker-host flows.
-2. `tests/attach02-origin-hardening.test.mjs`: five targeted groups for valid flows, conflicting fetch metadata, malformed Origin, malformed-origin fallback, and forwarded-header spoof.
-3. `docs/execution/attach-v1/02-proposals/authorization-and-privacy-gates.md`: actual RLS/function findings, two-tenant nonproduction fixture plan, lifecycle/processor/IP questions, coordination and rollback.
-4. This status file.
+2026-10-12 (prior checkpoint): `lib/request-security.ts` strict Origin + Fetch Metadata; `lib/account-security.ts` `hasRecentRecoveryAmrClaim`; recovery AMR enforced in `app/api/auth/{session,verify,password}/route.ts`; tests `attach02-origin-hardening`, `attach02-recovery-authentication`.
 
-No other-owner code, DB schema/migration, CI/global build file, credentials, customer data, main, production, billing or outreach changed.
+2026-10-13 (this continuation):
+1. `e1689b31` **open redirect fix (CV-08/A12)** — `lib/google-auth.ts` `safeAuthNext` returned `//evil.example` for `/.//evil.example` (dot-segment normalization), which `/api/auth/refresh`, `/api/auth/google` and the post-verification `components/auth-callback.tsx` then navigated to cross-origin; SSO `safeNext` accepted `/\evil.example`. Now rejects control chars/backslashes, scheme-relative normalized paths and overlong values; new `safeAbsoluteAuthNext` for SSO. Test: `tests/attach02-auth-redirect-safety.test.mjs` (RED 4/6 on base helper → GREEN 6/6).
+2. `6f3bdbc3` **deletion step-up fix (CV-15/CV-08)** — `isRecentAccessToken` used `iat`, which every silent refresh resets, so "sign in again before deletion" accepted a 30-day-old session. New `hasRecentInteractiveAuthentication` / `hasRecentStepUpAuthentication` require an interactive `amr` method (password/otp/oauth/totp/sso/saml/magiclink) within 10 min; enforced on deletion POST/PUT/DELETE. Test: `tests/attach02-step-up-authentication.test.mjs`.
+3. `e6f43450` **invitation acceptance (CV-08/A11)** — `lib/auth.ts` exposes `emailVerified` (from `email_confirmed_at`); `app/api/team/invitations/accept/route.ts` refuses unconfirmed accounts and never downgrades an existing membership (an owner opening a stale viewer invite previously became viewer, which could remove the last owner).
+4. `26f7f0dd`, `cbbace83` **two-tenant route matrix (CV-04/A11)** — `tests/attach02-harness.mjs` + `tests/attach02-two-tenant-denial.test.mjs`: real handlers for team members, invitation revoke/accept, project switch, run cancel (jobs), billing portal, Record share/revoke, Record CSV export, account deletion; actors A-owner/A-analyst/A-viewer/B-owner/B-analyst/revoked/invitee/anon. Each denial asserts status **and** unchanged cross-tenant state; hostile origins produce zero DB calls. `tests/attach02-ssrf-url-guard.test.mjs`: bounded SSRF fixtures + 1 `todo` (known gaps).
+5. `1bedee77` proposals (below).
 
-## Verification and exact coverage
+Not changed: migrations/shared SQL, CI/build config, other owners' files (source-inspection, billing, prompts, public pages), production, credentials.
 
-- **RED:** local Node `v22.16.0` `node --experimental-strip-types --test tests/attach02-origin-hardening.test.mjs` against the fetched baseline origin-helper equivalent: **2 passed / 3 failed** groups (expected regression signal).
-- **GREEN:** same five groups after patch: **5 passed / 0 failed**.
-- **Compatibility:** locally reconstructed behavior assertions from existing `tests/request-security.test.mjs`: **1 passed**. Total local 6/6 groups.
-- The committed helper is byte-for-byte verified locally with `git hash-object` = `ebcadd168fca0c7cdcd13389ada35316c20eb17d` (GitHub blob hash returned for this PR file). Tests were run on that exact helper; the compatibility assertions were reconstructed, not an execution of the full remote repository.
-- **Not run:** full repository tests/lint/typecheck/build, browser CI, local Supabase SQL replay, authenticated tenant denial/lifecycle, actual production canary, full peer integration. Container cannot resolve github.com to clone, and only isolated source/test files were reconstructed locally. The connected GitHub account does provide branch write and PR operations.
-- **Read-only connected Supabase metadata:** 126/126 public and 8/8 storage tables show RLS enabled. Security Advisor: 3 `authenticated`-callable `SECURITY DEFINER` public RPCs, disabled leaked-password-protection warning, and 36 INFO no-policy tables (may be intentionally service-only). No row contents were read or mutated; no proof of tenant denial derived from this metadata.
-- Review of direct SQL definitions: `create_prompt_versioned` checks organization writer role + project/org association; `review_source_map_entry` checks org writer + joined entry/project/category/map; `update_prompt_versioned` checks org writer + prompt org only. Exact behavior and intended same-org project policy need nonproduction direct-RPC testing.
+## Tests actually run (Node v22.23.3, pnpm 10.25.0, local, at `1bedee77`)
 
-## Contracts supplied / blockers
+| Command | Result |
+|---|---|
+| `node --experimental-strip-types --test --test-concurrency=8 tests/*.test.mjs` (full repo suite) | **1354 tests: 1353 pass, 0 fail, 1 todo** (inherited head a2e6e50d: 1324/1324) |
+| `npx tsc --noEmit` | exit 0 |
+| `npx eslint .` (repo lint config) | 0 errors; 14 pre-existing warnings, **none** in Chat02 files |
+| RED checks | redirect tests on base helper: 4 fail; denial matrix with the three fixed files reverted: tests 4, 6, 10 fail; mutation removing the org predicate from team members → fail; removing the project predicate from run cancel → fail |
+| RLS replay (`docs/execution/attach-v1/02-proposals/rls-replay`, PGlite 0.5.9, scratch dir) | migrations **97/97**; RLS probes **10/10**; proposal RPC probes **4/4** |
+| SSRF guard patch proposal (applied temporarily, reverted) | todo test passes; 36/36 related tests pass |
 
-- **Provided to FM-00:** canonical-origin code guard patch + tests; SQL RPC/project boundary decision request; nonproduction two-tenant acceptance matrix; privacy/processor/credential evidence checklist.
-- **FM-00** owns migration, shared schema, CI/release and merge. **Chat04** owns prompt editing and selected-project route contract; **Chat03** billing entitlements; **Chat06** jobs; **Chat08** commercial/legal source records; **Chat09** independent acceptance. No cross-owner file was changed.
-- Pending secure nonproduction environment with 2+ orgs, 3 projects, synthetic membership roles and test tokens; exact release head CI/browser compatibility; actual RLS/service-role/storage and redirection denial receipts; legally reviewed processor/IP/retention records. Production Supabase was intentionally not used for intrusive fixtures.
-- Security Advisor notices are not automatic vulnerabilities; document intentional service-only exceptions and inspect privileged RPCs before altering grants.
+Not run: browser/Playwright acceptance, `vinext build`, live Supabase/GoTrue/PostgREST, real email delivery, CI at this head (check PR checks), peer-composed integration.
 
-## Rollback and next action
+## Read-only production metadata used (Supabase Management API; no writes, no row data, no secret values)
 
-Revert this PR's scoped origin-helper change if an approved legitimate client flow breaks; retain original helper as base reference `695518f70118cc9fcc48d9b9b97bb851d62b2258`. No DB rollback needed: **no migration executed**.
+- Auth config (non-secret fields): autoconfirm off; redirect allow-list = foremention.com + www (no wildcard); refresh rotation on; sessions timebox/inactivity unlimited; HIBP off; captcha off; TOTP enroll on.
+- `pg_policies` 215 = local replay 215, 0 diffs. Authenticated-callable SECURITY DEFINER RPCs: the same 3 locally and in production; none anon-callable. anon: SELECT on 0/126 tables. Definer-set drift: `rls_auto_enable` (prod only) vs `validate_customer_confirmed_value_evidence` (replay only).
+- Migration ledger: 100 versions in production vs 97 repo files with different version stamps.
 
-FM-00 should review proposed RPC active-project decision; run full exact-head CI and authenticated browser checks on this draft branch; arrange a disposable nonproduction Supabase project and then execute and record the denial/lifecycle matrix. On `continue`, refresh this PR's exact head, FM-00 coordination and peer work before new implementation; do not infer post-turn background activity.
+## Proposals for FM-00 (`docs/execution/attach-v1/02-proposals/`)
 
+- `proposed-migration-update-prompt-in-project.sql` — project-bound `update_prompt_versioned_in_project`; phase-2 revoke of the old signature. Caller change belongs to Chat04 (`app/api/prompts/route.ts`).
+- `rls-replay/` — reproducible replay + probes; optional FM-00 adoption as a CI job (needs PGlite as devDependency → Chat07 license check, FM-00 CI).
+- `auth-configuration-and-credentials.md` — session timebox/inactivity, HIBP (plan cost), captcha; A06 owner steps.
+- `ssrf-guard-ipv6-gaps.patch.md` — Chat01 owner patch for `::/96`, Teredo (dead rule due to normalization), `100::/64`.
+- `authorization-and-privacy-gates.md` — nonproduction HTTP matrix, lifecycle cases, processor/IP/legal questions, A20 retrieval disclosure.
+- Contracts provided: `safeAuthNext`/`safeAbsoluteAuthNext` (canonical return-path validator), `hasRecentStepUpAuthentication` (destructive actions), `Viewer.emailVerified`, `isTrustedMutationOrigin` (strict). Requested: Chat04 adopt the project-scoped RPC; Chat05 subprocessor/privacy copy; Chat01 SSRF patch + retrieval provider confirmation; Chat09 reuse `tests/attach02-harness.mjs` for composed acceptance.
 
-## 2026-10-12 — continuation: exact-head CI and recovery-privilege repair
+## Unresolved risks / gates
 
-**Peer refresh:** FM-00 coordination branch exists and its status says integration PENDING; Chat04's `04-status.md` and Chat09's `09-status.md` are published. All ten `fm-attach-v1/` branches are discoverable. Chat04 keeps direct prompt-edit server validation on `organization_id + project_id`; SQL `update_prompt_versioned` itself remains callable to same-org writer members without a project argument, so FM-00 must decide authorization semantics before changing shared SQL.
+1. **Live isolation unproven** — needs a disposable nonproduction Supabase project (2 orgs, 3 projects, synthetic users) for the token-bound PostgREST/RPC/Storage/HTTP matrix. Production was intentionally not used.
+2. **Project is not an authorization boundary** in the database; any org member can read all org projects via PostgREST. Founder/FM-00 decision (matters for agency client-viewer use).
+3. `update_prompt_versioned` sibling-project edit (A11) open until FM-00 migration + Chat04 caller.
+4. ≈115 public tables covered only statically (all policies org-scoped), not row-probed.
+5. Unlimited session lifetime; HIBP and captcha off (live config changes need approval).
+6. Recovery and step-up depend on GoTrue `amr` claims at runtime — confirm with real recovery and password logins in nonproduction (missing AMR fails closed → user must sign in again).
+7. A20: Bing/Brave retrieval undisclosed; Bing public RSS terms question; processor/DPA/retention/backup purge/IP/contracting-entity records unverified (counsel/founder).
+8. A06: historical log/artifact retention confirmation is owner-only.
+9. CI/browser results for this exact head pending at time of writing.
 
-**Previous PR head green:** `781a699ee14cbba28baa8965a566c22fa9eddad0`, workflow runs CI `38273646486`, Browser Acceptance `38273646452`, Security `38273646591`, CodeQL `38273646776`, AI Safety/Code Health `38273646616`, Semgrep `38273646627`, Isolated Authenticated Journey `38273647978` all reported `completed/success` via GitHub Actions. This verifies that previous head only; it cannot certify this later continuation commit.
+## Rollback
 
-**Newly found CV-08 recovery issue:** `/api/auth/session` accepted client `recovery: true` after `/auth/v1/user` validated any ordinary bearer token, and `/api/auth/password` relied on a plain `foremention-recovery=1` cookie plus a bearer token. A recovery-only cookie/state was therefore not bound to the actual recovery authentication method. Existing CSRF/Origin and HttpOnly-cookie safeguards are separate controls and do not supply that missing purpose proof.
+Each fix is an isolated commit: `e1689b31` (redirects), `6f3bdbc3` (step-up), `e6f43450` (invitations), 2026-10-12 commits (origin/recovery). Revert individually; no DB rollback needed — no migration executed, no live config changed.
 
-**Chat02 scoped repair committed before this status file at head `2572b96829f47171844f4f91710187076ef24e3e`:**
-- `lib/account-security.ts` adds `hasRecentRecoveryAmrClaim`, a fail-closed **eligibility** check on an authenticated-role Supabase JWT with an unexpired token and an `amr` entry of method `recovery` within 15 minutes (30-second future clock tolerance). This parses unverified JWT bytes and MUST NOT alone authorize anything: Supabase still validates the same token on `/auth/v1/user` before session adoption and on the authenticated password PUT endpoint before mutation.
-- `app/api/auth/session/route.ts` refuses client-requested recovery escalation unless the just-provider-verified bearer token carries a recent recovery AMR.
-- `app/api/auth/verify/route.ts` refuses to mint a recovery cookie unless GoTrue's successful recovery verification returned a session with the recent recovery method.
-- `app/api/auth/password/route.ts` refuses password updates even with a forged/plain recovery cookie unless the bearer token also has the fresh recovery AMR, and GoTrue accepts the password PUT.
-- `tests/attach02-recovery-authentication.test.mjs` adds 3 groups: recent method positive, expired/ordinary/malformed negatives, and source-level route gating.
-- Supabase JWT Claims Reference explicitly lists `recovery` as an `amr.method`: https://supabase.com/docs/guides/auth/jwt-fields. This supports the chosen provider claim, but an actual recovery-email->session->password end-to-end test is still necessary to confirm runtime/provider-version behavior; any missing AMR must fail closed and trigger a new recovery link, not silently downgrade checks.
+## Next action on "continue"
 
-**Local execution:** strict helper unit test groups under Node `v22.16.0`, `node --experimental-strip-types --test --test-name-pattern='Chat02 recovery: (only|missing)' tests/attach02-recovery-authentication.test.mjs` on an isolated copy of the **new helper**: 2 passed / 0 failed. The third route-source check was not run locally against the complete repository. The earlier RED baseline had 1 failed test module because the new helper did not exist. This is not local authenticated runtime validation.
-
-**New continuation head CI state at observation:** Security `38277297738` and experimental Semgrep `38277297792` succeeded against `2572b968...`; CI `38277297848`, Browser Acceptance `38277297795`, CodeQL `38277297793`, AI Safety/Code Health `38277297811` and Isolated Authenticated Journey `38277297711` were still running. The status-document commit creates a later head: refresh exact-head workflow evidence before any merge/release decision. No live identity, secret, configuration, DB, migration, outbound email or production change made.
-
-**Residual security testing:** In nonproduction, use a genuine signed Supabase password-login token, a genuine single-use password-recovery link and a post-refresh recovery token. Assert ordinary token+client `recovery=true` -> denied; manually supplied plain recovery cookie+ordinary token -> denied without password mutation; valid recovery AMR -> allowed only within the 15-minute window; expired/reused/revoked recovery -> denied. After reset, check recovery cookie cleared, new password login works, and rejected attempts leave password unchanged. Cover both implicit-fragment and `token_hash` recovery links with the Supabase Auth configuration actually deployed. Never use active customer identities for these tests. These receipts remain **PENDING**.
+Refresh PR #567 checks at the exact head; re-read FM-00 and Chat04/Chat09 status; if a nonproduction Supabase project exists, execute the HTTP matrix from `authorization-and-privacy-gates.md` and record receipts; otherwise keep the gate open. Do not restart the audit.
