@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "purpose": "Adversarial acceptance cases; not executable production proof",
-  "source": "Chat09 / attached packet of 2026-10-12",
+  "source": "Chat09 / attached packet of 2026-10-12; continued 2026-10-13",
   "execution_state": "NOT_EXECUTED",
   "fixture_policy": "synthetic only; no customer data, charges, production mutations or paid provider calls",
   "scenarios": [
@@ -13,7 +13,8 @@
       "expected": "Project exists only in A; B cannot see it",
       "owner": "Chat02",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat02 attach02-two-tenant-denial (in-memory emulator) at 4ac867c7"
     },
     {
       "id": "QA09-02",
@@ -23,7 +24,8 @@
       "expected": "Old token denied; new authenticated context required",
       "owner": "Chat02",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat02 attach02-recovery-authentication + step-up (synthetic JWT AMR)"
     },
     {
       "id": "QA09-03",
@@ -33,7 +35,8 @@
       "expected": "403/404; no data or existence leak",
       "owner": "Chat02",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat02 attach02-two-tenant-denial; customer-project-boundary (main)"
     },
     {
       "id": "QA09-04",
@@ -43,7 +46,8 @@
       "expected": "Question versions and ownership persisted",
       "owner": "Chat04",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat04 attach-v1-04-customer-value-journeys (A28 0/1/5/dup/>1000)"
     },
     {
       "id": "QA09-05",
@@ -53,7 +57,8 @@
       "expected": "Denied and unchanged",
       "owner": "Chat02",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat02 PGlite SQL reproduction of sibling-project update_prompt_versioned (still OPEN, A11)"
     },
     {
       "id": "QA09-06",
@@ -63,7 +68,8 @@
       "expected": "Actual provider/model/response/usage receipt and context retained",
       "owner": "Chat01",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "none executable without authorised provider receipt"
     },
     {
       "id": "QA09-07",
@@ -73,7 +79,8 @@
       "expected": "Relevance fail closed, insufficient evidence not zero visibility",
       "owner": "Chat01",
       "environment": "fixture",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat01 fm01-retrieval-relevance + fm01-measurement-reproduction fixtures"
     },
     {
       "id": "QA09-08",
@@ -83,7 +90,8 @@
       "expected": "Explicit partial/error state; no fabricated recommendation",
       "owner": "Chat01",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat01 fm01-missing-classification (unclassified never counted as zero)"
     },
     {
       "id": "QA09-09",
@@ -93,7 +101,8 @@
       "expected": "Provider/model identity unverified; comparable cycle blocked",
       "owner": "Chat01",
       "environment": "fixture",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat01 provider-citation-integrity; perplexity 410"
     },
     {
       "id": "QA09-10",
@@ -103,7 +112,8 @@
       "expected": "Admission rejected before paid call",
       "owner": "Chat01",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat01 fm01-internal-model-admission; main D1/Brave caps"
     },
     {
       "id": "QA09-11",
@@ -113,7 +123,8 @@
       "expected": "Native references vs retrieved content vs inference distinguished",
       "owner": "Chat04",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "none (needs real raw answer)"
     },
     {
       "id": "QA09-12",
@@ -123,7 +134,8 @@
       "expected": "Denied; no cross-project leak",
       "owner": "Chat02",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat02 two-tenant matrix (Record share)"
     },
     {
       "id": "QA09-13",
@@ -133,7 +145,8 @@
       "expected": "Decision state/owner/version/audit record survive reload",
       "owner": "Chat04",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat04 in-memory journey 1 (no real persistence)"
     },
     {
       "id": "QA09-14",
@@ -143,7 +156,8 @@
       "expected": "Role denied; no persistence",
       "owner": "Chat02",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat02 two-tenant matrix"
     },
     {
       "id": "QA09-15",
@@ -153,7 +167,8 @@
       "expected": "One operation/accounting event; durable recoverable state",
       "owner": "Chat06",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat06 06-collection-job-recovery-runtime (Inngest replay executor) + Chat04 same-key retry"
     },
     {
       "id": "QA09-16",
@@ -163,7 +178,8 @@
       "expected": "Not comparable; no uplift claim",
       "owner": "Chat04",
       "environment": "fixture",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat04 journey 2 (model change => not comparable)"
     },
     {
       "id": "QA09-17",
@@ -173,7 +189,8 @@
       "expected": "Comparable only with actual later observation and review",
       "owner": "Chat04",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat04 assessLaterCycle (in-memory)"
     },
     {
       "id": "QA09-18",
@@ -183,7 +200,8 @@
       "expected": "Fixture never counted as real retention",
       "owner": "Chat08",
       "environment": "fixture",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat08 proof gates (not_due before day; fixture never closes proof)"
     },
     {
       "id": "QA09-19",
@@ -193,7 +211,8 @@
       "expected": "Only A/project records with provenance and limits",
       "owner": "Chat04",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat04 record-export-provenance + Chat09 QA09-33 composed"
     },
     {
       "id": "QA09-20",
@@ -203,7 +222,8 @@
       "expected": "Denied; no secret or record exposure",
       "owner": "Chat02",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat09 QA09-33 composed export denial (local composition); Chat02 export test FAILS on composition (QA09-B7)"
     },
     {
       "id": "QA09-21",
@@ -213,7 +233,8 @@
       "expected": "Entitlement from authoritative verified receipt only",
       "owner": "Chat03",
       "environment": "sandbox",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat03 webhook runtime fixtures (mocked; no sandbox key)"
     },
     {
       "id": "QA09-22",
@@ -223,7 +244,8 @@
       "expected": "Signature/origin/admission denied; no entitlement",
       "owner": "Chat03",
       "environment": "fixture",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat03 webhook runtime + main billing contracts"
     },
     {
       "id": "QA09-23",
@@ -233,7 +255,8 @@
       "expected": "Exactly-once durable event transition; no resurrection of stale entitlement",
       "owner": "Chat03",
       "environment": "sandbox",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat03 webhook runtime (duplicate/settled redelivery/archived price)"
     },
     {
       "id": "QA09-24",
@@ -243,7 +266,8 @@
       "expected": "State reconciled; no unauthorized paid feature access",
       "owner": "Chat03",
       "environment": "sandbox",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat03 reconciliation + paid-period fixtures (mocked)"
     },
     {
       "id": "QA09-25",
@@ -253,7 +277,8 @@
       "expected": "Denied; account scope enforced",
       "owner": "Chat02",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat02 two-tenant matrix (billing portal)"
     },
     {
       "id": "QA09-26",
@@ -263,7 +288,8 @@
       "expected": "No unsafe retry/spend; explicit operator diagnostic",
       "owner": "Chat06",
       "environment": "staging",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat06 schedule pin/catch-up runtime (credential revocation not covered)"
     },
     {
       "id": "QA09-27",
@@ -273,7 +299,8 @@
       "expected": "Visible focus, labels, dialogs and error announcements",
       "owner": "Chat05",
       "environment": "browser",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "CI browser-acceptance public only; authenticated=skipped"
     },
     {
       "id": "QA09-28",
@@ -283,7 +310,8 @@
       "expected": "No critical overflow, blocking sticky CTA or inaccessible controls",
       "owner": "Chat05",
       "environment": "browser",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat05 local 5-width overflow + CI browser-acceptance public pages"
     },
     {
       "id": "QA09-29",
@@ -293,7 +321,8 @@
       "expected": "Blocked without bypass; documented emergency review required",
       "owner": "FM-00",
       "environment": "admin",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "none; ruleset bypass=always, CodeQL alert check not required (QA09-B8)"
     },
     {
       "id": "QA09-30",
@@ -303,7 +332,8 @@
       "expected": "Recover version+schema-compatible state; verify exact SHA",
       "owner": "FM-00",
       "environment": "sandbox",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat06 PGlite restore/rollback rehearsal (synthetic; no production recovery point)"
     },
     {
       "id": "QA09-31",
@@ -313,7 +343,8 @@
       "expected": "Share/export/decision actions fail closed immediately and remain unavailable until the new record plus project identity is verified; server denies direct ID",
       "owner": "Chat04/Chat02",
       "environment": "browser",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat04 keyed Record state (source contract)"
     },
     {
       "id": "QA09-32",
@@ -323,7 +354,42 @@
       "expected": "CSV formula injection neutralized; quoting and evidence provenance retained; unknown method/model/version not fabricated",
       "owner": "Chat04/Chat09",
       "environment": "fixture",
-      "evidence_status": "NOT_EXECUTED"
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat09 chat09-evidence-export-csv (lib/csv.ts encoder)"
+    },
+    {
+      "id": "QA09-33",
+      "stage": "export",
+      "actor": "Tenant A analyst (project A1); Tenant B; revoked member",
+      "action": "Export Records A1, A2 (sibling project) and B1 through the composed manifest-backed CSV export",
+      "expected": "A2/B1 denied 404 without leaking IDs or B question text; A1 keeps 10 legacy columns, adds org/project/method provenance, reads only token-bound org-filtered rows; incomplete manifest yields explicit unavailable; formula text neutralized",
+      "owner": "Chat04/Chat02",
+      "environment": "local composed candidate (in-memory emulator)",
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "Chat09 tests/chat09-composed-export-tenant.test.mjs 4/4 on local composition (skipped on Chat09-only ref)"
+    },
+    {
+      "id": "QA09-34",
+      "stage": "release",
+      "actor": "Repository admin / ruleset",
+      "action": "Open PR whose new code raises a high-severity CodeQL alert while 'Analyze JavaScript and TypeScript' succeeds",
+      "expected": "Merge is blocked for ordinary actors; bypass requires documented break-glass review",
+      "owner": "FM-00",
+      "environment": "repository rules (nonproduction)",
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "none; observed CodeQL failure on #569/#570 heads not in required list"
+    },
+    {
+      "id": "QA09-35",
+      "stage": "release",
+      "actor": "FM-00 integrator",
+      "action": "Run every worker's own suite unchanged on the composed candidate",
+      "expected": "No worker test is lost, skipped or broken by another worker's change (harness/import drift is a failure, not a skip)",
+      "owner": "FM-00",
+      "environment": "composed candidate CI",
+      "evidence_status": "NOT_EXECUTED",
+      "component_evidence": "local composition 2026-10-13: 1 failure (attach02 export test) — see 09-status"
     }
-  ]
+  ],
+  "component_evidence_policy": "component_evidence names the best current NONPRODUCTION component/unit receipt; it never upgrades evidence_status, which tracks end-to-end composed execution"
 }
