@@ -26,8 +26,21 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ error: "Only a queued or running collection can be cancelled." }, { status: 409 });
   }
 
+  // Fenced cancellation (Chat06): every status write is a compare-and-set on
+  // the state this request observed, so a run the collector already moved to
+  // review/complete/partial (or another handler settled) is never overwritten.
+  const cancelledBody = {
+    status: "cancelled",
+    completed_at: new Date().toISOString(),
+    error_summary: "Collection was cancelled.",
+  };
+  const scope = `runs?select=id,status&id=eq.${run.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`;
+  let settled = false;
   if (!run.started_at) {
-    await supabaseRest("rpc/release_queued_run_server", {
+    // Atomic server release: only a still-queued, never-started run created by
+    // this actor has its reservation deleted (status becomes failed). Other
+    // never-started runs are released idempotently by the cancellation job.
+    const released = await supabaseRest<boolean>("rpc/release_queued_run_server", {
       method: "POST",
       serviceRole: true,
       body: {
@@ -37,18 +50,27 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         p_actor_id: viewer.id,
       },
     });
+    if (released === true) {
+      const rows = await supabaseRest<Array<{ id: string; status: string }>>(`${scope}&status=eq.failed&started_at=is.null`, {
+        method: "PATCH",
+        token: viewer.accessToken,
+        prefer: "return=representation",
+        body: { ...cancelledBody, estimated_max_cost_usd: 0 },
+      });
+      settled = rows.length > 0;
+    }
   }
-  await supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
-    method: "PATCH",
-    token: viewer.accessToken,
-    prefer: "return=minimal",
-    body: {
-      status: "cancelled",
-      completed_at: new Date().toISOString(),
-      error_summary: "Collection was cancelled.",
-      ...(!run.started_at ? { estimated_max_cost_usd: 0 } : {}),
-    },
-  });
+  if (!settled) {
+    const rows = await supabaseRest<Array<{ id: string; status: string }>>(`${scope}&status=in.(queued,running)`, {
+      method: "PATCH",
+      token: viewer.accessToken,
+      prefer: "return=representation",
+      body: cancelledBody,
+    });
+    if (!rows.length) {
+      return NextResponse.json({ error: "This collection already finished or was settled. Refresh to see its final state." }, { status: 409 });
+    }
+  }
   await finalizeResolutionFollowUpsForRun({
     organizationId: context.organizationId,
     projectId: context.projectId,

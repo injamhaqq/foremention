@@ -1,0 +1,163 @@
+{
+ "inputs": {
+  "questionsPerRun": {
+   "value": 5,
+   "kind": "CODE",
+   "note": "five-question baseline (GROQ_SPEND_LIMITS comment); max 10 per run"
+  },
+  "runsPerOrgMonth": {
+   "value": 4.35,
+   "kind": "ASSUMPTION",
+   "note": "weekly Measurement Schedule (52/12); biweekly halves it"
+  },
+  "attemptsPerAnswer": {
+   "value": 1.3520408163265305,
+   "kind": "MEASURED",
+   "note": "production run_attempts/run_answers row counts, 2026-10-13"
+  },
+  "maxAttemptsPerQuestion": {
+   "value": 3,
+   "kind": "CODE",
+   "note": "LIVE_COLLECTION_LIMITS.providerRetries=2 (+1 first try)"
+  },
+  "estCostPerAttemptUsd": {
+   "value": 0.0503984,
+   "kind": "CODE",
+   "note": "wrangler.jsonc GROQ_* rate vars at max tokens; estimate, not invoice"
+  },
+  "reservedPerQuestionUsd": {
+   "value": 0.1,
+   "kind": "CODE",
+   "note": "GROQ_SPEND_LIMITS.reservedCostPerPromptUsd"
+  },
+  "monthlyOrgCapUsd": {
+   "value": 5,
+   "kind": "CODE",
+   "note": "GROQ_SPEND_LIMITS.maxMonthlyOrgSpendUsd"
+  },
+  "storagePerAnswerKiB": {
+   "value": 4.326530612244898,
+   "kind": "MEASURED",
+   "note": "pg_total_relation_size(run_answers)/rows incl. indexes, 2026-10-13"
+  },
+  "storagePerAttemptKiB": {
+   "value": 1.3886792452830188,
+   "kind": "MEASURED",
+   "note": "pg_total_relation_size(run_attempts)/rows incl. indexes, 2026-10-13"
+  },
+  "dbBaselineMiB": {
+   "value": 29.11244487762451,
+   "kind": "MEASURED",
+   "note": "pg_database_size, 2026-10-13"
+  },
+  "inngestFixedStepsPerRun": {
+   "value": 19,
+   "kind": "CODE",
+   "note": "run-multi-engine-scan non-per-question steps (+1 run execution)"
+  },
+  "inngestStepsPerQuestion": {
+   "value": 3,
+   "kind": "CODE",
+   "note": "check-cancellation + collect + persist"
+  },
+  "inngestIdleExecutionsMonth": {
+   "value": 7805,
+   "kind": "CODE",
+   "note": "zoho */15, schedule dispatcher hourly, interrupted-run sweeper */3h, 2 daily crons, weekly digest; >=2 executions each when idle"
+  },
+  "emailsPerOwnerMonth": {
+   "value": 4.449999999999999,
+   "kind": "CODE",
+   "note": "weekly digest + amortized first-run email; one owner per org assumed"
+  },
+  "onboardingMinutes": {
+   "value": 45,
+   "kind": "ASSUMPTION",
+   "note": "founder-led setup, once per new org (amortized over month 1)"
+  },
+  "reviewMinutesPerRun": {
+   "value": 20,
+   "kind": "ASSUMPTION",
+   "note": "human evidence review per run"
+  },
+  "exceptionMinutesPerOrgMonth": {
+   "value": 10,
+   "kind": "ASSUMPTION",
+   "note": "failed/interrupted run triage, email/support"
+  }
+ },
+ "vendor_limits": {
+  "inngestFreeExecutionsMonth": {
+   "value": 50000,
+   "source": "https://www.inngest.com/pricing (read 2026-10-13): Free 50k executions, 5 concurrent steps; execution pauses at quota"
+  },
+  "workersFreeRequestsDay": {
+   "value": 100000,
+   "source": "https://developers.cloudflare.com/workers/platform/limits/ (read 2026-10-13): Free 100,000/day, 10 ms CPU, 5 cron triggers/account"
+  },
+  "resendFreeEmailsMonth": {
+   "value": 3000,
+   "source": "https://resend.com/pricing (read 2026-10-13): Free 3,000/month, 100/day"
+  },
+  "supabaseFreeDbMiB": {
+   "value": 500,
+   "source": "Supabase Free plan database size (not re-read this run; verify on supabase.com/pricing)"
+  }
+ },
+ "rows": [
+  {
+   "orgs": 1,
+   "runsPerMonth": 4.4,
+   "plannedAnswers": 22,
+   "expectedProviderAttempts": 29,
+   "worstCaseProviderAttempts": 65,
+   "estimatedProviderSpendUsd": 1.48,
+   "worstCaseProviderSpendUsd": 3.29,
+   "reservationHeldUsd": 2.18,
+   "spendCapBindsPerOrg": false,
+   "inngestExecutions": 7965,
+   "inngestShareOfFree": 0.159,
+   "newStorageMiBPerMonth": 0.13,
+   "dbMiBAfter12Months": 30.7,
+   "emailsPerMonth": 4,
+   "founderSupportHoursMonth1": 2.4,
+   "founderSupportHoursSteadyState": 1.6
+  },
+  {
+   "orgs": 5,
+   "runsPerMonth": 21.8,
+   "plannedAnswers": 109,
+   "expectedProviderAttempts": 147,
+   "worstCaseProviderAttempts": 326,
+   "estimatedProviderSpendUsd": 7.41,
+   "worstCaseProviderSpendUsd": 16.44,
+   "reservationHeldUsd": 10.88,
+   "spendCapBindsPerOrg": false,
+   "inngestExecutions": 8605,
+   "inngestShareOfFree": 0.172,
+   "newStorageMiBPerMonth": 0.66,
+   "dbMiBAfter12Months": 37,
+   "emailsPerMonth": 22,
+   "founderSupportHoursMonth1": 11.8,
+   "founderSupportHoursSteadyState": 8.1
+  },
+  {
+   "orgs": 20,
+   "runsPerMonth": 87,
+   "plannedAnswers": 435,
+   "expectedProviderAttempts": 588,
+   "worstCaseProviderAttempts": 1305,
+   "estimatedProviderSpendUsd": 29.64,
+   "worstCaseProviderSpendUsd": 65.77,
+   "reservationHeldUsd": 43.5,
+   "spendCapBindsPerOrg": false,
+   "inngestExecutions": 11003,
+   "inngestShareOfFree": 0.22,
+   "newStorageMiBPerMonth": 2.64,
+   "dbMiBAfter12Months": 60.7,
+   "emailsPerMonth": 89,
+   "founderSupportHoursMonth1": 47.3,
+   "founderSupportHoursSteadyState": 32.3
+  }
+ ]
+}

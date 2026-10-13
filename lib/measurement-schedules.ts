@@ -165,3 +165,39 @@ export function scheduleIdempotencyKey(schedule: { id: string; methodologySnapsh
   const model = String(schedule.modelSnapshot || "provider-default").replace(/[^a-z0-9_.-]/gi, "_").slice(0, 64);
   return `measurement-schedule:${schedule.id}:${due.toISOString()}:${methodology}:${model}`;
 }
+
+/**
+ * Bounded catch-up (Chat06). When the dispatcher was down for longer than one
+ * cadence, the overdue occurrence is collected ONCE and the schedule then jumps
+ * to the first occurrence strictly after `now`, instead of advancing one
+ * cadence per hourly pass and burning a paid run for every missed period.
+ * Local wall-clock/DST policy is inherited from `nextScheduleAt`.
+ */
+export const MAX_SCHEDULE_CATCH_UP_STEPS = 400;
+
+export function nextFutureScheduleAt(
+  from: Date | string,
+  cadence: MeasurementCadence,
+  timezone = "UTC",
+  now: Date = new Date(),
+) {
+  let next = nextScheduleAt(from, cadence, timezone);
+  for (let steps = 1; next.getTime() <= now.getTime(); steps += 1) {
+    if (steps >= MAX_SCHEDULE_CATCH_UP_STEPS) throw new Error("The measurement schedule is too far overdue to advance safely.");
+    next = nextScheduleAt(next, cadence, timezone);
+  }
+  return next;
+}
+
+/**
+ * A schedule with a persisted model snapshot is a pinned measurement contract:
+ * when the deployment's configured model differs, a scheduled occurrence would
+ * be incomparable with its baseline, so it must not be admitted. A schedule
+ * without a snapshot (legacy) only requires a configured model.
+ */
+export function scheduleModelPinAdmits(modelSnapshot: string | null | undefined, configuredModel: string | null | undefined) {
+  const configured = String(configuredModel || "").trim();
+  if (!configured) return false;
+  const snapshot = String(modelSnapshot || "").trim();
+  return !snapshot || snapshot === configured;
+}
