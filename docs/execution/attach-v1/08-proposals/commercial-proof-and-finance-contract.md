@@ -2,6 +2,8 @@
 
 **State:** internal proposal, 2026-10-12. No real outreach, customer interview, live charge, agreement, customer record mutation, pricing activation, production migration or deployment performed by Chat08.
 
+**2026-10-13 continuation:** operational detail now lives in `customer-operations-playbook.md` (qualification, sourcing ledger, behavioral interview, 15-min demo, pilot template, onboarding, support/escalation, weekly review, continuation, consent), `economics-stress-tests.md` (receipts observed, model check, 1/5/20 and 12-period stress), `investor-evidence-checklist.md`, `schema-and-event-proposals.md` (+ `migrations/…proposal.sql`, `verification/`), and header-only `templates/`. Gates are executable via `evaluateProofGates()` in `lib/commercial-operations.mjs`. Paddle live account read-only on 2026-10-13: 0 transactions/subscriptions/customers.
+
 ## Reconciliation
 
 The active repository constitution and issue #283 retain a B2B SaaS 50–500 employee Stage-0 design-partner focus, with hypotheses of $3,000/$6,000 assisted pilots. The 2026-10-11 Foremention Commercial Investment Report favors 2–20-person B2B SEO/GEO agencies and a $299/four-week single-client pilot. These are **conflicting experiments**, not authority to silently change ICP, website, canonical category, live pricing or product scope. FM-00/founder should explicitly decide which target and price cohort is eligible for testing, with fixed comparable scope, separate records for quote, acceptance, signed agreement, cash settlement and continuation.
