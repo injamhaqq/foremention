@@ -227,3 +227,18 @@ test("loop never treats missing questions as approved and never reports causatio
   for (const stage of loop.LOOP_STAGES) assert.equal(typeof stage, "string");
   assert.equal(s.causation, "not_proven");
 });
+
+test("A28: question create/edit rejects over-length wording instead of truncating; edit stays org+project scoped before the RPC", async () => {
+  const { exceedsBuyerQuestionLength, MAX_BUYER_QUESTION_LENGTH } = await import("../lib/approved-buyer-questions.ts");
+  assert.equal(MAX_BUYER_QUESTION_LENGTH, 1000);
+  assert.equal(exceedsBuyerQuestionLength("x".repeat(1000)), false);
+  assert.equal(exceedsBuyerQuestionLength(` ${"x".repeat(1000)} `), false);
+  assert.equal(exceedsBuyerQuestionLength("x".repeat(1001)), true);
+  assert.equal(exceedsBuyerQuestionLength(null), false);
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/prompts/route.ts", import.meta.url), "utf8");
+  assert.equal((route.match(/exceedsBuyerQuestionLength\(body\.text\)/g) || []).length, 2);
+  const scopedRead = route.indexOf("&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1");
+  const rpc = route.indexOf('"rpc/update_prompt_versioned"');
+  assert.ok(scopedRead > 0 && rpc > scopedRead, "project-scoped prompt read precedes the org-only RPC (see 04-proposals for p_project_id)");
+});

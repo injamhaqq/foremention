@@ -38,3 +38,11 @@ export function validateApprovedBuyerQuestions(input: unknown): ApprovedBuyerQue
   }
   return { questions, error: null };
 }
+
+export const MAX_BUYER_QUESTION_LENGTH = 1000;
+
+/** True when the reviewed wording would have to be cut to persist. Never truncate approved wording. */
+export function exceedsBuyerQuestionLength(value: unknown) {
+  return typeof value === "string"
+    && value.normalize("NFKC").replace(controls, " ").trim().length > MAX_BUYER_QUESTION_LENGTH;
+}
