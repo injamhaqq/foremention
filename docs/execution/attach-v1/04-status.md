@@ -76,3 +76,48 @@ Close draft PR #563 / revert only Chat04 commits; no migrations or production be
 Client-side persisted-run existence alone does not establish permission to **share** a Record: viewer-role accounts may read/export but must not receive the share action. The A27 continuation therefore added a read-only, organization/project-scoped `GET /api/records/[id]/share` returning `{ canShare, observed }`, derived from the **same existing `canShare(role)` policy** used by POST/DELETE. The existing write endpoints independently revalidate role, project and run status. `RecordControls` fetches this server-computed capability after scoped Record existence, exposes Share only if `canShare===true`, preserves permitted export/print for reader roles, and remounts per run ID to avoid leaking a previous Record's capability state. A sixth source-contract test checks that split.
 
 **Verification:** pending fresh exact-head runs. No claim that this GET alone is an authenticated two-tenant negative acceptance receipt. Browser/role/run-expiry/cross-org tests still need disposable identities under Chat09/Chat02 coordination. The share endpoint's capability query is read-only and does not activate distribution or alter records.
+
+
+## Continuation 2026-10-13 — local checkout, executed tests, A26 + CV-05 contract + QA09-31
+
+**Base main (unchanged):** `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`. **Resumed from remote head:** `9a11c6156bf757b8e64538fdb41f0da754a125ff` (the branch and draft PR #563 already existed, so this run continued them instead of recreating the branch). **Code head before this status commit:** `251c5fcd`; resolve the live branch head for the exact document SHA. Environment change vs. earlier checkpoints: a real local clone (`git` over HTTPS) with `pnpm install --frozen-lockfile` now works, so the commands below were **actually executed locally**.
+
+**Source boundary for this run:** only `START_HERE.md`, `PROMPT.md`, `SHARED_RULES.md`, `OWNERSHIP_AND_COORDINATION.md`, `PACKAGE_ID.json`, `Source_File_Checklist_19.csv` and `Backlog_Source_Index.csv` were available. The 18 original Source_Files were **not attached**; this run did not re-verify the earlier claim that some were recovered from a Library. Work is grounded in index rows, current repo code, CLAUDE.md / FOREMENTION_STATE.md and peer status files.
+
+### Implemented in this run (original IDs)
+
+| ID | Change | Paths |
+| --- | --- | --- |
+| (regression fix) | Earlier Chat04 commit `6449c3cd` broke `pnpm typecheck` (`ReturnType<typeof setTimeout>` vs DOM `number`). Fixed. | `components/onboarding-wizard.tsx` |
+| A26 | One setup-required state on `/app/support`: server resolves workspace presence (a failed lookup is **not** treated as “no workspace”); no form, no history fetch and no duplicate alerts before setup; account help via the already-published `hello@foremention.com`; CTA to `/app/onboarding`. API adds `code: "workspace_setup_required"` to the existing 404 (auth/origin/requester scoping unchanged). | `lib/workspace-setup-state.ts`, `app/app/support/page.tsx`, `components/support-center.tsx`, `app/api/support/tickets/route.ts` |
+| CV-05 / A15 / A14 (contract) | Pure loop contract: stages setup→questions→setup-only→collection→review→decision (Change Specification / explicit no-action / reviewer disagreement)→owner/action/date→later cycle; later-cycle eligibility matches question-set version, methodology, question/provider/model/sampling/method and nine-field context with all reasons + exclusions; lost-ACK decision reconciliation by save key; `causation: "not_proven"` always; `closesCustomerProof` only for `origin: customer_cycle`. | `lib/customer-value-loop.ts` |
+| QA09-31 (A27 follow-up, reported by Chat09) | Record eligibility, share capability and created share link are stored **with the Record ID they were computed for**; an ID change without remount immediately derives `checking` / no Share. | `components/retention-surface-bridge.tsx` |
+| A28 | Buyer-question create/edit (`/api/prompts` POST/PATCH) now rejects >1,000-character wording instead of silently truncating (`cleanText(...,1000)` sliced before). | `app/api/prompts/route.ts`, `lib/approved-buyer-questions.ts` |
+
+### Tests and checks actually run (local, this head)
+
+- `node --experimental-strip-types --test tests/*.test.mjs` → **1,336 / 1,336 pass**, 0 fail (was 1,320 on the earlier CI run before Chat04 additions).
+- Chat04 namespaced tests `tests/attach-v1-04-*.test.mjs` → **20 pass** (4 files). New behavioural file `attach-v1-04-customer-value-journeys.test.mjs` imports the real modules (not regex): A28 0/1/5/custom/duplicate/blank/>5/>1000 cases; A26 state helper; **journey 1** (tenant A: setup-only → collection → review → incomplete decision blocked → owner/date → comparable later cycle, causation not proven, fixture does not close proof); **journey 2** (tenant B: partial run with rejected slot, reviewer disagreement persists without owner, model change → not comparable with explicit reason and exclusion, tenant A rows unreachable); **recoverable failure** (interrupted collection, same-key retry returns same run, explicit retry, lost decision ACK reconciled by key, no duplicates). Mutation check: disabling the question-set-version rule or the owner/date gate makes a test fail.
+- `pnpm typecheck` (tsc --noEmit) → **pass**. `pnpm lint` → **0 errors**, 10 pre-existing warnings in files Chat04 did not touch. `pnpm build` (vinext) → **Build complete**.
+- **Not run:** Browser Acceptance, Isolated Authenticated Journey, CodeQL/Semgrep/Security workflows (GitHub Actions run on push; check the PR's exact-head checks), any Supabase/RLS execution (only production exists and it is read-only for this packet), any provider call.
+
+### What the fixture journeys do and do not prove
+They prove the Chat04 contract's transitions, exclusion reasons, idempotent recovery and tenant-scoped filtering against an **in-memory store**. They do **not** prove RLS, real persistence of decisions, a real provider observation, or a real elapsed later customer cycle. CV-05 stays **open** until two disposable non-production journeys run end-to-end (gate below).
+
+### Updated dispositions
+- CV-05: contract + fixture journeys delivered; **live journeys open** (needs non-production Supabase + FM-00 migrations in `04-proposals/customer-value-loop-contract.md` §2).
+- A14: eligibility side delivered (`assessLaterCycle`); scheduling/admission/DST stays Chat06; **open**.
+- A15: lost-ACK reconciliation contract delivered; DB `save_key` + UI wiring need FM-00 migration; **partially addressed**.
+- A26: support page fixed in Chat04 scope; ~35 other routes still answer `Workspace not found.` — shared-code proposal to Chat02/FM-00; settings/resolutions/customer-success pre-setup controls **not changed**.
+- A27: implemented + QA09-31 hardening; **pending exact-head CI/browser + role matrix (Chat09/Chat02)**.
+- A28: 1–5 exact list + no truncation on create/edit implemented; zero-question setup-only **blocked on FM-00 migration**.
+
+### Gates remaining
+1. Exact-head GitHub Actions on PR #563 (all workflows) — check after push.
+2. FM-00: migrations §2 (decision `save_key`/kind/approval/due date, `runs.question_set_version` + origin, answer sampling/method, `update_prompt_versioned` project predicate, zero-question setup-only).
+3. Non-production Supabase environment (none exists; production is read-only) for two disposable journeys + recoverable failure; Chat09 executes.
+4. Real later customer cycle (time-elapsed, real customer) — cannot be produced by any test.
+5. Chat05 visual review of the support setup-required panel (founder workflow: visual before material UI; this reuses existing classes and adds no new visual direction).
+
+### Rollback
+Revert any of `b4f6b89e`, `21290185`, `7e253332`, `e217808f`, `251c5fcd` independently, or close PR #563. No migration, deployment, provider call, spend or outreach occurred.
