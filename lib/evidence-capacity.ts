@@ -186,3 +186,28 @@ export async function readEvidenceCapacity(input: { brave: boolean; now?: Date; 
   }
   return snapshot;
 }
+
+/**
+ * A29/CV-07 (Chat01): admit one unit against a named durable counter in the
+ * same D1 store and atomic upsert used for live evidence. Unlike
+ * admitEvidenceCall, a caller can require the store: internal model work that
+ * may cost money is DENIED (not admitted uncapped) when no store is
+ * registered, as in local scripts, unit tests or a misconfigured Worker.
+ */
+export async function admitNamedCapacityUnit(input: { key: string; cap: number; requireStore: boolean }) {
+  if (!/^[a-z0-9:._-]{3,120}$/.test(input.key)) return { admitted: false as const, reason: "INVALID_KEY" as const };
+  if (!Number.isSafeInteger(input.cap) || input.cap <= 0) return { admitted: false as const, reason: "CAP_ZERO" as const };
+  const state = registered();
+  if (!state?.store) {
+    return input.requireStore
+      ? { admitted: false as const, reason: "STORE_UNAVAILABLE" as const }
+      : { admitted: true as const, enforced: false as const };
+  }
+  try {
+    await ensureTable(state);
+    if (!await admitOne(state.store, input.key, input.cap)) return { admitted: false as const, reason: "CAP_EXHAUSTED" as const };
+  } catch {
+    return { admitted: false as const, reason: "STORE_UNAVAILABLE" as const };
+  }
+  return { admitted: true as const, enforced: true as const };
+}

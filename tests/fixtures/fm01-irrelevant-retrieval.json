@@ -1,0 +1,46 @@
+{
+  "origin": "Synthetic A08 regression reconstruction; the original eight URLs/raw response for the 2026-10-11 recorded production case were not attached",
+  "question": "What should a B2B SaaS marketing team evaluate when choosing AI visibility monitoring platforms?",
+  "results": [
+    {
+      "url": "https://dictionary.example/should",
+      "title": "Should - dictionary definition",
+      "snippet": "The meaning of should in English grammar"
+    },
+    {
+      "url": "https://grammar.example/should-have",
+      "title": "How should have is used",
+      "snippet": "English verb usage examples"
+    },
+    {
+      "url": "https://english.example/modal-verbs",
+      "title": "Modal verbs: should, would, could",
+      "snippet": "Grammar lessons for language learners"
+    },
+    {
+      "url": "https://phrases.example/what-should",
+      "title": "What should means",
+      "snippet": "Questions and expressions"
+    },
+    {
+      "url": "https://writing.example/evaluate",
+      "title": "Evaluate definition",
+      "snippet": "How to use evaluate in a sentence"
+    },
+    {
+      "url": "https://words.example/monitor",
+      "title": "Monitor - verb meaning",
+      "snippet": "Dictionary definitions for monitoring"
+    },
+    {
+      "url": "https://lexicon.example/visibility",
+      "title": "Visibility - definition",
+      "snippet": "Meaning of the word visibility"
+    },
+    {
+      "url": "https://linguistics.example/saas",
+      "title": "Saas - surname pronunciation",
+      "snippet": "How to pronounce names"
+    }
+  ]
+}

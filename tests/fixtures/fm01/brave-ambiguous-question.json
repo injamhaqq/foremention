@@ -1,0 +1,22 @@
+{
+  "question": "What should I choose?",
+  "origin": "SYNTHETIC offline fixture (Chat01, 2026-10-12). Brave Search API v1 web/search response shape. Not a production receipt: the raw 2026-10-11 run abb5b16f-46ea-4d46-b769-231ea14ef47a URLs were not available to this package. No network/paid call produced it.",
+  "case": "ambiguous question with no specific entity/category term",
+  "response": {
+    "_fixture_note": "SYNTHETIC offline fixture (Chat01, 2026-10-12). Brave Search API v1 web/search response shape. Not a production receipt: the raw 2026-10-11 run abb5b16f-46ea-4d46-b769-231ea14ef47a URLs were not available to this package. No network/paid call produced it.",
+    "type": "search",
+    "query": {
+      "original": "What should I choose?"
+    },
+    "web": {
+      "type": "search",
+      "results": [
+        {
+          "url": "https://blog.example/choosing-software",
+          "title": "Choosing software for your team",
+          "description": "How to choose."
+        }
+      ]
+    }
+  }
+}

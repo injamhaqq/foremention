@@ -1,4 +1,7 @@
 import { generateBuyerQuestions, type OnboardingDraft } from "./onboarding-profile.ts";
+import { GROQ_SPEND_LIMITS } from "./collection-policy.ts";
+import { admitInternalModelCall, type InternalModelAdmission, type InternalModelDenialReason } from "./internal-model-admission.ts";
+import type { AnswerProviderAdapter } from "./providers/types.ts";
 
 const markets = new Set(["Global", "North America", "Europe", "Asia Pacific", "Middle East and Africa", "Latin America"]);
 const placeholderPattern = /^(?:competitor|company|brand|alternative)(?:\s+(?:one|two|three|four|five|\d+))?$/i;
@@ -93,32 +96,78 @@ export function buildOnboardingEnrichmentPrompt(input: {
   ].join("\n");
 }
 
+export type OnboardingEnrichmentAdapter = Pick<AnswerProviderAdapter, "configured" | "run">;
+
+export type OnboardingEnrichmentReceipt = {
+  provider: "groq";
+  model: string;
+  requestId?: string;
+  collectedAt: string;
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+  admissionPeriodKey: string;
+};
+
+export type OnboardingEnrichmentResult =
+  | { draft: OnboardingDraft; enriched: true; admission: { admitted: true }; receipt: OnboardingEnrichmentReceipt }
+  | { draft: OnboardingDraft; enriched: false; admission: { admitted: boolean; reason?: InternalModelDenialReason | "PROVIDER_FAILED" | "UNPARSEABLE" }; receipt?: OnboardingEnrichmentReceipt };
+
+/**
+ * CV-07/A29 (Chat01): onboarding enrichment goes through the shared
+ * fail-closed internal-model admission. In free-only mode (the default) Groq
+ * is not an allowed internal provider, so this returns the editable
+ * metadata-only draft and makes zero network calls. Outside free-only mode it
+ * still needs an explicit operator daily cap and a durable admission unit
+ * before exactly one attempt; there is no retry and no substitute provider.
+ */
 export async function enrichOnboardingDraft(input: {
   draft: OnboardingDraft;
   websiteUrl: string;
   pageTitle?: string | null;
   pageDescription?: string | null;
   pageText?: string | null;
-}) {
-  const { groqAdapter } = await import("./providers/groq");
-  if (!groqAdapter.configured()) return { draft: input.draft, enriched: false as const };
-  const prompt = buildOnboardingEnrichmentPrompt(input);
-
+}, deps: { adapter?: OnboardingEnrichmentAdapter; admit?: typeof admitInternalModelCall } = {}): Promise<OnboardingEnrichmentResult> {
+  const skip = (reason: InternalModelDenialReason | "PROVIDER_FAILED" | "UNPARSEABLE", admitted = false, receipt?: OnboardingEnrichmentReceipt): OnboardingEnrichmentResult =>
+    ({ draft: input.draft, enriched: false, admission: { admitted, reason }, ...(receipt ? { receipt } : {}) });
+  const admit = deps.admit || admitInternalModelCall;
+  // Policy is checked BEFORE the adapter module is even loaded.
+  const configured = deps.adapter
+    ? deps.adapter.configured()
+    : Boolean(process.env.GROQ_API_KEY && process.env.GROQ_MODEL);
+  let admission: InternalModelAdmission;
   try {
-    const answer = await groqAdapter.run({ promptId: crypto.randomUUID(), text: prompt }, {
+    admission = await admit({ provider: "groq", purpose: "onboarding-enrichment", configured });
+  } catch {
+    return skip("CAPACITY_UNVERIFIED");
+  }
+  if (!admission.admitted) return skip(admission.reason);
+
+  const adapter: OnboardingEnrichmentAdapter = deps.adapter || (await import("./providers/groq")).groqAdapter;
+  const prompt = buildOnboardingEnrichmentPrompt(input);
+  try {
+    // Exactly one admitted attempt. A failure is not retried here; a caller
+    // that wants another attempt must obtain a new admission unit.
+    const answer = await adapter.run({ promptId: crypto.randomUUID(), text: prompt }, {
       signal: AbortSignal.timeout(20_000),
       maxOutputTokens: 700,
       budget: {
         runSpendSoFarUsd: 0,
         monthlySpendSoFarUsd: 0,
-        runLimitUsd: 0.05,
-        monthlyLimitUsd: 5,
+        runLimitUsd: GROQ_SPEND_LIMITS.reservedCostPerPromptUsd,
+        monthlyLimitUsd: GROQ_SPEND_LIMITS.maxMonthlyOrgSpendUsd,
       },
     });
+    const receipt: OnboardingEnrichmentReceipt = {
+      provider: "groq",
+      model: answer.model,
+      requestId: answer.requestId,
+      collectedAt: answer.collectedAt,
+      usage: answer.usage,
+      admissionPeriodKey: admission.periodKey,
+    };
     const enrichment = parseOnboardingEnrichment(answer.answer);
-    if (!enrichment) return { draft: input.draft, enriched: false as const };
-    return { draft: mergeOnboardingEnrichment(input.draft, enrichment), enriched: true as const };
+    if (!enrichment) return skip("UNPARSEABLE", true, receipt);
+    return { draft: mergeOnboardingEnrichment(input.draft, enrichment), enriched: true, admission: { admitted: true }, receipt };
   } catch {
-    return { draft: input.draft, enriched: false as const };
+    return skip("PROVIDER_FAILED", true);
   }
 }
