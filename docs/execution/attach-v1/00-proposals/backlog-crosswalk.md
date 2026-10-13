@@ -1,5 +1,7 @@
 # Original-ID crosswalk — historical evidence, not certified defects
 
+> **Superseded 2026-10-13** by `reconciliation-71.csv` (FM-00 disposition per row on the composed candidate). Kept unchanged below as the 2026-10-12 record.
+
 Base `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`. 71 source rows grouped by exact ID only. Each retains source filename and CSV data-row number (1-based excluding header). Material content changes exist between older and new A08/A09/A15/A18/A19/A20/A21; do not assume byte-equivalence. No item is marked fixed without exact-head acceptance.
 
 | Canonical group | Original source row(s) | Primary packet | Coordinator disposition |

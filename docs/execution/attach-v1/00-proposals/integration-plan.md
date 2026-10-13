@@ -1,5 +1,7 @@
 # FM-00 execution coordination and interface gate — 2026-10-12
 
+> 2026-10-13: contracts as implemented → `interface-contracts.md`; release/migration order → `release-and-rollback-plan.md`; readiness/approval → `readiness-and-approval.md`. The note below that container git was unavailable no longer applies.
+
 **Authority:** `CLAUDE.md`, `FOREMENTION_STATE.md`, `docs/STAGE-0-CUSTOMER-PROOF-90-DAY.md`, issue #283, and current source/code take precedence over 2026-10-11 historical audits. Existing FM workstream ownership is not replaced. This is a coordination proposal, not deployment authorization.
 
 **Base:** main `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9` (observed 2026-10-12 UTC). **Branch:** `fm-attach-v1/00-coordinator`. Never merge to main, deploy, activate billing, run paid calls, contact customers, mutate production records or perform production migrations under this packet. Repository Github connector permits writing isolated files; container git network is unavailable, so fresh local pnpm checks against a clone have not run.

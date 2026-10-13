@@ -1,30 +1,57 @@
-# FM-00 — coordinator checkpoint — 2026-10-12
+# FM-00 — coordinator status — 2026-10-13 (IST) checkpoint: COMPOSED CANDIDATE PUBLISHED
 
-**Branch:** `fm-attach-v1/00-coordinator`. **Canonical starting main SHA:** `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`. **State:** INTEGRATION PENDING / no paid launch go. **Owner:** FM-00. **Current coordinator commits before this status:** plan `7c14d7ed2785f31c6125b7204a182449408a1a84`, crosswalk `4d1cec32b7532cf0fbaa39d53c8574b5952cbb75`.
+**Branch:** `fm-attach-v1/00-coordinator` (draft PR #562). **Canonical base:** `main@6b93c88cd22653fb17c9bec5ca91ca4e997d76b9` (re-fetched, unchanged). **Composed code candidate:** `5425d1ee411fcf4ee33ba11f58b39fbeb6c8c315`. Commits after it on this branch touch only `docs/execution/attach-v1/00-*` (this status + proposals); the exact branch head handed to Chat09 is named in the PR #564 comment and the PR #562 description. **State:** INTEGRATION CANDIDATE READY FOR INDEPENDENT ACCEPTANCE — not a release; no readiness tier certified.
 
-## Actual completed
-1. Located original nested `FM00_Coordinator.zip` inside the stored 10-package archive and safely inspected its source directory. Matched SHA256 for all 18 original *included* sources against manifest. Explicit missing `Foremention_Master_Backlog_28_v2.csv`; do not fabricate.
-2. Parsed/indexed 71 backlog-source records (18 CV, 29 current A, 24 older A); **47 distinct ID groups**. Kept older and newer source references, including updated evidence. Counted v2 route source records (71), surface/state records (92), repository candidate register (124) and supplementary data. Source inventory does not equal runtime verification.
-3. GitHub permissions: admin/push/pull available. Current main resolved as `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`. No `fm-attach-v1/` branches/PRs in initial search. 48 open PRs at snapshot, most predating this package; inspect exact source heads as workers arrive. Issue #283 remains OPEN.
-4. Read `CLAUDE.md`, `FOREMENTION_STATE.md`, Stage-0 policy, release/architecture/test docs. Stage 0 supersedes speculative feature breadth and hypothetical pricing. Current source confirms: `app/contact/page.tsx` checks a persisted design-partner receipt (A01), `app/api/auth/login/route.ts` calls trusted-origin guard (A12), `app/api/prompts/route.ts` uses verified billing entitlements for buyer-question capacity (A03), and migrations for Paddle reservations and package capacity exist. **These are source-presence observations, NOT deployed/isolated/browser acceptance.**
-5. Published a coordination plan, contract expectations, phased release gates, missing-file boundary, all-row ID crosswalk and explicit founder approval step. No app code, root CI, schemas or migrations modified.
+## 1. What was done this checkpoint
+1. Re-fetched all ten `fm-attach-v1/*` heads; each matched the expected SHA. Resumed from prior checkpoint `2aa0c335` (not restarted).
+2. Composed all nine worker heads onto this branch (`--no-ff`, provider-first order 01→02→03→06→04→05→07→08→09). 0 conflicts, 0 shared changed paths. Details: `00-proposals/composition-receipt.md`.
+3. Reviewed every worker migration/schema/code proposal. **Adopted** (integration branch only): Chat03 reservation-settlement migration (required by composed billing routes), Chat02 project-bound prompt RPC migration (A11), Chat02 IPv6 SSRF guard patch (closes the last `todo`). **Held back:** Chat08 commercial-proof migration (sound, 17/17, but no consumer and touches a drifted production constraint), Chat04/Chat01/Chat06 prose-only schema proposals, live-pay CSP/$299 offer. Reasons + reopening conditions in the receipt §3.
+4. Replayed all migrations on disposable PGlite 0.5.9 in `/workspace/work/pkg00-scratch` (outside the lockfile; never production): main 97/97, composed **99/99**; RLS probe 10/10; A11 probe 4/4; settlement 8/8; capacity 5/5.
+5. Ran composed gates locally and pushed; GitHub CI ran on the pushed head (§2).
+6. Reconciled all **71 index rows / 47 IDs** (`00-proposals/reconciliation-71.csv`), wrote interface contracts, the dependency-ordered PR/migration/config/rollback plan, readiness, the one approval step and the founder decision list.
 
-## Checks and limitations
-- Local file-integrity SHA256: **18/18 PASS**. CSV dimensions: backlog 71, routes 71, states 92, repository inventory 124.
-- GitHub read/write: **PASS** via connected connector. Container `git ls-remote`: **BLOCKED**, DNS cannot resolve github.com, so no local clone, pnpm install, tests, lint, typecheck, build or isolated migration replay executed here.
-- Public endpoint direct read via available browser: **BLOCKED**; production health/deploy SHA, payment and customer results unverified.
-- Worker exact heads and Chat09 independent gate: **PENDING**. Full source-to-current-code audit and composed integration: **PENDING**. Do not count historical October 11 runs as current proof.
+## 2. Gates
+| Gate | Local @5425d1ee | GitHub @5425d1ee (pull_request on #562) |
+|---|---|---|
+| Tests | **1530 / 1530 pass, 0 fail, 0 todo** | CI run 38395417070 **success** (includes isolated Supabase-local migration replay of 99 migrations, lint, typecheck, build) |
+| Typecheck | pass | (in CI) |
+| Lint | 0 errors, 11 pre-existing warnings | (in CI) |
+| Build | vinext build complete | (in CI) |
+| Security / CodeQL / AI Safety / Semgrep / Billing Provider Contract / Source Extraction Benchmark | — | **all success** (38395417088 / 38395417208 / 38395417254 / 38395417149 / 38395417064 / 38395417043) |
+| Isolated Authenticated Journey | — | **success** 38395417345 (local Auth/PostgREST/Worker; not a real-Supabase receipt) |
+| Browser Acceptance | — | in progress at write time (prior heads: public only, authenticated=skipped) |
+| Workers Builds (Cloudflare) | — | not readable here; fails on every head incl. main per Chat09 (founder decision 10) |
 
-## Dependencies / requests to worker branches
-01 provide provider/retrieval/provenance/cost receipts; 02 provide RLS/role/origin/privacy negative acceptance; 03 provide sandbox payment lifecycle + schema proposal; 04 five questions/review/Change Specification/later-cycle; 05 public CTA and responsive accessibility; 06 job idempotence/recovery and delivery; 07 license/stack dispositions; 08 verified buyer evidence/support/economics (no alternate startup model transfer); 09 independent exact-head acceptance. Each worker must post own `XX-status.md` and proposal path at exact branch head. FM-00 does not accept mock-only evidence as paid readiness.
+## 3. Reconciliation (71 rows / 47 IDs) — `00-proposals/reconciliation-71.csv`
+| FM-00 disposition | Rows | IDs | IDs |
+|---|---:|---:|---|
+| Verified current pass (nonproduction, composed) | 6 | 4 | CV-07, A04, A12, A29 |
+| Implemented and tested fix (runtime/deploy acceptance pending) | 31 | 21 | CV-01, CV-02, CV-03, CV-08, CV-11, CV-12, CV-17, A01, A02, A03, A08, A09, A10, A13, A14, A17, A21, A25, A26, A27, A28 |
+| Explicit manual bridge | 5 | 3 | CV-13, A06, A23 |
+| Deferred with reopening condition | 1 | 1 | CV-18 (≥3 retained customers with the same blocker + paid request) |
+| External approval / customer-evidence gate | 21 | 14 | CV-04, CV-06, CV-09, CV-10, CV-14, CV-15, CV-16, A05, A07, A18, A19, A20, A22, A24 |
+| Precise blocker | 7 | 4 | CV-05 & A15 (decision `save_key` persistence not specified as SQL by 04), A11 (caller must move to the new RPC; phase-2 revoke), A16 (ruleset bypass `always`, strict off) |
 
-## Release verdict
-Free design-partner candidate **not certified**; paid founder-led pilot **not certified**; self-service **NO-GO**; 20-customer operating readiness **NO-GO**; Stage-0 exit **not evidenced**. No merge/deploy/live billing/catalog changes/outreach/spend or destructive data access performed.
+Changes vs Chat09's 2026-10-13 matrix: A04 BLOCKED→verified (composed suite + CI green; QA09-B7 closed); CV-04 BLOCKED→external gate (code-level isolation green; needs disposable Supabase); A11 stays blocker but its migration half is now in the candidate. A01–A24 appear in both `_29` and `_24`; each pair shares one disposition, rows kept separately. No row was dropped or merged across different IDs.
 
-## Next dependency-ready action
-Refresh `fm-attach-v1/` branches and compare worker exact heads; verify tests and ownership, choose canonical base, reconcile shared migration/CI proposals, build integrated candidate and secure Chat09 independent approval. If workers absent, keep this checkpoint and pursue bounded read-only evidence. One concrete external approval is required before the separately proposed sandbox-to-production release plan; do not infer consent from this documentation PR.
+**Missing-file boundary (corrected).** This workspace holds only the package index files. The 18 original source reports are **not present in this run**; the 2026-10-12 checkpoint's "18/18 SHA-verified from a stored archive" claim cannot be re-verified here and is withdrawn as unverified. Independently re-verified (by Chat07, byte-identical after LF→CRLF): `Foremention_Repository_Register_124.csv` = `docs/repository-register/register-2026-10.csv` on main; competitor source register + knowledge pack = PR #535 head `c79608d9`. **Missing:** `Repository_Register_67.csv` (67 rows carried by Chat07 from 2026-10-12, not re-verified) and `Foremention_Master_Backlog_28_v2.csv` (never fabricated). Route (71) and surface-state (92) originals are unavailable, so row-level route/state mapping is blocked; a current-code inventory replaces it: `00-proposals/route-inventory-composed.csv` (151 entries: 72 pages, 79 API routes; 26 changed by the composition).
 
-**Rollback:** revert this documentation-only PR. No live data changed.
+## 4. Contracts, plan, readiness
+- Interface contracts C1–C8: `00-proposals/interface-contracts.md`.
+- PR / migration / configuration / rollback order (starts with a recovery point; Supabase prod has no backups): `00-proposals/release-and-rollback-plan.md`.
+- Readiness: free design partner **not certified** (closest), paid pilot **not certified**, self-service **NO-GO**, 20-customer **NO-GO**; Stage-0 exit not evidenced. One approval step + 16 founder decisions: `00-proposals/readiness-and-approval.md`.
 
-## 2026-10-12 — Peer discovery checkpoint (subsequent read)
-After the initial no-peer branch lookup, GitHub exposed all nine peer branches. Examined exact refs/write sets and the currently published 01, 03 and 09 status files; remaining status files were absent at inspection. See `00-proposals/peer-dependency-snapshot.md`. Narrow local helper tests (01: 8/8; 03: 3/3) are not composed-gate proof; Chat09's 30 scenario records are explicitly not executed. Coordinator has **not combined** unready worker patches. No production SHA receipt or externally verified billing/customer outcomes obtained.
+## 5. Pending / next action
+- Chat09 independent acceptance on the exact head named in the #564 comment (requested 2026-10-13).
+- Owner follow-ups: Chat04 move the prompt route to `update_prompt_versioned_in_project` and deliver SQL for `save_key` / `question_set_version` / nine-field context / optional `setup_only`; Chat01 adopt the IPv6 lines on its branch; Chat06 email claim/settle SQL.
+- If any worker head moves, re-compose and re-run gates; do not reuse this receipt.
+- No unattended work continues after this turn.
+
+## Hard limits honoured
+No merge to main, no deployment, no production DB access or migration, no Paddle/billing change, no spend, no outreach. Migrations were applied only to an in-process disposable PGlite database and in GitHub CI's throwaway Supabase-local container.
+
+**Rollback:** close PR #562 or reset this branch to `2aa0c335`; worker branches are untouched.
+
+---
+## History
+- 2026-10-12 `7c14d7ed`…`2aa0c335`: documentation-only coordination plan, 71-row crosswalk (`00-proposals/backlog-crosswalk.md`, superseded by `reconciliation-71.csv`), peer snapshot. Container then lacked git network; no tests were run.
