@@ -379,3 +379,132 @@ export function parsePaddleCandidateEvent(rawBody: string): PaddleParsedEvent | 
     occurredAt: effectiveAt,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Chat03 (A02/CV-06) recovery helpers. Read-only GET plus the single
+// documented cancel of an abandoned, never-paid Foremention checkout.
+// ---------------------------------------------------------------------------
+
+type PaddleFetch = typeof fetch;
+
+async function paddleRequest(
+  method: "GET" | "PATCH",
+  path: string,
+  body: Json | null,
+  httpFetch: PaddleFetch,
+): Promise<{ status: number; data: Json | null }> {
+  if (!paddleCandidateConfigured()) throw new Error("Paddle candidate is not configured.");
+  const mode = env("PADDLE_ENVIRONMENT");
+  if (mode !== "sandbox" && mode !== "live") throw new Error("Invalid Paddle environment.");
+  const response = await httpFetch(API_URLS[mode] + path, {
+    method,
+    headers: {
+      Authorization: "Bearer " + env("PADDLE_API_KEY"),
+      Accept: "application/json",
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+    redirect: "error",
+    cache: "no-store",
+    signal: AbortSignal.timeout(4000),
+  });
+  const payload = object(await response.json().catch(() => null));
+  return { status: response.status, data: object(payload?.data) };
+}
+
+/** Fetch one transaction by exact ID. Returns null only for HTTP 404. */
+export async function getPaddleTransaction(transactionId: string, httpFetch: PaddleFetch = fetch) {
+  if (!TRANSACTION_ID.test(transactionId)) throw new Error("Invalid Paddle transaction identity.");
+  const result = await paddleRequest("GET", "/transactions/" + encodeURIComponent(transactionId), null, httpFetch);
+  if (result.status === 404) return null;
+  if (result.status < 200 || result.status >= 300 || !result.data) {
+    throw new Error("Paddle transaction could not be read (HTTP " + result.status + ").");
+  }
+  return result.data;
+}
+
+/**
+ * Cancel an abandoned checkout transaction so it can no longer be paid. Only
+ * called after decidePaddleReservation() returned cancel_then_release, i.e.
+ * the transaction is Foremention-created (custom_data matches), not created
+ * for a subscription, and still draft/ready. Returns the provider status.
+ */
+export async function cancelPaddleCheckoutTransaction(transactionId: string, httpFetch: PaddleFetch = fetch) {
+  if (!TRANSACTION_ID.test(transactionId)) throw new Error("Invalid Paddle transaction identity.");
+  const result = await paddleRequest("PATCH", "/transactions/" + encodeURIComponent(transactionId), { status: "canceled" }, httpFetch);
+  if (result.status < 200 || result.status >= 300 || !result.data || result.data.id !== transactionId) {
+    throw new Error("Paddle transaction could not be canceled (HTTP " + result.status + ").");
+  }
+  return typeof result.data.status === "string" ? result.data.status : null;
+}
+
+export type PaddleCatalogIndependentLifecycle = {
+  eventId: string;
+  occurredAt: string;
+  state: "past_due" | "paused" | "cancelled";
+  externalSubscriptionId: string;
+  externalCustomerId: string;
+};
+
+/**
+ * Subscription state events for a subscription whose price is no longer in
+ * the configured catalog (archived/repriced). The normal parser ignores them
+ * because it maps the package from the CURRENT catalog, which would leave a
+ * cancelled/paused subscription active until its paid-period bound. This
+ * parser returns identity + state only; the route must admit it against the
+ * stored exact subscription+customer identity and take the package from the
+ * persisted verified entitlement, never from provider metadata.
+ */
+export function parsePaddleCatalogIndependentLifecycle(rawBody: string): PaddleCatalogIndependentLifecycle | null {
+  let event: Json | null;
+  try { event = object(JSON.parse(rawBody)); } catch { return null; }
+  if (!event) return null;
+  const expected: Record<string, PaddleCatalogIndependentLifecycle["state"]> = {
+    "subscription.past_due": "past_due",
+    "subscription.paused": "paused",
+    "subscription.canceled": "cancelled",
+  };
+  const eventType = idFrom(event.event_type);
+  const state = eventType ? expected[eventType] : undefined;
+  if (!state) return null;
+  const eventId = idFrom(event.event_id);
+  const effectiveAt = occurredAt(event.occurred_at);
+  const data = object(event.data);
+  if (!eventId || !/^evt_[a-z0-9]{26}$/.test(eventId) || !effectiveAt || !data) return null;
+  if (data.status !== (state === "cancelled" ? "canceled" : state)) return null;
+  const subscriptionId = idFrom(data.id);
+  const customerId = idFrom(data.customer_id);
+  if (!subscriptionId || !SUBSCRIPTION_ID.test(subscriptionId) || !customerId || !CUSTOMER_ID.test(customerId)) return null;
+  return { eventId, occurredAt: effectiveAt, state, externalSubscriptionId: subscriptionId, externalCustomerId: customerId };
+}
+
+/**
+ * A completed, positive-value transaction that the entitlement parser could
+ * not map (multiple items, quantity != 1, unconfigured price) but that is
+ * clearly Foremention's (our custom_data, or one of our configured prices).
+ * Acknowledging it as "ignored" would silently keep a customer's money with
+ * no access and no record, so the route answers a retryable non-2xx and the
+ * event stays visible in Paddle's notification log for operator review.
+ */
+export function paddleUnmappedForementionPayment(rawBody: string): { eventId: string; transactionId: string } | null {
+  let event: Json | null;
+  try { event = object(JSON.parse(rawBody)); } catch { return null; }
+  if (!event || event.event_type !== "transaction.completed") return null;
+  const data = object(event.data);
+  const eventId = idFrom(event.event_id);
+  const transactionId = idFrom(data?.id);
+  if (!data || !eventId || !transactionId || !TRANSACTION_ID.test(transactionId) || data.status !== "completed") return null;
+  const grandTotal = object(object(data.details)?.totals)?.grand_total;
+  if (typeof grandTotal !== "string" || !/^[1-9][0-9]*$/.test(grandTotal)) return null;
+  if (singleConfiguredPackage(data)) return null; // mappable: normal parser decides
+  const custom = object(data.custom_data);
+  const ours = Boolean(custom && (typeof custom.organizationId === "string" || typeof custom.checkoutReservationId === "string"));
+  const configured = new Set(configuredPrices().map((row) => row.priceId));
+  const items = Array.isArray(data.items) ? data.items : [];
+  const usesOurPrice = items.some((entry) => {
+    const item = object(entry);
+    const priceId = idFrom(object(item?.price)?.id) || idFrom(item?.price_id);
+    return Boolean(priceId && configured.has(priceId));
+  });
+  return ours || usesOurPrice ? { eventId, transactionId } : null;
+}

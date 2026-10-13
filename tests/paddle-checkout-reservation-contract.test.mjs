@@ -79,10 +79,16 @@ test("initial paid Paddle webhook must match a stored transaction reservation be
   assert.match(source, /async function paddlePaidTransactionAdmitted/);
   assert.match(source, /billing_checkout_reservations\?select=organization_id,package_key,billing_interval,state/);
   assert.match(source, /external_transaction_id=eq\./);
-  assert.match(source, /rows\[0\]\.organization_id === organizationId/);
-  assert.match(source, /rows\[0\]\.package_key === parsed\.packageKey/);
-  assert.match(source, /rows\[0\]\.billing_interval === parsed\.billingInterval/);
-  assert.match(source, /rows\[0\]\.state === "ready"/);
+  // Chat03: the reservation predicate is factored into a tested helper so a
+  // settled reservation keeps admitting ONLY its own paid redelivery. Assert
+  // the exact guarded semantics there instead of inline duplicates.
+  const reservationHelper = await load("lib/paddle-checkout-reconciliation.ts");
+  assert.match(source, /rows\.length === 1 && reservationAdmitsPaidTransaction\(rows\[0\], \{\s*organizationId,\s*packageKey: parsed\.packageKey,\s*billingInterval: parsed\.billingInterval,\s*transactionId: parsed\.externalTransactionId,/);
+  assert.match(reservationHelper, /row\.organization_id !== expected\.organizationId/);
+  assert.match(reservationHelper, /row\.package_key !== expected\.packageKey/);
+  assert.match(reservationHelper, /row\.billing_interval !== expected\.billingInterval/);
+  assert.match(reservationHelper, /if \(row\.state === "ready"\) return true;/);
+  assert.match(reservationHelper, /row\.state === "reconciled" && row\.reconciliation_evidence === "paid:" \+ expected\.transactionId/);
   assert.match(source, /parsed\.transactionOrigin === "subscription_recurring"/);
   assert.match(source, /parsed\.transactionOrigin === "subscription_update"/);
   // Subscription/customer checks are factored into a shared, tested helper
@@ -94,7 +100,7 @@ test("initial paid Paddle webhook must match a stored transaction reservation be
   assert.match(identity, /rows\[0\]\.external_subscription_id === subscriptionId/);
   assert.match(identity, /rows\.length === 1/);
   const correlation = source.indexOf("paddlePaidTransactionAdmitted(parsed, organizationId)");
-  const mutation = source.indexOf("return billingMutationResponse(event, provider.id)");
+  const mutation = source.indexOf("return billingMutationResponse(event, provider.id, settlement)");
   assert.ok(correlation > -1 && mutation > correlation);
   assert.match(adapter, /externalTransactionId\?: string \| null/);
   assert.match(parser, /externalTransactionId: idFrom\(data\.id\)/);
