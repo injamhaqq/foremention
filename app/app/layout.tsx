@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { requireViewer } from "@/lib/auth";
-import { loadNotifications, loadWorkspaceSummary } from "@/lib/data";
+import { loadNotifications, loadWorkspaceProjects, loadWorkspaceSummary } from "@/lib/data";
 import { PostHogIdentity } from "@/components/posthog-analytics";
 import { RetentionSurfaceBridge } from "@/components/retention-surface-bridge";
 import { WorkspaceActivationAnalytics } from "@/components/workspace-activation-analytics";
@@ -16,12 +16,13 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   // Authentication must never become a Cloudflare Worker exception because
   // the workspace database is temporarily unavailable. The child route still
   // decides whether to show onboarding, data, or a recoverable error state.
-  const [workspace, notifications] = await Promise.all([
+  const [workspace, projects, notifications] = await Promise.all([
     loadWorkspaceSummary(viewer).catch((error) => {
       console.error("Workspace summary unavailable", error);
       return null;
     }),
+    loadWorkspaceProjects(viewer).catch(() => []),
     loadNotifications(viewer).catch(() => []),
   ]);
-  return <AppShell viewer={viewer} workspaceName={workspace?.organizationName} notifications={notifications}><PostHogIdentity viewerId={viewer.id} organizationId={workspace?.organizationId} demo={viewer.mode === "demo"} /><WorkspaceActivationAnalytics demo={viewer.mode === "demo"} /><RetentionSurfaceBridge />{children}</AppShell>;
+  return <AppShell viewer={viewer} organizationName={workspace?.organizationName} projects={projects} activeProjectId={workspace?.projectId} notifications={notifications}><PostHogIdentity viewerId={viewer.id} organizationId={workspace?.organizationId} demo={viewer.mode === "demo"} /><WorkspaceActivationAnalytics demo={viewer.mode === "demo"} /><RetentionSurfaceBridge />{children}</AppShell>;
 }

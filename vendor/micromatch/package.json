@@ -1,0 +1,48 @@
+{
+  "name": "@foremention/micromatch",
+  "description": "Glob matching for javascript/node.js. A replacement and faster alternative to minimatch and multimatch.",
+  "version": "4.0.8-foremention.1",
+  "private": true,
+  "homepage": "https://github.com/micromatch/micromatch",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "(https://github.com/DianeLooney)",
+    "Amila Welihinda (amilajack.com)",
+    "Bogdan Chadkin (https://github.com/TrySound)",
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Devon Govett (http://badassjs.com)",
+    "Elan Shanker (https://github.com/es128)",
+    "Fabrício Matté (https://ultcombo.js.org)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Martin Kolárik (https://kolarik.sk)",
+    "Olsten Larck (https://i.am.charlike.online)",
+    "Paul Miller (paulmillr.com)",
+    "Tom Byrer (https://github.com/tomByrer)",
+    "Tyler Akins (http://rumkin.com)",
+    "Peter Bright <drpizza@quiscalusmexicanus.org> (https://github.com/drpizza)",
+    "Kuba Juszczyk (https://github.com/ku8ar)"
+  ],
+  "repository": "micromatch/micromatch",
+  "bugs": {
+    "url": "https://github.com/micromatch/micromatch/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "LICENSE"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=8.6"
+  },
+  "dependencies": {
+    "@foremention/braces": "file:../braces",
+    "picomatch": "^2.3.1"
+  },
+  "forementionProvenance": {
+    "baseVersion": "4.0.8",
+    "upstreamRepository": "micromatch/micromatch",
+    "upstreamTag": "4.0.8",
+    "purpose": "Downstream dependency-chain fork that resolves brace handling to @foremention/braces."
+  }
+}

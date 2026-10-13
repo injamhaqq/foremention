@@ -8,6 +8,7 @@ function publicSurface(pathname: string) {
   if (pathname === "/") return "home";
   if (pathname === "/product") return "product";
   if (pathname === "/pricing") return "pricing";
+  if (pathname === "/use-cases") return "use_cases";
   return "public_other";
 }
 
@@ -21,8 +22,16 @@ export function PublicActivationAnalytics() {
     const onDocumentClick = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (!target.closest("[data-design-partner-cta]")) return;
-      captureProductEvent("design_partner_cta_clicked", { surface: publicSurface(pathname) });
+      const surface = publicSurface(pathname);
+      if (target.closest("[data-public-sample-open]")) {
+        captureProductEvent("sample_opened", { surface });
+      }
+      if (target.closest("[data-public-evidence-inspect]")) {
+        captureProductEvent("evidence_inspected", { surface });
+      }
+      if (target.closest("[data-design-partner-cta]")) {
+        captureProductEvent("design_partner_cta_clicked", { surface });
+      }
     };
 
     document.addEventListener("click", onDocumentClick);
@@ -72,10 +81,8 @@ export function PublicActivationAnalytics() {
 
     if (pathname === "/contact") {
       captureProductEvent("design_partner_page_viewed");
-      if (new URLSearchParams(window.location.search).get("submitted") === "1") {
-        captureProductEvent("design_partner_application_submitted");
-      }
-
+      // Server-proven persistence is the only source of a submitted-application
+      // milestone; browser URL flags and page refreshes are not conversions.
       const form = document.querySelector<HTMLFormElement>("[data-design-partner-form]");
       if (!form) return;
       designPartnerStartCaptured.current = false;

@@ -1,17 +1,19 @@
 import type { Viewer } from "@/lib/auth";
 import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
 import { loadWorkspaceContext } from "@/lib/data";
+import { coerceComparableMeasurementContext } from "@/lib/intelligence-comparability";
 import {
-  assessExactQuestionComparability,
-  coerceComparableMeasurementContext,
-  type ComparableQuestionSlot,
-} from "@/lib/intelligence-comparability";
+  assessCompleteVerifiedRunPair,
+  MAX_VERIFIED_RUN_PAIR_ANSWERS,
+  validPairedRunAnswerBudget,
+} from "@/lib/run-pair-answer-gate";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type RunRow = {
   id: string;
   status: string;
   methodology_version: string | null;
+  answer_count: number | null;
   created_at: string;
 };
 
@@ -22,6 +24,7 @@ type VerifiedAnswerRow = {
   provider: string;
   model: string | null;
   measurement_context_json: unknown;
+  answer_text: string;
   citations_json: Array<{ url?: string; title?: string }> | null;
   brand_present: boolean | null;
 };
@@ -34,6 +37,8 @@ export type VerifiedRunComparisonAnswer = {
   model: string;
   citations: Array<{ url: string; title?: string }>;
   brandPresent: boolean | null;
+  answerText: string;
+  measurementContext: ReturnType<typeof coerceComparableMeasurementContext>;
 };
 
 export type RunPairComparability = {
@@ -65,6 +70,8 @@ function answerView(row: VerifiedAnswerRow): VerifiedRunComparisonAnswer | null 
     model,
     citations,
     brandPresent: row.brand_present,
+    answerText: row.answer_text,
+    measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
   };
 }
 
@@ -92,7 +99,7 @@ export async function assessWorkspaceRunPairComparability(
   if (!context) return withheld("The active workspace could not be verified.");
 
   const runs = await supabaseRest<RunRow[]>(
-    `runs?select=id,status,methodology_version,created_at&organization_id=eq.${context.organizationId}&id=in.(${earlierRunId},${laterRunId})&limit=2`,
+    `runs?select=id,status,methodology_version,answer_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=in.(${earlierRunId},${laterRunId})&limit=2`,
     { token: viewer.accessToken },
   );
   const byId = new Map(runs.map((run) => [run.id, run]));
@@ -114,20 +121,15 @@ export async function assessWorkspaceRunPairComparability(
     return withheld("The methodology version changed between these reviewed collections.");
   }
 
+  const budget = validPairedRunAnswerBudget(earlier, later);
+  if (!budget.comparable) return withheld(budget.reason || "The reviewed collections exceed the bounded comparison evidence budget.");
+
   const rows = await supabaseRest<VerifiedAnswerRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=500`,
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=${MAX_VERIFIED_RUN_PAIR_ANSWERS}`,
     { token: viewer.accessToken },
   );
-  const slots: ComparableQuestionSlot[] = rows.map((row) => ({
-    runId: row.run_id,
-    promptKey: row.prompt_key,
-    promptText: row.prompt_text,
-    provider: row.provider,
-    model: row.model,
-    measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
-  }));
-  const assessment = assessExactQuestionComparability(laterRunId, earlierRunId, slots);
-  if (!assessment.comparable) return withheld(assessment.reason || "The reviewed collections are not exactly comparable.");
+  const assessment = assessCompleteVerifiedRunPair(earlier, later, rows);
+  if (!assessment.comparable) return withheld(assessment.reason || "The complete verified answer sets are not exactly comparable.");
 
   const answers = rows.map(answerView).filter((answer): answer is VerifiedRunComparisonAnswer => Boolean(answer));
   if (answers.length !== rows.length) {

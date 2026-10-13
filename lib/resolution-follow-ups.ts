@@ -11,6 +11,7 @@ export type ComparableRunTerminalStatus = "complete" | "partial" | "failed" | "c
  */
 export async function finalizeResolutionFollowUpsForRun(input: {
   organizationId: string;
+  projectId: string;
   runId: string;
   runStatus: ComparableRunTerminalStatus;
   recordedBy?: string | null;
@@ -21,7 +22,7 @@ export async function finalizeResolutionFollowUpsForRun(input: {
 
   try {
     await supabaseRest(
-      `resolution_follow_ups?organization_id=eq.${input.organizationId}&rerun_id=eq.${input.runId}&status=eq.queued`,
+      `resolution_follow_ups?organization_id=eq.${input.organizationId}&project_id=eq.${input.projectId}&rerun_id=eq.${input.runId}&status=eq.queued`,
       {
         method: "PATCH",
         serviceRole: true,

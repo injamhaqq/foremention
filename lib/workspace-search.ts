@@ -1,6 +1,8 @@
 import type { Viewer } from "@/lib/auth";
 import { loadPrompts, loadWorkspaceCompetitors, loadWorkspaceContext } from "@/lib/data";
 import { buildDemoWorkspaceSearch } from "@/lib/demo-workspace-search";
+import { filterPlacementsToProject, loadProjectPlacementScope, MAX_PROJECT_PLACEMENTS } from "@/lib/project-placement-scope";
+import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export type WorkspaceSearchKind = "Question" | "AI Result" | "Source" | "Competitor" | "Opportunity" | "Action";
@@ -20,10 +22,10 @@ export type WorkspaceSearchResponse = {
 
 type PromptRow = { id: string; prompt_text: string; prompt_key: string; active: boolean };
 type AnswerRow = { id: string; run_id: string; prompt_text: string | null; prompt_key: string; answer_text: string; provider: string; model: string | null; collected_at: string };
-type SourceRow = { id: string; domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_checked_at: string | null };
+type SourceRow = { id: string; source: { id: string; domain: string; page_title: string | null; canonical_url: string; source_type: string | null; crawler_checked_at: string | null } | null };
 type CompetitorRow = { id: string; name: string; website: string | null; competitor_type: string; active: boolean };
 type OpportunityRow = { id: string; citation_observations: number; entry_route: string | null; feasibility: string; influence: string; source: { domain: string; page_title: string | null; canonical_url: string; crawler_checked_at: string | null } | null };
-type ActionRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string };
+type ActionRow = { id: string; source_url: string; page_title: string | null; entry_route: string; stage: string; updated_at: string; target_prompt_ids: string[] | null; baseline_run_id: string | null; remeasurement_run_id: string | null };
 
 const PLACEMENT_STAGES = new Set([
   "identified",
@@ -79,6 +81,19 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
   if (!context) return { query, results: [], failedKinds: [] };
   const pattern = contains(query);
   const token = viewer.accessToken;
+  const [sourceMap, placementScope] = await Promise.all([
+    loadLatestProjectSourceMapRef({
+      organizationId: context.organizationId,
+      projectId: context.projectId,
+      categoryId: context.categoryId,
+      token,
+    }),
+    loadProjectPlacementScope({
+      organizationId: context.organizationId,
+      projectId: context.projectId,
+      token,
+    }),
+  ]);
   const normalizedStage = query.toLowerCase().replace(/\s+/g, "_");
   const actionFilters = [
     `source_url.ilike.${pattern}`,
@@ -99,40 +114,46 @@ export async function searchWorkspace(viewer: Viewer, rawQuery: string): Promise
       `run_answers?select=id,run_id,prompt_text,prompt_key,answer_text,provider,model,collected_at,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run.project_id=eq.${context.projectId}&review_status=eq.verified&or=(prompt_text.ilike.${pattern},prompt_key.ilike.${pattern},answer_text.ilike.${pattern})&order=collected_at.desc&limit=12`,
       { token },
     )),
-    attempt("Source", supabaseRest<SourceRow[]>(
-      `sources?select=id,domain,page_title,canonical_url,source_type,crawler_checked_at&organization_id=eq.${context.organizationId}&or=(domain.ilike.${pattern},page_title.ilike.${pattern},canonical_url.ilike.${pattern})&order=updated_at.desc&limit=12`,
+    attempt("Source", sourceMap ? supabaseRest<SourceRow[]>(
+      `source_map_entries?select=id,source:sources!inner(id,domain,page_title,canonical_url,source_type,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${sourceMap.id}&order=rank.asc&limit=250`,
       { token },
-    )),
+    ) : Promise.resolve([])),
     attempt("Competitor", supabaseRest<CompetitorRow[]>(
       `competitors?select=id,name,website,competitor_type,active&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&or=(name.ilike.${pattern},website.ilike.${pattern})&order=updated_at.desc&limit=12`,
       { token },
     )),
-    attempt("Opportunity", supabaseRest<OpportunityRow[]>(
-      `source_map_entries?select=id,citation_observations,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,crawler_checked_at)&organization_id=eq.${context.organizationId}&client_present=eq.false&order=rank.asc&limit=100`,
+    attempt("Opportunity", sourceMap ? supabaseRest<OpportunityRow[]>(
+      `source_map_entries?select=id,citation_observations,entry_route,feasibility,influence,source:sources(domain,page_title,canonical_url,crawler_checked_at)&organization_id=eq.${context.organizationId}&source_map_id=eq.${sourceMap.id}&client_present=eq.false&order=rank.asc&limit=100`,
       { token },
-    )),
-    attempt("Action", supabaseRest<ActionRow[]>(
-      `placements?select=id,source_url,page_title,entry_route,stage,updated_at&organization_id=eq.${context.organizationId}&or=(${actionOr})&order=updated_at.desc&limit=12`,
+    ) : Promise.resolve([])),
+    attempt("Action", placementScope ? supabaseRest<ActionRow[]>(
+      `placements?select=id,source_url,page_title,entry_route,stage,updated_at,target_prompt_ids,baseline_run_id,remeasurement_run_id&organization_id=eq.${context.organizationId}&or=(${actionOr})&order=updated_at.desc&limit=${MAX_PROJECT_PLACEMENTS + 1}`,
       { token },
-    )),
+    ) : Promise.resolve([])),
   ]);
 
   const failedKinds = searches.filter((item) => item.failed).map((item) => item.kind);
   const [questions, answers, sources, competitors, opportunities, actions] = searches.map((item) => item.value) as [PromptRow[] | null, AnswerRow[] | null, SourceRow[] | null, CompetitorRow[] | null, OpportunityRow[] | null, ActionRow[] | null];
   const lower = query.toLocaleLowerCase();
+  const sourceRows = (sources || []).filter((item) => {
+    if (!item.source) return false;
+    const haystack = `${item.source.domain} ${item.source.page_title || ""} ${item.source.canonical_url}`.toLocaleLowerCase();
+    return haystack.includes(lower);
+  }).slice(0, 12);
   const opportunityRows = (opportunities || []).filter((item) => {
     if (!item.source?.crawler_checked_at) return false;
     const haystack = `${item.source.domain} ${item.source.page_title || ""} ${item.source.canonical_url} ${item.entry_route || ""}`.toLocaleLowerCase();
     return haystack.includes(lower);
   }).slice(0, 12);
 
+  const scopedActions = placementScope ? filterPlacementsToProject(actions || [], placementScope).slice(0, 12) : [];
   const results: WorkspaceSearchResult[] = [
     ...(questions || []).map((item) => ({ id: `question-${item.id}`, kind: "Question" as const, title: item.prompt_text || item.prompt_key, detail: item.active ? "Active buyer question" : "Paused buyer question", meta: "Questions", href: "/app/prompts" })),
     ...(answers || []).map((item) => ({ id: `answer-${item.id}`, kind: "AI Result" as const, title: item.prompt_text || item.prompt_key, detail: excerpt(item.answer_text), meta: `${item.provider}${item.model ? ` · ${item.model}` : ""} · ${dateLabel(item.collected_at)}`, href: `/app/runs/${item.run_id}` })),
-    ...(sources || []).map((item) => ({ id: `source-${item.id}`, kind: "Source" as const, title: item.page_title || item.domain, detail: item.canonical_url, meta: `${item.source_type || "Cited source"}${item.crawler_checked_at ? ` · reviewed ${dateLabel(item.crawler_checked_at)}` : " · needs review"}`, href: "/app/source-map" })),
+    ...sourceRows.flatMap((item) => item.source ? [{ id: `source-${item.id}`, kind: "Source" as const, title: item.source.page_title || item.source.domain, detail: item.source.canonical_url, meta: `${item.source.source_type || "Cited source"}${item.source.crawler_checked_at ? ` · reviewed ${dateLabel(item.source.crawler_checked_at)}` : " · needs review"}`, href: "/app/source-map" }] : []),
     ...(competitors || []).map((item) => ({ id: `competitor-${item.id}`, kind: "Competitor" as const, title: item.name, detail: item.website || `${item.competitor_type} competitor`, meta: item.active ? "Tracking active" : "Tracking paused", href: "/app/competitors" })),
     ...opportunityRows.map((item) => ({ id: `opportunity-${item.id}`, kind: "Opportunity" as const, title: item.source?.page_title || item.source?.domain || "Reviewed source gap", detail: "Human-reviewed cited page where your brand was not observed.", meta: `${item.citation_observations} citation observation${item.citation_observations === 1 ? "" : "s"}${item.entry_route ? ` · ${item.entry_route}` : ""}`, href: "/app/opportunities" })),
-    ...(actions || []).map((item) => ({ id: `action-${item.id}`, kind: "Action" as const, title: item.page_title || item.source_url, detail: `${item.stage} · ${item.entry_route}`, meta: `Updated ${dateLabel(item.updated_at)}`, href: "/app/placements" })),
+    ...scopedActions.map((item) => ({ id: `action-${item.id}`, kind: "Action" as const, title: item.page_title || item.source_url, detail: `${item.stage} · ${item.entry_route}`, meta: `Updated ${dateLabel(item.updated_at)}`, href: "/app/placements" })),
   ];
 
   return { query, results, failedKinds };

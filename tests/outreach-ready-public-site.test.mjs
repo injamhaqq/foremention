@@ -17,7 +17,7 @@ function switchCaseBody(source, eventName) {
 test("public navigation exposes the shortest useful path to product, pricing, research, trust, and conversion", async () => {
   const shell = await read("components/public-shell.tsx");
 
-  for (const label of ["Product", "How it works", "Pricing", "Research", "Trust", "Sign in", "Apply as Design Partner"]) {
+  for (const label of ["Product", "How it works", "Pricing", "Research", "Trust", "Sign in", "Request a pilot"]) {
     assert.match(shell, new RegExp(label));
   }
 
@@ -31,16 +31,18 @@ test("public navigation exposes the shortest useful path to product, pricing, re
   assert.match(shell, /Analytics settings/);
 });
 
-test("homepage leads with the company-change outcome and shows the complete decision workflow", async () => {
+test("homepage leads with the approved recommendation promise and shows the complete decision workflow", async () => {
   const [page, home] = await Promise.all([
     read("app/page.tsx"),
     read("components/goat-home-experience.tsx"),
   ]);
 
-  assert.match(home, /Know what your company should change next to become the stronger recommendation\./);
-  assert.match(home, /Apply as Design Partner/);
-  assert.match(home, /See how it works/);
-  assert.match(home, /LIVE RECORD \/ ILLUSTRATIVE/);
+  assert.match(home, /See where AI recommends your brand\./);
+  assert.match(home, /Track recommendations, inspect supporting sources, and decide what to improve\./);
+  assert.match(home, /Request a pilot/);
+  assert.match(home, /Explore a sample/);
+  assert.match(home, /ILLUSTRATIVE RECOMMENDATION RECORD/);
+  assert.doesNotMatch(home, /LIVE RECORD/);
   assert.match(home, /Evidence inspection/);
   assert.match(home, /Why are competitors being recommended/);
   assert.match(home, /Buyer question/);
@@ -58,7 +60,7 @@ test("homepage leads with the company-change outcome and shows the complete deci
   assert.match(home, /Sometimes the right answer is: do not do it\./);
   assert.match(home, /Become a Foremention Design Partner/);
   assert.match(home, /Bring 5 important buyer questions/);
-  assert.match(page, /what your company should change next/i);
+  assert.match(page, /See where AI recommends your brand/i);
 });
 
 test("product page explains Recommendation Engineering value without changing the public category claim", async () => {
@@ -76,18 +78,21 @@ test("product page explains Recommendation Engineering value without changing th
 });
 
 test("design-partner conversion is the primary contact flow and is measured without form-value capture", async () => {
-  const [contact, analytics, contract] = await Promise.all([
+  const [contact, analytics, contract, serverRoute] = await Promise.all([
     read("app/contact/page.tsx"),
     read("components/public-activation-analytics.tsx"),
     read("lib/product-analytics-contract.ts"),
+    read("app/api/design-partner/route.ts"),
   ]);
 
   assert.match(contact, /Apply as Design Partner/);
-  assert.match(contact, /Bring 5 priority buyer questions/);
+  assert.match(contact, /Bring five buyer questions\. Review the evidence and choose a change worth testing\./);
+  assert.match(contact, /We could not verify a saved application/);
   assert.match(contact, /comparable remeasurement/);
   assert.match(analytics, /design_partner_page_viewed/);
   assert.match(analytics, /design_partner_application_started/);
-  assert.match(analytics, /design_partner_application_submitted/);
+  assert.doesNotMatch(analytics, /captureProductEvent\("design_partner_application_submitted"/);
+  assert.match(serverRoute, /capturePersistedDesignPartnerSubmission/);
   assert.match(analytics, /design_partner_cta_impression/);
   assert.match(analytics, /design_partner_cta_clicked/);
   assert.match(contract, /design_partner_cta_impression/);

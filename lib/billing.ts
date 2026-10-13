@@ -9,6 +9,7 @@ export type VerifiedBillingEvent = {
   externalSubscriptionId?: string | null;
   eventId: string;
   occurredAt?: string | null;
+  accessUntil?: string | null;
 };
 
 export type BillingEntitlementGrant = {
@@ -24,6 +25,9 @@ const STATES = new Set<BillingLifecycleState>(["trialing", "active", "past_due",
 export function billingConfigured() {
   return Boolean(process.env.BILLING_WEBHOOK_SECRET && process.env.BILLING_PROVIDER_ID);
 }
+
+/** Days a paid period stays active after its end while the renewal charge webhook arrives. */
+export const PAID_PERIOD_RENEWAL_BUFFER_DAYS = 3;
 
 export function billingGracePeriodDays() {
   const raw = process.env.BILLING_GRACE_PERIOD_DAYS?.trim();
@@ -70,6 +74,9 @@ export function parseVerifiedBillingEvent(rawBody: string): VerifiedBillingEvent
   const occurredAt = typeof data.occurredAt === "string" && Number.isFinite(new Date(data.occurredAt).getTime())
     ? new Date(data.occurredAt).toISOString()
     : null;
+  const accessUntil = typeof data.accessUntil === "string" && Number.isFinite(new Date(data.accessUntil).getTime())
+    ? new Date(data.accessUntil).toISOString()
+    : null;
   return {
     organizationId,
     packageKey: packageKey as VerifiedBillingEvent["packageKey"],
@@ -78,6 +85,7 @@ export function parseVerifiedBillingEvent(rawBody: string): VerifiedBillingEvent
     externalSubscriptionId: typeof data.externalSubscriptionId === "string" ? data.externalSubscriptionId.slice(0, 255) : null,
     eventId,
     occurredAt,
+    ...(accessUntil ? { accessUntil } : {}),
   };
 }
 
@@ -86,9 +94,32 @@ export function entitlementsForBillingEvent(event: VerifiedBillingEvent) {
 }
 
 export function entitlementGrantForBillingEvent(event: VerifiedBillingEvent, now?: Date): BillingEntitlementGrant {
-  if (event.state === "cancelled") return { status: "cancelled", expiresAt: null, gracePeriodEndsAt: null };
+  if (event.state === "cancelled") {
+    const reference = now || new Date();
+    const paidThrough = event.accessUntil ? new Date(event.accessUntil) : null;
+    if (
+      paidThrough
+      && Number.isFinite(reference.getTime())
+      && Number.isFinite(paidThrough.getTime())
+      && paidThrough > reference
+    ) {
+      return { status: "active", expiresAt: paidThrough.toISOString(), gracePeriodEndsAt: null };
+    }
+    return { status: "cancelled", expiresAt: null, gracePeriodEndsAt: null };
+  }
   if (event.state === "paused") return { status: "paused", expiresAt: null, gracePeriodEndsAt: null };
-  if (event.state !== "past_due") return { status: "active", expiresAt: null, gracePeriodEndsAt: null };
+  if (event.state !== "past_due") {
+    // A paid charge carries the end of the period it pays for (A03). Paid
+    // capacity then expires on its own unless a renewal charge extends it, so
+    // a lost cancellation webhook can never leave 25/100 questions open
+    // forever. The buffer covers normal renewal-webhook latency.
+    const paidThrough = event.accessUntil ? new Date(event.accessUntil) : null;
+    if (paidThrough && Number.isFinite(paidThrough.getTime())) {
+      const bufferMs = (PAID_PERIOD_RENEWAL_BUFFER_DAYS + billingGracePeriodDays()) * 24 * 60 * 60 * 1000;
+      return { status: "active", expiresAt: new Date(paidThrough.getTime() + bufferMs).toISOString(), gracePeriodEndsAt: null };
+    }
+    return { status: "active", expiresAt: null, gracePeriodEndsAt: null };
+  }
 
   const graceDays = billingGracePeriodDays();
   if (graceDays <= 0) return { status: "paused", expiresAt: null, gracePeriodEndsAt: null };

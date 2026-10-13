@@ -33,9 +33,10 @@ test("Source Maps inherit the exact persisted methodology of their collection ru
   assert.doesNotMatch(sourceMap, /const METHODOLOGY_VERSION/);
 });
 
-test("the legacy weekly scheduler cannot silently drift from the registry version", async () => {
-  const jobs = await text("lib/jobs/inngest.ts");
-  const match = jobs.match(/methodology_version:\s*["']([^"']+)["']/);
-  assert.ok(match, "weekly scheduled run methodology stamp must remain explicit until the scheduler is moved onto the registry helper");
-  assert.equal(match[1], currentObservationMethodologyVersion());
+test("Measurement Schedule dispatch cannot silently drift from the registry version", async () => {
+  const dispatcher = await text("lib/jobs/measurement-schedule-dispatcher.ts");
+  assert.match(dispatcher, /currentObservationMethodologyVersion/);
+  assert.match(dispatcher, /schedule\.methodology_snapshot !== currentObservationMethodologyVersion\(\)/);
+  assert.match(dispatcher, /methodology_version: schedule\.methodology_snapshot/);
+  assert.doesNotMatch(dispatcher, /methodology_version:\s*["']3\.0["']/);
 });

@@ -7,6 +7,7 @@ import {
   type ProviderId,
   type ProviderPrompt,
 } from "@/lib/providers/types";
+import { assessGatewayRoutedResponse, gatewayMeasurementPin } from "@/lib/measurement-lane.mjs";
 
 type GatewayProviderId = Extract<ProviderId, "zenmux" | "omnirouters">;
 
@@ -90,7 +91,13 @@ export function createOpenAiCompatibleGateway(config: GatewayConfig): AnswerProv
     configured: () => Boolean(process.env[config.apiKeyEnv] && process.env[config.modelEnv]),
     async run(prompt: ProviderPrompt, options): Promise<ProviderAnswer> {
       const started = Date.now();
-      const model = String(process.env[config.modelEnv]);
+      // Lane A: a gateway is a measurement provider only when pinned to one exact
+      // upstream provider + non-routing model, and the response must prove it.
+      const pin = gatewayMeasurementPin(config.id, process.env);
+      if (!pin.pinned) {
+        throw new ProviderRequestError(config.label, 422, `Measurement requires an exact pinned upstream provider and model (${pin.reason}).`);
+      }
+      const model = pin.model;
       const response = await fetch(config.endpoint, {
         method: "POST",
         signal: options.signal,
@@ -114,6 +121,10 @@ export function createOpenAiCompatibleGateway(config: GatewayConfig): AnswerProv
       const raw = await response.json().catch(() => ({})) as GatewayResponse;
       if (!response.ok) throw new ProviderRequestError(config.label, response.status, raw.error?.message);
 
+      const routing = assessGatewayRoutedResponse(pin, { model: raw.model, provider: raw.provider });
+      if (!routing.ok) {
+        throw new ProviderRequestError(config.label, 422, `The response did not prove the pinned upstream provider and model (${routing.reason}); it is not comparable measurement evidence.`);
+      }
       const answer = raw.choices?.[0]?.message?.content?.trim() || "";
       if (!answer) throw new ProviderRequestError(config.label, 502, "The selected model returned no answer text.");
       const usage = raw.usage ? {
@@ -134,6 +145,7 @@ export function createOpenAiCompatibleGateway(config: GatewayConfig): AnswerProv
           id: raw.id,
           model: raw.model || model,
           routedProvider: raw.provider,
+          pinnedUpstreamProvider: pin.upstreamProvider,
           grounded: citations.length > 0,
           citationCount: citations.length,
           finishReason,

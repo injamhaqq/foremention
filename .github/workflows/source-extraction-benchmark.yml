@@ -7,6 +7,7 @@ on:
       - 'scripts/source-extraction-benchmark.mjs'
       - 'lib/source-inspection.ts'
       - '.github/workflows/source-extraction-benchmark.yml'
+      - 'docs/repository-register/experiments/readability.md'
   workflow_dispatch:
 
 permissions:
@@ -47,14 +48,22 @@ jobs:
             "private": true,
             "dependencies": {
               "@mozilla/readability": "0.6.0",
-              "jsdom": "20.0.2"
+              "jsdom": "20.0.2",
+              "linkedom": "0.18.12"
             }
           }
           JSON
           npm install --prefix .source-benchmark-runtime --package-lock=false --ignore-scripts --no-audit --no-fund
 
-      - name: Benchmark Foremention native extraction against Mozilla Readability
+      - name: Benchmark Foremention native extraction against Mozilla Readability (JSDOM)
         run: node --experimental-strip-types --expose-gc scripts/source-extraction-benchmark.mjs
+        env:
+          BENCHMARK_DOM: jsdom
+
+      - name: Benchmark Foremention native extraction against Mozilla Readability (linkedom, Worker-compatible DOM)
+        run: node --experimental-strip-types --expose-gc scripts/source-extraction-benchmark.mjs
+        env:
+          BENCHMARK_DOM: linkedom
 
       - name: Archive benchmark evidence
         if: always()

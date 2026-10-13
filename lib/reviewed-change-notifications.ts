@@ -49,7 +49,7 @@ export async function recordReviewedComparableChangeNotifications(
   if (!context) return { status: "withheld", reason: "The active workspace could not be verified." };
 
   const currentRows = await supabaseRest<ReviewedRunRow[]>(
-    `runs?select=id,status,created_at,created_by&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${context.organizationId}&limit=1`,
+    `runs?select=id,status,created_at,created_by&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   const current = currentRows[0];
@@ -58,7 +58,7 @@ export async function recordReviewedComparableChangeNotifications(
   }
 
   const previousRows = await supabaseRest<ReviewedRunRow[]>(
-    `runs?select=id,status,created_at,created_by&organization_id=eq.${context.organizationId}&id=neq.${current.id}&status=in.(complete,partial)&created_at=lt.${encodeURIComponent(current.created_at)}&order=created_at.desc&limit=1`,
+    `runs?select=id,status,created_at,created_by&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&id=neq.${current.id}&status=in.(complete,partial)&created_at=lt.${encodeURIComponent(current.created_at)}&order=created_at.desc&limit=1`,
     { token: viewer.accessToken },
   );
   const previous = previousRows[0];

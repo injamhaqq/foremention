@@ -25,20 +25,28 @@ export async function POST(request: Request) {
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const raw = await readJsonObject(request) as OnboardingPayload | null;
   if (!raw) return NextResponse.json({ error: "Send a valid workspace setup form." }, { status: 400 });
+  const companyName = cleanText(raw.companyName, 120);
+  const domain = cleanText(raw.domain, 500);
+  const market = cleanText(raw.market, 120);
+  const category = cleanText(raw.category, 160);
+  if (!companyName || !domain || !category) {
+    return NextResponse.json({ error: "Company, domain, and category are required." }, { status: 400 });
+  }
+
   const submittedCompetitors = cleanStringArray(raw.competitors, 120, 20);
   const generatedPrompts = generateBuyerQuestions(
-    cleanText(raw.category, 160),
-    cleanText(raw.companyName, 120),
+    category,
+    companyName,
     submittedCompetitors,
-    cleanText(raw.market, 120) === "Global" ? "a growing global business team" : `a growing team in ${cleanText(raw.market, 120)}`,
+    market === "Global" ? "a growing global business team" : `a growing team in ${market}`,
   );
   const submittedPrompts = cleanStringArray(raw.prompts, 1000, 5);
   const prompts = Array.from(new Set([...submittedPrompts, ...generatedPrompts])).slice(0, 5);
   const payload = {
-    companyName: cleanText(raw.companyName, 120),
-    domain: cleanText(raw.domain, 500),
-    market: cleanText(raw.market, 120),
-    category: cleanText(raw.category, 160),
+    companyName,
+    domain,
+    market,
+    category,
     categoryDescription: cleanText(raw.categoryDescription, 2000),
     competitors: submittedCompetitors,
     goal: cleanText(raw.goal, 500),
@@ -46,7 +54,6 @@ export async function POST(request: Request) {
     prompts,
     locale: cleanText(raw.locale, 20) || "en-US",
   };
-  if (!payload.companyName || !payload.domain || !payload.category) return NextResponse.json({ error: "Company, domain, and category are required." }, { status: 400 });
   try {
     const url = new URL(payload.domain);
     if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) throw new Error("Invalid company URL.");

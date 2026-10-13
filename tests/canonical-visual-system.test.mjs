@@ -75,35 +75,30 @@ test("approved canonical Foremention identity artwork stays locked while legacy 
   ]) assert.equal(await exists(path), false, `${path} must remain retired`);
 });
 
-test("homepage uses the approved outreach composition while retaining lightweight layered signal depth", async () => {
-  const [home, signal, layout, outreachCss, releaseCss] = await Promise.all([
+test("homepage uses the approved cinematic evidence composition without heavy visual dependencies", async () => {
+  const [home, layout, cinematicCss, outreachCss] = await Promise.all([
     text("components/goat-home-experience.tsx"),
-    text("components/canonical-signal-field.tsx"),
     text("app/layout.tsx"),
+    text("app/public-cinematic-home.css"),
     text("app/outreach-site.css"),
-    text("app/canonical-release.css"),
   ]);
 
-  assert.match(home, /Know what your company should change next to become the stronger recommendation\./);
-  assert.match(home, /Recommendation intelligence for B2B software/i);
-  assert.match(home, /Apply as Design Partner/);
-  assert.match(home, /See how it works/);
-  assert.match(home, /CanonicalSignalField/);
+  assert.match(home, /See where AI recommends your brand\./);
+  assert.match(home, /Track recommendations, inspect supporting sources, and decide what to improve\./);
+  assert.match(home, /Explore a sample/);
+  assert.match(home, /Request a pilot/);
+  assert.match(home, /fm-recommendation-graph/);
   assert.match(home, /Company Truth/);
   assert.match(home, /Eligibility/);
   assert.match(home, /Change Specification/);
   assert.match(home, /NEXT COMPANY CHANGE/);
-  assert.match(signal, /canonical-signal--5d/);
-  assert.match(signal, /IntersectionObserver/);
-  assert.match(signal, /prefers-reduced-motion/);
-  assert.match(signal, /canonical-signal__horizon/);
-  assert.match(signal, /canonical-signal__beam/);
-  assert.doesNotMatch(signal, /foremention-hero-signal\.jpg/);
-  assert.doesNotMatch(signal, /three|webgl|canvas/i);
-  assert.match(outreachCss, /\.outreach-hero/);
+  assert.doesNotMatch(home, /CanonicalSignalField/);
+  assert.match(cinematicCss, /\.fm-cinematic-hero/);
+  assert.match(cinematicCss, /\.fm-recommendation-graph/);
+  assert.match(cinematicCss, /prefers-reduced-motion/);
+  assert.doesNotMatch(cinematicCss, /three|webgl|canvas/i);
   assert.match(outreachCss, /\.outreach-workflow/);
-  assert.match(releaseCss, /canonical-signal__depth--horizon/);
-  assert.match(layout, /Recommendation intelligence for B2B software/);
+  assert.match(layout, /Recommendation intelligence for B2B software/i);
 });
 
 test("signed-in primary IA exposes the eight core destinations without reviving specialist clutter", async () => {

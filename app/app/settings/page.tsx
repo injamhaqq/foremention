@@ -10,21 +10,41 @@ import { SessionSecurity } from "@/components/session-security";
 import { WebhookSettings } from "@/components/webhook-settings";
 import { requireViewer } from "@/lib/auth";
 import { getApplicationEmailStatus } from "@/lib/application-email";
-import { loadNotificationPreference, loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceSummary } from "@/lib/data";
+import { loadNotificationPreference, loadPendingDeletionRequest, loadProviderStatuses, loadTeam, loadWorkspaceContext, loadWorkspaceSummary } from "@/lib/data";
+import type { Viewer } from "@/lib/auth";
+import { supabaseRest } from "@/lib/supabase-rest";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 import { getSecretRotationStatuses, MAX_SECRET_AGE_DAYS } from "@/lib/secret-rotation";
+
+/** The server-enforced observation quota for this workspace, never the code default. */
+async function loadEnforcedObservationQuota(viewer: Viewer): Promise<number | null> {
+  if (viewer.mode === "demo" || !viewer.accessToken) return null;
+  try {
+    const context = await loadWorkspaceContext(viewer);
+    if (!context) return null;
+    const rows = await supabaseRest<Array<{ monthly_run_units: number | null }>>(
+      `organization_entitlements?select=monthly_run_units&organization_id=eq.${context.organizationId}&limit=1`,
+      { token: viewer.accessToken },
+    );
+    const units = rows[0]?.monthly_run_units;
+    return typeof units === "number" && Number.isSafeInteger(units) && units > 0 ? units : null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ session_action?: string }> }) {
   const [viewer, query] = await Promise.all([
     requireViewer("/app/settings"),
     searchParams,
   ]);
-  const [workspace, team, deletionRequest, providers, emailPreference] = await Promise.all([
+  const [workspace, team, deletionRequest, providers, emailPreference, enforcedQuota] = await Promise.all([
     loadWorkspaceSummary(viewer),
     loadTeam(viewer),
     loadPendingDeletionRequest(viewer),
     loadProviderStatuses(viewer),
     loadNotificationPreference(viewer),
+    loadEnforcedObservationQuota(viewer),
   ]);
   const applicationEmail = getApplicationEmailStatus();
   const jobsReady = viewer.mode === "demo" || Boolean(process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY);
@@ -134,7 +154,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <div><dt>Billing</dt><dd>Not connected</dd></div>
           <div><dt>Brands</dt><dd>{FOUNDATION_ACCESS_LIMITS.brands}</dd></div>
           <div><dt>Buyer questions</dt><dd>{FOUNDATION_ACCESS_LIMITS.buyerQuestions}</dd></div>
-          <div><dt>Monthly observation capacity</dt><dd>{FOUNDATION_ACCESS_LIMITS.runUnitsPerMonth}</dd></div>
+          <div><dt>Monthly observation capacity</dt><dd>{enforcedQuota !== null ? `${enforcedQuota} (enforced for this workspace)` : FOUNDATION_ACCESS_LIMITS.runUnitsPerMonth}</dd></div>
           <div><dt>History</dt><dd>{FOUNDATION_ACCESS_LIMITS.historyDays} days</dd></div>
         </dl>
         <p className="table-caption">This is not a paid entitlement. No card is charged until a verified billing webhook activates a purchased plan.</p>

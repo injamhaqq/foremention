@@ -1,4 +1,4 @@
-import { extractUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderPrompt } from "@/lib/providers/types";
+import { extractModelMentionedUrls, ProviderRequestError, requestIdFrom, type AnswerProviderAdapter, type ProviderAnswer, type ProviderPrompt } from "@/lib/providers/types";
 
 export const perplexityAdapter: AnswerProviderAdapter = {
   id: "perplexity",
@@ -20,8 +20,10 @@ export const perplexityAdapter: AnswerProviderAdapter = {
     };
     if (!response.ok) throw new ProviderRequestError("Perplexity", response.status);
     const answer = raw.choices?.[0]?.message?.content || "";
-    const citations = (raw.citations || []).map((url) => ({ url }));
-    const normalizedCitations = citations.length ? citations : extractUrls(answer);
+    // Only the API's top-level citations array counts. URLs the model typed into its
+    // answer are kept apart as mentionedUrls, never as a fallback.
+    const normalizedCitations = (raw.citations || []).filter((url): url is string => typeof url === "string" && Boolean(url)).map((url) => ({ url }));
+    const mentionedUrls = extractModelMentionedUrls(answer);
     const usage = raw.usage ? { inputTokens: raw.usage.prompt_tokens, outputTokens: raw.usage.completion_tokens, totalTokens: raw.usage.total_tokens } : undefined;
     return {
       provider: "perplexity",
@@ -29,7 +31,8 @@ export const perplexityAdapter: AnswerProviderAdapter = {
       promptId: prompt.promptId,
       answer,
       citations: normalizedCitations,
-      raw: { id: raw.id, model: raw.model, finishReason: raw.choices?.[0]?.finish_reason, usage, citationCount: normalizedCitations.length },
+      mentionedUrls,
+      raw: { id: raw.id, model: raw.model, finishReason: raw.choices?.[0]?.finish_reason, usage, grounded: normalizedCitations.length > 0, citationCount: normalizedCitations.length, mentioned_urls: mentionedUrls.map((item) => item.url), mentioned_urls_note: "Model-written URLs from answer text; not provider citations and never evidence." },
       collectedAt: new Date().toISOString(),
       latencyMs: Date.now() - started,
       usage,

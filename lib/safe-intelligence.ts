@@ -1,22 +1,8 @@
 import type { Viewer } from "@/lib/auth";
-import { loadWorkspaceContext } from "@/lib/data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
-import {
-  assessExactQuestionComparability,
-  coerceComparableMeasurementContext,
-  type ComparableQuestionSlot,
-} from "@/lib/intelligence-comparability";
+import { assessWorkspaceRunPairComparability } from "@/lib/run-pair-comparability";
 import { loadWeeklyIntelligence, type WeeklyIntelligence } from "@/lib/intelligence-loop";
-import { supabaseRest } from "@/lib/supabase-rest";
 
-type SlotRow = {
-  run_id: string;
-  prompt_key: string;
-  prompt_text: string | null;
-  provider: string;
-  model: string | null;
-  measurement_context_json: unknown;
-};
 
 const exactMeasurementBoundary = "exact persisted buyer-question text, provider, exact model, methodology, locale, market, buyer stage, and measurement context";
 
@@ -179,28 +165,14 @@ export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<Weekly
 
   let pairSafe = intelligence;
   if (viewer.accessToken && intelligence.latest && intelligence.previous) {
-    const context = await loadWorkspaceContext(viewer);
-    if (!context) {
-      pairSafe = withholdUnsafePair(intelligence, "The active workspace context could not be verified.");
-    } else {
-      const runIds = [intelligence.latest.id, intelligence.previous.id];
-      const rows = await supabaseRest<SlotRow[]>(
-        `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.asc&limit=500`,
-        { token: viewer.accessToken },
-      );
-      const slots: ComparableQuestionSlot[] = rows.map((row) => ({
-        runId: row.run_id,
-        promptKey: row.prompt_key,
-        promptText: row.prompt_text,
-        provider: row.provider,
-        model: row.model,
-        measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
-      }));
-      const assessment = assessExactQuestionComparability(intelligence.latest.id, intelligence.previous.id, slots);
-      pairSafe = assessment.comparable
-        ? intelligence
-        : withholdUnsafePair(intelligence, assessment.reason || "The finalized reviewed collections are not exactly comparable.");
-    }
+    const assessment = await assessWorkspaceRunPairComparability(
+      viewer,
+      intelligence.previous.id,
+      intelligence.latest.id,
+    );
+    pairSafe = assessment.comparable
+      ? intelligence
+      : withholdUnsafePair(intelligence, assessment.reason || "The finalized reviewed collections are not exactly comparable.");
   }
 
   const returnLoopSafe = makeCustomerReturnLoopTruthful(pairSafe);

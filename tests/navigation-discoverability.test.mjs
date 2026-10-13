@@ -33,7 +33,7 @@ test("workspace tools directory makes every major capability discoverable", asyn
 
 test("public navigation exposes product, pricing, research, trust, and sign in", async () => {
   const shell = await text("components/public-shell.tsx");
-  for (const label of ["Product", "How it works", "Pricing", "Research", "Trust", "Sign in"]) {
+  for (const label of ["Product", "Use cases", "Pricing", "Research", "Trust", "Sign in", "Request a pilot"]) {
     assert.ok(shell.includes(label), "Missing public navigation label: " + label);
   }
   assert.ok(shell.includes('["/pricing", "Pricing"]'));
@@ -41,9 +41,10 @@ test("public navigation exposes product, pricing, research, trust, and sign in",
   assert.ok(shell.includes('>Glossary</Link>'));
 });
 
-test("design-partner CTAs use one consistent label and the example record CTA is distinct", async () => {
+test("homepage pilot CTAs use the approved label and the sample action stays distinct", async () => {
   const home = await text("components/goat-home-experience.tsx");
   assert.ok(!home.includes("Apply as a Design Partner"));
-  assert.ok(home.includes("Apply as Design Partner"));
-  assert.ok(home.includes("See example Recommendation Record"));
+  assert.ok(home.includes("Request a pilot"));
+  assert.ok(home.includes("Explore a sample"));
+  assert.ok(home.includes("Inspect evidence"));
 });

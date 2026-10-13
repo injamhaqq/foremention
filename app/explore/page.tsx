@@ -17,6 +17,7 @@ const groups = [
     title: "Understand the product",
     items: [
       ["/product", "Product", "See the recommendation-intelligence workflow from observation through verification."],
+      ["/use-cases", "Use cases", "See the customer questions and decision workflows Foremention is designed to support."],
       ["/#how-it-works", "How it works", "Follow the end-to-end process without leaving the homepage."],
       ["/pricing", "Plans", "Review coverage options and current founder-led commercial status."],
       ["/recommendation-record", "Recommendation Record", "Inspect the core evidence object Foremention preserves."],

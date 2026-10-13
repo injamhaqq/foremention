@@ -21,6 +21,8 @@ import "./outreach-site.css";
 import "./outreach-reflow.css";
 import "./browser-acceptance-hardening.css";
 import "./navigation-discovery.css";
+import "./public-cinematic-home.css";
+import "./public-contrast-repair.css";
 import { AuthHashRedirect } from "../components/auth-hash-redirect";
 import { SentryClient } from "../components/sentry-client";
 import { PostHogAnalytics } from "../components/posthog-analytics";
@@ -28,7 +30,7 @@ import { PublicActivationAnalytics } from "../components/public-activation-analy
 import { ContentsquareAnalytics } from "../components/contentsquare-analytics";
 import { SITE_URL } from "../lib/seo";
 
-const publicDescription = "Understand why competitors are being recommended, what your company can actually change, and how to verify what happened after the change.";
+const publicDescription = "See where AI recommends your brand. Track recommendations, inspect supporting sources, and decide what to improve with Recommendation Intelligence for B2B software.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -38,6 +40,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Foremention", url: SITE_URL }],
   creator: "Foremention",
   publisher: "Foremention",
+  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }] },
   category: "Recommendation intelligence software",
   openGraph: { title: "Foremention - Recommendation intelligence for B2B software", description: publicDescription, url: SITE_URL, type: "website", siteName: "Foremention" },
   twitter: { card: "summary", title: "Foremention - Recommendation intelligence for B2B software", description: publicDescription },

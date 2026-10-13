@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
+import { loadProjectSourceMapEntryRef } from "@/lib/project-source-map-scope";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { reviewedOpportunityBridge } from "@/lib/reviewed-opportunity";
@@ -10,7 +11,8 @@ import { queueWorkspaceWebhook } from "@/lib/workspace-event-queue";
 
 const crawlerValues: SourceMapEntry["crawlerAccess"][] = ["open", "partial", "blocked"];
 const feasibilityValues: SourceMapEntry["feasibility"][] = ["high", "medium", "low", "unknown"];
-const influenceValues: SourceMapEntry["influence"][] = ["high", "medium", "low", "emerging", "unknown"];
+// The backing PostgreSQL feasibility_level enum does not include "emerging".
+const influenceValues: SourceMapEntry["influence"][] = ["high", "medium", "low", "unknown"];
 const routes: EntryRoute[] = ["editorial outreach", "comparison inclusion", "expert contribution", "original research", "legitimate review", "community participation"];
 const clean = (value: unknown, limit: number) => typeof value === "string" ? value.trim().slice(0, limit) : "";
 
@@ -128,14 +130,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const accessToken = viewer.accessToken;
   const [context, role] = await Promise.all([loadWorkspaceContext(viewer), getPrimaryWorkspaceRole(viewer)]);
   if (!context) return NextResponse.json({ error: "Complete onboarding before reviewing a source." }, { status: 409 });
-  if (!role || role === "viewer") return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
+  if (!role || !["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can review sources." }, { status: 403 });
   const organizationId = context.organizationId;
+  const scopedEntry = await loadProjectSourceMapEntryRef({
+    organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    entryId: id,
+    token: accessToken,
+  });
+  if (!scopedEntry) return NextResponse.json({ error: "Source record not found in the active project." }, { status: 404 });
   const rows = await supabaseRest<Array<{ id: string; source_id: string; client_present: boolean; competitors_present: string[]; entry_route: string | null; feasibility: string; influence: string; analyst_note: string | null; reviewed_at: string | null; reviewed_by: string | null }>>(
-    `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note,reviewed_at,reviewed_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${organizationId}&limit=1`,
+    `source_map_entries?select=id,source_id,client_present,competitors_present,entry_route,feasibility,influence,analyst_note,reviewed_at,reviewed_by&id=eq.${encodeURIComponent(scopedEntry.id)}&organization_id=eq.${organizationId}&limit=1`,
     { token: accessToken },
   );
   const entry = rows[0];
-  if (!entry) return NextResponse.json({ error: "Source record not found in this workspace." }, { status: 404 });
+  if (!entry || entry.source_id !== scopedEntry.sourceId) return NextResponse.json({ error: "Source record could not be verified in the active project." }, { status: 404 });
   const sourceRows = await supabaseRest<Array<{ id: string; canonical_url: string; page_title: string | null }>>(
     `sources?select=id,canonical_url,page_title&id=eq.${entry.source_id}&organization_id=eq.${organizationId}&limit=1`,
     { token: accessToken },
@@ -143,26 +153,36 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const source = sourceRows[0];
   if (!source) return NextResponse.json({ error: "The reviewed Source Map record no longer has a source in this workspace." }, { status: 409 });
 
-  const reviewedAt = new Date().toISOString();
-  // Human review and machine retrieval are different provenance facts. The
-  // automated crawler owns sources.crawler_access/crawler_checked_at. A review
-  // records the reviewer's judgment on the reviewed entry and in the audit log
-  // without rewriting the crawler's retrieval timestamp.
-  await supabaseRest(`source_map_entries?id=eq.${entry.id}&organization_id=eq.${organizationId}`, {
-    method: "PATCH",
+  // A reviewer cannot directly mutate collector-owned facts. This RPC
+  // rechecks the exact published project/map/source graph at the DB boundary
+  // and derives reviewed_at + reviewed_by from the signed-in database actor.
+  const reviewed = await supabaseRest<{
+    id: string;
+    source_id: string;
+    reviewed_at: string;
+    reviewed_by: string;
+    client_present: boolean;
+  }>("rpc/review_source_map_entry", {
+    method: "POST",
     token: accessToken,
-    prefer: "return=minimal",
     body: {
-      client_present: Boolean(body.clientPresent),
-      competitors_present: competitors,
-      entry_route: body.route,
-      feasibility: body.feasibility,
-      influence: body.influence,
-      analyst_note: note || null,
-      reviewed_at: reviewedAt,
-      reviewed_by: viewer.id,
+      p_entry_id: entry.id,
+      p_organization_id: organizationId,
+      p_project_id: context.projectId,
+      p_category_id: context.categoryId,
+      p_client_present: Boolean(body.clientPresent),
+      p_competitors: competitors,
+      p_route: body.route,
+      p_feasibility: body.feasibility,
+      p_influence: body.influence,
+      p_note: note,
     },
   });
+  if (reviewed.id !== entry.id || reviewed.source_id !== source.id ||
+      reviewed.reviewed_by !== viewer.id) {
+    throw new Error("The persisted Source Map review did not match its authorized actor and source.");
+  }
+  const reviewedAt = reviewed.reviewed_at;
 
   const opportunity = await syncReviewedOpportunity({
     token: accessToken,
@@ -180,7 +200,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   await supabaseRest("audit_logs", {
     method: "POST",
-    token: accessToken,
+    // Record the already-authorized review with server-derived tenant/actor
+    // context. Source and opportunity mutations still use the viewer token.
+    serviceRole: true,
     prefer: "return=minimal",
     body: {
       organization_id: organizationId,
@@ -198,7 +220,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         influence: body.influence,
         analyst_note: note || null,
         reviewed_at: reviewedAt,
-        reviewed_by: viewer.id,
+        reviewed_by: reviewed.reviewed_by,
         opportunity_sync: opportunity,
       },
     },
@@ -217,6 +239,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       href: `/app/sources/${entry.id}`,
     });
   }
-  await queueWorkspaceWebhook({ organizationId, eventKey: `source.reviewed:${entry.id}:${reviewedAt}`, eventType: "source.reviewed", occurredAt: reviewedAt, href: `/app/sources/${entry.id}` }).catch(() => undefined);
+  await queueWorkspaceWebhook({ organizationId, projectId: context.projectId, eventKey: `source.reviewed:${entry.id}:${reviewedAt}`, eventType: "source.reviewed", occurredAt: reviewedAt, href: `/app/sources/${entry.id}` }).catch(() => undefined);
   return NextResponse.json({ ok: true, reviewedAt, opportunity });
 }

@@ -61,6 +61,32 @@ test("payment-failure grace is opt-in and defaults to immediate entitlement paus
   });
 });
 
+test("cancelled billing can preserve paid-through access until a verified provider period end", async () => {
+  const { entitlementGrantForBillingEvent } = await import("../lib/billing.ts");
+  const base = {
+    organizationId: "11111111-1111-4111-8111-111111111111",
+    packageKey: "core",
+    state: "cancelled",
+    eventId: "evt_cancelled",
+  };
+  assert.deepEqual(entitlementGrantForBillingEvent({
+    ...base,
+    accessUntil: "2026-10-10T00:00:00.000Z",
+  }, new Date("2026-10-08T00:00:00.000Z")), {
+    status: "active",
+    expiresAt: "2026-10-10T00:00:00.000Z",
+    gracePeriodEndsAt: null,
+  });
+  assert.deepEqual(entitlementGrantForBillingEvent({
+    ...base,
+    accessUntil: "2026-10-07T00:00:00.000Z",
+  }, new Date("2026-10-08T00:00:00.000Z")), {
+    status: "cancelled",
+    expiresAt: null,
+    gracePeriodEndsAt: null,
+  });
+});
+
 test("billing state, entitlement expiry and audit history are committed atomically", async () => {
   const [migration, webhook] = await Promise.all([
     readFile(new URL("../supabase/migrations/20260830000500_billing_commercial_hardening.sql", import.meta.url), "utf8"),
@@ -82,14 +108,16 @@ test("recurring measurement stops when a grace entitlement expires", async () =>
   assert.match(dispatcher, /new Date\(entitlement\.expires_at\)/);
 });
 
-test("checkout and status expose annual offers only through server-configured Price IDs", async () => {
+test("checkout and status expose offers only through server-configured provider product IDs", async () => {
   const [checkout, status] = await Promise.all([
     readFile(new URL("../app/api/billing/checkout/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/billing/status/route.ts", import.meta.url), "utf8"),
   ]);
   assert.match(checkout, /billingInterval/);
-  assert.match(checkout, /stripePriceIdFor\(/);
+  assert.match(checkout, /provider\.checkoutOffers\(\)/);
   assert.match(checkout, /That package and billing interval are not configured for self-serve checkout/);
+  assert.match(status, /billingProvider/);
+  assert.match(status, /provider\.checkoutOffers\(\)/);
   assert.match(status, /checkoutOffers/);
   assert.doesNotMatch(checkout, /amount|unit_amount|price_data/);
 });

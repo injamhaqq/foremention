@@ -22,7 +22,7 @@ export async function DELETE(request: Request) {
   const rows = await supabaseRest<Array<{ id: string }>>(`integrations?select=id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&provider=eq.hubspot&limit=1`, { token: viewer.accessToken });
   if (rows[0]) {
     await supabaseRest(`integration_credentials?integration_id=eq.${rows[0].id}`, { method: "DELETE", serviceRole: true });
-    await supabaseRest(`integrations?id=eq.${rows[0].id}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { status: "revoked", configuration: {}, last_synced_at: new Date().toISOString() } });
+    await supabaseRest(`integrations?id=eq.${rows[0].id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=minimal", body: { status: "revoked", configuration: {}, last_synced_at: new Date().toISOString() } });
   }
   return NextResponse.json({ ok: true });
 }

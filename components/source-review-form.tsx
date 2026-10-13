@@ -18,6 +18,7 @@ type ReviewResult = {
 
 export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapEntry; demo: boolean; canEdit: boolean }) {
   const router = useRouter();
+  const canReview = canEdit && !demo;
   const [crawlerAccess, setCrawlerAccess] = useState<SourceMapEntry["crawlerAccess"]>(source.crawlerAccess);
   const [clientPresent, setClientPresent] = useState(source.clientPresent);
   const [competitors, setCompetitors] = useState(source.competitors.join("\n"));
@@ -32,7 +33,7 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (submissionLock.current) return;
+    if (!canReview || submissionLock.current) return;
     submissionLock.current = true;
     setBusy(true);
     setMessage("");
@@ -45,9 +46,7 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
       });
       const result = (await response.json()) as ReviewResult;
       if (!response.ok) throw new Error(result.error || "Could not save the source review.");
-      if (demo) {
-        setMessage("Demo review saved locally. Customer data was not changed.");
-      } else if (result.opportunity?.action === "created" || result.opportunity?.action === "refreshed") {
+      if (result.opportunity?.action === "created" || result.opportunity?.action === "refreshed") {
         setMessage("Review saved with a dated audit record. This reviewed gap is now ready in Resolution Center.");
         setResolutionReady(true);
       } else if (result.opportunity?.action === "archived") {
@@ -78,7 +77,7 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
 
   return <form className="source-review-form" onSubmit={save} aria-busy={busy}>
     <div><span className="eyebrow">Analyst review</span><h2>Turn an observed citation into a decision-ready record.</h2><p>Review the page itself. A citation does not prove the page contains your brand or offers a legitimate contribution route.</p></div>
-    <div className="source-review-grid">
+    <fieldset className="source-review-grid" disabled={busy || !canReview}><legend className="sr-only">Source review fields</legend>
       <label>Crawler access<select value={crawlerAccess} onChange={(event) => setCrawlerAccess(event.target.value as SourceMapEntry["crawlerAccess"])}><option value="unknown" disabled>Select after inspection</option><option value="open">Open</option><option value="partial">Partial</option><option value="blocked">Blocked</option></select></label>
       <label>Editorial feasibility<select value={feasibility} onChange={(event) => setFeasibility(event.target.value as SourceMapEntry["feasibility"])}><option value="unknown">Unknown</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
       <label>Observed influence<select value={influence} onChange={(event) => setInfluence(event.target.value as SourceMapEntry["influence"])}><option value="unknown">Unknown</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option><option value="emerging">Emerging</option></select></label>
@@ -86,8 +85,8 @@ export function SourceReviewForm({ source, demo, canEdit }: { source: SourceMapE
       <label className="source-review-check"><input type="checkbox" checked={clientPresent} onChange={(event) => setClientPresent(event.target.checked)} /><span>Our brand is present on this page</span></label>
       <label className="source-review-wide">Competitors actually present<textarea value={competitors} onChange={(event) => setCompetitors(event.target.value)} rows={4} placeholder={"Competitor one\nCompetitor two"} /></label>
       <label className="source-review-wide">Review note<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="What was verified, what remains uncertain, and what evidence would make this actionable?" /></label>
-    </div>
-    <div className="source-review-actions"><small>{canEdit ? "Saving this review changes gap status and records the reviewer, time, before-state, and after-state." : "Viewer access is read-only. An owner, admin, or analyst can save this review."}</small><button className="button button--ink" data-workspace-review type="submit" disabled={busy || !canEdit || crawlerAccess === "unknown" || route === "unknown"}>{busy ? "Saving..." : crawlerAccess === "unknown" || route === "unknown" ? "Complete required review" : "Save reviewed source"}</button></div>
+    </fieldset>
+    <div className="source-review-actions"><small>{demo ? "The fictional demo is read-only. Open a customer workspace to review source evidence." : canEdit ? "Saving this review changes gap status and records the reviewer, time, before-state, and after-state." : "Viewer access is read-only. An owner, admin, or analyst can save this review."}</small><button className="button button--ink" data-workspace-review type="submit" disabled={busy || !canReview || crawlerAccess === "unknown" || route === "unknown"}>{busy ? "Saving..." : crawlerAccess === "unknown" || route === "unknown" ? "Complete required review" : "Save reviewed source"}</button></div>
     {message && <p className="inline-notice" role="status">{message}{resolutionReady ? <> <Link className="text-link" href="/app/resolutions">Open Resolution Center →</Link></> : null}</p>}
   </form>;
 }

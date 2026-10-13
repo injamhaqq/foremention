@@ -18,7 +18,7 @@ const providers = [
   {
     name: "Supabase",
     status: "Core",
-    purpose: "Authentication, PostgreSQL database services, row-level access controls, and application data persistence.",
+    purpose: "Authentication, PostgreSQL database services, row-level access controls, and application data persistence. The production project is hosted in the Supabase ap-northeast-2 (Seoul) region.",
     boundary: "Stores account identifiers and workspace records required by the product. Tenant access is enforced separately from demo data.",
   },
   {
@@ -32,6 +32,18 @@ const providers = [
     status: "Core when application email is enabled",
     purpose: "Application email such as welcome messages and the service-only production operator alert channel.",
     boundary: "Receives the recipient address and bounded email content required for the requested delivery. Operator probes contain no customer evidence.",
+  },
+  {
+    name: "Cloudflare Workers AI",
+    status: "AI provider for current pilot collection",
+    purpose: "Model inference for buyer-question observations in the current pilot scope, run on Cloudflare's network.",
+    boundary: "Receives the buyer question and request context required for that call. This is API-surface measurement, not observation of consumer ChatGPT, Gemini or Copilot sessions.",
+  },
+  {
+    name: "Paddle",
+    status: "Merchant of record when paid checkout is enabled",
+    purpose: "Checkout, payment processing, invoicing, sales tax handling, subscription management, cancellation and refunds for paid plans.",
+    boundary: "Receives the buyer's billing name, email, address, payment details and purchase records directly. Foremention receives subscription status and identifiers, never full card numbers. Not active until paid activation is announced.",
   },
   {
     name: "Groq",

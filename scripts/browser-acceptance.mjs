@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { verifyBoundedReleaseHealth } from "./bounded-release-health.mjs";
 
 const toolRequire = createRequire(new URL("../.ci-tools/package.json", import.meta.url));
-const { chromium, firefox } = toolRequire("playwright");
+const { chromium, firefox, webkit } = toolRequire("playwright");
 const axeModule = toolRequire("@axe-core/playwright");
 const AxeBuilder = axeModule.default || axeModule.AxeBuilder || axeModule;
 
@@ -18,8 +18,10 @@ const acceptancePassword = process.env.FOREMENTION_ACCEPTANCE_PASSWORD || "";
 const requireAuthenticatedAcceptance = (process.env.FOREMENTION_REQUIRE_AUTHENTICATED_ACCEPTANCE || "").trim().toLowerCase() === "true";
 const outputRoot = resolve(process.env.FOREMENTION_BROWSER_OUTPUT || "browser-acceptance");
 
-const publicPaths = ["/", "/product", "/explore", "/pricing", "/score", "/prompt-check", "/login", "/signup"];
+const publicPaths = ["/", "/product", "/use-cases", "/explore", "/pricing", "/contact", "/score", "/prompt-check", "/login", "/signup"];
 const authenticatedPaths = ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/opportunities", "/app/analytics", "/app/tools", "/app/settings"];
+const attentionUnavailablePath = "/api/retention/attention";
+const resource503ConsolePattern = /Failed to load resource: the server responded with a status of 503/i;
 const approvedIdentityPaths = [
   "/brand/foremention-logo-white.svg",
   "/brand/foremention-mark-white.svg",
@@ -43,7 +45,9 @@ const profiles = [
   { name: "chromium-mobile", browserType: chromium, viewport: { width: 375, height: 812 }, isMobile: true },
   { name: "chromium-narrow", browserType: chromium, viewport: { width: 320, height: 568 }, isMobile: true },
   { name: "firefox-desktop", browserType: firefox, viewport: { width: 1440, height: 1200 } },
+  { name: "webkit-desktop", browserType: webkit, viewport: { width: 1440, height: 1200 } },
 ];
+const crossEngineProfiles = new Set(["firefox-desktop", "webkit-desktop"]);
 
 const summary = {
   baseUrl: baseUrl.origin,
@@ -73,6 +77,34 @@ function sanitizeDiagnosticUrl(rawUrl) {
   } catch {
     return null;
   }
+}
+
+function assessAuthenticatedRuntime(runtime) {
+  const attentionFailures = runtime.failedResponses.filter(
+    (response) => response.status === 503 && response.pathname === attentionUnavailablePath,
+  );
+  const unexpectedFailedResponses = runtime.failedResponses.filter(
+    (response) => !(response.status === 503 && response.pathname === attentionUnavailablePath),
+  );
+  const unexpectedConsoleErrors = runtime.consoleErrors.filter(
+    (message) => !(attentionFailures.length > 0 && resource503ConsolePattern.test(message)),
+  );
+  return { attentionFailures, unexpectedFailedResponses, unexpectedConsoleErrors };
+}
+
+async function settleAttentionState(page) {
+  const settledHeading = page.locator("h2").filter({
+    hasText: /^(What needs you now\.|Attention is temporarily unavailable\.)$/,
+  }).first();
+  await settledHeading.waitFor({ state: "visible", timeout: 16_500 }).catch(() => {});
+  const heading = (await settledHeading.textContent().catch(() => null))?.trim() || null;
+  if (heading === "Attention is temporarily unavailable.") {
+    const retryVisible = await visible(page.getByRole("button", { name: "Retry attention", exact: true }));
+    const recordsFallbackVisible = await visible(page.getByRole("link", { name: "Open Records →", exact: true }));
+    return { state: "unavailable", retryVisible, recordsFallbackVisible };
+  }
+  if (heading === "What needs you now.") return { state: "ready", retryVisible: false, recordsFallbackVisible: false };
+  return { state: "unsettled", retryVisible: false, recordsFallbackVisible: false };
 }
 
 function sanitizeAxeCheck(check) {
@@ -378,7 +410,7 @@ async function verifyRecommendationRecordEvidence(page, profileName) {
   }
 
   const recordText = await record.innerText();
-  for (const token of ["LIVE RECORD / ILLUSTRATIVE", "ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) {
+  for (const token of ["ILLUSTRATIVE RECOMMENDATION RECORD", "ANSWER", "REFERENCE", "SOURCE", "REVIEW"]) {
     if (!recordText.includes(token)) {
       recordFailure("Recommendation Record is missing a required inspectable evidence state.", { profile: profileName, token });
     }
@@ -468,14 +500,42 @@ async function verifyAuthenticatedRoutes() {
         observers.reset();
         const response = await page.goto(new URL(path, baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
         await page.waitForTimeout(200);
+        const attentionState = path === "/app" ? await settleAttentionState(page) : null;
         const final = new URL(page.url());
         const widths = await page.evaluate(() => ({ innerWidth: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
         const runtime = observers.snapshot();
-        const row = { profile: profile.name, path, status: response?.status() ?? null, finalUrl: final.toString(), widths, runtime };
+        const runtimeAssessment = assessAuthenticatedRuntime(runtime);
+        const acceptedAttentionUnavailable = path === "/app"
+          && attentionState?.state === "unavailable"
+          && attentionState.retryVisible
+          && attentionState.recordsFallbackVisible
+          && runtimeAssessment.attentionFailures.length > 0
+          && runtimeAssessment.unexpectedFailedResponses.length === 0
+          && runtimeAssessment.unexpectedConsoleErrors.length === 0
+          && runtime.pageErrors.length === 0;
+        const row = { profile: profile.name, path, status: response?.status() ?? null, finalUrl: final.toString(), widths, runtime, attentionState };
         evidence.push(row);
         if (final.pathname === "/login" || (response?.status() ?? 500) >= 400) recordFailure("Authenticated critical path did not render under the acceptance session.", row);
         if (widths.documentWidth > widths.innerWidth + 1) recordFailure("Authenticated critical path has horizontal overflow.", row);
-        if (runtime.pageErrors.length || runtime.consoleErrors.length) recordFailure("Authenticated critical path emitted browser runtime errors.", row);
+        if (path === "/app" && attentionState?.state === "unsettled") {
+          recordFailure("Authenticated Attention did not settle into a truthful ready or unavailable state.", row);
+        }
+        if (path === "/app" && attentionState?.state === "unavailable" && (!attentionState.retryVisible || !attentionState.recordsFallbackVisible)) {
+          recordFailure("Authenticated Attention unavailable state is missing Retry or Records recovery controls.", row);
+        }
+        if (
+          runtime.pageErrors.length
+          || runtimeAssessment.unexpectedConsoleErrors.length
+          || runtimeAssessment.unexpectedFailedResponses.length
+          || (runtimeAssessment.attentionFailures.length > 0 && !acceptedAttentionUnavailable)
+        ) {
+          recordFailure("Authenticated critical path emitted browser runtime errors.", {
+            ...row,
+            unexpectedConsoleErrors: runtimeAssessment.unexpectedConsoleErrors,
+            unexpectedFailedResponses: runtimeAssessment.unexpectedFailedResponses,
+            acceptedAttentionUnavailable,
+          });
+        }
 
         await verifyCanonicalBrandArtwork(page, profile.name, path);
 
@@ -519,7 +579,7 @@ async function runPublicProfiles() {
       const observers = attachRuntimeObservers(page);
       for (const path of publicPaths) await auditPage({ page, observers, path, profileName: profile.name });
       await verifyAnalyticsOverlayRegression(page, profile.name);
-      if (profile.name !== "firefox-desktop") await verifyRecommendationRecordEvidence(page, profile.name);
+      if (!crossEngineProfiles.has(profile.name)) await verifyRecommendationRecordEvidence(page, profile.name);
       await context.close();
     } catch (error) {
       recordFailure("Browser profile crashed.", { profile: profile.name, error: error instanceof Error ? error.message : String(error) });

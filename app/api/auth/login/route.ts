@@ -1,9 +1,11 @@
+import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { NextResponse } from "next/server";
 import { setSessionCookies } from "@/lib/session-cookies";
 import { SupabaseAuthError, supabaseAuth } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   try {
     const body = await readJsonObject(request);
     if (!body) return NextResponse.json({ error: "Send a valid sign-in form." }, { status: 400 });

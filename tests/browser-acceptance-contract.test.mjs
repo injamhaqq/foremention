@@ -5,10 +5,11 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
 
-const [workflow, runner, hardening, lighthouse] = await Promise.all([
+const [workflow, runner, hardening, demoBaseline, lighthouse] = await Promise.all([
   text(".github/workflows/browser-acceptance.yml"),
   text("scripts/browser-acceptance.mjs"),
   text("scripts/browser-zoom-reflow.mjs"),
+  text("scripts/browser-demo-baseline.mjs"),
   text("lighthouserc.cjs"),
 ]);
 
@@ -20,6 +21,26 @@ test("browser acceptance is permanent on pull requests and exact main releases",
   assert.match(workflow, /wrangler dev --local --config dist\/server\/wrangler\.json --ip 127\.0\.0\.1 --port 4173/);
   assert.match(workflow, /FOREMENTION_BROWSER_BASE_URL=http:\/\/127\.0\.0\.1:4173/);
   assert.match(workflow, /Waiting for local Worker \(\$\{attempt\}\/60\)/);
+});
+
+test("pull request browser suites do not share one long-lived local Worker", () => {
+  const prStep = workflow.match(/- name: Run pull request browser, accessibility and performance acceptance[\s\S]*?rm -rf \.lighthouseci/)?.[0] || "";
+  for (const script of [
+    "browser-decision-draft.mjs",
+    "browser-acceptance.mjs",
+    "browser-demo-baseline.mjs",
+    "browser-zoom-reflow.mjs",
+    "canonical-brand-visual-proof.mjs",
+  ]) assert.match(prStep, new RegExp(`start_worker[\\s\\S]*?${script.replaceAll(".", "\\.")}[\\s\\S]*?stop_worker`));
+});
+
+test("demo Attention failure acceptance uses client workspace navigation instead of hard app-shell reloads", () => {
+  assert.match(demoBaseline, /const clientNavigate = async \(href\)/);
+  assert.match(demoBaseline, /await clientNavigate\("\/app"\)/);
+  assert.match(demoBaseline, /await clientNavigate\("\/app\/runs"\)/);
+  assert.doesNotMatch(demoBaseline, /page\.goto\(new URL\("\/app", base\)\.href\)/);
+  assert.match(demoBaseline, /Attention is temporarily unavailable\./);
+  assert.match(demoBaseline, /Retry attention/);
 });
 
 test("pull request Lighthouse audits isolate every route behind a fresh local Worker", () => {
@@ -96,6 +117,22 @@ test("accessibility is blocking for serious regressions while Lighthouse starts 
   assert.match(lighthouse, /"categories:best-practices": \["warn", \{ minScore: 0\.9 \}\]/);
 });
 
+test("trusted production acceptance distinguishes modeled Attention 503 degradation from unexpected runtime failures", () => {
+  assert.match(runner, /const attentionUnavailablePath = "\/api\/retention\/attention"/);
+  assert.match(runner, /function assessAuthenticatedRuntime/);
+  assert.match(runner, /response\.status === 503 && response\.pathname === attentionUnavailablePath/);
+  assert.match(runner, /function settleAttentionState/);
+  assert.match(runner, /Attention is temporarily unavailable\./);
+  assert.match(runner, /Retry attention/);
+  assert.match(runner, /Open Records →/);
+  assert.match(runner, /timeout: 16_500/);
+  assert.match(runner, /acceptedAttentionUnavailable/);
+  assert.match(runner, /Authenticated Attention did not settle into a truthful ready or unavailable state/);
+  assert.match(runner, /Authenticated Attention unavailable state is missing Retry or Records recovery controls/);
+  assert.match(runner, /unexpectedConsoleErrors/);
+  assert.match(runner, /unexpectedFailedResponses/);
+});
+
 test("trusted production authenticated browser acceptance fails closed while pull requests remain secret-free", () => {
   for (const path of ["/app", "/app/prompts", "/app/runs", "/app/source-map", "/app/settings"]) {
     assert.match(runner, new RegExp(`"${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
@@ -134,12 +171,20 @@ test("failed browser responses persist privacy-safe status and pathname diagnost
 });
 
 test("browser acceptance covers WebKit, low-height laptop, and mobile landscape", () => {
-  assert.match(workflow, /playwright install --with-deps chromium firefox webkit/);
+  assert.match(workflow, /playwright install chromium firefox webkit/);
+  assert.match(workflow, /playwright install-deps chromium firefox webkit/);
+  assert.match(workflow, /browser_smoke/);
   assert.match(workflow, /node scripts\/browser-zoom-reflow\.mjs/);
   assert.match(hardening, /const \{ chromium, webkit \}/);
   assert.match(hardening, /name: "chromium-low-height"[\s\S]{0,140}width: 1366[\s\S]{0,80}height: 768/);
   assert.match(hardening, /name: "chromium-mobile-landscape"[\s\S]{0,160}width: 844[\s\S]{0,80}height: 390/);
   assert.match(hardening, /name: "webkit-mobile"[\s\S]{0,160}browserType: webkit[\s\S]{0,100}width: 390/);
+});
+
+test("public journey and axe audit run on Chromium, Firefox and WebKit engines", () => {
+  assert.match(runner, /const \{ chromium, firefox, webkit \} = toolRequire\("playwright"\)/);
+  assert.match(runner, /name: "firefox-desktop", browserType: firefox/);
+  assert.match(runner, /name: "webkit-desktop", browserType: webkit/);
 });
 
 test("browser acceptance models 200 and 400 percent zoom through the effective CSS viewport", () => {

@@ -13,7 +13,7 @@ test("human source review never overwrites machine retrieval provenance", async 
 
   assert.match(migration, /crawler_checked_at remains the timestamp of a retrieval\/inspection/i);
   assert.match(route, /reviewed_at:\s*reviewedAt/);
-  assert.match(route, /reviewed_by:\s*viewer\.id/);
+  assert.match(route, /reviewed_by:\s*reviewed\.reviewed_by/);
   assert.match(route, /crawler_access:\s*body\.crawlerAccess/);
   assert.doesNotMatch(route, /crawler_checked_at:\s*reviewedAt/);
   assert.doesNotMatch(route, /supabaseRest\(`sources\?[^`]+`[\s\S]*?body:\s*\{\s*crawler_access:\s*body\.crawlerAccess/);

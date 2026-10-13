@@ -11,7 +11,11 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    // Audited third-party CommonJS forks; keep scanners/tests/build active, but do not apply Foremention TypeScript lint rules.
+    "vendor/**",
     "next-env.d.ts",
+    // Deliberately non-compliant Semgrep policy fixtures (never imported).
+    "policy/semgrep/fixtures/**",
   ]),
 ]);
 

@@ -8,6 +8,7 @@ import { recordReviewedComparableChangeNotifications } from "@/lib/reviewed-chan
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { generateReviewedSourceMap } from "@/lib/source-map-generation";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
+import { partitionOfficialSourceReview } from "@/lib/official-source-relevance.mjs";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,21 +21,33 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (role === "viewer") return NextResponse.json({ error: "Only owners and analysts can approve collected evidence." }, { status: 403 });
   const { id } = await params;
   const runs = await supabaseRest<Array<{ id: string; status: string; category_id: string; project_id: string; organization_id: string; created_by: string | null }>>(
-    `runs?select=id,status,category_id,project_id,organization_id,created_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&limit=1`,
+    `runs?select=id,status,category_id,project_id,organization_id,created_by&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
     { token: viewer.accessToken },
   );
   const run = runs[0];
   if (!run) return NextResponse.json({ error: "Run not found." }, { status: 404 });
   if (run.status !== "review") return NextResponse.json({ error: "Only a run waiting for review can be approved." }, { status: 409 });
-  const answerRows = await supabaseRest<Array<{ id: string }>>(
-    `run_answers?select=id&run_id=eq.${run.id}&organization_id=eq.${context.organizationId}`,
+  const answerRows = await supabaseRest<Array<{ id: string; prompt_text: string | null; answer_text: string | null; citations_json: unknown }>>(
+    `run_answers?select=id,prompt_text,answer_text,citations_json&run_id=eq.${run.id}&organization_id=eq.${context.organizationId}`,
     { token: viewer.accessToken },
   );
   if (!answerRows.length) return NextResponse.json({ error: "This run has no collected answers to review." }, { status: 409 });
-  const answerIds = answerRows.map((row) => row.id);
+
+  // #345/A08: a returned URL is not proof of support. An answer to a question
+  // that explicitly requires an official-domain source is never bulk-marked
+  // VERIFIED when it cites off-domain/wrong-section pages, cites nothing, or
+  // abstains; it is excluded so the finding stays unknown. Ordinary buyer
+  // questions keep the existing human-review workflow.
+  const { verifiable: answerIds, withheld } = partitionOfficialSourceReview(answerRows);
+  if (!answerIds.length) {
+    return NextResponse.json({
+      error: "No collected answer has qualifying evidence: a required official-source answer cited off-domain pages or abstained. Inspect the results; they cannot be marked verified.",
+    }, { status: 422 });
+  }
+  const withheldIds = withheld.map((entry) => entry.id);
 
   await Promise.all([
-    supabaseRest(`run_answers?run_id=eq.${run.id}&organization_id=eq.${context.organizationId}`, {
+    supabaseRest(`run_answers?run_id=eq.${run.id}&organization_id=eq.${context.organizationId}&id=in.(${answerIds.join(",")})`, {
       method: "PATCH",
       serviceRole: true,
       prefer: "return=minimal",
@@ -44,6 +57,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       `source_observations?organization_id=eq.${context.organizationId}&run_answer_id=in.(${answerIds.join(",")})`,
       { method: "PATCH", serviceRole: true, prefer: "return=minimal", body: { review_status: "verified", reviewer_id: viewer.id } },
     ),
+    ...(withheldIds.length ? [
+      supabaseRest(`run_answers?run_id=eq.${run.id}&organization_id=eq.${context.organizationId}&id=in.(${withheldIds.join(",")})`, {
+        method: "PATCH",
+        serviceRole: true,
+        prefer: "return=minimal",
+        body: { review_status: "excluded" },
+      }),
+      supabaseRest(
+        `source_observations?organization_id=eq.${context.organizationId}&run_answer_id=in.(${withheldIds.join(",")})`,
+        { method: "PATCH", serviceRole: true, prefer: "return=minimal", body: { review_status: "excluded", reviewer_id: viewer.id } },
+      ),
+    ] : []),
   ]);
 
   let sourceMapId: string;
@@ -63,9 +88,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       error: "The review could not be completed yet. Your collected answers are preserved; refresh the run before retrying.",
     }, { status: 503 });
   }
-  const finalStatus = failedAttempts.length ? "partial" : "complete";
+  const finalStatus = failedAttempts.length || withheldIds.length ? "partial" : "complete";
   try {
-    await supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}`, {
+    await supabaseRest(`runs?id=eq.${run.id}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
       method: "PATCH",
       token: viewer.accessToken,
       prefer: "return=minimal",
@@ -73,6 +98,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
     await finalizeResolutionFollowUpsForRun({
       organizationId: context.organizationId,
+      projectId: context.projectId,
       runId: run.id,
       runStatus: finalStatus,
       recordedBy: viewer.id,
@@ -87,7 +113,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const sideEffects = await Promise.allSettled([
     supabaseRest("audit_logs", {
       method: "POST",
-      token: viewer.accessToken,
+      // Append the already-authorized review receipt using audit-table
+      // authority; the tenant, actor and run come from verified context.
+      serviceRole: true,
       prefer: "return=minimal",
       body: {
         organization_id: context.organizationId,
@@ -95,7 +123,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         action: "run.review.approved",
         entity_type: "run",
         entity_id: run.id,
-        after_state: { status: finalStatus, source_map_id: sourceMapId, verified_sources: sourceCount },
+        after_state: { status: finalStatus, source_map_id: sourceMapId, verified_sources: sourceCount, withheld_official_source_answers: withheldIds.length },
       },
     }),
     supabaseRest("notifications?on_conflict=organization_id,user_id,event_key", {
@@ -132,5 +160,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (sideEffects.some((result) => result.status === "rejected")) {
     console.warn("Run review completed with a non-critical notification or audit-log failure.");
   }
-  return NextResponse.json({ ok: true, status: finalStatus, sourceMapId, sourceCount });
+  return NextResponse.json({ ok: true, status: finalStatus, sourceMapId, sourceCount, withheldOfficialSourceAnswers: withheldIds.length });
 }

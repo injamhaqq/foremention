@@ -30,5 +30,5 @@ test("pause and resume persist tenant-scoped state and govern future competitor 
   assert.match(jobs, /competitors\?select=name&project_id=eq\.\$\{run\.project_id\}&organization_id=eq\.\$\{run\.organization_id\}&active=eq\.true/);
   assert.match(jobs, /persistAnswer\(run, prompt, providerId, successfulReceipt\.answer, identity, successfulReceipt\.attemptNumber\)/);
   assert.doesNotMatch(jobs, /recordRunChanges\(run, identity\)/);
-  assert.match(jobs, /schedule-weekly-workspace-runs/);
+  assert.doesNotMatch(jobs, /schedule-weekly-workspace-runs/);
 });

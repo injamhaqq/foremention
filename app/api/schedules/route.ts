@@ -31,7 +31,7 @@ export async function GET() {
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ data: [] });
   try {
-    const data = await supabaseRest<ScheduleRow[]>(`measurement_schedules?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id&organization_id=eq.${context.organizationId}&order=created_at.desc`, { token: viewer.accessToken });
+    const data = await supabaseRest<ScheduleRow[]>(`measurement_schedules?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`, { token: viewer.accessToken });
     return NextResponse.json({ data });
   } catch (error) {
     if (isMissingRelationError(error)) return NextResponse.json({ data: [], migrationPending: true });
@@ -116,7 +116,7 @@ export async function PATCH(request: Request) {
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: body.id, enabled: body.enabled }, mode: "demo" });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
-  const rows = await supabaseRest<ScheduleRow[]>(`measurement_schedules?id=eq.${encodeURIComponent(body.id)}&organization_id=eq.${context.organizationId}`, {
+  const rows = await supabaseRest<ScheduleRow[]>(`measurement_schedules?id=eq.${encodeURIComponent(body.id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
     method: "PATCH",
     token: viewer.accessToken,
     prefer: "return=representation",

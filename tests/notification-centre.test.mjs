@@ -14,6 +14,8 @@ test("the workspace top bar exposes a tenant-scoped notification centre", async 
   assert.match(bell, /unread/);
   assert.match(bell, /createdAt/);
   assert.match(layout, /loadNotifications/);
-  assert.match(data, /organization_id=eq\.\$\{organizationId\}&user_id=eq\.\$\{viewer\.id\}/);
-  assert.match(api, /organization_id=eq\.\$\{organizationId\}&user_id=eq\.\$\{viewer\.id\}/);
+  assert.match(data, /organization_id=eq\.\$\{context\.organizationId\}&user_id=eq\.\$\{viewer\.id\}/);
+  assert.match(data, /filterNotificationsToProject/);
+  assert.match(api, /organization_id=eq\.\$\{context\.organizationId\}&user_id=eq\.\$\{viewer\.id\}/);
+  assert.match(api, /filterNotificationsToProject/);
 });

@@ -1,4 +1,4 @@
-.page { --resolution-wash: #e8fff7; --resolution-blue: #eaf5ff; --resolution-caution: #fff3d8; }
+.page { --resolution-wash: var(--fm-surface-2, #e8fff7); --resolution-blue: var(--fm-surface-3, #eaf5ff); --resolution-caution: var(--fm-surface-2, #fff3d8); }
 .center { display: grid; gap: 22px; }
 .loop { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; padding: 0; border: 1px solid var(--ink); list-style: none; background: var(--paper); }
 .loop li { min-height: 88px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; padding: 14px; border-right: 1px solid var(--ink); }
@@ -136,3 +136,15 @@
 @media (prefers-reduced-motion: reduce) {
   .pulse, .loadingHeading, .loadingGrid div { animation: none; }
 }
+
+/* Decision evidence selection keeps the checkbox and its complete label together. */
+.editor .evidenceChoice { display: block; margin-block: 12px; font-size: 12px; letter-spacing: normal; text-transform: none; overflow-wrap: anywhere; }
+.evidenceChoice span { display: flex; align-items: center; gap: 10px; }
+.editor .evidenceChoice input { flex: 0 0 20px; width: 20px; min-height: 20px; padding: 0; }
+.editor fieldset { min-width: 0; padding: 14px; }
+
+.editor label { min-width: 0; }
+.editor select { width: 100%; min-width: 0; max-width: 100%; }
+
+.decisionIntro { margin-top: 20px; padding: 16px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
+.decisionIntro p { margin-block: 8px; font-size: 12px; line-height: 1.6; }

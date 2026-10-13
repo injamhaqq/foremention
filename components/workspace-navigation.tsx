@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { Arrow, ForementionMark, Wordmark } from "@/components/brand";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
+import type { WorkspaceProject } from "@/lib/data";
 import { resetProductAnalytics } from "@/lib/product-analytics";
 
 const primaryNav = [
@@ -42,11 +43,59 @@ function isCurrent(pathname: string, href: string) {
   return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function WorkspaceIdentity({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
+function WorkspaceIdentity({
+  viewer,
+  organizationName,
+  projects,
+  activeProjectId,
+}: {
+  viewer: Viewer;
+  organizationName?: string;
+  projects: WorkspaceProject[];
+  activeProjectId?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function switchProject(projectId: string) {
+    if (viewer.mode === "demo" || projectId === activeProjectId) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/workspace/project", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Could not switch project.");
+      // A hard navigation deliberately cancels stale in-flight UI requests.
+      // The next server render re-resolves every customer surface from the
+      // authorized active-project cookie.
+      window.location.reload();
+    } catch (cause) {
+      setBusy(false);
+      setError(cause instanceof Error ? cause.message : "Could not switch project.");
+    }
+  }
+
+  const active = projects.find((project) => project.id === activeProjectId) || projects[0] || null;
   return <div className="sidebar-company">
-    <span>Workspace</span>
-    <strong>{viewer.mode === "demo" ? "Northstar HR" : workspaceName || "Setup required"}</strong>
-    <small>{viewer.mode === "demo" ? "Seeded demo · fictional data" : workspaceName ? "Customer workspace" : "Complete onboarding"}</small>
+    <span>Organization</span>
+    <strong>{viewer.mode === "demo" ? "Northstar HR" : organizationName || "Setup required"}</strong>
+    {active ? <label className="sidebar-project">
+      <span>Active project</span>
+      <select
+        aria-label="Active project"
+        value={active.id}
+        disabled={viewer.mode === "demo" || projects.length < 2 || busy}
+        onChange={(event) => void switchProject(event.target.value)}
+      >
+        {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+      </select>
+    </label> : <small>Complete onboarding</small>}
+    {busy && <small role="status">Switching project…</small>}
+    {error && <small className="sidebar-project__error" role="alert">{error}</small>}
   </div>;
 }
 
@@ -65,7 +114,7 @@ function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigat
   </nav>;
 }
 
-export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
+export function WorkspaceSidebar({ viewer, organizationName, projects, activeProjectId }: { viewer: Viewer; organizationName?: string; projects: WorkspaceProject[]; activeProjectId?: string }) {
   const pathname = usePathname();
   return <aside className="app-sidebar registered-workspace-sidebar">
     <Wordmark />
@@ -73,13 +122,13 @@ export function WorkspaceSidebar({ viewer, workspaceName }: { viewer: Viewer; wo
       <NavigationLinks pathname={pathname} />
     </div>
     <div className="app-sidebar__footer">
-      <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
+      <WorkspaceIdentity viewer={viewer} organizationName={organizationName} projects={projects} activeProjectId={activeProjectId} />
       <SignOutButton demo={viewer.mode === "demo"} />
     </div>
   </aside>;
 }
 
-export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: Viewer; workspaceName?: string }) {
+export function WorkspaceMobileNavigation({ viewer, organizationName, projects, activeProjectId }: { viewer: Viewer; organizationName?: string; projects: WorkspaceProject[]; activeProjectId?: string }) {
   const pathname = usePathname();
   const mobileMenu = useRef<HTMLDetailsElement>(null);
   const summaryRef = useRef<HTMLElement>(null);
@@ -99,7 +148,7 @@ export function WorkspaceMobileNavigation({ viewer, workspaceName }: { viewer: V
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
         <Link prefetch={false} className="app-mobile-nav__search" href="/app/search" onClick={() => closeMenu()}>Search workspace <span aria-hidden="true">&rarr;</span></Link>
-        <WorkspaceIdentity viewer={viewer} workspaceName={workspaceName} />
+        <WorkspaceIdentity viewer={viewer} organizationName={organizationName} projects={projects} activeProjectId={activeProjectId} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>
     </details>;

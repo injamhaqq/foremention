@@ -1,0 +1,124 @@
+/*
+ * Public contrast repair — 2026-10-12 (A21).
+ *
+ * The canonical dark system (canonical-system.css) sets body text to
+ * --fm-fg (#FFFDF9) and muted text to light greys, but several older public
+ * surfaces still paint a light background (#FFF, #F4F0E8, #EEF7FF, #EFFBF6,
+ * #FFF0A1). On those surfaces headings, index links and labels rendered as
+ * near-white on near-white (axe color-contrast 1.01–2.4:1 on production).
+ *
+ * This layer is imported LAST so it wins without !important wars: leftover
+ * light surfaces adopt the canonical dark surface, and accent text that sat on
+ * the near-black page or on the signal green is lifted to a passing tone.
+ * It changes colour only — no layout, spacing or copy.
+ */
+
+/* 1. Leftover light surfaces -> canonical dark surface. */
+.longform,
+.longform-index,
+.market-evidence,
+.market-evidence__index,
+.report-score,
+.legal-summary,
+.audit-provenance,
+.site-audit-card,
+.insight-card,
+.answer-block,
+.roi-calculator,
+.honesty-grid > article {
+  background: var(--fm-surface, #151817);
+  color: var(--fm-fg, #fffdf9);
+  border-color: var(--fm-border-strong, #3a433d);
+}
+
+.longform-limit {
+  background: var(--fm-surface-2, #101311);
+  color: var(--fm-fg, #fffdf9);
+  border-color: var(--fm-signal-light, #65b58e);
+}
+
+.longform-index a,
+.longform-index span,
+.longform-body h2,
+.longform-body h3,
+.longform-body strong,
+.market-evidence__index a,
+.market-evidence h3,
+.market-evidence dd,
+.report-score span,
+.report-score strong,
+.report-score small,
+.legal-summary strong,
+.audit-provenance strong,
+.site-audit-card h3,
+.site-audit-card dd,
+.site-audit-card summary,
+.insight-card h2,
+.insight-card a,
+.answer-block strong,
+.roi-calculator h2,
+.roi-calculator label,
+.honesty-grid > article h2,
+.longform-limit h2 {
+  color: var(--fm-fg, #fffdf9);
+}
+
+.longform-index a,
+.market-evidence__index a { border-color: var(--fm-border-strong, #3a433d); }
+
+/* Body copy and muted labels on the (now dark) surfaces. */
+.longform-body p,
+.longform-body li,
+.legal-summary p,
+.insight-card p,
+.roi-calculator p,
+.honesty-grid > article p,
+.honesty-grid > article a,
+.market-evidence__index a > span,
+.market-evidence span,
+.insight-card__meta span,
+.insight-card__meta b,
+.insight-card__foot span,
+.site-audit-card span,
+.honesty-grid > article > span {
+  color: var(--fm-fg-soft, #d7dbd5);
+}
+
+.longform .eyebrow,
+.longform-limit .eyebrow,
+.roi-calculator .eyebrow { color: var(--fm-signal-light, #65b58e); }
+
+/* 2. Accent text on the near-black page: #08766B / #176347 fail at 10–11px. */
+.honesty-intro > span,
+.section--yellow .truth-list > div > span { color: var(--fm-signal-light, #65b58e); }
+
+/* 3. Text on the signal-green (#176347) surfaces. The shell forces eyebrows to
+ *    --fm-signal-light with !important (canonical-system.css), which is only
+ *    2.9:1 on this green, so these narrowly scoped overrides need !important. */
+.report-cover .eyebrow,
+.report-limit .eyebrow,
+#limits.report-limit > .eyebrow,
+.report-limit p,
+.routing-note > div:last-child .eyebrow,
+.routing-note > div:last-child p,
+.honesty-note p,
+.comparison-row--head > span:nth-child(3) {
+  color: var(--fm-fg, #fffdf9) !important;
+}
+
+/* 4. Remaining light cards and low-contrast muted labels found by axe. */
+.honesty-grid > article:nth-child(n),
+.checklist-grid > article {
+  background: var(--fm-surface, #151817);
+  color: var(--fm-fg, #fffdf9);
+  border-color: var(--fm-border-strong, #3a433d);
+}
+.checklist-grid > article h3 { color: var(--fm-fg, #fffdf9); }
+.checklist-grid > article p { color: var(--fm-fg-soft, #d7dbd5); }
+.framework-table__row span,
+.framework-table__row strong { color: var(--fm-fg-soft, #d7dbd5); }
+.audit-provenance span,
+.market-evidence dt,
+.site-audit-card dt,
+.checklist-grid > article > span { color: var(--fm-muted, #9ea69e); }
+.honesty-grid > article p a { color: var(--fm-fg, #fffdf9); text-decoration: underline; text-underline-offset: 3px; }

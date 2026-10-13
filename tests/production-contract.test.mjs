@@ -131,13 +131,19 @@ test("approved canonical Foremention identity stays active while Source Eclipse 
 });
 
 test("interactive demo and factual disclosure are present", async () => {
-  const [journey, report, home] = await Promise.all([text("components/recommendation-journey.tsx"), text("app/sample-report/page.tsx"), text("app/page.tsx")]);
+  const [journey, report, home, experience] = await Promise.all([
+    text("components/recommendation-journey.tsx"),
+    text("app/sample-report/page.tsx"),
+    text("app/page.tsx"),
+    text("components/goat-home-experience.tsx"),
+  ]);
   assert.match(journey, /Illustrative demo using fictional sample data/);
   assert.match(journey, /Buyer prompt/);
   assert.match(journey, /Placement route/);
-  assert.match(report, /Fictional sample report/);
+  assert.match(report, /Fictional Recommendation Intelligence report/i);
   assert.match(report, /does not guarantee/i);
-  assert.match(home, /No fake reviews\. No hidden promotion\. No ranking guarantees\./);
+  assert.match(home, /See where AI recommends your brand/);
+  assert.match(experience, /Opening this page does not trigger paid research or expose customer records/);
 });
 
 test("Sites D1 intake and migration are configured", async () => {
@@ -302,7 +308,8 @@ test("customer insight pages use real evidence without pseudo-priority scores or
   assert.match(opportunities, /score: reviewed \?/);
   assert.match(opportunityList, /source\.score === null \? "Evidence"/);
   assert.match(opportunityList, /source\.score === null \? <strong>Review<\/strong> :/);
-  assert.match(opportunityList, /disabled=.*source\.score === null/);
+  assert.match(opportunityList, /source\.score === null \|\| demo \? "\/app\/source-map#source-review-queue"/);
+  assert.doesNotMatch(opportunityList, /\/api\/placements/);
   assert.match(overview, /latestAnswer\.answer/);
   assert.match(sourceRecord, /Observed evidence chain/);
   assert.match(analytics, /Current reviewed baseline/);
@@ -329,7 +336,8 @@ test("the weekly intelligence loop is tenant-scoped, review-only, cost-aware, an
   assert.match(data, /organization_id=eq\.\$\{context\.organizationId\}/);
   assert.match(data, /project_id=eq\.\$\{context\.projectId\}/);
   assert.match(data, /review_status=eq\.verified/);
-  assert.match(data, /ai_cost_events/);
+  assert.match(data, /actual_cost_usd/);
+  assert.match(data, /Customer totals use the independently persisted runs\.actual_cost_usd/);
   assert.match(data, /canonicalizeEvidenceUrl/);
   assert.match(data, /comparisonSignature/);
   assert.match(data, /candidateSignature === latestSignature/);
@@ -364,7 +372,7 @@ test("the customer journey distinguishes collected citations from reviewed decis
   assert.match(questions, /not search-volume claims or collected evidence/);
   assert.match(launcher, /provider-state/);
   assert.match(decision, /Review sources/);
-  assert.match(home, /LIVE RECORD \/ ILLUSTRATIVE/);
+  assert.match(home, /ILLUSTRATIVE RECOMMENDATION RECORD/);
   assert.doesNotMatch(home, />24<|>87<|>6</);
   assert.match(review, /provider-returned citations/);
   assert.match(data, /Page-level review is still required/);

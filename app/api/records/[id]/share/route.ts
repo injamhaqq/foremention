@@ -18,11 +18,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const body = await request.json().catch(() => ({})) as { includeEvidence?: boolean; expiresInDays?: number; visibility?: ShareVisibility };
   const visibility = body.visibility || "private";
   if (visibility !== "private") return NextResponse.json({ error: "Public Record publishing is not enabled. Create a private expiring link instead." }, { status: 400 });
-  const run = (await loadRuns(viewer)).find((item) => item.id === id);
-  if (!run) return NextResponse.json({ error: "Recommendation Record not found." }, { status: 404 });
-  if (!["complete", "partial", "review"].includes(run.status)) return NextResponse.json({ error: "Only an observed or reviewed Recommendation Record can be shared." }, { status: 409 });
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+  const run = viewer.mode === "demo"
+    ? (await loadRuns(viewer)).find((item) => item.id === id)
+    : (await supabaseRest<Array<{ id: string; status: string }>>(
+      `runs?select=id,status&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+      { token: viewer.accessToken },
+    ))[0];
+  if (!run) return NextResponse.json({ error: "Recommendation Record not found in the active project." }, { status: 404 });
+  if (!["complete", "partial", "review"].includes(run.status)) return NextResponse.json({ error: "Only an observed or reviewed Recommendation Record can be shared." }, { status: 409 });
   const token = createRecordShareToken();
   const tokenHash = await hashRecordShareToken(token);
   const expiresAt = recordShareExpiry(body.expiresInDays).toISOString();
@@ -49,7 +54,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
   if (viewer.mode !== "demo") {
-    const rows = await supabaseRest<ShareRow[]>(`record_shares?id=eq.${encodeURIComponent(body.shareId)}&run_id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}`, { method: "PATCH", token: viewer.accessToken, prefer: "return=representation", body: { revoked_at: new Date().toISOString() } });
+    const runs = await supabaseRest<Array<{ id: string }>>(
+      `runs?select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&limit=1`,
+      { token: viewer.accessToken },
+    );
+    if (!runs[0]) return NextResponse.json({ error: "Recommendation Record not found in the active project." }, { status: 404 });
+    const rows = await supabaseRest<ShareRow[]>(
+      `record_shares?id=eq.${encodeURIComponent(body.shareId)}&run_id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}`,
+      { method: "PATCH", token: viewer.accessToken, prefer: "return=representation", body: { revoked_at: new Date().toISOString() } },
+    );
     if (!rows.length) return NextResponse.json({ error: "Share not found." }, { status: 404 });
   }
   return NextResponse.json({ data: { revoked: true }, mode: viewer.mode });

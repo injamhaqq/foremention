@@ -10,9 +10,12 @@ import {
 } from "@/lib/collection-policy";
 import { getPrimaryWorkspaceRole, getProviderStatuses, loadPrompts, loadRuns, loadWorkspaceContext } from "@/lib/data";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
+import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { inngest } from "@/lib/jobs/inngest";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { runUnits } from "@/lib/product-limits";
+import { EVIDENCE_CAPACITY_DAILY_MESSAGE, EVIDENCE_CAPACITY_MONTHLY_MESSAGE, readEvidenceCapacity } from "@/lib/evidence-capacity";
+import { braveSearchApiKey } from "@/lib/free-web-retrieval";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { getProvider } from "@/lib/providers";
 import type { ProviderId } from "@/lib/providers/types";
@@ -75,6 +78,11 @@ export async function POST(request: Request) {
       error: "Production is in free-only mode. Grounded Cloudflare Workers AI with Bing Search RSS is the only live customer-evidence provider enabled.",
     }, { status: 403 });
   }
+  if (!providerAllowedForMeasurementLane(providerId)) {
+    return NextResponse.json({
+      error: "Model gateways can be used for customer measurement only when pinned to one exact upstream provider and model.",
+    }, { status: 403 });
+  }
   const idempotencyKey = request.headers.get("idempotency-key")?.trim();
   if (!idempotencyKey || !/^[a-zA-Z0-9:_-]{16,100}$/.test(idempotencyKey)) {
     return NextResponse.json({ error: "A valid idempotency key is required to start a collection safely." }, { status: 400 });
@@ -88,8 +96,18 @@ export async function POST(request: Request) {
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before starting a collection run." }, { status: 409 });
   if (!["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can start collection runs." }, { status: 403 });
 
+  // The persisted uniqueness index is organization-wide. Namespace new
+  // interactive idempotency keys by active project so sibling projects may
+  // safely reuse the same client-generated key. Read both the legacy raw shape
+  // and the namespaced shape only inside this active project for retry
+  // compatibility with pre-hardening runs.
+  const persistedIdempotencyKey = `${context.projectId}:${idempotencyKey}`;
+  const idempotencyFilter = [idempotencyKey, persistedIdempotencyKey]
+    .map((value) => encodeURIComponent(value))
+    .join(",");
+
   const existingRuns = await supabaseRest<Array<{ id: string; status: string }>>(
-    `runs?select=id,status&organization_id=eq.${context.organizationId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
+    `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=in.(${idempotencyFilter})&limit=1`,
     { token: viewer.accessToken },
   );
   if (existingRuns[0]) {
@@ -105,7 +123,7 @@ export async function POST(request: Request) {
   }
   const activeRequestKey = `${providerId}:${prompts.map((prompt) => prompt.promptId).sort().join(",")}`;
   const activeDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
-    `runs?select=id,status&organization_id=eq.${context.organizationId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
+    `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
     { token: viewer.accessToken },
   );
   if (activeDuplicate[0]) {
@@ -147,6 +165,19 @@ export async function POST(request: Request) {
     }, { status: 422 });
   }
 
+  // A18: refuse a collection the shared free allocation cannot finish today,
+  // before any run, quota or budget is reserved. Each provider call is still
+  // admitted atomically at call time; this only gives the founder a clear answer.
+  if (providerId === "cloudflare") {
+    const capacity = await readEvidenceCapacity({ brave: Boolean(braveSearchApiKey()) }).catch(() => null);
+    if (capacity?.enforced && capacity.dailyRemaining !== null && capacity.dailyRemaining < prompts.length) {
+      return NextResponse.json({ error: EVIDENCE_CAPACITY_DAILY_MESSAGE, remainingToday: capacity.dailyRemaining }, { status: 429 });
+    }
+    if (capacity?.enforced && capacity.braveConfigured && capacity.monthlyBraveRemaining !== null && capacity.monthlyBraveRemaining < prompts.length) {
+      return NextResponse.json({ error: EVIDENCE_CAPACITY_MONTHLY_MESSAGE, remainingThisMonth: capacity.monthlyBraveRemaining }, { status: 429 });
+    }
+  }
+
   const runId = crypto.randomUUID();
   const requestedUnits = runUnits(prompts.length, 1);
   let quotaReserved = false;
@@ -166,7 +197,7 @@ export async function POST(request: Request) {
         prompt_count: prompts.length,
         requested_units: requestedUnits,
         estimated_max_cost_usd: 0,
-        idempotency_key: idempotencyKey,
+        idempotency_key: persistedIdempotencyKey,
         active_request_key: activeRequestKey,
         methodology_version: currentObservationMethodologyVersion(),
         created_by: viewer.id,
@@ -213,14 +244,14 @@ export async function POST(request: Request) {
     logOperationalEvent("collection_reservation_failed", { correlationId, route: "/api/runs", errorCode: "capacity_reservation_failed" });
     console.warn(`Collection capacity failed during ${capacityStage}.`, safeOperationalError(error));
     const concurrentDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
-      `runs?select=id,status&organization_id=eq.${context.organizationId}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&limit=1`,
+      `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&idempotency_key=in.(${idempotencyFilter})&limit=1`,
       { token: viewer.accessToken },
     ).catch(() => []);
     if (concurrentDuplicate[0] && concurrentDuplicate[0].id !== runId) {
       return NextResponse.json({ id: concurrentDuplicate[0].id, status: concurrentDuplicate[0].status, duplicate: true }, { status: 202 });
     }
     const concurrentActiveDuplicate = await supabaseRest<Array<{ id: string; status: string }>>(
-      `runs?select=id,status&organization_id=eq.${context.organizationId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
+      `runs?select=id,status&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&active_request_key=eq.${encodeURIComponent(activeRequestKey)}&status=in.(queued,running)&limit=1`,
       { token: viewer.accessToken },
     ).catch(() => []);
     if (concurrentActiveDuplicate[0] && concurrentActiveDuplicate[0].id !== runId) {
@@ -238,7 +269,7 @@ export async function POST(request: Request) {
         },
       }).catch(() => undefined);
     } else {
-      await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${context.organizationId}`, {
+      await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
         method: "DELETE",
         token: viewer.accessToken,
       }).catch(() => undefined);
@@ -252,11 +283,11 @@ export async function POST(request: Request) {
     const sent = await inngest.send({
       id: `foremention-run-${runId}`,
       name: "foremention/run.requested",
-      data: { runId, organizationId: context.organizationId },
+      data: { runId, organizationId: context.organizationId, projectId: context.projectId },
     });
     const queueEventId = sent.ids[0];
     if (queueEventId) {
-      await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${context.organizationId}`, {
+      await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, {
         method: "PATCH",
         token: viewer.accessToken,
         prefer: "return=minimal",

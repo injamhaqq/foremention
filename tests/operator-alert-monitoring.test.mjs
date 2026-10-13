@@ -29,3 +29,19 @@ test("operator alert tables are inaccessible to browser roles", () => {
   assert.match(migration, /build_commit text not null unique/);
   assert.match(migration, /attempt_count integer not null default 1 check \(attempt_count between 1 and 3\)/);
 });
+
+const sentryProbe = await readFile(new URL("../lib/sentry-operator-probe.ts", import.meta.url), "utf8");
+
+test("operator alert probe exercises Sentry once per delivery attempt with no customer data", () => {
+  assert.match(route, /captureSentryOperatorProbe/);
+  assert.match(route, /onDeliveryAttempt/);
+  assert.match(alerts, /options\.onDeliveryAttempt\?\.\(buildCommit\)/);
+  // The telemetry callback runs only after the idempotent ledger short-circuit.
+  assert.ok(
+    alerts.indexOf("options.onDeliveryAttempt") > alerts.indexOf('if (delivery.status === "sent" || delivery.status === "pending" && !inserted[0]) return delivery;'),
+  );
+  assert.match(sentryProbe, /Sentry\.getClient\(\)/);
+  assert.match(sentryProbe, /sentry_not_configured/);
+  assert.match(sentryProbe, /fingerprint: \[SENTRY_OPERATOR_PROBE_FINGERPRINT\]/);
+  assert.doesNotMatch(sentryProbe, /recipient_email|request\.(json|url|headers)|prompt_text|answer_text|setUser|setContext/);
+});

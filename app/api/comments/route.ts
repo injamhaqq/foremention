@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { loadWorkspaceContext } from "@/lib/data";
+import { loadProjectSourceMapEntryRef } from "@/lib/project-source-map-scope";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
@@ -9,10 +10,26 @@ const entityTypes = ["source_map_entry", "priority_gap", "evidence_item"] as con
 type EntityType = typeof entityTypes[number];
 const uuid = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
 
-async function targetExists(entityType: EntityType, entityId: string, organizationId: string, token: string) {
-  const table = entityType === "evidence_item" ? "evidence_items" : "source_map_entries";
-  const rows = await supabaseRest<Array<{ id: string }>>(`${table}?select=id&id=eq.${entityId}&organization_id=eq.${organizationId}&limit=1`, { token });
-  return Boolean(rows[0]);
+async function targetExists(
+  entityType: EntityType,
+  entityId: string,
+  context: { organizationId: string; projectId: string; categoryId: string },
+  token: string,
+) {
+  if (entityType === "evidence_item") {
+    const rows = await supabaseRest<Array<{ id: string }>>(
+      `evidence_items?select=id&id=eq.${encodeURIComponent(entityId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&project_id=eq.${encodeURIComponent(context.projectId)}&limit=1`,
+      { token },
+    );
+    return Boolean(rows[0]);
+  }
+  return Boolean(await loadProjectSourceMapEntryRef({
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    entryId: entityId,
+    token,
+  }));
 }
 
 async function contextFor(request: Request) {
@@ -21,7 +38,7 @@ async function contextFor(request: Request) {
   const context = await loadWorkspaceContext(viewer); if (!context) return { response: NextResponse.json({ error: "Workspace not found." }, { status: 404 }) };
   const url = new URL(request.url); const entityType = url.searchParams.get("entityType") as EntityType | null; const entityId = url.searchParams.get("entityId") || "";
   if (!entityType || !entityTypes.includes(entityType) || !uuid.test(entityId)) return { response: NextResponse.json({ error: "Choose a valid workspace record." }, { status: 400 }) };
-  if (!await targetExists(entityType, entityId, context.organizationId, viewer.accessToken!)) return { response: NextResponse.json({ error: "Workspace record not found." }, { status: 404 }) };
+  if (!await targetExists(entityType, entityId, context, viewer.accessToken!)) return { response: NextResponse.json({ error: "Workspace record not found in the active project." }, { status: 404 }) };
   return { viewer, context, entityType, entityId };
 }
 

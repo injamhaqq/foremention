@@ -1,5 +1,5 @@
 import type { Viewer } from "@/lib/auth";
-import { getPrimaryOrganizationId } from "@/lib/data";
+import { loadWorkspaceContext } from "@/lib/data";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export type ProviderRunDiagnostics = {
@@ -39,12 +39,13 @@ export function sanitizeProviderRunDiagnostics(answerId: string, provider: strin
 
 export async function loadProviderRunDiagnostics(viewer: Viewer, runId: string): Promise<ProviderRunDiagnostics[]> {
   if (viewer.mode === "demo") return [];
-  const organizationId = await getPrimaryOrganizationId(viewer);
-  if (!organizationId) return [];
-  const encodedOrganizationId = encodeURIComponent(organizationId);
+  const context = await loadWorkspaceContext(viewer);
+  if (!context) return [];
+  const encodedOrganizationId = encodeURIComponent(context.organizationId);
+  const encodedProjectId = encodeURIComponent(context.projectId);
   const encodedRunId = encodeURIComponent(runId);
-  const rows = await supabaseRest<RawAnswerRow[]>(
-    `run_answers?select=id,provider,raw_json&organization_id=eq.${encodedOrganizationId}&run_id=eq.${encodedRunId}&provider=eq.groq&order=collected_at.asc`,
+  const rows = await supabaseRest<Array<RawAnswerRow & { run: { project_id: string } | null }>>(
+    `run_answers?select=id,provider,raw_json,run:runs!inner(project_id)&organization_id=eq.${encodedOrganizationId}&run_id=eq.${encodedRunId}&run.project_id=eq.${encodedProjectId}&provider=eq.groq&order=collected_at.asc`,
     { token: viewer.accessToken },
   );
   return rows
