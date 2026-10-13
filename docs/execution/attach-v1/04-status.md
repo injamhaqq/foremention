@@ -121,3 +121,35 @@ They prove the Chat04 contract's transitions, exclusion reasons, idempotent reco
 
 ### Rollback
 Revert any of `b4f6b89e`, `21290185`, `7e253332`, `e217808f`, `251c5fcd` independently, or close PR #563. No migration, deployment, provider call, spend or outreach occurred.
+
+
+## Continuation 2026-10-13 (evening IST) — founder-approved fix of Chat04 open blockers A11 caller + CV-05/A15 SQL
+
+**Base main (unchanged):** `6b93c88cd22653fb17c9bec5ca91ca4e997d76b9`. **Resumed from head:** `2af90b3c4899fc433bb0b317d341134d7a75f571` (the head FM-00 composed into `fm-attach-v1/00-coordinator@327237d6`). **Inputs read:** SHARED_RULES.md, OWNERSHIP_AND_COORDINATION.md, FM-00 `00-status.md`, `00-proposals/reconciliation-71.csv`, `interface-contracts.md`, `composition-receipt.md` at `327237d6`. FM-00 listed exactly these Chat04 follow-ups: move the prompt route to `update_prompt_versioned_in_project`; deliver SQL for `save_key` / `question_set_version` / nine-field context / optional `setup_only`.
+
+### A11 — prompt edit now calls the project-bound RPC
+- `app/api/prompts/route.ts` PATCH → `lib/buyer-question-edit.ts` `updatePromptInProject` → `rpc/update_prompt_versioned_in_project` with `p_project_id = context.projectId` (server-resolved active project, never a body value). The existing org+project-scoped read stays in front (defence in depth); the caller can only reach the two versioning RPC paths.
+- DB denial (P0001 “not found in this project”, 404) → **404 “Buyer question not found in the active project.”**; permission → 403; anything else propagates. A denial is **never** retried on the org-only RPC.
+- **Dependency:** migration `supabase/migrations/20261013100000_update_prompt_versioned_in_project.sql` (Chat02 proposal @56d6591c, adopted by FM-00 on `fm-attach-v1/00-coordinator`). It is **not** on this branch. Compatibility bridge so 04 is green alone and composed: only when PostgREST says the function is not deployed (`404 PGRST202`) does the edit fall back to the legacy `update_prompt_versioned` (after the scoped read), with a server warning. **FM-00: delete the bridge (`LEGACY_PROMPT_RPC` branch) together with the phase-2 revoke** once 20261013100000 is in every environment.
+- Tests (RPC mocked): own-project edit sends org+project; **cross-project denial** (prompt in A2, active project A1 → 404, no legacy call, row unchanged); cross-org denial; permission mapping; bridge only on PGRST202. DB-side denial was already proven by FM-00's A11 probe 4/4 on PGlite.
+
+### CV-05 / A15 / A14 — SQL proposal + wired callers
+- **Proposal SQL (for FM-00 adoption, not applied):** `docs/execution/attach-v1/04-proposals/migrations/20261013140000_chat04_customer_value_loop_persistence.proposal.sql` (+ `README.md`, `chat04-probe.mjs`, probe results). Contents: (1) `project_question_set_versions` epoch bumped by trigger on any active-question-set change; (2) `runs.question_set_version` stamped at insert/immutable and `runs.cycle_origin` (`customer_cycle` for signed-in member runs, NULL = unknown for undeclared service-role writers, `fixture`); (3) `run_answers.observation_method` / `sampling_json` derived only from `raw_json` (complements the nine fields already stamped in `measurement_context_json` by 20260901000200); (4) `record_decisions` with unique `(organization_id, project_id, save_key)`, no fabricated owner for no-action/disagreement, approved actionable decisions require owner+action+due date, approved rows immutable, member-only reads, **no direct writes** — only `save_record_decision` (idempotent; same key + different Record = PT409) and `complete_record_decision_action` (owner/admin approval). Historical rows are not backfilled.
+- **Not included:** zero-question `setup_only` — FM-00 recorded it as “deferred until the founder wants it” (reconciliation-71 A28); `complete_onboarding` untouched, 1–5 questions stays enforced.
+- **Callers (Chat04-owned):** `app/api/records/[id]/decision/route.ts` (GET list / POST save with lost-ACK reconciliation by save key / PATCH owner-action-date-approval), `app/api/customer-value-loop/route.ts` (GET loop state from persisted rows, newest 20 runs), `lib/record-decisions.ts`, `lib/customer-value-loop-snapshot.ts`; `LoopRun.origin` gains `"unknown"` (never closes proof). Without the migration these answer **503 `decision_persistence_pending`** — nothing is faked. No UI is wired yet (next step after FM-00 adopts).
+- **Replay (disposable PGlite 0.5.9 in `/workspace/work/fix04/pg`, outside the lockfile, never production):** 04 tree 97/97 + probe **17/17**; composed `00@327237d6` tree 99/99 + probe **17/17**; proposal placed in the migrations dir: 04 **98/98**, composed **100/100**; Chat02 RLS probe on composed + proposal **10/10**. Probe covers epoch stamping/bumping/immutability, origin rules, raw-derived method/sampling, idempotent save + lost-ACK replay, PT409 key reuse, viewer/outsider/anon/cross-org/sibling-project/unreviewed-run denials, no fabricated owner, analyst cannot approve, approval completeness, immutability (incl. service role), direct-write denial, org-scoped reads, grants, org-deletion cascade.
+
+### Requests to other owners
+- **FM-00:** adopt (or amend) 20261013140000; Postgres-17 replay on a disposable Supabase project before production; remove the A11 bridge with the phase-2 revoke.
+- **Chat06:** scheduled/worker-created runs must set `runs.cycle_origin` explicitly (`customer_cycle` for real scheduled cycles), otherwise they stay unknown and cannot close CV-05.
+- **Chat01:** add `raw.sampling` (object: temperature/top_p/samples) next to the existing `raw.observationMethod`; until then later cycles are “not comparable — sampling unavailable” by design.
+- **Chat09:** QA against the composed head after adoption: two-tenant decision save/reload + lost-ACK journey on a disposable project.
+
+### Dispositions after this run
+- A11: caller moved + cross-project denial test → **implemented pending composed CI**; phase-2 revoke + bridge removal remain FM-00.
+- CV-05 / A15: SQL + callers + tests delivered → **implemented pending FM-00 adoption**; real saved-decision reload on a disposable DB and a real later customer cycle remain open.
+- A14: comparison context (epoch, sampling, method, nine fields) persisted/mapped → **pending adoption + Chat01 sampling + Chat06 origin**.
+- A28 zero-question setup: **deferred (founder decision)**.
+
+### Rollback
+Revert this run's commit(s) on `fm-attach-v1/04-workflow`. Nothing was applied to any shared or production database.
