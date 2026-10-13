@@ -6,6 +6,7 @@ import { pageMetadata } from "@/lib/seo";
 import { billingProviderConfigured, billingProviderId } from "@/lib/billing-provider";
 import { PaddleSandboxPayment } from "@/components/paddle-sandbox-payment";
 import { paddleSandboxRequestAllowed } from "@/lib/paddle-sandbox-staging";
+import { paddleLiveCheckoutClientToken } from "@/lib/paddle-payment-page";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = pageMetadata({
@@ -32,6 +33,26 @@ export default async function PaymentPage() {
   const requestHost = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
   const token = process.env.PADDLE_SANDBOX_CLIENT_TOKEN?.trim() || "";
   const available = sandboxPaymentAvailable(requestHost) && /^test_[a-z0-9]+$/i.test(token);
+  // Live default payment link (Chat03): separately gated, fail-closed.
+  const liveToken = available ? null : paddleLiveCheckoutClientToken(requestHost);
+  if (liveToken) {
+    return (
+      <PublicShell>
+        <section className="page-hero">
+          <div className="shell narrow-heading">
+            <span className="eyebrow">Secure payment</span>
+            <h1>Foremention checkout</h1>
+            <p>Payment is processed by Paddle, our merchant of record. Access starts only after Paddle confirms the payment to Foremention.</p>
+          </div>
+        </section>
+        <section className="section section--paper">
+          <div className="shell narrow-heading">
+            <PaddleSandboxPayment clientToken={liveToken} environment="live" />
+          </div>
+        </section>
+      </PublicShell>
+    );
+  }
 
   return (
     <PublicShell>

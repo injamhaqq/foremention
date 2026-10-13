@@ -1,5 +1,7 @@
 import { confirmRunReviewTransition, type ReviewTransitionSnapshot } from "./run-review-transition";
-import { Inngest } from "inngest";
+import { isStuckActiveRun, settleRunTerminal, STUCK_RUN_GRACE_MINUTES, type ActiveRunRow, type RunSettlementIo, type RunSettlementSnapshot } from "./run-terminal-settlement";
+import { isoWeekKey } from "./job-calendar";
+import { Inngest, NonRetriableError } from "inngest";
 import { toInngestProviderStepError } from "./provider-step-error";
 import { measureRunPhase } from "./run-phase-timing";
 import { attachProviderAttempt, resolveProviderAttempt, type ProviderAttemptReceipt } from "./provider-attempt-receipt";
@@ -137,32 +139,52 @@ async function notifyRunOwner(
   }
 }
 
+export const INTERRUPTED_RUN_SUMMARY = "Collection was interrupted before completion (worker timeout or platform cancellation). No evidence was invented; start a new collection to retry.";
+
+function scopedRunSettlementIo(data: RunRequestedData): RunSettlementIo {
+  const scope = `id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}`;
+  return {
+    patchWhere: (filter, body) => supabaseRest<Array<Record<string, unknown>>>(`runs?select=id,status,started_at&${scope}&${filter}`, {
+      method: "PATCH",
+      serviceRole: true,
+      prefer: "return=representation",
+      body,
+    }),
+    reload: async () => (await supabaseRest<RunSettlementSnapshot[]>(
+      `runs?select=status,started_at&${scope}&limit=1`,
+      { serviceRole: true },
+    ))[0] ?? null,
+    releaseUsage: async () => {
+      await supabaseRest(`usage_events?organization_id=eq.${data.organizationId}&run_id=eq.${data.runId}`, {
+        method: "DELETE",
+        serviceRole: true,
+      });
+    },
+  };
+}
+
 async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNeverStarted = false) {
   const runs = await supabaseRest<Array<{ id: string; organization_id: string; project_id: string; created_by: string | null; status: string; started_at: string | null }>>(
     `runs?select=id,organization_id,project_id,created_by,status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&limit=1`,
     { serviceRole: true },
   );
   const run = runs[0];
-  if (!run || ["complete", "partial", "failed", "cancelled"].includes(run.status)) return;
-  if (releaseIfNeverStarted && !run.started_at) {
-    await supabaseRest(`usage_events?organization_id=eq.${data.organizationId}&run_id=eq.${data.runId}`, {
-      method: "DELETE",
-      serviceRole: true,
-    });
-  }
+  if (!run) return { state: "already_settled" as const, currentStatus: null, released: false };
+  // Only an ACTIVE run can fail. `review` is a collected, reviewable run: a late
+  // onFailure (for example from a notification step) must never erase it. The
+  // fenced settlement enforces this at write time; an already-failed unstarted
+  // run still has its reservation release completed idempotently.
   const actualCostUsd = await recordedRunCost(data);
-  await supabaseRest(`runs?id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}`, {
-    method: "PATCH",
-    serviceRole: true,
-    prefer: "return=minimal",
-    body: {
-      status: "failed",
-      completed_at: new Date().toISOString(),
-      estimated_max_cost_usd: releaseIfNeverStarted && !run.started_at ? 0 : undefined,
-      actual_cost_usd: actualCostUsd,
-      error_summary: safeOperationalError(reason),
-    },
+  const settlement = await settleRunTerminal(scopedRunSettlementIo(data), {
+    status: "failed",
+    errorSummary: safeOperationalError(reason),
+    releaseIfNeverStarted,
+    body: { actual_cost_usd: actualCostUsd },
   });
+  if (settlement.state !== "settled") {
+    logOperationalEvent("collection_failure_settlement_skipped", { runId: data.runId, reason: "terminal_state" });
+    return settlement;
+  }
   await finalizeResolutionFollowUpsForRun({
     organizationId: data.organizationId,
     projectId: data.projectId,
@@ -183,6 +205,7 @@ async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNe
     "Collection run needs attention",
     "The run failed without inventing evidence. Open the run to inspect the provider error and retry safely.",
   );
+  return settlement;
 }
 
 async function loadRun(data: RunRequestedData) {
@@ -496,15 +519,23 @@ export const runMultiEngineScan = inngest.createFunction(
 
     const providerId = run.provider_ids[0];
     if (!providerAllowedForLiveCollection(providerId)) {
-      await markRunFailed(data, "The queued provider is disabled by Foremention free-only mode.", true);
+      await step.run("fail-free-only-blocked-run", () =>
+        markRunFailed(data, "The queued provider is disabled by Foremention free-only mode.", true));
       return { runId: run.id, answers: 0, citations: 0, failures: prompts.length, freeOnlyBlocked: true };
     }
     if (!providerAllowedForMeasurementLane(providerId)) {
-      await markRunFailed(data, "The queued model gateway is not pinned to one exact upstream provider and model, so it cannot produce comparable measurement evidence.", true);
+      await step.run("fail-unpinned-gateway-run", () =>
+        markRunFailed(data, "The queued model gateway is not pinned to one exact upstream provider and model, so it cannot produce comparable measurement evidence.", true));
       return { runId: run.id, answers: 0, citations: 0, failures: prompts.length, unpinnedGatewayBlocked: true };
     }
     const adapter = getProvider(providerId);
-    const model = String(process.env[`${providerId.toUpperCase()}_MODEL`] || "");
+    // Pin the observation model ONCE per run. Inngest memoizes step output
+    // across replays and function-level retries, so a deployment that changes
+    // the configured model mid-run cannot split one run across two models.
+    const model = await step.run("pin-provider-model", () => String(process.env[`${providerId.toUpperCase()}_MODEL`] || ""));
+    // Adapters read the model from configuration at call time, so the pin is
+    // enforced by refusing further provider calls once configuration drifts.
+    const modelPinHolds = () => model === String(process.env[`${providerId.toUpperCase()}_MODEL`] || "");
     const providerRates = getProviderCostRates(providerId);
     if (!model || !providerRates) throw new Error("The selected provider model or cost ceiling is not configured.");
     const recentFailureWindow = new Date(Date.now() - LIVE_COLLECTION_LIMITS.circuitWindowMinutes * 60_000).toISOString();
@@ -514,27 +545,30 @@ export const runMultiEngineScan = inngest.createFunction(
         { serviceRole: true },
       )));
     if (hasOpenProviderCircuit(recentFailures)) {
-      for (const prompt of prompts) {
-        await supabaseRest("run_attempts", {
+      // Memoized + conflict-tolerant: code outside step.run re-executes on every
+      // Inngest replay, and the old plain inserts hit the unique attempt key
+      // on the replay after the next step, failing the function.
+      const excludedAttemptNumber = attempt + 1;
+      await step.run("record-circuit-open-exclusions", () =>
+        supabaseRest("run_attempts?on_conflict=run_id,prompt_id,provider,attempt_number", {
           method: "POST",
           serviceRole: true,
-          prefer: "return=minimal",
-          body: {
+          prefer: "resolution=ignore-duplicates,return=minimal",
+          body: prompts.map((prompt) => ({
             organization_id: run.organization_id,
             run_id: run.id,
             prompt_id: prompt.prompt_id,
             prompt_key: prompt.prompt_key,
             provider: providerId,
             model,
-            attempt_number: attempt + 1,
+            attempt_number: excludedAttemptNumber,
             status: "excluded",
             error_code: "circuit_open",
             error_detail: "Provider calls are paused after repeated recent failures.",
             retryable: true,
             completed_at: new Date().toISOString(),
-          },
-        });
-      }
+          })),
+        }));
       await step.run("record-open-circuit-agent-failure", () =>
         recordAgentExecution({
           runId: run.id,
@@ -546,7 +580,8 @@ export const runMultiEngineScan = inngest.createFunction(
           result: { answerCount: 0, failureCount: prompts.length },
           error: "Provider circuit is temporarily open after repeated failures.",
         }));
-      await markRunFailed(data, "Provider circuit is temporarily open after repeated failures.", true);
+      await step.run("fail-circuit-open-run", () =>
+        markRunFailed(data, "Provider circuit is temporarily open after repeated failures.", true));
       return { runId: run.id, answers: 0, citations: 0, failures: prompts.length };
     }
 
@@ -579,6 +614,14 @@ export const runMultiEngineScan = inngest.createFunction(
       let collected: ProviderAnswer | ProviderAttemptReceipt<ProviderAnswer>;
       try {
         collected = await step.run(`collect-${providerId}-${prompt.prompt_key}`, async () => {
+          // Checked only when a NEW provider call would happen (memoized
+          // collections from before a configuration change are kept). Answers
+          // already collected under the pinned model stay; a second model is
+          // never mixed into the same run.
+          if (!modelPinHolds()) {
+            logOperationalEvent("provider_model_pin_drift", { runId: run.id, provider: providerId });
+            throw new NonRetriableError("The configured provider model changed during this run; this question was not collected so the run stays comparable.");
+          }
           const startedAt = new Date().toISOString();
           const recordedAttemptNumber = attempt + 1;
           await supabaseRest("run_attempts?on_conflict=run_id,prompt_id,provider,attempt_number", {
@@ -669,10 +712,10 @@ export const runMultiEngineScan = inngest.createFunction(
           result: { answerCount: 0, failureCount: failures.length },
           error: failureReasons[0] || "Every provider attempt failed.",
         }));
-      await markRunFailed(
+      await step.run("fail-all-attempts-run", () => markRunFailed(
         data,
         failureReasons[0] || "Every provider attempt failed. No evidence was invented.",
-      );
+      ));
       return { runId: run.id, answers: 0, citations: 0, failures: failures.length };
     }
     await step.run("record-answer-collector", () => measureRunPhase("record_collector", run.id, () =>
@@ -824,40 +867,43 @@ export const cleanupCancelledCollection = inngest.createFunction(
       return { skipped: true };
     }
     const data = original.data;
-    await step.run("mark-cancelled-run", async () => {
-      const runs = await supabaseRest<Array<{ status: string; started_at: string | null }>>(
-        `runs?select=status,started_at&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&limit=1`,
-        { serviceRole: true },
-      );
-      const run = runs[0];
-      if (!run || ["complete", "partial", "failed", "cancelled"].includes(run.status)) return;
-      if (!run.started_at) {
-        await supabaseRest(`usage_events?organization_id=eq.${data.organizationId}&run_id=eq.${data.runId}`, {
-          method: "DELETE",
-          serviceRole: true,
-        });
-      }
+    // A customer cancellation reaches here AFTER the cancel route has already
+    // settled the run as `cancelled`. If the run is still active, the Inngest
+    // run was cancelled by the platform (start/finish timeout, operator bulk
+    // cancel, app removal): that is an interruption, not a customer choice, so
+    // it settles as `failed` with an explicit interrupted reason. Either way the
+    // write is fenced and never overwrites review/complete/partial runs.
+    const outcome = await step.run("settle-cancelled-or-interrupted-run", async () => {
       const actualCostUsd = await recordedRunCost(data);
-      await supabaseRest(`runs?id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}`, {
-        method: "PATCH",
-        serviceRole: true,
-        prefer: "return=minimal",
-        body: {
+      const settlement = await settleRunTerminal(scopedRunSettlementIo(data), {
+        status: "failed",
+        errorSummary: INTERRUPTED_RUN_SUMMARY,
+        releaseIfNeverStarted: true,
+        body: { actual_cost_usd: actualCostUsd },
+      });
+      if (settlement.state === "settled") {
+        await finalizeResolutionFollowUpsForRun({
+          organizationId: data.organizationId,
+          projectId: data.projectId,
+          runId: data.runId,
+          runStatus: "failed",
+        });
+        logOperationalEvent("collection_interrupted", { runId: data.runId, reason: "platform_cancellation" });
+        return "interrupted" as const;
+      }
+      if (settlement.currentStatus === "cancelled") {
+        // Customer cancellation: finish the reservation release idempotently
+        // (the route releases only runs its actor created).
+        await settleRunTerminal(scopedRunSettlementIo(data), {
           status: "cancelled",
-          completed_at: new Date().toISOString(),
-          estimated_max_cost_usd: run.started_at ? undefined : 0,
-          actual_cost_usd: actualCostUsd,
-          error_summary: "Collection was cancelled.",
-        },
-      });
-      await finalizeResolutionFollowUpsForRun({
-        organizationId: data.organizationId,
-        projectId: data.projectId,
-        runId: data.runId,
-        runStatus: "cancelled",
-      });
+          errorSummary: "Collection was cancelled.",
+          releaseIfNeverStarted: true,
+        });
+        return "cancelled" as const;
+      }
+      return "already_settled" as const;
     });
-    return { runId: data.runId, cancelled: true };
+    return { runId: data.runId, cancelled: outcome === "cancelled", interrupted: outcome === "interrupted" };
   },
 );
 
@@ -880,7 +926,9 @@ export const scheduleWeeklyWorkspaceDigests = inngest.createFunction(
       }
       return Array.from(byProject.values());
     });
-    const weekKey = new Date().toISOString().slice(0, 10);
+    // Memoized and week-stable: a retry, replay or manual re-run in the same
+    // ISO week reuses the same unique delivery key instead of a new day key.
+    const weekKey = await step.run("pin-weekly-digest-week", () => isoWeekKey(new Date()));
     for (const seed of seeds) {
       await step.run(
         `email-weekly-digest-${seed.organization_id}-${seed.project_id}`,
@@ -893,6 +941,40 @@ export const scheduleWeeklyWorkspaceDigests = inngest.createFunction(
     }
     return { eligibleProjects: seeds.length, weekKey };
   },
+);
+
+/**
+ * Recovery for interrupted collection runs (CV-12). A run can remain
+ * `queued`/`running` forever when its event was lost, the app was unsynced, or
+ * the cancellation hook itself failed. Runs active far beyond the collector's
+ * hard lifetime (start 5m + finish 30m) are settled through the same fenced
+ * terminal write as every other failure, releasing never-started capacity.
+ * No provider is called and no evidence is created. Every 3 hours (≈480
+ * Inngest executions/month when idle) keeps worst-case detection near five
+ * hours without spending a meaningful share of the free execution quota.
+ */
+export async function reconcileInterruptedCollectionRunsPass(
+  step: { run<T>(id: string, fn: () => Promise<T>): Promise<T> },
+  now: Date = new Date(),
+) {
+  const cutoff = new Date(now.getTime() - STUCK_RUN_GRACE_MINUTES * 60_000).toISOString();
+  const candidates = await step.run("load-stale-active-runs", () => supabaseRest<ActiveRunRow[]>(
+    `runs?select=id,organization_id,project_id,status,created_at,started_at&status=in.(queued,running)&created_at=lt.${encodeURIComponent(cutoff)}&order=created_at.asc&limit=50`,
+    { serviceRole: true },
+  ));
+  let interrupted = 0;
+  for (const run of candidates.filter((row) => isStuckActiveRun(row, now))) {
+    const result = await step.run(`settle-interrupted-run-${run.id}`, () =>
+      markRunFailed({ runId: run.id, organizationId: run.organization_id, projectId: run.project_id }, INTERRUPTED_RUN_SUMMARY, true));
+    if (result.state === "settled") interrupted += 1;
+  }
+  if (interrupted) logOperationalEvent("collection_interrupted_runs_reconciled", { count: interrupted });
+  return { candidates: candidates.length, interrupted };
+}
+
+export const reconcileInterruptedCollectionRuns = inngest.createFunction(
+  { id: "reconcile-interrupted-collection-runs", retries: 2, concurrency: { limit: 1 }, triggers: { cron: "41 */3 * * *" } },
+  async ({ step }) => reconcileInterruptedCollectionRunsPass({ run: (id, fn) => step.run(id, fn) as never }),
 );
 
 export const deliverWorkspaceWebhookEvents = inngest.createFunction(

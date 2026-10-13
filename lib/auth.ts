@@ -6,7 +6,15 @@ import { DEMO_COOKIE, REFRESH_COOKIE, SESSION_COOKIE } from "@/lib/session-cooki
 
 export { DEMO_COOKIE, REFRESH_COOKIE, SESSION_COOKIE };
 
-export type Viewer = { id: string; email: string; name: string; mode: "demo" | "supabase"; accessToken?: string };
+export type Viewer = {
+  id: string;
+  email: string;
+  name: string;
+  mode: "demo" | "supabase";
+  accessToken?: string;
+  /** True only when Supabase Auth reports a confirmed email for this user. */
+  emailVerified?: boolean;
+};
 
 export const getViewer = cache(async function getViewer(): Promise<Viewer | null> {
   const store = await cookies();
@@ -20,9 +28,9 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer | null
   try {
     const response = await fetch(`${url}/auth/v1/user`, { headers: { apikey: anon, authorization: `Bearer ${token}` }, cache: "no-store" });
     if (!response.ok) return null;
-    const user = (await response.json()) as { id: string; email?: string; user_metadata?: { full_name?: string; name?: string } };
+    const user = (await response.json()) as { id: string; email?: string; email_confirmed_at?: string | null; user_metadata?: { full_name?: string; name?: string } };
     const email = user.email || "signed-in user";
-    return { id: user.id, email, name: user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0], mode: "supabase", accessToken: token };
+    return { id: user.id, email, name: user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0], mode: "supabase", accessToken: token, emailVerified: Boolean(user.email && user.email_confirmed_at) };
   } catch {
     return null;
   }

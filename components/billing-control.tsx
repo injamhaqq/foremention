@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { billingReturnNotice } from "@/lib/billing-return-notice";
 
 type CheckoutOffer = { packageKey: "core" | "signal"; billingInterval: "monthly" | "annual" };
 type BillingStatus = {
@@ -15,7 +16,23 @@ type BillingStatus = {
   canManage: boolean;
   checkoutPackages: Array<"core" | "signal">;
   checkoutOffers: CheckoutOffer[];
+  checkoutPending?: { state: string; createdAt: string } | null;
+  buyerQuestionLimit?: number | null;
 };
+
+type ReconcileResult = { action: string; reason: string };
+
+const RECONCILE_COPY: Record<string, string> = {
+  none: "No unresolved checkout remains for this workspace.",
+  keep: "The checkout link is still open. Complete it in the Paddle window, or check again later.",
+  await_provider: "Paddle has the payment and is finalising it. Access changes only after Paddle's signed confirmation reaches Foremention.",
+  settle_paid: "Paddle reports this checkout as paid. Access is applied only by Paddle's signed confirmation; refresh shortly.",
+  release: "The unpaid checkout was closed. You can start a new checkout.",
+  cancel_then_release: "The abandoned checkout was cancelled at Paddle so it can no longer be charged. You can start a new checkout.",
+  manual_review: "This checkout needs a manual billing review. No new charge will be started; contact support.",
+};
+
+
 
 const LABELS: Record<"core" | "signal", string> = { core: "Core", signal: "Signal" };
 
@@ -26,12 +43,32 @@ function offerLabel(offer: CheckoutOffer) {
 export function BillingControl() {
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [failed, setFailed] = useState(false);
+  const [returnNotice, setReturnNotice] = useState<string | null>(null);
+  const [reconcileMessage, setReconcileMessage] = useState<string | null>(null);
+  const [reconciling, setReconciling] = useState(false);
+
+  async function reconcileCheckout() {
+    setReconciling(true);
+    try {
+      const response = await fetch("/api/billing/checkout/reconcile", { method: "POST", cache: "no-store" });
+      const payload = await response.json().catch(() => ({})) as { data?: ReconcileResult };
+      setReconcileMessage(payload.data ? RECONCILE_COPY[payload.data.action] || RECONCILE_COPY.manual_review : "Checkout status could not be checked right now. No paid access was inferred.");
+    } catch {
+      setReconcileMessage("Checkout status could not be checked right now. No paid access was inferred.");
+    } finally {
+      setReconciling(false);
+    }
+  }
 
   useEffect(() => {
     let live = true;
     void fetch("/api/billing/status", { cache: "no-store" })
       .then(async (response) => response.ok ? response.json() : Promise.reject(new Error("status unavailable")))
-      .then((payload: { data?: BillingStatus }) => { if (live && payload.data) setStatus(payload.data); })
+      .then((payload: { data?: BillingStatus }) => {
+        if (!live || !payload.data) return;
+        setStatus(payload.data);
+        setReturnNotice(billingReturnNotice(window.location.search, payload.data));
+      })
       .catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
   }, []);
@@ -49,6 +86,13 @@ export function BillingControl() {
     <span className="eyebrow">Billing</span>
     <h2>{status.packageKey === "private_beta" ? "Design-partner access" : `${status.packageKey} · ${status.state}`}</h2>
     {graceCopy ? <p>{graceCopy}</p> : null}
+    {returnNotice ? <p role="status">{returnNotice}</p> : null}
+    {typeof status.buyerQuestionLimit === "number" ? <p className="table-caption">Buyer-question capacity enforced for this workspace: {status.buyerQuestionLimit}.</p> : null}
+    {status.owner && status.checkoutPending ? <div role="status">
+      <p>A checkout was opened and is not yet confirmed by Paddle. It does not grant access; another checkout cannot start until it is resolved.</p>
+      <button className="button button--outline" type="button" disabled={reconciling} onClick={() => void reconcileCheckout()}>{reconciling ? "Checking…" : "Check checkout status"}</button>
+      {reconcileMessage ? <p>{reconcileMessage}</p> : null}
+    </div> : null}
     {!status.configured ? <>
       <p>Self-serve paid checkout is not configured for this environment. Current access remains founder-led; no card or paid package is implied.</p>
       <Link className="button button--outline" href="/contact">Discuss commercial access</Link>

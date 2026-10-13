@@ -1,0 +1,2313 @@
+{
+  "snapshot_observed_date": "2026-10-13",
+  "snapshot_is_historical": true,
+  "sql_receipts": {
+    "status": "HASH_ONLY_LEDGER_TEXT_COMPARISON",
+    "counts": {
+      "local": 97,
+      "remote": 100,
+      "receipt_rows": 100,
+      "byte_matched_remote": 36,
+      "terminal_lf_only_remote": 33,
+      "unresolved_remote": 31,
+      "byte_matched_but_metadata_drift": 9,
+      "ambiguous_byte_matched_remote": 0,
+      "local_without_byte_match": 61,
+      "local_without_byte_or_terminal_lf_match": 30,
+      "identical_sql_multiple_remote_versions_groups": 2
+    },
+    "matches": [
+      {
+        "version": "20260719000100",
+        "name": "initial_schema",
+        "local": [
+          {
+            "version": "20260719000100",
+            "name": "initial_schema",
+            "path": "supabase/migrations/20260719000100_initial_schema.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260722000100",
+        "name": "recommendation_graph",
+        "local": [
+          {
+            "version": "20260722000100",
+            "name": "recommendation_graph",
+            "path": "supabase/migrations/20260722000100_recommendation_graph.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260724000100",
+        "name": "free_beta_usage_controls",
+        "local": [
+          {
+            "version": "20260724000100",
+            "name": "free_beta_usage_controls",
+            "path": "supabase/migrations/20260724000100_free_beta_usage_controls.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260728000100",
+        "name": "live_collection_hardening",
+        "local": [
+          {
+            "version": "20260728000100",
+            "name": "live_collection_hardening",
+            "path": "supabase/migrations/20260728000100_live_collection_hardening.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260729000100",
+        "name": "collaboration_lifecycle_alerts",
+        "local": [
+          {
+            "version": "20260729000100",
+            "name": "collaboration_lifecycle_alerts",
+            "path": "supabase/migrations/20260729000100_collaboration_lifecycle_alerts.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260729000110",
+        "name": "collaboration_lifecycle_alerts",
+        "local": [
+          {
+            "version": "20260729000110",
+            "name": "collaboration_lifecycle_alerts",
+            "path": "supabase/migrations/20260729000110_collaboration_lifecycle_alerts.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260729000200",
+        "name": "service_role_background_permissions",
+        "local": [
+          {
+            "version": "20260729000200",
+            "name": "service_role_background_permissions",
+            "path": "supabase/migrations/20260729000200_service_role_background_permissions.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260729000300",
+        "name": "source_observation_upsert_fix",
+        "local": [
+          {
+            "version": "20260729000300",
+            "name": "source_observation_upsert_fix",
+            "path": "supabase/migrations/20260729000300_source_observation_upsert_fix.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000100",
+        "name": "active_run_duplicate_prevention",
+        "local": [
+          {
+            "version": "20260802000100",
+            "name": "active_run_duplicate_prevention",
+            "path": "supabase/migrations/20260802000100_active_run_duplicate_prevention.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000200",
+        "name": "source_monitoring",
+        "local": [
+          {
+            "version": "20260802000200",
+            "name": "source_monitoring",
+            "path": "supabase/migrations/20260802000200_source_monitoring.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000300",
+        "name": "claim_evidence_links",
+        "local": [
+          {
+            "version": "20260802000300",
+            "name": "claim_evidence_links",
+            "path": "supabase/migrations/20260802000300_claim_evidence_links.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000400",
+        "name": "claim_verification_workflow",
+        "local": [
+          {
+            "version": "20260802000400",
+            "name": "claim_verification_workflow",
+            "path": "supabase/migrations/20260802000400_claim_verification_workflow.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000500",
+        "name": "application_email_alerts",
+        "local": [
+          {
+            "version": "20260802000500",
+            "name": "application_email_alerts",
+            "path": "supabase/migrations/20260802000500_application_email_alerts.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000600",
+        "name": "workspace_webhooks",
+        "local": [
+          {
+            "version": "20260802000600",
+            "name": "workspace_webhooks",
+            "path": "supabase/migrations/20260802000600_workspace_webhooks.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000700",
+        "name": "workspace_comments",
+        "local": [
+          {
+            "version": "20260802000700",
+            "name": "workspace_comments",
+            "path": "supabase/migrations/20260802000700_workspace_comments.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000800",
+        "name": "hubspot_activity_connector",
+        "local": [
+          {
+            "version": "20260802000800",
+            "name": "hubspot_activity_connector",
+            "path": "supabase/migrations/20260802000800_hubspot_activity_connector.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802000900",
+        "name": "public_visibility_reports",
+        "local": [
+          {
+            "version": "20260802000900",
+            "name": "public_visibility_reports",
+            "path": "supabase/migrations/20260802000900_public_visibility_reports.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260802001000",
+        "name": "gdpr_data_deletion",
+        "local": [
+          {
+            "version": "20260802001000",
+            "name": "gdpr_data_deletion",
+            "path": "supabase/migrations/20260802001000_gdpr_data_deletion.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260804000100",
+        "name": "resolution_engine",
+        "local": [
+          {
+            "version": "20260804000100",
+            "name": "resolution_engine",
+            "path": "supabase/migrations/20260804000100_resolution_engine.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260810142217",
+        "name": "production_drift_hardening",
+        "local": [
+          {
+            "version": "20260810142217",
+            "name": "production_drift_hardening",
+            "path": "supabase/migrations/20260810142217_production_drift_hardening.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260810142520",
+        "name": "production_drift_performance_cleanup",
+        "local": [
+          {
+            "version": "20260810142520",
+            "name": "production_drift_performance_cleanup",
+            "path": "supabase/migrations/20260810142520_production_drift_performance_cleanup.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260813023904",
+        "name": "source_snapshot_admin_policy",
+        "local": [
+          {
+            "version": "20260813083100",
+            "name": "source_snapshot_admin_policy",
+            "path": "supabase/migrations/20260813083100_source_snapshot_admin_policy.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260814085609",
+        "name": "live_foreign_key_indexes",
+        "local": [
+          {
+            "version": "20260814083000",
+            "name": "live_foreign_key_indexes",
+            "path": "supabase/migrations/20260814083000_live_foreign_key_indexes.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260819173416",
+        "name": "service_only_run_rpc_actor_context",
+        "local": [
+          {
+            "version": "20260819154000",
+            "name": "service_only_run_rpc_actor_context",
+            "path": "supabase/migrations/20260819154000_service_only_run_rpc_actor_context.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260901064255",
+        "name": "security_performance_advisor_hardening_main_2c306677",
+        "local": [
+          {
+            "version": "20260818000200",
+            "name": "security_performance_advisor_hardening",
+            "path": "supabase/migrations/20260818000200_security_performance_advisor_hardening.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260901090148",
+        "name": "measurement_moat_foundation_main_893e850c",
+        "local": [
+          {
+            "version": "20260901000200",
+            "name": "measurement_moat_foundation",
+            "path": "supabase/migrations/20260901000200_measurement_moat_foundation.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260902000100",
+        "name": "decision_intelligence_v1",
+        "local": [
+          {
+            "version": "20260902000100",
+            "name": "decision_intelligence_v1",
+            "path": "supabase/migrations/20260902000100_decision_intelligence_v1.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260902000200",
+        "name": "next_best_design_partner_learning_v1",
+        "local": [
+          {
+            "version": "20260902000200",
+            "name": "next_best_design_partner_learning_v1",
+            "path": "supabase/migrations/20260902000200_next_best_design_partner_learning_v1.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260918000100",
+        "name": "operating_agent_action_ledger",
+        "local": [
+          {
+            "version": "20260918000100",
+            "name": "operating_agent_action_ledger",
+            "path": "supabase/migrations/20260918000100_operating_agent_action_ledger.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260918000200",
+        "name": "agent_reasoning_runtime",
+        "local": [
+          {
+            "version": "20260918000200",
+            "name": "agent_reasoning_runtime",
+            "path": "supabase/migrations/20260918000200_agent_reasoning_runtime.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260918000300",
+        "name": "agent_action_execution",
+        "local": [
+          {
+            "version": "20260918000300",
+            "name": "agent_action_execution",
+            "path": "supabase/migrations/20260918000300_agent_action_execution.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260918000400",
+        "name": "support_agent",
+        "local": [
+          {
+            "version": "20260918000400",
+            "name": "support_agent",
+            "path": "supabase/migrations/20260918000400_support_agent.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": true,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260919223104",
+        "name": "source_map_review_monotonicity",
+        "local": [
+          {
+            "version": "20260920000100",
+            "name": "source_map_review_monotonicity",
+            "path": "supabase/migrations/20260920000100_source_map_review_monotonicity.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260926063633",
+        "name": "company_operational_cost_readiness_20260926",
+        "local": [
+          {
+            "version": "20260926071500",
+            "name": "company_operational_cost_readiness",
+            "path": "supabase/migrations/20260926071500_company_operational_cost_readiness.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260926064502",
+        "name": "company_cost_view_read_grants_20260926",
+        "local": [
+          {
+            "version": "20260926081000",
+            "name": "company_cost_view_read_grants",
+            "path": "supabase/migrations/20260926081000_company_cost_view_read_grants.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      },
+      {
+        "version": "20260926071020",
+        "name": "support_ticket_auth_rls_initplan_20260926",
+        "local": [
+          {
+            "version": "20260926090000",
+            "name": "support_ticket_auth_rls_initplan",
+            "path": "supabase/migrations/20260926090000_support_ticket_auth_rls_initplan.sql"
+          }
+        ],
+        "exact_metadata_and_bytes": false,
+        "identity_ambiguous": false
+      }
+    ],
+    "terminal_lf_only_matches": [
+      {
+        "version": "20260811044941",
+        "name": "tenant_relation_integrity",
+        "local": [
+          {
+            "version": "20260811044941",
+            "name": "tenant_relation_integrity",
+            "path": "supabase/migrations/20260811044941_tenant_relation_integrity.sql"
+          }
+        ],
+        "same_metadata": true,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260813015442",
+        "name": "source_snapshot_engine",
+        "local": [
+          {
+            "version": "20260813080000",
+            "name": "source_snapshot_engine",
+            "path": "supabase/migrations/20260813080000_source_snapshot_engine.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260813025319",
+        "name": "source_snapshot_privilege_hardening",
+        "local": [
+          {
+            "version": "20260813090000",
+            "name": "source_snapshot_privilege_hardening",
+            "path": "supabase/migrations/20260813090000_source_snapshot_privilege_hardening.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260813025339",
+        "name": "source_snapshot_privilege_hardening",
+        "local": [
+          {
+            "version": "20260813090000",
+            "name": "source_snapshot_privilege_hardening",
+            "path": "supabase/migrations/20260813090000_source_snapshot_privilege_hardening.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260813075322",
+        "name": "provider_cost_event_guard",
+        "local": [
+          {
+            "version": "20260813083000",
+            "name": "provider_cost_event_guard",
+            "path": "supabase/migrations/20260813083000_provider_cost_event_guard.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260813105817",
+        "name": "inngest_runtime_probe",
+        "local": [
+          {
+            "version": "20260813170000",
+            "name": "inngest_runtime_probe",
+            "path": "supabase/migrations/20260813170000_inngest_runtime_probe.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260813124156",
+        "name": "signup_security_attestation",
+        "local": [
+          {
+            "version": "20260813180000",
+            "name": "signup_security_attestation",
+            "path": "supabase/migrations/20260813180000_signup_security_attestation.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260814034305",
+        "name": "operator_alert_monitoring",
+        "local": [
+          {
+            "version": "20260814090000",
+            "name": "operator_alert_monitoring",
+            "path": "supabase/migrations/20260814090000_operator_alert_monitoring.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260819171845",
+        "name": "source_review_truth_release_9b335547",
+        "local": [
+          {
+            "version": "20260818000300",
+            "name": "source_review_truth",
+            "path": "supabase/migrations/20260818000300_source_review_truth.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260901071944",
+        "name": "icp_category_evidence_main_7f591ad4",
+        "local": [
+          {
+            "version": "20260901000100",
+            "name": "icp_category_evidence",
+            "path": "supabase/migrations/20260901000100_icp_category_evidence.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260901072125",
+        "name": "outcomes_value_customer_success_main_7f591ad4",
+        "local": [
+          {
+            "version": "20260830000600",
+            "name": "outcomes_value_customer_success",
+            "path": "supabase/migrations/20260830000600_outcomes_value_customer_success.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260901072159",
+        "name": "outcome_ledger_backfill_main_7f591ad4",
+        "local": [
+          {
+            "version": "20260830000700",
+            "name": "outcome_ledger_backfill",
+            "path": "supabase/migrations/20260830000700_outcome_ledger_backfill.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260901072600",
+        "name": "ai_measurement_context_main_7f591ad4",
+        "local": [
+          {
+            "version": "20260830113200",
+            "name": "ai_measurement_context",
+            "path": "supabase/migrations/20260830113200_ai_measurement_context.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260901073317",
+        "name": "audit_log_hardening_main_0e0dcb82",
+        "local": [
+          {
+            "version": "20260830000900",
+            "name": "audit_log_hardening",
+            "path": "supabase/migrations/20260830000900_audit_log_hardening.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260901073330",
+        "name": "enterprise_fail_closed_hardening_main_0e0dcb82",
+        "local": [
+          {
+            "version": "20260830001000",
+            "name": "enterprise_fail_closed_hardening",
+            "path": "supabase/migrations/20260830001000_enterprise_fail_closed_hardening.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260901073349",
+        "name": "scale_unit_economics_observability_main_0e0dcb82",
+        "local": [
+          {
+            "version": "20260830113100",
+            "name": "scale_unit_economics_observability",
+            "path": "supabase/migrations/20260830113100_scale_unit_economics_observability.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260901113706",
+        "name": "change_specification_domain_main_4139f817",
+        "local": [
+          {
+            "version": "20260901000300",
+            "name": "change_specification_domain",
+            "path": "supabase/migrations/20260901000300_change_specification_domain.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260904121425",
+        "name": "acquisition_outreach_control",
+        "local": [
+          {
+            "version": "20260904000200",
+            "name": "acquisition_outreach_control",
+            "path": "supabase/migrations/20260904000200_acquisition_outreach_control.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260904121942",
+        "name": "acquisition_outreach_control",
+        "local": [
+          {
+            "version": "20260904000200",
+            "name": "acquisition_outreach_control",
+            "path": "supabase/migrations/20260904000200_acquisition_outreach_control.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260905083931",
+        "name": "acquisition_zoho_mail_canaries",
+        "local": [
+          {
+            "version": "20260905000100",
+            "name": "acquisition_zoho_mail_canaries",
+            "path": "supabase/migrations/20260905000100_acquisition_zoho_mail_canaries.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260914000100",
+        "name": "core_tenant_relation_integrity",
+        "local": [
+          {
+            "version": "20260914000100",
+            "name": "core_tenant_relation_integrity",
+            "path": "supabase/migrations/20260914000100_core_tenant_relation_integrity.sql"
+          }
+        ],
+        "same_metadata": true,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260914000200",
+        "name": "foundation_budget_alignment",
+        "local": [
+          {
+            "version": "20260914000200",
+            "name": "foundation_budget_alignment",
+            "path": "supabase/migrations/20260914000200_foundation_budget_alignment.sql"
+          }
+        ],
+        "same_metadata": true,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260914000300",
+        "name": "run_accounting_role_alignment",
+        "local": [
+          {
+            "version": "20260914000300",
+            "name": "run_accounting_role_alignment",
+            "path": "supabase/migrations/20260914000300_run_accounting_role_alignment.sql"
+          }
+        ],
+        "same_metadata": true,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915000100",
+        "name": "source_map_review_state",
+        "local": [
+          {
+            "version": "20260915000100",
+            "name": "source_map_review_state",
+            "path": "supabase/migrations/20260915000100_source_map_review_state.sql"
+          }
+        ],
+        "same_metadata": true,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915000300",
+        "name": "performance_advisor_cleanup",
+        "local": [
+          {
+            "version": "20260915000300",
+            "name": "performance_advisor_cleanup",
+            "path": "supabase/migrations/20260915000300_performance_advisor_cleanup.sql"
+          }
+        ],
+        "same_metadata": true,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915000400",
+        "name": "decision_learning_production_parity",
+        "local": [
+          {
+            "version": "20260915000400",
+            "name": "decision_learning_production_parity",
+            "path": "supabase/migrations/20260915000400_decision_learning_production_parity.sql"
+          }
+        ],
+        "same_metadata": true,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915000500",
+        "name": "design_partner_trigger_execute_hardening",
+        "local": [
+          {
+            "version": "20260915000500",
+            "name": "design_partner_trigger_execute_hardening",
+            "path": "supabase/migrations/20260915000500_design_partner_trigger_execute_hardening.sql"
+          }
+        ],
+        "same_metadata": true,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915121058",
+        "name": "remove_redundant_single_tenant_fks",
+        "local": [
+          {
+            "version": "20260915000600",
+            "name": "remove_redundant_single_tenant_fks",
+            "path": "supabase/migrations/20260915000600_remove_redundant_single_tenant_fks.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915134115",
+        "name": "source_snapshot_evidence_excerpt",
+        "local": [
+          {
+            "version": "20260915000700",
+            "name": "source_snapshot_evidence_excerpt",
+            "path": "supabase/migrations/20260915000700_source_snapshot_evidence_excerpt.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915160402",
+        "name": "atomic_prompt_versioning",
+        "local": [
+          {
+            "version": "20260915160000",
+            "name": "atomic_prompt_versioning",
+            "path": "supabase/migrations/20260915160000_atomic_prompt_versioning.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915184808",
+        "name": "comparability_context_hardening",
+        "local": [
+          {
+            "version": "20260915170500",
+            "name": "comparability_context_hardening",
+            "path": "supabase/migrations/20260915170500_comparability_context_hardening.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915184822",
+        "name": "operator_run_diagnostics",
+        "local": [
+          {
+            "version": "20260915171000",
+            "name": "operator_run_diagnostics",
+            "path": "supabase/migrations/20260915171000_operator_run_diagnostics.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      },
+      {
+        "version": "20260915184836",
+        "name": "provider_attempt_cost_ledger",
+        "local": [
+          {
+            "version": "20260915171500",
+            "name": "provider_attempt_cost_ledger",
+            "path": "supabase/migrations/20260915171500_provider_attempt_cost_ledger.sql"
+          }
+        ],
+        "same_metadata": false,
+        "identity_ambiguous": false,
+        "limitation": "Remote stored SQL plus exactly one terminal LF matches a local file; stored bytes are not identical."
+      }
+    ],
+    "unresolved": [
+      {
+        "version": "20260811045535",
+        "name": "verified_claim_evidence_delete_semantics",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260813010016",
+        "name": "rls_auth_initplan_hardening",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260813033833",
+        "name": "suppress_legacy_ungated_movement_alerts",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260813053302",
+        "name": "foreign_key_performance_indexes",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260813084219",
+        "name": "reviewed_opportunity_bridge_unique",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260813085445",
+        "name": "resolution_exact_comparability",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260813090712",
+        "name": "resolution_evidence_snapshot_provenance",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260814002421",
+        "name": "placement_events_org_fk_index_20260814",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260816192504",
+        "name": "tighten_service_only_run_rpcs",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901064346",
+        "name": "company_customer_proof_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901064411",
+        "name": "retention_loop_v1_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901064423",
+        "name": "design_partner_applications_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901064848",
+        "name": "billing_webhook_events_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901064908",
+        "name": "design_partner_submission_limits_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901064926",
+        "name": "apply_billing_event_atomic_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901064937",
+        "name": "customer_proof_research_events_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901065011",
+        "name": "commercial_engine_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901065043",
+        "name": "billing_commercial_hardening_main_2c306677",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260901073304",
+        "name": "enterprise_security_governance_main_0e0dcb82",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260904115039",
+        "name": "acquisition_research_provenance",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260914000400",
+        "name": "security_definer_execute_hardening",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260915000200",
+        "name": "private_org_permission_helper",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260915153758",
+        "name": "workspace_deletion_graph_hardening",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260915153822",
+        "name": "workspace_deletion_remaining_check_fix",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260915184755",
+        "name": "evidence_semantics_hardening",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260915185110",
+        "name": "qualified_paid_pilot_evidence_view",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20260915185158",
+        "name": "customer_value_validation_evidence_compat",
+        "reason": "NO_FILE_MATCH_EVEN_WITH_ONE_TERMINAL_LF"
+      },
+      {
+        "version": "20261009000100",
+        "name": "create_atomic_buyer_question_rpc",
+        "reason": "UNSUPPORTED_STATEMENT_COUNT",
+        "statement_count": 0
+      },
+      {
+        "version": "20261010000100",
+        "name": "source_review_authorized_rpc",
+        "reason": "UNSUPPORTED_STATEMENT_COUNT",
+        "statement_count": 0
+      },
+      {
+        "version": "20261010090000",
+        "name": "fm09_paddle_checkout_reservations",
+        "reason": "UNSUPPORTED_STATEMENT_COUNT",
+        "statement_count": 0
+      },
+      {
+        "version": "20261011090000",
+        "name": "package_capacity_from_verified_billing",
+        "reason": "UNSUPPORTED_STATEMENT_COUNT",
+        "statement_count": 0
+      }
+    ],
+    "local_without_byte_match": [
+      {
+        "version": "20260811044941",
+        "name": "tenant_relation_integrity",
+        "path": "supabase/migrations/20260811044941_tenant_relation_integrity.sql"
+      },
+      {
+        "version": "20260811045535",
+        "name": "verified_claim_evidence_delete_semantics",
+        "path": "supabase/migrations/20260811045535_verified_claim_evidence_delete_semantics.sql"
+      },
+      {
+        "version": "20260813023000",
+        "name": "rls_auth_initplan_hardening",
+        "path": "supabase/migrations/20260813023000_rls_auth_initplan_hardening.sql"
+      },
+      {
+        "version": "20260813033833",
+        "name": "suppress_legacy_ungated_movement_alerts",
+        "path": "supabase/migrations/20260813033833_suppress_legacy_ungated_movement_alerts.sql"
+      },
+      {
+        "version": "20260813055000",
+        "name": "foreign_key_performance_indexes",
+        "path": "supabase/migrations/20260813055000_foreign_key_performance_indexes.sql"
+      },
+      {
+        "version": "20260813080000",
+        "name": "source_snapshot_engine",
+        "path": "supabase/migrations/20260813080000_source_snapshot_engine.sql"
+      },
+      {
+        "version": "20260813083000",
+        "name": "provider_cost_event_guard",
+        "path": "supabase/migrations/20260813083000_provider_cost_event_guard.sql"
+      },
+      {
+        "version": "20260813090000",
+        "name": "source_snapshot_privilege_hardening",
+        "path": "supabase/migrations/20260813090000_source_snapshot_privilege_hardening.sql"
+      },
+      {
+        "version": "20260813153000",
+        "name": "reviewed_opportunity_bridge_unique",
+        "path": "supabase/migrations/20260813153000_reviewed_opportunity_bridge_unique.sql"
+      },
+      {
+        "version": "20260813160000",
+        "name": "resolution_exact_comparability",
+        "path": "supabase/migrations/20260813160000_resolution_exact_comparability.sql"
+      },
+      {
+        "version": "20260813163000",
+        "name": "resolution_evidence_snapshot_provenance",
+        "path": "supabase/migrations/20260813163000_resolution_evidence_snapshot_provenance.sql"
+      },
+      {
+        "version": "20260813170000",
+        "name": "inngest_runtime_probe",
+        "path": "supabase/migrations/20260813170000_inngest_runtime_probe.sql"
+      },
+      {
+        "version": "20260813180000",
+        "name": "signup_security_attestation",
+        "path": "supabase/migrations/20260813180000_signup_security_attestation.sql"
+      },
+      {
+        "version": "20260814060000",
+        "name": "placement_events_organization_index",
+        "path": "supabase/migrations/20260814060000_placement_events_organization_index.sql"
+      },
+      {
+        "version": "20260814090000",
+        "name": "operator_alert_monitoring",
+        "path": "supabase/migrations/20260814090000_operator_alert_monitoring.sql"
+      },
+      {
+        "version": "20260816192504",
+        "name": "tighten_service_only_run_rpcs",
+        "path": "supabase/migrations/20260816192504_tighten_service_only_run_rpcs.sql"
+      },
+      {
+        "version": "20260818000100",
+        "name": "company_customer_proof",
+        "path": "supabase/migrations/20260818000100_company_customer_proof.sql"
+      },
+      {
+        "version": "20260818000300",
+        "name": "source_review_truth",
+        "path": "supabase/migrations/20260818000300_source_review_truth.sql"
+      },
+      {
+        "version": "20260829000100",
+        "name": "retention_loop_v1",
+        "path": "supabase/migrations/20260829000100_retention_loop_v1.sql"
+      },
+      {
+        "version": "20260829000200",
+        "name": "design_partner_applications",
+        "path": "supabase/migrations/20260829000200_design_partner_applications.sql"
+      },
+      {
+        "version": "20260829000300",
+        "name": "billing_webhook_events",
+        "path": "supabase/migrations/20260829000300_billing_webhook_events.sql"
+      },
+      {
+        "version": "20260830000100",
+        "name": "design_partner_submission_limits",
+        "path": "supabase/migrations/20260830000100_design_partner_submission_limits.sql"
+      },
+      {
+        "version": "20260830000200",
+        "name": "apply_billing_event_atomic",
+        "path": "supabase/migrations/20260830000200_apply_billing_event_atomic.sql"
+      },
+      {
+        "version": "20260830000300",
+        "name": "customer_proof_research_events",
+        "path": "supabase/migrations/20260830000300_customer_proof_research_events.sql"
+      },
+      {
+        "version": "20260830000400",
+        "name": "commercial_engine",
+        "path": "supabase/migrations/20260830000400_commercial_engine.sql"
+      },
+      {
+        "version": "20260830000500",
+        "name": "billing_commercial_hardening",
+        "path": "supabase/migrations/20260830000500_billing_commercial_hardening.sql"
+      },
+      {
+        "version": "20260830000600",
+        "name": "outcomes_value_customer_success",
+        "path": "supabase/migrations/20260830000600_outcomes_value_customer_success.sql"
+      },
+      {
+        "version": "20260830000700",
+        "name": "outcome_ledger_backfill",
+        "path": "supabase/migrations/20260830000700_outcome_ledger_backfill.sql"
+      },
+      {
+        "version": "20260830000800",
+        "name": "enterprise_security_governance",
+        "path": "supabase/migrations/20260830000800_enterprise_security_governance.sql"
+      },
+      {
+        "version": "20260830000900",
+        "name": "audit_log_hardening",
+        "path": "supabase/migrations/20260830000900_audit_log_hardening.sql"
+      },
+      {
+        "version": "20260830001000",
+        "name": "enterprise_fail_closed_hardening",
+        "path": "supabase/migrations/20260830001000_enterprise_fail_closed_hardening.sql"
+      },
+      {
+        "version": "20260830113100",
+        "name": "scale_unit_economics_observability",
+        "path": "supabase/migrations/20260830113100_scale_unit_economics_observability.sql"
+      },
+      {
+        "version": "20260830113200",
+        "name": "ai_measurement_context",
+        "path": "supabase/migrations/20260830113200_ai_measurement_context.sql"
+      },
+      {
+        "version": "20260901000100",
+        "name": "icp_category_evidence",
+        "path": "supabase/migrations/20260901000100_icp_category_evidence.sql"
+      },
+      {
+        "version": "20260901000300",
+        "name": "change_specification_domain",
+        "path": "supabase/migrations/20260901000300_change_specification_domain.sql"
+      },
+      {
+        "version": "20260904000100",
+        "name": "acquisition_research_provenance",
+        "path": "supabase/migrations/20260904000100_acquisition_research_provenance.sql"
+      },
+      {
+        "version": "20260904000200",
+        "name": "acquisition_outreach_control",
+        "path": "supabase/migrations/20260904000200_acquisition_outreach_control.sql"
+      },
+      {
+        "version": "20260905000100",
+        "name": "acquisition_zoho_mail_canaries",
+        "path": "supabase/migrations/20260905000100_acquisition_zoho_mail_canaries.sql"
+      },
+      {
+        "version": "20260914000100",
+        "name": "core_tenant_relation_integrity",
+        "path": "supabase/migrations/20260914000100_core_tenant_relation_integrity.sql"
+      },
+      {
+        "version": "20260914000200",
+        "name": "foundation_budget_alignment",
+        "path": "supabase/migrations/20260914000200_foundation_budget_alignment.sql"
+      },
+      {
+        "version": "20260914000300",
+        "name": "run_accounting_role_alignment",
+        "path": "supabase/migrations/20260914000300_run_accounting_role_alignment.sql"
+      },
+      {
+        "version": "20260914000400",
+        "name": "security_definer_execute_hardening",
+        "path": "supabase/migrations/20260914000400_security_definer_execute_hardening.sql"
+      },
+      {
+        "version": "20260915000100",
+        "name": "source_map_review_state",
+        "path": "supabase/migrations/20260915000100_source_map_review_state.sql"
+      },
+      {
+        "version": "20260915000200",
+        "name": "private_org_permission_helper",
+        "path": "supabase/migrations/20260915000200_private_org_permission_helper.sql"
+      },
+      {
+        "version": "20260915000300",
+        "name": "performance_advisor_cleanup",
+        "path": "supabase/migrations/20260915000300_performance_advisor_cleanup.sql"
+      },
+      {
+        "version": "20260915000400",
+        "name": "decision_learning_production_parity",
+        "path": "supabase/migrations/20260915000400_decision_learning_production_parity.sql"
+      },
+      {
+        "version": "20260915000500",
+        "name": "design_partner_trigger_execute_hardening",
+        "path": "supabase/migrations/20260915000500_design_partner_trigger_execute_hardening.sql"
+      },
+      {
+        "version": "20260915000600",
+        "name": "remove_redundant_single_tenant_fks",
+        "path": "supabase/migrations/20260915000600_remove_redundant_single_tenant_fks.sql"
+      },
+      {
+        "version": "20260915000700",
+        "name": "source_snapshot_evidence_excerpt",
+        "path": "supabase/migrations/20260915000700_source_snapshot_evidence_excerpt.sql"
+      },
+      {
+        "version": "20260915144000",
+        "name": "workspace_deletion_graph_hardening",
+        "path": "supabase/migrations/20260915144000_workspace_deletion_graph_hardening.sql"
+      },
+      {
+        "version": "20260915144600",
+        "name": "workspace_deletion_remaining_check_fix",
+        "path": "supabase/migrations/20260915144600_workspace_deletion_remaining_check_fix.sql"
+      },
+      {
+        "version": "20260915160000",
+        "name": "atomic_prompt_versioning",
+        "path": "supabase/migrations/20260915160000_atomic_prompt_versioning.sql"
+      },
+      {
+        "version": "20260915170000",
+        "name": "evidence_semantics_hardening",
+        "path": "supabase/migrations/20260915170000_evidence_semantics_hardening.sql"
+      },
+      {
+        "version": "20260915170500",
+        "name": "comparability_context_hardening",
+        "path": "supabase/migrations/20260915170500_comparability_context_hardening.sql"
+      },
+      {
+        "version": "20260915171000",
+        "name": "operator_run_diagnostics",
+        "path": "supabase/migrations/20260915171000_operator_run_diagnostics.sql"
+      },
+      {
+        "version": "20260915171500",
+        "name": "provider_attempt_cost_ledger",
+        "path": "supabase/migrations/20260915171500_provider_attempt_cost_ledger.sql"
+      },
+      {
+        "version": "20260915172000",
+        "name": "customer_value_pilot_evidence_gates",
+        "path": "supabase/migrations/20260915172000_customer_value_pilot_evidence_gates.sql"
+      },
+      {
+        "version": "20261009000100",
+        "name": "create_atomic_buyer_question_rpc",
+        "path": "supabase/migrations/20261009000100_create_atomic_buyer_question_rpc.sql"
+      },
+      {
+        "version": "20261010000100",
+        "name": "source_review_authorized_rpc",
+        "path": "supabase/migrations/20261010000100_source_review_authorized_rpc.sql"
+      },
+      {
+        "version": "20261010090000",
+        "name": "fm09_paddle_checkout_reservations",
+        "path": "supabase/migrations/20261010090000_fm09_paddle_checkout_reservations.sql"
+      },
+      {
+        "version": "20261011090000",
+        "name": "package_capacity_from_verified_billing",
+        "path": "supabase/migrations/20261011090000_package_capacity_from_verified_billing.sql"
+      }
+    ],
+    "local_without_byte_or_terminal_lf_match": [
+      {
+        "version": "20260811045535",
+        "name": "verified_claim_evidence_delete_semantics",
+        "path": "supabase/migrations/20260811045535_verified_claim_evidence_delete_semantics.sql"
+      },
+      {
+        "version": "20260813023000",
+        "name": "rls_auth_initplan_hardening",
+        "path": "supabase/migrations/20260813023000_rls_auth_initplan_hardening.sql"
+      },
+      {
+        "version": "20260813033833",
+        "name": "suppress_legacy_ungated_movement_alerts",
+        "path": "supabase/migrations/20260813033833_suppress_legacy_ungated_movement_alerts.sql"
+      },
+      {
+        "version": "20260813055000",
+        "name": "foreign_key_performance_indexes",
+        "path": "supabase/migrations/20260813055000_foreign_key_performance_indexes.sql"
+      },
+      {
+        "version": "20260813153000",
+        "name": "reviewed_opportunity_bridge_unique",
+        "path": "supabase/migrations/20260813153000_reviewed_opportunity_bridge_unique.sql"
+      },
+      {
+        "version": "20260813160000",
+        "name": "resolution_exact_comparability",
+        "path": "supabase/migrations/20260813160000_resolution_exact_comparability.sql"
+      },
+      {
+        "version": "20260813163000",
+        "name": "resolution_evidence_snapshot_provenance",
+        "path": "supabase/migrations/20260813163000_resolution_evidence_snapshot_provenance.sql"
+      },
+      {
+        "version": "20260814060000",
+        "name": "placement_events_organization_index",
+        "path": "supabase/migrations/20260814060000_placement_events_organization_index.sql"
+      },
+      {
+        "version": "20260816192504",
+        "name": "tighten_service_only_run_rpcs",
+        "path": "supabase/migrations/20260816192504_tighten_service_only_run_rpcs.sql"
+      },
+      {
+        "version": "20260818000100",
+        "name": "company_customer_proof",
+        "path": "supabase/migrations/20260818000100_company_customer_proof.sql"
+      },
+      {
+        "version": "20260829000100",
+        "name": "retention_loop_v1",
+        "path": "supabase/migrations/20260829000100_retention_loop_v1.sql"
+      },
+      {
+        "version": "20260829000200",
+        "name": "design_partner_applications",
+        "path": "supabase/migrations/20260829000200_design_partner_applications.sql"
+      },
+      {
+        "version": "20260829000300",
+        "name": "billing_webhook_events",
+        "path": "supabase/migrations/20260829000300_billing_webhook_events.sql"
+      },
+      {
+        "version": "20260830000100",
+        "name": "design_partner_submission_limits",
+        "path": "supabase/migrations/20260830000100_design_partner_submission_limits.sql"
+      },
+      {
+        "version": "20260830000200",
+        "name": "apply_billing_event_atomic",
+        "path": "supabase/migrations/20260830000200_apply_billing_event_atomic.sql"
+      },
+      {
+        "version": "20260830000300",
+        "name": "customer_proof_research_events",
+        "path": "supabase/migrations/20260830000300_customer_proof_research_events.sql"
+      },
+      {
+        "version": "20260830000400",
+        "name": "commercial_engine",
+        "path": "supabase/migrations/20260830000400_commercial_engine.sql"
+      },
+      {
+        "version": "20260830000500",
+        "name": "billing_commercial_hardening",
+        "path": "supabase/migrations/20260830000500_billing_commercial_hardening.sql"
+      },
+      {
+        "version": "20260830000800",
+        "name": "enterprise_security_governance",
+        "path": "supabase/migrations/20260830000800_enterprise_security_governance.sql"
+      },
+      {
+        "version": "20260904000100",
+        "name": "acquisition_research_provenance",
+        "path": "supabase/migrations/20260904000100_acquisition_research_provenance.sql"
+      },
+      {
+        "version": "20260914000400",
+        "name": "security_definer_execute_hardening",
+        "path": "supabase/migrations/20260914000400_security_definer_execute_hardening.sql"
+      },
+      {
+        "version": "20260915000200",
+        "name": "private_org_permission_helper",
+        "path": "supabase/migrations/20260915000200_private_org_permission_helper.sql"
+      },
+      {
+        "version": "20260915144000",
+        "name": "workspace_deletion_graph_hardening",
+        "path": "supabase/migrations/20260915144000_workspace_deletion_graph_hardening.sql"
+      },
+      {
+        "version": "20260915144600",
+        "name": "workspace_deletion_remaining_check_fix",
+        "path": "supabase/migrations/20260915144600_workspace_deletion_remaining_check_fix.sql"
+      },
+      {
+        "version": "20260915170000",
+        "name": "evidence_semantics_hardening",
+        "path": "supabase/migrations/20260915170000_evidence_semantics_hardening.sql"
+      },
+      {
+        "version": "20260915172000",
+        "name": "customer_value_pilot_evidence_gates",
+        "path": "supabase/migrations/20260915172000_customer_value_pilot_evidence_gates.sql"
+      },
+      {
+        "version": "20261009000100",
+        "name": "create_atomic_buyer_question_rpc",
+        "path": "supabase/migrations/20261009000100_create_atomic_buyer_question_rpc.sql"
+      },
+      {
+        "version": "20261010000100",
+        "name": "source_review_authorized_rpc",
+        "path": "supabase/migrations/20261010000100_source_review_authorized_rpc.sql"
+      },
+      {
+        "version": "20261010090000",
+        "name": "fm09_paddle_checkout_reservations",
+        "path": "supabase/migrations/20261010090000_fm09_paddle_checkout_reservations.sql"
+      },
+      {
+        "version": "20261011090000",
+        "name": "package_capacity_from_verified_billing",
+        "path": "supabase/migrations/20261011090000_package_capacity_from_verified_billing.sql"
+      }
+    ],
+    "identical_sql_multiple_remote_versions": [
+      {
+        "sql_sha256": "2c2562828ce82b6f7c8ea40ced0f36083d8e05f629004762daa4abc548933ccf",
+        "recorded_rows": [
+          {
+            "version": "20260813025319",
+            "name": "source_snapshot_privilege_hardening"
+          },
+          {
+            "version": "20260813025339",
+            "name": "source_snapshot_privilege_hardening"
+          }
+        ]
+      },
+      {
+        "sql_sha256": "b29fa2001c56281d0923001f011a73f25216c63a35c909f78ed7d770d03959d2",
+        "recorded_rows": [
+          {
+            "version": "20260904121425",
+            "name": "acquisition_outreach_control"
+          },
+          {
+            "version": "20260904121942",
+            "name": "acquisition_outreach_control"
+          }
+        ]
+      }
+    ],
+    "evidence_limit": "Stored SQL text may match byte-for-byte or differ only by one final LF. A matching tier does not prove successful historical execution, unchanged production schema, or safe history repair."
+  },
+  "counts": {
+    "local": 97,
+    "remote": 100,
+    "exact_name_version_only": 44,
+    "name_match_version_drift": 29,
+    "remote_without_name_match": 27,
+    "local_without_name_match": 26,
+    "duplicate_remote_name_groups": 3,
+    "alias_candidates_without_sql_proof": 20
+  },
+  "warnings": [
+    "A metadata match does not prove SQL equivalence or execution.",
+    "Matching stored ledger SQL bytes does not prove successful execution or unchanged production schema.",
+    "A dated snapshot is not a live comparison. Re-export before a proposed change.",
+    "NEVER run blanket production db push or edit schema_migrations from this report."
+  ],
+  "details": {
+    "versionDrift": [
+      {
+        "version": "20260813010016",
+        "name": "rls_auth_initplan_hardening",
+        "local_versions": [
+          "20260813023000"
+        ]
+      },
+      {
+        "version": "20260813015442",
+        "name": "source_snapshot_engine",
+        "local_versions": [
+          "20260813080000"
+        ]
+      },
+      {
+        "version": "20260813023904",
+        "name": "source_snapshot_admin_policy",
+        "local_versions": [
+          "20260813083100"
+        ]
+      },
+      {
+        "version": "20260813025319",
+        "name": "source_snapshot_privilege_hardening",
+        "local_versions": [
+          "20260813090000"
+        ]
+      },
+      {
+        "version": "20260813025339",
+        "name": "source_snapshot_privilege_hardening",
+        "local_versions": [
+          "20260813090000"
+        ]
+      },
+      {
+        "version": "20260813053302",
+        "name": "foreign_key_performance_indexes",
+        "local_versions": [
+          "20260813055000"
+        ]
+      },
+      {
+        "version": "20260813075322",
+        "name": "provider_cost_event_guard",
+        "local_versions": [
+          "20260813083000"
+        ]
+      },
+      {
+        "version": "20260813084219",
+        "name": "reviewed_opportunity_bridge_unique",
+        "local_versions": [
+          "20260813153000"
+        ]
+      },
+      {
+        "version": "20260813085445",
+        "name": "resolution_exact_comparability",
+        "local_versions": [
+          "20260813160000"
+        ]
+      },
+      {
+        "version": "20260813090712",
+        "name": "resolution_evidence_snapshot_provenance",
+        "local_versions": [
+          "20260813163000"
+        ]
+      },
+      {
+        "version": "20260813105817",
+        "name": "inngest_runtime_probe",
+        "local_versions": [
+          "20260813170000"
+        ]
+      },
+      {
+        "version": "20260813124156",
+        "name": "signup_security_attestation",
+        "local_versions": [
+          "20260813180000"
+        ]
+      },
+      {
+        "version": "20260814034305",
+        "name": "operator_alert_monitoring",
+        "local_versions": [
+          "20260814090000"
+        ]
+      },
+      {
+        "version": "20260814085609",
+        "name": "live_foreign_key_indexes",
+        "local_versions": [
+          "20260814083000"
+        ]
+      },
+      {
+        "version": "20260819173416",
+        "name": "service_only_run_rpc_actor_context",
+        "local_versions": [
+          "20260819154000"
+        ]
+      },
+      {
+        "version": "20260904115039",
+        "name": "acquisition_research_provenance",
+        "local_versions": [
+          "20260904000100"
+        ]
+      },
+      {
+        "version": "20260904121425",
+        "name": "acquisition_outreach_control",
+        "local_versions": [
+          "20260904000200"
+        ]
+      },
+      {
+        "version": "20260904121942",
+        "name": "acquisition_outreach_control",
+        "local_versions": [
+          "20260904000200"
+        ]
+      },
+      {
+        "version": "20260905083931",
+        "name": "acquisition_zoho_mail_canaries",
+        "local_versions": [
+          "20260905000100"
+        ]
+      },
+      {
+        "version": "20260915121058",
+        "name": "remove_redundant_single_tenant_fks",
+        "local_versions": [
+          "20260915000600"
+        ]
+      },
+      {
+        "version": "20260915134115",
+        "name": "source_snapshot_evidence_excerpt",
+        "local_versions": [
+          "20260915000700"
+        ]
+      },
+      {
+        "version": "20260915153758",
+        "name": "workspace_deletion_graph_hardening",
+        "local_versions": [
+          "20260915144000"
+        ]
+      },
+      {
+        "version": "20260915153822",
+        "name": "workspace_deletion_remaining_check_fix",
+        "local_versions": [
+          "20260915144600"
+        ]
+      },
+      {
+        "version": "20260915160402",
+        "name": "atomic_prompt_versioning",
+        "local_versions": [
+          "20260915160000"
+        ]
+      },
+      {
+        "version": "20260915184755",
+        "name": "evidence_semantics_hardening",
+        "local_versions": [
+          "20260915170000"
+        ]
+      },
+      {
+        "version": "20260915184808",
+        "name": "comparability_context_hardening",
+        "local_versions": [
+          "20260915170500"
+        ]
+      },
+      {
+        "version": "20260915184822",
+        "name": "operator_run_diagnostics",
+        "local_versions": [
+          "20260915171000"
+        ]
+      },
+      {
+        "version": "20260915184836",
+        "name": "provider_attempt_cost_ledger",
+        "local_versions": [
+          "20260915171500"
+        ]
+      },
+      {
+        "version": "20260919223104",
+        "name": "source_map_review_monotonicity",
+        "local_versions": [
+          "20260920000100"
+        ]
+      }
+    ],
+    "remoteUnmatched": [
+      {
+        "version": "20260814002421",
+        "name": "placement_events_org_fk_index_20260814"
+      },
+      {
+        "version": "20260819171845",
+        "name": "source_review_truth_release_9b335547"
+      },
+      {
+        "version": "20260901064255",
+        "name": "security_performance_advisor_hardening_main_2c306677"
+      },
+      {
+        "version": "20260901064346",
+        "name": "company_customer_proof_main_2c306677"
+      },
+      {
+        "version": "20260901064411",
+        "name": "retention_loop_v1_main_2c306677"
+      },
+      {
+        "version": "20260901064423",
+        "name": "design_partner_applications_main_2c306677"
+      },
+      {
+        "version": "20260901064848",
+        "name": "billing_webhook_events_main_2c306677"
+      },
+      {
+        "version": "20260901064908",
+        "name": "design_partner_submission_limits_main_2c306677"
+      },
+      {
+        "version": "20260901064926",
+        "name": "apply_billing_event_atomic_main_2c306677"
+      },
+      {
+        "version": "20260901064937",
+        "name": "customer_proof_research_events_main_2c306677"
+      },
+      {
+        "version": "20260901065011",
+        "name": "commercial_engine_main_2c306677"
+      },
+      {
+        "version": "20260901065043",
+        "name": "billing_commercial_hardening_main_2c306677"
+      },
+      {
+        "version": "20260901071944",
+        "name": "icp_category_evidence_main_7f591ad4"
+      },
+      {
+        "version": "20260901072125",
+        "name": "outcomes_value_customer_success_main_7f591ad4"
+      },
+      {
+        "version": "20260901072159",
+        "name": "outcome_ledger_backfill_main_7f591ad4"
+      },
+      {
+        "version": "20260901072600",
+        "name": "ai_measurement_context_main_7f591ad4"
+      },
+      {
+        "version": "20260901073304",
+        "name": "enterprise_security_governance_main_0e0dcb82"
+      },
+      {
+        "version": "20260901073317",
+        "name": "audit_log_hardening_main_0e0dcb82"
+      },
+      {
+        "version": "20260901073330",
+        "name": "enterprise_fail_closed_hardening_main_0e0dcb82"
+      },
+      {
+        "version": "20260901073349",
+        "name": "scale_unit_economics_observability_main_0e0dcb82"
+      },
+      {
+        "version": "20260901090148",
+        "name": "measurement_moat_foundation_main_893e850c"
+      },
+      {
+        "version": "20260901113706",
+        "name": "change_specification_domain_main_4139f817"
+      },
+      {
+        "version": "20260915185110",
+        "name": "qualified_paid_pilot_evidence_view"
+      },
+      {
+        "version": "20260915185158",
+        "name": "customer_value_validation_evidence_compat"
+      },
+      {
+        "version": "20260926063633",
+        "name": "company_operational_cost_readiness_20260926"
+      },
+      {
+        "version": "20260926064502",
+        "name": "company_cost_view_read_grants_20260926"
+      },
+      {
+        "version": "20260926071020",
+        "name": "support_ticket_auth_rls_initplan_20260926"
+      }
+    ],
+    "localUnmatched": [
+      {
+        "version": "20260814060000",
+        "name": "placement_events_organization_index",
+        "path": "supabase/migrations/20260814060000_placement_events_organization_index.sql"
+      },
+      {
+        "version": "20260818000100",
+        "name": "company_customer_proof",
+        "path": "supabase/migrations/20260818000100_company_customer_proof.sql"
+      },
+      {
+        "version": "20260818000200",
+        "name": "security_performance_advisor_hardening",
+        "path": "supabase/migrations/20260818000200_security_performance_advisor_hardening.sql"
+      },
+      {
+        "version": "20260818000300",
+        "name": "source_review_truth",
+        "path": "supabase/migrations/20260818000300_source_review_truth.sql"
+      },
+      {
+        "version": "20260829000100",
+        "name": "retention_loop_v1",
+        "path": "supabase/migrations/20260829000100_retention_loop_v1.sql"
+      },
+      {
+        "version": "20260829000200",
+        "name": "design_partner_applications",
+        "path": "supabase/migrations/20260829000200_design_partner_applications.sql"
+      },
+      {
+        "version": "20260829000300",
+        "name": "billing_webhook_events",
+        "path": "supabase/migrations/20260829000300_billing_webhook_events.sql"
+      },
+      {
+        "version": "20260830000100",
+        "name": "design_partner_submission_limits",
+        "path": "supabase/migrations/20260830000100_design_partner_submission_limits.sql"
+      },
+      {
+        "version": "20260830000200",
+        "name": "apply_billing_event_atomic",
+        "path": "supabase/migrations/20260830000200_apply_billing_event_atomic.sql"
+      },
+      {
+        "version": "20260830000300",
+        "name": "customer_proof_research_events",
+        "path": "supabase/migrations/20260830000300_customer_proof_research_events.sql"
+      },
+      {
+        "version": "20260830000400",
+        "name": "commercial_engine",
+        "path": "supabase/migrations/20260830000400_commercial_engine.sql"
+      },
+      {
+        "version": "20260830000500",
+        "name": "billing_commercial_hardening",
+        "path": "supabase/migrations/20260830000500_billing_commercial_hardening.sql"
+      },
+      {
+        "version": "20260830000600",
+        "name": "outcomes_value_customer_success",
+        "path": "supabase/migrations/20260830000600_outcomes_value_customer_success.sql"
+      },
+      {
+        "version": "20260830000700",
+        "name": "outcome_ledger_backfill",
+        "path": "supabase/migrations/20260830000700_outcome_ledger_backfill.sql"
+      },
+      {
+        "version": "20260830000800",
+        "name": "enterprise_security_governance",
+        "path": "supabase/migrations/20260830000800_enterprise_security_governance.sql"
+      },
+      {
+        "version": "20260830000900",
+        "name": "audit_log_hardening",
+        "path": "supabase/migrations/20260830000900_audit_log_hardening.sql"
+      },
+      {
+        "version": "20260830001000",
+        "name": "enterprise_fail_closed_hardening",
+        "path": "supabase/migrations/20260830001000_enterprise_fail_closed_hardening.sql"
+      },
+      {
+        "version": "20260830113100",
+        "name": "scale_unit_economics_observability",
+        "path": "supabase/migrations/20260830113100_scale_unit_economics_observability.sql"
+      },
+      {
+        "version": "20260830113200",
+        "name": "ai_measurement_context",
+        "path": "supabase/migrations/20260830113200_ai_measurement_context.sql"
+      },
+      {
+        "version": "20260901000100",
+        "name": "icp_category_evidence",
+        "path": "supabase/migrations/20260901000100_icp_category_evidence.sql"
+      },
+      {
+        "version": "20260901000200",
+        "name": "measurement_moat_foundation",
+        "path": "supabase/migrations/20260901000200_measurement_moat_foundation.sql"
+      },
+      {
+        "version": "20260901000300",
+        "name": "change_specification_domain",
+        "path": "supabase/migrations/20260901000300_change_specification_domain.sql"
+      },
+      {
+        "version": "20260915172000",
+        "name": "customer_value_pilot_evidence_gates",
+        "path": "supabase/migrations/20260915172000_customer_value_pilot_evidence_gates.sql"
+      },
+      {
+        "version": "20260926071500",
+        "name": "company_operational_cost_readiness",
+        "path": "supabase/migrations/20260926071500_company_operational_cost_readiness.sql"
+      },
+      {
+        "version": "20260926081000",
+        "name": "company_cost_view_read_grants",
+        "path": "supabase/migrations/20260926081000_company_cost_view_read_grants.sql"
+      },
+      {
+        "version": "20260926090000",
+        "name": "support_ticket_auth_rls_initplan",
+        "path": "supabase/migrations/20260926090000_support_ticket_auth_rls_initplan.sql"
+      }
+    ],
+    "duplicateRemote": [
+      {
+        "name": "collaboration_lifecycle_alerts",
+        "remote_versions": [
+          "20260729000100",
+          "20260729000110"
+        ]
+      },
+      {
+        "name": "source_snapshot_privilege_hardening",
+        "remote_versions": [
+          "20260813025319",
+          "20260813025339"
+        ]
+      },
+      {
+        "name": "acquisition_outreach_control",
+        "remote_versions": [
+          "20260904121425",
+          "20260904121942"
+        ]
+      }
+    ],
+    "aliasCandidatesWithoutSqlProof": [
+      {
+        "remote": {
+          "version": "20260901064255",
+          "name": "security_performance_advisor_hardening_main_2c306677"
+        },
+        "possible_local_name": "security_performance_advisor_hardening",
+        "local_versions": [
+          "20260818000200"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901064346",
+          "name": "company_customer_proof_main_2c306677"
+        },
+        "possible_local_name": "company_customer_proof",
+        "local_versions": [
+          "20260818000100"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901064411",
+          "name": "retention_loop_v1_main_2c306677"
+        },
+        "possible_local_name": "retention_loop_v1",
+        "local_versions": [
+          "20260829000100"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901064423",
+          "name": "design_partner_applications_main_2c306677"
+        },
+        "possible_local_name": "design_partner_applications",
+        "local_versions": [
+          "20260829000200"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901064848",
+          "name": "billing_webhook_events_main_2c306677"
+        },
+        "possible_local_name": "billing_webhook_events",
+        "local_versions": [
+          "20260829000300"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901064908",
+          "name": "design_partner_submission_limits_main_2c306677"
+        },
+        "possible_local_name": "design_partner_submission_limits",
+        "local_versions": [
+          "20260830000100"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901064926",
+          "name": "apply_billing_event_atomic_main_2c306677"
+        },
+        "possible_local_name": "apply_billing_event_atomic",
+        "local_versions": [
+          "20260830000200"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901064937",
+          "name": "customer_proof_research_events_main_2c306677"
+        },
+        "possible_local_name": "customer_proof_research_events",
+        "local_versions": [
+          "20260830000300"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901065011",
+          "name": "commercial_engine_main_2c306677"
+        },
+        "possible_local_name": "commercial_engine",
+        "local_versions": [
+          "20260830000400"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901065043",
+          "name": "billing_commercial_hardening_main_2c306677"
+        },
+        "possible_local_name": "billing_commercial_hardening",
+        "local_versions": [
+          "20260830000500"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901071944",
+          "name": "icp_category_evidence_main_7f591ad4"
+        },
+        "possible_local_name": "icp_category_evidence",
+        "local_versions": [
+          "20260901000100"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901072125",
+          "name": "outcomes_value_customer_success_main_7f591ad4"
+        },
+        "possible_local_name": "outcomes_value_customer_success",
+        "local_versions": [
+          "20260830000600"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901072159",
+          "name": "outcome_ledger_backfill_main_7f591ad4"
+        },
+        "possible_local_name": "outcome_ledger_backfill",
+        "local_versions": [
+          "20260830000700"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901072600",
+          "name": "ai_measurement_context_main_7f591ad4"
+        },
+        "possible_local_name": "ai_measurement_context",
+        "local_versions": [
+          "20260830113200"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901073304",
+          "name": "enterprise_security_governance_main_0e0dcb82"
+        },
+        "possible_local_name": "enterprise_security_governance",
+        "local_versions": [
+          "20260830000800"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901073317",
+          "name": "audit_log_hardening_main_0e0dcb82"
+        },
+        "possible_local_name": "audit_log_hardening",
+        "local_versions": [
+          "20260830000900"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901073330",
+          "name": "enterprise_fail_closed_hardening_main_0e0dcb82"
+        },
+        "possible_local_name": "enterprise_fail_closed_hardening",
+        "local_versions": [
+          "20260830001000"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901073349",
+          "name": "scale_unit_economics_observability_main_0e0dcb82"
+        },
+        "possible_local_name": "scale_unit_economics_observability",
+        "local_versions": [
+          "20260830113100"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901090148",
+          "name": "measurement_moat_foundation_main_893e850c"
+        },
+        "possible_local_name": "measurement_moat_foundation",
+        "local_versions": [
+          "20260901000200"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      },
+      {
+        "remote": {
+          "version": "20260901113706",
+          "name": "change_specification_domain_main_4139f817"
+        },
+        "possible_local_name": "change_specification_domain",
+        "local_versions": [
+          "20260901000300"
+        ],
+        "proof": "NONE—verify executed SQL and resultant schema"
+      }
+    ]
+  }
+}

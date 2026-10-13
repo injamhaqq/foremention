@@ -1,0 +1,16 @@
+{
+  "question": "What should a B2B SaaS marketing team evaluate when choosing AI visibility monitoring platforms?",
+  "origin": "SYNTHETIC offline fixture (Chat01, 2026-10-12). Brave Search API v1 web/search response shape. Not a production receipt: the raw 2026-10-11 run abb5b16f-46ea-4d46-b769-231ea14ef47a URLs were not available to this package. No network/paid call produced it.",
+  "case": "empty result set",
+  "response": {
+    "_fixture_note": "SYNTHETIC offline fixture (Chat01, 2026-10-12). Brave Search API v1 web/search response shape. Not a production receipt: the raw 2026-10-11 run abb5b16f-46ea-4d46-b769-231ea14ef47a URLs were not available to this package. No network/paid call produced it.",
+    "type": "search",
+    "query": {
+      "original": "What should a B2B SaaS marketing team evaluate when choosing AI visibility monitoring platforms?"
+    },
+    "web": {
+      "type": "search",
+      "results": []
+    }
+  }
+}

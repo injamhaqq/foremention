@@ -3,6 +3,7 @@ import {
   citationMatchesScope as sharedCitationMatchesScope,
   sourceDomainScopeFromPrompt as sharedSourceDomainScopeFromPrompt,
 } from "./official-source-relevance.mjs";
+import { assessRetrievedTopicRelevance, RetrievedTopicUnavailableError } from "./retrieval-topic-relevance.mjs";
 
 const BING_SEARCH_ENDPOINT = "https://www.bing.com/search";
 // A07: Bing RSS output is licensed for personal, non-commercial use only. When a
@@ -17,6 +18,10 @@ const MAX_CITATIONS = 8;
 // ranks after eight off-domain hits is not silently discarded. Only in-scope
 // results survive, and at most MAX_CITATIONS of them reach the model.
 const MAX_SCOPED_CANDIDATES = 20;
+// Retrieve enough ranked candidates for topical screening before choosing the
+// 8 allowed model-facing citations. A page at rank 9–20 may be the first
+// question-relevant hit. This does not add a second search API request.
+const MAX_TOPICAL_CANDIDATES = 20;
 
 function decodeXml(value: string) {
   let result = "";
@@ -152,6 +157,9 @@ export type FreeWebEvidence = {
   content: string;
   citations: ProviderCitation[];
   retrievalProvider: "brave-search" | "bing-rss";
+  retrievalQuery: string;
+  retrievedCandidateCount: number;
+  relevanceRejectedCount: number;
 };
 
 /**
@@ -237,6 +245,24 @@ export function braveSearchApiKey(): string | null {
   return key && key.trim() ? key.trim() : null;
 }
 
+/**
+ * A07/CV-02: Bing's public RSS endpoint has no verified commercial retrieval
+ * grant in this repository. No credential/Brave capacity does NOT authorize a
+ * silent fallback to RSS. Explicit operator rights approval is required.
+ */
+export class RetrievalRightsUnavailableError extends Error {
+  constructor() {
+    super("Independent web retrieval is unavailable: no commercial Brave Search credential or explicit approved Bing RSS collection authorization is configured.");
+    this.name = "RetrievalRightsUnavailableError";
+  }
+}
+
+export function assertAuthorizedIndependentRetrieval(): "brave-search" | "bing-rss" {
+  if (braveSearchApiKey()) return "brave-search";
+  if (process.env.FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED === "1") return "bing-rss";
+  throw new RetrievalRightsUnavailableError();
+}
+
 async function retrieveBraveResults(query: string, apiKey: string, limit: number, signal?: AbortSignal) {
   const url = new URL(BRAVE_SEARCH_ENDPOINT);
   url.searchParams.set("q", query.slice(0, 400));
@@ -256,7 +282,9 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
 
-  const candidateLimit = scope ? MAX_SCOPED_CANDIDATES : MAX_CITATIONS;
+  const candidateLimit = scope ? MAX_SCOPED_CANDIDATES : MAX_TOPICAL_CANDIDATES;
+  // Fail closed even when a caller bypasses Cloudflare's outer preflight.
+  assertAuthorizedIndependentRetrieval();
   const braveKey = braveSearchApiKey();
   let parsed: BingSearchResult[];
   let retrievalProvider: FreeWebEvidence["retrievalProvider"];
@@ -293,7 +321,16 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
       ? "Brave Search returned no verifiable source URLs."
       : "Bing RSS returned no verifiable source URLs.");
   }
-  const results = restrictResultsToScope(parsed, scope).slice(0, MAX_CITATIONS);
+  const scopedResults = restrictResultsToScope(parsed, scope);
+  // A08/CV-01: topical relevance is checked BEFORE inference and citation
+  // selection. Explicit official-domain requests already have a separate
+  // strict provenance gate and may legitimately ask for the newest post,
+  // whose title cannot be predicted from the question.
+  const topical = scope ? null : assessRetrievedTopicRelevance(normalized, scopedResults);
+  if (topical && !topical.accepted.length) {
+    throw new RetrievedTopicUnavailableError(topical.reason || "NO_TOPICALLY_RELEVANT_RESULTS", scopedResults.length);
+  }
+  const results = (topical ? topical.accepted : scopedResults).slice(0, MAX_CITATIONS);
 
   const evidenceText = results.map((result, index) => [
     `SOURCE [${index + 1}]`,
@@ -306,5 +343,8 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
     content: evidenceText,
     citations: results.map(({ url: sourceUrl, title }) => ({ url: sourceUrl, title })),
     retrievalProvider,
+    retrievalQuery: normalized,
+    retrievedCandidateCount: parsed.length,
+    relevanceRejectedCount: topical?.rejected.length || 0,
   };
 }

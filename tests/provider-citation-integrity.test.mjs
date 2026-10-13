@@ -117,23 +117,19 @@ test("Anthropic: no web_search citations means zero citations, never URLs scrape
   assert.deepEqual(grounded.result.citations, [{ url: "https://returned.example/a", title: "A" }]);
 });
 
-test("Perplexity: empty citations array means zero citations, never URLs scraped from answer text", async () => {
+test("Perplexity: retired Sonar endpoint is disabled even with credentials and a mocked provider response", async () => {
   const adapter = await loadAdapter("lib/providers/perplexity.ts", "perplexityAdapter");
-  const { result } = await withEnv({ PERPLEXITY_API_KEY: "test-key", PERPLEXITY_MODEL: "sonar-pinned-test" }, () => withFetch({
-    id: "px_1",
-    model: "sonar-pinned-test",
-    citations: [],
-    choices: [{ finish_reason: "stop", message: { content: modelWrittenAnswer } }],
-  }, () => adapter.run(prompt, runOptions)));
-  assert.deepEqual(result.citations, []);
-  assert.equal(result.mentionedUrls.length, 2);
-
-  const grounded = await withEnv({ PERPLEXITY_API_KEY: "test-key", PERPLEXITY_MODEL: "sonar-pinned-test" }, () => withFetch({
-    model: "sonar-pinned-test",
-    citations: ["https://returned.example/p"],
-    choices: [{ message: { content: modelWrittenAnswer } }],
-  }, () => adapter.run(prompt, runOptions)));
-  assert.deepEqual(grounded.result.citations, [{ url: "https://returned.example/p" }]);
+  await withEnv({ PERPLEXITY_API_KEY: "test-key", PERPLEXITY_MODEL: "sonar-pinned-test" }, async () => {
+    assert.equal(adapter.configured(), false);
+    const { calls } = await withFetch({
+      model: "sonar-pinned-test",
+      citations: ["https://returned.example/p"],
+      choices: [{ message: { content: "unexpected" } }],
+    }, async () => {
+      await assert.rejects(adapter.run(prompt, runOptions), /Sonar.*retired|retired.*Sonar/i);
+    });
+    assert.equal(calls.length, 0, "no retired Sonar request can escape, even with a key");
+  });
 });
 
 test("no provider adapter, gateway or evidence path falls back to scraping answer-text URLs as citations", async () => {

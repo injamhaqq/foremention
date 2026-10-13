@@ -14,6 +14,7 @@ import { logOperationalEvent } from "../lib/structured-logger";
 interface D1Result<T = unknown> {
   results?: T[];
   success: boolean;
+  meta?: { changes?: number };
 }
 
 interface D1PreparedStatement {
@@ -457,16 +458,22 @@ async function handleSourceGapRequest(request: Request, env: Env) {
 
   const competitors = value("competitors").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean).slice(0, 3);
   const createdAt = new Date().toISOString();
-  await env.DB.prepare(`
+  // A01 (Chat05): the browser shows "received" only for an explicit stored
+  // receipt, so return the id of the row that was actually written.
+  const reference = crypto.randomUUID();
+  const inserted = await env.DB.prepare(`
     INSERT INTO source_gap_requests
       (id, email, contact_name, website, category, competitors_json, buyer_question, consent_at, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
-    crypto.randomUUID(), value("email").toLowerCase(), value("name"), website.toString(),
+    reference, value("email").toLowerCase(), value("name"), website.toString(),
     value("category"), JSON.stringify(competitors), value("buyer_question"), createdAt, "new", createdAt,
   ).run();
+  if (!inserted.success || inserted.meta?.changes !== 1) {
+    return Response.json({ error: "The request could not be saved. Please try again or email hello@foremention.com." }, { status: 503 });
+  }
 
-  return Response.json({ ok: true, message: "Your check is saved. We’ll review the category and reply with the next step." }, { status: 202 });
+  return Response.json({ received: true, reference, message: "Your request is saved. We’ll review the public evidence for your buyer question and reply with what we can and cannot support." }, { status: 201 });
 }
 
 // Image security config. SVG sources with .svg extension auto-skip the
