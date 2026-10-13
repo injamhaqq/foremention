@@ -81,3 +81,10 @@ Each fix is an isolated commit: `e1689b31` (redirects), `6f3bdbc3` (step-up), `e
 ## Next action on "continue"
 
 Refresh PR #567 checks at the exact head; re-read FM-00 and Chat04/Chat09 status; if a nonproduction Supabase project exists, execute the HTTP matrix from `authorization-and-privacy-gates.md` and record receipts; otherwise keep the gate open. Do not restart the audit.
+
+## 2026-10-13 update — composed-merge test robustness (QA09-B7)
+
+- Problem: in a composed merge with Chat04 (`fm-attach-v1/04-workflow` @ `2af90b3c`), `app/api/export/record/[id]/route.ts` imports `@/lib/run-manifest`; the attach02 harness rejects unexpected imports, so "Chat02 tenant: Record CSV export only serves the caller's active-project records" errored.
+- Change (test only, `tests/attach02-two-tenant-denial.test.mjs`): the export test now stubs `@/lib/run-manifest` as an I/O boundary (`loadRunManifest` → `null`, the route's documented historical-record fallback) and asserts the manifest is only ever read for the authorized record. No application, harness, lockfile, CI or schema change; Chat04's branch untouched.
+- Verified: 02 alone — `pnpm test` 1354 tests, 1353 pass / 0 fail / 1 todo; `pnpm typecheck` pass; lint (same args as `pnpm lint`, `--concurrency auto`) exit 0. 02 + 04 local merge — the test file 14/14 pass (13/14 with the old file, reproducing the failure).
+- Base `6b93c88`; previous head `4ac867c7`; new head: this commit (see PR #567).

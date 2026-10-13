@@ -230,7 +230,13 @@ test("Chat02 tenant: Record sharing and revocation are confined to role, org and
 });
 
 test("Chat02 tenant: Record CSV export only serves the caller's active-project records", async () => {
-  const env = setup({ activeProject: new Map([[USERS.aAnalyst.id, PROJECT_A1]]) });
+  // The export route may also read the run manifest (@/lib/run-manifest, added
+  // by Chat04). Stub it as an I/O boundary that has no manifest (the route's
+  // documented historical-record fallback) and record which runs it was asked
+  // for, so the denial matrix is independent of whether that import exists.
+  const manifestCalls = [];
+  const modules = { "@/lib/run-manifest": { loadRunManifest: async (_viewer, runId) => { manifestCalls.push(runId); return null; } } };
+  const env = setup({ modules, activeProject: new Map([[USERS.aAnalyst.id, PROJECT_A1]]) });
   const route = loadModule("app/api/export/record/[id]/route.ts", env.deps);
   const [runA1, runA2, runB1] = env.db.tables.runs;
   env.as(null);
@@ -250,6 +256,7 @@ test("Chat02 tenant: Record CSV export only serves the caller's active-project r
   const csv = await ok.text();
   assert.match(csv, new RegExp(runA1.id));
   assert.doesNotMatch(csv, new RegExp(`${runB1.id}|${runA2.id}`));
+  assert.ok(manifestCalls.every((runId) => runId === runA1.id), "manifest is only read for the authorized record");
 });
 
 // ---------------------------------------------------------------- deletion
