@@ -188,7 +188,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
     if (!firstRunId || status !== "auditing") return;
     let cancelled = false;
     let pollCount = 0;
-    let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+    let pendingTimer: number | null = null;
     const poll = async () => {
       if (cancelled) return;
       pollCount += 1;
