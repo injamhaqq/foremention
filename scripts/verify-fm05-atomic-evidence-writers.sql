@@ -107,8 +107,9 @@ begin
     raise exception 'FM-05: prompt version 1 not persisted atomically';
   end if;
 
-  edited := public.update_prompt_versioned(
+  edited := public.update_prompt_versioned_in_project(
     new_prompt, 'f5200000-0000-4000-8000-000000000001'::uuid,
+    'f5300000-0000-4000-8000-000000000001'::uuid,
     'Which validated provider has the strongest independently reviewed outcomes?',
     null, 'FM-05 isolated regression'
   );
@@ -119,6 +120,36 @@ begin
   select count(*) into count_records from public.prompt_versions where prompt_id = new_prompt;
   if count_records <> 2 then
     raise exception 'FM-05: expected exactly two immutable versions';
+  end if;
+
+  -- A11 phase 2: a writer whose active project is A2 cannot edit A1's question.
+  denied := false;
+  begin
+    perform public.update_prompt_versioned_in_project(
+      new_prompt, 'f5200000-0000-4000-8000-000000000001'::uuid,
+      'f5300000-0000-4000-8000-000000000002'::uuid,
+      'Sibling project takeover attempt on a buyer question',
+      null, 'A11 sibling-project probe'
+    );
+  exception when raise_exception then denied := true;
+  end;
+  if not denied then raise exception 'A11: sibling-project edit accepted by update_prompt_versioned_in_project'; end if;
+
+  -- A11 phase 2: the org-only RPC is no longer callable by authenticated.
+  denied := false;
+  begin
+    perform public.update_prompt_versioned(
+      new_prompt, 'f5200000-0000-4000-8000-000000000001'::uuid,
+      'Direct org-only RPC call that must be refused',
+      null, 'A11 revoke probe'
+    );
+  exception when insufficient_privilege then denied := true;
+  end;
+  if not denied then raise exception 'A11: authenticated can still execute org-only update_prompt_versioned'; end if;
+
+  select count(*) into count_records from public.prompt_versions where prompt_id = new_prompt;
+  if count_records <> 2 then
+    raise exception 'A11: a denied edit wrote a prompt version';
   end if;
 
   denied := false;
