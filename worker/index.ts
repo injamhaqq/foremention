@@ -9,6 +9,7 @@ import { setEvidenceCapacityStore } from "../lib/evidence-capacity";
 import { runMeasurementScheduleBackupPass } from "../lib/jobs/measurement-schedule-dispatcher";
 import { MEASUREMENT_BACKUP_CRON, INNGEST_SELF_SYNC_CRON, scheduledBackupPlan } from "../lib/jobs/schedule-backup-plan.mjs";
 import { scrubSentryEvent } from "../lib/sentry-privacy";
+import { parsePublicScoreAnswers, PUBLIC_SCORE_ANSWER_FORMAT_INSTRUCTIONS } from "../lib/public-score-answers.mjs";
 import { logOperationalEvent } from "../lib/structured-logger";
 
 interface D1Result<T = unknown> {
@@ -329,30 +330,18 @@ async function handleVisibilityScore(request: Request, env: Env) {
   const grounded = await runPublicGroundedCloudflare(
     env,
     [
-      "Answer each supplied buyer question independently using only the current retrieved web evidence.",
-      'Return valid JSON only in the form {"answers":[{"question_number":1,"answer":"..."}]}.',
-      "Include exactly five answers. Do not invent companies, claims, sources, or URLs.",
+      ...PUBLIC_SCORE_ANSWER_FORMAT_INSTRUCTIONS,
       ...questions.map((question, index) => `${index + 1}. ${question}`),
     ].join("\n"),
     1800,
     `${category} tools platforms vendors comparison independent evidence growing team`,
   );
   if (!grounded) return Response.json({ error: "The live provider did not complete the score. No result was invented." }, { status: 502 });
-  let parsed: { answers?: Array<{ question_number?: number; answer?: string }> } = {};
-  try {
-    const jsonStart = grounded.answer.indexOf("{");
-    const jsonEnd = grounded.answer.lastIndexOf("}");
-    parsed = JSON.parse(grounded.answer.slice(jsonStart, jsonEnd + 1));
-  } catch {
-    return Response.json({ error: "The provider response could not be verified as five separate answers." }, { status: 502 });
-  }
-  const answers = (parsed.answers || [])
-    .filter((answer) => Number.isInteger(answer.question_number) && typeof answer.answer === "string")
-    .slice(0, 5);
-  if (answers.length !== 5) return Response.json({ error: "The provider did not return five comparable answers." }, { status: 502 });
+  const answers = parsePublicScoreAnswers(grounded.answer);
+  if (!answers) return Response.json({ error: "The provider did not return five comparable answers. No result was invented." }, { status: 502 });
   const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const brandPattern = new RegExp(`(^|\\W)${escaped}(\\W|$)`, "i");
-  const observations = answers.map((answer, index) => ({ question: questions[index], appeared: brandPattern.test(answer.answer || "") }));
+  const observations = answers.map((answer, index) => ({ question: questions[index], appeared: brandPattern.test(answer) }));
   const score = observations.filter((item) => item.appeared).length * 20;
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
