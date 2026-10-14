@@ -15,6 +15,7 @@ import * as stepError from "../lib/jobs/provider-step-error.ts";
 import * as settlement from "../lib/jobs/run-terminal-settlement.ts";
 import * as jobCalendar from "../lib/jobs/job-calendar.ts";
 import * as providerTypes from "../lib/providers/types.ts";
+import * as evidenceReceipt from "../lib/evidence-receipt.ts";
 import { createFakePostgrest } from "./06-support/fake-postgrest.mjs";
 import { runWithReplay } from "./06-support/inngest-replay.mjs";
 
@@ -76,6 +77,7 @@ function loadJobs({ tables, env = {}, adapterRun } = {}) {
     "@/lib/measurement-lane.mjs": { providerAllowedForMeasurementLane: () => true },
     "@/lib/free-provider-mode": { providerAllowedForLiveCollection: () => true },
     "@/lib/providers/types": providerTypes,
+    "@/lib/evidence-receipt": evidenceReceipt,
     "@/lib/resolution-follow-ups": { finalizeResolutionFollowUpsForRun: async () => undefined },
     "@/lib/supabase-rest": { supabaseRest: store.rest },
     "@/lib/source-map-generation": { generateObservedSourceMap: async () => ({ sourceCount: 0 }) },
@@ -227,4 +229,31 @@ test("interrupted-run sweeper settles only runs stuck beyond the worker lifetime
   const again = await runWithReplay(({ step }) => h.exports.reconcileInterruptedCollectionRunsPass(step), {});
   assert.equal(again.result.interrupted, 0);
   assert.ok(h.functions["reconcile-interrupted-collection-runs"], "registered as an Inngest cron function");
+});
+
+test("evidence receipts: every persisted answer stores its text and a write-time SHA-256 of the normalized text", async () => {
+  const { createHash } = await import("node:crypto");
+  const h = loadJobs({
+    tables: {
+      runs: [baseRun()], run_prompt_selections: prompts(2), usage_events: usage(),
+      projects: [{ id: PROJECT, organization_id: ORG, status: "active", client_brand: "Acme" }], competitors: [],
+      run_attempts: [], ai_cost_events: [], run_answers: [], notifications: [],
+    },
+    adapterRun: async (prompt, _options, env) => ({
+      provider: "groq", model: env.GROQ_MODEL, answer: `  Acme leads for ${prompt.promptId}.\r\nCafe\u0301 \t`,
+      citations: [], raw: { observationMethod: "synthetic" }, collectedAt: "2026-10-14T00:00:00.000Z", latencyMs: 5,
+      usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 }, requestId: "req-synthetic", finishReason: "stop",
+    }),
+  });
+  const outcome = await runWithReplay(h.functions["run-multi-engine-scan"].handler, { event });
+  assert.equal(outcome.result.answers, 2);
+  const answers = h.store.db.run_answers;
+  assert.equal(answers.length, 2);
+  for (const row of answers) {
+    assert.ok(row.answer_text.length > 0, "raw answer text is persisted");
+    assert.equal(row.answer_text_hash_version, evidenceReceipt.ANSWER_TEXT_HASH_VERSION);
+    const normalized = row.answer_text.normalize("NFC").replace(/\r\n?/g, "\n").replace(/^[ \t\n\v\f]+|[ \t\n\v\f]+$/g, "");
+    assert.equal(row.answer_text_sha256, createHash("sha256").update(normalized, "utf8").digest("hex"));
+  }
+  assert.notEqual(answers[0].answer_text_sha256, answers[1].answer_text_sha256, "distinct texts get distinct receipts");
 });

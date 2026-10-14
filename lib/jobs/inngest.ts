@@ -19,6 +19,7 @@ import {
   safeOperationalError,
 } from "@/lib/collection-policy";
 import { getProvider } from "@/lib/providers";
+import { answerEvidenceReceipt } from "@/lib/evidence-receipt";
 import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
@@ -326,7 +327,11 @@ const providerReportedCost = typeof answer.billedCostUsd === "number" && Number.
   });
   const attemptId = attemptRows[0]?.id;
 
-  const answerRows = await supabaseRest<Array<{ id: string }>>("run_answers?on_conflict=run_id,prompt_key,provider", {
+  // Evidence receipt: hash the exact answer text at write time. The database
+  // trigger recomputes the same value authoritatively; a mismatch is logged so
+  // normalization drift between runtime and database is visible.
+  const receipt = await answerEvidenceReceipt(answer.answer);
+  const answerRows = await supabaseRest<Array<{ id: string; answer_text_sha256?: string | null }>>("run_answers?on_conflict=run_id,prompt_key,provider", {
     method: "POST",
     serviceRole: true,
     prefer: "resolution=merge-duplicates,return=representation",
@@ -339,6 +344,8 @@ const providerReportedCost = typeof answer.billedCostUsd === "number" && Number.
       provider: answer.provider,
       model: answer.model,
       answer_text: answer.answer,
+      answer_text_sha256: receipt.answer_text_sha256,
+      answer_text_hash_version: receipt.answer_text_hash_version,
       citations_json: answer.citations,
       raw_json: answer.raw,
       brand_present: includesName(answer.answer, identity.brand),
@@ -357,6 +364,10 @@ const providerReportedCost = typeof answer.billedCostUsd === "number" && Number.
   });
   const answerId = answerRows[0]?.id;
   if (!answerId) throw new Error("The provider answer could not be persisted.");
+  const storedSha256 = answerRows[0]?.answer_text_sha256;
+  if (typeof storedSha256 === "string" && storedSha256 !== receipt.answer_text_sha256) {
+    console.warn("Evidence receipt hash differs between runtime and database normalization; the database value is authoritative.", { answerId, version: receipt.answer_text_hash_version });
+  }
 
   if (attemptId) {
     await supabaseRest("ai_cost_events?on_conflict=run_attempt_id", {
