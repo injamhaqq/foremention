@@ -74,6 +74,15 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
   const approval = validateApprovedBuyerQuestions(prompts);
   const submissionLock = useRef(false);
   const lastAnalyzedWebsite = useRef("");
+  // A question carried from the public Prompt Check stays first when the
+  // website analysis fills the other suggested buyer questions.
+  const pinnedQuestion = useRef("");
+  const withPinnedQuestion = (suggested: string[]) => {
+    const pinned = pinnedQuestion.current.trim();
+    if (!pinned) return suggested.join("\n");
+    const rest = suggested.filter((question) => question.trim().toLocaleLowerCase() !== pinned.toLocaleLowerCase());
+    return [pinned, ...rest].slice(0, 5).join("\n");
+  };
 
   useEffect(() => {
     if (demo) return;
@@ -87,7 +96,11 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
       }
     })();
     queueMicrotask(() => {
-      if (restored?.values) setValues(restored.values);
+      if (restored?.values) {
+        setValues(restored.values);
+        const firstPrompt = String(restored.values.prompts || "").split("\n")[0]?.trim() || "";
+        if (!restored.values.domain && firstPrompt) pinnedQuestion.current = firstPrompt;
+      }
       if (typeof restored?.step === "number") setStep(Math.max(0, Math.min(steps.length - 1, restored.step)));
       setHydrated(true);
     });
@@ -122,7 +135,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
         competitors: limited ? "" : result.draft.competitors.join("\n"),
         goal: result.draft.goal,
         constraint: result.draft.constraint,
-        prompts: limited ? "" : result.draft.prompts.join("\n"),
+        prompts: limited ? withPinnedQuestion([]) : withPinnedQuestion(result.draft.prompts),
       });
       setAnalysisStatus("complete");
       setAuditStage((current) => Math.max(current, 1));
@@ -161,7 +174,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
         competitors: draft.competitors.join("\n"),
         goal: draft.goal,
         constraint: draft.constraint,
-        prompts: draft.prompts.join("\n"),
+        prompts: withPinnedQuestion(draft.prompts),
       });
       setManualContextRequired(false);
       setAnalysisStatus("complete");
