@@ -13,7 +13,7 @@ function selfServeCheckoutLive() {
 }
 
 const purchasable: Record<string, { availability: string; cta: string; href: string }> = {
-  Core: { availability: "Monthly · cancel anytime", cta: "Start with Core", href: "/signup?next=%2Fapp%2Fsettings%3Fplan%3Dcore%23billing" },
+  Core: { availability: "7-day free trial · no card required", cta: "Start 7-day free trial", href: "/signup?next=%2Fapp%2Fsettings%3Ftrial%3Dcore%23billing" },
   Signal: { availability: "Monthly · cancel anytime", cta: "Start with Signal", href: "/signup?next=%2Fapp%2Fsettings%3Fplan%3Dsignal%23billing" },
 };
 
@@ -132,8 +132,8 @@ export default function PricingPage() {
           <strong>{live ? "How buying works" : "Commercial status"}</strong>
           {live ? (
             <p>
-              Create your workspace, run your first baseline on the free foundation tier (10 buyer questions), then
-              choose Core or Signal in Settings → Billing. Checkout is handled by Paddle, our merchant of record, which
+              Create your workspace, run your first baseline on the free plan (5 buyer questions, 10 answers a month) or start a 7-day
+              Core trial with no card, then choose Core or Signal in Settings → Billing. Checkout is handled by Paddle, our merchant of record, which
               issues your receipt and invoice and handles sales tax/VAT. Paid limits (25 or 100 buyer questions, more
               runs and providers) apply as soon as Paddle confirms the payment. Cancel anytime from the billing portal;
               see the <Link href="/refund-policy">refund policy</Link>. Intelligence remains sales-led and custom-scoped.
@@ -143,7 +143,7 @@ export default function PricingPage() {
               Founder-led design-partner pricing is being validated with real teams. The figures above are proposed
               monthly USD prices, not currently available checkout offers. The 25-question Core and 100-question Signal
               capacities describe planned paid entitlements, not current access: foundation beta access is limited to
-              10 buyer questions unless a verified workspace entitlement grants more. Self-serve paid checkout is shown
+              5 buyer questions unless a verified workspace entitlement grants more. Self-serve paid checkout is shown
               only when billing is configured for the workspace; creating a design-partner/private-beta workspace does
               not charge a card. Intelligence remains sales-led and custom-scoped.
             </p>
