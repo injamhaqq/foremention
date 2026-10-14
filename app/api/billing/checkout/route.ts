@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireViewer } from "@/lib/auth";
-import { billingProvider, billingProviderTransitionAllowed, type BillingCheckoutPackage, type BillingInterval } from "@/lib/billing-provider";
+import { PaddleRequestRejectedError, billingProvider, billingProviderTransitionAllowed, type BillingCheckoutPackage, type BillingInterval } from "@/lib/billing-provider";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
@@ -165,6 +165,24 @@ export async function POST(request: Request) {
     if (contentType.includes("application/json")) return NextResponse.json({ data: { url: session.url } });
     return NextResponse.redirect(session.url, 303);
   } catch (error) {
+    if (paddleReservationId && error instanceof PaddleRequestRejectedError) {
+      // Paddle definitively rejected the create (4xx validation error), so no
+      // payable transaction exists. Release the reservation instead of
+      // stranding the workspace in "needs reconciliation".
+      await supabaseRest<boolean>("rpc/release_rejected_paddle_checkout", {
+        method: "POST",
+        serviceRole: true,
+        body: {
+          p_reservation_id: paddleReservationId,
+          p_organization_id: context.organizationId,
+          p_evidence: `released:rejected:paddle_http_${error.status}_${error.code}`.slice(0, 200),
+        },
+      }).catch(() => false);
+      console.error(JSON.stringify({ event: "paddle_checkout_rejected", status: error.status, code: error.code }));
+      const message = "Online checkout is temporarily unavailable. No payment was taken. Email hello@foremention.com and we will set up your subscription.";
+      if (contentType.includes("application/json")) return NextResponse.json({ error: message }, { status: 503 });
+      return NextResponse.redirect(origin + "/app/settings?billing=unavailable", 303);
+    }
     if (paddleReservationId) {
       // Never clear this reservation after a network error; Paddle may have
       // created a payable transaction even when its response was lost.

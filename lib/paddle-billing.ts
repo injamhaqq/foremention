@@ -111,10 +111,31 @@ async function paddlePost(path: string, data: Json) {
     body: JSON.stringify(data),
     cache: "no-store",
   });
-  if (!response.ok) throw new Error("Paddle request failed (HTTP " + response.status + ").");
+  if (!response.ok) {
+    // A 4xx request/validation error from Paddle (other than rate limiting or
+    // timeouts) is a definitive rejection: Paddle created nothing, so the
+    // caller may safely release its reservation. 5xx/429/408 stay uncertain.
+    if (response.status >= 400 && response.status < 500 && ![408, 409, 429].includes(response.status)) {
+      const body = object(await response.json().catch(() => null));
+      const code = String(object(body?.error)?.code || "unknown").replace(/[^a-z0-9_]/gi, "").slice(0, 80) || "unknown";
+      throw new PaddleRequestRejectedError(response.status, code);
+    }
+    throw new Error("Paddle request failed (HTTP " + response.status + ").");
+  }
   const payload = await response.json().catch(() => null);
   const result = object(payload);
   return object(result?.data);
+}
+
+export class PaddleRequestRejectedError extends Error {
+  readonly status: number;
+  readonly code: string;
+  constructor(status: number, code: string) {
+    super("Paddle rejected the request (HTTP " + status + ", " + code + ").");
+    this.name = "PaddleRequestRejectedError";
+    this.status = status;
+    this.code = code;
+  }
 }
 
 export async function createPaddleCandidateCheckout(input: {

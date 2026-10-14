@@ -290,3 +290,4 @@ export function billingProviderConfigured() {
   const provider = billingProvider();
   return Boolean(provider?.configured());
 }
+export { PaddleRequestRejectedError } from "./paddle-billing.ts";

@@ -118,14 +118,16 @@ const contentSecurityPolicy = [
   "worker-src 'self' blob:",
 ].join("; ");
 
-// FM-09: /pay alone may load Paddle.js and frame the Paddle SANDBOX checkout.
-// The page itself still refuses to render checkout outside the explicit
-// sandbox staging gate. Live buy.paddle.com is deliberately not allowed.
-const paddleSandboxPayContentSecurityPolicy = contentSecurityPolicy
+// /pay alone may load Paddle.js and frame the Paddle checkout (Live since the
+// 2026-10-14 launch decision; Sandbox for the isolated staging host). The page
+// itself renders checkout only behind lib/paddle-payment-page.ts (live) or the
+// sandbox staging gate.
+const paddlePayContentSecurityPolicy = contentSecurityPolicy
   .replace("script-src 'self'", "script-src 'self' https://cdn.paddle.com")
   .replace("style-src 'self'", "style-src 'self' https://cdn.paddle.com")
-  .replace("connect-src 'self'", "connect-src 'self' https://cdn.paddle.com https://sandbox-checkout-service.paddle.com")
-  .replace("frame-src 'self'", "frame-src 'self' https://sandbox-buy.paddle.com");
+  .replace("connect-src 'self'", "connect-src 'self' https://cdn.paddle.com https://checkout-service.paddle.com https://sandbox-checkout-service.paddle.com")
+  .replace("frame-src 'self'", "frame-src 'self' https://buy.paddle.com https://sandbox-buy.paddle.com");
+const paddlePayPermissionsPolicy = 'camera=(), microphone=(), geolocation=(), payment=(self "https://buy.paddle.com" "https://sandbox-buy.paddle.com"), usb=()';
 
 function secureResponse(response: Response, url: URL, correlationId?: string) {
   const secured = new Response(response.body, response);
@@ -135,11 +137,11 @@ function secureResponse(response: Response, url: URL, correlationId?: string) {
   // remain blocked by the enforced policy.
   secured.headers.set(
     "Content-Security-Policy",
-    url.pathname === "/pay" ? paddleSandboxPayContentSecurityPolicy : contentSecurityPolicy,
+    url.pathname === "/pay" ? paddlePayContentSecurityPolicy : contentSecurityPolicy,
   );
   secured.headers.set("Cross-Origin-Opener-Policy", "same-origin");
   secured.headers.set("Origin-Agent-Cluster", "?1");
-  secured.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+  secured.headers.set("Permissions-Policy", url.pathname === "/pay" ? paddlePayPermissionsPolicy : "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
   secured.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   secured.headers.set("X-Content-Type-Options", "nosniff");
   secured.headers.set("X-Frame-Options", "DENY");
