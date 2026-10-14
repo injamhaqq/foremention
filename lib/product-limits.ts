@@ -15,10 +15,10 @@
 export const FOUNDATION_ACCESS_DEFAULTS = {
   plan: "Foundation access",
   brands: 1,
-  buyerQuestions: 10,
+  buyerQuestions: 5,
   providersPerRun: 1,
-  runUnitsPerMonth: 50,
-  monthlyAiSpendCapUsd: 2,
+  runUnitsPerMonth: 10,
+  monthlyAiSpendCapUsd: 1,
   historyDays: 90,
   teamMembers: 1,
 } as const;
@@ -78,6 +78,28 @@ export function foundationAccessSummary() {
  * the source of truth: capacity is written only by the verified billing
  * webhook path. Run units = questions x measurement cycles per month x 1 provider.
  */
+/** One-time Core trial without a payment method (migration 20261014180000). */
+export const CORE_TRIAL_DAYS = 7;
+export const CORE_TRIAL_CAPACITY = { buyerQuestions: 25, runUnitsPerMonth: 50, providersPerRun: 2, monthlyAiSpendCapUsd: 5 } as const;
+
+/** Trial state from an entitlement row; null when the row is not a live trial. */
+export function coreTrialState(row: { billing_source?: string | null; status?: string | null; expires_at?: string | null } | null | undefined, now = new Date()) {
+  if (!row || row.billing_source !== "trial" || row.status !== "active" || !row.expires_at) return null;
+  const endsAt = new Date(row.expires_at);
+  if (!Number.isFinite(endsAt.getTime()) || endsAt <= now) return null;
+  return { endsAt: endsAt.toISOString(), daysLeft: Math.max(1, Math.ceil((endsAt.getTime() - now.getTime()) / 86_400_000)) };
+}
+
+/** A workspace can start the trial only if it never had one and is not on a paid plan. */
+export function coreTrialAvailable(row: { billing_source?: string | null; status?: string | null; package_key?: string | null; expires_at?: string | null } | null | undefined, now = new Date()) {
+  if (!row) return true;
+  if (row.billing_source === "trial" || row.billing_source === "trial_expired") return false;
+  const paidSource = row.billing_source === "paddle" || row.billing_source === "stripe" || row.billing_source === "creem";
+  const unexpired = !row.expires_at || new Date(row.expires_at) > now;
+  if (paidSource && row.status === "active" && unexpired && (row.package_key === "core" || row.package_key === "signal")) return false;
+  return true;
+}
+
 export const PACKAGE_CAPACITY = {
   core: { buyerQuestions: 25, runUnitsPerMonth: 100, brands: 1 },
   signal: { buyerQuestions: 100, runUnitsPerMonth: 1000, brands: 3 },
@@ -115,3 +137,29 @@ export function buyerQuestionLimit(row: CapacityEntitlementRow | null | undefine
   }
   return stored;
 }
+
+export type AutoScheduleEntitlement = {
+  status?: string | null;
+  package_key?: string | null;
+  billing_source?: string | null;
+  expires_at?: string | null;
+};
+
+/**
+ * Cadence a paid or trial workspace gets automatically after its first
+ * collection, matching what /pricing sells: Signal and the 7-day Core trial
+ * weekly (so a trial sees a second comparable cycle), paid Core monthly.
+ * Free workspaces keep recurring measurement opt-in (null).
+ */
+export function autoScheduleCadence(row: AutoScheduleEntitlement | null | undefined, now = new Date()): "weekly" | "monthly" | null {
+  if (!row || row.status !== "active") return null;
+  if (row.expires_at) {
+    const expiry = new Date(row.expires_at);
+    if (!Number.isFinite(expiry.getTime()) || expiry <= now) return null;
+  }
+  if (row.package_key === "signal") return "weekly";
+  if (row.package_key !== "core") return null;
+  if (row.billing_source === "trial") return "weekly";
+  return ["paddle", "stripe", "creem"].includes(row.billing_source || "") ? "monthly" : null;
+}
+
