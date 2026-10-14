@@ -23,6 +23,7 @@ const routes = [
   { path: "/privacy", frequency: "yearly", priority: 0.3 },
   { path: "/subprocessors", frequency: "monthly", priority: 0.3 },
   { path: "/terms", frequency: "yearly", priority: 0.3 },
+  { path: "/refund-policy", frequency: "yearly", priority: 0.3 },
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {

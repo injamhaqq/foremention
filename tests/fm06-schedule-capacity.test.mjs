@@ -24,8 +24,8 @@ test("exactly the live question ceiling is accepted, and one extra is rejected",
   const schedule = validateMeasurementSchedule(base({ questionIds: atLimit }));
   assert.deepEqual(schedule.questionIds, atLimit);
   assert.throws(
-    () => validateMeasurementSchedule(base({ questionIds: [...atLimit, uuid(11)] })),
-    /between 1 and 10 workspace buyer questions/,
+    () => validateMeasurementSchedule(base({ questionIds: [...atLimit, uuid(LIVE_COLLECTION_LIMITS.maxPromptsPerRun + 1)] })),
+    /between 1 and 100 workspace buyer questions/,
   );
 });
 
@@ -42,15 +42,15 @@ test("duplicates may be safely collapsed but cannot mask unsupported unique card
     validateMeasurementSchedule(base({ questionIds: [uuid(1), uuid(1)] })).questionIds,
     [uuid(1)],
   );
-  const over = Array.from({ length: 11 }, (_, i) => uuid(i + 1));
+  const over = Array.from({ length: 101 }, (_, i) => uuid(i + 1));
   assert.throws(
     () => validateMeasurementSchedule(base({ questionIds: [...over, ...over] })),
-    /between 1 and 10/,
+    /between 1 and 100/,
   );
 });
 
 test("zero questions and zero providers remain invalid", () => {
-  assert.throws(() => validateMeasurementSchedule(base({ questionIds: [] })), /between 1 and 10/);
+  assert.throws(() => validateMeasurementSchedule(base({ questionIds: [] })), /between 1 and 100/);
   assert.throws(() => validateMeasurementSchedule(base({ providerIds: [] })), /exactly one supported provider/);
 });
 

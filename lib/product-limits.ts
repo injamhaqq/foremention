@@ -79,8 +79,8 @@ export function foundationAccessSummary() {
  * webhook path. Run units = questions x measurement cycles per month x 1 provider.
  */
 export const PACKAGE_CAPACITY = {
-  core: { buyerQuestions: 25, runUnitsPerMonth: 25, brands: 1 },
-  signal: { buyerQuestions: 100, runUnitsPerMonth: 500, brands: 3 },
+  core: { buyerQuestions: 25, runUnitsPerMonth: 100, brands: 1 },
+  signal: { buyerQuestions: 100, runUnitsPerMonth: 1000, brands: 3 },
 } as const;
 
 export type CapacityEntitlementRow = {

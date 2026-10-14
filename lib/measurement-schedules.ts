@@ -22,7 +22,7 @@ const PROVIDER = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
 // These limits deliberately mirror LIVE_COLLECTION_LIMITS in collection-policy;
 // the behavioral test fails if either side changes without aligning the other.
 // Persisting more questions/providers would create schedules the collector rejects.
-export const MAX_SCHEDULE_QUESTION_COUNT = 10;
+export const MAX_SCHEDULE_QUESTION_COUNT = 100;
 export const MAX_SCHEDULE_PROVIDER_COUNT = 1;
 
 function assertTimeZone(timezone: string) {

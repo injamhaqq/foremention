@@ -63,8 +63,8 @@ test("database derives capacity from verified provider billing only, in the same
   assert.match(sql, /before insert or update of status, package_key, billing_source, expires_at, max_prompts, monthly_run_units, max_brands/);
   assert.match(sql, /revoke all on function public\.billing_package_capacity_v1\(\) from public, anon, authenticated;/);
   const runUnits = PACKAGE_CAPACITY.signal.runUnitsPerMonth;
-  assert.equal(runUnits, 500);
-  assert.equal(PACKAGE_CAPACITY.core.runUnitsPerMonth, 25);
+  assert.equal(runUnits, 1000);
+  assert.equal(PACKAGE_CAPACITY.core.runUnitsPerMonth, 100);
 });
 
 test("buyer-question admission is atomic and organization-wide in the database (Refs #532)", () => {
@@ -81,4 +81,14 @@ test("buyer-question admission is atomic and organization-wide in the database (
   assert.match(sql, /before insert or update of active, organization_id on public\.prompts/);
   assert.match(sql, /revoke all on function public\.enforce_buyer_question_capacity_v1\(\) from public, anon, authenticated;/);
   assert.match(sql, /if v_role <> 'authenticated' then\s+return new;/);
+});
+
+test("paid packages unlock their run limits, not only question count (2026-10-14)", () => {
+  const sql = source("supabase/migrations/20261014160000_paid_plan_run_limits.sql");
+  assert.match(sql, /package_key = 'signal' then\s+new\.max_prompts := 100;\s+new\.monthly_run_units := 1000;\s+new\.max_brands := 3;\s+new\.max_prompts_per_run := 100;/);
+  assert.match(sql, /package_key = 'core' then\s+new\.max_prompts := 25;\s+new\.monthly_run_units := 100;\s+new\.max_brands := 1;\s+new\.max_prompts_per_run := 25;/);
+  assert.match(sql, /new\.monthly_ai_spend_cap_usd := 2\.00;/);
+  const route = source("app/api/runs/route.ts");
+  assert.match(route, /organization_entitlements\?select=max_prompts_per_run,status/);
+  assert.ok(route.indexOf("promptIds.length > perRunLimit") < route.indexOf("rpc/"), "plan limit is checked before any reservation");
 });

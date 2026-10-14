@@ -96,6 +96,25 @@ export async function POST(request: Request) {
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before starting a collection run." }, { status: 409 });
   if (!["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can start collection runs." }, { status: 403 });
 
+  // Per-workspace plan limit (free beta 10, Core 25, Signal 100). The code
+  // ceiling above is only the absolute maximum for any plan.
+  let perRunLimit = 10;
+  try {
+    const entitlementRows = await supabaseRest<Array<{ max_prompts_per_run: number | null; status: string }>>(
+      `organization_entitlements?select=max_prompts_per_run,status&organization_id=eq.${context.organizationId}&limit=1`,
+      { token: viewer.accessToken },
+    );
+    const row = entitlementRows[0];
+    if (row && row.status === "active" && Number(row.max_prompts_per_run) > 0) {
+      perRunLimit = Math.min(LIVE_COLLECTION_LIMITS.maxPromptsPerRun, Math.trunc(Number(row.max_prompts_per_run)));
+    }
+  } catch {
+    return NextResponse.json({ error: "Your plan limits could not be verified. No collection was started." }, { status: 503 });
+  }
+  if (promptIds.length > perRunLimit) {
+    return NextResponse.json({ error: `Your plan collects up to ${perRunLimit} buyer questions per run. Select fewer questions or upgrade in Settings.` }, { status: 403 });
+  }
+
   // The persisted uniqueness index is organization-wide. Namespace new
   // interactive idempotency keys by active project so sibling projects may
   // safely reuse the same client-generated key. Read both the legacy raw shape
