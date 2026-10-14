@@ -7,6 +7,7 @@ import { runGroundedCloudflareWithBinding, setCloudflareAiBinding, type Cloudfla
 import { ProviderRequestError } from "../lib/providers/types";
 import { setEvidenceCapacityStore } from "../lib/evidence-capacity";
 import { runMeasurementScheduleBackupPass } from "../lib/jobs/measurement-schedule-dispatcher";
+import { expireCoreTrials } from "../lib/jobs/expire-core-trials";
 import { MEASUREMENT_BACKUP_CRON, INNGEST_SELF_SYNC_CRON, scheduledBackupPlan } from "../lib/jobs/schedule-backup-plan.mjs";
 import { scrubSentryEvent } from "../lib/sentry-privacy";
 import { parsePublicScoreAnswers, PUBLIC_SCORE_ANSWER_FORMAT_INSTRUCTIONS } from "../lib/public-score-answers.mjs";
@@ -588,6 +589,11 @@ const worker = {
           phase: "skipped" in result ? `skipped:${result.skipped}` : `due=${result.due};queued=${result.queued};advanced=${result.advanced}`,
         }))
         .catch((error) => logOperationalEvent("measurement_schedule_backup_failed", { route: MEASUREMENT_BACKUP_CRON, errorCode: error instanceof Error ? error.name : "unknown" })));
+    }
+    if (plan.dispatch) {
+      ctx.waitUntil(expireCoreTrials()
+        .then((expired) => logOperationalEvent("core_trial_expiry_pass", { route: MEASUREMENT_BACKUP_CRON, phase: `expired=${expired}` }))
+        .catch((error) => logOperationalEvent("core_trial_expiry_failed", { route: MEASUREMENT_BACKUP_CRON, errorCode: error instanceof Error ? error.name : "unknown" })));
     }
     if (plan.selfSync) {
       const siteUrl = (env.NEXT_PUBLIC_SITE_URL || "https://foremention.com").replace(/\/$/, "");

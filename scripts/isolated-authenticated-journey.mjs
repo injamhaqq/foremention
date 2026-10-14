@@ -543,6 +543,15 @@ async function main() {
     // FM-05: exercise the ACTUAL authenticated Worker-to-PostgREST RPC
     // after the five-question comparison journey is already complete.
     // Contract-only and direct SQL tests cannot prove this route is wired.
+    // New workspaces start on the 5-question free tier (20261014180000), and
+    // the comparison journey above already holds five active questions. Give
+    // this synthetic tenant the Core trial capacity a launch customer gets so
+    // the sixth (provenance) question exercises the RPC, not the free cap.
+    const trialEnds=new Date(Date.now()+7*24*3600*1000).toISOString();
+    const trialPatch={package_key:"core",billing_source:"trial",status:"active",expires_at:trialEnds,max_prompts:25,max_prompts_per_run:25};
+    const patched=await db("PATCH","organization_entitlements?organization_id=eq."+tenant.org,trialPatch);
+    if(!patched.length)await db("POST","organization_entitlements",{organization_id:tenant.org,...trialPatch});
+    step("fixture-tenant-on-core-trial-capacity-before-sixth-question");
     const questionText="Which source provides independently verified evidence for this local-only buyer question?";
     const question=must(await appCall(ownerCtx,"POST","/api/prompts",{
       text:questionText,cluster:"FM05 isolated question provenance"

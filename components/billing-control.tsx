@@ -18,6 +18,8 @@ type BillingStatus = {
   checkoutOffers: CheckoutOffer[];
   checkoutPending?: { state: string; createdAt: string } | null;
   buyerQuestionLimit?: number | null;
+  trial?: { endsAt: string; daysLeft: number } | null;
+  trialAvailable?: boolean;
 };
 
 type ReconcileResult = { action: string; reason: string };
@@ -46,6 +48,25 @@ export function BillingControl() {
   const [returnNotice, setReturnNotice] = useState<string | null>(null);
   const [reconcileMessage, setReconcileMessage] = useState<string | null>(null);
   const [reconciling, setReconciling] = useState(false);
+  const [trialMessage, setTrialMessage] = useState<string | null>(null);
+  const [startingTrial, setStartingTrial] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+
+  async function startTrial() {
+    setStartingTrial(true);
+    setTrialMessage(null);
+    try {
+      const response = await fetch("/api/billing/trial", { method: "POST", cache: "no-store", headers: { "content-type": "application/json" }, body: "{}" });
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) { setTrialMessage(payload.error || "The trial could not be started right now. Nothing was charged."); return; }
+      setTrialMessage("Your 7-day Core trial is active: 25 buyer questions and 2 providers per run. No card was taken.");
+      setRefresh((value) => value + 1);
+    } catch {
+      setTrialMessage("The trial could not be started right now. Nothing was charged.");
+    } finally {
+      setStartingTrial(false);
+    }
+  }
 
   async function reconcileCheckout() {
     setReconciling(true);
@@ -71,7 +92,7 @@ export function BillingControl() {
       })
       .catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
-  }, []);
+  }, [refresh]);
 
   if (failed) return <section className="panel"><span className="eyebrow">Billing</span><h2>Founder-led billing</h2><p>Billing status could not be loaded. No paid entitlement has been inferred.</p><Link className="button button--outline" href="/contact">Contact Foremention</Link></section>;
   if (!status) return <section className="panel"><span className="eyebrow">Billing</span><h2>Checking commercial access.</h2><p className="table-caption">Foremention derives paid access from verified server-side entitlement state.</p></section>;
@@ -84,7 +105,13 @@ export function BillingControl() {
 
   return <section className="panel">
     <span className="eyebrow">Billing</span>
-    <h2>{status.packageKey === "private_beta" ? "Design-partner access" : `${status.packageKey} · ${status.state}`}</h2>
+    <h2>{status.trial ? `Core trial · ${status.trial.daysLeft} day${status.trial.daysLeft === 1 ? "" : "s"} left` : status.packageKey === "private_beta" ? "Free plan" : `${status.packageKey} · ${status.state}`}</h2>
+    {status.trial ? <p>Your Core trial ends {new Date(status.trial.endsAt).toLocaleDateString()}. Choose Core or Signal below to keep paid limits; otherwise the workspace returns to the free plan and nothing is charged.</p> : null}
+    {status.trialAvailable && !status.trial ? <div className="settings-actions" id="trial">
+      <p>Try Core free for 7 days: 25 buyer questions, 2 AI providers per run, no card required.</p>
+      <button className="button button--ink" type="button" disabled={startingTrial} onClick={() => void startTrial()}>{startingTrial ? "Starting…" : "Start 7-day Core trial"}</button>
+    </div> : null}
+    {trialMessage ? <p role="status">{trialMessage}</p> : null}
     {graceCopy ? <p>{graceCopy}</p> : null}
     {returnNotice ? <p role="status">{returnNotice}</p> : null}
     {typeof status.buyerQuestionLimit === "number" ? <p className="table-caption">Buyer-question capacity enforced for this workspace: {status.buyerQuestionLimit}.</p> : null}

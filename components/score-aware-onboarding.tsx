@@ -28,10 +28,57 @@ function hasUsableSavedDraft(draftKey: string) {
   }
 }
 
+/** Set by the public Prompt Check "Track this question" link (same browser). */
+export const TRACKED_QUESTION_KEY = "foremention:track-question";
+
+function takeTrackedQuestion(): { brand: string; question: string } | null {
+  try {
+    const raw = window.localStorage.getItem(TRACKED_QUESTION_KEY);
+    if (!raw) return null;
+    window.localStorage.removeItem(TRACKED_QUESTION_KEY);
+    const parsed = JSON.parse(raw) as { brand?: unknown; question?: unknown; savedAt?: unknown };
+    const brand = String(parsed.brand || "").trim().slice(0, 80);
+    const question = String(parsed.question || "").trim().slice(0, 500);
+    const savedAt = Number(parsed.savedAt || 0);
+    // Only carry a question saved in the last 7 days.
+    if (question.length < 8 || !Number.isFinite(savedAt) || Date.now() - savedAt > 7 * 86_400_000) return null;
+    return { brand, question };
+  } catch {
+    return null;
+  }
+}
+
 export function ScoreAwareOnboarding({ scoreId = "", ...wizardProps }: ScoreAwareOnboardingProps) {
   const normalizedScoreId = safePublicScoreId(scoreId);
-  const [ready, setReady] = useState(wizardProps.demo || !normalizedScoreId);
+  const [ready, setReady] = useState(wizardProps.demo);
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (wizardProps.demo || normalizedScoreId) return;
+    const tracked = takeTrackedQuestion();
+    if (tracked && !hasUsableSavedDraft(wizardProps.draftKey)) {
+      window.localStorage.setItem(wizardProps.draftKey, JSON.stringify({
+        step: 0,
+        values: {
+          companyName: tracked.brand,
+          domain: "",
+          market: "Global",
+          category: "",
+          categoryDescription: "",
+          competitors: "",
+          goal: "Establish a measurement baseline",
+          constraint: "Use dated observations and reviewed evidence. Do not claim guaranteed rankings or revenue.",
+          prompts: tracked.question,
+        },
+      }));
+      captureProductEvent("prompt_check_question_prefilled", { question_count: 1 });
+    }
+    // Defer state updates out of the effect body (react-hooks/set-state-in-effect).
+    queueMicrotask(() => {
+      if (tracked) setNotice("Your Prompt Check question is ready as the first buyer question. Add your website to complete setup.");
+      setReady(true);
+    });
+  }, [normalizedScoreId, wizardProps.demo, wizardProps.draftKey]);
 
   useEffect(() => {
     if (wizardProps.demo || !normalizedScoreId) return;

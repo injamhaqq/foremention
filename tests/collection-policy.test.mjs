@@ -27,15 +27,15 @@ test("Groq reservation supports the bounded five-question pilot without hiding c
   assert.equal(policy.estimateReservedRunCost("groq", 1, rates), 0.10);
   assert.equal(policy.estimateReservedRunCost("groq", 5, rates), 0.50);
   assert.equal(policy.estimateReservedRunCost("groq", 6, rates), 0.60);
-  // Weekly pilot capacity (gap 5): 10 questions x 1 provider x 5 weeks.
-  assert.equal(product.FOUNDATION_ACCESS_DEFAULTS.runUnitsPerMonth, 50);
-  assert.equal(product.weeklyPilotFits(product.FOUNDATION_ACCESS_DEFAULTS), true);
-  // The dollar cap is unchanged; the budget RPC still stops Groq at $2.00,
-  // i.e. after 20 reserved Groq observations, whatever units remain.
-  assert.equal(product.FOUNDATION_ACCESS_DEFAULTS.monthlyAiSpendCapUsd, 2);
+  // Free tier (2026-10-14): 5 questions, 10 observations a month = two manual
+  // five-question baselines; weekly cadence is a paid/trial capability.
+  assert.equal(product.FOUNDATION_ACCESS_DEFAULTS.runUnitsPerMonth, 10);
+  assert.equal(product.weeklyPilotFits(product.FOUNDATION_ACCESS_DEFAULTS), false);
+  // The budget RPC stops Groq at the $1.00 free cap after 10 reserved observations.
+  assert.equal(product.FOUNDATION_ACCESS_DEFAULTS.monthlyAiSpendCapUsd, 1);
   assert.equal(
     Math.floor(product.FOUNDATION_ACCESS_DEFAULTS.monthlyAiSpendCapUsd / policy.GROQ_SPEND_LIMITS.reservedCostPerPromptUsd),
-    20,
+    10,
   );
 });
 

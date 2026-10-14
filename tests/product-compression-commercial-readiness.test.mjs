@@ -65,7 +65,7 @@ test("pricing leads with coverage value while preserving commercial truth", () =
   assert.match(pricing, /price: "\$299 \/ month"/);
   assert.match(pricing, /Proposed · not yet purchasable/);
   assert.match(pricing, /not currently available checkout offers/i);
-  assert.match(pricing, /10 buyer questions unless a verified workspace entitlement grants more/i);
+  assert.match(pricing, /5 buyer questions unless a verified workspace entitlement grants more/i);
   assert.match(pricing, /founder-led design-partner/i);
   assert.doesNotMatch(pricing, /href: "\/api\/billing\/checkout"|href="\/checkout"/i);
 });

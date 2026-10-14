@@ -66,7 +66,7 @@ test("status: an open checkout is reported as pending and hides new checkout off
     assert.deepEqual(data.checkoutPending, { state: "ready", createdAt: "2026-10-13T07:00:00.000Z" });
     assert.deepEqual(data.checkoutOffers, []);
     assert.equal(data.packageKey, "private_beta");
-    assert.equal(data.buyerQuestionLimit, 10);
+    assert.equal(data.buyerQuestionLimit, 5);
     const reservationRead = d.calls.find((c) => c.path === "billing_checkout_reservations");
     assert.equal(reservationRead.auth, "Bearer service-mock", "reservations are service-only; read scoped server-side");
   } finally { d.restore(); }
@@ -90,9 +90,9 @@ test("status: numeric limit comes only from active, unexpired verified entitleme
     [{ package_key: "core", status: "active", expires_at: future, billing_source: "paddle", max_prompts: 25 }, 25],
     [{ package_key: "signal", status: "active", expires_at: future, billing_source: "paddle", max_prompts: 100 }, 100],
     [{ package_key: "signal", status: "active", expires_at: future, billing_source: "paddle", max_prompts: 5000 }, 100],
-    [{ package_key: "signal", status: "active", expires_at: past, billing_source: "paddle", max_prompts: 100 }, 10],
-    [{ package_key: "core", status: "cancelled", expires_at: null, billing_source: "paddle", max_prompts: 25 }, 10],
-    [{ package_key: "core", status: "paused", expires_at: null, billing_source: "paddle", max_prompts: 25 }, 10],
+    [{ package_key: "signal", status: "active", expires_at: past, billing_source: "paddle", max_prompts: 100 }, 5],
+    [{ package_key: "core", status: "cancelled", expires_at: null, billing_source: "paddle", max_prompts: 25 }, 5],
+    [{ package_key: "core", status: "paused", expires_at: null, billing_source: "paddle", max_prompts: 25 }, 5],
   ]) {
     const d = db({ billing_accounts: [], organization_entitlements: [row], billing_checkout_reservations: [] });
     try {

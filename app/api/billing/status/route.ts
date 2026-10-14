@@ -3,7 +3,7 @@ import { requireViewer } from "@/lib/auth";
 import { billingProvider, billingProviderTransitionAllowed } from "@/lib/billing-provider";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { supabaseRest } from "@/lib/supabase-rest";
-import { buyerQuestionLimit } from "@/lib/product-limits";
+import { buyerQuestionLimit, coreTrialAvailable, coreTrialState } from "@/lib/product-limits";
 
 type BillingAccountRow = { provider: string; state: string; external_customer_id: string | null; grace_period_ends_at: string | null };
 type EntitlementRow = {
@@ -34,6 +34,8 @@ export async function GET() {
       checkoutOffers: [],
       checkoutPending: null,
       buyerQuestionLimit: null,
+      trial: null,
+      trialAvailable: false,
     } });
   }
 
@@ -105,5 +107,8 @@ export async function GET() {
     // Effective server-side buyer-question ceiling (A03): verified-billing or
     // explicit grant only; anything else fails closed to Foundation access.
     buyerQuestionLimit: buyerQuestionLimit(entitlement),
+    // One-time 7-day Core trial (no card). The database re-checks eligibility.
+    trial: coreTrialState(entitlement),
+    trialAvailable: role === "owner" && !billing?.external_customer_id && coreTrialAvailable(entitlement),
   } });
 }
