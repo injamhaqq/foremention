@@ -21,7 +21,7 @@ test("commercial platform positioning and brand contract are encoded", async () 
   assert.doesNotMatch(home, /SourceXRayExperience|Source X-Ray|source-xray/i);
   assert.match(pricing, /Core/);
   assert.match(pricing, /\$99 \/ month/);
-  assert.match(pricing, /\$249 \/ month/);
+  assert.match(pricing, /\$299 \/ month/);
   assert.match(pricing, /not currently available checkout offers/i);
   assert.match(pricing, /foundation beta access is limited to[\s\S]*10 buyer questions/i);
   assert.match(pricing, /Signal/);
