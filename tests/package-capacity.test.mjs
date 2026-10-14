@@ -14,7 +14,7 @@ test("package capacity matches the published /pricing page", () => {
   assert.match(pricing, new RegExp(`Up to ${PACKAGE_CAPACITY.signal.buyerQuestions} approved buyer questions`));
   assert.equal(PACKAGE_CAPACITY.core.buyerQuestions, 25);
   assert.equal(PACKAGE_CAPACITY.signal.buyerQuestions, 100);
-  assert.equal(FOUNDATION_ACCESS_LIMITS.buyerQuestions, 10);
+  assert.equal(FOUNDATION_ACCESS_LIMITS.buyerQuestions, 5);
 });
 
 test("verified-billing Core and Signal raise the server-side question ceiling", () => {
@@ -24,16 +24,16 @@ test("verified-billing Core and Signal raise the server-side question ceiling", 
 });
 
 test("capacity fails closed to Foundation without an active, unexpired, verified paid entitlement", () => {
-  assert.equal(buyerQuestionLimit(null), 10);
-  assert.equal(buyerQuestionLimit(undefined), 10);
-  assert.equal(buyerQuestionLimit({ status: "cancelled", package_key: "signal", billing_source: "paddle", max_prompts: 100 }), 10);
-  assert.equal(buyerQuestionLimit({ status: "paused", package_key: "core", billing_source: "paddle", max_prompts: 25 }), 10);
-  assert.equal(buyerQuestionLimit({ status: "active", package_key: "signal", billing_source: "paddle", max_prompts: 100, expires_at: past }), 10);
-  assert.equal(buyerQuestionLimit({ status: "active", package_key: "signal", billing_source: "paddle", max_prompts: 100, expires_at: "garbage" }), 10);
+  assert.equal(buyerQuestionLimit(null), 5);
+  assert.equal(buyerQuestionLimit(undefined), 5);
+  assert.equal(buyerQuestionLimit({ status: "cancelled", package_key: "signal", billing_source: "paddle", max_prompts: 100 }), 5);
+  assert.equal(buyerQuestionLimit({ status: "paused", package_key: "core", billing_source: "paddle", max_prompts: 25 }), 5);
+  assert.equal(buyerQuestionLimit({ status: "active", package_key: "signal", billing_source: "paddle", max_prompts: 100, expires_at: past }), 5);
+  assert.equal(buyerQuestionLimit({ status: "active", package_key: "signal", billing_source: "paddle", max_prompts: 100, expires_at: "garbage" }), 5);
   // A verified-billing row can never exceed its package ceiling, nor unlock an unpaid package.
   assert.equal(buyerQuestionLimit({ status: "active", package_key: "core", billing_source: "paddle", max_prompts: 100 }), 25);
-  assert.equal(buyerQuestionLimit({ status: "active", package_key: "private_beta", billing_source: "paddle", max_prompts: 100 }), 10);
-  assert.equal(buyerQuestionLimit({ status: "active", package_key: "signal", billing_source: "paddle", max_prompts: null }), 10);
+  assert.equal(buyerQuestionLimit({ status: "active", package_key: "private_beta", billing_source: "paddle", max_prompts: 100 }), 5);
+  assert.equal(buyerQuestionLimit({ status: "active", package_key: "signal", billing_source: "paddle", max_prompts: null }), 5);
 });
 
 test("founder/manual grants keep their explicitly stored capacity", () => {
@@ -91,4 +91,30 @@ test("paid packages unlock their run limits, not only question count (2026-10-14
   const route = source("app/api/runs/route.ts");
   assert.match(route, /organization_entitlements\?select=max_prompts_per_run,status/);
   assert.ok(route.indexOf("promptIds.length > perRunLimit") < route.indexOf("rpc/"), "plan limit is checked before any reservation");
+});
+
+test("the 7-day Core trial is a live trial only while active and unexpired, and is one-time", async () => {
+  const { coreTrialState, coreTrialAvailable, CORE_TRIAL_DAYS } = await import("../lib/product-limits.ts");
+  assert.equal(CORE_TRIAL_DAYS, 7);
+  assert.ok(coreTrialState({ billing_source: "trial", status: "active", expires_at: future }));
+  assert.equal(coreTrialState({ billing_source: "trial", status: "active", expires_at: past }), null);
+  assert.equal(coreTrialState({ billing_source: "paddle", status: "active", expires_at: future }), null);
+  assert.equal(coreTrialAvailable(null), true);
+  assert.equal(coreTrialAvailable({ billing_source: "founder_grant", status: "active", package_key: "private_beta" }), true);
+  assert.equal(coreTrialAvailable({ billing_source: "trial", status: "active", package_key: "core", expires_at: future }), false);
+  assert.equal(coreTrialAvailable({ billing_source: "trial_expired", status: "active", package_key: "private_beta" }), false);
+  assert.equal(coreTrialAvailable({ billing_source: "paddle", status: "active", package_key: "core" }), false);
+  // A live trial keeps its stored Core question capacity; an expired one falls back to free.
+  assert.equal(buyerQuestionLimit({ status: "active", package_key: "core", billing_source: "trial", max_prompts: 25, expires_at: future }), 25);
+  assert.equal(buyerQuestionLimit({ status: "active", package_key: "core", billing_source: "trial", max_prompts: 25, expires_at: past }), 5);
+});
+
+test("paid and trial workspaces get an automatic recurring cadence; free stays opt-in", async () => {
+  const { autoScheduleCadence } = await import("../lib/product-limits.ts");
+  assert.equal(autoScheduleCadence({ status: "active", package_key: "signal", billing_source: "paddle" }), "weekly");
+  assert.equal(autoScheduleCadence({ status: "active", package_key: "core", billing_source: "paddle" }), "monthly");
+  assert.equal(autoScheduleCadence({ status: "active", package_key: "core", billing_source: "trial", expires_at: future }), "weekly");
+  assert.equal(autoScheduleCadence({ status: "active", package_key: "core", billing_source: "trial", expires_at: past }), null);
+  assert.equal(autoScheduleCadence({ status: "active", package_key: "private_beta", billing_source: "founder_grant" }), null);
+  assert.equal(autoScheduleCadence({ status: "cancelled", package_key: "signal", billing_source: "paddle" }), null);
 });
