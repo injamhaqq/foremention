@@ -33,7 +33,7 @@ const plans = [
   {
     name: "Signal",
     availability: "Proposed · not yet purchasable",
-    price: "$249 / month",
+    price: "$299 / month",
     lead: true,
     summary:
       "For growth and product-marketing teams that need more frequent comparable measurement, competitive context, review, and owned follow-through.",
