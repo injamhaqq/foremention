@@ -2,6 +2,7 @@ import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { NextResponse } from "next/server";
 import { supabaseConfigured } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
+import { AuthLinkError, authEmailDeliveryAvailable, generateAuthLink, sendRecoveryEmail } from "@/lib/auth-email-delivery";
 
 export async function POST(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
@@ -9,6 +10,25 @@ export async function POST(request: Request) {
   if (!body) return NextResponse.json({ error: "Send a valid recovery form." }, { status: 400 });
   const email = cleanText(body.email, 254).toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
+  const genericMessage = "If an account exists for that email, a recovery link is on its way.";
+  if (supabaseConfigured() && authEmailDeliveryAvailable()) {
+    const incomingOrigin = new URL(request.url).origin;
+    const origin = /localhost|127\.0\.0\.1|\[::1\]/.test(incomingOrigin)
+      ? incomingOrigin
+      : (process.env.NEXT_PUBLIC_SITE_URL || incomingOrigin).replace(/\/$/, "");
+    try {
+      const { actionLink } = await generateAuthLink({ type: "recovery", email, redirectTo: `${origin}/auth/callback` });
+      await sendRecoveryEmail(email, actionLink);
+    } catch (error) {
+      // Never reveal whether the account exists.
+      if (error instanceof AuthLinkError && error.userMissing) return NextResponse.json({ message: genericMessage });
+      if (error instanceof AuthLinkError && error.status === 429) {
+        return NextResponse.json({ error: "Email delivery is temporarily busy. Wait a few minutes, then request one new link." }, { status: 429 });
+      }
+      return NextResponse.json({ error: "The email provider is temporarily unavailable. Please try again shortly." }, { status: 503 });
+    }
+    return NextResponse.json({ message: genericMessage });
+  }
   if (supabaseConfigured()) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
     const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
