@@ -48,7 +48,8 @@ export default async function DashboardPage() {
   const guidance = buildBaselineGuidance({
     website: context?.website,
     approvedQuestions: prompts.filter((prompt) => prompt.approved).length,
-    pausedQuestions: prompts.filter((prompt) => !prompt.approved).length,
+    // Demo suggestions use approved=false for "not yet approved"; customer rows are all approved and active=false means paused.
+    pausedQuestions: viewer.mode === "demo" ? 0 : prompts.filter((prompt) => !prompt.approved).length,
     providerAvailable: providers.some((provider) => provider.configured),
     newestRun, observedRun: latest, answers: observedAnswers,
     sourceCount: sources.length,
