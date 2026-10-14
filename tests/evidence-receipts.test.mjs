@@ -64,7 +64,7 @@ test("migration is additive, stamps at write time, backfills, and pins the same 
   assert.match(code, /chr\(13\) \|\| chr\(10\), chr\(10\)\), chr\(13\), chr\(10\)/);
   assert.match(code, /' ' \|\| chr\(9\) \|\| chr\(10\) \|\| chr\(11\) \|\| chr\(12\)/);
   assert.match(code, /sha256\(/);
-  assert.match(code, new RegExp(`'${ANSWER_TEXT_HASH_VERSION.replace(/\./g, "\\.")}'`));
+  assert.ok(code.includes(`'${ANSWER_TEXT_HASH_VERSION}'`), "migration pins the runtime hash version");
   assert.match(code, /update public\.run_answers\s+set answer_text_sha256 = private\.answer_text_sha256\(answer_text\)/);
   assert.match(code, /revoke all on function private\.answer_text_sha256\(text\) from public, anon, authenticated/);
   assert.match(code, /revoke all on function private\.stamp_run_answer_evidence_receipt\(\) from public, anon, authenticated/);
