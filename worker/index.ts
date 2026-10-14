@@ -204,6 +204,10 @@ function publicRouteLimit(pathname: string): PublicRouteLimit | null {
   if (pathname.startsWith("/report/")) return { endpoint: "report", limit: 60, windowMs: 60 * 60 * 1000 };
   if (pathname === "/grader" || pathname.startsWith("/grader/")) return { endpoint: "grader", limit: 20, windowMs: 60 * 60 * 1000 };
   if (pathname.startsWith("/audit/")) return { endpoint: "audit", limit: 20, windowMs: 60 * 60 * 1000 };
+  // Auth email is sent by the application (lib/auth-email-delivery.ts), not by
+  // Supabase Auth's own rate-limited mailer, so cap mail-triggering routes here.
+  if (pathname === "/api/auth/signup") return { endpoint: "auth-signup", limit: 10, windowMs: 60 * 60 * 1000 };
+  if (pathname === "/api/auth/forgot-password") return { endpoint: "auth-recovery", limit: 10, windowMs: 60 * 60 * 1000 };
   return null;
 }
 
@@ -218,6 +222,7 @@ async function enforcePublicRouteLimit(request: Request, env: Env, pathname: str
   if (result.allowed) return null;
   // Deliberately contains no IP address, fingerprint, prompt, brand, or other customer input.
   console.warn(JSON.stringify({ event: "public_rate_limit_hit", endpoint: rule.endpoint }));
+  if (rule.endpoint.startsWith("auth-")) return Response.json({ error: "Too many attempts from this network. Please wait a while before trying again." }, { status: 429 });
   return Response.json({ error: "This public tool has reached its temporary request limit. Please try again later." }, { status: 429 });
 }
 

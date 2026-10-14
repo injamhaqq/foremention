@@ -5,6 +5,7 @@ import { safeAuthNext } from "@/lib/google-auth";
 import { SupabaseAuthError, supabaseAuth } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
 import { checkPasswordSafety, HashRangeUnavailable, issueSignupSecurityAttestation } from "@/lib/password-safety";
+import { AuthLinkError, authEmailDeliveryAvailable, generateAuthLink, sendSignupConfirmationEmail } from "@/lib/auth-email-delivery";
 
 async function attemptWelcomeEmail(email: string, origin: string) {
   if (!getApplicationEmailStatus().available) return "not_configured" as const;
@@ -77,6 +78,44 @@ export async function POST(request: Request) {
     };
     if (next !== "/app") {
       Object.assign(signupPayload, { email_redirect_to: emailRedirect.toString() });
+    }
+    if (authEmailDeliveryAvailable()) {
+      // Supabase Auth SMTP is not relied on for confirmation mail (see
+      // lib/auth-email-delivery.ts). generate_link creates the unconfirmed user
+      // through the same attestation hook, and we deliver the link ourselves.
+      let actionLink: string;
+      try {
+        ({ actionLink } = await generateAuthLink({
+          type: "signup",
+          email: normalizedEmail,
+          password,
+          data: signupPayload.data,
+          redirectTo: signupPayload.email_redirect_to,
+        }));
+      } catch (error) {
+        if (error instanceof AuthLinkError && error.alreadyRegistered) {
+          return NextResponse.json({ account_help: true, email: normalizedEmail, error: "An account already exists with this email." }, { status: 409 });
+        }
+        if (error instanceof AuthLinkError && (error.status === 429 || error.status >= 500)) {
+          return NextResponse.json({ error: "Account creation is temporarily unavailable. No account changes were confirmed. Please try again in a moment." }, { status: error.status === 429 ? 429 : 503 });
+        }
+        const message = error instanceof Error ? error.message : "Could not create the account.";
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+      try {
+        await sendSignupConfirmationEmail(normalizedEmail, actionLink);
+      } catch {
+        return NextResponse.json({
+          error: "Your account was created but the confirmation email could not be sent. Submit the form again in a minute to resend it, or email hello@foremention.com.",
+        }, { status: 503 });
+      }
+      return NextResponse.json({
+        ok: true,
+        session: false,
+        email: normalizedEmail,
+        welcome_email: "not_sent",
+        message: "We sent a confirmation link from Foremention to your email.",
+      });
     }
     const data = await supabaseAuth("signup", signupPayload);
     const user = data.user && typeof data.user === "object"
