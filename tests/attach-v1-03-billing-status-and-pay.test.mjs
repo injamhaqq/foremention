@@ -160,7 +160,6 @@ test("live payment page: each missing gate keeps it closed", () => {
     { PADDLE_ENVIRONMENT: "sandbox" },
     { PADDLE_API_KEY: "pdl_sdbx_mock_key" },
     { PADDLE_LIVE_CLIENT_TOKEN: "test_sandboxtoken" },
-    { PADDLE_LIVE_CLIENT_TOKEN: "" },
     { BILLING_PROVIDER_ID: "stripe" },
     { NEXT_PUBLIC_SITE_URL: "http://foremention.com" },
     { PADDLE_WEBHOOK_SECRET: "" },
@@ -175,6 +174,15 @@ test("live payment page: each missing gate keeps it closed", () => {
   assert.equal(paddleLiveCheckoutClientToken("foremention.com"), "live_mocktoken123");
 });
 
+test("live payment page: unset switch and unset token use the in-code browser-safe defaults", () => {
+  baseEnv();
+  liveEnv({ PADDLE_LIVE_CLIENT_TOKEN: "" });
+  delete process.env.PADDLE_LIVE_CHECKOUT_PAGE_ENABLED;
+  assert.match(paddleLiveCheckoutClientToken("foremention.com") || "", /^live_[a-z0-9]+$/);
+  liveEnv({ PADDLE_LIVE_CHECKOUT_PAGE_ENABLED: "0" });
+  assert.equal(paddleLiveCheckoutClientToken("foremention.com"), null);
+});
+
 test("payment page source: live branch is separate, sandbox gate unchanged, no secrets reach the client", async () => {
   const page = await readFile(new URL("../app/pay/page.tsx", import.meta.url), "utf8");
   const client = await readFile(new URL("../components/paddle-sandbox-payment.tsx", import.meta.url), "utf8");
@@ -184,4 +192,16 @@ test("payment page source: live branch is separate, sandbox gate unchanged, no s
   assert.match(client, /if \(!live\) paddle\.Environment\.set\("sandbox"\)/);
   assert.ok(!client.includes("PADDLE_API_KEY") && !client.includes("PADDLE_WEBHOOK_SECRET"));
   assert.ok(!page.includes("PADDLE_LIVE_CLIENT_TOKEN"), "live token is read only in the server-side gate");
+});
+
+test("checkout: a definitive Paddle 4xx rejection releases the reservation instead of stranding it", async () => {
+  const route = await readFile(new URL("../app/api/billing/checkout/route.ts", import.meta.url), "utf8");
+  const lib = await readFile(new URL("../lib/paddle-billing.ts", import.meta.url), "utf8");
+  const sql = await readFile(new URL("../supabase/migrations/20261014150000_release_rejected_paddle_checkout.sql", import.meta.url), "utf8");
+  assert.match(lib, /!\[408, 409, 429\]\.includes\(response\.status\)/);
+  assert.ok(route.indexOf("error instanceof PaddleRequestRejectedError") < route.indexOf("rpc/mark_paddle_checkout_uncertain"));
+  assert.match(route, /rpc\/release_rejected_paddle_checkout/);
+  assert.match(sql, /external_transaction_id is null/);
+  assert.match(sql, /grant execute on function public\.release_rejected_paddle_checkout\(uuid, uuid, text\) to service_role/);
+  assert.match(sql, /from public, anon, authenticated/);
 });

@@ -12,5 +12,6 @@ export function billingReturnNotice(search: string, status: { packageKey: string
   }
   if (returned === "success" && paid) return "Payment confirmed by a verified billing event.";
   if (returned === "cancelled") return "Checkout was not completed. No paid access was granted.";
+  if (returned === "unavailable") return "Online checkout is temporarily unavailable. No payment was taken. Email hello@foremention.com and we will set up your subscription.";
   return null;
 }
