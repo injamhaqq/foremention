@@ -42,6 +42,10 @@ insert into public.categories (id, organization_id, name) values
 insert into public.runs (id, organization_id, category_id, created_by) values
   ('f9500000-0000-4000-8000-000000000001'::uuid, 'f9200000-0000-4000-8000-000000000001'::uuid, 'f9300000-0000-4000-8000-000000000001'::uuid, 'f9100000-0000-4000-8000-000000000001'::uuid);
 
+-- Write as the collection job does (service_role), so the trigger is proven
+-- to work without privileges on private helper functions.
+set local role service_role;
+
 -- A client-supplied wrong hash is overwritten by the authoritative trigger.
 insert into public.run_answers (id, run_id, organization_id, prompt_key, provider, model, answer_text, answer_text_sha256, answer_text_hash_version, collected_at) values
   ('f9600000-0000-4000-8000-000000000001'::uuid, 'f9500000-0000-4000-8000-000000000001'::uuid, 'f9200000-0000-4000-8000-000000000001'::uuid,
@@ -65,6 +69,7 @@ end $$;
 
 -- An update to the answer text re-stamps the receipt.
 update public.run_answers set answer_text = 'Abc' where id = 'f9600000-0000-4000-8000-000000000001'::uuid;
+reset role;
 do $$
 begin
   if (select answer_text_sha256 from public.run_answers where id = 'f9600000-0000-4000-8000-000000000001'::uuid)

@@ -14,6 +14,7 @@ import {
 
 const root = new URL("../", import.meta.url);
 const MIGRATION = "supabase/migrations/20261014120000_run_answer_evidence_receipts.sql";
+const INVOKER_SAFE = "supabase/migrations/20261014120100_run_answer_evidence_receipt_invoker_safe.sql";
 
 const POSTGRES_GOLDEN = [
   ["", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
@@ -99,4 +100,19 @@ test("every application write path to run_answers carries the evidence receipt",
   }
   const inngest = await readFile(new URL("lib/jobs/inngest.ts", root), "utf8");
   assert.match(inngest, /const receipt = await answerEvidenceReceipt\(answer\.answer\);/);
+});
+
+test("the receipt trigger is invoker-safe: it computes inline instead of calling a revoked private helper", async () => {
+  const sql = (await readFile(new URL(INVOKER_SAFE, root), "utf8")).toLowerCase().replace(/--.*$/gm, "");
+  const body = sql.slice(sql.indexOf("create or replace function private.stamp_run_answer_evidence_receipt()"));
+  assert.ok(body.length > 0);
+  assert.doesNotMatch(body, /private\.answer_text_sha256\(/, "service_role/authenticated cannot execute private.answer_text_sha256");
+  assert.doesNotMatch(body, /security definer/);
+  assert.match(body, /normalize\(new\.answer_text, nfc\)/);
+  assert.match(body, /chr\(13\) \|\| chr\(10\), chr\(10\)\), chr\(13\), chr\(10\)/);
+  assert.match(body, /' ' \|\| chr\(9\) \|\| chr\(10\) \|\| chr\(11\) \|\| chr\(12\)/);
+  assert.ok(body.includes(`'${ANSWER_TEXT_HASH_VERSION}'`));
+  assert.doesNotMatch(sql, /\bdrop\s+(table|column|function|trigger|view|index|constraint|policy|schema)\b|\btruncate\b|\bdelete\s+from\b/);
+  const verify = await readFile(new URL("scripts/verify-run-answer-evidence-receipts.sql", root), "utf8");
+  assert.match(verify, /set local role service_role;/, "CI proves the trigger under the collection job's role");
 });
