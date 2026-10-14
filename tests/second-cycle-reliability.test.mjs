@@ -8,10 +8,11 @@ const text = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("pilot limits default to a weekly cadence without raising the dollar cap", () => {
   const limits = product.foundationAccessLimits({});
-  assert.equal(limits.runUnitsPerMonth, 50);
-  assert.equal(limits.buyerQuestions, 10);
-  assert.equal(limits.monthlyAiSpendCapUsd, 2);
-  assert.equal(product.weeklyPilotFits(limits), true);
+  assert.equal(limits.runUnitsPerMonth, 10);
+  assert.equal(limits.buyerQuestions, 5);
+  assert.equal(limits.monthlyAiSpendCapUsd, 1);
+  assert.equal(product.weeklyPilotFits(limits), false);
+  assert.equal(product.weeklyPilotFits({ buyerQuestions: 25, providersPerRun: 1, runUnitsPerMonth: 125 }), true);
   assert.equal(product.weeklyPilotFits({ buyerQuestions: 10, providersPerRun: 1, runUnitsPerMonth: 20 }), false);
 });
 
@@ -27,10 +28,10 @@ test("pilot limits are env-configurable within bounds and invalid values fall ba
   assert.equal(configured.monthlyAiSpendCapUsd, 5.5);
   assert.equal(configured.historyDays, 180);
   for (const bad of ["-1", "0", "abc", "1e9", "50.5", " "]) {
-    assert.equal(product.foundationAccessLimits({ FOREMENTION_FOUNDATION_RUN_UNITS_PER_MONTH: bad }).runUnitsPerMonth, 50, bad);
+    assert.equal(product.foundationAccessLimits({ FOREMENTION_FOUNDATION_RUN_UNITS_PER_MONTH: bad }).runUnitsPerMonth, 10, bad);
   }
   for (const bad of ["-2", "abc", "2.555", "999999999"]) {
-    assert.equal(product.foundationAccessLimits({ FOREMENTION_FOUNDATION_MONTHLY_AI_SPEND_CAP_USD: bad }).monthlyAiSpendCapUsd, 2, bad);
+    assert.equal(product.foundationAccessLimits({ FOREMENTION_FOUNDATION_MONTHLY_AI_SPEND_CAP_USD: bad }).monthlyAiSpendCapUsd, 1, bad);
   }
 });
 
