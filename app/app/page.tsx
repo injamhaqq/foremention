@@ -48,6 +48,7 @@ export default async function DashboardPage() {
   const guidance = buildBaselineGuidance({
     website: context?.website,
     approvedQuestions: prompts.filter((prompt) => prompt.approved).length,
+    pausedQuestions: prompts.filter((prompt) => !prompt.approved).length,
     providerAvailable: providers.some((provider) => provider.configured),
     newestRun, observedRun: latest, answers: observedAnswers,
     sourceCount: sources.length,
