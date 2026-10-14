@@ -44,7 +44,7 @@ export function PublicFooter() {
       <div className="footer-links outreach-footer-links">
         <div><span>Product</span><Link href="/explore">Explore Foremention</Link><Link href="/product">Product</Link><Link href="/use-cases">Use cases</Link><Link href="/#how-it-works">How it works</Link><Link href="/recommendation-record">Recommendation Record</Link><Link href="/methodology">Methodology</Link></div>
         <div><span>Company</span><Link href="/about">About</Link><Link href="/insights">Research &amp; evidence</Link><a href="https://www.linkedin.com/company/foremention/" target="_blank" rel="noreferrer">LinkedIn</a></div>
-        <div><span>Trust</span><Link href="/trust">Trust Center</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
+        <div><span>Trust</span><Link href="/trust">Trust Center</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/refund-policy">Refund policy</Link></div>
         <div><span>Action</span><Link data-design-partner-cta="footer" href="/contact">Request a pilot</Link><Link href="/login">Sign in</Link></div>
       </div>
     </div>

@@ -16,7 +16,7 @@ test("evidence URLs are canonicalized without merging distinct pages", () => {
 test("maximum run cost is deterministic and bounded", () => {
   const estimate = policy.estimateMaximumRunCost(2, { inputPerMillionUsd: 1, outputPerMillionUsd: 2, requestUsd: 0 });
   assert.equal(estimate, 0.005824);
-  assert.equal(policy.estimateMaximumRunCost(999, { inputPerMillionUsd: 1, outputPerMillionUsd: 2, requestUsd: 0 }), 0.02912);
+  assert.equal(policy.estimateMaximumRunCost(999, { inputPerMillionUsd: 1, outputPerMillionUsd: 2, requestUsd: 0 }), 0.2912);
 });
 
 test("Groq reservation supports the bounded five-question pilot without hiding cost", () => {
@@ -40,7 +40,7 @@ test("Groq reservation supports the bounded five-question pilot without hiding c
 });
 
 test("live collection capacity boundaries remain explicit", () => {
-  assert.equal(policy.LIVE_COLLECTION_LIMITS.maxPromptsPerRun, 10);
+  assert.equal(policy.LIVE_COLLECTION_LIMITS.maxPromptsPerRun, 100);
   assert.equal(policy.LIVE_COLLECTION_LIMITS.maxProvidersPerRun, 1);
   assert.equal(policy.LIVE_COLLECTION_LIMITS.providerTimeoutMs, 45_000);
 });

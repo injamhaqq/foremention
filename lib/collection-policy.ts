@@ -3,7 +3,9 @@ import type { ProviderId, ProviderUsage } from "@/lib/providers/types";
 import { redactOperationalText } from "./operational-error.js";
 
 export const LIVE_COLLECTION_LIMITS = {
-  maxPromptsPerRun: 10,
+  // Absolute per-run ceiling (Signal plan). The per-workspace limit comes from
+  // organization_entitlements.max_prompts_per_run (app/api/runs/route.ts).
+  maxPromptsPerRun: 100,
   maxProvidersPerRun: 1,
   maxOutputTokensPerAnswer: 1200,
   maxInputTokensPerPromptEstimate: 512,
