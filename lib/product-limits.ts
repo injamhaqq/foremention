@@ -162,4 +162,3 @@ export function autoScheduleCadence(row: AutoScheduleEntitlement | null | undefi
   if (row.billing_source === "trial") return "weekly";
   return ["paddle", "stripe", "creem"].includes(row.billing_source || "") ? "monthly" : null;
 }
-
