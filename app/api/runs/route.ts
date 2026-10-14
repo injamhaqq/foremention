@@ -14,6 +14,7 @@ import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { inngest } from "@/lib/jobs/inngest";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { runUnits } from "@/lib/product-limits";
+import { ensureAutoMeasurementSchedule, type AutoScheduleEntitlement } from "@/lib/auto-measurement-schedule";
 import { EVIDENCE_CAPACITY_DAILY_MESSAGE, EVIDENCE_CAPACITY_MONTHLY_MESSAGE, readEvidenceCapacity } from "@/lib/evidence-capacity";
 import { braveSearchApiKey } from "@/lib/free-web-retrieval";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
@@ -96,15 +97,17 @@ export async function POST(request: Request) {
   if (!context || !role) return NextResponse.json({ error: "Complete onboarding before starting a collection run." }, { status: 409 });
   if (!["owner", "admin", "analyst"].includes(role)) return NextResponse.json({ error: "Only owners, admins, and analysts can start collection runs." }, { status: 403 });
 
-  // Per-workspace plan limit (free beta 10, Core 25, Signal 100). The code
+  // Per-workspace plan limit (free 5, legacy beta 10, Core/trial 25, Signal 100). The code
   // ceiling above is only the absolute maximum for any plan.
-  let perRunLimit = 10;
+  let perRunLimit = 5;
+  let entitlementRow: AutoScheduleEntitlement | null = null;
   try {
-    const entitlementRows = await supabaseRest<Array<{ max_prompts_per_run: number | null; status: string }>>(
-      `organization_entitlements?select=max_prompts_per_run,status&organization_id=eq.${context.organizationId}&limit=1`,
+    const entitlementRows = await supabaseRest<Array<{ max_prompts_per_run: number | null; status: string; package_key: string | null; billing_source: string | null; expires_at: string | null }>>(
+      `organization_entitlements?select=max_prompts_per_run,status,package_key,billing_source,expires_at&organization_id=eq.${context.organizationId}&limit=1`,
       { token: viewer.accessToken },
     );
     const row = entitlementRows[0];
+    entitlementRow = row || null;
     if (row && row.status === "active" && Number(row.max_prompts_per_run) > 0) {
       perRunLimit = Math.min(LIVE_COLLECTION_LIMITS.maxPromptsPerRun, Math.trunc(Number(row.max_prompts_per_run)));
     }
@@ -331,9 +334,23 @@ export async function POST(request: Request) {
     }, { status: 503 });
   }
 
+  // Paid and trial workspaces get the recurring cadence they bought without a
+  // separate setup step. Best effort; never affects this run.
+  const autoSchedule = await ensureAutoMeasurementSchedule({
+    entitlement: entitlementRow,
+    organizationId: context.organizationId,
+    projectId: context.projectId,
+    categoryId: context.categoryId,
+    questionIds: promptIds,
+    providerId,
+    actorId: viewer.id,
+    token: viewer.accessToken,
+  });
+
   return NextResponse.json({
     id: runId,
     status: "queued",
     estimatedMaximumCostUsd: estimatedMaximumCost,
+    ...(autoSchedule === "created" ? { recurringSchedule: "created" } : {}),
   }, { status: 202 });
 }
