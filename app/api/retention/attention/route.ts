@@ -55,6 +55,8 @@ export async function GET() {
     const guidance = buildBaselineGuidance({
       website: context?.website,
       approvedQuestions: prompts.filter((prompt) => prompt.approved).length,
+      // Demo suggestions use approved=false for "not yet approved"; customer rows are all approved and active=false means paused.
+    pausedQuestions: viewer.mode === "demo" ? 0 : prompts.filter((prompt) => !prompt.approved).length,
       providerAvailable: providers.some((provider) => provider.configured),
       newestRun: newest, observedRun: latestReviewed, answers,
       sourceCount: sources.length,
@@ -73,10 +75,12 @@ export async function GET() {
     const firstCollectionCompleted = Boolean(latestReviewed && latestReviewed.answers > 0 && answers.length === latestReviewed.answers);
     const firstRecordReviewed = guidance.recordReviewed;
     const comparableReviewedCycles = intelligence?.latest && intelligence.previous ? 2 : firstRecordReviewed ? 1 : 0;
-    const activated = Boolean(context && approvedQuestions >= 5 && firstCollectionCompleted && firstRecordReviewed && firstActionCreated && firstActionAssigned);
+    const activated = Boolean(context && guidance.questionsReady && firstCollectionCompleted && firstRecordReviewed && firstActionCreated && firstActionAssigned);
     const activation = deriveActivationStage({
       workspaceConfigured: Boolean(context),
       approvedQuestions,
+      // Demo suggestions use approved=false for "not yet approved"; customer rows are all approved and active=false means paused.
+    pausedQuestions: viewer.mode === "demo" ? 0 : prompts.filter((prompt) => !prompt.approved).length,
       firstCollectionCompleted,
       firstRecordReviewed,
       firstActionCreated,
@@ -105,7 +109,9 @@ export async function GET() {
     });
     if (guidance.noCitations) items.push({ id: "answer-only-evidence", kind: "review", priority: "normal", title: "No citations were returned", detail: "The answer remains inspectable. No source-backed opportunity or causal explanation is established.", href: latestReviewed ? `/app/runs/${encodeURIComponent(latestReviewed.id)}` : "/app/runs" });
     return NextResponse.json({ data: items, activation, retentionHealth, scheduleEnabled, onboardingComplete, mode: viewer.mode });
-  } catch {
+  } catch (error) {
+    // Message only: no customer data, prompts, or provider responses.
+    console.error(JSON.stringify({ event: "retention_attention_unavailable", message: error instanceof Error ? error.message.slice(0, 200) : "unknown" }));
     return NextResponse.json({ error: "Attention is temporarily unavailable. Your saved records have not changed." }, { status: 503 });
   }
 }

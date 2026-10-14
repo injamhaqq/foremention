@@ -291,14 +291,31 @@ const getPrimaryMembershipCached = cache(async (userId: string, accessToken: str
   return rows[0] || null;
 });
 
+// Per-request memo keyed by the Viewer object. React `cache` only dedupes
+// inside a server-component render; route handlers (e.g. /api/retention/attention)
+// called these loaders 10-20 times per request, which pushed one request past
+// the Cloudflare Workers subrequest limit and surfaced as "Attention is
+// temporarily unavailable". A Viewer object lives for exactly one request.
+// Only successful non-null results are memoized so a failure or a missing
+// workspace is always re-read.
+const primaryMembershipMemo = new WeakMap<Viewer, Promise<MembershipRow | null>>();
+function getPrimaryMembershipForViewer(viewer: Viewer): Promise<MembershipRow | null> {
+  const memo = primaryMembershipMemo.get(viewer);
+  if (memo) return memo;
+  const pending = getPrimaryMembershipCached(viewer.id, viewer.accessToken || "");
+  primaryMembershipMemo.set(viewer, pending);
+  pending.then((row) => { if (!row) primaryMembershipMemo.delete(viewer); }, () => primaryMembershipMemo.delete(viewer));
+  return pending;
+}
+
 export async function getPrimaryOrganizationId(viewer: Viewer) {
   if (viewer.mode === "demo") return "10000000-0000-4000-8000-000000000001";
-  return (await getPrimaryMembershipCached(viewer.id, viewer.accessToken || ""))?.organization_id || null;
+  return (await getPrimaryMembershipForViewer(viewer))?.organization_id || null;
 }
 
 export async function getPrimaryWorkspaceRole(viewer: Viewer): Promise<WorkspaceRole | null> {
   if (viewer.mode === "demo") return "owner";
-  return (await getPrimaryMembershipCached(viewer.id, viewer.accessToken || ""))?.role || null;
+  return (await getPrimaryMembershipForViewer(viewer))?.role || null;
 }
 
 export async function loadSourceMap(viewer: Viewer): Promise<SourceMapEntry[]> {
@@ -531,7 +548,22 @@ export async function loadWorkspaceProjects(viewer: Viewer): Promise<WorkspacePr
     .map((row) => ({ id: row.id, name: row.name, projectBrand: row.client_brand.trim(), website: row.website, category: row.category }));
 }
 
+const workspaceContextMemo = new WeakMap<Viewer, Map<string, Promise<WorkspaceContext | null>>>();
+
 export async function loadWorkspaceContext(viewer: Viewer): Promise<WorkspaceContext | null> {
+  if (viewer.mode === "demo") return loadWorkspaceContextUncached(viewer);
+  const requestedProjectId = (await cookies()).get(ACTIVE_PROJECT_COOKIE)?.value || "";
+  let byProject = workspaceContextMemo.get(viewer);
+  if (!byProject) { byProject = new Map(); workspaceContextMemo.set(viewer, byProject); }
+  const memo = byProject.get(requestedProjectId);
+  if (memo) return memo;
+  const pending = loadWorkspaceContextUncached(viewer);
+  byProject.set(requestedProjectId, pending);
+  pending.then((context) => { if (!context) byProject?.delete(requestedProjectId); }, () => byProject?.delete(requestedProjectId));
+  return pending;
+}
+
+async function loadWorkspaceContextUncached(viewer: Viewer): Promise<WorkspaceContext | null> {
   if (viewer.mode === "demo") return { organizationId: "10000000-0000-4000-8000-000000000001", projectId: "20000000-0000-4000-8000-000000000001", projectName: "Northstar HR", projectBrand: "Northstar HR", categoryId: "30000000-0000-4000-8000-000000000001", clusterId: "40000000-0000-4000-8000-000000000001", organizationName: "Northstar HR", website: "https://northstarhr.example", category: "HR software for distributed teams" };
   const organizationId = await getPrimaryOrganizationId(viewer);
   if (!organizationId) return null;

@@ -43,3 +43,8 @@ test("retention health is transparent and prioritizes overdue actions", () => {
   assert.equal(deriveRetentionHealth({ activated: true, secondComparableCycleCompleted: true, scheduleEnabled: true, overdueActionCount: 1 }).status, "at_risk");
   assert.equal(deriveRetentionHealth({ activated: true, secondComparableCycleCompleted: true, scheduleEnabled: true, overdueActionCount: 0 }).status, "healthy");
 });
+test("paused approved questions count toward the five-question activation stage", () => {
+  const base = { workspaceConfigured: true, firstCollectionCompleted: false, firstRecordReviewed: false, firstActionCreated: false, firstActionAssigned: false, comparableReviewedCycles: 0 };
+  assert.equal(deriveActivationStage({ ...base, approvedQuestions: 3, pausedQuestions: 2 }).key, "first_record");
+  assert.equal(deriveActivationStage({ ...base, approvedQuestions: 0, pausedQuestions: 5 }).key, "five_questions");
+});

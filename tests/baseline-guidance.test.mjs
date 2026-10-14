@@ -54,3 +54,14 @@ test("new workspace goes to context then questions then configured collection", 
   assert.equal(buildBaselineGuidance(empty).next.href, "/app/prompts");
   assert.equal(buildBaselineGuidance({ ...empty, providerAvailable: false }).next.href, "/app/settings#providers");
 });
+test("approved questions that are paused still count as reviewed when one stays active", () => {
+  const guide = buildBaselineGuidance({ ...ready, approvedQuestions: 3, pausedQuestions: 2 });
+  assert.equal(guide.steps[1].done, true);
+  assert.equal(guide.questionsReady, true);
+  assert.match(guide.steps[1].detail, /5 of 5 priority questions approved \(3 active, 2 paused\)/);
+});
+test("all-paused question sets cannot start a collection", () => {
+  const guide = buildBaselineGuidance({ ...ready, approvedQuestions: 0, pausedQuestions: 5 });
+  assert.equal(guide.steps[1].done, false);
+  assert.match(guide.steps[1].detail, /all are paused/);
+});

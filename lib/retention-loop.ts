@@ -158,6 +158,8 @@ export type ActivationStageKey = "workspace_configured" | "five_questions" | "fi
 export type ActivationStageInput = {
   workspaceConfigured: boolean;
   approvedQuestions: number;
+  /** Approved questions the customer paused (still reviewed, skipped in collection). */
+  pausedQuestions?: number;
   firstCollectionCompleted: boolean;
   firstRecordReviewed: boolean;
   firstActionCreated: boolean;
@@ -168,7 +170,8 @@ export type ActivationStage = { key: ActivationStageKey; title: string; detail: 
 
 export function deriveActivationStage(input: ActivationStageInput): ActivationStage {
   if (!input.workspaceConfigured) return { key: "workspace_configured", title: "Configure the workspace", detail: "Set the company, category, and comparison context before measuring anything.", href: "/app/onboarding", complete: false };
-  if (input.approvedQuestions < 5) return { key: "five_questions", title: "Approve 5 priority buyer questions", detail: `You have ${Math.max(0, input.approvedQuestions)} of 5 priority questions approved. Keep the first baseline deliberately small.`, href: "/app/prompts", complete: false };
+  const reviewedQuestions = Math.max(0, input.approvedQuestions) + Math.max(0, input.pausedQuestions || 0);
+  if (reviewedQuestions < 5 || input.approvedQuestions < 1) return { key: "five_questions", title: "Approve 5 priority buyer questions", detail: input.approvedQuestions < 1 && reviewedQuestions > 0 ? "All approved questions are paused. Resume at least one so collections can run." : `You have ${Math.min(5, reviewedQuestions)} of 5 priority questions approved. Keep the first baseline deliberately small.`, href: "/app/prompts", complete: false };
   if (!input.firstCollectionCompleted) return { key: "first_record", title: "Create the first Recommendation Record", detail: "Run the approved baseline so the exact question, provider/model context, answer, and returned evidence are recorded together.", href: "/app/prompts", complete: false };
   if (!input.firstRecordReviewed) return { key: "first_review", title: "Review the first Recommendation Record", detail: "Human review is required before returned evidence can support a safe conclusion or later comparison.", href: "/app/runs", complete: false };
   if (!input.firstActionCreated) return { key: "first_action", title: "Create one evidence-backed action", detail: "Turn one reviewed finding into a concrete next step without claiming causality.", href: "/app/placements", complete: false };
