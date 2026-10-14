@@ -8,7 +8,8 @@ const read = (file) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
 test("public visibility score uses five grounded Cloudflare plus Bing RSS answers and never fabricates a fallback", () => {
   const worker = read("worker/index.ts");
   const retrieval = read("lib/free-web-retrieval.ts");
-  assert.match(worker, /answers\.length !== 5/);
+  // Exactly five answers in question order, or fail closed (lib/public-score-answers.mjs).
+  assert.match(worker, /const answers = parsePublicScoreAnswers\(grounded\.answer\);\n  if \(!answers\) return/);
   assert.match(worker, /No result was invented/);
   assert.match(worker, /runPublicGroundedCloudflare/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
