@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Arrow, Wordmark } from "@/components/brand";
 import { ExperienceAnalyticsPreferences } from "@/components/contentsquare-analytics";
 import { SiteMotion } from "@/components/site-motion";
+import { SignedInSiteHeader, type SiteHeaderAccount } from "@/components/signed-in-site-header";
 
 const links = [
   ["/product", "Product"],
@@ -58,6 +59,7 @@ export function PublicFooter() {
   </footer>;
 }
 
-export function PublicShell({ children }: { children: React.ReactNode }) {
-  return <div className="fm-public-shell registered-evidence-shell canonical-public-shell"><SiteMotion /><a className="skip-link" href="#main-content">Skip to content</a><div className="site-progress" aria-hidden="true"><span className="site-progress__bar" /></div><PublicHeader /><main id="main-content">{children}</main><PublicFooter /></div>;
+/** Pass `account` only from request-time pages that read the session. */
+export function PublicShell({ children, account = null }: { children: React.ReactNode; account?: SiteHeaderAccount | null }) {
+  return <div className="fm-public-shell registered-evidence-shell canonical-public-shell"><SiteMotion /><a className="skip-link" href="#main-content">Skip to content</a><div className="site-progress" aria-hidden="true"><span className="site-progress__bar" /></div>{account ? <SignedInSiteHeader account={account} /> : <PublicHeader />}<main id="main-content">{children}</main><PublicFooter /></div>;
 }

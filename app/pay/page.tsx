@@ -7,6 +7,7 @@ import { billingProviderConfigured, billingProviderId } from "@/lib/billing-prov
 import { PaddleSandboxPayment } from "@/components/paddle-sandbox-payment";
 import { paddleSandboxRequestAllowed } from "@/lib/paddle-sandbox-staging";
 import { paddleLiveCheckoutClientToken } from "@/lib/paddle-payment-page";
+import { getSiteHeaderAccount } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = pageMetadata({
@@ -29,7 +30,7 @@ function sandboxPaymentAvailable(requestHost: string | null): boolean {
 }
 
 export default async function PaymentPage() {
-  const requestHeaders = await headers();
+  const [requestHeaders, account] = await Promise.all([headers(), getSiteHeaderAccount()]);
   const requestHost = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
   const token = process.env.PADDLE_SANDBOX_CLIENT_TOKEN?.trim() || "";
   const available = sandboxPaymentAvailable(requestHost) && /^test_[a-z0-9]+$/i.test(token);
@@ -37,7 +38,7 @@ export default async function PaymentPage() {
   const liveToken = available ? null : paddleLiveCheckoutClientToken(requestHost);
   if (liveToken) {
     return (
-      <PublicShell>
+      <PublicShell account={account}>
         <section className="page-hero">
           <div className="shell narrow-heading">
             <span className="eyebrow">Secure payment</span>
@@ -56,7 +57,7 @@ export default async function PaymentPage() {
   }
 
   return (
-    <PublicShell>
+    <PublicShell account={account}>
       <section className="page-hero">
         <div className="shell narrow-heading">
           <span className="eyebrow">Secure payment</span>

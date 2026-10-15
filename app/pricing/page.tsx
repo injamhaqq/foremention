@@ -4,6 +4,7 @@ import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 import { billingProviderId, paddleLiveConfigured } from "@/lib/billing-provider";
+import { getSiteHeaderAccount } from "@/lib/auth";
 
 // Purchasability is read from live billing configuration at request time.
 export const dynamic = "force-dynamic";
@@ -17,13 +18,26 @@ const purchasable: Record<string, { availability: string; cta: string; href: str
   Signal: { availability: "Monthly · cancel anytime", cta: "Start with Signal", href: "/signup?next=%2Fapp%2Fsettings%3Fplan%3Dsignal%23billing" },
 };
 
-export const metadata: Metadata = pageMetadata({
-  title: "Recommendation Intelligence Plans",
-  description:
-    "Choose Foremention coverage by buyer questions, measurement frequency, brands, collaboration, and enterprise controls. Design-partner commercial terms remain founder-led while self-serve billing is being validated.",
-  path: "/pricing",
-  noIndex: true,
-});
+function signedInHref(signupHref: string) {
+  const next = new URL(signupHref, "https://foremention.com").searchParams.get("next") || "";
+  return next.startsWith("/app/") ? next : "/app/settings#billing";
+}
+
+const PRICING_LIVE_DESCRIPTION =
+  "Foremention Core ($99/month) and Signal ($299/month) with self-serve checkout through Paddle. Start a 7-day Core trial with no card; every first payment has a 7-day money-back guarantee, once per company.";
+const PRICING_FOUNDER_LED_DESCRIPTION =
+  "Foremention Core and Signal plans by buyer-question coverage, re-measurement cadence, and brands. Commercial terms are arranged with the Foremention team; Intelligence is custom-scoped.";
+
+// Read at request time so the description never claims self-serve checkout
+// when live billing is not configured for this deployment.
+export function generateMetadata(): Metadata {
+  return pageMetadata({
+    title: "Recommendation Intelligence Plans",
+    description: selfServeCheckoutLive() ? PRICING_LIVE_DESCRIPTION : PRICING_FOUNDER_LED_DESCRIPTION,
+    path: "/pricing",
+    noIndex: true,
+  });
+}
 
 const plans = [
   {
@@ -35,7 +49,7 @@ const plans = [
     items: [
       "One brand and category",
       "Up to 25 approved buyer questions",
-      "Monthly measurement cadence",
+      "Automatic monthly re-measurement (weekly during the 7-day trial)",
       "Recommendation Records with contained evidence inspection",
       "Human review and evidence-state history",
       "CSV and stakeholder-ready Record exports",
@@ -53,7 +67,7 @@ const plans = [
     items: [
       "Up to three brand workspaces",
       "Up to 100 approved buyer questions",
-      "Weekly measurement cadence",
+      "Automatic weekly re-measurement",
       "Exact-comparison change context",
       "Team review, Attention, alerts, and actions",
       "Shareable Recommendation Records and exports",
@@ -95,11 +109,17 @@ const shared = [
   ],
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const account = await getSiteHeaderAccount();
   const live = selfServeCheckoutLive();
-  const shownPlans = plans.map((plan) => (live && purchasable[plan.name] ? { ...plan, ...purchasable[plan.name] } : plan));
+  const shownPlans = plans.map((plan) => {
+    const offer = live ? purchasable[plan.name] : undefined;
+    if (!offer) return plan;
+    // A signed-in visitor goes straight to Billing instead of the signup form.
+    return { ...plan, ...offer, href: account ? signedInHref(offer.href) : offer.href };
+  });
   return (
-    <PublicShell>
+    <PublicShell account={account}>
       <section className="page-hero">
         <div className="shell narrow-heading">
           <span className="eyebrow">Recommendation Intelligence plans</span>

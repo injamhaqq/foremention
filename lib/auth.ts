@@ -47,3 +47,17 @@ export async function requireViewer(returnTo = "/app") {
   }
   return viewer;
 }
+
+/**
+ * Account shown in the header of public request-time pages (pricing, payment)
+ * when a session exists. Never throws: a public page must still render.
+ */
+export async function getSiteHeaderAccount(): Promise<{ name: string; email: string; demo?: boolean } | null> {
+  try {
+    const viewer = await getViewer();
+    if (!viewer) return null;
+    return { name: viewer.name, email: viewer.email, ...(viewer.mode === "demo" ? { demo: true } : {}) };
+  } catch {
+    return null;
+  }
+}

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { WORKSPACE_CREATED_EVENT, type WorkspaceSetupState } from "@/lib/workspace-setup-status";
 import { Arrow, ForementionMark, Wordmark } from "@/components/brand";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
@@ -48,14 +49,28 @@ function WorkspaceIdentity({
   organizationName,
   projects,
   activeProjectId,
+  setupState,
 }: {
   viewer: Viewer;
   organizationName?: string;
   projects: WorkspaceProject[];
   activeProjectId?: string;
+  setupState?: WorkspaceSetupState;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Onboarding announces the saved organization so the shell stops showing
+  // "Setup required" while the onboarding page stays mounted.
+  const [createdName, setCreatedName] = useState("");
+  useEffect(() => {
+    const onCreated = (event: Event) => {
+      const name = (event as CustomEvent<{ organizationName?: string }>).detail?.organizationName?.trim();
+      setCreatedName(name || "Workspace");
+    };
+    window.addEventListener(WORKSPACE_CREATED_EVENT, onCreated);
+    return () => window.removeEventListener(WORKSPACE_CREATED_EVENT, onCreated);
+  }, []);
+  const fallbackName = setupState === "missing" || (!setupState && !activeProjectId) ? "Setup required" : "Workspace";
 
   async function switchProject(projectId: string) {
     if (viewer.mode === "demo" || projectId === activeProjectId) return;
@@ -82,7 +97,7 @@ function WorkspaceIdentity({
   const active = projects.find((project) => project.id === activeProjectId) || projects[0] || null;
   return <div className="sidebar-company">
     <span>Organization</span>
-    <strong>{viewer.mode === "demo" ? "Northstar HR" : organizationName || "Setup required"}</strong>
+    <strong>{viewer.mode === "demo" ? "Northstar HR" : organizationName || createdName || fallbackName}</strong>
     {active ? <label className="sidebar-project">
       <span>Active project</span>
       <select
@@ -114,7 +129,7 @@ function NavigationLinks({ pathname, onNavigate }: { pathname: string; onNavigat
   </nav>;
 }
 
-export function WorkspaceSidebar({ viewer, organizationName, projects, activeProjectId }: { viewer: Viewer; organizationName?: string; projects: WorkspaceProject[]; activeProjectId?: string }) {
+export function WorkspaceSidebar({ viewer, organizationName, projects, activeProjectId, setupState }: { viewer: Viewer; organizationName?: string; projects: WorkspaceProject[]; activeProjectId?: string; setupState?: WorkspaceSetupState }) {
   const pathname = usePathname();
   return <aside className="app-sidebar registered-workspace-sidebar">
     <Wordmark />
@@ -122,13 +137,13 @@ export function WorkspaceSidebar({ viewer, organizationName, projects, activePro
       <NavigationLinks pathname={pathname} />
     </div>
     <div className="app-sidebar__footer">
-      <WorkspaceIdentity viewer={viewer} organizationName={organizationName} projects={projects} activeProjectId={activeProjectId} />
+      <WorkspaceIdentity viewer={viewer} organizationName={organizationName} projects={projects} activeProjectId={activeProjectId} setupState={setupState} />
       <SignOutButton demo={viewer.mode === "demo"} />
     </div>
   </aside>;
 }
 
-export function WorkspaceMobileNavigation({ viewer, organizationName, projects, activeProjectId }: { viewer: Viewer; organizationName?: string; projects: WorkspaceProject[]; activeProjectId?: string }) {
+export function WorkspaceMobileNavigation({ viewer, organizationName, projects, activeProjectId, setupState }: { viewer: Viewer; organizationName?: string; projects: WorkspaceProject[]; activeProjectId?: string; setupState?: WorkspaceSetupState }) {
   const pathname = usePathname();
   const mobileMenu = useRef<HTMLDetailsElement>(null);
   const summaryRef = useRef<HTMLElement>(null);
@@ -148,7 +163,7 @@ export function WorkspaceMobileNavigation({ viewer, organizationName, projects, 
       <div className="app-mobile-nav__panel">
         <NavigationLinks pathname={pathname} onNavigate={() => closeMenu()} />
         <Link prefetch={false} className="app-mobile-nav__search" href="/app/search" onClick={() => closeMenu()}>Search workspace <span aria-hidden="true">&rarr;</span></Link>
-        <WorkspaceIdentity viewer={viewer} organizationName={organizationName} projects={projects} activeProjectId={activeProjectId} />
+        <WorkspaceIdentity viewer={viewer} organizationName={organizationName} projects={projects} activeProjectId={activeProjectId} setupState={setupState} />
         <SignOutButton demo={viewer.mode === "demo"} />
       </div>
     </details>;

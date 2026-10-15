@@ -8,10 +8,11 @@ import { getPrimaryWorkspaceRole, loadRuns } from "@/lib/data";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { productStateLabel, stateForSources } from "@/lib/product-state";
 import { clusterSources } from "@/lib/source-clustering";
+import { sourceMapEmptyState } from "@/lib/source-map-empty-state";
 
 export default async function SourceMapPage() {
   const viewer = await requireViewer("/app/source-map");
-  const [entries, role, latestRuns] = await Promise.all([loadTruthfulSourceMap(viewer), getPrimaryWorkspaceRole(viewer), loadRuns(viewer, { limit: 1 })]);
+  const [entries, role, latestRuns] = await Promise.all([loadTruthfulSourceMap(viewer), getPrimaryWorkspaceRole(viewer), loadRuns(viewer, { limit: 10 })]);
   const canEdit = viewer.mode === "demo" || role === "owner" || role === "admin" || role === "analyst";
   const category = viewer.mode === "demo" ? demoCompany.category : "your active category";
   const reviewedGaps = entries.filter((entry) => Boolean(entry.reviewedAt) && !entry.clientPresent).length;
@@ -26,15 +27,7 @@ export default async function SourceMapPage() {
   const latest = latestRuns[0] || null;
   const state = stateForSources(latest ? { status: latest.status, answerCount: latest.answers, citationCount: latest.citations } : null, entries.length, unreviewed);
 
-  const empty = !latest
-    ? { title: "No collection has been run yet.", body: "Start a collection first. Sources appear only when an AI system actually returns web citations.", cta: "Start a collection", href: "/app/runs" }
-    : state === "COLLECTING"
-      ? { title: "Sources are not ready yet.", body: "Foremention is still collecting the latest AI answers. Any returned citations will appear here after they are saved.", cta: "View collection progress", href: `/app/runs/${latest.id}` }
-      : state === "FAILED_RECOVERABLE"
-        ? { title: "The latest collection did not produce source evidence.", body: latest.errorSummary || "The collection failed before usable cited-source evidence was saved. Existing source history remains unchanged.", cta: "Inspect the failed collection", href: `/app/runs/${latest.id}` }
-        : latest.citations === 0
-          ? { title: "The latest AI answers returned no cited URLs.", body: "The answers are still preserved. Foremention will not invent a Source Map when the AI system returns no web citations.", cta: "Inspect the AI answers", href: `/app/runs/${latest.id}` }
-          : { title: "No published source map is available yet.", body: "Citations were recorded, but a source view is not available yet. Inspect the collection instead of treating this as zero source activity.", cta: "Review the collection", href: `/app/runs/${latest.id}` };
+  const empty = sourceMapEmptyState({ latest, state, runs: latestRuns });
 
   return <main className="workspace" data-product-state={state}>
     {viewer.mode !== "demo" && <ProductEventOnView event="source_map_opened" />}
