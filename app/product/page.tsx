@@ -76,6 +76,22 @@ export default function ProductPage() {
         </div>
       </section>
 
+      <section className="section section--paper">
+        <div className="shell">
+          <div className="section-heading">
+            <span className="eyebrow">Decision evidence standard</span>
+            <h2>The differentiator is not another visibility score. It is an inspectable decision chain.</h2>
+            <p>Foremention should be evaluated on whether it can keep one decision-relevant buyer question connected to reviewed evidence, the human-approved company change, proof of what was actually executed, comparison eligibility, and the later observation without silently upgrading chronology into causation.</p>
+          </div>
+          <div className="system-grid">
+            <article><span>01</span><h3>Decision attached</h3><p>A Change Specification records the exact proposed company change, supporting evidence, owner, acceptance criteria, and human decision state.</p></article>
+            <article><span>02</span><h3>Execution attached</h3><p>The page, PR, ticket, document, release, policy, or other customer-owned execution reference stays attached instead of assuming approved work shipped.</p></article>
+            <article><span>03</span><h3>Comparison can fail closed</h3><p>A later measurement is directional evidence only when the material question, provider/model, market, retrieval, parser, policy, schema, and evaluation context remain comparable.</p></article>
+            <article><span>04</span><h3>Limits stay visible</h3><p>An eligible before-and-after observation can support a directional statement, but not by itself a causal claim, economic ROI claim, or independent customer-value claim.</p></article>
+          </div>
+        </div>
+      </section>
+
       <section className="section section--ink">
         <div className="shell split-section">
           <div><h2>Foremention is built to say “not enough evidence” or “do not do it.”</h2></div>

@@ -2,7 +2,7 @@
 title: "Recommendation Intelligence for B2B Software | Foremention"
 description: "An inspectable workflow from buyer-question observations through human-reviewed changes and comparable verification."
 canonical: "https://foremention.com/product"
-last_updated: "2026-09-26"
+last_updated: "2026-09-28"
 ---
 
 # Foremention: From Recommendation Evidence to Company Changes
@@ -32,6 +32,16 @@ A Recommendation Record keeps a dated question, provider/model identity, the obs
 - **Change Specification:** a proposed change backed by reviewed evidence, an accountable owner and verification criteria.
 - **Execution:** customer-provided evidence of what was actually shipped.
 - **Verification:** observed direction in later comparable measurements with explicit limitations.
+
+## Decision evidence standard
+
+The strategic wedge is not another visibility score. Foremention keeps one decision-relevant chain inspectable:
+
+`Buyer question → Recommendation Record → reviewed evidence → Company Truth → eligibility → Change Specification → human decision → execution reference → comparable later measurement → observed outcome + limitations`.
+
+A complete chain means the relevant observation, reviewed evidence, human decision, recorded execution, and eligible later measurement can be inspected together. It does **not** by itself prove the change caused the later observation, produced economic ROI, or created independent customer value.
+
+A later measurement can be retained as **incomparable** when material context changes. In that state Foremention withholds the directional conclusion instead of manufacturing a trend.
 
 ## Reporting boundaries
 

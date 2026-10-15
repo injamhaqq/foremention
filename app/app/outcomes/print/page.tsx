@@ -9,7 +9,7 @@ import {
   type OutcomeLedgerOpportunityRow,
   type OutcomeLedgerRunRow,
 } from "@/lib/outcome-ledger";
-import { buildBusinessValueReport, buildExecutiveDigest, buildPeriodSummaries } from "@/lib/value-report";
+import { buildBusinessValueReport, buildDecisionEvidenceSummary, buildExecutiveDigest, buildPeriodSummaries } from "@/lib/value-report";
 import { isMissingRelationError, supabaseRest } from "@/lib/supabase-rest";
 
 const formatDate = (value: string | null) => value && Number.isFinite(Date.parse(value))
@@ -60,13 +60,15 @@ export default async function PrintableOutcomeValueReport() {
   const runs = runIds.length ? await safeRead(supabaseRest<OutcomeLedgerRunRow[]>(`runs?select=id,status,brand_presence_pct,first_mention_pct,citation_count,new_source_count,completed_at&id=in.(${runIds.join(",")})&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}`, { token: viewer.accessToken })) : [];
   const records = buildOutcomeLedger({ assets: assetsWithChange, evidence, opportunities, followUps, runs });
   const report = buildBusinessValueReport(records);
+  const decisionEvidence = buildDecisionEvidenceSummary(records);
   const digest = buildExecutiveDigest(records);
   const periods = buildPeriodSummaries(records);
 
   return <main className="print-record">
     <header><Wordmark /><div><span>Board-ready Business Value Review</span><strong>{new Date().toLocaleDateString("en-GB")}</strong></div></header>
     <section className="print-record__hero"><span className="eyebrow">Recommendation Intelligence · Outcome Intelligence</span><h1>Business Value Review</h1><p>Operational evidence from persisted Recommendation Records, human decisions, completed actions, and eligible later measurements.</p><p><strong>Economic ROI is not demonstrated.</strong> {report.economicValue.basis}</p></section>
-    <section className="print-record__states"><div><span>Issues</span><strong>{report.issuesIdentified}</strong></div><div><span>Approved</span><strong>{report.actionsApproved}</strong></div><div><span>Completed</span><strong>{report.actionsCompleted}</strong></div><div><span>Remeasured</span><strong>{report.itemsRemeasured}</strong></div><div><span>Higher-direction observations</span><strong>{report.higherObserved}</strong></div></section>
+    <section className="print-record__states"><div><span>Complete evidence chains</span><strong>{decisionEvidence.completeDecisionChains}</strong></div><div><span>Approved</span><strong>{report.actionsApproved}</strong></div><div><span>Completed</span><strong>{report.actionsCompleted}</strong></div><div><span>Remeasured</span><strong>{report.itemsRemeasured}</strong></div><div><span>Incomparable</span><strong>{decisionEvidence.incomparableMeasurements}</strong></div></section>
+    <section className="print-record__answers"><article><span className="eyebrow">Decision evidence standard</span><h2>{decisionEvidence.completeDecisionChains ? "Inspectable chain available" : "Chain not complete yet"}</h2><p>{decisionEvidence.statement}</p><p><strong>Executed, awaiting measurement:</strong> {decisionEvidence.executedAwaitingMeasurement} · <strong>Approved, still open:</strong> {decisionEvidence.openApprovedActions}</p><p><strong>Proof boundary:</strong> {decisionEvidence.limitation}</p></article></section>
     <section className="print-record__answers">
       <article><span className="eyebrow">Executive digest</span><h2>What changed</h2><p>{digest.whatChanged}</p><h2>Needs attention</h2><p>{digest.needsAttention}</p><h2>Open actions</h2><p>{digest.openActions}</p><h2>Intervention observation</h2><p>{digest.interventionObservation}</p><h2>Review next</h2><p>{digest.reviewNext}</p></article>
       <article><span className="eyebrow">Reporting cadence</span><h2>Weekly · monthly · quarterly</h2>{periods.map((period) => <p key={period.label}><strong>{period.label}:</strong> {period.report.actionsCompleted} completed · {period.report.itemsRemeasured} remeasured · {period.report.higherObserved} higher direction · {period.report.lowerObserved} lower direction · {period.report.unresolvedItems} unresolved.</p>)}</article>

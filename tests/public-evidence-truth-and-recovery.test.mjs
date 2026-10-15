@@ -25,10 +25,13 @@ test("outreach navigation stays focused while canonical evidence and research ro
   assert.match(sourceMap, /Foremention\.com/i);
 });
 
-test("monitoring comparison qualifies citation-dependent source intelligence", () => {
-  assert.match(comparison, /Provider-returned citation URL map/i);
-  assert.match(comparison, /When provider returns citations/i);
-  assert.match(comparison, /sources returned with (?:the|that) answer/i);
+test("monitoring comparison positions decision evidence without claiming competitor feature exclusivity", () => {
+  assert.match(comparison, /Provider-returned citation evidence/i);
+  assert.match(comparison, /observed provider returns it/i);
+  assert.match(comparison, /Human-approved company change/i);
+  assert.match(comparison, /Comparable later measurement/i);
+  assert.match(comparison, /Incomparable later measurement/i);
+  assert.match(comparison, /not a claim that other vendors lack execution or outcome features/i);
   assert.doesNotMatch(comparison, /Foremention maps what shaped it/i);
 });
 
