@@ -178,14 +178,40 @@ test("route: completed checkout is settled with paid evidence; still no entitlem
   } finally { w.restore(); }
 });
 
-test("route: uncertain reservation never calls Paddle and asks for manual review", async () => {
+test("route: a lost create that is still settling is kept without calling Paddle", async () => {
   asOwner();
-  const w = world({ reservations: [reservation({ state: "uncertain", external_transaction_id: null })], paddle: () => { throw new Error("must not call Paddle"); } });
+  const w = world({ reservations: [reservation({ state: "uncertain", external_transaction_id: null, created_at: new Date().toISOString() })], paddle: () => { throw new Error("must not call Paddle"); } });
+  try {
+    const response = await POST(request());
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).data.action, "keep");
+    assert.ok(!w.calls.some((c) => c.host === "sandbox-api.paddle.com"));
+  } finally { w.restore(); }
+});
+
+test("route: a lost create Paddle cannot confirm stays in manual review with no state change", async () => {
+  asOwner();
+  const w = world({ reservations: [reservation({ state: "uncertain", external_transaction_id: null })], paddle: () => ({ status: 500, body: { error: { code: "internal" } } }) });
   try {
     const response = await POST(request());
     assert.equal(response.status, 409);
     assert.equal((await response.json()).data.action, "manual_review");
-    assert.ok(!w.calls.some((c) => c.host === "sandbox-api.paddle.com"));
+    assert.ok(!w.calls.some((c) => c.method === "PATCH" || c.path.startsWith("/rest/v1/rpc/")));
+  } finally { w.restore(); }
+});
+
+test("route: checkout fallback releases a lost create when Paddle has no matching transaction", async () => {
+  asOwner();
+  const w = world({ reservations: [reservation({ state: "uncertain", external_transaction_id: null })], paddle: (method) => {
+    assert.equal(method, "GET");
+    return { status: 200, body: { data: [{ id: "txn_" + "z".repeat(26), custom_data: { organizationId: ORG, checkoutReservationId: "33333333-3333-4333-8333-333333333333" } }], meta: { pagination: { has_more: false } } } };
+  } });
+  try {
+    const response = await POST(request());
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).data, { action: "release", reason: "no_provider_transaction" });
+    const patch = w.calls.find((c) => c.method === "PATCH" && c.host === "db.attach03.invalid");
+    assert.deepEqual(patch.body, { state: "reconciled", reconciliation_evidence: "released:not_created:" + RES });
   } finally { w.restore(); }
 });
 

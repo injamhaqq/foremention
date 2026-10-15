@@ -5,7 +5,7 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata: Metadata = pageMetadata({
   title: "Refunds and Cancellations",
   description:
-    "How refunds and subscription cancellations are requested for Foremention orders processed by Paddle, including applicable buyer rights and support channels.",
+    "Foremention's 7-day money-back guarantee, plus how refunds and subscription cancellations work for orders processed by Paddle.",
   path: "/refund-policy",
 });
 
@@ -22,8 +22,18 @@ export default function RefundPolicyPage() {
       <article className="legal-copy shell">
         <div className="legal-summary">
           <strong>Summary</strong>
+          <p><strong>7-day money-back guarantee.</strong> If Foremention isn&apos;t right for your team, email <a href="mailto:hello@foremention.com">hello@foremention.com</a> within 7 days of your first Core or Signal payment and we will refund that payment in full. No questions asked, once per company.</p>
           <p>Foremention Core and Signal subscriptions are sold and billed by Paddle, our Merchant of Record. Paddle issues your receipt and invoice, handles refunds under its published policy, and lets you cancel at any time; cancellation stops future renewals at the end of the current billing period.</p>
         </div>
+
+        <h2>7-day money-back guarantee</h2>
+        <p>Your first payment for Core or Signal is covered for 7 days. Email <a href="mailto:hello@foremention.com">hello@foremention.com</a> from the workspace owner&apos;s address within 7 days of that payment, say you would like a refund, and we will refund it in full and cancel the subscription. You do not need to give a reason.</p>
+        <ul>
+          <li>The guarantee applies once per company, to its first paid subscription payment.</li>
+          <li>Renewals, later upgrades, and a second subscription for the same company are not covered by the guarantee, but you can cancel at any time to stop future renewals.</li>
+          <li>The free 7-day Core trial takes no card and is never charged, so it needs no refund.</li>
+        </ul>
+        <p>The guarantee is in addition to any rights you have under the payment terms below or under law.</p>
 
         <h2>Who handles payments and refunds?</h2>
         <p>For orders processed through Paddle, Paddle is the Merchant of Record. Paddle handles payment collection, transaction receipts, buyer payment support, and refund processing. Refund eligibility is governed by the applicable <a href="https://www.paddle.com/legal/refund-policy" target="_blank" rel="noreferrer">Paddle Refund Policy</a>, <a href="https://www.paddle.com/legal/buyer-terms" target="_blank" rel="noreferrer">Paddle Buyer Terms</a>, and mandatory laws. Nothing on this page limits rights that cannot lawfully be excluded.</p>

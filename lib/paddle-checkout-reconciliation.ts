@@ -144,3 +144,54 @@ export function reservationAdmitsPaidTransaction(
   if (row.state === "ready") return true;
   return row.state === "reconciled" && row.reconciliation_evidence === "paid:" + expected.transactionId;
 }
+
+/**
+ * Checkout fallback (Oct 15): a reservation whose Paddle create response was
+ * lost no longer locks the workspace forever. The buyer never received a
+ * checkout link for it, so once this many minutes have passed a search of
+ * Paddle's transactions decides it:
+ * - exactly one matching transaction -> adopt it and reconcile it normally;
+ * - none -> nothing payable exists, release the reservation;
+ * - several, or Paddle unreadable -> operator review / try later.
+ */
+export const UNKNOWN_CHECKOUT_SEARCH_MINUTES = 10;
+
+export type UnknownReservationDecision =
+  | { action: "keep"; reason: string }
+  | { action: "adopt"; reason: string; transaction: Record<string, unknown> }
+  | { action: "release"; reason: string; evidence: string }
+  | { action: "manual_review"; reason: string };
+
+export function reservationIdentityUnknown(reservation: CheckoutReservation) {
+  return reservation.state === "uncertain" || (reservation.state === "reserved" && !reservation.external_transaction_id);
+}
+
+export function unknownReservationSearchDue(reservation: CheckoutReservation, now = new Date()) {
+  const created = new Date(reservation.created_at).getTime();
+  return Number.isFinite(created) && now.getTime() - created >= UNKNOWN_CHECKOUT_SEARCH_MINUTES * 60_000;
+}
+
+export function decideUnknownReservation(
+  reservation: CheckoutReservation,
+  matches: unknown[] | null,
+  now = new Date(),
+): UnknownReservationDecision {
+  if (!UUID.test(reservation.id) || !UUID.test(reservation.organization_id)) {
+    return { action: "manual_review", reason: "invalid_reservation_identity" };
+  }
+  if (!reservationIdentityUnknown(reservation)) return { action: "manual_review", reason: "identity_already_known" };
+  if (!unknownReservationSearchDue(reservation, now)) return { action: "keep", reason: "create_may_still_be_settling" };
+  if (matches === null) return { action: "manual_review", reason: "provider_search_unavailable" };
+  if (matches.length === 0) {
+    return { action: "release", reason: "no_provider_transaction", evidence: "released:not_created:" + reservation.id.toLowerCase() };
+  }
+  if (matches.length > 1) return { action: "manual_review", reason: "multiple_provider_transactions" };
+  const txn = object(matches[0]);
+  const custom = object(txn?.custom_data);
+  if (!txn || !TRANSACTION_ID.test(String(txn.id || ""))
+    || String(custom?.checkoutReservationId || "").toLowerCase() !== reservation.id.toLowerCase()
+    || String(custom?.organizationId || "").toLowerCase() !== reservation.organization_id.toLowerCase()) {
+    return { action: "manual_review", reason: "provider_transaction_mismatch" };
+  }
+  return { action: "adopt", reason: "provider_transaction_found", transaction: txn };
+}

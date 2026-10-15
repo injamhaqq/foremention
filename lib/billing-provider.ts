@@ -23,6 +23,7 @@ import {
 
 import {
   cancelPaddleCheckoutTransaction,
+  findPaddleTransactionsForReservation,
   getPaddleTransaction,
   paddleUnmappedForementionPayment,
   parsePaddleCatalogIndependentLifecycle,
@@ -84,6 +85,8 @@ export interface BillingProviderAdapter {
   getCheckoutTransaction?(transactionId: string): Promise<Record<string, unknown> | null>;
   /** Chat03: cancel an abandoned never-paid checkout; returns provider status. */
   cancelCheckoutTransaction?(transactionId: string): Promise<string | null>;
+  /** Checkout fallback: transactions created for one reservation (null if unreadable). */
+  findCheckoutTransactionsForReservation?(input: { reservationId: string; organizationId: string; createdAt: string }): Promise<Record<string, unknown>[] | null>;
 }
 
 function stripeCheckoutOffers(): BillingCheckoutOffer[] {
@@ -178,6 +181,10 @@ function paddleAdapter(isConfigured: () => boolean, label: string): BillingProvi
   async cancelCheckoutTransaction(transactionId) {
     if (!isConfigured()) throw new Error(label + " is not enabled.");
     return cancelPaddleCheckoutTransaction(transactionId);
+  },
+  async findCheckoutTransactionsForReservation(input) {
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
+    return findPaddleTransactionsForReservation(input);
   },
   };
 }
