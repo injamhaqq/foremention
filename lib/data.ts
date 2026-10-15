@@ -1,4 +1,5 @@
 import type { Viewer } from "@/lib/auth";
+import { collectingRunIds, withLiveCollectionCounts, type PersistedAnswerRow } from "@/lib/live-collection-counts";
 import {
   FOREMENTION_AGENTS,
   getForementionAgent,
@@ -412,7 +413,16 @@ export async function loadRuns(viewer: Viewer, options: { limit?: number; offset
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
   const rows = await supabaseRest<RunRow[]>(`runs?select=id,status,error_summary,prompt_count,answer_count,citation_count,brand_presence_pct,first_mention_pct,new_source_count,created_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=${limit}&offset=${offset}`, { token: viewer.accessToken });
-  return rows.map((row) => ({ id: row.id, date: dateLabel(row.created_at), status: row.status, errorSummary: row.error_summary, prompts: row.prompt_count, answers: row.answer_count, citations: row.citation_count, presence: Number(row.brand_presence_pct), firstMention: Number(row.first_mention_pct), newSources: row.new_source_count }));
+  const runs = rows.map((row) => ({ id: row.id, date: dateLabel(row.created_at), status: row.status, errorSummary: row.error_summary, prompts: row.prompt_count, answers: row.answer_count, citations: row.citation_count, presence: Number(row.brand_presence_pct), firstMention: Number(row.first_mention_pct), newSources: row.new_source_count }));
+  const collecting = collectingRunIds(runs);
+  if (!collecting.length) return runs;
+  // One extra read only while a collection is active; a failure keeps the
+  // stored counts rather than breaking the page.
+  const persisted = await supabaseRest<PersistedAnswerRow[]>(
+    `run_answers?select=run_id,citations_json&organization_id=eq.${context.organizationId}&run_id=in.(${collecting.map(encodeURIComponent).join(",")})&limit=500`,
+    { token: viewer.accessToken },
+  ).catch(() => []);
+  return withLiveCollectionCounts(runs, persisted);
 }
 
 export async function loadAgentControlPlane(viewer: Viewer): Promise<AgentControlPlaneView> {

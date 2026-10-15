@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { WORKSPACE_CREATED_EVENT } from "@/lib/workspace-setup-status";
 import { captureProductEvent } from "@/lib/product-analytics";
 import { createManualOnboardingDraft, generateBuyerQuestions } from "@/lib/onboarding-profile";
 import { validateApprovedBuyerQuestions } from "@/lib/approved-buyer-questions";
@@ -285,6 +286,9 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not save onboarding.");
       if (!demo) window.localStorage.removeItem(draftKey);
+      // The app shell was rendered before the workspace existed; tell it setup
+      // is done so it stops showing "Setup required" during the first check.
+      if (!demo) window.dispatchEvent(new CustomEvent(WORKSPACE_CREATED_EVENT, { detail: { organizationName: values.companyName } }));
       if (!demo) captureProductEvent("onboarding_completed", { question_count: prompts.length, competitor_count: values.competitors.split("\n").filter((value) => value.trim()).length });
       if (demo || !startCollectionNow || !firstAuditProvider) {
         // Workspace creation alone is not consent to call a live provider.
