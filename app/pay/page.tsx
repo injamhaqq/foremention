@@ -43,6 +43,7 @@ export default async function PaymentPage() {
             <span className="eyebrow">Secure payment</span>
             <h1>Foremention checkout</h1>
             <p>Payment is processed by Paddle, our merchant of record. Access starts only after Paddle confirms the payment to Foremention.</p>
+            <p><strong>7-day money-back guarantee.</strong> Not the right fit? Email hello@foremention.com within 7 days of your first payment for a full refund. Once per company. <a href="/refund-policy">Refund policy</a></p>
           </div>
         </section>
         <section className="section section--paper">

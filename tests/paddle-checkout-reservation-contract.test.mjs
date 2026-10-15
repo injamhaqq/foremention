@@ -15,7 +15,7 @@ test("Paddle checkout takes durable service-role reservation before external tra
   assert.match(source, /p_organization_id: context.organizationId/);
   assert.match(source, /serviceRole: true/);
   assert.match(source, /checkoutReservationId: paddleReservationId/);
-  assert.match(source, /An unresolved billing checkout already exists/);
+  assert.match(source, /recoverOrganizationCheckout\(provider, context.organizationId\)/);
 });
 
 test("Paddle reservation is unique per unresolved org and has no expiry-based reopening", async () => {

@@ -3,6 +3,7 @@ import { requireViewer } from "@/lib/auth";
 import { PaddleRequestRejectedError, billingProvider, billingProviderTransitionAllowed, type BillingCheckoutPackage, type BillingInterval } from "@/lib/billing-provider";
 import { getPrimaryWorkspaceRole, loadWorkspaceContext } from "@/lib/data";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
+import { recoverOrganizationCheckout } from "@/lib/paddle-checkout-recovery";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type BillingAccountRow = { provider: string; state: string; external_customer_id: string | null };
@@ -116,25 +117,56 @@ export async function POST(request: Request) {
   let paddleReservationId: string | null = null;
   if (provider.id === "paddle") {
     paddleReservationId = crypto.randomUUID();
+    const reserve = () => supabaseRest<boolean>("rpc/reserve_paddle_checkout", {
+      method: "POST",
+      serviceRole: true,
+      body: {
+        p_reservation_id: paddleReservationId,
+        p_organization_id: context.organizationId,
+        p_package_key: packageKey,
+        p_billing_interval: billingInterval,
+      },
+    });
     let reserved: boolean;
     try {
-      reserved = await supabaseRest<boolean>("rpc/reserve_paddle_checkout", {
-        method: "POST",
-        serviceRole: true,
-        body: {
-          p_reservation_id: paddleReservationId,
-          p_organization_id: context.organizationId,
-          p_package_key: packageKey,
-          p_billing_interval: billingInterval,
-        },
-      });
+      reserved = await reserve();
     } catch {
       return NextResponse.json({ error: "The billing reservation could not be verified." }, { status: 503 });
     }
     if (!reserved) {
-      return NextResponse.json({
-        error: "An unresolved billing checkout already exists for this workspace. Contact support to reconcile it.",
-      }, { status: 409 });
+      // Checkout fallback: an earlier checkout still holds the workspace's one
+      // slot. Reconcile it with Paddle right here instead of locking the owner
+      // out: reopen a still-open link, release an abandoned or never-created
+      // one and retry once, or explain what happens next.
+      let recovery: Awaited<ReturnType<typeof recoverOrganizationCheckout>> | null = null;
+      try {
+        recovery = await recoverOrganizationCheckout(provider, context.organizationId);
+      } catch {
+        recovery = null;
+      }
+      if (recovery?.action === "keep" && recovery.checkoutUrl
+        && recovery.packageKey === packageKey && recovery.billingInterval === billingInterval) {
+        if (contentType.includes("application/json")) return NextResponse.json({ data: { url: recovery.checkoutUrl, resumed: true } });
+        return NextResponse.redirect(recovery.checkoutUrl, 303);
+      }
+      if (recovery && (recovery.action === "release" || recovery.action === "none")) {
+        try {
+          reserved = await reserve();
+        } catch {
+          reserved = false;
+        }
+      }
+      if (!reserved) {
+        const notice = recovery?.action === "settle_paid" || recovery?.action === "await_provider" ? "processing"
+          : recovery?.action === "keep" ? "pending" : "unavailable";
+        const message = notice === "processing"
+          ? "Your earlier checkout was paid and is being confirmed. Paid access appears in a few minutes."
+          : notice === "pending"
+            ? "An earlier checkout is still open. Finish it, or try again later once it expires. No payment was taken."
+            : "Online checkout is temporarily unavailable. No payment was taken. Email hello@foremention.com and we will set up your subscription.";
+        if (contentType.includes("application/json")) return NextResponse.json({ error: message }, { status: 409 });
+        return NextResponse.redirect(origin + "/app/settings?billing=" + notice, 303);
+      }
     }
   }
 
@@ -194,9 +226,9 @@ export async function POST(request: Request) {
           p_organization_id: context.organizationId,
         },
       }).catch(() => false);
-      return NextResponse.json({
-        error: "Paddle checkout needs reconciliation before a new attempt. Contact support.",
-      }, { status: 503 });
+      const message = "Checkout could not be opened. No payment was taken. Try again in about 10 minutes, or email hello@foremention.com.";
+      if (contentType.includes("application/json")) return NextResponse.json({ error: message }, { status: 503 });
+      return NextResponse.redirect(origin + "/app/settings?billing=retry", 303);
     }
     return NextResponse.json({ error: error instanceof Error ? error.message : "Checkout could not be started." }, { status: 503 });
   }

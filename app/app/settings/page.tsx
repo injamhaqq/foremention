@@ -14,9 +14,27 @@ import { loadNotificationPreference, loadPendingDeletionRequest, loadProviderSta
 import type { Viewer } from "@/lib/auth";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
+import { planCardView, type PlanBillingRow, type PlanEntitlementRow } from "@/lib/plan-card";
 import { getSecretRotationStatuses, MAX_SECRET_AGE_DAYS } from "@/lib/secret-rotation";
 
 /** The server-enforced observation quota for this workspace, never the code default. */
+/** The stored entitlement and billing rows behind the Plan card (RLS-scoped). */
+async function loadPlanRows(viewer: Viewer): Promise<{ entitlement: PlanEntitlementRow | null; billing: PlanBillingRow | null }> {
+  if (viewer.mode === "demo" || !viewer.accessToken) return { entitlement: null, billing: null };
+  try {
+    const context = await loadWorkspaceContext(viewer);
+    if (!context) return { entitlement: null, billing: null };
+    const org = encodeURIComponent(context.organizationId);
+    const [entitlements, billing] = await Promise.all([
+      supabaseRest<PlanEntitlementRow[]>(`organization_entitlements?select=package_key,status,expires_at,billing_source,max_prompts&organization_id=eq.${org}&limit=1`, { token: viewer.accessToken }),
+      supabaseRest<PlanBillingRow[]>(`billing_accounts?select=provider,state,grace_period_ends_at&organization_id=eq.${org}&limit=1`, { token: viewer.accessToken }).catch(() => [] as PlanBillingRow[]),
+    ]);
+    return { entitlement: entitlements[0] || null, billing: billing[0] || null };
+  } catch {
+    return { entitlement: null, billing: null };
+  }
+}
+
 async function loadEnforcedObservationQuota(viewer: Viewer): Promise<number | null> {
   if (viewer.mode === "demo" || !viewer.accessToken) return null;
   try {
@@ -38,14 +56,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     requireViewer("/app/settings"),
     searchParams,
   ]);
-  const [workspace, team, deletionRequest, providers, emailPreference, enforcedQuota] = await Promise.all([
+  const [workspace, team, deletionRequest, providers, emailPreference, enforcedQuota, planRows] = await Promise.all([
     loadWorkspaceSummary(viewer),
     loadTeam(viewer),
     loadPendingDeletionRequest(viewer),
     loadProviderStatuses(viewer),
     loadNotificationPreference(viewer),
     loadEnforcedObservationQuota(viewer),
+    loadPlanRows(viewer),
   ]);
+  const plan = planCardView(planRows.entitlement, planRows.billing);
   const applicationEmail = getApplicationEmailStatus();
   const jobsReady = viewer.mode === "demo" || Boolean(process.env.INNGEST_EVENT_KEY && process.env.INNGEST_SIGNING_KEY);
   const serviceReady = viewer.mode === "demo" || Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -146,18 +166,18 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <SessionSecurity demo={viewer.mode === "demo"} globalError={query.session_action === "global_failed"} />
       </section>
 
-      <section className="panel">
+      <section className="panel" id="plan">
         <span className="eyebrow">Plan</span>
-        <h2>{FOUNDATION_ACCESS_LIMITS.plan}</h2>
+        <h2>{plan.title}</h2>
         <dl className="settings-list">
-          <div><dt>Plan state</dt><dd>Founder-granted access</dd></div>
-          <div><dt>Billing</dt><dd>Not connected</dd></div>
-          <div><dt>Brands</dt><dd>{FOUNDATION_ACCESS_LIMITS.brands}</dd></div>
-          <div><dt>Buyer questions</dt><dd>{FOUNDATION_ACCESS_LIMITS.buyerQuestions}</dd></div>
+          <div><dt>Plan state</dt><dd>{plan.state}</dd></div>
+          <div><dt>Billing</dt><dd>{plan.billing}</dd></div>
+          <div><dt>Brands</dt><dd>{plan.brands}</dd></div>
+          <div><dt>Buyer questions</dt><dd>{plan.buyerQuestions}</dd></div>
           <div><dt>Monthly observation capacity</dt><dd>{enforcedQuota !== null ? `${enforcedQuota} (enforced for this workspace)` : FOUNDATION_ACCESS_LIMITS.runUnitsPerMonth}</dd></div>
           <div><dt>History</dt><dd>{FOUNDATION_ACCESS_LIMITS.historyDays} days</dd></div>
         </dl>
-        <p className="table-caption">This is not a paid entitlement. No card is charged until a verified billing webhook activates a purchased plan.</p>
+        <p className="table-caption">{plan.note}</p>
       </section>
 
       <section className="panel">

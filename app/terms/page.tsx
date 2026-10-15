@@ -28,6 +28,8 @@ export default function TermsPage() {
       <h2>Plans, billing, and changes</h2>
       <p>Creating an account does not charge a card. A paid plan starts only when a workspace owner completes checkout; the price, currency, billing cadence, included capacity, and renewal shown at checkout or in an order form apply. Subscriptions renew each billing period until cancelled. Material plan changes will be communicated before they take effect.</p>
       <p>When paid checkout is enabled, orders are processed by Paddle.com, which acts as merchant of record and reseller. Paddle&apos;s buyer terms then govern payment, tax, invoicing, cancellation and refund handling for that purchase, alongside these terms for use of Foremention.</p>
+      <h2>7-day money-back guarantee</h2>
+      <p>If you are not satisfied, the workspace owner can email hello@foremention.com within 7 days of a company&apos;s first Core or Signal payment and that payment will be refunded in full. The guarantee applies once per company and does not cover renewals or later purchases. See the <a href="/refund-policy">refund policy</a> for details.</p>
       <h2>Payment reseller, cancellations, and refunds</h2>
       <p>Paid Foremention subscriptions purchased online are processed by Paddle, which is the Merchant of Record for those orders and handles payment processing, receipts and invoices, tax, buyer payment support, and refunds. See the <a href="/refund-policy">refund and cancellation information</a>, Paddle&apos;s <a href="https://www.paddle.com/legal/buyer-terms">Buyer Terms</a>, and the checkout disclosures for the applicable purchase. Nothing here removes buyer rights that cannot lawfully be excluded.</p>
       <h2>Suspension and termination</h2>

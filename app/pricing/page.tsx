@@ -135,8 +135,8 @@ export default function PricingPage() {
               Create your workspace, run your first baseline on the free plan (5 buyer questions, 10 answers a month) or start a 7-day
               Core trial with no card, then choose Core or Signal in Settings → Billing. Checkout is handled by Paddle, our merchant of record, which
               issues your receipt and invoice and handles sales tax/VAT. Paid limits (25 or 100 buyer questions, more
-              runs and providers) apply as soon as Paddle confirms the payment. Cancel anytime from the billing portal;
-              see the <Link href="/refund-policy">refund policy</Link>. Intelligence remains sales-led and custom-scoped.
+              runs and providers) apply as soon as Paddle confirms the payment. Every first payment carries a
+              7-day money-back guarantee, once per company. Cancel anytime from the billing portal; see the <Link href="/refund-policy">refund policy</Link>. Intelligence remains sales-led and custom-scoped.
             </p>
           ) : (
             <p>

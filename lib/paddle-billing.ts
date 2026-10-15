@@ -529,3 +529,55 @@ export function paddleUnmappedForementionPayment(rawBody: string): { eventId: st
   });
   return ours || usesOurPrice ? { eventId, transactionId } : null;
 }
+
+/**
+ * Checkout fallback (Oct 15): find the transaction(s) Foremention created for
+ * one checkout reservation whose create response was lost. Paddle cannot
+ * filter by custom_data, so this lists transactions created in a narrow window
+ * around the reservation and matches custom_data.checkoutReservationId and
+ * organizationId exactly. Returns null when Paddle could not be read, so the
+ * caller never releases a reservation on an unverified "nothing found".
+ */
+export async function findPaddleTransactionsForReservation(
+  input: { reservationId: string; organizationId: string; createdAt: string },
+  httpFetch: PaddleFetch = fetch,
+): Promise<Json[] | null> {
+  if (!UUID.test(input.reservationId) || !UUID.test(input.organizationId)) throw new Error("Invalid Paddle checkout reservation.");
+  const created = new Date(input.createdAt);
+  if (!Number.isFinite(created.getTime())) throw new Error("Invalid reservation time.");
+  if (!paddleCandidateConfigured()) throw new Error("Paddle candidate is not configured.");
+  const mode = env("PADDLE_ENVIRONMENT");
+  if (mode !== "sandbox" && mode !== "live") throw new Error("Invalid Paddle environment.");
+  const from = new Date(created.getTime() - 2 * 60_000).toISOString();
+  const to = new Date(created.getTime() + 15 * 60_000).toISOString();
+  let next: string | null = API_URLS[mode] + "/transactions?per_page=30&order_by=created_at[ASC]"
+    + "&created_at[GTE]=" + encodeURIComponent(from) + "&created_at[LTE]=" + encodeURIComponent(to);
+  const matches: Json[] = [];
+  for (let page = 0; next && page < 10; page += 1) {
+    if (!next.startsWith(API_URLS[mode] + "/")) return null;
+    const response: Response = await httpFetch(next, {
+      method: "GET",
+      headers: { Authorization: "Bearer " + env("PADDLE_API_KEY"), Accept: "application/json" },
+      redirect: "error",
+      cache: "no-store",
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!response.ok) return null;
+    const payload = object(await response.json().catch(() => null));
+    if (!payload || !Array.isArray(payload.data)) return null;
+    for (const row of payload.data) {
+      const txn = object(row);
+      const custom = object(txn?.custom_data);
+      if (!txn || !custom) continue;
+      if (String(custom.checkoutReservationId || "").toLowerCase() !== input.reservationId.toLowerCase()) continue;
+      if (String(custom.organizationId || "").toLowerCase() !== input.organizationId.toLowerCase()) continue;
+      matches.push(txn);
+    }
+    const pagination = object(object(payload.meta)?.pagination);
+    next = pagination?.has_more === true && typeof pagination.next === "string" ? pagination.next : null;
+  }
+  // More than ten pages in a 17-minute window is not a normal state: refuse
+  // to conclude that nothing exists.
+  if (next) return null;
+  return matches;
+}
