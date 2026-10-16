@@ -1,0 +1,100 @@
+{
+  "batch_id": "fm360-20261016",
+  "chat_id": "02",
+  "status": "partial",
+  "observed_at_utc": "2026-10-16T12:35:17Z",
+  "base_sha": "6bf8bfda6ec0573dbbf432b831eff45688f8f47b",
+  "head_sha": null,
+  "branch": "work/fm360-20261016/chat-02-evidence-f7b08206",
+  "draft_pr_url": null,
+  "owned_backlog_ids": [
+    "FM-AUD-01",
+    "FM-AUD-11"
+  ],
+  "changed_files": [
+    "lib/official-source-relevance.mjs",
+    "tests/chat02-evidence-qualification.test.mjs",
+    "docs/execution/fm360-20261016/chat-02/RESULT.md",
+    "docs/execution/fm360-20261016/chat-02/handoff.json"
+  ],
+  "findings": [
+    {
+      "id": "FM-AUD-01/canary",
+      "classification": "confirmed acceptance gate failure; root cause unverified",
+      "claim": "Historical canary had one persisted answer and two returned references but explicitly abstained; review was withheld correctly.",
+      "evidence": "Run 38739762884, job 116438081708, artifact 11976331004",
+      "limitation": "Raw answer and both source URLs/excerpts not in artifact; current production not tested."
+    },
+    {
+      "id": "FM-AUD-01/embedded",
+      "classification": "confirmed pure-helper defect, bounded patch",
+      "claim": "Embedded explicit inability to verify was eligible with an in-scope URL; now withheld.",
+      "evidence": "Red-green representative Node fixtures against source helper blob eef2b8989f42af80cb8b9042d1ef2e841d145d34",
+      "limitation": "Structural eligibility does not verify source support."
+    },
+    {
+      "id": "FM-AUD-01/generic",
+      "classification": "confirmed pure-helper defect, bounded patch",
+      "claim": "Generic-question explicit refusals could enter bulk VERIFIED partition; now withheld.",
+      "evidence": "Representative offline review partition red-green regression",
+      "limitation": "The review API and full repo not yet integration tested."
+    },
+    {
+      "id": "FM-AUD-11/legacy",
+      "classification": "confirmed historical missing metadata; current production unknown",
+      "claim": "Oct 15 audit recorded 199/217 missing observation_method and 25 open source snapshots with no excerpts.",
+      "evidence": "Uploaded dated audit and current code inspection",
+      "limitation": "No fresh SELECT; exact missing provenance cannot be backfilled."
+    }
+  ],
+  "tests": [
+    {
+      "command": "node --test tests/chat02-evidence-qualification.test.mjs",
+      "environment": "isolated local files; Node v22.16.0; representative fixtures only",
+      "sha": "6bf8bfda6ec0573dbbf432b831eff45688f8f47b",
+      "result": "RED 5 pass 2 fail; GREEN 7 pass 0 fail",
+      "receipt": "Local fixture run 2026-10-16; no network/paid provider calls"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/injamhaqq/foremention/actions/runs/38739762884",
+      "published_at": "2026-10-15T13:07:40Z",
+      "observed_at": "2026-10-16T12:13:36Z",
+      "evidence_level": "operational receipt",
+      "limitation": "No raw answer/URLs/excerpts"
+    },
+    {
+      "url": "https://github.com/injamhaqq/foremention/blob/6bf8bfda6ec0573dbbf432b831eff45688f8f47b/lib/official-source-relevance.mjs",
+      "published_at": null,
+      "observed_at": "2026-10-16T12:13:36Z",
+      "evidence_level": "source inspection",
+      "limitation": "Not actual provider-run verification"
+    }
+  ],
+  "dependencies": [
+    "Chat01 integrates shared metadata/CI and checks no overlap",
+    "Chat03 comparability excludes unknown or abstained samples",
+    "Chat04 review API error wording and source-support human gate",
+    "Chat05 network/source-injection isolated tests",
+    "Chat07 truthful API-versus-consumer and retrieval origin labels"
+  ],
+  "shared_file_proposals": [
+    "Chat01: additive observed question version/retrieval time/raw hash/provenance; null for missing",
+    "Chat04: distinguish 422 reason for generic abstentions; withhold unsupported opportunities",
+    "Chat07: observation surface and reference-origin wording from RESULT.md"
+  ],
+  "blocked_acceptance": [
+    "Historical canary raw answer and two references unexposed",
+    "No exact-head full CI, browser/security/CodeQL pass yet",
+    "No authorized live provider run; source freshness/claim support unresolved",
+    "FM-AUD-11 historical method/excerpt gaps not remeasured"
+  ],
+  "rollback": "Revert helper and delete focused regression test; no migration or production writes.",
+  "artifacts": [
+    "docs/execution/fm360-20261016/chat-02/RESULT.md",
+    "docs/execution/fm360-20261016/chat-02/handoff.json",
+    "tests/chat02-evidence-qualification.test.mjs"
+  ],
+  "next_action": "Review draft PR exact-head CI and integrate via Chat01 if green. Recover redacted original canary answer/source receipts and validate genuine positive official source before claiming production FM-AUD-01 acceptance."
+}
