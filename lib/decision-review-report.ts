@@ -21,6 +21,7 @@ export type ReportDecision = {
   kind: "change_specification" | "no_action" | "reviewer_disagreement";
   disposition: "approved" | "rejected" | "deferred" | "no_change" | "pending_review" | "disagreement";
   decidedAt: string; reviewerRole: string; rationale: string;
+  decisionState?: "DO_NOW" | "TEST_FIRST" | "DO_NOT_DO" | "MONITOR_ONLY" | "INSUFFICIENT_EVIDENCE";
   changeSpecificationId?: string | null; ownerRole?: string | null;
   action?: string | null; dueDate?: string | null;
   successCriteria?: string | null; reversalCriteria?: string | null;
@@ -67,10 +68,14 @@ export function buildPortableDecisionReviewMarkdown(input: DecisionReviewReportI
     if (!item || item.reviewStatus !== "verified" || !["open", "partial"].includes(item.accessStatus) ||
         item.origin === "model_written_link") refuse("unsupported/broken source reference");
   }
+  // The persisted domain requires an owner/action/date for approved actionable
+  // DO_NOW and TEST_FIRST decisions. Reversal criteria may be unrecorded and
+  // must be labelled unknown, not treated as proof of an action or export denial.
   if (input.decision.kind === "change_specification" && input.decision.disposition === "approved" &&
       (!input.decision.changeSpecificationId || !input.decision.evidenceIds.length ||
-       !input.decision.ownerRole || !input.decision.action || !input.decision.dueDate ||
-       !input.decision.successCriteria || !input.decision.reversalCriteria)) refuse("approved action incomplete");
+       ((input.decision.decisionState === "DO_NOW" || input.decision.decisionState === "TEST_FIRST") &&
+        (!input.decision.ownerRole || !input.decision.action || !input.decision.dueDate))))
+    refuse("approved action incomplete");
   const next = input.followUp;
   if (next) {
     if (!sameScope(next) || next.id === input.baseline.id || !validTime(next.collectedAt) ||
