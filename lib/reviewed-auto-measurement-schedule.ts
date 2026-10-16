@@ -62,7 +62,7 @@ export async function ensureReviewedAutoMeasurementSchedule(input: {
       provider_ids:schedule.providerIds,model_snapshot:schedule.modelSnapshot,methodology_snapshot:schedule.methodologySnapshot,
       locale:schedule.locale,market:schedule.market,enabled:true,next_run_at:due,
       schedule_origin:trial?"trial":"paid",baseline_run_id:run.id,trial_ends_at:trial?entitlement.expires_at:null,
-      baseline_contract_json:baseline.pin}});
+      baseline_contract_json:{ ...baseline.pin, questionPins:baseline.pin.questionPins.map(q=>({...q,promptId:byKey.get(q.promptKey)?.prompt_id})) }}});
     return {status:"created"};
   }catch{
     try {
