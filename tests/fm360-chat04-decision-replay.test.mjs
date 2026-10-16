@@ -53,7 +53,7 @@ test('half-stamped approval cannot pass reconciliation', () => {
 });
 
 const scope = { organizationId: 'org-A', projectId: 'project-A' };
-const persisted = { ...row, id: 'decision-A', organization_id: 'org-A', project_id: 'project-A' };
+const persisted = { ...row, id: 'decision-A', organization_id: 'org-A', project_id: 'project-A', decided_by: 'actor-A' };
 
 test('lost acknowledgment reconciles only identical scoped immutable content', async () => {
   const lookup = async () => [persisted];
@@ -62,6 +62,14 @@ test('lost acknowledgment reconciles only identical scoped immutable content', a
   assert.deepEqual(await reconcilePersistedDecisionReplay(lookup, scope, 'savekey', {
     ...input, rationale: 'Changed intention with reused save key',
   }), { state: 'conflict' });
+});
+
+test('replay cannot attribute someone else’s persisted decision to the current actor', async () => {
+  const lookup = async () => [persisted];
+  assert.deepEqual(await reconcilePersistedDecisionReplay(lookup,
+    { ...scope, actorId: 'actor-B' }, 'savekey', input), { state: 'conflict' });
+  assert.deepEqual(await reconcilePersistedDecisionReplay(lookup,
+    { ...scope, actorId: 'actor-A' }, 'savekey', input), { state: 'match', id: 'decision-A' });
 });
 
 test('wrong-project row, missing row, duplicates and network errors never imply success', async () => {
