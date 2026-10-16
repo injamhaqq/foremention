@@ -86,6 +86,12 @@ function matches(row, column, expression) {
   const value = row[column];
   if (expression.startsWith("eq.")) return String(value) === decodeURIComponent(expression.slice(3));
   if (expression.startsWith("neq.")) return String(value) !== decodeURIComponent(expression.slice(4));
+  // Keep fixture behavior aligned with the timestamp-gated PostgREST claim.
+  if (expression.startsWith("gt.")) {
+    const left = Date.parse(String(value));
+    const right = Date.parse(decodeURIComponent(expression.slice(3)));
+    return Number.isFinite(left) && Number.isFinite(right) && left > right;
+  }
   if (expression.startsWith("in.(") && expression.endsWith(")")) return expression.slice(4, -1).split(",").includes(String(value));
   if (expression === "is.null") return value === null || value === undefined;
   throw new Error(`attach02 emulator: unsupported filter ${column}=${expression}`);
