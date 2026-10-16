@@ -73,4 +73,8 @@ drop trigger if exists protect_measurement_schedule_contract_fm360 on public.mea
 create trigger protect_measurement_schedule_contract_fm360
   before update on public.measurement_schedules
   for each row execute function public.protect_measurement_schedule_contract_fm360();
+-- The durable run retains exact schedule provenance so the collection worker
+-- can recheck entitlement again at actual provider-call time.
+alter table public.runs
+  add column if not exists originating_schedule_id uuid references public.measurement_schedules(id) on delete set null;
 commit;
