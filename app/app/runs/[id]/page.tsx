@@ -98,7 +98,7 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
         <div><span className="eyebrow">Recorded human decisions</span><h2>Decision review and follow-up</h2></div>
       </div>
       <div className="panel-body">
-        <p>Download a private evidence-bound decision review. A packet is withheld when an approved decision's evidence, ownership, or follow-up comparison cannot be verified; it is not proof of revenue or causation.</p>
+        <p>Download a private evidence-bound decision review. A packet is withheld when an approved decision&apos;s evidence, ownership, or follow-up comparison cannot be verified; it is not proof of revenue or causation.</p>
         {decisions.map((decision) => <div key={decision.id} className="panel">
           <p><strong>{decision.decision_kind.replaceAll("_", " ")}</strong> · {decision.decision_state.replaceAll("_", " ")} · {new Date(decision.decided_at).toLocaleDateString("en-GB", { timeZone: "UTC" })} UTC</p>
           <DecisionReviewDownload recordId={run.id} decisionId={decision.id} />
