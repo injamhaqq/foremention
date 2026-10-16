@@ -108,14 +108,13 @@ export async function POST(request: Request) {
         if (error instanceof AuthLinkError && (error.status === 429 || error.status >= 500)) {
           return NextResponse.json({ error: "Account creation is temporarily unavailable. No account changes were confirmed. Please try again in a moment." }, { status: error.status === 429 ? 429 : 503 });
         }
-        const message = error instanceof Error ? error.message : "Could not create the account.";
-        return NextResponse.json({ error: message }, { status: 400 });
+        return NextResponse.json({ error: "Registration could not be completed. Check your details or try later." }, { status: 400 });
       }
       try {
         await sendSignupConfirmationEmail(normalizedEmail, actionLink);
       } catch {
         return NextResponse.json({
-          error: "Your account was created but the confirmation email could not be sent. Submit the form again in a minute to resend it, or email hello@foremention.com.",
+          error: "A confirmation email could not be delivered. If none arrives, use account recovery or contact hello@foremention.com. Do not assume resubmitting creates a new link.",
         }, { status: 503 });
       }
       return signupRequestReceipt();
@@ -147,6 +146,6 @@ export async function POST(request: Request) {
     if (/already registered|already exists|user already/i.test(message)) {
       return signupRequestReceipt();
     }
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: "Registration could not be completed. Check your details or try later." }, { status: 400 });
   }
 }

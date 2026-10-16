@@ -107,7 +107,7 @@ export async function sendSignupConfirmationEmail(to: string, link: string) {
       "Confirm your email address to open your workspace:",
       link,
       "",
-      "This link works once and expires in 24 hours. If you did not create a Foremention account, you can ignore this email and no account will be activated.",
+      "This confirmation link is single-use and expires according to the configured authentication settings. If you did not create a Foremention account, you can ignore this email.",
       "",
       "Foremention — recommendation intelligence for B2B software",
       "hello@foremention.com",
