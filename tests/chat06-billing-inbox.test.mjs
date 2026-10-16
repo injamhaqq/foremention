@@ -129,3 +129,57 @@ test("migration enforces role-only execution and row visibility; durable worker 
   assert.match(sql,/billing_event_not_applied/);
   assert.match(sql,/billing_attempts_exhausted/);
 });
+
+test("consumer remains active while ingress is disabled so ACKed work is not stranded on rollback", async () => {
+  const { durableBillingInboxEnabled, billingInboxConsumerEnabled } =
+    await import("../lib/billing-verified-inbox.ts");
+  const savedIngress = process.env.FOREMENTION_BILLING_DURABLE_INBOX;
+  const savedConsumer = process.env.FOREMENTION_BILLING_INBOX_CONSUMER;
+  try {
+    process.env.FOREMENTION_BILLING_DURABLE_INBOX = "disabled";
+    process.env.FOREMENTION_BILLING_INBOX_CONSUMER = "enabled";
+    assert.equal(durableBillingInboxEnabled(), false);
+    assert.equal(billingInboxConsumerEnabled(), true);
+  } finally {
+    if (savedIngress === undefined) delete process.env.FOREMENTION_BILLING_DURABLE_INBOX;
+    else process.env.FOREMENTION_BILLING_DURABLE_INBOX = savedIngress;
+    if (savedConsumer === undefined) delete process.env.FOREMENTION_BILLING_INBOX_CONSUMER;
+    else process.env.FOREMENTION_BILLING_INBOX_CONSUMER = savedConsumer;
+  }
+});
+
+test("worker claims are explicitly scoped to the active Paddle environment", async () => {
+  const { claimVerifiedBillingBatch } = await import("../lib/billing-verified-inbox.ts");
+  const db = fakeDatabase((body) => {
+    assert.equal(body.p_source_mode, "sandbox");
+    assert.equal(body.p_limit, 10);
+    return json([]);
+  });
+  try {
+    assert.deepEqual(await claimVerifiedBillingBatch(), []);
+    assert.equal(db.calls.length, 1);
+    assert.equal(db.calls[0].path, "/rest/v1/rpc/claim_verified_billing_batch");
+  } finally { db.restore(); }
+});
+
+test("no worker heartbeat fails the verified-ACK RPC closed and Paddle may retry", async () => {
+  const db = fakeDatabase(() => json({message:"billing_inbox_worker_unhealthy"},503));
+  try {
+    const response = await POST(signed(makeEvent()));
+    assert.equal(response.status, 503);
+    assert.equal(db.calls.length, 1);
+    assert.equal(db.calls[0].path, "/rest/v1/rpc/enqueue_verified_billing_event");
+  } finally { db.restore(); }
+});
+
+test("SQL enforces recent matching-mode worker heartbeat and body identity", () => {
+  const sql = readFileSync(new URL("../supabase/migrations/20261016190000_chat06_billing_verified_inbox.sql", import.meta.url), "utf8");
+  assert.match(sql, /billing_verified_inbox_worker_heartbeat/);
+  assert.match(sql, /h\.source_mode=p_source_mode/);
+  assert.match(sql, /interval '20 minutes'/);
+  assert.match(sql, /billing_inbox_worker_unhealthy/);
+  assert.match(sql, /billing_verified_event_envelope_mismatch/);
+  assert.match(sql, /i\.source_mode=p_source_mode/);
+  assert.match(sql, /grant execute on function public\.claim_verified_billing_batch\(integer,integer,text\) to service_role/i);
+  assert.match(sql, /revoke all on public\.billing_verified_inbox_worker_heartbeat from public,anon,authenticated/i);
+});
