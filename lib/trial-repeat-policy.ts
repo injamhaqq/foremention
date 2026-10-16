@@ -24,7 +24,7 @@ export type RepeatPolicyResult =
   | { eligible: true; dueAt: string }
   | { eligible: false; reason: RepeatPolicyReason; action: string };
 
-const rejected = (reason: RepeatPolicyReason, action: string): RepeatPolicyResult =>
+const rejected = (reason: RepeatPolicyReason, action: string): Extract<RepeatPolicyResult, { eligible: false }> =>
   ({ eligible: false, reason, action });
 
 function timestamp(value: string | Date | null | undefined): number | null {
