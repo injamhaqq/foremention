@@ -106,3 +106,18 @@ test('baseline pin refuses partial, missing answer, duplicate, changed model, un
   ];
   for (const input of cases) assert.equal(pinCompleteBaseline(input).eligible, false);
 });
+
+test("explicit manual schedule stays bound to the exact original plan and deadline", async () => {
+  const { admitManualScheduleAuthorization } = await import("../lib/trial-repeat-policy.ts");
+  const pin = { authorizationBillingSource:"trial", authorizationPackageKey:"core", authorizationExpiresAt:expiry };
+  const allowed = { pin, currentBillingSource:"trial", currentPackageKey:"core",
+    currentExpiresAt:expiry, currentStatus:"active" };
+  assert.equal(admitManualScheduleAuthorization({...allowed,at:"2026-10-19T00:00:00Z"}).eligible,true);
+  assert.equal(admitManualScheduleAuthorization({...allowed,at:"2026-10-22T22:00:00Z"}).eligible,false);
+  assert.equal(admitManualScheduleAuthorization({...allowed,at:"2026-10-24T00:00:00Z",currentBillingSource:"trial_expired"}).eligible,false);
+  assert.equal(admitManualScheduleAuthorization({...allowed,at:"2026-10-20T00:00:00Z",currentPackageKey:"signal"}).reason,"ENTITLEMENT_CHANGED");
+  assert.equal(admitManualScheduleAuthorization({...allowed,at:"2026-10-20T00:00:00Z",pin:null}).reason,"ENTITLEMENT_UNKNOWN");
+  const now=new Date("2026-10-20T00:00:00Z");
+  assert.equal(admitManualScheduleAuthorization({pin:{authorizationBillingSource:"founder_grant",authorizationPackageKey:null,authorizationExpiresAt:null},
+    currentBillingSource:"founder_grant",currentPackageKey:null,currentExpiresAt:null,currentStatus:"active",at:now}).eligible,true);
+});
