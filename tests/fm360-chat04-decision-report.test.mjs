@@ -14,7 +14,7 @@ const base = {
     { id: "blocked", runId: "baseline-A", reviewStatus: "unreviewed", accessStatus: "blocked", origin: "model_written_link" },
   ],
   decision: { id: "decision-A", organizationId: "org-A", projectId: "project-A", baselineRunId: "baseline-A",
-    evidenceIds: ["source-A"], kind: "change_specification", disposition: "approved",
+    evidenceIds: ["source-A"], kind: "change_specification", disposition: "approved", decisionState: "DO_NOW",
     decidedAt: "2026-10-02T00:00:00Z", reviewerRole: "PMM", rationale: "Synthetic basis only",
     changeSpecificationId: "change-A", ownerRole: "PMM", action: "Test proof copy",
     dueDate: "2026-10-23", successCriteria: "Buyer comprehends proof",
@@ -67,6 +67,7 @@ test("neutral non-action and disagreement dispositions are legitimate without ma
     const md = render({ ...base, followUp: null, evidence: [],
       decision: { ...base.decision, kind,
         disposition: kind === "no_action" ? "no_change" : "disagreement",
+        decisionState: kind === "no_action" ? "DO_NOT_DO" : "INSUFFICIENT_EVIDENCE",
         changeSpecificationId: null, evidenceIds: [], ownerRole: null,
         action: null, dueDate: null, successCriteria: null, reversalCriteria: null } });
     assert.ok(md.includes("No later reviewed cycle"));
@@ -86,6 +87,11 @@ test("approval packet requires action only when canonical decision state is acti
   const approved = render({ ...base, decision: {
     ...base.decision, decisionState: "TEST_FIRST", reversalCriteria: null } });
   assert.ok(approved.includes("Reversal criteria"));
+});
+
+test("unknown or invalid decision state cannot bypass approval requirements", () => {
+  expectReject({ ...base, decision: { ...base.decision, decisionState: undefined, ownerRole: null, action: null } }, /canonical decision state missing/);
+  expectReject({ ...base, decision: { ...base.decision, kind: "no_action", disposition: "no_change", decisionState: "DO_NOW" } }, /no-action decision cannot be actionable/);
 });
 
 test("HTML/Markdown injection, addresses and API-looking secrets are escaped/redacted", () => {
