@@ -25,6 +25,7 @@ import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
 import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { admitManualScheduleAuthorization, type ManualAuthorizationPin } from "@/lib/trial-repeat-policy";
 import { generateObservedSourceMap } from "@/lib/source-map-generation";
 import { sendWorkspaceEmailAlert } from "@/lib/workspace-email-alerts";
 import { deliverWorkspaceWebhooks, type DeliveryEvent } from "@/lib/workspace-webhooks";
@@ -235,19 +236,30 @@ async function scheduledRunMayCallProvider(run: RunRow): Promise<boolean> {
   if (!run.originating_schedule_id && !run.idempotency_key?.startsWith("measurement-schedule:")) return true;
   if (!run.originating_schedule_id) return false;
   const [schedules, entitlements] = await Promise.all([
-    supabaseRest<Array<{ schedule_origin: string; trial_ends_at: string | null; enabled: boolean }>>(
-      `measurement_schedules?select=schedule_origin,trial_ends_at,enabled&id=eq.${run.originating_schedule_id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&limit=1`,
+    supabaseRest<Array<{ schedule_origin: string; trial_ends_at: string | null; enabled: boolean; baseline_contract_json: unknown }>>(
+      `measurement_schedules?select=schedule_origin,trial_ends_at,enabled,baseline_contract_json&id=eq.${run.originating_schedule_id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&limit=1`,
       { serviceRole: true },
     ),
-    supabaseRest<Array<{ status: string; billing_source: string | null; expires_at: string | null }>>(
-      `organization_entitlements?select=status,billing_source,expires_at&organization_id=eq.${run.organization_id}&limit=1`,
+    supabaseRest<Array<{ status: string; billing_source: string | null; package_key: string | null; expires_at: string | null }>>(
+      `organization_entitlements?select=status,billing_source,package_key,expires_at&organization_id=eq.${run.organization_id}&limit=1`,
       { serviceRole: true },
     ),
   ]);
   const schedule = schedules[0];
   const entitlement = entitlements[0];
   if (!schedule || !schedule.enabled || !entitlement || entitlement.status !== "active") return false;
-  if (schedule.schedule_origin === "manual") return true;
+  if (schedule.schedule_origin === "manual") {
+    if (!schedule.baseline_contract_json || typeof schedule.baseline_contract_json !== "object") return false;
+    const admission = admitManualScheduleAuthorization({
+      pin: schedule.baseline_contract_json as ManualAuthorizationPin,
+      currentBillingSource: entitlement.billing_source,
+      currentPackageKey: entitlement.package_key,
+      currentExpiresAt: entitlement.expires_at,
+      currentStatus: entitlement.status,
+      at: new Date(),
+    });
+    return admission.eligible;
+  }
   if (schedule.schedule_origin === "paid")
     return ["paddle", "stripe", "creem"].includes(entitlement.billing_source || "")
       && (!entitlement.expires_at || new Date(entitlement.expires_at).getTime() > Date.now());
