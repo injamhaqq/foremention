@@ -80,11 +80,12 @@ test("the canary derives a privacy-safe exact fixture fingerprint and fails clos
   assert.ok(fingerprintGate >= 0 && patchMutation > fingerprintGate, "fingerprint pin gate must precede prompt mutation");
 });
 
-test("the dedicated synthetic canary maintains a freshness-dependent web-evidence question through the ordinary prompt API", () => {
-  assert.match(canary, /const freshWebEvidenceQuestion =/);
-  assert.match(canary, /most recently published post on openai\.com\/news/);
-  assert.match(canary, /Cite the exact openai\.com source URL/);
-  assert.match(canary, /If you cannot verify it with current web evidence, say so rather than answering from memory/);
+test("the dedicated synthetic canary checks a stable officially dated page rather than claiming to know the latest post", () => {
+  assert.match(canary, /const freshWebEvidenceQuestion = officialFirstEvidenceQuestion;/);
+  assert.match(canary, /import \{ assessOfficialFirstEvidenceAnswer, officialFirstEvidenceQuestion \}/);
+  assert.match(canary, /assessOfficialFirstEvidenceAnswer\(displayedOfficialAnswer, displayedOfficialCitations\)/);
+  assert.match(canary, /fixed-official-article-title-date-and-provenance-verified/);
+  assert.doesNotMatch(canary, /const freshWebEvidenceQuestion = ".*most recently published/);
   assert.match(canary, /sameOriginFetch\(page, "\/api\/prompts", \{\s*method: "PATCH"/s);
   assert.match(canary, /fresh-web-evidence-question-updated/);
   assert.match(canary, /fresh-web-evidence-question-verified/);
