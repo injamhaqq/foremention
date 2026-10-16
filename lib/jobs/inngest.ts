@@ -48,6 +48,8 @@ type RunRow = {
   status: string;
   provider_ids: LiveProviderId[];
   created_by: string | null;
+  idempotency_key: string | null;
+  originating_schedule_id: string | null;
 };
 type PromptSelection = {
   prompt_id: string;
@@ -211,7 +213,7 @@ async function markRunFailed(data: RunRequestedData, reason: string, releaseIfNe
 
 async function loadRun(data: RunRequestedData) {
   const runs = await supabaseRest<RunRow[]>(
-    `runs?select=id,organization_id,project_id,category_id,status,provider_ids,created_by&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&limit=1`,
+    `runs?select=id,organization_id,project_id,category_id,status,provider_ids,created_by,idempotency_key,originating_schedule_id&id=eq.${data.runId}&organization_id=eq.${data.organizationId}&project_id=eq.${data.projectId}&limit=1`,
     { serviceRole: true },
   );
   const run = runs[0];
@@ -220,6 +222,37 @@ async function loadRun(data: RunRequestedData) {
   if (!run.project_id || !run.category_id) throw new Error("The queued run is missing its validated project or category.");
   if (run.provider_ids.length !== 1) throw new Error("A live run must contain exactly one configured provider.");
   return run;
+}
+
+/**
+ * The dispatcher verifies entitlement before reservation. The worker must
+ * verify it AGAIN before an actual billable call: durable queues can be late.
+ * Missing schedule provenance on a legacy scheduled run fails closed.
+ */
+async function scheduledRunMayCallProvider(run: RunRow): Promise<boolean> {
+  if (!run.idempotency_key?.startsWith("measurement-schedule:")) return true;
+  if (!run.originating_schedule_id) return false;
+  const [schedules, entitlements] = await Promise.all([
+    supabaseRest<Array<{ schedule_origin: string; trial_ends_at: string | null; enabled: boolean }>>(
+      `measurement_schedules?select=schedule_origin,trial_ends_at,enabled&id=eq.${run.originating_schedule_id}&organization_id=eq.${run.organization_id}&project_id=eq.${run.project_id}&limit=1`,
+      { serviceRole: true },
+    ),
+    supabaseRest<Array<{ status: string; billing_source: string | null; expires_at: string | null }>>(
+      `organization_entitlements?select=status,billing_source,expires_at&organization_id=eq.${run.organization_id}&limit=1`,
+      { serviceRole: true },
+    ),
+  ]);
+  const schedule = schedules[0];
+  const entitlement = entitlements[0];
+  if (!schedule || !schedule.enabled || !entitlement || entitlement.status !== "active") return false;
+  if (schedule.schedule_origin === "manual") return true;
+  if (schedule.schedule_origin === "paid")
+    return ["paddle", "stripe", "creem"].includes(entitlement.billing_source || "")
+      && (!entitlement.expires_at || new Date(entitlement.expires_at).getTime() > Date.now());
+  if (schedule.schedule_origin !== "trial" || entitlement.billing_source !== "trial" ||
+      !schedule.trial_ends_at || !entitlement.expires_at) return false;
+  const safeUntil = Math.min(new Date(schedule.trial_ends_at).getTime(), new Date(entitlement.expires_at).getTime());
+  return Number.isFinite(safeUntil) && safeUntil - Date.now() > 2 * 60 * 60 * 1000;
 }
 
 async function persistFailureAttempt(
@@ -478,6 +511,13 @@ export const runMultiEngineScan = inngest.createFunction(
     const run = await step.run("load-and-revalidate-run", () =>
       measureRunPhase("load_run", data.runId, () => loadRun(data)));
     if (!run) return { runId: data.runId, skipped: true };
+    // Check active trial/paid schedule ownership at actual worker start.
+    const scheduleEntitled = await step.run("scheduled-entitlement-preflight", () => scheduledRunMayCallProvider(run));
+    if (!scheduleEntitled) {
+      await step.run("fail-expired-scheduled-run", () =>
+        markRunFailed(data, "Scheduled collection was held: its confirmed entitlement or original trial window is no longer active.", true));
+      return { runId: run.id, skipped: true, reason: "schedule_entitlement_expired" };
+    }
     await step.run("start-run-supervisor", () => measureRunPhase("start_supervisor", run.id, () =>
       recordAgentExecution({
         runId: run.id,
@@ -629,6 +669,11 @@ export const runMultiEngineScan = inngest.createFunction(
           // collections from before a configuration change are kept). Answers
           // already collected under the pinned model stay; a second model is
           // never mixed into the same run.
+          // Recheck after every durable wait, including between observations.
+          // An expired trial can never spend a delayed provider-call step.
+          if (!(await scheduledRunMayCallProvider(run))) {
+            throw new NonRetriableError("Scheduled collection entitlement expired before this provider call.");
+          }
           if (!modelPinHolds()) {
             logOperationalEvent("provider_model_pin_drift", { runId: run.id, provider: providerId });
             throw new NonRetriableError("The configured provider model changed during this run; this question was not collected so the run stays comparable.");
