@@ -143,7 +143,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
 
   const admission = admitRepeatDispatch({
     enabled: true,
-    origin: schedule.schedule_origin,
+    origin: schedule.schedule_origin === "legacy_unknown" ? null : schedule.schedule_origin,
     pinned: Boolean(schedule.model_snapshot),
     now: dispatchNow,
     trialExpiresAt: schedule.trial_ends_at,
@@ -199,7 +199,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
       const prompt = prompts.find((row) => row.id === pin.promptId);
       const context = pin.context;
       return !prompt || typeof pin.promptText !== "string" ||
-        prompt.prompt_text.replace(/\\s+/g, " ").trim() !== pin.promptText ||
+        prompt.prompt_text.replace(/\s+/g, " ").trim() !== pin.promptText ||
         !context || typeof context !== "object" ||
         prompt.locale !== (context as Record<string, unknown>).locale ||
         prompt.market !== (context as Record<string, unknown>).market;
