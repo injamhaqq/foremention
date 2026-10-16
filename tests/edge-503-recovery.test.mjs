@@ -17,5 +17,5 @@ test("#504: an edge HTML 503 yields a plain transient message, never a JSON pars
   assert.ok(liveCreate.indexOf('setText("")') > liveCreate.indexOf("if (!response.ok || !result.data) throw"), "real input is cleared only after confirmed success");
   const demoCreate = library.slice(library.indexOf("async function addPrompt("), library.indexOf('const response = await fetch("/api/prompts"'));
   assert.match(demoCreate, /if \(demo\) \{/);
-  assert.match(demoCreate, /setText\(" "\)/);
+  assert.match(demoCreate, /setText\(""\)/);
 });
