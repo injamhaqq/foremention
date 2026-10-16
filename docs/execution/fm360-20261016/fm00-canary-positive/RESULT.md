@@ -30,3 +30,6 @@ Historical production canary run [38739762884](https://github.com/injamhaqq/fore
 Rollback: revert only this independent canary PR; no schema or customer data migration. Older unstable newest-post question is not a suitable required *positive* acceptance test, though may be used as a separate expected-abstention negative.
 
 No secrets, production writes, account login or paid API requests in this branch.
+## Integration dependency verified 2026-10-16
+
+The prior PR #601 test head recorded 1,625 of 1,626 Node tests passing; one expected-abstention fixture failed because the first CI run used the original main before PR #596's embedded-refusal fix. PR #596 was then merged to main at `12a1e290e8dc8221b9074ffbcf02f6cacbc98202`. This documentation commit requires GitHub to re-evaluate the canary PR against that integrated main. Treat only the newly generated combined-tree CI results as release evidence. Do not weaken the refusal rule.
