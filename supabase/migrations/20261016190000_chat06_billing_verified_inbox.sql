@@ -98,7 +98,8 @@ begin
  end if;
  insert into public.billing_verified_inbox_worker_heartbeat(source_mode,last_polled_at)
  values(p_source_mode,clock_timestamp())
- on conflict(source_mode) do update set last_polled_at=excluded.last_polled_at;
+ on conflict on constraint billing_verified_inbox_worker_heartbeat_pkey
+ do update set last_polled_at=excluded.last_polled_at;
  update public.billing_verified_event_inbox i set
    status='dead_letter',last_error_code='billing_attempts_exhausted',
    lease_token=null,lease_expires_at=null,updated_at=clock_timestamp()
