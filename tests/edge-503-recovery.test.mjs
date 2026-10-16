@@ -12,5 +12,10 @@ test("#504: an edge HTML 503 yields a plain transient message, never a JSON pars
   assert.deepEqual(await readApiJson(ok), { data: { id: "x" } });
   const library = await readFile(new URL("../components/prompt-library.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(library, /await response\.json\(\)/);
-  assert.ok(library.indexOf('setText("")') > library.indexOf("if (!response.ok || !result.data) throw"), "input is cleared only after success");
+  const liveCreate = library.slice(library.indexOf('const response = await fetch("/api/prompts"'), library.indexOf("async function toggle("));
+  assert.ok(liveCreate.includes('if (!response.ok || !result.data) throw'), "real submissions fail before modifying the input");
+  assert.ok(liveCreate.indexOf('setText("")') > liveCreate.indexOf("if (!response.ok || !result.data) throw"), "real input is cleared only after confirmed success");
+  const demoCreate = library.slice(library.indexOf("async function addPrompt("), library.indexOf('const response = await fetch("/api/prompts"'));
+  assert.match(demoCreate, /if \(demo\) \{/);
+  assert.match(demoCreate, /setText\(" "\)/);
 });
