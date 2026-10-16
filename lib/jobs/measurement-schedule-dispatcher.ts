@@ -229,6 +229,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
           requested_units: requestedUnits,
           estimated_max_cost_usd: 0,
           idempotency_key: key,
+          originating_schedule_id: schedule.id,
           active_request_key: activeRequestKey,
           methodology_version: schedule.methodology_snapshot,
           created_by: schedule.created_by,
