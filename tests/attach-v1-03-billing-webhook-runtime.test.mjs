@@ -116,17 +116,81 @@ test("initial paid checkout with a ready reservation is applied once and its res
   } finally { db.restore(); }
 });
 
-test("redelivery of the same paid event after settlement is acknowledged as duplicate, not retried forever", async () => {
+test("redelivery after a processed billing receipt is a safe duplicate, not a second grant", async () => {
+  const payload = completed();
   const db = database({
     "billing_accounts": () => [],
-    "billing_checkout_reservations": () => [{ organization_id: ORG, package_key: "core", billing_interval: "monthly", state: "reconciled", reconciliation_evidence: "paid:" + TXN }],
-    "billing_webhook_events": () => [], // receipt already exists -> duplicate
+    "billing_checkout_reservations": () => [{
+      organization_id: ORG, package_key: "core", billing_interval: "monthly",
+      state: "reconciled", reconciliation_evidence: "paid:" + TXN,
+    }],
+    "billing_webhook_events": ({ query }) => query.includes("on_conflict")
+      ? [] // uniqueness conflict, nothing newly inserted
+      : [{ provider: "paddle", event_id: payload.event_id, organization_id: ORG, processed_at: new Date().toISOString() }],
   });
   try {
-    const response = await POST(signed(completed()));
+    const response = await POST(signed(payload));
     assert.equal(response.status, 200);
     assert.equal((await response.json()).duplicate, true);
     assert.ok(!rpcNames(db.calls).includes("rpc/apply_billing_event_atomic_v2"));
+    assert.ok(db.calls.some((call) => call.path === "billing_webhook_events" && call.query.includes("select=")));
+  } finally { db.restore(); }
+});
+
+test("pending billing receipt must return retryable 503 and never double-grant", async () => {
+  const payload = completed();
+  const db = database({
+    "billing_accounts": () => [],
+    "billing_checkout_reservations": () => [{
+      organization_id: ORG, package_key: "core", billing_interval: "monthly",
+      state: "ready", reconciliation_evidence: null,
+    }],
+    "billing_webhook_events": ({ query }) => query.includes("on_conflict")
+      ? []
+      : [{ provider: "paddle", event_id: payload.event_id, organization_id: ORG, processed_at: null }],
+  });
+  try {
+    const response = await POST(signed(payload));
+    assert.equal(response.status, 503);
+    assert.deepEqual(rpcNames(db.calls), []);
+    assert.ok(db.calls.some((call) => call.path === "billing_webhook_events" && call.query.includes("select=")));
+  } finally { db.restore(); }
+});
+
+test("processed billing receipt for another tenant fails closed", async () => {
+  const payload = completed();
+  const db = database({
+    "billing_accounts": () => [],
+    "billing_checkout_reservations": () => [{
+      organization_id: ORG, package_key: "core", billing_interval: "monthly",
+      state: "ready", reconciliation_evidence: null,
+    }],
+    "billing_webhook_events": ({ query }) => query.includes("on_conflict")
+      ? []
+      : [{ provider: "paddle", event_id: payload.event_id, organization_id: OTHER_ORG, processed_at: new Date().toISOString() }],
+  });
+  try {
+    assert.equal((await POST(signed(payload))).status, 503);
+    assert.deepEqual(rpcNames(db.calls), []);
+  } finally { db.restore(); }
+});
+
+test("database failure when reading a conflicted billing receipt remains retryable", async () => {
+  const payload = completed();
+  const db = database({
+    "billing_accounts": () => [],
+    "billing_checkout_reservations": () => [{
+      organization_id: ORG, package_key: "core", billing_interval: "monthly",
+      state: "ready", reconciliation_evidence: null,
+    }],
+    "billing_webhook_events": ({ query }) => {
+      if (query.includes("on_conflict")) return [];
+      throw new Error("fixture: billing receipt could not be read");
+    },
+  });
+  try {
+    assert.equal((await POST(signed(payload))).status, 503);
+    assert.deepEqual(rpcNames(db.calls), []);
   } finally { db.restore(); }
 });
 
