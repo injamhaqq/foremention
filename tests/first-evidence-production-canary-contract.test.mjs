@@ -93,7 +93,7 @@ test("the dedicated synthetic canary checks a stable officially dated page rathe
 
 test("the release canary requires grounded citations, the pinned Cloudflare model, review publication and contained Recommendation Record evidence inspection", () => {
   assert.match(canary, /The real provider run persisted no answer observations/);
-  assert.match(canary, /The free grounded canary persisted no provider-returned citations/);
+  assert.match(canary, /The live evidence canary persisted no recorded source references/);
   assert.match(canary, /FOREMENTION_ACCEPTANCE_EXPECTED_MODEL/);
   assert.match(canary, /@cf\/google\/gemma-4-26b-a4b-it/);
   assert.match(canary, /The persisted provider answer did not expose the expected model/);
