@@ -38,7 +38,13 @@ export async function ensureReviewedAutoMeasurementSchedule(input: {
       supabaseRest<Entitlement[]>("organization_entitlements?select=status,package_key,billing_source,expires_at&organization_id=eq." + input.organizationId + "&limit=1",{token:input.token}),
     ]);
     const entitlement=entitlements[0]; const cadence=autoScheduleCadence(entitlement,now);
-    if(!cadence)return {status:"not_eligible",reason:"ENTITLEMENT_CHANGED"};
+    // A founder grant can authorize explicit manual scheduling, but it cannot
+    // impersonate a verified billing provider for an automatic paid repeat.
+    const fromTrial=entitlement?.billing_source==="trial" && entitlement.package_key==="core";
+    const fromVerifiedBilling=["paddle","stripe","creem"].includes(entitlement?.billing_source || "")
+      && ["core","signal"].includes(entitlement?.package_key || "");
+    if(!cadence || (!fromTrial && !fromVerifiedBilling))
+      return {status:"not_eligible",reason:"ENTITLEMENT_CHANGED"};
     if(!answers.length || answers.some(a=>a.review_status!=="verified") || answers.length!==selections.length)
       return {status:"not_eligible",reason:"BASELINE_INCOMPLETE"};
     const baseline=pinCompleteBaseline({runId:run.id,status:run.status,completedAt:run.completed_at,
