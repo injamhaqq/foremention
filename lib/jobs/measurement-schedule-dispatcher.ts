@@ -8,7 +8,7 @@ import { getProvider } from "@/lib/providers";
 import type { ProviderId } from "@/lib/providers/types";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { inngest } from "@/lib/jobs/inngest";
-import { admitRepeatDispatch, TRIAL_COMPLETION_BUFFER_MS } from "@/lib/trial-repeat-policy";
+import { admitRepeatDispatch, admitManualScheduleAuthorization, TRIAL_COMPLETION_BUFFER_MS, type ManualAuthorizationPin } from "@/lib/trial-repeat-policy";
 
 type LiveProviderId = Exclude<ProviderId, "mock">;
 type DueSchedule = {
@@ -31,7 +31,7 @@ type DueSchedule = {
   baseline_contract_json: unknown;
 };
 type PromptRow = { id: string; prompt_key: string; prompt_text: string; locale: string; market?: string | null };
-type EntitlementRow = { status: string; expires_at: string | null; billing_source: string | null; monthly_run_units: number | null };
+type EntitlementRow = { status: string; expires_at: string | null; billing_source: string | null; package_key: string | null; monthly_run_units: number | null };
 type OperatorRow = { role: string };
 type ExistingRunRow = { id: string; status: string; estimated_max_cost_usd: number | string; requested_units: number };
 
@@ -123,7 +123,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   }
   const [operatorRows, entitlementRows, existingRuns, projects, categories] = await Promise.all([
     supabaseRest<OperatorRow[]>(`organization_members?select=role&organization_id=eq.${schedule.organization_id}&user_id=eq.${schedule.created_by}&limit=1`, { serviceRole: true }),
-    supabaseRest<EntitlementRow[]>(`organization_entitlements?select=status,expires_at,billing_source,monthly_run_units&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
+    supabaseRest<EntitlementRow[]>(`organization_entitlements?select=status,expires_at,billing_source,package_key,monthly_run_units&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
     supabaseRest<ExistingRunRow[]>(`runs?select=id,status,estimated_max_cost_usd,requested_units&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&idempotency_key=eq.${encodeURIComponent(key)}&limit=1`, { serviceRole: true }),
     supabaseRest<Array<{ id: string }>>(`projects?select=id&id=eq.${schedule.project_id}&organization_id=eq.${schedule.organization_id}&status=eq.active&limit=1`, { serviceRole: true }),
     supabaseRest<Array<{ id: string }>>(`categories?select=id&id=eq.${schedule.category_id}&organization_id=eq.${schedule.organization_id}&active=eq.true&limit=1`, { serviceRole: true }),
@@ -141,6 +141,20 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     || (entitlementExpiry && (!Number.isFinite(entitlementExpiry.getTime()) || entitlementExpiry <= new Date()))
   ) return null;
 
+  if (schedule.schedule_origin === "manual") {
+    const manualAdmitted = admitManualScheduleAuthorization({
+      pin: contract as ManualAuthorizationPin,
+      currentBillingSource: entitlement.billing_source,
+      currentPackageKey: entitlement.package_key,
+      currentExpiresAt: entitlement.expires_at,
+      currentStatus: entitlement.status,
+      at: dispatchNow,
+    });
+    if (!manualAdmitted.eligible) {
+      logOperationalEvent("measurement_schedule_entitlement_hold", { scheduleId: schedule.id, reason: manualAdmitted.reason });
+      return null;
+    }
+  }
   const admission = admitRepeatDispatch({
     enabled: true,
     origin: schedule.schedule_origin === "legacy_unknown" ? null : schedule.schedule_origin,
