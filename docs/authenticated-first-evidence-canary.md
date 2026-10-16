@@ -20,6 +20,15 @@ For the exact deployed `main` SHA, the trusted workflow uses the same customer a
 
 The canary does **not** auto-save a source review or create an opportunity. A provider citation does not establish crawler access, page contents, a legitimate contribution route, feasibility, influence, or brand presence. Those facts remain human-review territory.
 
+
+## Fixed official-source positive acceptance
+
+The release-positive test is now a stable factual item, not a moving "newest OpenAI news article" superlative. The synthetic buyer question requests only the title and original publication date of OpenAI's official [Introducing ChatGPT](https://openai.com/index/chatgpt/) announcement (November 30, 2022). This official source was independently checked on 2026-10-16. The test requires the collected response to identify both correct values in explicit labeled answer fields **and** return the exact official article URL in the citations supplied with the persisted answer. An unsupported answer, wrong title/date, absent/wrong-path/spoofed citation, or an explicit refusal is **not** silently bulk-verified.
+
+The positive fixture is only a deliberately stable, deterministic canary for the collection → recorded API-hosted model answer → scoped reference → human-review workflow. It does **not** establish current news freshness, claim-level truth for arbitrary buyer questions, consumer ChatGPT/Gemini/Perplexity UI outputs, model causal reliance on the page, or a verified customer recommendation. A **separate offline negative fixture** asserts that a source link plus "I cannot verify" remains an abstention, not a positive result.
+
+Changing the synthetic question in the dedicated workspace uses the existing scoped prompt PATCH, only *after* the unchanged SHA-256 organization/question-ID fixture fingerprint has been verified. The exact release SHA, provider/model, idempotency, one-question run, spend ceiling, and all existing auth/permissions checks remain unaltered. Neither an offline test nor a green PR may substitute for a bounded, explicitly authorized **real production canary** at the deployed exact SHA. Do not enable spend approval automatically.
+
 ## Required trusted secrets
 
 The workflow reads these only on `main` / manual trusted runs:
