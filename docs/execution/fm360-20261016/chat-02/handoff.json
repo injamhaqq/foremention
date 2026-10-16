@@ -18,7 +18,8 @@
     "tests/chat02-evidence-qualification.test.mjs",
     "tests/chat02-answer-mention-boundaries.test.mjs",
     "docs/execution/fm360-20261016/chat-02/RESULT.md",
-    "docs/execution/fm360-20261016/chat-02/handoff.json"
+    "docs/execution/fm360-20261016/chat-02/handoff.json",
+    "tests/06-collection-job-recovery-runtime.test.mjs"
   ],
   "findings": [
     {
@@ -92,6 +93,20 @@
       "sha": "21016c82511614a0797e7ddf960caded9c5fc777",
       "result": "One rerun SUCCESS; original failed on owner approval button visibility timeout",
       "receipt": "https://github.com/injamhaqq/foremention/actions/runs/38903704434"
+    },
+    {
+      "command": "pnpm test (GitHub Actions CI first scoring head)",
+      "environment": "GitHub hosted Node 22.13 isolated tests",
+      "sha": "7486add4c50afc31dd7ab44c1d296d81b6ee24af",
+      "result": "1,623 pass, 8 fail, all same 06-collection-job-recovery-runtime.test.mjs test harness missing new module in explicit dependencies",
+      "receipt": "https://github.com/injamhaqq/foremention/actions/runs/38907620882"
+    },
+    {
+      "command": "Code fix for isolated runtime harness",
+      "environment": "test-only cross-owner test setup",
+      "sha": null,
+      "result": "Added firstBoundedNameIndex to mock module registry; new final SHA test result pending",
+      "receipt": "https://github.com/injamhaqq/foremention/pull/596"
     }
   ],
   "sources": [
@@ -122,7 +137,8 @@
     "Chat03 comparability excludes unknown or abstained samples",
     "Chat04 review API error wording and source-support human gate",
     "Chat05 network/source-injection isolated tests",
-    "Chat07 truthful API-versus-consumer and retrieval origin labels"
+    "Chat07 truthful API-versus-consumer and retrieval origin labels",
+    "Chat06: review test-only mock import added to tests/06-collection-job-recovery-runtime.test.mjs for introduced scoring helper; no expectations weakened."
   ],
   "shared_file_proposals": [
     "Chat01: additive observed question version/retrieval time/raw hash/provenance; null for missing",
@@ -147,7 +163,7 @@
     "docs/execution/fm360-20261016/chat-02/handoff.json",
     "tests/chat02-evidence-qualification.test.mjs"
   ],
-  "next_action": "FM-00: verify latest PR #596 exact-SHA checks and shared job scoring owner review, coordinate Chat04 isolated owner approval nondeterminism, retain historic unresolved method/excerpts and no live paid canary claims.",
+  "next_action": "Chat01/06: review shared Worker scoring and isolated harness change; require latest exact-head green CI. Chat04: diagnose intermittent owner approval. Original unsupported newest-post canary and 199 unknown historical methods remain truthful blockers.",
   "head_sha_note": "Do not pin own final SHA in this committed JSON; resolve the exact latest draft PR head and CI at https://github.com/injamhaqq/foremention/pull/596.",
   "original_canary_receipt": {
     "collected_at_utc": "2026-10-15T13:07:18.500Z",
