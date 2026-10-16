@@ -253,7 +253,7 @@ async function verifyRunEvidenceAndPublish(page, run) {
     fail(`First-evidence collection terminated with status ${run.status}${reason}`);
   }
   if (!Number.isFinite(Number(run.answers)) || Number(run.answers) < 1) fail("The real provider run persisted no answer observations.");
-  if (!Number.isFinite(Number(run.citations)) || Number(run.citations) < 1) fail("The free grounded canary persisted no provider-returned citations.");
+  if (!Number.isFinite(Number(run.citations)) || Number(run.citations) < 1) fail("The live evidence canary persisted no recorded source references.");
 
   await page.goto(new URL(`/app/runs/${run.id}?first_evidence=1`, baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
@@ -313,7 +313,7 @@ async function verifyRunEvidenceAndPublish(page, run) {
   }
 
   const evidenceDetails = page.locator("details.canonical-contained-evidence").first();
-  if (await evidenceDetails.count() === 0) fail("The reviewed Recommendation Record has provider citations but no contained mapped-source evidence inspection.");
+  if (await evidenceDetails.count() === 0) fail("The reviewed Recommendation Record has recorded references but no contained mapped-source evidence inspection.");
   const evidenceSummary = evidenceDetails.locator("summary").first();
   if ((await evidenceSummary.count()) === 0 || !/Evidence inspection/i.test(await evidenceSummary.innerText())) {
     fail("The contained Recommendation Record evidence inspector did not expose its inspection boundary.");
