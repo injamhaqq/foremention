@@ -54,6 +54,24 @@ export async function POST(request: Request) {
   }
   // Accepting an invitation must never downgrade an existing membership
   // (for example an owner opening a stale viewer invite to the same workspace).
+  // First claim the pending invitation with one conditional database update.
+  // This makes a racing revoke/replay win or lose before membership is written.
+  // A future transactional RPC must combine the claim + membership atomically.
+  const claimTime = new Date().toISOString();
+  const claimed = await supabaseRest<Array<{ id: string }>>(
+    `invitations?select=id&id=eq.${invitation.id}&token_hash=eq.${tokenHash}&status=eq.pending&expires_at=gt.${encodeURIComponent(claimTime)}`,
+    {
+      method: "PATCH",
+      serviceRole: true,
+      prefer: "return=representation",
+      body: { status: "accepted", accepted_at: claimTime },
+    },
+  );
+  if (claimed.length !== 1) {
+    return NextResponse.json({
+      error: "This invitation was used, revoked, or has expired. Ask the workspace owner for a new link.",
+    }, { status: 409 });
+  }
   const existing = await supabaseRest<Array<{ role: string }>>(
     `organization_members?select=role&organization_id=eq.${invitation.organization_id}&user_id=eq.${viewer.id}&limit=1`,
     { serviceRole: true },
@@ -73,12 +91,6 @@ export async function POST(request: Request) {
       role: grantedRole,
       invited_by: invitation.invited_by,
     },
-  });
-  await supabaseRest(`invitations?id=eq.${invitation.id}&status=eq.pending`, {
-    method: "PATCH",
-    serviceRole: true,
-    prefer: "return=minimal",
-    body: { status: "accepted", accepted_at: new Date().toISOString() },
   });
   await Promise.all([
     supabaseRest("audit_logs", {
