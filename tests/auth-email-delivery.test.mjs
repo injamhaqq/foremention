@@ -24,7 +24,7 @@ test("signup keeps the attestation hook and neutralizes existing-account respons
 });
 
 test("recovery never reveals whether an account exists", () => {
-  assert.match(recovery, /return NextResponse\\.json/);
+  assert.match(recovery, /return NextResponse\.json/);
   assert.match(recovery, /Never expose account existence/);
   assert.doesNotMatch(recovery, /status: 503/);
   assert.match(recovery, /sendRecoveryEmail/);
