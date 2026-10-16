@@ -89,7 +89,7 @@ test("Chat05: failed application email is disclosed as unavailable, never falsel
   const failure = await post(signupRoute({deliveryFails:true}));
   assert.equal(failure.status, 503);
   const json = await failure.json();
-  assert.match(json.error, /could not be sent/);
+  assert.match(json.error, /could not be delivered/);
 });
 
 test("Chat05: unsafe origin and incomplete signup never reach link generation", async () => {
