@@ -1,4 +1,5 @@
 import { serve } from "inngest/next";
+import { drainVerifiedBillingInbox } from "@/lib/jobs/billing-inbox";
 import { cleanupCancelledCollection, deliverHubSpotActionEvents, deliverWorkspaceWebhookEvents, inngest, reconcileInterruptedCollectionRuns, runMultiEngineScan, scheduleWeeklyWorkspaceDigests } from "@/lib/jobs/inngest";
 import { discoverAcquisitionTargets } from "@/lib/jobs/acquisition-discovery";
 import { pollZohoAcquisitionRepliesJob } from "@/lib/jobs/acquisition-zoho-replies";
@@ -8,5 +9,5 @@ import { generateDailyCeoAgentBrief, runReviewedOperatingAgents, runSupportTicke
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [runMultiEngineScan, cleanupCancelledCollection, reconcileInterruptedCollectionRuns, scheduleWeeklyWorkspaceDigests, discoverAcquisitionTargets, pollZohoAcquisitionRepliesJob, dispatchMeasurementSchedules, runtimeServiceProbe, runReviewedOperatingAgents, runSupportTicketAgent, generateDailyCeoAgentBrief, deliverWorkspaceWebhookEvents, deliverHubSpotActionEvents],
+  functions: [runMultiEngineScan, cleanupCancelledCollection, reconcileInterruptedCollectionRuns, scheduleWeeklyWorkspaceDigests, discoverAcquisitionTargets, pollZohoAcquisitionRepliesJob, dispatchMeasurementSchedules, runtimeServiceProbe, runReviewedOperatingAgents, runSupportTicketAgent, generateDailyCeoAgentBrief, deliverWorkspaceWebhookEvents, deliverHubSpotActionEvents, drainVerifiedBillingInbox],
 });
