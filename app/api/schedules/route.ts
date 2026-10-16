@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   if (providerIds.length !== 1 || providerIds.some((id) => !configured.has(id))) return NextResponse.json({ error: "Choose exactly one connected provider so repeat measurements stay interpretable." }, { status: 400 });
   // Saving this form is an explicit manual authorization, not a claim that
   // an earlier run was comparable. Require a resolved model before dispatch.
-  const configuredModel = String(process.env[(providerIds[0] || "").toUpperCase() + "_MODEL"] || "").trim();
+  const configuredModel = viewer.mode === "demo" ? "fictional-demo-model" : String(process.env[(providerIds[0] || "").toUpperCase() + "_MODEL"] || "").trim();
   if (!configuredModel) return NextResponse.json({ error: "The exact provider model is unavailable. Configure and verify it before saving a repeat." }, { status: 409 });
   let schedule;
   try {
@@ -120,7 +120,14 @@ export async function POST(request: Request) {
   }
   const nextRunAt = nextScheduleAt(new Date(), schedule.cadence, schedule.timezone).toISOString();
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: "demo-measurement-schedule", ...schedule, next_run_at: nextRunAt }, mode: "demo" });
-  const rows = await supabaseRest<ScheduleRow[]>("measurement_schedules", {
+  const modernSchedules = await supabaseRest<Array<{ id: string }>>(
+    `measurement_schedules?select=id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&schedule_origin=in.(trial,paid,manual)&limit=1`,
+    { token: viewer.accessToken },
+  );
+  if (modernSchedules.length) return NextResponse.json({ error: "A verified schedule already exists for this project. Pause or review it rather than creating a duplicate." }, { status: 409 });
+  let rows: ScheduleRow[];
+  try {
+    rows = await supabaseRest<ScheduleRow[]>("measurement_schedules", {
     method: "POST",
     serviceRole: true,
     prefer: "return=representation",
@@ -142,7 +149,10 @@ export async function POST(request: Request) {
       schedule_origin: "manual",
       baseline_contract_json: { type: "manual", confirmed_by: viewer.id, confirmed_at: new Date().toISOString(), provider: providerIds[0], model: configuredModel, question_ids: questionIds },
     },
-  });
+    });
+  } catch {
+    return NextResponse.json({ error: "A schedule already exists or could not be saved. Refresh to review the current schedule." }, { status: 409 });
+  }
   return NextResponse.json({ data: rows[0] }, { status: 201 });
 }
 
