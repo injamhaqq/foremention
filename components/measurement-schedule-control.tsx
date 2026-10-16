@@ -12,11 +12,23 @@ type Schedule = {
   locale?: string;
   market?: string;
   enabled: boolean;
+  dispatch_state?: "paused" | "needs_review" | "trial_expired" | "plan_changed" | "model_changed" | "configured";
   next_run_at: string;
   last_run_at?: string | null;
 };
 
 const labelDate = (value?: string | null) => value ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(value)) : "Not run yet";
+const scheduleStatus = (schedule: Schedule) => {
+  switch (schedule.dispatch_state) {
+    case "paused": return { label: "Paused", detail: "You paused this schedule; no automatic collection will start." };
+    case "needs_review": return { label: "Needs review", detail: "This older schedule has unverified model or baseline provenance and will not dispatch. A new, fully reviewed baseline is required." };
+    case "trial_expired": return { label: "Trial expired", detail: "The original trial no longer authorizes a repeat. It will not borrow Free capacity or start automatically." };
+    case "plan_changed": return { label: "Plan changed", detail: "The plan that authorized this schedule is no longer active. Review your current plan before requesting another collection." };
+    case "model_changed": return { label: "Model changed", detail: "The current provider model differs from the saved contract. Automatic comparison is held until the exact model is available." };
+    default: return { label: "Configured", detail: "Dispatch still checks current quota, budget, provider connection, and evidence settings at run time." };
+  }
+};
+
 
 export function MeasurementScheduleControl() {
   const [items, setItems] = useState<Schedule[]>([]);
@@ -76,12 +88,12 @@ export function MeasurementScheduleControl() {
 
   return <section className="retention-panel measurement-schedule" id="measurement-schedule" aria-labelledby="measurement-schedule-title">
     <div className="retention-panel__heading"><div><span className="eyebrow">Recurring measurement</span><h2 id="measurement-schedule-title">Repeat the same evidence contract.</h2></div>{!items.length && !loading && <button className="button button--ink" disabled={pending} onClick={createSchedule}>{pending ? "Enabling…" : "Enable weekly remeasurement"}</button>}</div>
-    <p>Foremention reuses approved questions with one connected provider and preserves methodology, locale and market context. Movement is shown only after an exact human-reviewed comparison exists.</p>
+    <p>Scheduled collections use approved questions and one connected provider. A date is planned, not a guarantee: expiry, model changes, quotas and evidence reviews can hold a run. Movement is shown only after an eligible human-reviewed comparison exists.</p>
     {error && <p className="inline-error" role="alert">{error}</p>}
     {loading ? <p className="table-caption">Loading measurement schedule…</p> : items.length ? <div className="schedule-list">{items.map((schedule) => <article key={schedule.id}>
       <div><strong>{schedule.cadence === "biweekly" ? "Every 2 weeks" : schedule.cadence === "monthly" ? "Monthly" : "Weekly"}</strong><small>{schedule.timezone} · {schedule.locale || "en-US"} · {schedule.market || "global"}</small></div>
-      <div><span>Next eligible run</span><strong>{labelDate(schedule.next_run_at)}</strong><small>Last run: {labelDate(schedule.last_run_at)}</small></div>
-      <button className="button button--outline" disabled={pending} onClick={() => void setEnabled(schedule, !schedule.enabled)}>{schedule.enabled ? "Pause" : "Resume"}</button>
+      <div aria-live="polite"><span>Next planned date · not guaranteed</span><strong>{labelDate(schedule.next_run_at)}</strong><small>Last run: {labelDate(schedule.last_run_at)}</small><small><strong>{scheduleStatus(schedule).label}.</strong> {scheduleStatus(schedule).detail}</small></div>
+      <button className="button button--outline" disabled={pending || (!schedule.enabled && schedule.dispatch_state === "needs_review")} onClick={() => void setEnabled(schedule, !schedule.enabled)}>{schedule.enabled ? "Pause" : "Resume"}</button>
     </article>)}</div> : <div className="retention-truth-note"><strong>No recurring collection is active.</strong><span>Nothing will run automatically until you enable it.</span></div>}
   </section>;
 }
