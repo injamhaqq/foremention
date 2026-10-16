@@ -1,4 +1,6 @@
 import { inngest } from "@/lib/jobs/inngest";
+import { supabaseRest } from "@/lib/supabase-rest";
+import { logOperationalEvent } from "@/lib/structured-logger";
 import { billingProvider } from "@/lib/billing-provider";
 import {
   claimVerifiedBillingBatch, durableBillingInboxEnabled, settleVerifiedBillingEvent,
@@ -62,6 +64,20 @@ export async function drainVerifiedBillingInboxOnce() {
       // It is safe to replay: receipt application is transactionally idempotent.
       counts.retry += 1;
     }
+  }
+  // Operator-visible metadata only. Never log bodies, identities or secrets.
+  try {
+    const exceptions = await supabaseRest<Array<{ status: string }>>(
+      "billing_verified_event_inbox?select=status&status=in.(dead_letter,needs_review)&limit=50",
+      { serviceRole: true },
+    );
+    if (exceptions.length) {
+      logOperationalEvent("billing_inbox_operator_review", {
+        count: exceptions.length, status: exceptions.length >= 50 ? "at_least_50" : "open",
+      });
+    }
+  } catch {
+    logOperationalEvent("billing_inbox_monitor_unavailable", { errorCode: "billing_monitor_read_failed" });
   }
   return counts;
 }
