@@ -230,7 +230,9 @@ async function loadRun(data: RunRequestedData) {
  * Missing schedule provenance on a legacy scheduled run fails closed.
  */
 async function scheduledRunMayCallProvider(run: RunRow): Promise<boolean> {
-  if (!run.idempotency_key?.startsWith("measurement-schedule:")) return true;
+  // The immutable server-managed originating_schedule_id is authoritative.
+  // Do not allow an idempotency-key edit to bypass the scheduled-run fence.
+  if (!run.originating_schedule_id && !run.idempotency_key?.startsWith("measurement-schedule:")) return true;
   if (!run.originating_schedule_id) return false;
   const [schedules, entitlements] = await Promise.all([
     supabaseRest<Array<{ schedule_origin: string; trial_ends_at: string | null; enabled: boolean }>>(
