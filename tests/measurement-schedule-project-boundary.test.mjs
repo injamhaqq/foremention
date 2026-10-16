@@ -9,7 +9,7 @@ test("measurement schedule API is scoped to the active project", async () => {
 
   assert.match(
     api,
-    /measurement_schedules\?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/,
+    /measurement_schedules\?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id,schedule_origin,trial_ends_at&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/,
   );
   assert.match(api, /organization_id: context\.organizationId/);
   assert.match(api, /project_id: context\.projectId/);
@@ -56,4 +56,16 @@ test("schedule dispatch and advancement preserve project identity", async () => 
   assert.match(dispatcher, /scheduleIdempotencyKey/);
   assert.match(dispatcher, /nextScheduleAt/);
   assert.match(dispatcher, /project_id=not\.is\.null&category_id=not\.is\.null&created_by=not\.is\.null/);
+});
+
+test("schedule visibility exposes held state without leaking other project contracts", async () => {
+  const api = await text("app/api/schedules/route.ts");
+  const ui = await text("components/measurement-schedule-control.tsx");
+  assert.match(api, /dispatch_state: dispatchState/);
+  assert.match(api, /schedule_origin/);
+  assert.match(api, /trial_ends_at/);
+  assert.match(ui, /Next planned date · not guaranteed/);
+  assert.match(ui, /Trial expired/);
+  assert.match(ui, /Needs review/);
+  assert.match(ui, /Paused/);
 });
