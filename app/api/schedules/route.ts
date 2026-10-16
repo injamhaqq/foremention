@@ -50,6 +50,8 @@ export async function GET() {
       let dispatchState: "paused" | "needs_review" | "trial_expired" | "plan_changed" | "model_changed" | "configured" = "configured";
       if (!schedule.enabled) dispatchState = "paused";
       else if (origin === "legacy_unknown" || !schedule.model_snapshot?.trim()) dispatchState = "needs_review";
+      else if (!entitlement || entitlement.status !== "active" ||
+        (entitlement.expires_at && new Date(entitlement.expires_at).getTime() <= now)) dispatchState = "plan_changed";
       else if (origin === "trial" && (
         entitlement?.billing_source !== "trial" || entitlement.status !== "active" ||
         !schedule.trial_ends_at || !entitlement.expires_at ||
