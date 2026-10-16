@@ -68,7 +68,11 @@ test("the canary derives a privacy-safe exact fixture fingerprint and fails clos
   assert.doesNotMatch(canary, /const workspace = await sameOriginFetch\(page, "\/api\/onboarding", \{[\s\S]*?body: JSON\.stringify\(\{\}\)/);
   assert.match(canary, /existing !== true/);
   assert.match(canary, /organizationId/);
-  assert.match(canary, /const canarySlot = approved\.find\(\(item\) => item\?\.text === freshWebEvidenceQuestion\) \|\| approved\[0\]/);
+  assert.match(canary, /const canarySlot = approved\.find\(\(item\) => item\?\.text === freshWebEvidenceQuestion\)/);
+  assert.match(canary, /approved\.find\(\(item\) => item\?\.text === historicalWebEvidenceQuestion\)/);
+  assert.match(canary, /const historicalWebEvidenceQuestion = "Use web search now\. According to the official OpenAI website/);
+  assert.doesNotMatch(canary, /\|\|\s*approved\[0\]/, "Question order must never stand in for the pinned synthetic identity.");
+  assert.match(canary, /Neither the pinned synthetic acceptance question nor its legacy text was found/);
   assert.match(canary, /createHash\("sha256"\)/);
   assert.match(canary, /\.update\(`\$\{organizationId\}:\$\{canarySlot\.id\}`\)/);
   assert.match(canary, /acceptance-fixture-fingerprint-observed/);
