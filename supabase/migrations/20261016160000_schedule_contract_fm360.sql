@@ -77,4 +77,24 @@ create trigger protect_measurement_schedule_contract_fm360
 -- can recheck entitlement again at actual provider-call time.
 alter table public.runs
   add column if not exists originating_schedule_id uuid references public.measurement_schedules(id) on delete set null;
+-- A browser may not spoof provenance on a queued run. The schedule
+-- dispatcher writes this field only under service-role after admission.
+create or replace function public.protect_run_schedule_origin_fm360()
+returns trigger language plpgsql set search_path = 'public','pg_temp' as $$
+begin
+  if current_user = 'authenticated' then
+    if tg_op = 'INSERT' and new.originating_schedule_id is not null then
+      raise exception 'Scheduled run provenance is server-managed' using errcode='42501';
+    elsif tg_op = 'UPDATE' and
+        new.originating_schedule_id is distinct from old.originating_schedule_id then
+      raise exception 'Scheduled run provenance is server-managed' using errcode='42501';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists protect_run_schedule_origin_fm360 on public.runs;
+create trigger protect_run_schedule_origin_fm360
+  before insert or update on public.runs
+  for each row execute function public.protect_run_schedule_origin_fm360();
 commit;
