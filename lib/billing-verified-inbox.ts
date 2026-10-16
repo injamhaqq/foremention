@@ -5,6 +5,12 @@ export function durableBillingInboxEnabled() {
   return process.env.FOREMENTION_BILLING_DURABLE_INBOX === "enabled";
 }
 
+/** Independent consumer switch: keep draining previously ACKed events during
+ * ingress rollback. Disable only after verified zero pending/leased/retry rows. */
+export function billingInboxConsumerEnabled() {
+  return process.env.FOREMENTION_BILLING_INBOX_CONSUMER === "enabled";
+}
+
 type Envelope = { event_id?: unknown; event_type?: unknown };
 const EVENT_ID = /^evt_[a-z0-9]{26}$/;
 
@@ -47,8 +53,11 @@ export async function enqueueVerifiedBillingEvent(raw: string, provider: string,
 }
 
 export async function claimVerifiedBillingBatch() {
+  const mode = process.env.PADDLE_ENVIRONMENT;
+  if (mode !== "sandbox" && mode !== "live") throw new Error("billing_worker_mode_unavailable");
   return supabaseRest<ClaimedVerifiedBillingEvent[]>("rpc/claim_verified_billing_batch", {
-    method: "POST", serviceRole: true, body: { p_limit: 10, p_lease_seconds: 240 },
+    method: "POST", serviceRole: true,
+    body: { p_limit: 10, p_lease_seconds: 240, p_source_mode: mode },
   });
 }
 
