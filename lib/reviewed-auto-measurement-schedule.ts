@@ -15,9 +15,16 @@ export async function ensureReviewedAutoMeasurementSchedule(input: {
   const now = input.now ?? new Date();
   const scope = "&organization_id=eq." + input.organizationId + "&project_id=eq." + input.projectId;
   try {
-    const old = await supabaseRest<Array<{id:string;enabled:boolean}>>(
-      "measurement_schedules?select=id,enabled&organization_id=eq." + input.organizationId + "&project_id=eq." + input.projectId + "&limit=1", {token:input.token});
-    if (old.length) return {status:"exists",reason:old[0].enabled?"EXISTING_SCHEDULE":"USER_PAUSED"};
+    // Existing legacy rows are retained for history but must not permanently
+    // prevent an eligible new baseline from establishing a verified schedule.
+    // Any deliberately paused schedule remains an explicit opt-out.
+    const old = await supabaseRest<Array<{id:string;enabled:boolean;schedule_origin:string|null}>>(
+      "measurement_schedules?select=id,enabled,schedule_origin&organization_id=eq." + input.organizationId + "&project_id=eq." + input.projectId + "&limit=101",
+      {token:input.token});
+    if (old.length > 100) return {status:"not_eligible",reason:"TOO_MANY_LEGACY_SCHEDULES"};
+    if (old.some(row => !row.enabled)) return {status:"exists",reason:"USER_PAUSED"};
+    if (old.some(row => row.schedule_origin && row.schedule_origin !== "legacy_unknown"))
+      return {status:"exists",reason:"EXISTING_SCHEDULE"};
     const runs = await supabaseRest<Run[]>(
       "runs?select=id,status,completed_at,answer_count,methodology_version,category_id,created_by,idempotency_key&id=eq." + input.runId + scope + "&limit=1", {token:input.token});
     const run = runs[0];
@@ -66,8 +73,8 @@ export async function ensureReviewedAutoMeasurementSchedule(input: {
     return {status:"created"};
   }catch{
     try {
-      const old=await supabaseRest<Array<{id:string}>>("measurement_schedules?select=id&organization_id=eq."+input.organizationId+"&project_id=eq."+input.projectId+"&limit=1",{token:input.token});
-      if(old.length)return {status:"exists"};
+      const old=await supabaseRest<Array<{id:string;schedule_origin:string|null}>>("measurement_schedules?select=id,schedule_origin&organization_id=eq."+input.organizationId+"&project_id=eq."+input.projectId+"&schedule_origin=in.(trial,paid,manual)&limit=1",{token:input.token});
+      if(old.some(row=>row.id && row.schedule_origin !== "legacy_unknown"))return {status:"exists"};
     }catch{}
     return {status:"failed",reason:"SCHEDULE_PERSISTENCE_FAILED"};
   }
