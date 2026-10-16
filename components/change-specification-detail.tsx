@@ -236,13 +236,30 @@ export function ChangeSpecificationDetail({ id }: { id: string }) {
     }
   };
 
+  // A failed initial read is not an authorization decision or a mutation.
+  // Permit an explicit, bounded reload without leaving the review page.
+  const retryInitialRead = async () => {
+    if (mutationLock.current) return;
+    mutationLock.current = true;
+    setBusy("initial-read");
+    setError("");
+    try {
+      applyLoaded(await loadChangeSpecification(id));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Change Specification could not be loaded.");
+    } finally {
+      mutationLock.current = false;
+      setBusy("");
+    }
+  };
+
   const canEdit = Boolean(record?.status === "draft" && permissions.canWrite);
   const canSubmit = canEdit;
   const canDecide = Boolean(record?.status === "in_review" && permissions.canDecide);
   const verificationRecorded = useMemo(() => Boolean(draft?.verificationIntent.trim()), [draft]);
   const dirty = useMemo(() => Boolean(record && draft && JSON.stringify(draft) !== JSON.stringify(draftFrom(record))), [draft, record]);
 
-  if (!record || !draft) return <section className="panel"><div className="empty-state"><h2>{error ? "Change Specification unavailable." : "Loading Change Specification…"}</h2><p>{error || "Reading the persisted company decision and its evidence boundary."}</p>{error && <Link className="button button--outline" href="/app">Back to Attention →</Link>}</div></section>;
+  if (!record || !draft) return <section className="panel" aria-busy={!error || busy === "initial-read"}><div className="empty-state"><h2>{error ? "Change Specification unavailable." : "Loading Change Specification…"}</h2><p role={error ? "alert" : "status"}>{error || "Reading the persisted company decision and its evidence boundary."}</p>{error && <div className="workspace-heading__actions"><button className="button button--ink" type="button" disabled={busy === "initial-read"} onClick={() => void retryInitialRead()}>{busy === "initial-read" ? "Retrying…" : "Retry loading decision"}</button><Link className="button button--outline" href="/app">Back to Attention →</Link></div>}</div></section>;
 
   const saveDraft = () => runMutation("update_draft", () => requestMutation(draftUpdate(record, draft)), "Draft saved. The decision remains unsubmitted until you explicitly submit it for review.");
 
