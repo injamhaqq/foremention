@@ -31,11 +31,22 @@ grant select,insert,update on public.billing_verified_event_inbox to service_rol
 comment on table public.billing_verified_event_inbox is
   'Service-only verified raw Paddle payload; retention/deletion requires legal approval.';
 
+-- A webhook ACK is allowed only while its matching recovery worker has
+-- polled the durable inbox recently. No worker / bad Inngest sync => 503,
+-- allowing Paddle to retry rather than creating an unconsumed 200 ACK.
+create table if not exists public.billing_verified_inbox_worker_heartbeat (
+ source_mode text primary key check(source_mode in ('sandbox','live')),
+ last_polled_at timestamptz not null
+);
+alter table public.billing_verified_inbox_worker_heartbeat enable row level security;
+revoke all on public.billing_verified_inbox_worker_heartbeat from public,anon,authenticated;
+grant select,insert,update on public.billing_verified_inbox_worker_heartbeat to service_role;
+
 create or replace function public.enqueue_verified_billing_event(
  p_provider text,p_event_id text,p_source_mode text,p_event_type text,
  p_payload_sha256 text,p_raw_body text
 ) returns jsonb language plpgsql security definer set search_path='' as $$
-declare v public.billing_verified_event_inbox%rowtype; v_inserted_count bigint:=0;
+declare v public.billing_verified_event_inbox%rowtype; v_inserted_count bigint:=0; v_worker_healthy boolean:=false;
 begin
  if p_provider is distinct from 'paddle'
     or p_event_id is null or p_event_id !~ '^evt_[a-z0-9]{26}$'
@@ -45,6 +56,17 @@ begin
     or p_raw_body is null or octet_length(p_raw_body) not between 2 and 262144
     or encode(extensions.digest(convert_to(p_raw_body,'UTF8'),'sha256'),'hex') <> p_payload_sha256
  then raise exception 'invalid_verified_billing_event'; end if;
+ -- Reject a missing or inactive consumer BEFORE persisting and acknowledging
+ -- new verified events. The grace bound tolerates a few late cron ticks.
+ select exists(select 1 from public.billing_verified_inbox_worker_heartbeat h
+   where h.source_mode=p_source_mode
+     and h.last_polled_at >= clock_timestamp()-interval '20 minutes')
+ into v_worker_healthy;
+ if not v_worker_healthy then raise exception 'billing_inbox_worker_unhealthy'; end if;
+ -- The service-only RPC also verifies identity fields are from the exact body.
+ if (p_raw_body::jsonb->>'event_id') is distinct from p_event_id
+   or (p_raw_body::jsonb->>'event_type') is distinct from p_event_type
+ then raise exception 'billing_verified_event_envelope_mismatch'; end if;
  insert into public.billing_verified_event_inbox
   (provider,event_id,source_mode,event_type,payload_sha256,raw_body)
  values(p_provider,p_event_id,p_source_mode,p_event_type,p_payload_sha256,p_raw_body)
@@ -63,22 +85,29 @@ end;
 $$;
 
 create or replace function public.claim_verified_billing_batch(
- p_limit int default 10,p_lease_seconds int default 120
+ p_limit int default 10,p_lease_seconds int default 120,
+ p_source_mode text default null
 ) returns table(provider text,event_id text,source_mode text,event_type text,
  raw_body text,generation int,lease_token uuid,attempt_count int)
 language plpgsql security definer set search_path='' as $$
 begin
  if p_limit is null or p_limit not between 1 and 20
-    or p_lease_seconds is null or p_lease_seconds not between 30 and 300 then
+    or p_lease_seconds is null or p_lease_seconds not between 30 and 300
+    or p_source_mode is null or p_source_mode not in ('sandbox','live') then
    raise exception 'invalid_billing_claim_bounds';
  end if;
+ insert into public.billing_verified_inbox_worker_heartbeat(source_mode,last_polled_at)
+ values(p_source_mode,clock_timestamp())
+ on conflict(source_mode) do update set last_polled_at=excluded.last_polled_at;
  update public.billing_verified_event_inbox i set
    status='dead_letter',last_error_code='billing_attempts_exhausted',
    lease_token=null,lease_expires_at=null,updated_at=clock_timestamp()
-  where i.status='leased' and i.lease_expires_at<=clock_timestamp() and i.attempt_count>=8;
+  where i.source_mode=p_source_mode and i.status='leased'
+    and i.lease_expires_at<=clock_timestamp() and i.attempt_count>=8;
  return query with candidates as (
   select i.provider,i.event_id from public.billing_verified_event_inbox i
-   where ((i.status='pending' and i.next_attempt_at<=clock_timestamp())
+   where i.source_mode=p_source_mode
+     and ((i.status='pending' and i.next_attempt_at<=clock_timestamp())
       or (i.status='leased' and i.lease_expires_at<=clock_timestamp()))
      and i.attempt_count<8
    order by i.verified_at,i.event_id limit p_limit for update skip locked
@@ -131,9 +160,9 @@ begin
 end;
 $$;
 revoke all on function public.enqueue_verified_billing_event(text,text,text,text,text,text) from public,anon,authenticated;
-revoke all on function public.claim_verified_billing_batch(integer,integer) from public,anon,authenticated;
+revoke all on function public.claim_verified_billing_batch(integer,integer,text) from public,anon,authenticated;
 revoke all on function public.settle_verified_billing_event(text,text,integer,uuid,text,text) from public,anon,authenticated;
 grant execute on function public.enqueue_verified_billing_event(text,text,text,text,text,text) to service_role;
-grant execute on function public.claim_verified_billing_batch(integer,integer) to service_role;
+grant execute on function public.claim_verified_billing_batch(integer,integer,text) to service_role;
 grant execute on function public.settle_verified_billing_event(text,text,integer,uuid,text,text) to service_role;
 commit;
