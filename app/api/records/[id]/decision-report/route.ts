@@ -136,6 +136,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const decision: ReportDecision = {
       id: recordDecision.id, organizationId: context.organizationId, projectId: context.projectId, baselineRunId: id,
       kind: recordDecision.decision_kind,
+      decisionState: recordDecision.decision_state,
       disposition: recordDecision.decision_kind === "reviewer_disagreement" ? "disagreement" :
         recordDecision.decision_kind === "no_action" ?
           (recordDecision.decision_state === "MONITOR_ONLY" ? "deferred" : "no_change") :
@@ -149,7 +150,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       reviewerRole: "role at decision not recorded",
       rationale: recordDecision.rationale,
       changeSpecificationId: spec?.id || null,
-      ownerRole: recordDecision.owner_role || spec?.owner_role || null,
+      ownerRole: recordDecision.owner_role || spec?.owner_role || (recordDecision.owner_id ? "Assigned workspace member" : null),
       action: recordDecision.action_summary || spec?.exact_change || null,
       dueDate: recordDecision.due_date,
       successCriteria: spec?.acceptance_criteria_json?.join("; ") || null,
