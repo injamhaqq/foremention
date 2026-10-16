@@ -3,7 +3,7 @@ import { supabaseRest } from "@/lib/supabase-rest";
 import { logOperationalEvent } from "@/lib/structured-logger";
 import { billingProvider } from "@/lib/billing-provider";
 import {
-  claimVerifiedBillingBatch, durableBillingInboxEnabled, settleVerifiedBillingEvent,
+  claimVerifiedBillingBatch, billingInboxConsumerEnabled, settleVerifiedBillingEvent,
   type ClaimedVerifiedBillingEvent,
 } from "@/lib/billing-verified-inbox";
 import { processVerifiedBillingWebhookRawBody } from "@/app/api/billing/webhook/route";
@@ -14,7 +14,7 @@ import { processVerifiedBillingWebhookRawBody } from "@/app/api/billing/webhook/
  * Do not return or log raw bodies in step outputs / audit events.
  */
 export async function drainVerifiedBillingInboxOnce() {
-  if (!durableBillingInboxEnabled()) return { disabled: true, accepted: 0, applied: 0, ignored: 0, review: 0, retry: 0 };
+  if (!billingInboxConsumerEnabled()) return { disabled: true, accepted: 0, applied: 0, ignored: 0, review: 0, retry: 0 };
   const provider = billingProvider();
   if (!provider?.configured() || provider.id !== "paddle") throw new Error("billing_worker_provider_unavailable");
   const rows = await claimVerifiedBillingBatch();
