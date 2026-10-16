@@ -20,7 +20,7 @@ const USER = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const SCHEDULE = "99999999-9999-4999-8999-999999999999";
 const Q1 = "11111111-1111-4111-8111-111111111111";
 
-function harness({ modelSnapshot, configuredModel, nextRunAt }) {
+function harness({ modelSnapshot, configuredModel, nextRunAt, origin = "manual", billingSource = "trial_expired", trialEndsAt = null, monthlyRunUnits = 10 }) {
   const rpcCalls = [];
   const store = createFakePostgrest({
     tables: {
@@ -28,9 +28,11 @@ function harness({ modelSnapshot, configuredModel, nextRunAt }) {
         id: SCHEDULE, organization_id: ORG, project_id: PROJECT, category_id: CATEGORY, cadence: "weekly", timezone: "America/New_York",
         question_ids: [Q1], provider_ids: ["groq"], model_snapshot: modelSnapshot, methodology_snapshot: "m1", locale: "en-US", market: "global",
         next_run_at: nextRunAt, created_by: USER, enabled: true,
+        schedule_origin: origin, trial_ends_at: trialEndsAt,
+        baseline_contract_json: origin === "manual" ? { type: "manual", provider: "groq", model: modelSnapshot } : null,
       }],
       organization_members: [{ organization_id: ORG, user_id: USER, role: "owner" }],
-      organization_entitlements: [{ organization_id: ORG, status: "active", expires_at: null }],
+      organization_entitlements: [{ organization_id: ORG, status: "active", expires_at: billingSource === "trial" ? trialEndsAt : null, billing_source: billingSource, monthly_run_units: monthlyRunUnits }],
       projects: [{ id: PROJECT, organization_id: ORG, status: "active" }],
       categories: [{ id: CATEGORY, organization_id: ORG, active: true }],
       prompts: [{ id: Q1, organization_id: ORG, project_id: PROJECT, category_id: CATEGORY, active: true, prompt_key: "q1", prompt_text: "Q1", locale: "en-US", market: "global" }],
@@ -50,6 +52,13 @@ function harness({ modelSnapshot, configuredModel, nextRunAt }) {
     "@/lib/methodology-registry": { currentObservationMethodologyVersion: () => "m1" },
     "@/lib/free-provider-mode": { providerAllowedForLiveCollection: () => true },
     "@/lib/measurement-schedules": schedules,
+    "@/lib/trial-repeat-policy": { admitRepeatDispatch: ({origin, pinned, currentBillingSource, remainingObservationUnits, requestedObservationUnits, now, trialExpiresAt}) => {
+      if (!origin || !pinned) return { eligible: false, reason: "CONTRACT_NOT_PINNED" };
+      if (origin === "trial" && (currentBillingSource !== "trial" || !trialExpiresAt || new Date(now).getTime() >= new Date(trialExpiresAt).getTime() - 7200000)) return { eligible: false, reason: "TRIAL_WINDOW_EXPIRED" };
+      if (origin === "paid" && currentBillingSource !== "paddle") return { eligible: false, reason: "ENTITLEMENT_CHANGED" };
+      if (remainingObservationUnits < requestedObservationUnits) return { eligible: false, reason: "CAPACITY_UNAVAILABLE" };
+      return { eligible: true };
+    }, TRIAL_COMPLETION_BUFFER_MS: 7200000 },
     "@/lib/structured-logger": { logOperationalEvent: (event, fields) => logs.push({ event, ...fields }) },
     "@/lib/providers": { getProvider: () => ({ configured: () => true }) },
     "@/lib/supabase-rest": { supabaseRest: store.rest },
@@ -93,4 +102,24 @@ test("after a long outage one run is queued and the schedule jumps to the next f
   assert.equal(h.store.db.runs.length, 1);
   assert.equal(h.events.length, 1);
   assert.equal(h.events[0].id, `foremention-schedule-${h.store.db.runs[0].id}`);
+});
+
+test("legacy unknown origin cannot run even if a legacy model was configured", async () => {
+  const h = harness({modelSnapshot:"baseline-model",configuredModel:"baseline-model",nextRunAt:new Date(Date.now()-3600000).toISOString(),origin:"legacy_unknown"});
+  const result=await h.pass();
+  assert.equal(result.queued,0);
+  assert.equal(h.store.db.runs.length,0);
+  assert.deepEqual(h.rpcCalls,[]);
+});
+test("downgraded trial cannot borrow Free quota for old trial repeat", async () => {
+  const h = harness({modelSnapshot:"baseline-model",configuredModel:"baseline-model",nextRunAt:new Date(Date.now()-3600000).toISOString(),origin:"trial",billingSource:"trial_expired",trialEndsAt:new Date(Date.now()-3600000).toISOString()});
+  const result=await h.pass();
+  assert.equal(result.queued,0);
+  assert.deepEqual(h.rpcCalls,[]);
+});
+test("explicit manual schedule cannot exceed its monthly entitlement ceiling", async () => {
+  const h = harness({modelSnapshot:"baseline-model",configuredModel:"baseline-model",nextRunAt:new Date(Date.now()-3600000).toISOString(),monthlyRunUnits:0});
+  const result=await h.pass();
+  assert.equal(result.queued,0);
+  assert.deepEqual(h.rpcCalls,[]);
 });
