@@ -1,12 +1,12 @@
 {
   "batch_id": "fm360-20261016",
   "chat_id": "02",
-  "status": "partial",
-  "observed_at_utc": "2026-10-16T12:35:17Z",
+  "status": "patch_ci_verified_positive_live_evidence_and_legacy_provenance_pending",
+  "observed_at_utc": "2026-10-16",
   "base_sha": "6bf8bfda6ec0573dbbf432b831eff45688f8f47b",
-  "head_sha": null,
+  "head_sha": "84bc17afeed450af59daa1151a6164133081af9f",
   "branch": "work/fm360-20261016/chat-02-evidence-f7b08206",
-  "draft_pr_url": null,
+  "draft_pr_url": "https://github.com/injamhaqq/foremention/pull/596",
   "owned_backlog_ids": [
     "FM-AUD-01",
     "FM-AUD-11"
@@ -20,10 +20,10 @@
   "findings": [
     {
       "id": "FM-AUD-01/canary",
-      "classification": "confirmed acceptance gate failure; root cause unverified",
-      "claim": "Historical canary had one persisted answer and two returned references but explicitly abstained; review was withheld correctly.",
-      "evidence": "Run 38739762884, job 116438081708, artifact 11976331004",
-      "limitation": "Raw answer and both source URLs/excerpts not in artifact; current production not tested."
+      "classification": "confirmed correct evidence-insufficiency abstention from exact synthetic production row",
+      "claim": "Model declined to identify latest openai.com/news post because retrieved snippets did not establish a newest individual post; 2 legitimate site URLs alone cannot support superlative.",
+      "evidence": "Historical Actions run 38739762884 plus 2026-10-16 read-only Supabase run_answers and source_snapshots inspection; selected URLs are https://openai.com/news/ and https://openai.com/news/intelligence-age/",
+      "limitation": "Both later source inspections partial with no excerpts; latest factual claim still unverified. No additional paid provider call."
     },
     {
       "id": "FM-AUD-01/embedded",
@@ -37,14 +37,14 @@
       "classification": "confirmed pure-helper defect, bounded patch",
       "claim": "Generic-question explicit refusals could enter bulk VERIFIED partition; now withheld.",
       "evidence": "Representative offline review partition red-green regression",
-      "limitation": "The review API and full repo not yet integration tested."
+      "limitation": "All seven initial-head CI workflows passed; claim-level support still requires human/positive acceptance."
     },
     {
       "id": "FM-AUD-11/legacy",
-      "classification": "confirmed historical missing metadata; current production unknown",
-      "claim": "Oct 15 audit recorded 199/217 missing observation_method and 25 open source snapshots with no excerpts.",
-      "evidence": "Uploaded dated audit and current code inspection",
-      "limitation": "No fresh SELECT; exact missing provenance cannot be backfilled."
+      "classification": "confirmed current read-only metadata gap",
+      "claim": "2026-10-16 production aggregate: 199/217 missing observation_method, 18 explicit API independent-retrieval methods; 25/74 open snapshots without excerpt (638 total).",
+      "evidence": "Read-only Supabase COUNTs on Foremention project 2026-10-16.",
+      "limitation": "Unknown legacy method/content cannot be truthfully backfilled without authoritative source."
     }
   ],
   "tests": [
@@ -54,6 +54,13 @@
       "sha": "6bf8bfda6ec0573dbbf432b831eff45688f8f47b",
       "result": "RED 5 pass 2 fail; GREEN 7 pass 0 fail",
       "receipt": "Local fixture run 2026-10-16; no network/paid provider calls"
+    },
+    {
+      "command": "GitHub Actions PR workflows",
+      "environment": "GitHub hosted CI, exact SHA 84bc17afeed450af59daa1151a6164133081af9f",
+      "sha": "84bc17afeed450af59daa1151a6164133081af9f",
+      "result": "CI, Browser Acceptance, Isolated Authenticated Journey, Security, CodeQL, AI Safety and Code Health, Semgrep all SUCCESS",
+      "receipt": "Workflow run IDs 38901846286, 38901846357, 38901846534, 38901846299, 38901846265, 38901846164, 38901846391; new final head CI pending."
     }
   ],
   "sources": [
@@ -62,7 +69,7 @@
       "published_at": "2026-10-15T13:07:40Z",
       "observed_at": "2026-10-16T12:13:36Z",
       "evidence_level": "operational receipt",
-      "limitation": "No raw answer/URLs/excerpts"
+      "limitation": "Actions archive omitted raw answer/URLs, recovered separately from authorized read-only Supabase."
     },
     {
       "url": "https://github.com/injamhaqq/foremention/blob/6bf8bfda6ec0573dbbf432b831eff45688f8f47b/lib/official-source-relevance.mjs",
@@ -70,6 +77,13 @@
       "observed_at": "2026-10-16T12:13:36Z",
       "evidence_level": "source inspection",
       "limitation": "Not actual provider-run verification"
+    },
+    {
+      "url": "https://github.com/injamhaqq/foremention/pull/596",
+      "published_at": "2026-10-16",
+      "observed_at": "2026-10-16",
+      "evidence_level": "GitHub PR exact-head CI and documented production read-only follow-up",
+      "limitation": "Positive live claim-to-source support and merge/deployment remain separate gates"
     }
   ],
   "dependencies": [
@@ -85,10 +99,10 @@
     "Chat07: observation surface and reference-origin wording from RESULT.md"
   ],
   "blocked_acceptance": [
-    "Historical canary raw answer and two references unexposed",
-    "No exact-head full CI, browser/security/CodeQL pass yet",
-    "No authorized live provider run; source freshness/claim support unresolved",
-    "FM-AUD-11 historical method/excerpt gaps not remeasured"
+    "Positive live official-source claim with inspected supporting excerpt not proven",
+    "Unknown historical methods/excerpts cannot be backfilled",
+    "FM-00 integration approval and final-head CI verification pending",
+    "No actual production deployment/prod exact-SHA canary for this patch"
   ],
   "rollback": "Revert helper and delete focused regression test; no migration or production writes.",
   "artifacts": [
@@ -96,5 +110,40 @@
     "docs/execution/fm360-20261016/chat-02/handoff.json",
     "tests/chat02-evidence-qualification.test.mjs"
   ],
-  "next_action": "Review draft PR exact-head CI and integrate via Chat01 if green. Recover redacted original canary answer/source receipts and validate genuine positive official source before claiming production FM-AUD-01 acceptance."
+  "next_action": "Integrating owner FM-00: review PR #596 latest-head 7 workflow receipts, reconcile other chat ownership, keep original latest-post abstention as correct, and require a separately grounded positive evidence acceptance before public launch claim.",
+  "head_sha_note": "Initial validated code/docs head. Final PR HEAD changes when this handoff update is committed; verify latest head in GitHub Actions.",
+  "original_canary_receipt": {
+    "collected_at_utc": "2026-10-15T13:07:18.500Z",
+    "provider": "cloudflare",
+    "model": "@cf/google/gemma-4-26b-a4b-it",
+    "method": "api_hosted_model_with_independent_retrieval",
+    "origin": "independent_retrieval",
+    "retrieval_provider": "brave-search",
+    "retrieval_candidates": 12,
+    "model_facing_candidates": 8,
+    "selected_source_urls": [
+      "https://openai.com/news/",
+      "https://openai.com/news/intelligence-age/"
+    ],
+    "answer_class": "explicit_abstention_for_unsupported_latest_post",
+    "source_inspection": {
+      "openai_news": {
+        "http_status": 200,
+        "access": "partial",
+        "excerpt_available": false
+      },
+      "intelligence_age": {
+        "http_status": 200,
+        "access": "partial",
+        "excerpt_available": false
+      }
+    },
+    "usage": {
+      "input_tokens": 861,
+      "output_tokens": 140,
+      "total_tokens": 1001
+    },
+    "cost_type": "estimated_not_billed",
+    "review_status": "unreviewed"
+  }
 }
