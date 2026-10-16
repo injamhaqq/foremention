@@ -5,8 +5,9 @@ import { supabaseRest } from "@/lib/supabase-rest";
 import { paddleSubscriptionIdentityMatches } from "@/lib/paddle-lifecycle-admission";
 import { reconcilePaddlePaidPeriod } from "@/lib/paddle-paid-period";
 import { reservationAdmitsPaidTransaction } from "@/lib/paddle-checkout-reconciliation";
+import { isProcessedBillingReceipt } from "@/lib/billing-webhook-receipt";
 
-type BillingReceiptRow = { provider: string; event_id: string; processed_at: string | null };
+type BillingReceiptRow = { provider: string; event_id: string; organization_id: string; processed_at: string | null };
 type BillingAccountIdentityRow = {
   organization_id: string;
   external_customer_id: string | null;
@@ -24,7 +25,21 @@ async function claimBillingEvent(event: VerifiedBillingEvent, provider: string) 
       organization_id: event.organizationId,
     },
   });
-  return rows.length > 0;
+  if (rows.length > 0) return true;
+  // A uniqueness conflict may be a completed duplicate OR an interrupted,
+  // still-pending receipt. Only an exact already-processed row permits 2xx.
+  const previous = await supabaseRest<BillingReceiptRow[]>(
+    "billing_webhook_events?select=provider,event_id,organization_id,processed_at"
+      + "&provider=eq." + encodeURIComponent(provider)
+      + "&event_id=eq." + encodeURIComponent(event.eventId) + "&limit=2",
+    { serviceRole: true },
+  );
+  if (!isProcessedBillingReceipt(previous, {
+    provider, eventId: event.eventId, organizationId: event.organizationId,
+  })) {
+    throw new Error("Billing receipt is pending, mismatched, or ambiguous; provider retry required.");
+  }
+  return false;
 }
 
 async function releaseBillingEvent(event: VerifiedBillingEvent, provider: string) {
