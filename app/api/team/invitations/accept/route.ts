@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "This invitation has expired. Ask the workspace owner for a new link." }, { status: 410 });
   }
   if (invitation.email.toLowerCase() !== viewer.email.toLowerCase()) {
-    return NextResponse.json({ error: `Sign in as ${invitation.email} to accept this invitation.` }, { status: 403 });
+    return NextResponse.json({ error: "Sign in with the email address that received the invitation." }, { status: 403 });
   }
   // Invitation possession is bound to the invited mailbox. Never grant
   // membership to an account whose matching email address is unconfirmed.
