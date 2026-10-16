@@ -75,6 +75,8 @@ test("Chat05: wrong mailbox and unconfirmed mailbox never claim invitation", asy
   assert.equal(result.status, 403);
   assert.equal(env.db.tables.invitations[0].status, "pending");
   assert.deepEqual(env.members(), []);
+  assert.doesNotMatch(JSON.stringify(await result.json()), /invitee@new\.example\.test/);
+
 });
 
 test("Chat05: expiration before request refuses and never grants", async () => {
