@@ -116,6 +116,7 @@ async function ensureExactHealth(page) {
 }
 
 const freshWebEvidenceQuestion = officialFirstEvidenceQuestion;
+const historicalWebEvidenceQuestion = "Use web search now. According to the official OpenAI website, what is the title and publication date of the most recently published post on openai.com/news at the time you answer? Cite the exact openai.com source URL you used. If you cannot verify it with current web evidence, say so rather than answering from memory.";
 
 const syntheticOnboarding = {
   companyName: "Foremention Acceptance Fixture",
@@ -169,8 +170,13 @@ async function ensureCanaryWorkspace(page) {
   const organizationId = typeof workspace.body?.organizationId === "string" ? workspace.body.organizationId.trim().toLowerCase() : "";
   if (!/^[0-9a-f-]{36}$/i.test(organizationId)) fail("Dedicated canary workspace identity lookup returned an invalid organization identifier; refusing to mutate or spend.");
 
-  const canarySlot = approved.find((item) => item?.text === freshWebEvidenceQuestion) || approved[0];
-  if (!canarySlot?.id || !/^[0-9a-f-]{36}$/i.test(canarySlot.id)) fail("The historical canary buyer question is missing a valid ID.");
+  // The approved question order is not an identity. Migrate only the known
+  // historical canary slot after its pinned organization/question fingerprint
+  // matches. Never edit an unrelated approved buyer question.
+  const canarySlot = approved.find((item) => item?.text === freshWebEvidenceQuestion)
+    || approved.find((item) => item?.text === historicalWebEvidenceQuestion)
+    || null;
+  if (!canarySlot?.id || !/^[0-9a-f-]{36}$/i.test(canarySlot.id)) fail("Neither the pinned synthetic acceptance question nor its legacy text was found. Refusing to select or mutate a different buyer question.");
   const observedFingerprint = createHash("sha256")
     .update(`${organizationId}:${canarySlot.id}`)
     .digest("hex");
