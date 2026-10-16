@@ -56,7 +56,7 @@ export async function ensureReviewedAutoMeasurementSchedule(input: {
       providerIds:[baseline.pin.provider],modelSnapshot:baseline.pin.model,methodologySnapshot:baseline.pin.methodologyVersion,
       locale:baseline.pin.questionPins[0].context.locale,market:baseline.pin.questionPins[0].context.market,enabled:true});
     const due=planned?.eligible ? planned.dueAt : nextScheduleAt(new Date(run.completed_at),cadence,"UTC").toISOString();
-    await supabaseRest("measurement_schedules",{method:"POST",token:input.token,prefer:"return=minimal",body:{
+    await supabaseRest("measurement_schedules",{method:"POST",serviceRole:true,prefer:"return=minimal",body:{
       organization_id:input.organizationId,project_id:input.projectId,category_id:run.category_id,
       created_by:input.actorId,cadence:schedule.cadence,timezone:schedule.timezone,question_ids:schedule.questionIds,
       provider_ids:schedule.providerIds,model_snapshot:schedule.modelSnapshot,methodology_snapshot:schedule.methodologySnapshot,
