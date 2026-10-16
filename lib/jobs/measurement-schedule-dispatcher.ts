@@ -246,7 +246,8 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
         organization_id: schedule.organization_id,
         run_id: runId,
         prompt_id: prompt.id,
-        prompt_key: prompt.prompt_key,
+        prompt_key: schedule.schedule_origin === "manual" ? prompt.prompt_key
+          : (contract.questionPins as Array<{ promptId: string; promptKey: string }>).find((pin) => pin.promptId === prompt.id)!.promptKey,
         prompt_text: prompt.prompt_text,
         locale: prompt.locale || schedule.locale,
         market: prompt.market || schedule.market,
