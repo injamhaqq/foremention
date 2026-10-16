@@ -1,0 +1,100 @@
+{
+  "batch_id": "fm360-20261016",
+  "chat_id": "03",
+  "status": "partial",
+  "observed_at_utc": "2026-10-16T12:50:00Z",
+  "base_sha": "6bf8bfda6ec0573dbbf432b831eff45688f8f47b",
+  "head_sha": null,
+  "branch": "work/fm360-20261016/chat-03-trial-repeat-policy-6bf8-1733",
+  "draft_pr_url": null,
+  "owned_backlog_ids": [
+    "FM-AUD-02",
+    "FM-AUD-03",
+    "FM-AUD-13"
+  ],
+  "changed_files": [
+    "lib/trial-repeat-policy.ts",
+    "lib/reviewed-auto-measurement-schedule.ts",
+    "lib/jobs/measurement-schedule-dispatcher.ts",
+    "lib/jobs/inngest.ts",
+    "lib/run-pair-comparability.ts",
+    "app/api/runs/route.ts",
+    "app/api/runs/[id]/review/route.ts",
+    "app/api/schedules/route.ts",
+    "supabase/migrations/20261016160000_schedule_contract_fm360.sql",
+    "tests/03-trial-repeat-policy.test.mjs",
+    "tests/03-reviewed-autoschedule-integration.test.mjs",
+    "tests/06-schedule-dispatch-runtime.test.mjs"
+  ],
+  "findings": [
+    {
+      "id": "FM-AUD-02",
+      "classification": "confirmed defect in base; patch implemented but unverified",
+      "claim": "7-day trial auto repeat used week-later due date at/after expiry",
+      "evidence": "base source 6bf8bf; policy and review hook branch",
+      "limitation": "No production integration or live schedule row checks"
+    },
+    {
+      "id": "FM-AUD-03",
+      "classification": "confirmed design gap in base; patch implemented but unverified",
+      "claim": "Auto schedule created before complete baseline, with null model and default context",
+      "evidence": "base run creation helper and reviewer hook; new pins",
+      "limitation": "Exact sampling settings not universally captured"
+    },
+    {
+      "id": "FM-AUD-13",
+      "classification": "implemented but unverified",
+      "claim": "dispatcher/worker/compare gate now hold legacy, expired, partial and drifted contracts",
+      "evidence": "branch diff",
+      "limitation": "No complete CI, RLS, migration or concurrency replay"
+    }
+  ],
+  "tests": [
+    {
+      "command": "node --experimental-strip-types --test tests/03-trial-repeat-policy.test.mjs",
+      "environment": "local isolated Node v22.16",
+      "sha": null,
+      "result": "12 passed",
+      "receipt": "previous artifact test-receipt.txt"
+    },
+    {
+      "command": "node --experimental-strip-types --test tests/03-reviewed-autoschedule-integration.test.mjs",
+      "environment": "local equivalent authored helper with mocked dependencies",
+      "sha": null,
+      "result": "5 passed",
+      "receipt": "current-turn local mock; not exact remote SHA"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/injamhaqq/foremention",
+      "published_at": null,
+      "observed_at": "2026-10-16",
+      "evidence_level": "code inspection",
+      "limitation": "No live production query"
+    }
+  ],
+  "dependencies": [
+    "Chat01 shared migration/types and release",
+    "Chat06 entitlement/quota and RPC validation",
+    "Chat07 held-state truthful UI",
+    "Chat02 sampling provenance"
+  ],
+  "shared_file_proposals": [
+    "review shared schedule migration and worker run metadata",
+    "exact RLS and replay fixtures"
+  ],
+  "blocked_acceptance": [
+    "exact-branch pnpm suite/typecheck/lint/build",
+    "isolated SQL migration/RLS replay",
+    "delayed/retry/cancel provider-side worker test",
+    "historical four schedules fresh live read",
+    "production exact-SHA verification"
+  ],
+  "rollback": "No merge or live data changes. Retain immutable history; rollback only reversible application code and reconcile additive schema forward.",
+  "artifacts": [
+    "docs/execution/fm360-20261016/chat-03/RESULT.md",
+    "docs/execution/fm360-20261016/chat-03/handoff.json"
+  ],
+  "next_action": "Chat01 integrate/review shared contracts and run required exact-SHA release gates; do not merge/deploy until proven."
+}
