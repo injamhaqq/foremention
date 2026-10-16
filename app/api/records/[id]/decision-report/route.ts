@@ -21,6 +21,7 @@ type Specification = {
   acceptance_criteria_json: string[] | null; verification_plan_json: Record<string, unknown> | null;
 };
 type EvidenceLink = { source_observation_id: string | null; evidence_item_id: string | null; evidence_snapshot: Record<string, unknown> };
+type CurrentEvidenceItem = { id: string; verification_status: string; expires_at: string | null; usage_rights: string | null; source_url: string | null };
 type SourceObservation = { id: string; run_answer_id: string | null; review_status: string };
 type SourceLink = { source_observation_id: string; source_snapshot_id: string };
 type Snapshot = { id: string; run_id: string | null; access: string; retrieved_at: string };
@@ -95,6 +96,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     // Source snapshots are linked by explicit immutable observation IDs. Unknown
     // and inaccessible sources stay unknown/blocked; never assume source support.
+    const itemIds = evidenceLinks.map((x) => x.evidence_item_id).filter((x): x is string => typeof x === "string" && UUID.test(x));
+    const currentEvidenceItems = itemIds.length ? await readList<CurrentEvidenceItem>(
+      `evidence_items?select=id,verification_status,expires_at,usage_rights,source_url&id=in.(${itemIds.join(",")})&organization_id=eq.${org}&project_id=eq.${project}&limit=100`, token) : [];
+    const usableEvidenceItemIds = new Set(currentEvidenceItems.filter((item) =>
+      item.verification_status === "verified" && Boolean(item.source_url) &&
+      Boolean(item.usage_rights?.trim()) && (!item.expires_at || Date.parse(item.expires_at) > Date.now())
+    ).map((item) => item.id));
     const obsIds = evidenceLinks.map((x) => x.source_observation_id).filter((x): x is string => typeof x === "string" && UUID.test(x));
     const sourceObs = obsIds.length ? await readList<SourceObservation>(
       `source_observations?select=id,run_answer_id,review_status&id=in.(${obsIds.join(",")})&organization_id=eq.${org}&limit=100`, token) : [];
@@ -117,7 +125,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return {
         id: idValue, runId: observation ? (answerIds.has(observation.run_answer_id || "") ? id : "not-this-Record") : null,
         reviewStatus: observation?.review_status === "verified" && answerIds.has(observation.run_answer_id || "") ? "verified" :
-          (!observation && link.evidence_snapshot?.verification === "verified" ? "verified" : "unreviewed"),
+          (link.evidence_item_id && usableEvidenceItemIds.has(link.evidence_item_id) &&
+          link.evidence_snapshot?.verification === "verified" ? "verified" : "unreviewed"),
         accessStatus: matching && ["open", "partial", "blocked"].includes(matching.access) ?
           matching.access as "open" | "partial" | "blocked" : "unknown",
         origin: matching ? "independent_retrieval" : "unknown",
@@ -131,7 +140,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         recordDecision.decision_kind === "no_action" ?
           (recordDecision.decision_state === "MONITOR_ONLY" ? "deferred" : "no_change") :
           isApproved ? "approved" : spec?.status === "rejected" ? "rejected" : "pending_review",
-      evidenceIds: evidence.filter((x) => x.reviewStatus === "verified" && ["open", "partial"].includes(x.accessStatus)).map((x) => x.id),
+      // For approved decisions, include every linked source, even a blocked one:
+      // the formatter then refuses the report instead of quietly dropping
+      // adverse or stale supporting evidence from the claimed decision basis.
+      evidenceIds: isApproved ? evidence.map((x) => x.id) :
+        evidence.filter((x) => x.reviewStatus === "verified" && ["open", "partial"].includes(x.accessStatus)).map((x) => x.id),
       decidedAt: recordDecision.decided_at,
       reviewerRole: "role at decision not recorded",
       rationale: recordDecision.rationale,
