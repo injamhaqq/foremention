@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { pinCompleteBaseline, planTrialFollowUp } from "../lib/trial-repeat-policy.ts";
+import { autoScheduleCadence } from "../lib/product-limits.ts";
 
 const source = readFileSync(new URL("../lib/reviewed-auto-measurement-schedule.ts", import.meta.url), "utf8");
 const compiled = ts.transpileModule(source,{fileName:"reviewed-auto.ts",compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
@@ -21,7 +22,7 @@ function harness(opts={}){
  };
  const deps={
   "@/lib/measurement-schedules":{nextScheduleAt:(now)=>new Date(new Date(now).getTime()+7*86400000),validateMeasurementSchedule:(x)=>x},
-  "@/lib/product-limits":{autoScheduleCadence:(row,now)=>row.status==="active"&&new Date(row.expires_at)>now?"weekly":null},
+  "@/lib/product-limits":{autoScheduleCadence},
   "@/lib/supabase-rest":{supabaseRest:rest},
   "@/lib/trial-repeat-policy":{pinCompleteBaseline,planTrialFollowUp}
  };
