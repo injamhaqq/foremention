@@ -26,6 +26,14 @@ test("source observations are linked to reviewed Record answers and pre-decision
   ]) assert.ok(s.includes(required), required);
 });
 
+test("approved reports revalidate currently accessible evidence and never drop blocked support silently", async () => {
+  const s = await route();
+  for (const required of [
+    "currentEvidenceItems", "usableEvidenceItemIds", "verification_status", "expires_at",
+    "usage_rights", "source_url", "project_id=eq.", "evidenceIds: isApproved ? evidence.map",
+  ]) assert.ok(s.includes(required), required);
+});
+
 test("later comparisons reuse both existing exact protocol and scoped context checks", async () => {
   const s = await route();
   for (const required of [
