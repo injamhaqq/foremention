@@ -110,6 +110,48 @@ export function admitRepeatDispatch(input: {
   return { eligible: true };
 }
 
+
+export type ManualAuthorizationPin = {
+  authorizationBillingSource: string;
+  authorizationPackageKey: string | null;
+  authorizationExpiresAt: string | null;
+};
+
+/** Manual authorization is not transferable when the plan changes or lapses.
+ * Its original trial/paid expiry remains a cap even if later entitlements grant
+ * new Free capacity. A new opt-in is required to establish a new contract. */
+export function admitManualScheduleAuthorization(input: {
+  pin: ManualAuthorizationPin | null;
+  currentBillingSource: string | null;
+  currentPackageKey: string | null;
+  currentExpiresAt: string | null;
+  currentStatus: string | null;
+  at: string | Date;
+  completionBufferMs?: number;
+}): { eligible: true } | { eligible: false; reason: RepeatPolicyReason } {
+  const pin = input.pin;
+  const at = timestamp(input.at);
+  if (!pin || !pin.authorizationBillingSource || at === null) {
+    return { eligible: false, reason: "ENTITLEMENT_UNKNOWN" };
+  }
+  if (input.currentStatus !== "active"
+    || input.currentBillingSource !== pin.authorizationBillingSource
+    || input.currentPackageKey !== pin.authorizationPackageKey) {
+    return { eligible: false, reason: "ENTITLEMENT_CHANGED" };
+  }
+  const expires = [pin.authorizationExpiresAt, input.currentExpiresAt].filter(
+    (date): date is string => typeof date === "string" && date.length > 0,
+  );
+  if (expires.some(date => timestamp(date) === null)) {
+    return { eligible: false, reason: "ENTITLEMENT_UNKNOWN" };
+  }
+  const buffer = input.completionBufferMs ?? (pin.authorizationBillingSource === "trial" ? TRIAL_COMPLETION_BUFFER_MS : 0);
+  if (expires.some(date => at >= (timestamp(date) as number) - buffer)) {
+    return { eligible: false, reason: "TRIAL_WINDOW_EXPIRED" };
+  }
+  return { eligible: true };
+}
+
 export type BaselineAnswerPin = {
   promptKey: string;
   promptText: string;
