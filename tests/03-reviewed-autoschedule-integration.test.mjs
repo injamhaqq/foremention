@@ -44,6 +44,21 @@ test("existing disabled schedule is preserved, not reactivated",async()=>{
  const h=harness({existing:[{id:"paused",enabled:false}]});
  assert.equal((await h.call()).reason,"USER_PAUSED");assert.equal(h.writes.length,0);
 });
+test("enabled legacy schedule is historical, not a blocker to a new pinned baseline",async()=>{
+ const h=harness({existing:[{id:"legacy1",enabled:true,schedule_origin:"legacy_unknown"}]});
+ assert.equal((await h.call()).status,"created");assert.equal(h.writes.length,1);
+ assert.equal(h.writes[0].schedule_origin,"trial");
+});
+test("paused legacy schedule preserves deliberate opt-out",async()=>{
+ const h=harness({existing:[{id:"legacy2",enabled:false,schedule_origin:"legacy_unknown"}]});
+ assert.equal((await h.call()).reason,"USER_PAUSED");assert.equal(h.writes.length,0);
+});
+test("modern manually authorized or paid schedules prevent new automatic duplicate",async()=>{
+ for(const origin of ["manual","paid","trial"]){
+   const h=harness({existing:[{id:"modern",enabled:true,schedule_origin:origin}]});
+   assert.equal((await h.call()).reason,"EXISTING_SCHEDULE");assert.equal(h.writes.length,0);
+ }
+});
 test("unknown exact prompt version cannot establish comparable baseline",async()=>{
  const h=harness({answers:[{...answers[0],measurement_context_json:{...ctx,promptVersion:null}}]});
  assert.equal((await h.call()).reason,"BASELINE_UNKNOWN_CONTRACT");assert.equal(h.writes.length,0);
