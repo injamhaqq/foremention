@@ -569,6 +569,46 @@ async function verifyAuthenticatedRoutes() {
   summary.authenticated = { skipped: false, routes: evidence };
 }
 
+async function verifyHomeKeyboardGraph(page, profileName) {
+  await page.goto(new URL("/", baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
+  const select = page.getByRole("combobox", { name: "Choose the supported example measurement surface" });
+  try {
+    await select.focus();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Tab");
+    if (await select.inputValue() !== "workers-ai-bing-rss") {
+      recordFailure("Keyboard selection did not activate the illustrative surface.", { profile: profileName });
+      return;
+    }
+
+    const source = page.getByRole("button", { name: /RETURNED SOURCE Source 01/i });
+    await source.waitFor({ state: "visible", timeout: 10_000 });
+    if (await source.isDisabled()) {
+      recordFailure("Illustrative evidence stays disabled after selecting an example surface.", { profile: profileName });
+      return;
+    }
+    await source.focus();
+    await page.keyboard.press("Enter");
+    if (await source.getAttribute("aria-pressed") !== "true") {
+      recordFailure("Keyboard activation did not select the illustrative source.", { profile: profileName });
+    }
+    const inspector = page.locator("#sample-recommendation-graph .fm-graph-record");
+    if (!(await inspector.innerText()).includes("Source 01")) {
+      recordFailure("Keyboard evidence selection did not update the public inspector.", { profile: profileName });
+    }
+    await inspector.focus();
+    await page.keyboard.press("Enter");
+    if (new URL(page.url()).hash !== "#recommendation-record") {
+      recordFailure("Keyboard evidence link did not reach the Recommendation Record anchor.", { profile: profileName });
+    }
+  } catch (error) {
+    recordFailure("Homepage sample keyboard journey failed.", {
+      profile: profileName, error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 async function runPublicProfiles() {
   for (const profile of profiles) {
     console.log(`[browser-acceptance] ${profile.name}`);
@@ -579,6 +619,9 @@ async function runPublicProfiles() {
       const observers = attachRuntimeObservers(page);
       for (const path of publicPaths) await auditPage({ page, observers, path, profileName: profile.name });
       await verifyAnalyticsOverlayRegression(page, profile.name);
+      if (profile.name === "chromium-desktop" || profile.name === "chromium-mobile") {
+        await verifyHomeKeyboardGraph(page, profile.name);
+      }
       if (!crossEngineProfiles.has(profile.name)) await verifyRecommendationRecordEvidence(page, profile.name);
       await context.close();
     } catch (error) {
