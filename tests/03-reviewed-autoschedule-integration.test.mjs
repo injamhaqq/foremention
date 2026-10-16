@@ -67,3 +67,16 @@ test("late baseline cannot promise a follow-up beyond trial expiry",async()=>{
  const h=harness({run:{completed_at:"2026-10-22T12:00:00.000Z"}});
  assert.equal((await h.call()).status,"not_eligible");assert.equal(h.writes.length,0);
 });
+
+test("founder grant may use explicit manual scheduling, not an automatic paid contract",async()=>{
+ const h=harness({entitlement:{package_key:"signal",billing_source:"founder_grant",expires_at:null}});
+ const result=await h.call();
+ assert.equal(result.status,"not_eligible");
+ assert.equal(result.reason,"ENTITLEMENT_CHANGED");
+ assert.equal(h.writes.length,0);
+});
+test("mismatched trial package cannot become a paid automatic schedule",async()=>{
+ const h=harness({entitlement:{package_key:"signal",billing_source:"trial"}});
+ assert.equal((await h.call()).status,"not_eligible");
+ assert.equal(h.writes.length,0);
+});
