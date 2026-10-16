@@ -410,10 +410,32 @@ async function main() {
     // A15: the manager decision itself persists, but its acknowledgement is
     // lost. The owner must not be able to decide again until an explicit
     // scoped reload shows the decision that was actually saved.
+    const ownerRead=must(await appCall(ownerCtx,"GET","/api/change-specifications"),200,"authenticated owner decision preflight");
+    const ownerSpec=ownerRead.data?.find(item=>item.id===spec.id);
+    assert.equal(ownerRead.permissions?.role,"owner","owner API must resolve the actual owner role");
+    assert.equal(ownerRead.permissions?.canDecide,true,"owner API must expose manager decision eligibility");
+    assert.equal(ownerSpec?.status,"in_review","owner API must see persisted in-review decision");
+    step("authenticated-owner-api-status-and-role-preflight");
     const ownerPage=await ownerCtx.newPage();
     const ownerNavigation=await ownerPage.goto(new URL("/app/change-specifications/"+spec.id,app).toString(),{waitUntil:"domcontentloaded",timeout:45000});
     assert.equal(ownerNavigation?.status(),200,"authenticated owner decision navigation must return 200");
-    await ownerPage.getByRole("button",{name:"Approve",exact:true}).waitFor({timeout:45000});
+    try {
+      await ownerPage.getByRole("button",{name:"Approve",exact:true}).waitFor({timeout:45000});
+    } catch (error) {
+      const visibleText=await ownerPage.locator("body").innerText().catch(()=>"unreadable");
+      const latest=await appCall(ownerCtx,"GET","/api/change-specifications");
+      const latestSpec=latest.data?.find(item=>item.id===spec.id);
+      console.error("[isolated-journey] owner-decision-render-diagnostic",JSON.stringify({
+        apiStatus:latest.status,apiRole:latest.permissions?.role||"unknown",
+        canDecide:latest.permissions?.canDecide??null,recordStatus:latestSpec?.status||"not-in-scope",
+        ownerPageStatus:ownerNavigation?.status(), hasLoadError:/Change Specification unavailable/.test(visibleText),
+        showsWaiting:/Waiting for a workspace owner/.test(visibleText),
+        showsLoading:/Loading Change Specification/.test(visibleText),
+        hasClientError:/Decision update failed/.test(visibleText),
+        documentHasApproveButton:await ownerPage.getByRole("button",{name:"Approve",exact:true}).count(),
+      }));
+      throw error;
+    }
     let decisionWrites=0;
     const interruptDecision=async(route)=>{
       if(route.request().method()!=="PATCH") return route.continue();
