@@ -28,22 +28,32 @@ function codePointAtIndex(text: string, index: number): string {
   return index < text.length ? String.fromCodePoint(text.codePointAt(index)!) : "";
 }
 
-function containsBoundedMention(text: string, rawTerm: string) {
+/**
+ * First exact, Unicode-boundaried lexical mention in the normalized text.
+ * Use for answer presence/order as well as inspected-page presence; this
+ * establishes mention only, never recommendation, endorsement, or rank.
+ */
+export function firstBoundedNameIndex(text: string, rawTerm: string): number {
+  const lower = text.toLocaleLowerCase();
   const term = rawTerm.trim().toLocaleLowerCase();
-  if (!term) return false;
+  if (!term) return -1;
   let from = 0;
-  while (from < text.length) {
-    const index = text.indexOf(term, from);
-    if (index < 0) return false;
+  while (from < lower.length) {
+    const index = lower.indexOf(term, from);
+    if (index < 0) return -1;
     const after = index + term.length;
     const startsWithWord = mentionWordChar.test(codePointAtIndex(term, 0));
     const endsWithWord = mentionWordChar.test(codePointBefore(term, term.length));
-    const leftBoundary = !startsWithWord || index === 0 || !mentionWordChar.test(codePointBefore(text, index));
-    const rightBoundary = !endsWithWord || after === text.length || !mentionWordChar.test(codePointAtIndex(text, after));
-    if (leftBoundary && rightBoundary) return true;
+    const leftBoundary = !startsWithWord || index === 0 || !mentionWordChar.test(codePointBefore(lower, index));
+    const rightBoundary = !endsWithWord || after === lower.length || !mentionWordChar.test(codePointAtIndex(lower, after));
+    if (leftBoundary && rightBoundary) return index;
     from = index + 1;
   }
-  return false;
+  return -1;
+}
+
+function containsBoundedMention(text: string, rawTerm: string) {
+  return firstBoundedNameIndex(text, rawTerm) >= 0;
 }
 
 /**
