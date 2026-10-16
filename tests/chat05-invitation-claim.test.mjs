@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  FakePostgrest, ORG_A, ORG_B, USERS, loadModule, request,
+  FakePostgrest, ORG_B, USERS, loadModule, request,
   twoTenantTables, viewerFor, workspaceDeps,
 } from "./attach02-harness.mjs";
 import { sha256Hex } from "../lib/account-security.ts";
