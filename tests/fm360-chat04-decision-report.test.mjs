@@ -74,6 +74,20 @@ test("neutral non-action and disagreement dispositions are legitimate without ma
   }
 });
 
+test("approval packet requires action only when canonical decision state is actionable", () => {
+  const noAction = { ...base.decision, decisionState: "MONITOR_ONLY",
+    ownerRole: null, action: null, dueDate: null, successCriteria: null, reversalCriteria: null };
+  const md = render({ ...base, decision: noAction });
+  assert.ok(md.includes("not recorded"));
+  for (const missing of ["ownerRole", "action", "dueDate"]) {
+    const actionable = { ...base.decision, decisionState: "DO_NOW", [missing]: null };
+    expectReject({ ...base, decision: actionable }, /approved action incomplete/);
+  }
+  const approved = render({ ...base, decision: {
+    ...base.decision, decisionState: "TEST_FIRST", reversalCriteria: null } });
+  assert.ok(approved.includes("Reversal criteria"));
+});
+
 test("HTML/Markdown injection, addresses and API-looking secrets are escaped/redacted", () => {
   const md = render({ ...base, decision: { ...base.decision,
     rationale: "<script>evil()</script>\n# Fake verdict\nprivate@example.org sk-supersecretcredential123456789" } });
