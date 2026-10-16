@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  FakePostgrest, ORG_A, ORG_B, PROJECT_A1, PROJECT_A2, PROJECT_B1,
+  FakePostgrest, ORG_B, PROJECT_A1, PROJECT_B1,
   USERS, loadModule, params, request, twoTenantTables, viewerFor, workspaceDeps,
 } from "./attach02-harness.mjs";
 
