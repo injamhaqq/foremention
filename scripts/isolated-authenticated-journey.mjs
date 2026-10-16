@@ -417,8 +417,22 @@ async function main() {
     assert.equal(ownerSpec?.status,"in_review","owner API must see persisted in-review decision");
     step("authenticated-owner-api-status-and-role-preflight");
     const ownerPage=await ownerCtx.newPage();
+    // A transient first GET must show an explicit recovery action. The UI must
+    // not silently repeat requests, mutate a decision, or expose approval before
+    // a successful owner-scoped read.
+    let rejectedOwnerReads=0;
+    const interruptInitialOwnerRead=async(route)=>{
+      if(route.request().method()!=="GET" || rejectedOwnerReads>0) return route.continue();
+      rejectedOwnerReads++;
+      await route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error:"Synthetic initial read unavailable"})});
+    };
+    await ownerPage.route("**/api/change-specifications",interruptInitialOwnerRead);
     const ownerNavigation=await ownerPage.goto(new URL("/app/change-specifications/"+spec.id,app).toString(),{waitUntil:"domcontentloaded",timeout:45000});
     assert.equal(ownerNavigation?.status(),200,"authenticated owner decision navigation must return 200");
+    await ownerPage.getByRole("button",{name:"Retry loading decision",exact:true}).waitFor({timeout:25000});
+    assert.equal(rejectedOwnerReads,1,"exactly one read was interrupted, with no automatic retry");
+    assert.equal(await ownerPage.getByRole("button",{name:"Approve",exact:true}).count(),0,"approval cannot appear without a scoped successful read");
+    await ownerPage.getByRole("button",{name:"Retry loading decision",exact:true}).click();
     try {
       await ownerPage.getByRole("button",{name:"Approve",exact:true}).waitFor({timeout:45000});
     } catch (error) {
@@ -436,6 +450,8 @@ async function main() {
       }));
       throw error;
     }
+    await ownerPage.unroute("**/api/change-specifications",interruptInitialOwnerRead);
+    step("authenticated-owner-explicit-retry-recovers-transient-scoped-read");
     let decisionWrites=0;
     const interruptDecision=async(route)=>{
       if(route.request().method()!=="PATCH") return route.continue();
