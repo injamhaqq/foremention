@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureReviewedAutoMeasurementSchedule } from "@/lib/reviewed-auto-measurement-schedule";
 import { getViewer } from "@/lib/auth";
 import { reconcileReviewedRunAgentTelemetry } from "@/lib/agent-control-plane";
 import { safeOperationalError } from "@/lib/collection-policy";
@@ -110,6 +111,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }, { status: 503 });
   }
 
+  // Only a fully human-reviewed complete baseline can authorize an automatic repeat.
+  // This is best-effort and never re-enables or overwrites an existing schedule.
+  const repeatScheduling = finalStatus === "complete"
+    ? await ensureReviewedAutoMeasurementSchedule({
+        organizationId: context.organizationId,
+        projectId: context.projectId,
+        runId: run.id,
+        actorId: viewer.id,
+        token: viewer.accessToken!,
+      })
+    : { status: "not_eligible" as const, reason: "BASELINE_INCOMPLETE" };
+
   const sideEffects = await Promise.allSettled([
     supabaseRest("audit_logs", {
       method: "POST",
@@ -160,5 +173,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (sideEffects.some((result) => result.status === "rejected")) {
     console.warn("Run review completed with a non-critical notification or audit-log failure.");
   }
-  return NextResponse.json({ ok: true, status: finalStatus, sourceMapId, sourceCount, withheldOfficialSourceAnswers: withheldIds.length });
+  return NextResponse.json({ ok: true, status: finalStatus, sourceMapId, sourceCount, withheldOfficialSourceAnswers: withheldIds.length, repeatScheduling });
 }
