@@ -48,8 +48,9 @@ const readList = async <T,>(url: string, token: string) => supabaseRest<T[]>(url
  */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
-  if (!viewer || !viewer.accessToken) return deny("Sign in to export a reviewed decision.", 401);
+  if (!viewer) return deny("Sign in to export a reviewed decision.", 401);
   if (viewer.mode === "demo") return deny("Fictional demo decisions cannot be exported as customer records.", 409);
+  if (!viewer.accessToken) return deny("Sign in again to export a reviewed decision.", 401);
   const role = await getPrimaryWorkspaceRole(viewer);
   if (!["owner", "admin", "analyst"].includes(role || "")) return deny("Only authorized workspace reviewers can export decision packets.", 403);
   const context = await loadWorkspaceContext(viewer);
@@ -103,7 +104,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const snapshotIds = [...new Set(sourceEdges.map((x) => x.source_snapshot_id).filter((x) => UUID.test(x)))];
     const snaps = snapshotIds.length ? await readList<Snapshot>(
       `source_snapshots?select=id,run_id,access,retrieved_at&id=in.(${snapshotIds.join(",")})&organization_id=eq.${org}&limit=300`, token) : [];
-    const snapshotById = new Map(snaps.filter((x) => x.run_id === id).map((x) => [x.id, x]));
+    const snapshotById = new Map(snaps.filter((x) => x.run_id === id &&
+      Number.isFinite(Date.parse(x.retrieved_at)) && Date.parse(x.retrieved_at) <= Date.parse(recordDecision.decided_at))
+      .map((x) => [x.id, x]));
     const answerIds = new Set(answers.filter((x) => x.review_status === "verified").map((x) => x.id));
     const evidence: ReportEvidence[] = evidenceLinks.map((link) => {
       const idValue = link.source_observation_id || link.evidence_item_id || "";
