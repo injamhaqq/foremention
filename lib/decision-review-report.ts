@@ -21,7 +21,7 @@ export type ReportDecision = {
   kind: "change_specification" | "no_action" | "reviewer_disagreement";
   disposition: "approved" | "rejected" | "deferred" | "no_change" | "pending_review" | "disagreement";
   decidedAt: string; reviewerRole: string; rationale: string;
-  decisionState?: "DO_NOW" | "TEST_FIRST" | "DO_NOT_DO" | "MONITOR_ONLY" | "INSUFFICIENT_EVIDENCE";
+  decisionState: "DO_NOW" | "TEST_FIRST" | "DO_NOT_DO" | "MONITOR_ONLY" | "INSUFFICIENT_EVIDENCE";
   changeSpecificationId?: string | null; ownerRole?: string | null;
   action?: string | null; dueDate?: string | null;
   successCriteria?: string | null; reversalCriteria?: string | null;
@@ -60,7 +60,12 @@ export function buildPortableDecisionReviewMarkdown(input: DecisionReviewReportI
   if (!validTime(input.baseline.collectedAt) || !validTime(input.decision.decidedAt) ||
       !validCount(input.baseline.reviewedAnswers, input.baseline.totalAnswers)) refuse("baseline evidence count or chronology unavailable");
   if (Date.parse(input.decision.decidedAt) < Date.parse(input.baseline.collectedAt)) refuse("decision predates baseline collection");
-  const evidence = new Map(input.evidence.map((x) => [x.id, x]));
+  if (!["DO_NOW", "TEST_FIRST", "DO_NOT_DO", "MONITOR_ONLY", "INSUFFICIENT_EVIDENCE"].includes(input.decision.decisionState))
+    refuse("canonical decision state missing");
+  if (input.decision.kind === "no_action" &&
+      !["DO_NOT_DO", "MONITOR_ONLY", "INSUFFICIENT_EVIDENCE"].includes(input.decision.decisionState))
+    refuse("no-action decision cannot be actionable");
+    const evidence = new Map(input.evidence.map((x) => [x.id, x]));
   if (evidence.size !== input.evidence.length) refuse("duplicate source identities");
   if (input.evidence.some((x) => x.runId && x.runId !== input.baseline.id)) refuse("source from unrelated Record");
   for (const id of input.decision.evidenceIds) {
