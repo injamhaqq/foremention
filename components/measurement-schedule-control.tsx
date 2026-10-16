@@ -13,6 +13,7 @@ type Schedule = {
   market?: string;
   enabled: boolean;
   dispatch_state?: "paused" | "needs_review" | "trial_expired" | "plan_changed" | "model_changed" | "configured";
+  schedule_origin?: "legacy_unknown" | "trial" | "paid" | "manual";
   next_run_at: string;
   last_run_at?: string | null;
 };
@@ -21,7 +22,7 @@ const labelDate = (value?: string | null) => value ? new Intl.DateTimeFormat("en
 const scheduleStatus = (schedule: Schedule) => {
   switch (schedule.dispatch_state) {
     case "paused": return { label: "Paused", detail: "You paused this schedule; no automatic collection will start." };
-    case "needs_review": return { label: "Needs review", detail: "This older schedule has unverified model or baseline provenance and will not dispatch. A new, fully reviewed baseline is required." };
+    case "needs_review": return { label: "Needs review", detail: "This older schedule has unverified model or baseline provenance and will not dispatch. An existing legacy schedule cannot produce a trusted automatic comparison. You can create a new, manually authorized pinned schedule; only newly reviewed exact evidence can establish movement." };
     case "trial_expired": return { label: "Trial expired", detail: "The original trial no longer authorizes a repeat. It will not borrow Free capacity or start automatically." };
     case "plan_changed": return { label: "Plan changed", detail: "The plan that authorized this schedule is no longer active. Review your current plan before requesting another collection." };
     case "model_changed": return { label: "Model changed", detail: "The current provider model differs from the saved contract. Automatic comparison is held until the exact model is available." };
@@ -87,7 +88,7 @@ export function MeasurementScheduleControl() {
   }
 
   return <section className="retention-panel measurement-schedule" id="measurement-schedule" aria-labelledby="measurement-schedule-title">
-    <div className="retention-panel__heading"><div><span className="eyebrow">Recurring measurement</span><h2 id="measurement-schedule-title">Repeat the same evidence contract.</h2></div>{!items.length && !loading && <button className="button button--ink" disabled={pending} onClick={createSchedule}>{pending ? "Enabling…" : "Enable weekly remeasurement"}</button>}</div>
+    <div className="retention-panel__heading"><div><span className="eyebrow">Recurring measurement</span><h2 id="measurement-schedule-title">Repeat the same evidence contract.</h2></div>{!loading && (!items.length || items.every((schedule) => schedule.schedule_origin === "legacy_unknown")) && <button className="button button--ink" disabled={pending} onClick={createSchedule}>{pending ? "Enabling…" : items.length ? "Create a new pinned weekly schedule" : "Enable weekly remeasurement"}</button>}</div>
     <p>Scheduled collections use approved questions and one connected provider. A date is planned, not a guarantee: expiry, model changes, quotas and evidence reviews can hold a run. Movement is shown only after an eligible human-reviewed comparison exists.</p>
     {error && <p className="inline-error" role="alert">{error}</p>}
     {loading ? <p className="table-caption">Loading measurement schedule…</p> : items.length ? <div className="schedule-list">{items.map((schedule) => <article key={schedule.id}>
