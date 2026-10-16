@@ -47,7 +47,7 @@ export type RunPairComparability = {
   answers: VerifiedRunComparisonAnswer[];
 };
 
-const terminalReviewedStates = new Set(["complete"]);
+const terminalReviewedStates = new Set(["complete", "partial"]);
 
 function withheld(reason: string): RunPairComparability {
   return { comparable: false, reason, answers: [] };
@@ -109,7 +109,7 @@ export async function assessWorkspaceRunPairComparability(
     return withheld("Both different runs must belong to the active workspace.");
   }
   if (!terminalReviewedStates.has(earlier.status) || !terminalReviewedStates.has(later.status)) {
-    return withheld("Both runs must be fully complete and human-reviewed before movement can be compared.");
+    return withheld("Both runs must have completed human review before movement can be compared.");
   }
   if (new Date(earlier.created_at).getTime() >= new Date(later.created_at).getTime()) {
     return withheld("Choose the older reviewed collection as Earlier and the newer reviewed collection as Later.");
