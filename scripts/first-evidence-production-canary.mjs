@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { assessOfficialSourceAnswer, sourceDomainScopeFromPrompt } from "../lib/official-source-relevance.mjs";
+import { sourceDomainScopeFromPrompt } from "../lib/official-source-relevance.mjs";
+import { assessOfficialFirstEvidenceAnswer, officialFirstEvidenceQuestion } from "../lib/official-first-evidence-case.mjs";
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -114,7 +115,7 @@ async function ensureExactHealth(page) {
   stage("exact-production-sha-verified");
 }
 
-const freshWebEvidenceQuestion = "Use web search now. According to the official OpenAI website, what is the title and publication date of the most recently published post on openai.com/news at the time you answer? Cite the exact openai.com source URL you used. If you cannot verify it with current web evidence, say so rather than answering from memory.";
+const freshWebEvidenceQuestion = officialFirstEvidenceQuestion;
 
 const syntheticOnboarding = {
   companyName: "Foremention Acceptance Fixture",
@@ -252,7 +253,7 @@ async function verifyRunEvidenceAndPublish(page, run) {
     fail(`First-evidence collection terminated with status ${run.status}${reason}`);
   }
   if (!Number.isFinite(Number(run.answers)) || Number(run.answers) < 1) fail("The real provider run persisted no answer observations.");
-  if (!Number.isFinite(Number(run.citations)) || Number(run.citations) < 1) fail("The free grounded canary persisted no provider-returned citations.");
+  if (!Number.isFinite(Number(run.citations)) || Number(run.citations) < 1) fail("The live evidence canary persisted no recorded source references.");
 
   await page.goto(new URL(`/app/runs/${run.id}?first_evidence=1`, baseUrl).toString(), { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
@@ -278,26 +279,26 @@ async function verifyRunEvidenceAndPublish(page, run) {
 
   stage("persisted-provider-answer-verified", { answers: Number(run.answers), citations: Number(run.citations || 0) });
 
-  // #345/A08: the pinned question explicitly requires an exact official
-  // openai.com/news source. Citation quantity is not evidence quality: a
-  // generic refusal, or links to unrelated hosts/sections, must fail this gate
-  // BEFORE the synthetic user publishes (bulk-verifies) the run.
+  // Release-positive fixture requires a fixed official page, its exact
+  // independently checkable title/date, and a returned matching URL. Refusals
+  // remain correct unknown evidence, never a manufactured positive. Check
+  // the answer BEFORE allowing the synthetic user to publish review.
   const requiredOfficialScope = sourceDomainScopeFromPrompt(freshWebEvidenceQuestion);
   if (!requiredOfficialScope) fail("The pinned official-domain provenance requirement was not recognized.");
   const officialRecord = page.locator("article.canonical-answer-record").filter({
-    hasText: "most recently published post on openai.com/news",
+    hasText: "official announcement at openai.com/index/chatgpt/",
   }).first();
   if (await officialRecord.count() !== 1) fail("The pinned official-domain Recommendation Record was not rendered.");
   const displayedOfficialAnswer = await officialRecord.locator(":scope > p").first().innerText();
   const displayedOfficialCitations = await officialRecord.locator(".canonical-citation-record > a").evaluateAll(
     (anchors) => anchors.map((anchor) => ({ url: anchor.href })),
   );
-  const officialAssessment = assessOfficialSourceAnswer(displayedOfficialAnswer, displayedOfficialCitations, requiredOfficialScope);
+  const officialAssessment = assessOfficialFirstEvidenceAnswer(displayedOfficialAnswer, displayedOfficialCitations);
   summary.evidence.officialSourceQualification = officialAssessment.ok ? "qualified" : officialAssessment.reason;
   if (!officialAssessment.ok) {
-    fail(`The official-domain evidence qualification gate failed (${officialAssessment.reason}). A refusal or an unrelated returned link is not verified official-source evidence.`);
+    fail(`The fixed official-article evidence qualification gate failed (${officialAssessment.reason}). A refusal, unsupported title/date, or unrelated returned link is not verified official-source evidence.`);
   }
-  stage("official-source-provenance-minimum-verified");
+  stage("fixed-official-article-title-date-and-provenance-verified");
 
   if (run.status === "review") {
     const review = await sameOriginFetch(page, `/api/runs/${run.id}/review`, { method: "POST" });
@@ -312,7 +313,7 @@ async function verifyRunEvidenceAndPublish(page, run) {
   }
 
   const evidenceDetails = page.locator("details.canonical-contained-evidence").first();
-  if (await evidenceDetails.count() === 0) fail("The reviewed Recommendation Record has provider citations but no contained mapped-source evidence inspection.");
+  if (await evidenceDetails.count() === 0) fail("The reviewed Recommendation Record has recorded references but no contained mapped-source evidence inspection.");
   const evidenceSummary = evidenceDetails.locator("summary").first();
   if ((await evidenceSummary.count()) === 0 || !/Evidence inspection/i.test(await evidenceSummary.innerText())) {
     fail("The contained Recommendation Record evidence inspector did not expose its inspection boundary.");
