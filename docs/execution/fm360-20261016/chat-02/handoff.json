@@ -1,0 +1,202 @@
+{
+  "batch_id": "fm360-20261016",
+  "chat_id": "02",
+  "status": "partial",
+  "observed_at_utc": "2026-10-16",
+  "base_sha": "6bf8bfda6ec0573dbbf432b831eff45688f8f47b",
+  "head_sha": null,
+  "branch": "work/fm360-20261016/chat-02-evidence-f7b08206",
+  "draft_pr_url": "https://github.com/injamhaqq/foremention/pull/596",
+  "owned_backlog_ids": [
+    "FM-AUD-01",
+    "FM-AUD-11"
+  ],
+  "changed_files": [
+    "lib/official-source-relevance.mjs",
+    "lib/source-page-presence.ts",
+    "lib/jobs/inngest.ts",
+    "tests/chat02-evidence-qualification.test.mjs",
+    "tests/chat02-answer-mention-boundaries.test.mjs",
+    "docs/execution/fm360-20261016/chat-02/RESULT.md",
+    "docs/execution/fm360-20261016/chat-02/handoff.json",
+    "tests/06-collection-job-recovery-runtime.test.mjs"
+  ],
+  "findings": [
+    {
+      "id": "FM-AUD-01/canary",
+      "classification": "confirmed correct evidence-insufficiency abstention from exact synthetic production row",
+      "claim": "Model declined to identify latest openai.com/news post because retrieved snippets did not establish a newest individual post; 2 legitimate site URLs alone cannot support superlative.",
+      "evidence": "Historical Actions run 38739762884 plus 2026-10-16 read-only Supabase run_answers and source_snapshots inspection; selected URLs are https://openai.com/news/ and https://openai.com/news/intelligence-age/",
+      "limitation": "Both later source inspections partial with no excerpts; latest factual claim still unverified. No additional paid provider call."
+    },
+    {
+      "id": "FM-AUD-01/embedded",
+      "classification": "confirmed pure-helper defect, bounded patch",
+      "claim": "Embedded explicit inability to verify was eligible with an in-scope URL; now withheld.",
+      "evidence": "Red-green representative Node fixtures against source helper blob eef2b8989f42af80cb8b9042d1ef2e841d145d34",
+      "limitation": "Structural eligibility does not verify source support."
+    },
+    {
+      "id": "FM-AUD-01/generic",
+      "classification": "confirmed pure-helper defect, bounded patch",
+      "claim": "Generic-question explicit refusals could enter bulk VERIFIED partition; now withheld.",
+      "evidence": "Representative offline review partition red-green regression",
+      "limitation": "All seven initial-head CI workflows passed; claim-level support still requires human/positive acceptance."
+    },
+    {
+      "id": "FM-AUD-11/legacy",
+      "classification": "confirmed current read-only metadata gap",
+      "claim": "2026-10-16 production aggregate: 199/217 missing observation_method, 18 explicit API independent-retrieval methods; 25/74 open snapshots without excerpt (638 total).",
+      "evidence": "Read-only Supabase COUNTs on Foremention project 2026-10-16.",
+      "limitation": "Unknown legacy method/content cannot be truthfully backfilled without authoritative source."
+    },
+    {
+      "id": "FM-AUD-01/names",
+      "classification": "confirmed answer scoring false-positive defect; bounded branch patch",
+      "claim": "Raw substring matching counted Acme in NotAcme and Contoso in SuperContosoWorks, inflating brand_present and first-mention comparisons. Scoring now uses the source-page inspector's Unicode-aware bounded exact lexical match.",
+      "evidence": "Current main lib/jobs/inngest.ts includesName, firstBoundedNameIndex exported from lib/source-page-presence.ts; tests/chat02-answer-mention-boundaries.test.mjs and exact head CI.",
+      "limitation": "Lexical presence is neither favorable recommendation nor ranking. Shared job scoring expression reviewed by Chat01 before merge; final head CI must pass."
+    },
+    {
+      "id": "FM-AUD-11/recovery",
+      "classification": "confirmed inability to reconstruct legacy provenance from inspected fields",
+      "claim": "Of 199 answers missing observation_method, zero have raw_json.observationMethod, raw_json.referenceProvenance, or raw_json.consumerProductObservation.",
+      "evidence": "Read-only Foremention Supabase COUNT FILTER aggregate 2026-10-16",
+      "limitation": "Provider type/answer text cannot be promoted to verified observation method. No mutation/backfill performed."
+    }
+  ],
+  "tests": [
+    {
+      "command": "node --test tests/chat02-evidence-qualification.test.mjs",
+      "environment": "isolated local files; Node v22.16.0; representative fixtures only",
+      "sha": "6bf8bfda6ec0573dbbf432b831eff45688f8f47b",
+      "result": "RED 5 pass 2 fail; GREEN 7 pass 0 fail",
+      "receipt": "Local fixture run 2026-10-16; no network/paid provider calls"
+    },
+    {
+      "command": "GitHub Actions PR workflows",
+      "environment": "GitHub hosted CI, exact SHA 84bc17afeed450af59daa1151a6164133081af9f",
+      "sha": "84bc17afeed450af59daa1151a6164133081af9f",
+      "result": "CI, Browser Acceptance, Isolated Authenticated Journey, Security, CodeQL, AI Safety and Code Health, Semgrep all SUCCESS",
+      "receipt": "Workflow run IDs 38901846286, 38901846357, 38901846534, 38901846299, 38901846265, 38901846164, 38901846391; new final head CI pending."
+    },
+    {
+      "command": "node --test tests/chat02-answer-mention-boundaries.test.mjs",
+      "environment": "GitHub Actions Node 22.13 / isolated offline fixtures",
+      "sha": null,
+      "result": "New branch tests submitted; final exact-head CI status must be verified",
+      "receipt": "https://github.com/injamhaqq/foremention/pull/596/checks"
+    },
+    {
+      "command": "Targeted rerun of failed Isolated Authenticated Journey 38903704434",
+      "environment": "GitHub hosted isolated Auth/PostgREST/Worker and browser",
+      "sha": "21016c82511614a0797e7ddf960caded9c5fc777",
+      "result": "One rerun SUCCESS; original failed on owner approval button visibility timeout",
+      "receipt": "https://github.com/injamhaqq/foremention/actions/runs/38903704434"
+    },
+    {
+      "command": "pnpm test (GitHub Actions CI first scoring head)",
+      "environment": "GitHub hosted Node 22.13 isolated tests",
+      "sha": "7486add4c50afc31dd7ab44c1d296d81b6ee24af",
+      "result": "1,623 pass, 8 fail, all same 06-collection-job-recovery-runtime.test.mjs test harness missing new module in explicit dependencies",
+      "receipt": "https://github.com/injamhaqq/foremention/actions/runs/38907620882"
+    },
+    {
+      "command": "Code fix for isolated runtime harness",
+      "environment": "test-only cross-owner test setup",
+      "sha": null,
+      "result": "Added firstBoundedNameIndex to mock module registry; new final SHA test result pending",
+      "receipt": "https://github.com/injamhaqq/foremention/pull/596"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/injamhaqq/foremention/actions/runs/38739762884",
+      "published_at": "2026-10-15T13:07:40Z",
+      "observed_at": "2026-10-16T12:13:36Z",
+      "evidence_level": "operational receipt",
+      "limitation": "Actions archive omitted raw answer/URLs, recovered separately from authorized read-only Supabase."
+    },
+    {
+      "url": "https://github.com/injamhaqq/foremention/blob/6bf8bfda6ec0573dbbf432b831eff45688f8f47b/lib/official-source-relevance.mjs",
+      "published_at": null,
+      "observed_at": "2026-10-16T12:13:36Z",
+      "evidence_level": "source inspection",
+      "limitation": "Not actual provider-run verification"
+    },
+    {
+      "url": "https://github.com/injamhaqq/foremention/pull/596",
+      "published_at": "2026-10-16",
+      "observed_at": "2026-10-16",
+      "evidence_level": "GitHub PR exact-head CI and documented production read-only follow-up",
+      "limitation": "Positive live claim-to-source support and merge/deployment remain separate gates"
+    }
+  ],
+  "dependencies": [
+    "Chat01 integrates shared metadata/CI and checks no overlap",
+    "Chat03 comparability excludes unknown or abstained samples",
+    "Chat04 review API error wording and source-support human gate",
+    "Chat05 network/source-injection isolated tests",
+    "Chat07 truthful API-versus-consumer and retrieval origin labels",
+    "Chat06: review test-only mock import added to tests/06-collection-job-recovery-runtime.test.mjs for introduced scoring helper; no expectations weakened."
+  ],
+  "shared_file_proposals": [
+    "Chat01: additive observed question version/retrieval time/raw hash/provenance; null for missing",
+    "Chat04: distinguish 422 reason for generic abstentions; withhold unsupported opportunities",
+    "Chat07: observation surface and reference-origin wording from RESULT.md",
+    "Chat01: review bounded brand presence / competitor ordering expression changes in shared lib/jobs/inngest.ts, preserve run denominators and historic unknowns.",
+    "Chat01: prefer first-party stable dated positive source (e.g. Introducing ChatGPT Nov 30 2022, exact official URL) and separate expected abstention case; only publish when individual claim excerpt is supported."
+  ],
+  "blocked_acceptance": [
+    "Positive live official-source claim with inspected supporting excerpt not proven",
+    "Unknown historical methods/excerpts cannot be backfilled",
+    "FM-00 integration approval and final-head CI verification pending",
+    "No actual production deployment/prod exact-SHA canary for this patch",
+    "Latest exact-head CI and cross-owner review of shared Inngest scoring needed; do not merge until green",
+    "Original live synthetic latest-post was a justified refusal; positive source-supported official citation still not proven",
+    "199 historical missing observation methods and 25 open snapshots with missing excerpts cannot be honestly backfilled",
+    "No paid inference, production mutation, main merge or deploy in Chat 02"
+  ],
+  "rollback": "Revert helper and delete focused regression test; no migration or production writes.",
+  "artifacts": [
+    "docs/execution/fm360-20261016/chat-02/RESULT.md",
+    "docs/execution/fm360-20261016/chat-02/handoff.json",
+    "tests/chat02-evidence-qualification.test.mjs"
+  ],
+  "next_action": "Chat01/06: review shared Worker scoring and isolated harness change; require latest exact-head green CI. Chat04: diagnose intermittent owner approval. Original unsupported newest-post canary and 199 unknown historical methods remain truthful blockers.",
+  "head_sha_note": "Do not pin own final SHA in this committed JSON; resolve the exact latest draft PR head and CI at https://github.com/injamhaqq/foremention/pull/596.",
+  "original_canary_receipt": {
+    "collected_at_utc": "2026-10-15T13:07:18.500Z",
+    "provider": "cloudflare",
+    "model": "@cf/google/gemma-4-26b-a4b-it",
+    "method": "api_hosted_model_with_independent_retrieval",
+    "origin": "independent_retrieval",
+    "retrieval_provider": "brave-search",
+    "retrieval_candidates": 12,
+    "model_facing_candidates": 8,
+    "selected_source_urls": [
+      "https://openai.com/news/",
+      "https://openai.com/news/intelligence-age/"
+    ],
+    "answer_class": "explicit_abstention_for_unsupported_latest_post",
+    "source_inspection": {
+      "openai_news": {
+        "http_status": 200,
+        "access": "partial",
+        "excerpt_available": false
+      },
+      "intelligence_age": {
+        "http_status": 200,
+        "access": "partial",
+        "excerpt_available": false
+      }
+    },
+    "usage": {
+      "input_tokens": 861,
+      "output_tokens": 140,
+      "total_tokens": 1001
+    },
+    "cost_type": "estimated_not_billed",
+    "review_status": "unreviewed"
+  }
+}
