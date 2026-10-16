@@ -26,10 +26,11 @@ alter table public.measurement_schedules
     )
   );
 
--- Race-safe per-project automatic creation. No effect on existing legacy rows.
-create unique index if not exists measurement_schedules_one_auto_per_project_fm360
+-- Race-safe creation across automatic and explicit manual schedules.
+-- Existing historical rows keep legacy_unknown and are not rewritten.
+create unique index if not exists measurement_schedules_one_modern_per_project_fm360
   on public.measurement_schedules(organization_id,project_id)
-  where schedule_origin in ('trial','paid');
+  where schedule_origin in ('trial','paid','manual');
 
 -- Prevent a user-side direct PostgREST insertion of a falsely pinned automatic
 -- schedule; the verified route uses server role AFTER checking the user's role.
