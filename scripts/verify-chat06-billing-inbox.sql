@@ -13,7 +13,7 @@ declare
   v_hash text;
   v_other_hash text;
   v_result jsonb;
-  v_claim public.billing_verified_event_inbox%rowtype;
+  v_claim record;
   v_old_token uuid;
   v_old_generation int;
   v_count int;
@@ -82,12 +82,15 @@ begin
   select count(*) into v_count from public.claim_verified_billing_batch(1,120,'sandbox');
   if v_count<>0 then raise exception 'billing_cross_mode_claim'; end if;
 
-  select i.* into v_claim
-    from public.claim_verified_billing_batch(1,120,'live') c
-    join public.billing_verified_event_inbox i
-      on i.provider=c.provider and i.event_id=c.event_id;
-  if not found or v_claim.status<>'leased' or v_claim.generation<>1
-    or v_claim.lease_token is null then raise exception 'billing_first_claim_invalid'; end if;
+  -- Query the state-changing function first, then inspect table state in a
+  -- separate statement. Joining the modified table in one statement can read
+  -- a pre-update MVCC snapshot even though the function updated it.
+  select * into v_claim from public.claim_verified_billing_batch(1,120,'live');
+  if not found then raise exception 'billing_first_claim_not_returned'; end if;
+  select status into v_status from public.billing_verified_event_inbox
+    where provider='paddle' and event_id=v_id;
+  if v_status<>'leased' or v_claim.generation<>1 or v_claim.lease_token is null
+    then raise exception 'billing_first_claim_invalid'; end if;
   v_old_token := v_claim.lease_token;
   v_old_generation := v_claim.generation;
 
@@ -106,10 +109,8 @@ begin
   update public.billing_verified_event_inbox
     set lease_expires_at=clock_timestamp()-interval '1 minute'
     where provider='paddle' and event_id=v_id;
-  select i.* into v_claim
-    from public.claim_verified_billing_batch(1,120,'live') c
-    join public.billing_verified_event_inbox i
-      on i.provider=c.provider and i.event_id=c.event_id;
+  select * into v_claim from public.claim_verified_billing_batch(1,120,'live');
+  if not found then raise exception 'billing_reclaim_not_returned'; end if;
   if v_claim.generation<>v_old_generation+1 or v_claim.lease_token=v_old_token
   then raise exception 'billing_lease_reclaim_not_fenced'; end if;
 
