@@ -17,6 +17,8 @@ type ScheduleRow = {
   locale: string;
   market: string;
   enabled: boolean;
+  schedule_origin?: "trial" | "paid" | "manual" | "legacy_unknown";
+  trial_ends_at?: string | null;
   next_run_at: string;
   last_run_at: string | null;
   last_run_id: string | null;
@@ -31,8 +33,38 @@ export async function GET() {
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ data: [] });
   try {
-    const data = await supabaseRest<ScheduleRow[]>(`measurement_schedules?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`, { token: viewer.accessToken });
-    return NextResponse.json({ data });
+    const [data, entitlements] = await Promise.all([
+      supabaseRest<ScheduleRow[]>(
+        `measurement_schedules?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id,schedule_origin,trial_ends_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`,
+        { token: viewer.accessToken },
+      ),
+      supabaseRest<Array<{ status: string; billing_source: string | null; expires_at: string | null }>>(
+        `organization_entitlements?select=status,billing_source,expires_at&organization_id=eq.${context.organizationId}&limit=1`,
+        { token: viewer.accessToken },
+      ),
+    ]);
+    const entitlement = entitlements[0];
+    const now = Date.now();
+    const view = data.map((schedule) => {
+      const origin = schedule.schedule_origin || "legacy_unknown";
+      let dispatchState: "paused" | "needs_review" | "trial_expired" | "plan_changed" | "model_changed" | "configured" = "configured";
+      if (!schedule.enabled) dispatchState = "paused";
+      else if (origin === "legacy_unknown" || !schedule.model_snapshot?.trim()) dispatchState = "needs_review";
+      else if (origin === "trial" && (
+        entitlement?.billing_source !== "trial" || entitlement.status !== "active" ||
+        !schedule.trial_ends_at || !entitlement.expires_at ||
+        Math.min(new Date(schedule.trial_ends_at).getTime(), new Date(entitlement.expires_at).getTime()) <= now + 2 * 3_600_000
+      )) dispatchState = "trial_expired";
+      else if (origin === "paid" && (
+        entitlement?.status !== "active" ||
+        !["paddle", "stripe", "creem"].includes(entitlement.billing_source || "") ||
+        (entitlement.expires_at && new Date(entitlement.expires_at).getTime() <= now)
+      )) dispatchState = "plan_changed";
+      else if (!schedule.provider_ids?.length || schedule.model_snapshot !== String(process.env[`${schedule.provider_ids[0].toUpperCase()}_MODEL`] || "").trim())
+        dispatchState = "model_changed";
+      return { ...schedule, dispatch_state: dispatchState };
+    });
+    return NextResponse.json({ data: view });
   } catch (error) {
     if (isMissingRelationError(error)) return NextResponse.json({ data: [], migrationPending: true });
     throw error;
