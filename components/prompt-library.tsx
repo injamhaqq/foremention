@@ -19,6 +19,7 @@ export function PromptLibrary({ initialPrompts, demo, company, category, sourceS
   const [editingText, setEditingText] = useState("");
   const [message, setMessage] = useState("");
   const submissionLock = useRef(false);
+  const nextDemoQuestionId = useRef(0);
   const visible = useMemo(() => prompts.filter((prompt) => filter === "All" || prompt.cluster === filter), [prompts, filter]);
   const clusters = ["All", ...Array.from(new Set(prompts.map((prompt) => prompt.cluster)))];
   const suggestions = useMemo<SuggestedQuestion[]>(() => [
@@ -42,13 +43,22 @@ export function PromptLibrary({ initialPrompts, demo, company, category, sourceS
     submissionLock.current = true;
     setBusy("new"); setMessage("");
     try {
-      const response = await fetch("/api/prompts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, cluster }) });
+      const nextText = text.trim();
+      if (nextText.length < 10) throw new Error("Write a specific buyer question with at least 10 characters.");
+      if (demo) {
+        const id = `demo-local-${++nextDemoQuestionId.current}`;
+        setPrompts((current) => [...current, { id, text: nextText, cluster, approved: true }]);
+        setText("");
+        setMessage("Fictional demo question added to this preview only. No customer workspace was changed.");
+        return;
+      }
+      const response = await fetch("/api/prompts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: nextText, cluster }) });
       const result = await readApiJson<{ data?: WorkspacePrompt; error?: string }>(response);
       if (!response.ok || !result.data) throw new Error(result.error || "Could not add the question.");
       setPrompts((current) => [...current, result.data!]);
       setText("");
-      setMessage(demo ? "Demo question added locally. Customer data was not written." : "Buyer question added to the approved baseline.");
-      if (!demo) captureProductEvent("question_created", { cluster });
+      setMessage("Buyer question added to the approved baseline.");
+      captureProductEvent("question_created", { cluster });
       router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not add the question."); }
     finally { submissionLock.current = false; setBusy(""); }
@@ -105,16 +115,6 @@ export function PromptLibrary({ initialPrompts, demo, company, category, sourceS
   }
 
   return <div>
-    {sourceSuggestions.length > 0 && <section className="question-planner question-planner--observed" aria-labelledby="observed-question-title"><div className="question-planner__intro"><span className="eyebrow">Suggested after your first run</span><h2 id="observed-question-title">Extend the baseline from observed source framing.</h2><p>These five editable suggestions use only domains, publisher types, providers, and competitors already recorded in your Source Map. They are not search-volume estimates.</p></div><div className="question-planner__grid">{sourceSuggestions.slice(0, 5).map((suggestion) => <article key={`${suggestion.cluster}-${suggestion.text}`}><span>{suggestion.cluster}</span><strong>{suggestion.text}</strong><p>{suggestion.why}</p><button type="button" onClick={() => fillSuggestion(suggestion)}>Use this question &rarr;</button></article>)}</div></section>}
-    <section className="question-planner" aria-labelledby="question-planner-title">
-      <div className="question-planner__intro"><span className="eyebrow">Question planner</span><h2 id="question-planner-title">Cover the buyer journey, not random prompts.</h2><p>These are editable starting points based on your category—not search-volume claims or collected evidence. Use only the questions a real buyer would ask.</p></div>
-      <div className="question-planner__grid">{suggestions.map((suggestion) => <article key={suggestion.cluster}>
-        <span>{suggestion.cluster}</span>
-        <strong>{suggestion.text}</strong>
-        <p>{suggestion.why}</p>
-        <button type="button" onClick={() => fillSuggestion(suggestion)}>Use this question &rarr;</button>
-      </article>)}</div>
-    </section>
     <form className="prompt-create" onSubmit={addPrompt} aria-busy={busy === "new"}>
       <div><span className="eyebrow">Add buyer question</span><h2>Use the language a real buyer would type.</h2></div>
       <label>Intent<select value={cluster} onChange={(event) => setCluster(event.target.value)}><option>Discovery</option><option>Comparison</option><option>Alternative</option><option>Use case</option><option>Trust</option><option>Constraint</option></select></label>
@@ -141,5 +141,18 @@ export function PromptLibrary({ initialPrompts, demo, company, category, sourceS
       </div>
     </article>)}</div> : <div className="empty-state"><h2>No buyer questions yet.</h2><p>Add the first controlled question above or complete guided onboarding.</p></div>}
     <p className="table-caption">{demo ? "Demo changes stay in this preview and never enter a customer workspace." : "Every collection uses only the active questions shown here. Pause a question to remove it from future runs without deleting history."}</p>
+    <details className="panel question-suggestions">
+      <summary className="panel-heading panel-heading--padded">Optional buyer-question suggestions</summary>
+    {sourceSuggestions.length > 0 && <section className="question-planner question-planner--observed" aria-labelledby="observed-question-title"><div className="question-planner__intro"><span className="eyebrow">Suggested after your first run</span><h2 id="observed-question-title">Extend the baseline from observed source framing.</h2><p>These five editable suggestions use only domains, publisher types, providers, and competitors already recorded in your Source Map. They are not search-volume estimates.</p></div><div className="question-planner__grid">{sourceSuggestions.slice(0, 5).map((suggestion) => <article key={`${suggestion.cluster}-${suggestion.text}`}><span>{suggestion.cluster}</span><strong>{suggestion.text}</strong><p>{suggestion.why}</p><button type="button" onClick={() => fillSuggestion(suggestion)}>Use this question &rarr;</button></article>)}</div></section>}
+    <section className="question-planner" aria-labelledby="question-planner-title">
+      <div className="question-planner__intro"><span className="eyebrow">Question planner</span><h2 id="question-planner-title">Cover the buyer journey, not random prompts.</h2><p>These are editable starting points based on your category—not search-volume claims or collected evidence. Use only the questions a real buyer would ask.</p></div>
+      <div className="question-planner__grid">{suggestions.map((suggestion) => <article key={suggestion.cluster}>
+        <span>{suggestion.cluster}</span>
+        <strong>{suggestion.text}</strong>
+        <p>{suggestion.why}</p>
+        <button type="button" onClick={() => fillSuggestion(suggestion)}>Use this question &rarr;</button>
+      </article>)}</div>
+    </section>
+    </details>
   </div>;
 }
