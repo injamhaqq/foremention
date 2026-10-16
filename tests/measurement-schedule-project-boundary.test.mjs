@@ -9,7 +9,7 @@ test("measurement schedule API is scoped to the active project", async () => {
 
   assert.match(
     api,
-    /measurement_schedules\?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id,schedule_origin,trial_ends_at&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/,
+    /measurement_schedules\?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id,schedule_origin,trial_ends_at,baseline_contract_json&organization_id=eq\.\$\{context\.organizationId\}&project_id=eq\.\$\{context\.projectId\}/,
   );
   assert.match(api, /organization_id: context\.organizationId/);
   assert.match(api, /project_id: context\.projectId/);
