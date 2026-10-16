@@ -95,7 +95,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     // Source snapshots are linked by explicit immutable observation IDs. Unknown
     // and inaccessible sources stay unknown/blocked; never assume source support.
-    const obsIds = evidenceLinks.map((x) => x.source_observation_id).filter((x): x is string => Boolean(x) && UUID.test(x));
+    const obsIds = evidenceLinks.map((x) => x.source_observation_id).filter((x): x is string => typeof x === "string" && UUID.test(x));
     const sourceObs = obsIds.length ? await readList<SourceObservation>(
       `source_observations?select=id,run_answer_id,review_status&id=in.(${obsIds.join(",")})&organization_id=eq.${org}&limit=100`, token) : [];
     const sourceById = new Map(sourceObs.map((x) => [x.id, x]));
