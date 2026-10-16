@@ -19,7 +19,7 @@ The change checks the existing row using the provider, event ID, organization an
 
 ## Actual commercial and operations evidence (read-only)
 
-- Live Paddle: active $99/month Core and $299/month Signal prices; zero customers/subscriptions; two draft transactions; `foremention.com` checkout domain approved; one active notification destination; zero visible notification deliveries on an unfiltered list. This does not establish merchant payout, default payment link, webhook receipt or paid checkout.
+- Live Paddle: active $99/month Core and $299/month Signal prices; zero customers/subscriptions; two draft transactions; `foremention.com` checkout domain approved; one active notification destination; zero visible notification deliveries on an unfiltered list. Paddle's onboarding verification and domain verification both report completed, but this does not establish a verified payout bank, default payment-link setting, webhook receipt or paid checkout.
 - Production Supabase: `billing_accounts=0`, `billing_webhook_events=0`, `billing_financial_adjustment_events=0`, `billing_checkout_reservations=13`, `organization_entitlements WHERE billing_source='paddle'=0`. These are counts, not customer records.
 - Previous Oct 13 PGlite restore receipt is synthetic; current Supabase backup status/production-format RPO and RTO are not demonstrated.
 - Operator alert: a durable `sent` record was observed, not recipient inbox or Sentry-delivery proof.
@@ -29,7 +29,7 @@ The change checks the existing row using the provider, event ID, organization an
 
 1. Run the new route tests on the exact branch head in an isolated checkout. Also run tests, lint, typecheck, build and relevant security/migration gates on a review candidate.
 2. Implement **durable verification-first inbox and asynchronous processing** in shared SQL/Worker-owned files before promising the under-five-second Paddle contract; queue exhaustion and unmapped positive-value paid transactions need durable operator-visible cases.
-3. Verify live merchant/payment-link/payout settings non-destructively and complete a mode-separated, authorized lifecycle trace before paid self-service activation.
+3. Reconcile completed merchant onboarding with actual default-payment-link/payout settings non-destructively and complete a mode-separated, authorized lifecycle trace before paid self-service activation.
 4. Verify actual Supabase backup retention and one isolated representative restore; retain measured RPO/RTO, encryption, access, deletion and restore receipts.
 5. Confirm legal seller/jurisdiction, cancellation/refund terms, data recipients, recipient-scoped notifications, Sentry inbox and provider quota before published promises.
 
