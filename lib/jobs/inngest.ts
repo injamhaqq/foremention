@@ -20,6 +20,7 @@ import {
 } from "@/lib/collection-policy";
 import { getProvider } from "@/lib/providers";
 import { answerEvidenceReceipt } from "@/lib/evidence-receipt";
+import { firstBoundedNameIndex } from "@/lib/source-page-presence";
 import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { ProviderRequestError, type ProviderAnswer, type ProviderId } from "@/lib/providers/types";
@@ -61,9 +62,6 @@ type Identity = {
 };
 
 type ScheduledRunSeed = RunRow & { completed_at: string | null };
-
-const includesName = (text: string, value: string) =>
-  Boolean(value.trim()) && text.toLocaleLowerCase().includes(value.trim().toLocaleLowerCase());
 
 async function notifyFirstCompletedRun(run: RunRow, answerCount: number, citationCount: number, sourceCount: number) {
   if (!run.created_by) return;
@@ -289,10 +287,11 @@ const providerReportedCost = typeof answer.billedCostUsd === "number" && Number.
     : null;
   const estimatedCost = providerReportedCost ?? estimateProviderCost(answer.usage, rates) ?? estimateMaximumRunCost(1, rates);
   const costSource = providerReportedCost === null ? "estimated" : "provider_reported";
-  const lowerAnswer = answer.answer.toLocaleLowerCase();
-  const brandIndex = identity.brand ? lowerAnswer.indexOf(identity.brand.toLocaleLowerCase()) : -1;
+  // A substring inside another product's name is not a brand mention.
+  // This is lexical presence/order only, not model recommendation rank.
+  const brandIndex = firstBoundedNameIndex(answer.answer, identity.brand);
   const competitorIndexes = identity.competitors
-    .map((name) => lowerAnswer.indexOf(name.toLocaleLowerCase()))
+    .map((name) => firstBoundedNameIndex(answer.answer, name))
     .filter((index) => index >= 0);
   const firstCompetitorIndex = competitorIndexes.length ? Math.min(...competitorIndexes) : Number.POSITIVE_INFINITY;
 
@@ -348,7 +347,7 @@ const providerReportedCost = typeof answer.billedCostUsd === "number" && Number.
       answer_text_hash_version: receipt.answer_text_hash_version,
       citations_json: answer.citations,
       raw_json: answer.raw,
-      brand_present: includesName(answer.answer, identity.brand),
+      brand_present: brandIndex >= 0,
       brand_position: brandIndex >= 0 ? (brandIndex < firstCompetitorIndex ? 1 : 2) : null,
       collected_at: answer.collectedAt,
       latency_ms: answer.latencyMs,
@@ -740,7 +739,7 @@ export const runMultiEngineScan = inngest.createFunction(
         result: { answerCount, failureCount: failures.length },
       })));
 
-    const presenceAnswers = results.filter((result) => includesName(result.answer.answer, identity.brand));
+    const presenceAnswers = results.filter((result) => firstBoundedNameIndex(result.answer.answer, identity.brand) >= 0);
     const firstMentionAnswers = results.filter((result) => {
       const lower = result.answer.answer.toLocaleLowerCase();
       const brandIndex = identity.brand ? lower.indexOf(identity.brand.toLocaleLowerCase()) : -1;
