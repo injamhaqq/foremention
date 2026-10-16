@@ -75,7 +75,8 @@ export async function GET() {
       }).eligible) dispatchState = "plan_changed";
       else if (!schedule.provider_ids?.length || schedule.model_snapshot !== String(process.env[`${schedule.provider_ids[0].toUpperCase()}_MODEL`] || "").trim())
         dispatchState = "model_changed";
-      const { baseline_contract_json: _internalAuthorizationContract, ...publicSchedule } = schedule;
+      const publicSchedule = { ...schedule };
+      delete publicSchedule.baseline_contract_json;
       return { ...publicSchedule, dispatch_state: dispatchState };
     });
     return NextResponse.json({ data: view });
