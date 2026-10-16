@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RecommendationAnswerRecord } from "@/components/recommendation-answer-record";
+import { DecisionReviewDownload } from "@/components/decision-review-download";
 import { RunReview } from "@/components/run-review";
 import { RunCancel } from "@/components/run-cancel";
 import { RunRerunButton } from "@/components/run-rerun-button";
@@ -10,6 +11,7 @@ import { getPrimaryWorkspaceRole, loadRunAnswers, loadRunConfiguration, loadRunC
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { loadProviderRunDiagnostics } from "@/lib/provider-run-diagnostics";
 import { loadRunManifest } from "@/lib/run-manifest";
+import { supabaseRest } from "@/lib/supabase-rest";
 
 const usd = (value: number) => `$${value.toFixed(value < .01 ? 4 : 2)}`;
 
@@ -30,7 +32,18 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
   ]);
   const run = runs.find((item) => item.id === id);
   if (!run) notFound();
-  const sourceMap = ["complete", "partial"].includes(run.status) ? await loadTruthfulSourceMap(viewer, { runId: run.id }) : [];
+  const canExportDecision = viewer.mode !== "demo" && Boolean(viewer.accessToken && context) &&
+    (role === "owner" || role === "admin" || role === "analyst");
+  // Bounded, active-project decisions only. Never use a service role for export.
+  // The download route independently rechecks role, evidence and decision scope.
+  const decisions: Array<{ id: string; decision_kind: string; decision_state: string; decided_at: string }> =
+    canExportDecision && context && viewer.accessToken
+      ? await supabaseRest<Array<{ id: string; decision_kind: string; decision_state: string; decided_at: string }>>(
+        `record_decisions?select=id,decision_kind,decision_state,decided_at&baseline_run_id=eq.${encodeURIComponent(run.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&project_id=eq.${encodeURIComponent(context.projectId)}&order=decided_at.desc&limit=20`,
+        { token: viewer.accessToken },
+      ).catch(() => [])
+      : [];
+    const sourceMap = ["complete", "partial"].includes(run.status) ? await loadTruthfulSourceMap(viewer, { runId: run.id }) : [];
   const canInspectSources = viewer.mode === "demo" || role === "owner" || role === "admin" || role === "analyst";
   const providerDiagnosticsByAnswer = new Map(providerDiagnostics.map((item) => [item.answerId, item]));
   const costEventsComplete = costEvents.length <= MAX_RUN_COST_EVENTS;
@@ -79,6 +92,19 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
     {["complete", "partial"].includes(run.status) && configuration && <RunRerunButton promptIds={configuration.promptIds} provider={configuration.provider} demo={viewer.mode === "demo"} />}
 
     {manifest && <RunManifestPanel manifest={manifest} />}
+
+    {decisions.length > 0 && <section className="panel" aria-label="Human decisions and review packets">
+      <div className="panel-heading panel-heading--padded">
+        <div><span className="eyebrow">Recorded human decisions</span><h2>Decision review and follow-up</h2></div>
+      </div>
+      <div className="panel-body">
+        <p>Download a private evidence-bound decision review. A packet is withheld when an approved decision's evidence, ownership, or follow-up comparison cannot be verified; it is not proof of revenue or causation.</p>
+        {decisions.map((decision) => <div key={decision.id} className="panel">
+          <p><strong>{decision.decision_kind.replaceAll("_", " ")}</strong> · {decision.decision_state.replaceAll("_", " ")} · {new Date(decision.decided_at).toLocaleDateString("en-GB", { timeZone: "UTC" })} UTC</p>
+          <DecisionReviewDownload recordId={run.id} decisionId={decision.id} />
+        </div>)}
+      </div>
+    </section>}
 
     <div className="answer-stack canonical-record-stack">
       {answers.length ? answers.map((answer) => <RecommendationAnswerRecord
