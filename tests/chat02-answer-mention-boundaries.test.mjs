@@ -11,7 +11,7 @@ test("substrings inside different brand names do not count as mentions", () => {
     ["SuperContosoWorks is discussed.", "Contoso"],
     ["The team is going to market.", "Go"],
     ["préAcme is not the intended product.", "Acme"],
-    ["A\u{1F642}SuperAcme is not the actual Acme product.", "Acme"],
+    ["A\u{1F642}SuperAcme is not the intended product.", "Acme"],
   ]) {
     assert.equal(firstBoundedNameIndex(answer, brand), -1, answer);
   }
