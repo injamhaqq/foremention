@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import * as schedules from "../lib/measurement-schedules.ts";
+import { admitManualScheduleAuthorization } from "../lib/trial-repeat-policy.ts";
 import { createFakePostgrest } from "./06-support/fake-postgrest.mjs";
 
 const compiled = ts.transpileModule(await readFile(process.env.FM06_DISPATCHER_SOURCE || new URL("../lib/jobs/measurement-schedule-dispatcher.ts", import.meta.url), "utf8"), {
@@ -29,10 +30,10 @@ function harness({ modelSnapshot, configuredModel, nextRunAt, origin = "manual",
         question_ids: [Q1], provider_ids: ["groq"], model_snapshot: modelSnapshot, methodology_snapshot: "m1", locale: "en-US", market: "global",
         next_run_at: nextRunAt, created_by: USER, enabled: true,
         schedule_origin: origin, trial_ends_at: trialEndsAt,
-        baseline_contract_json: origin === "manual" ? { type: "manual", provider: "groq", model: modelSnapshot } : null,
+        baseline_contract_json: origin === "manual" ? { type: "manual", provider: "groq", model: modelSnapshot, authorizationBillingSource: billingSource, authorizationPackageKey: "core", authorizationExpiresAt: billingSource === "trial" ? trialEndsAt : null } : null,
       }],
       organization_members: [{ organization_id: ORG, user_id: USER, role: "owner" }],
-      organization_entitlements: [{ organization_id: ORG, status: "active", expires_at: billingSource === "trial" ? trialEndsAt : null, billing_source: billingSource, monthly_run_units: monthlyRunUnits }],
+      organization_entitlements: [{ organization_id: ORG, status: "active", expires_at: billingSource === "trial" ? trialEndsAt : null, billing_source: billingSource, package_key: "core", monthly_run_units: monthlyRunUnits }],
       projects: [{ id: PROJECT, organization_id: ORG, status: "active" }],
       categories: [{ id: CATEGORY, organization_id: ORG, active: true }],
       prompts: [{ id: Q1, organization_id: ORG, project_id: PROJECT, category_id: CATEGORY, active: true, prompt_key: "q1", prompt_text: "Q1", locale: "en-US", market: "global" }],
@@ -52,7 +53,7 @@ function harness({ modelSnapshot, configuredModel, nextRunAt, origin = "manual",
     "@/lib/methodology-registry": { currentObservationMethodologyVersion: () => "m1" },
     "@/lib/free-provider-mode": { providerAllowedForLiveCollection: () => true },
     "@/lib/measurement-schedules": schedules,
-    "@/lib/trial-repeat-policy": { admitRepeatDispatch: ({origin, pinned, currentBillingSource, remainingObservationUnits, requestedObservationUnits, now, trialExpiresAt}) => {
+    "@/lib/trial-repeat-policy": { admitManualScheduleAuthorization, admitRepeatDispatch: ({origin, pinned, currentBillingSource, remainingObservationUnits, requestedObservationUnits, now, trialExpiresAt}) => {
       if (!origin || !pinned) return { eligible: false, reason: "CONTRACT_NOT_PINNED" };
       if (origin === "trial" && (currentBillingSource !== "trial" || !trialExpiresAt || new Date(now).getTime() >= new Date(trialExpiresAt).getTime() - 7200000)) return { eligible: false, reason: "TRIAL_WINDOW_EXPIRED" };
       if (origin === "paid" && currentBillingSource !== "paddle") return { eligible: false, reason: "ENTITLEMENT_CHANGED" };
@@ -121,5 +122,16 @@ test("explicit manual schedule cannot exceed its monthly entitlement ceiling", a
   const h = harness({modelSnapshot:"baseline-model",configuredModel:"baseline-model",nextRunAt:new Date(Date.now()-3600000).toISOString(),monthlyRunUnits:0});
   const result=await h.pass();
   assert.equal(result.queued,0);
+  assert.deepEqual(h.rpcCalls,[]);
+});
+
+test("manually authorized trial schedule cannot borrow downgraded free allocation", async () => {
+  const now = new Date();
+  const due = new Date(now.getTime() - 60_000).toISOString();
+  const expired = new Date(now.getTime() - 120_000).toISOString();
+  const h = harness({modelSnapshot:"baseline-model",configuredModel:"baseline-model",nextRunAt:due,origin:"manual",billingSource:"trial",trialEndsAt:expired});
+  const result = await h.pass();
+  assert.equal(result.queued,0);
+  assert.equal(h.store.db.runs.length,0);
   assert.deepEqual(h.rpcCalls,[]);
 });
