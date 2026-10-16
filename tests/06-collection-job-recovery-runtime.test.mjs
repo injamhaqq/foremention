@@ -16,6 +16,7 @@ import * as settlement from "../lib/jobs/run-terminal-settlement.ts";
 import * as jobCalendar from "../lib/jobs/job-calendar.ts";
 import * as providerTypes from "../lib/providers/types.ts";
 import * as evidenceReceipt from "../lib/evidence-receipt.ts";
+import * as trialRepeatPolicy from "../lib/trial-repeat-policy.ts";
 import { createFakePostgrest } from "./06-support/fake-postgrest.mjs";
 import { runWithReplay } from "./06-support/inngest-replay.mjs";
 
@@ -78,6 +79,7 @@ function loadJobs({ tables, env = {}, adapterRun } = {}) {
     "@/lib/free-provider-mode": { providerAllowedForLiveCollection: () => true },
     "@/lib/providers/types": providerTypes,
     "@/lib/evidence-receipt": evidenceReceipt,
+    "@/lib/trial-repeat-policy": trialRepeatPolicy,
     "@/lib/resolution-follow-ups": { finalizeResolutionFollowUpsForRun: async () => undefined },
     "@/lib/supabase-rest": { supabaseRest: store.rest },
     "@/lib/source-map-generation": { generateObservedSourceMap: async () => ({ sourceCount: 0 }) },
