@@ -6,6 +6,7 @@ import { paddleSubscriptionIdentityMatches } from "@/lib/paddle-lifecycle-admiss
 import { reconcilePaddlePaidPeriod } from "@/lib/paddle-paid-period";
 import { reservationAdmitsPaidTransaction } from "@/lib/paddle-checkout-reconciliation";
 import { isProcessedBillingReceipt } from "@/lib/billing-webhook-receipt";
+import { durableBillingInboxEnabled, enqueueVerifiedBillingEvent } from "@/lib/billing-verified-inbox";
 
 type BillingReceiptRow = { provider: string; event_id: string; organization_id: string; processed_at: string | null };
 type BillingAccountIdentityRow = {
@@ -14,7 +15,7 @@ type BillingAccountIdentityRow = {
   external_subscription_id: string | null;
 };
 
-async function claimBillingEvent(event: VerifiedBillingEvent, provider: string) {
+async function claimBillingEvent(event: VerifiedBillingEvent, provider: string, fromVerifiedInbox = false) {
   const rows = await supabaseRest<BillingReceiptRow[]>("billing_webhook_events?on_conflict=provider,event_id", {
     method: "POST",
     serviceRole: true,
@@ -37,6 +38,14 @@ async function claimBillingEvent(event: VerifiedBillingEvent, provider: string) 
   if (!isProcessedBillingReceipt(previous, {
     provider, eventId: event.eventId, organizationId: event.organizationId,
   })) {
+    // A durable, signed-verified delivery with a fenced worker lease may
+    // resume an interrupted receipt. The legacy synchronous HTTP handler
+    // must never take this recovery path.
+    if (fromVerifiedInbox && previous.length === 1
+      && previous[0].provider === provider
+      && previous[0].event_id === event.eventId
+      && previous[0].organization_id === event.organizationId
+      && previous[0].processed_at === null) return true;
     throw new Error("Billing receipt is pending, mismatched, or ambiguous; provider retry required.");
   }
   return false;
@@ -74,8 +83,8 @@ async function applyBillingEventAtomic(event: VerifiedBillingEvent, provider: st
   if (!applied) throw new Error("Verified billing event receipt was not available for atomic application.");
 }
 
-async function processBillingEvent(event: VerifiedBillingEvent, provider: string) {
-  const claimed = await claimBillingEvent(event, provider);
+async function processBillingEvent(event: VerifiedBillingEvent, provider: string, fromVerifiedInbox = false) {
+  const claimed = await claimBillingEvent(event, provider, fromVerifiedInbox);
   if (!claimed) return { duplicate: true } as const;
   try {
     await applyBillingEventAtomic(event, provider);
@@ -106,9 +115,9 @@ async function settlePaddleReservation(event: VerifiedBillingEvent, settlement: 
 }
 type PaddleSettlement = { transactionId: string };
 
-async function billingMutationResponse(event: VerifiedBillingEvent, provider: string, settlement: PaddleSettlement | null = null) {
+async function billingMutationResponse(event: VerifiedBillingEvent, provider: string, settlement: PaddleSettlement | null = null, fromVerifiedInbox = false) {
   try {
-    const result = await processBillingEvent(event, provider);
+    const result = await processBillingEvent(event, provider, fromVerifiedInbox);
     await settlePaddleReservation(event, settlement);
     if (result.duplicate) return NextResponse.json({ received: true, duplicate: true, eventId: event.eventId });
     return NextResponse.json({ received: true, eventId: event.eventId });
@@ -229,6 +238,7 @@ type StoredPaddleEntitlementRow = { package_key: string; billing_source: string 
  */
 async function paddleCatalogIndependentLifecycleResponse(
   lifecycle: NonNullable<ReturnType<NonNullable<BillingProviderAdapter["parseCatalogIndependentLifecycle"]>>>,
+  fromVerifiedInbox = false,
 ) {
   let organizationId: string | null = null;
   let packageKey: "core" | "signal" | null = null;
@@ -272,7 +282,7 @@ async function paddleCatalogIndependentLifecycleResponse(
     externalSubscriptionId: lifecycle.externalSubscriptionId,
     eventId: lifecycle.eventId,
     occurredAt: lifecycle.occurredAt,
-  }, "paddle");
+  }, "paddle", null, fromVerifiedInbox);
 }
 
 export async function POST(request: Request) {
@@ -280,14 +290,39 @@ export async function POST(request: Request) {
   if (!provider?.configured()) {
     return NextResponse.json({ error: "Billing is not configured." }, { status: 503 });
   }
-
   const rawBody = await request.text();
+  // Reject unbounded payloads in both modes before any database access.
+  if (new TextEncoder().encode(rawBody).length > 262144) {
+    return NextResponse.json({ error: "Billing payload exceeds supported size." }, { status: 413 });
+  }
   try {
     await provider.verifyWebhook(rawBody, request.headers);
   } catch (error) {
     return NextResponse.json({
       error: error instanceof Error ? error.message : "Billing signature is invalid.",
     }, { status: 401 });
+  }
+  if (durableBillingInboxEnabled()) {
+    try {
+      const result = await enqueueVerifiedBillingEvent(rawBody, provider.id, process.env.PADDLE_ENVIRONMENT || "");
+      // HTTP 200 confirms durable verified intake, never paid entitlement.
+      return NextResponse.json({ received: true, queued: true, duplicate: result.duplicate, eventId: result.eventId });
+    } catch {
+      return NextResponse.json({ error: "Verified billing event could not be durably queued. Provider retry required." }, { status: 503 });
+    }
+  }
+  return processVerifiedBillingWebhookRawBody(rawBody);
+}
+
+/**
+ * Trusted internal worker entry: only call with raw bytes read from the
+ * service-role verified inbox, which the public POST filled after authenticating
+ * the provider signature. This function is not a public API endpoint.
+ */
+export async function processVerifiedBillingWebhookRawBody(rawBody: string, fromVerifiedInbox = false) {
+  const provider = billingProvider();
+  if (!provider?.configured()) {
+    return NextResponse.json({ error: "Billing is not configured." }, { status: 503 });
   }
 
   // Financial adjustments are separate accounting cases, not entitlement
@@ -362,7 +397,7 @@ export async function POST(request: Request) {
       }, { status: 503 });
     }
     const lifecycle = provider.parseCatalogIndependentLifecycle?.(rawBody) ?? null;
-    if (lifecycle) return paddleCatalogIndependentLifecycleResponse(lifecycle);
+    if (lifecycle) return paddleCatalogIndependentLifecycleResponse(lifecycle, fromVerifiedInbox);
   }
   if (!parsed) return NextResponse.json({ received: true, ignored: true });
 
@@ -423,5 +458,5 @@ export async function POST(request: Request) {
     && (parsed.transactionOrigin === "api" || parsed.transactionOrigin === "web")
     ? { transactionId: parsed.externalTransactionId }
     : null;
-  return billingMutationResponse(event, provider.id, settlement);
+  return billingMutationResponse(event, provider.id, settlement, fromVerifiedInbox);
 }
