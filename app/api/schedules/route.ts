@@ -64,6 +64,10 @@ export async function POST(request: Request) {
   const providerIds = Array.isArray(body.providerIds) && body.providerIds.length ? body.providerIds : configuredProviders.slice(0, 1).map((provider) => provider.id);
   if (questionIds.some((id) => !approved.has(id))) return NextResponse.json({ error: "Schedules can use only approved workspace buyer questions." }, { status: 400 });
   if (providerIds.length !== 1 || providerIds.some((id) => !configured.has(id))) return NextResponse.json({ error: "Choose exactly one connected provider so repeat measurements stay interpretable." }, { status: 400 });
+  // Saving this form is an explicit manual authorization, not a claim that
+  // an earlier run was comparable. Require a resolved model before dispatch.
+  const configuredModel = String(process.env[(providerIds[0] || "").toUpperCase() + "_MODEL"] || "").trim();
+  if (!configuredModel) return NextResponse.json({ error: "The exact provider model is unavailable. Configure and verify it before saving a repeat." }, { status: 409 });
   let schedule;
   try {
     schedule = validateMeasurementSchedule({
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
       timezone: body.timezone || "UTC",
       questionIds,
       providerIds,
-      modelSnapshot: null,
+      modelSnapshot: configuredModel,
       methodologySnapshot: currentObservationMethodologyVersion(),
       locale: body.locale || "en-US",
       market: body.market || "global",
@@ -84,7 +88,7 @@ export async function POST(request: Request) {
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: "demo-measurement-schedule", ...schedule, next_run_at: nextRunAt }, mode: "demo" });
   const rows = await supabaseRest<ScheduleRow[]>("measurement_schedules", {
     method: "POST",
-    token: viewer.accessToken,
+    serviceRole: true,
     prefer: "return=representation",
     body: {
       organization_id: context.organizationId,
@@ -101,6 +105,8 @@ export async function POST(request: Request) {
       enabled: schedule.enabled,
       next_run_at: nextRunAt,
       created_by: viewer.id,
+      schedule_origin: "manual",
+      baseline_contract_json: { type: "manual", confirmed_by: viewer.id, confirmed_at: new Date().toISOString(), provider: providerIds[0], model: configuredModel, question_ids: questionIds },
     },
   });
   return NextResponse.json({ data: rows[0] }, { status: 201 });
