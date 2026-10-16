@@ -52,6 +52,7 @@ export type PersistedDecisionReplayRow = PersistedDecisionIdentity & {
   id: string;
   organization_id: string;
   project_id: string;
+  decided_by: string;
 };
 
 export type ReplayReconciliation =
@@ -62,7 +63,7 @@ export type ReplayReconciliation =
 /** Confirm a retry by re-reading a single row scoped to the active project. */
 export async function reconcilePersistedDecisionReplay(
   readBySaveKey: (key: string) => Promise<PersistedDecisionReplayRow[]>,
-  scope: { organizationId: string; projectId: string },
+  scope: { organizationId: string; projectId: string; actorId?: string },
   saveKey: string,
   request: RequestedDecisionIdentity,
 ): Promise<ReplayReconciliation> {
@@ -76,6 +77,7 @@ export async function reconcilePersistedDecisionReplay(
     row.organization_id === scope.organizationId && row.project_id === scope.projectId);
   if (scoped.length > 1) return { state: "conflict" };
   if (!scoped.length) return { state: "unconfirmed" };
+  if (scope.actorId && scoped[0].decided_by !== scope.actorId) return { state: "conflict" };
   return sameDecisionReplayIdentity(scoped[0], request)
     ? { state: "match", id: scoped[0].id }
     : { state: "conflict" };
