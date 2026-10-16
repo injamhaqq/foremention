@@ -13,7 +13,8 @@
  * - maps database refusals (PT4xx) and "migration not applied yet" to
  *   explicit responses, never to a fake success.
  */
-import { reconcileDecisionSave, type LoopDecision, type LoopDecisionKind } from "./customer-value-loop.ts";
+import { type LoopDecision, type LoopDecisionKind } from "./customer-value-loop.ts";
+import { reconcilePersistedDecisionReplay } from "./decision-replay-identity.ts";
 
 export const DECISION_KINDS = ["change_specification", "no_action", "reviewer_disagreement"] as const;
 export const DECISION_STATES = ["DO_NOW", "TEST_FIRST", "DO_NOT_DO", "MONITOR_ONLY", "INSUFFICIENT_EVIDENCE"] as const;
@@ -244,27 +245,28 @@ export type SaveDecisionResult =
   | { ok: false; status: number; code?: string; error: string };
 
 export async function saveRecordDecision(deps: SaveDecisionDeps, scope: DecisionScope, input: SaveDecisionInput): Promise<SaveDecisionResult> {
+  const confirm = async (outcome: "existing" | "reconciled"): Promise<SaveDecisionResult> => {
+    const replay = await reconcilePersistedDecisionReplay(deps.readBySaveKey, scope, input.saveKey, input);
+    if (replay.state === "match") return { ok: true, id: replay.id, outcome };
+    if (replay.state === "conflict") {
+      return { ok: false, status: 409, code: "decision_conflict", error: "This save key belongs to a different persisted decision payload. Review the saved decision before taking another action." };
+    }
+    return { ok: false, status: 503, code: "decision_save_unconfirmed", error: "The save could not be confirmed. Reload the Record or retry with the same save key; do not assume it was saved." };
+  };
+
   try {
     const saved = await deps.rpc(saveDecisionRpcBody(scope, input));
-    return { ok: true, id: saved.id, outcome: saved.outcome };
+    if (saved.outcome === "created") return { ok: true, id: saved.id, outcome: "created" };
+    // The SQL RPC currently deduplicates by key, Record and kind alone. A
+    // reused key with a changed state/rationale/owner must NOT get a 200.
+    return await confirm("existing");
   } catch (error) {
     const mapped = decisionDbFailure(error);
     if (mapped) return { ok: false, ...mapped };
     if (!isAmbiguousWriteFailure(error)) throw error;
-    // Lost acknowledgement: find out whether the write committed before
-    // anyone retries. Never re-post here; the client retries with the SAME key.
-    let persisted: RecordDecisionRow[];
-    try {
-      persisted = await deps.readBySaveKey(input.saveKey);
-    } catch {
-      return { ok: false, status: 503, code: "decision_save_unconfirmed", error: "The save could not be confirmed. Retry with the same save key; it cannot create a duplicate." };
-    }
-    const outcome = reconcileDecisionSave(
-      { saveKey: input.saveKey, baselineRunId: input.baselineRunId },
-      persisted.filter((row) => row.organization_id === scope.organizationId && row.project_id === scope.projectId).map(decisionRowToLoop),
-    );
-    if (outcome.outcome === "saved") return { ok: true, id: outcome.decisionId, outcome: "reconciled" };
-    if (outcome.outcome === "conflict") return { ok: false, status: 409, code: "decision_conflict", error: outcome.reason };
-    return { ok: false, status: 503, code: "decision_save_unconfirmed", error: "The decision was not saved. Retry with the same save key; it cannot create a duplicate." };
+    // Lost acknowledgement: read the whole saved payload and fail closed on
+    // changed content, wrong project, missing row or an unreadable database.
+    // Never re-post here; any user retry must use the same save key.
+    return await confirm("reconciled");
   }
 }
