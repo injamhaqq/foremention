@@ -100,7 +100,7 @@ test("initial paid Paddle webhook must match a stored transaction reservation be
   assert.match(identity, /rows\[0\]\.external_subscription_id === subscriptionId/);
   assert.match(identity, /rows\.length === 1/);
   const correlation = source.indexOf("paddlePaidTransactionAdmitted(parsed, organizationId)");
-  const mutation = source.indexOf("return billingMutationResponse(event, provider.id, settlement)");
+  const mutation = source.indexOf("return billingMutationResponse(event, provider.id, settlement, fromVerifiedInbox)");
   assert.ok(correlation > -1 && mutation > correlation);
   assert.match(adapter, /externalTransactionId\?: string \| null/);
   assert.match(parser, /externalTransactionId: idFrom\(data\.id\)/);
