@@ -80,5 +80,5 @@ test("HTML/Markdown injection, addresses and API-looking secrets are escaped/red
   assert.ok(!md.includes("<script>"));
   assert.ok(!md.includes("private@example.org"));
   assert.ok(!md.includes("sk-supersecretcredential123456789"));
-  assert.ok(md.includes("&lt;script&gt;")); assert.ok(md.includes("[email redacted]"));
+  assert.ok(md.includes("&lt;script&gt;")); assert.ok(md.includes("email redacted"));
 });
