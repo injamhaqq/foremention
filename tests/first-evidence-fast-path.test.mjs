@@ -47,7 +47,10 @@ test("run detail keeps provider citations intact and contains only its own final
   assert.match(matcher, /url\.hash = ""/);
   assert.ok(matcher.includes('url.pathname = url.pathname.replace(/\\/+$/, "");'));
   assert.match(matcher, /comparablePageUrl\(source\.url\) === citationKey/);
-  assert.doesNotMatch(matcher, /hostname/);
+  // Only the "www." prefix is normalized (matching canonicalizeEvidenceUrl);
+  // never a domain-level or registrable-domain match.
+  assert.equal((matcher.match(/hostname/g) || []).length, 2);
+  assert.ok(matcher.includes('url.hostname = url.hostname.toLowerCase().replace(/^www\\./, "");'));
 });
 
 test("decision insight is tied to a newly created reviewed opportunity", () => {
