@@ -14,6 +14,7 @@ import { assessWorkspaceRunPairComparability } from "@/lib/run-pair-comparabilit
 import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS, MAX_COMPLETE_RUN_HISTORY_RUNS } from "@/lib/complete-run-evidence.mjs";
 import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { answerMentionsName, buildMentionMatcher } from "@/lib/answer-mention.mjs";
 import type { EntryRoute, SourceMapEntry } from "@/lib/types";
 
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", {
@@ -110,8 +111,8 @@ export async function loadTruthfulSourceMap(
 }
 
 const mentionFrequency = (answers: Array<{ answer_text: string }>, name: string) => {
-  const normalizedName = name.toLocaleLowerCase();
-  const mentions = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(normalizedName)).length;
+  const matches = buildMentionMatcher(name);
+  const mentions = matches ? answers.filter((answer) => matches(answer.answer_text)).length : 0;
   return { mentions, frequencyPct: answers.length ? Math.round((mentions / answers.length) * 100) : 0 };
 };
 
@@ -378,7 +379,7 @@ export async function loadExactQuestionPerformance(viewer: Viewer): Promise<Ques
   return Array.from(groups.entries()).map(([identity, answers]) => {
     const citationCount = answers.reduce((sum, answer) => sum + (answer.citations_json || []).filter((citation) => Boolean(citation.url)).length, 0);
     const citedAnswers = answers.filter((answer) => (answer.citations_json || []).some((citation) => Boolean(citation.url))).length;
-    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.projectBrand.toLocaleLowerCase())).length;
+    const brandMentionCount = answers.filter((answer) => answerMentionsName(answer.answer_text, context.projectBrand)).length;
     const runCount = new Set(answers.map((answer) => answer.run_id)).size;
     const guidance: QuestionPerformance["guidance"] = runCount < 2 ? "Needs repeat" : citationCount >= answers.length && brandMentionCount > 0 ? "High evidence yield" : citationCount > 0 ? "Keep as baseline" : "Low observed yield";
     return {
