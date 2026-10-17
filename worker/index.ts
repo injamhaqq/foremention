@@ -189,11 +189,25 @@ async function sha256(value: string) {
   return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+// Workers Free caps a Worker at 64 variables (secrets + text), and production is at
+// the cap. When PUBLIC_RATE_LIMIT_SECRET is not set, derive a domain-separated key
+// from EMAIL_UNSUBSCRIBE_SECRET (random, >= 32 chars). This is one-way, so the
+// derived value never reveals the source secret. Fails closed when neither is usable.
+const MIN_RATE_LIMIT_KEY_LENGTH = 32;
+async function publicRateLimitKey(env: Env): Promise<string | null> {
+  const direct = env.PUBLIC_RATE_LIMIT_SECRET?.trim();
+  if (direct && direct.length >= MIN_RATE_LIMIT_KEY_LENGTH) return direct;
+  const source = env.EMAIL_UNSUBSCRIBE_SECRET?.trim();
+  if (!source || source.length < MIN_RATE_LIMIT_KEY_LENGTH) return null;
+  return sha256(`foremention:public-rate-limit:v1:${source}`);
+}
+
 async function publicRateLimit(request: Request, env: Env, endpoint: string, limit: number, windowMs: number) {
-  if (!env.DB || !env.PUBLIC_RATE_LIMIT_SECRET) return { allowed: false, configured: false };
+  const rateLimitKey = env.DB ? await publicRateLimitKey(env) : null;
+  if (!env.DB || !rateLimitKey) return { allowed: false, configured: false };
   await initializeD1(env.DB);
   const address = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
-  const fingerprint = await sha256(`${env.PUBLIC_RATE_LIMIT_SECRET}:${endpoint}:${address}`);
+  const fingerprint = await sha256(`${rateLimitKey}:${endpoint}:${address}`);
   const now = Date.now();
   const row = await env.DB.prepare("SELECT window_started_at, request_count FROM public_tool_rate_limits WHERE endpoint = ? AND fingerprint_hash = ?").bind(endpoint, fingerprint).first<{ window_started_at: number; request_count: number }>();
   if (row && now - row.window_started_at < windowMs && row.request_count >= limit) return { allowed: false, configured: true };
