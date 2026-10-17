@@ -57,3 +57,11 @@ test("Chat 01: the previous openai.com fixture text is kept only as a migratable
   assert.notEqual(previousOfficialFirstEvidenceQuestion, officialFirstEvidenceQuestion);
   assert.deepEqual(sourceDomainScopeFromPrompt(previousOfficialFirstEvidenceQuestion), { domain: "openai.com", pathPrefix: "/index/chatgpt" });
 });
+
+test("Chat 01: JSON-mode answers with space-separated lines and an ISO UTC date qualify; no looser reading", () => {
+  const observed = "Title: Introducing the next generation of Claude      Publication date: 2024-03-04T08:00:00.000Z    Source: https://www.anthropic.com/news/claude-3-family\n";
+  assert.deepEqual(assessOfficialFirstEvidenceAnswer(observed, exact), { ok: true, reason: null });
+  assert.equal(assessOfficialFirstEvidenceAnswer("Title: Introducing the next generation of Claude Publication date: 2024-03-04", exact).reason, "EXPECTED_ARTICLE_TITLE_UNVERIFIED");
+  assert.equal(assessOfficialFirstEvidenceAnswer("Title: Introducing the next generation of Claude    Publication date: 2024-03-04T23:30:00-05:00", exact).reason, "EXPECTED_ARTICLE_DATE_UNVERIFIED");
+  assert.equal(assessOfficialFirstEvidenceAnswer("Title: Another Post    Publication date: 2024-03-04", exact).reason, "EXPECTED_ARTICLE_TITLE_UNVERIFIED");
+});

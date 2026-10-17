@@ -210,6 +210,7 @@ export async function runGroundedCloudflareWithBinding(input: {
             "Do not use memory to fill gaps. Preserve uncertainty and do not invent companies, facts, claims, citations, source numbers, or URLs.",
             "The answer field must contain the answer in exactly the format requested by REQUEST.",
             "Keep the answer concise: at most 180 words, plain text, no markdown headings or bold.",
+            "When REQUEST asks for separate lines, separate them in the answer string with newline characters, not spaces.",
             "The source_numbers array must contain one or more integer source numbers from the supplied source index that materially support the answer.",
             "Never select a source number that is absent from the supplied source index.",
             "If the evidence cannot support a confident answer, say so in the answer field while still identifying the retrieved sources that justify that uncertainty.",
