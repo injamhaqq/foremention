@@ -1,3 +1,5 @@
+import { activationMilestoneTimestamp } from "./pmf-activation-boundary.ts";
+
 export type CohortAccountFacts = {
   organizationId: string;
   includedInCompanyKpis: boolean;
@@ -22,17 +24,6 @@ function timestamp(value: string | null | undefined) {
   if (!value) return null;
   const parsed = new Date(value).getTime();
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function activationTimestamp(account: CohortAccountFacts) {
-  if (
-    timestamp(account.workspaceConfiguredAt) === null
-    || timestamp(account.fiveQuestionsApprovedAt) === null
-    || timestamp(account.firstMeasurementAt) === null
-    || timestamp(account.firstRecordReviewedAt) === null
-    || timestamp(account.firstActionCreatedAt) === null
-  ) return null;
-  return timestamp(account.firstActionAssignedAt);
 }
 
 function monthStartUtc(value: number) {
@@ -66,7 +57,7 @@ export function deriveMonthlyActivationCohorts(accounts: CohortAccountFacts[], n
   const groups = new Map<number, CohortAccountFacts[]>();
   for (const account of accounts) {
     if (!account.includedInCompanyKpis) continue;
-    const activatedAt = activationTimestamp(account);
+    const activatedAt = activationMilestoneTimestamp(account, now.getTime());
     if (activatedAt === null) continue;
     const start = monthStartUtc(activatedAt);
     groups.set(start, [...(groups.get(start) || []), account]);
