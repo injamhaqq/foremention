@@ -4,6 +4,9 @@ function comparablePageUrl(value: string) {
   try {
     const url = new URL(value);
     url.hash = "";
+    // Source records are canonicalized without "www." (lib/collection-policy.ts),
+    // while providers return the URL as published; compare on the same key.
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
     if (url.pathname !== "/") url.pathname = url.pathname.replace(/\/+$/, "");
     return url.toString();
   } catch {
