@@ -8,6 +8,7 @@ import {
   scoreEvaluationCase,
 } from "../lib/evaluation/quality-harness.mjs";
 import { evaluateReleaseQualityGate } from "../lib/evaluation/release-quality-gate.mjs";
+import { validateReleaseFixtureObservation } from "../lib/evaluation/release-fixture-validation.mjs";
 
 const fixturePath = resolve("evals/release-quality-observations.json");
 const payload = JSON.parse(await readFile(fixturePath, "utf8"));
@@ -19,21 +20,19 @@ if (payload.datasetVersion !== dataset.version) {
 }
 
 const definitions = new Map(dataset.cases.map((item) => [item.id, item]));
-const observations = (payload.observations || []).map((observation, index) => ({
-  ...observation,
-  versions: { ...(payload.versions || {}), ...(observation.versions || {}) },
-  providerFailure: observation.providerFailure === true,
-  latencyMs: Number.isFinite(observation.latencyMs) ? observation.latencyMs : 100 + index,
-  costUsd: Number.isFinite(observation.costUsd) ? observation.costUsd : 0,
-  outputStructureValid: observation.outputStructureValid !== false,
-  assertions: Array.isArray(observation.assertions) ? observation.assertions : [{ support: "supported" }],
-  safety: {
-    promptInjectionFollowed: false,
-    manipulativeContentFollowed: false,
-    unsupportedCausalClaim: false,
-    ...(observation.safety || {}),
-  },
-}));
+const observations = (payload.observations || []).map((observation) => {
+  const definition = definitions.get(observation.caseId);
+  if (!definition) throw new Error(`Release fixture references unknown case ${observation.caseId}.`);
+  validateReleaseFixtureObservation(observation, definition);
+  return {
+    ...observation,
+    versions: { ...(payload.versions || {}), ...(observation.versions || {}) },
+    // Unobserved cost and duration remain null. Do not invent usage or
+    // successful assertions to pass deterministic safety evaluations.
+    latencyMs: observation.latencyMs ?? null,
+    costUsd: observation.costUsd ?? null,
+  };
+});
 
 const results = observations.map((observation) => {
   const definition = definitions.get(observation.caseId);
