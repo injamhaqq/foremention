@@ -36,6 +36,9 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $body$
+-- OUT columns (organization_id, ...) share names with table columns used in
+-- ON CONFLICT targets; resolve bare identifiers in SQL to columns.
+#variable_conflict use_column
 DECLARE
   v_email text;
   v_invite public.invitations%rowtype;
@@ -76,7 +79,7 @@ BEGIN
          THEN m.role ELSE EXCLUDED.role END,
       member_email=EXCLUDED.member_email,
       invited_by=coalesce(m.invited_by,EXCLUDED.invited_by)
-  RETURNING role INTO v_role;
+  RETURNING m.role INTO v_role;
 
   UPDATE public.invitations AS i
     SET status='accepted', accepted_at=clock_timestamp()
