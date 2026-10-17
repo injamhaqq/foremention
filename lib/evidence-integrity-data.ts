@@ -9,7 +9,7 @@ import {
   type QuestionPerformance,
 } from "@/lib/data";
 import { getDemoSourceMap } from "@/lib/demo-data";
-import { assessCompleteCompetitorHistory, competitorPairDelta, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
+import { answerMentionsName, assessCompleteCompetitorHistory, competitorPairDelta, MAX_COMPETITOR_HISTORY_ANSWERS, MAX_COMPETITOR_HISTORY_RUNS } from "@/lib/competitor-evidence-gate.mjs";
 import { assessWorkspaceRunPairComparability } from "@/lib/run-pair-comparability";
 import { assessCompleteRunHistory, MAX_COMPLETE_RUN_HISTORY_ANSWERS, MAX_COMPLETE_RUN_HISTORY_RUNS } from "@/lib/complete-run-evidence.mjs";
 import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
@@ -110,8 +110,7 @@ export async function loadTruthfulSourceMap(
 }
 
 const mentionFrequency = (answers: Array<{ answer_text: string }>, name: string) => {
-  const normalizedName = name.toLocaleLowerCase();
-  const mentions = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(normalizedName)).length;
+  const mentions = answers.filter((answer) => answerMentionsName(answer.answer_text, name)).length;
   return { mentions, frequencyPct: answers.length ? Math.round((mentions / answers.length) * 100) : 0 };
 };
 
