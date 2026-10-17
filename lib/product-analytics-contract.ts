@@ -44,6 +44,8 @@ export const PRODUCT_ANALYTICS_EVENTS = [
   "partner_page_viewed",
   "design_partner_cta_impression",
   "design_partner_cta_clicked",
+  "public_sample_cta_clicked",
+  "public_evidence_inspection_cta_clicked",
   "design_partner_page_viewed",
   "design_partner_application_started",
   "design_partner_application_submitted",
@@ -64,7 +66,7 @@ type NormalizedProductAnalyticsInput = {
 const EVENT_NAMES = new Set<string>(PRODUCT_ANALYTICS_EVENTS);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const surfaces = new Set(["home", "product", "pricing", "score", "prompt_check", "login", "signup", "account_recovery", "overview", "onboarding", "questions", "ai_results", "sources", "competitors", "opportunities", "actions", "analytics", "settings", "workspace_other", "public_other"]);
+const surfaces = new Set(["home", "product", "pricing", "score", "prompt_check", "login", "signup", "account_recovery", "overview", "onboarding", "questions", "ai_results", "sources", "competitors", "opportunities", "actions", "analytics", "settings", "workspace_other", "public_other", "use_cases"]);
 const entrySurfaces = new Set(["onboarding", "ai_results", "sources", "workspace"]);
 const authMethods = new Set(["email", "google"]);
 const providers = new Set(["openai", "gemini", "anthropic", "perplexity", "groq", "cloudflare", "openrouter", "zenmux", "omnirouters"]);
@@ -151,6 +153,10 @@ export function shouldEnableProductAnalytics(nodeEnv: string | undefined, hostna
 }
 
 function normalizeLegacyEvent(event: string, input: Record<string, unknown>): NormalizedProductAnalyticsInput {
+  // Existing public CTAs represent a click toward an illustrative sample or
+  // evidence page, not a completed inspection, live run or human review.
+  if (event === "sample_opened") return { event: "public_sample_cta_clicked", input };
+  if (event === "evidence_inspected") return { event: "public_evidence_inspection_cta_clicked", input };
   if (event === "onboarding_started") return { event: "activation_setup_started", input };
   if (event === "onboarding_completed") return { event: "activation_setup_completed", input };
   if (event === "onboarding_website_draft_created") return {
@@ -223,6 +229,8 @@ export function sanitizeProductAnalyticsEvent(event: string, input: Record<strin
     case "design_partner_application_started":
     case "design_partner_application_submitted":
       break;
+    case "public_sample_cta_clicked":
+    case "public_evidence_inspection_cta_clicked":
     case "design_partner_cta_impression":
     case "design_partner_cta_clicked":
       addEnum(properties, "surface", normalizedInput.surface, surfaces);
