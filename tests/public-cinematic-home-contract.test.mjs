@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const heroPath = new URL("../components/goat-home-experience.tsx", import.meta.url);
+const graphPath = new URL("../components/illustrative-recommendation-graph.tsx", import.meta.url);
 const cssPath = new URL("../app/public-cinematic-home.css", import.meta.url);
 const layoutPath = new URL("../app/layout.tsx", import.meta.url);
 
 test("public homepage exposes the approved evidence-led cinematic hero", async () => {
-  const source = await readFile(heroPath, "utf8");
+  const source = (await Promise.all([readFile(heroPath, "utf8"), readFile(graphPath, "utf8")])).join("\n");
 
   assert.match(source, /See where AI recommends your brand\./);
   assert.match(source, /Track recommendations, inspect supporting sources, and decide what to improve\./);
@@ -32,7 +33,7 @@ test("cinematic homepage keeps responsive and reduced-motion fallbacks", async (
 });
 
 test("public hero remains a static sample rather than a live-provider surface", async () => {
-  const source = await readFile(heroPath, "utf8");
+  const source = (await Promise.all([readFile(heroPath, "utf8"), readFile(graphPath, "utf8")])).join("\n");
 
   for (const forbidden of [
     "OPENAI_API_KEY",
@@ -51,7 +52,7 @@ test("public hero remains a static sample rather than a live-provider surface", 
 
 
 test("public sample graph is progressively inspectable without inventing extra provider surfaces", async () => {
-  const source = await readFile(heroPath, "utf8");
+  const source = (await Promise.all([readFile(heroPath, "utf8"), readFile(graphPath, "utf8")])).join("\n");
   const css = await readFile(cssPath, "utf8");
 
   assert.match(source, /useState\(""/);
@@ -63,4 +64,22 @@ test("public sample graph is progressively inspectable without inventing extra p
   assert.match(source, /does not invent a causal explanation/i);
   assert.match(css, /button\.fm-graph-node:disabled/);
   assert.match(css, /\.fm-graph-node\.is-selected/);
+});
+
+
+test("static homepage content is server-rendered while the sample graph stays a client island", async () => {
+  const [serverHome, graph] = await Promise.all([
+    readFile(heroPath, "utf8"),
+    readFile(graphPath, "utf8"),
+  ]);
+  assert.doesNotMatch(serverHome, /"use client"/);
+  assert.doesNotMatch(serverHome, /useState|onClick=|onChange=/);
+  assert.match(serverHome, /<IllustrativeRecommendationGraph \/>/);
+  assert.match(serverHome, /See where AI recommends your brand/);
+  assert.match(serverHome, /PROOF WITHOUT PLACEHOLDERS/);
+  assert.match(graph, /"use client"/);
+  assert.match(graph, /useState/);
+  assert.match(graph, /aria-pressed=\{selectedBrand === "competitor"\}/);
+  assert.match(graph, /aria-pressed=\{selectedEvidence === "source-01"\}/);
+  assert.doesNotMatch(graph, /fetch\(|\/api\/runs/);
 });

@@ -14,13 +14,14 @@ test("canonical font imports are single-source while brand typography stays fixe
 
   assert.ok(layout.indexOf('import "./registered-evidence.css";') <
             layout.indexOf('import "./canonical-system.css";'));
-  assert.match(registered, /@import url\("https:\/\/fonts\.googleapis\.com\/css2\?family=IBM\+Plex\+Mono/);
-  assert.match(registered, /Inter:wght@400;500;600;700/);
-  assert.match(registered, /Newsreader:opsz,wght@6\.\.72,400;6\.\.72,500/);
+  assert.match(globals, /@import url\("https:\/\/fonts\.googleapis\.com\/css2\?family=IBM\+Plex\+Mono/);
+  assert.match(globals, /Inter:wght@400;500;600;700/);
+  assert.match(globals, /Newsreader:opsz,wght@6\.\.72,400;6\.\.72,500/);
+  assert.doesNotMatch(registered, /fonts\.googleapis\.com\/css2/);
   assert.doesNotMatch(canonical, /@import\s+url\(["']https:\/\/fonts\.googleapis\.com/);
   assert.match(canonical, /--fm-font-display:\s*"Newsreader"/);
   assert.match(canonical, /--fm-font-sans:\s*"Inter"/);
   assert.match(canonical, /--fm-font-mono:\s*"IBM Plex Mono"/);
   assert.match(globals, /Space\+Grotesk/);
-  assert.equal((registered + canonical).match(/fonts\.googleapis\.com\/css2/g)?.length, 1);
+  assert.equal((globals + registered + canonical).match(/fonts\.googleapis\.com\/css2/g)?.length, 1);
 });
