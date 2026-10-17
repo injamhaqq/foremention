@@ -21,6 +21,7 @@ import { loadLatestProjectSourceMapRef } from "@/lib/project-source-map-scope";
 import { filterNotificationsToProject, MAX_PROJECT_NOTIFICATION_SCAN } from "@/lib/project-notification-scope";
 import { ACTIVE_PROJECT_COOKIE } from "@/lib/session-cookies";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { answerMentionsName, buildMentionMatcher } from "@/lib/answer-mention.mjs";
 import type { EntryRoute, Placement, SourceMapEntry, VisibilityRun } from "@/lib/types";
 
 export type WorkspaceRole = "owner" | "admin" | "analyst" | "viewer";
@@ -764,10 +765,10 @@ export async function loadWorkspaceCompetitors(viewer: Viewer): Promise<string[]
 export async function loadCompetitorTracking(viewer: Viewer): Promise<CompetitorTracking[]> {
   if (viewer.mode === "demo") return ["Deel", "Rippling"].map((name, index) => {
     const latestAnswers = getDemoRunAnswers(demoRuns[0].id);
-    const mentions = latestAnswers.filter((answer) => answer.answer.includes(name)).length;
+    const mentions = latestAnswers.filter((answer) => answerMentionsName(answer.answer, name)).length;
     const trendPoints = demoRuns.slice(0, 2).reverse().map((run) => {
       const answers = getDemoRunAnswers(run.id);
-      return { runId: run.id, date: run.date, frequencyPct: Math.round(answers.filter((answer) => answer.answer.includes(name)).length / answers.length * 100) };
+      return { runId: run.id, date: run.date, frequencyPct: Math.round(answers.filter((answer) => answerMentionsName(answer.answer, name)).length / answers.length * 100) };
     });
     return { id: `demo-competitor-${index + 1}`, name, website: `https://${name.toLowerCase()}.example`, type: "direct" as const, active: true,
       answerMentions: mentions, totalAnswers: latestAnswers.length, mentionFrequencyPct: Math.round(mentions / latestAnswers.length * 100),
@@ -783,14 +784,14 @@ export async function loadCompetitorTracking(viewer: Viewer): Promise<Competitor
   const runIds = runs.map((run) => run.id);
   const answers = runIds.length ? await supabaseRest<Array<{ run_id: string; answer_text: string }>>(`run_answers?select=run_id,answer_text&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&limit=2000`, { token: viewer.accessToken }) : [];
   return competitors.map((competitor) => {
-    const normalizedName = competitor.name.toLocaleLowerCase();
-    const mentions = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(normalizedName));
+    const matches = buildMentionMatcher(competitor.name);
+    const mentions = matches ? answers.filter((answer) => matches(answer.answer_text)) : [];
     const trendPoints = runs.map((run) => {
       const runAnswers = answers.filter((answer) => answer.run_id === run.id);
-      const runMentions = runAnswers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(normalizedName)).length;
+      const runMentions = (matches ? runAnswers.filter((answer) => matches(answer.answer_text)).length : 0);
       return { runId: run.id, date: dateLabel(run.created_at), frequencyPct: runAnswers.length ? Math.round((runMentions / runAnswers.length) * 100) : 0 };
     });
-    const reviewedPages = entries.filter((entry) => entry.crawlerAccess !== "unknown" && entry.competitors.some((name) => name.toLocaleLowerCase() === normalizedName));
+    const reviewedPages = entries.filter((entry) => entry.crawlerAccess !== "unknown" && entry.competitors.some((name) => name.toLocaleLowerCase() === competitor.name.toLocaleLowerCase()));
     return {
       id: competitor.id, name: competitor.name, website: competitor.website, type: competitor.competitor_type, active: competitor.active,
       answerMentions: mentions.length, totalAnswers: answers.length, mentionFrequencyPct: answers.length ? Math.round((mentions.length / answers.length) * 100) : null,
@@ -819,7 +820,7 @@ export async function loadQuestionPerformance(viewer: Viewer): Promise<QuestionP
   return Array.from(groups.entries()).map(([key, answers]) => {
     const citationCount = answers.reduce((sum, answer) => sum + (answer.citations_json || []).filter((citation) => Boolean(citation.url)).length, 0);
     const citedAnswers = answers.filter((answer) => (answer.citations_json || []).some((citation) => Boolean(citation.url))).length;
-    const brandMentionCount = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(context.projectBrand.toLocaleLowerCase())).length;
+    const brandMentionCount = answers.filter((answer) => answerMentionsName(answer.answer_text, context.projectBrand)).length;
     const runCount = new Set(answers.map((answer) => answer.run_id)).size;
     const guidance: QuestionPerformance["guidance"] = runCount < 2 ? "Needs repeat" : citationCount >= answers.length && brandMentionCount > 0 ? "High evidence yield" : citationCount > 0 ? "Keep as baseline" : "Low observed yield";
     return { key, question: answers[0]?.prompt_text || key, answerCount: answers.length, runCount, citationCount, citedAnswerPct: answers.length ? Math.round((citedAnswers / answers.length) * 100) : 0, brandMentionCount, guidance };
