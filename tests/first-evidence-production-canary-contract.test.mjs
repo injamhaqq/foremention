@@ -86,7 +86,9 @@ test("the canary derives a privacy-safe exact fixture fingerprint and fails clos
 
 test("the dedicated synthetic canary checks a stable officially dated page rather than claiming to know the latest post", () => {
   assert.match(canary, /const freshWebEvidenceQuestion = officialFirstEvidenceQuestion;/);
-  assert.match(canary, /import \{ assessOfficialFirstEvidenceAnswer, officialFirstEvidenceQuestion \}/);
+  assert.match(canary, /import \{\s*assessOfficialFirstEvidenceAnswer,\s*officialFirstEvidenceQuestion,\s*officialFirstEvidenceRecordMarker,\s*previousOfficialFirstEvidenceQuestion,\s*\}/);
+  assert.match(canary, /approved\.find\(\(item\) => item\?\.text === previousOfficialFirstEvidenceQuestion\)/);
+  assert.match(canary, /hasText: officialFirstEvidenceRecordMarker/);
   assert.match(canary, /assessOfficialFirstEvidenceAnswer\(displayedOfficialAnswer, displayedOfficialCitations\)/);
   assert.match(canary, /fixed-official-article-title-date-and-provenance-verified/);
   assert.doesNotMatch(canary, /const freshWebEvidenceQuestion = ".*most recently published/);
