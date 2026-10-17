@@ -90,6 +90,10 @@ jobs:
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-run-answer-evidence-receipts.sql
           # Chat06: real SQL behavior in disposable local Supabase, never production.
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-chat06-billing-inbox.sql
+          # Chat01 atomic invitation acceptance: isolated SQL candidate ONLY, not a production migration.
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/chat01-atomic-invite-candidate.sql
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-chat01-atomic-invite.sql
+          bash scripts/verify-chat01-atomic-invite-concurrent-sessions.sh
 
       - name: Run tests
         shell: bash
