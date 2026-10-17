@@ -17,7 +17,7 @@ The default invocation checks:
 
 ## Exact release verification
 
-Cloudflare Workers Builds is the production deploy system for Foremention. GitHub Actions verifies the repository and archives the built artifact, but the artifact upload is not itself a deployment.
+Production is deployed by the manual `production-deploy` GitHub Actions workflow (`.github/workflows/production-deploy.yml`, `wrangler deploy` of the exact `main` commit). Cloudflare Workers Builds (Git auto-deploy) has failed on every `main` commit since `a188082` and is not the deploy path; a CI artifact upload is not a deployment either. Neither path applies Supabase migrations.
 
 For an exact-release check, provide the full Git commit expected from the live health contract:
 
