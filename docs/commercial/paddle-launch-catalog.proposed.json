@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "status": "proposal_not_account_snapshot",
+  "decision_date": "2026-10-10",
+  "currency_code": "USD",
+  "live_activation_allowed": false,
+  "prerequisites": [
+    "real_sandbox_lifecycle_passed",
+    "catalog_and_notification_audit_complete",
+    "product_delivery_and_costs_verified",
+    "live_account_verified",
+    "checkout_domains_approved",
+    "exact_sha_release_checks_passed"
+  ],
+  "prices": [
+    {
+      "plan": "core",
+      "description": "Foremention Core monthly",
+      "unit_amount_minor": "9900",
+      "billing_cycle": {
+        "interval": "month",
+        "frequency": 1
+      },
+      "trial_period": null,
+      "quantity": 1,
+      "proposed_scope": {
+        "brand_workspaces": 1,
+        "approved_buyer_questions_total": 25,
+        "measurement_cadence": "monthly"
+      },
+      "sandbox_product_id": null,
+      "sandbox_price_id": null,
+      "live_product_id": null,
+      "live_price_id": null,
+      "env_price_id": "PADDLE_CORE_MONTHLY_PRICE_ID"
+    },
+    {
+      "plan": "signal",
+      "description": "Foremention Signal monthly",
+      "unit_amount_minor": "24900",
+      "billing_cycle": {
+        "interval": "month",
+        "frequency": 1
+      },
+      "trial_period": null,
+      "quantity": 1,
+      "proposed_scope": {
+        "brand_workspaces": 3,
+        "approved_buyer_questions_total": 100,
+        "measurement_cadence": "weekly"
+      },
+      "sandbox_product_id": null,
+      "sandbox_price_id": null,
+      "live_product_id": null,
+      "live_price_id": null,
+      "env_price_id": "PADDLE_SIGNAL_MONTHLY_PRICE_ID"
+    }
+  ],
+  "enterprise": "written_custom_quote_only",
+  "tax_mode": "proposed_exclusive_confirm_with_account_configuration",
+  "discounts_to_create": [],
+  "annual_prices_to_create": [],
+  "migration_policy": {
+    "modify_sandbox": false,
+    "delete_archive_deactivate_live": false,
+    "rotate_existing_webhook_secret": false,
+    "existing_live_prices": "preserve",
+    "catalog_conflict": "report_before_migration",
+    "existing_notification_destination": "reuse_without_mutation"
+  }
+}
