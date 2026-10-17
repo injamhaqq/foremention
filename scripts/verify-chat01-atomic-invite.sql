@@ -1,5 +1,5 @@
 \set ON_ERROR_STOP on
--- Disposable proof only. Run AFTER chat01-atomic-invite-candidate.sql on local Supabase.
+-- Disposable proof only. Runs against migration 20261017150000 on local Supabase.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '30s';
@@ -50,7 +50,7 @@ LANGUAGE plpgsql AS $f$
 BEGIN
   BEGIN
     PERFORM * FROM public.accept_foremention_invitation(encode(sha256(convert_to(p_token,'UTF8')),'hex'), p_user);
-  EXCEPTION WHEN raise_exception THEN
+  EXCEPTION WHEN SQLSTATE 'PT409' THEN
     IF SQLERRM <> 'INVITATION_UNAVAILABLE' THEN RAISE EXCEPTION '%: unexpected error %', p_label, SQLERRM; END IF;
     RETURN;
   END;
@@ -86,7 +86,7 @@ BEGIN
   BEGIN
     PERFORM * FROM public.accept_foremention_invitation('NOT-A-HASH', invitee);
     RAISE EXCEPTION 'bad token syntax accepted';
-  EXCEPTION WHEN raise_exception THEN
+  EXCEPTION WHEN SQLSTATE 'PT409' THEN
     IF SQLERRM <> 'INVITATION_UNAVAILABLE' THEN RAISE; END IF;
   END;
   IF EXISTS (SELECT 1 FROM public.organization_members WHERE organization_id=org_b AND user_id=invitee) THEN RAISE EXCEPTION 'Refused invite leaked tenant B membership'; END IF;

@@ -1,9 +1,8 @@
-\set ON_ERROR_STOP on
--- CHAT 01 ATOMIC INVITATION ACCEPTANCE — ISOLATED CI CANDIDATE ONLY.
--- Disposable local Supabase only (like FM-08). NOT a production migration.
--- Promote to supabase/migrations only after review + a matching route cutover.
-BEGIN;
-
+-- Chat 01: atomic invitation acceptance (FM360-20261017).
+-- Proven in disposable CI Supabase by scripts/verify-chat01-atomic-invite.sql
+-- and scripts/verify-chat01-atomic-invite-concurrent-sessions.sh.
+-- Refusals raise SQLSTATE PT409 so PostgREST answers HTTP 409 without detail.
+-- Ships together with the route cutover in app/api/team/invitations/accept.
 -- Legacy UNIQUE (organization_id,email,status) blocks accepting two historical
 -- invitations for the same mailbox and tenant. Preserve history and allow only
 -- one current pending invitation for the normalized address.
@@ -49,7 +48,7 @@ DECLARE
 BEGIN
   IF p_user_id IS NULL OR p_token_hash IS NULL
     OR p_token_hash !~ '^[0-9a-f]{64}$' THEN
-    RAISE EXCEPTION 'INVITATION_UNAVAILABLE' USING ERRCODE='P0001';
+    RAISE EXCEPTION 'INVITATION_UNAVAILABLE' USING ERRCODE='PT409';
   END IF;
 
   -- Never trust the mailbox in an HTTP body, client JWT metadata or an invite
@@ -58,7 +57,7 @@ BEGIN
    WHERE u.id=p_user_id AND u.email IS NOT NULL
      AND u.email_confirmed_at IS NOT NULL;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'INVITATION_UNAVAILABLE' USING ERRCODE='P0001';
+    RAISE EXCEPTION 'INVITATION_UNAVAILABLE' USING ERRCODE='PT409';
   END IF;
 
   SELECT i.* INTO v_invite FROM public.invitations i
@@ -67,7 +66,7 @@ BEGIN
     OR v_invite.expires_at <= clock_timestamp()
     OR lower(v_invite.email) <> v_email
     OR v_invite.role NOT IN ('admin','analyst','viewer') THEN
-    RAISE EXCEPTION 'INVITATION_UNAVAILABLE' USING ERRCODE='P0001';
+    RAISE EXCEPTION 'INVITATION_UNAVAILABLE' USING ERRCODE='PT409';
   END IF;
 
   INSERT INTO public.organization_members AS m
@@ -85,7 +84,7 @@ BEGIN
     SET status='accepted', accepted_at=clock_timestamp()
     WHERE i.id=v_invite.id AND i.status='pending';
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'INVITATION_UNAVAILABLE' USING ERRCODE='P0001';
+    RAISE EXCEPTION 'INVITATION_UNAVAILABLE' USING ERRCODE='PT409';
   END IF;
 
   INSERT INTO public.audit_logs
@@ -114,4 +113,3 @@ REVOKE ALL ON FUNCTION public.accept_foremention_invitation(text,uuid)
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_foremention_invitation(text,uuid)
   TO service_role;
-COMMIT;

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Disposable CI ONLY: requires chat01-atomic-invite-candidate.sql applied.
+# Disposable CI ONLY: requires migration 20261017150000_chat01_atomic_invitation_accept.sql.
 # Proves independent sessions serialize on the invitation row in both orders:
 #   A) accept holds the lock -> concurrent revoke waits, then changes nothing
 #   B) revoke holds the lock -> concurrent accept waits, then is refused, no membership

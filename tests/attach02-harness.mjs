@@ -105,6 +105,37 @@ export class FakePostgrest {
     this.rpcCalls = [];
   }
 
+  // In-memory model of migration 20261017150000 accept_foremention_invitation.
+  // JS runs it without interleaving, which stands in for the row lock; the
+  // real lock/rollback behavior is proven in CI against local Supabase.
+  acceptInvitation(body = {}) {
+    const refuse = () => Object.assign(new Error("INVITATION_UNAVAILABLE"), { status: 409, code: "PT409" });
+    const user = Object.values(USERS).find((candidate) => candidate.id === body.p_user_id);
+    if (!user || this.unconfirmedUsers?.has(user.id) || !/^[0-9a-f]{64}$/.test(String(body.p_token_hash || ""))) throw refuse();
+    const invite = this.tables.invitations.find((row) => row.token_hash === body.p_token_hash);
+    if (!invite || invite.status !== "pending" || Date.parse(invite.expires_at) <= Date.now()
+      || String(invite.email).toLowerCase() !== user.email.toLowerCase()
+      || !["admin", "analyst", "viewer"].includes(invite.role)) throw refuse();
+    this.beforeAcceptCommit?.(invite);
+    const rank = ["owner", "admin", "analyst", "viewer", "reviewer", "stakeholder"];
+    const existing = this.tables.organization_members.find((m) => m.organization_id === invite.organization_id && m.user_id === user.id);
+    const role = existing && rank.indexOf(existing.role) <= rank.indexOf(invite.role) ? existing.role : invite.role;
+    const staged = structuredClone(this.tables);
+    if (existing) Object.assign(staged.organization_members.find((m) => m.organization_id === invite.organization_id && m.user_id === user.id), { role, member_email: user.email.toLowerCase() });
+    else staged.organization_members.push({ organization_id: invite.organization_id, user_id: user.id, role, member_email: user.email.toLowerCase(), invited_by: invite.invited_by });
+    Object.assign(staged.invitations.find((row) => row.id === invite.id), { status: "accepted", accepted_at: new Date().toISOString() });
+    (staged.audit_logs ||= []).push({ organization_id: invite.organization_id, actor_id: user.id, action: "team.invitation.accepted", entity_type: "invitation", entity_id: invite.id, after_state: { role, invited_role: invite.role } });
+    (staged.notifications ||= []).push({ organization_id: invite.organization_id, user_id: user.id, event_key: `workspace-joined:${invite.id}`, kind: "workspace" });
+    this.failAcceptBeforeCommit?.(); // throwing here discards `staged`: all-or-nothing
+    // Commit: mutate the existing table arrays in place so tests holding row references see it.
+    for (const [name, rows] of Object.entries(staged)) {
+      if (!this.tables[name]) { this.tables[name] = rows; continue; }
+      if (name === "invitations") { const target = this.tables.invitations.find((row) => row.id === invite.id); Object.assign(target, staged.invitations.find((row) => row.id === invite.id)); continue; }
+      this.tables[name].splice(0, this.tables[name].length, ...rows);
+    }
+    return [{ invitation_id: invite.id, organization_id: invite.organization_id, granted_role: role }];
+  }
+
   orgsOf(userId) {
     return new Set(this.tables.organization_members.filter((m) => m.user_id === userId).map((m) => m.organization_id));
   }
@@ -117,7 +148,9 @@ export class FakePostgrest {
     this.calls.push({ method, resource, query, auth, actor, body: options.body });
     if (resource.startsWith("rpc/")) {
       this.rpcCalls.push({ name: resource.slice(4), auth, body: options.body });
-      return this.rpcResult?.(resource.slice(4), options.body) ?? [];
+      if (this.rpcResult) return this.rpcResult(resource.slice(4), options.body) ?? [];
+      if (resource === "rpc/accept_foremention_invitation" && auth === "service-role") return this.acceptInvitation(options.body);
+      return [];
     }
     const table = this.tables[resource];
     if (!table) throw new Error(`attach02 emulator: unknown table ${resource}`);
