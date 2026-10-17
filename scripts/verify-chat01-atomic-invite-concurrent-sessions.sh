@@ -51,7 +51,7 @@ VALUES ('$ORG_ID','c02-invitee@example.test','analyst',encode(sha256('$1'),'hex'
 SQL
 }
 accept_sql() { echo "SELECT 'ACCEPT:' || granted_role FROM public.accept_foremention_invitation(encode(sha256('$1'),'hex'),'$USER_ID'::uuid);"; }
-revoke_sql() { echo "SELECT 'REVOKED:' || count(*) FROM (UPDATE public.invitations SET status='revoked' WHERE token_hash=encode(sha256('$1'),'hex') AND status='pending' RETURNING 1) r;"; }
+revoke_sql() { echo "WITH r AS (UPDATE public.invitations SET status='revoked' WHERE token_hash=encode(sha256('$1'),'hex') AND status='pending' RETURNING 1) SELECT 'REVOKED:' || count(*) FROM r;"; }
 
 wait_for() { # $1 sql count query, $2 message
   for _ in $(seq 1 80); do
