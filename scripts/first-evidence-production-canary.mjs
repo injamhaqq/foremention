@@ -2,7 +2,12 @@
 
 import { createHash } from "node:crypto";
 import { sourceDomainScopeFromPrompt } from "../lib/official-source-relevance.mjs";
-import { assessOfficialFirstEvidenceAnswer, officialFirstEvidenceQuestion } from "../lib/official-first-evidence-case.mjs";
+import {
+  assessOfficialFirstEvidenceAnswer,
+  officialFirstEvidenceQuestion,
+  officialFirstEvidenceRecordMarker,
+  previousOfficialFirstEvidenceQuestion,
+} from "../lib/official-first-evidence-case.mjs";
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -174,6 +179,7 @@ async function ensureCanaryWorkspace(page) {
   // historical canary slot after its pinned organization/question fingerprint
   // matches. Never edit an unrelated approved buyer question.
   const canarySlot = approved.find((item) => item?.text === freshWebEvidenceQuestion)
+    || approved.find((item) => item?.text === previousOfficialFirstEvidenceQuestion)
     || approved.find((item) => item?.text === historicalWebEvidenceQuestion)
     || null;
   if (!canarySlot?.id || !/^[0-9a-f-]{36}$/i.test(canarySlot.id)) fail("Neither the pinned synthetic acceptance question nor its legacy text was found. Refusing to select or mutate a different buyer question.");
@@ -292,7 +298,7 @@ async function verifyRunEvidenceAndPublish(page, run) {
   const requiredOfficialScope = sourceDomainScopeFromPrompt(freshWebEvidenceQuestion);
   if (!requiredOfficialScope) fail("The pinned official-domain provenance requirement was not recognized.");
   const officialRecord = page.locator("article.canonical-answer-record").filter({
-    hasText: "official announcement at openai.com/index/chatgpt/",
+    hasText: officialFirstEvidenceRecordMarker,
   }).first();
   if (await officialRecord.count() !== 1) fail("The pinned official-domain Recommendation Record was not rendered.");
   const displayedOfficialAnswer = await officialRecord.locator(":scope > p").first().innerText();

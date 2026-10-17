@@ -160,6 +160,8 @@ export type FreeWebEvidence = {
   retrievalQuery: string;
   retrievedCandidateCount: number;
   relevanceRejectedCount: number;
+  /** True only when the exact page named by a path-scoped request was read and its metadata attached. */
+  scopedPageRead?: boolean;
 };
 
 /**
@@ -191,9 +193,26 @@ const QUERY_STOPWORDS = new Set([
 ]);
 
 /** Concise, bounded, domain-qualified retrieval query (documented normalization). */
+/**
+ * A path names one specific page only when it has at least two segments
+ * ("/news/claude-3-family", "/index/chatgpt"). A single segment ("/news") is a
+ * section, used for "newest post" questions: never read or slug-searched.
+ */
+function namedPageSlug(scope: SourceDomainScope | null): string {
+  const segments = (scope?.pathPrefix || "").toLowerCase().split("/").filter(Boolean);
+  return segments.length >= 2 ? segments[segments.length - 1] : "";
+}
+
 export function domainScopedQuery(prompt: string, scope: SourceDomainScope) {
   const withoutDomains = prompt.normalize("NFKC").toLowerCase().replace(DOMAIN_PATTERN, " ");
   const keywords: string[] = [];
+  // Chat 01: the named page's own slug is the strongest signal for search
+  // engines, which ignore the path part of a site: operator.
+  for (const token of namedPageSlug(scope).split(/[^a-z0-9]+/)) {
+    if (!token || QUERY_STOPWORDS.has(token) || keywords.includes(token)) continue;
+    keywords.push(token);
+    if (keywords.length >= 5) break;
+  }
   for (const token of withoutDomains.split(/[^a-z0-9]+/)) {
     if (token.length < 3 || QUERY_STOPWORDS.has(token) || keywords.includes(token)) continue;
     keywords.push(token);
@@ -278,6 +297,94 @@ async function retrieveBraveResults(query: string, apiKey: string, limit: number
   return parseBraveSearchResponse(await response.json(), limit);
 }
 
+
+// Chat 01: search snippets rarely carry an article's own title/date, so a
+// path-scoped official request ("on example.com/news/x, what is the title and
+// publication date?") was answerable only from memory, and the model rightly
+// abstained. For that one exact in-scope page we read the page itself, once,
+// and attach ONLY machine-readable facts the publisher states (title and
+// published-date metadata) plus a short description. Bounded: https only, the
+// exact host+path the buyer named and search returned, same-scope redirects
+// only, 8s, 600 KB, HTML only. Any failure attaches nothing (snippet-only
+// evidence stays, and an honest "cannot verify" remains the correct answer).
+const SCOPED_PAGE_MAX_BYTES = 600_000;
+const SCOPED_PAGE_TIMEOUT_MS = 8_000;
+
+export type ScopedPageFacts = { title: string | null; published: string | null; description: string | null };
+
+function metaContent(html: string, key: string): string | null {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = [
+    new RegExp(`<meta[^>]+(?:property|name|itemprop)=["']${escaped}["'][^>]*content=["']([^"']{1,400})["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']{1,400})["'][^>]*(?:property|name|itemprop)=["']${escaped}["']`, "i"),
+  ];
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) return decodeXml(match[1]).trim() || null;
+  }
+  return null;
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}(?:[T ][0-9:.+\-Z]*)?$/;
+
+export function extractScopedPageFacts(html: string): ScopedPageFacts {
+  const head = html.slice(0, SCOPED_PAGE_MAX_BYTES);
+  const titleTag = head.match(/<title[^>]*>([^<]{1,400})<\/title>/i);
+  const title = metaContent(head, "og:title") || (titleTag ? decodeXml(titleTag[1]).trim() : null);
+  let published = metaContent(head, "article:published_time") || metaContent(head, "datePublished");
+  if (!published) {
+    const ld = head.match(/"datePublished"\s*:\s*"([^"]{8,40})"/);
+    if (ld) published = ld[1];
+  }
+  if (!published) {
+    const time = head.match(/<time[^>]+datetime=["']([^"']{8,40})["']/i);
+    if (time) published = time[1];
+  }
+  if (published && !ISO_DATE.test(published.trim())) published = null;
+  const description = metaContent(head, "og:description") || metaContent(head, "description");
+  return {
+    title: title ? title.slice(0, 240) : null,
+    published: published ? published.trim() : null,
+    description: description ? description.slice(0, 400) : null,
+  };
+}
+
+function exactScopedPage(url: string, scope: SourceDomainScope) {
+  if (!scope.pathPrefix || !namedPageSlug(scope)) return false;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" || parsed.port || parsed.username || parsed.password) return false;
+    return parsed.hostname.replace(/^www\./, "").toLowerCase() === scope.domain
+      && parsed.pathname.replace(/\/+$/, "").toLowerCase() === scope.pathPrefix;
+  } catch {
+    return false;
+  }
+}
+
+export async function readScopedOfficialPage(url: string, scope: SourceDomainScope, signal?: AbortSignal): Promise<ScopedPageFacts | null> {
+  if (!exactScopedPage(url, scope)) return null;
+  const timeout = AbortSignal.timeout(SCOPED_PAGE_TIMEOUT_MS);
+  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: { accept: "text/html,application/xhtml+xml;q=0.9", "user-agent": "Foremention/1.0 evidence-retrieval" },
+      signal: combined,
+    });
+    if (!response.ok || !citationMatchesScope(response.url || url, scope)) return null;
+    if (!/text\/html|application\/xhtml\+xml/i.test(response.headers.get("content-type") || "")) return null;
+    const length = Number(response.headers.get("content-length") || 0);
+    if (length > SCOPED_PAGE_MAX_BYTES * 4) return null;
+    const html = (await response.text()).slice(0, SCOPED_PAGE_MAX_BYTES);
+    const facts = extractScopedPageFacts(html);
+    return facts.title || facts.published ? facts : null;
+  } catch {
+    if (signal?.aborted) throw signal.reason ?? new Error("Evidence retrieval was aborted.");
+    return null;
+  }
+}
+
 export async function retrieveFreeWebEvidence(query: string, signal?: AbortSignal, scope: SourceDomainScope | null = null): Promise<FreeWebEvidence> {
   const normalized = query.normalize("NFKC").split(/\s+/).filter(Boolean).join(" ").trim().slice(0, 1_000);
   if (normalized.length < 3) throw new Error("The web-evidence query is empty or too short.");
@@ -315,6 +422,14 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   // An explicit official-domain request with no in-scope result is
   // "evidence unavailable" (unknown), for both providers, never a generic
   // retryable failure and never off-domain substitutes.
+  // Chat 01: the buyer named one exact official page. Search engines ignore
+  // the path in site: operators, so the page is read directly (bounded, see
+  // readScopedOfficialPage) and stands as its own source when search missed it.
+  const namedPageUrl = scope && namedPageSlug(scope) ? `https://${scope.domain}${scope.pathPrefix}` : null;
+  const namedPageFacts = namedPageUrl && scope ? await readScopedOfficialPage(namedPageUrl, scope, signal) : null;
+  if (namedPageUrl && namedPageFacts && !parsed.some((result) => scope && exactScopedPage(result.url, scope))) {
+    parsed.unshift({ url: namedPageUrl, title: namedPageFacts.title || undefined, snippet: namedPageFacts.description || "" });
+  }
   if (!parsed.length) {
     if (scope) throw new SourceScopeUnavailableError(scope, 0);
     throw new Error(retrievalProvider === "brave-search"
@@ -332,11 +447,20 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   }
   const results = (topical ? topical.accepted : scopedResults).slice(0, MAX_CITATIONS);
 
+  const pageTarget = scope?.pathPrefix ? results.find((result) => exactScopedPage(result.url, scope)) : undefined;
+  const pageFacts = pageTarget ? namedPageFacts : null;
+
   const evidenceText = results.map((result, index) => [
     `SOURCE [${index + 1}]`,
     `Title: ${result.title || new URL(result.url).hostname}`,
     `URL: ${result.url}`,
     result.snippet ? `Snippet: ${result.snippet}` : "",
+    result === pageTarget && pageFacts ? [
+      "Publisher page metadata (read directly from this exact URL):",
+      pageFacts.title ? `Page title: ${pageFacts.title}` : "",
+      pageFacts.published ? `Page publication timestamp (ISO 8601, as published): ${pageFacts.published}` : "",
+      pageFacts.description ? `Page description: ${pageFacts.description}` : "",
+    ].filter(Boolean).join("\n") : "",
   ].filter(Boolean).join("\n")).join("\n\n").slice(0, MAX_RETRIEVAL_CHARS);
 
   return {
@@ -346,5 +470,6 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
     retrievalQuery: normalized,
     retrievedCandidateCount: parsed.length,
     relevanceRejectedCount: topical?.rejected.length || 0,
+    scopedPageRead: Boolean(pageFacts),
   };
 }
