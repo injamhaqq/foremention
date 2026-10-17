@@ -7,6 +7,15 @@ import { cleanText, readJsonObject } from "@/lib/input-validation";
 import { checkPasswordSafety, HashRangeUnavailable, issueSignupSecurityAttestation } from "@/lib/password-safety";
 import { AuthLinkError, authEmailDeliveryAvailable, generateAuthLink, sendSignupConfirmationEmail } from "@/lib/auth-email-delivery";
 
+// Browser/API responses must not distinguish existing mailboxes from
+// accounts eligible for registration. A request receipt is not proof of mail delivery.
+const NEUTRAL_SIGNUP_MESSAGE =
+  "If this email can be registered, a confirmation link will be sent. If you already have an account, sign in or reset your password.";
+
+function signupRequestReceipt() {
+  return NextResponse.json({ ok: true, session: false, message: NEUTRAL_SIGNUP_MESSAGE });
+}
+
 async function attemptWelcomeEmail(email: string, origin: string) {
   if (!getApplicationEmailStatus().available) return "not_configured" as const;
   try {
@@ -94,28 +103,21 @@ export async function POST(request: Request) {
         }));
       } catch (error) {
         if (error instanceof AuthLinkError && error.alreadyRegistered) {
-          return NextResponse.json({ account_help: true, email: normalizedEmail, error: "An account already exists with this email." }, { status: 409 });
+          return signupRequestReceipt();
         }
         if (error instanceof AuthLinkError && (error.status === 429 || error.status >= 500)) {
           return NextResponse.json({ error: "Account creation is temporarily unavailable. No account changes were confirmed. Please try again in a moment." }, { status: error.status === 429 ? 429 : 503 });
         }
-        const message = error instanceof Error ? error.message : "Could not create the account.";
-        return NextResponse.json({ error: message }, { status: 400 });
+        return NextResponse.json({ error: "Registration could not be completed. Check your details or try later." }, { status: 400 });
       }
       try {
         await sendSignupConfirmationEmail(normalizedEmail, actionLink);
       } catch {
         return NextResponse.json({
-          error: "Your account was created but the confirmation email could not be sent. Submit the form again in a minute to resend it, or email hello@foremention.com.",
+          error: "A confirmation email could not be delivered. If none arrives, use account recovery or contact hello@foremention.com. Do not assume resubmitting creates a new link.",
         }, { status: 503 });
       }
-      return NextResponse.json({
-        ok: true,
-        session: false,
-        email: normalizedEmail,
-        welcome_email: "not_sent",
-        message: "We sent a confirmation link from Foremention to your email.",
-      });
+      return signupRequestReceipt();
     }
     const data = await supabaseAuth("signup", signupPayload);
     const user = data.user && typeof data.user === "object"
@@ -126,32 +128,15 @@ export async function POST(request: Request) {
     // registered. Treating that as a new signup incorrectly tells the person
     // to wait for an email that will never arrive.
     if (user && Array.isArray(user.identities) && user.identities.length === 0) {
-      return NextResponse.json({
-        account_help: true,
-        email: normalizedEmail,
-        error: "An account already exists with this email.",
-      }, { status: 409 });
+      return signupRequestReceipt();
     }
-    const welcomeEmail = await attemptWelcomeEmail(normalizedEmail, origin);
+    await attemptWelcomeEmail(normalizedEmail, origin);
     const token = String(data.access_token || "");
-    if (!token) return NextResponse.json({
-      ok: true,
-      session: false,
-      email: normalizedEmail,
-      welcome_email: welcomeEmail,
-      message: "We sent a confirmation link from Foremention to your email.",
-    });
+    if (!token) return signupRequestReceipt();
     // Signup and sign-in remain separate journeys. Some Supabase projects
     // issue a session immediately when email confirmation is disabled. Never
     // turn that signup response into a Foremention login session.
-    return NextResponse.json({
-      ok: true,
-      session: false,
-      account_help: true,
-      email: normalizedEmail,
-      welcome_email: welcomeEmail,
-      message: "Your account is ready. Sign in to continue to your workspace.",
-    });
+    return signupRequestReceipt();
   } catch (error) {
     if (error instanceof SupabaseAuthError && error.retryable) {
       return NextResponse.json({ error: "Account creation is temporarily unavailable. No account changes were confirmed. Please try again in a moment." }, { status: error.status === 429 ? 429 : 503 });
@@ -159,11 +144,8 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Could not create the account.";
     if (/email rate limit|rate limit/i.test(message)) return NextResponse.json({ error: "Email delivery is temporarily limited by the email provider. Please wait a few minutes before trying again." }, { status: 429 });
     if (/already registered|already exists|user already/i.test(message)) {
-      return NextResponse.json({
-        account_help: true,
-        error: "An account already exists with this email.",
-      }, { status: 409 });
+      return signupRequestReceipt();
     }
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: "Registration could not be completed. Check your details or try later." }, { status: 400 });
   }
 }

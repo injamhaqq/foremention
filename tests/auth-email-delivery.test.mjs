@@ -14,16 +14,19 @@ test("auth links come from GoTrue admin generate_link with the service role, nev
   assert.match(lib, /parsed\.host === base\.host/);
 });
 
-test("signup keeps the attestation hook and maps an existing account to 409", () => {
+test("signup keeps the attestation hook and neutralizes existing-account responses", () => {
   assert.match(signup, /issueSignupSecurityAttestation/);
   assert.match(signup, /data: signupPayload\.data/);
   assert.match(signup, /error\.alreadyRegistered/);
-  assert.match(signup, /status: 409/);
+  assert.match(signup, /signupRequestReceipt\(\)/);
+  assert.doesNotMatch(signup, /An account already exists with this email/);
   assert.match(signup, /sendSignupConfirmationEmail/);
 });
 
 test("recovery never reveals whether an account exists", () => {
-  assert.match(recovery, /error\.userMissing\) return NextResponse\.json\(\{ message: genericMessage \}\)/);
+  assert.match(recovery, /return NextResponse\.json/);
+  assert.match(recovery, /Never expose account existence/);
+  assert.doesNotMatch(recovery, /status: 503/);
   assert.match(recovery, /sendRecoveryEmail/);
 });
 

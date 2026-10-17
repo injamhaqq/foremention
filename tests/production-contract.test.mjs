@@ -50,8 +50,8 @@ test("account recovery requires and confirms a new password", async () => {
   assert.match(authForm, /minLength=\{12\}/);
   assert.match(signup, /email_redirect_to: `\$\{origin\}\/auth\/callback`/);
   assert.match(signup, /user\.identities\.length === 0/);
-  assert.match(signup, /account_help: true/);
-  assert.match(signup, /An account already exists with this email/);
+  assert.match(signup, /signupRequestReceipt/);
+  assert.doesNotMatch(signup, /An account already exists with this email/);
   assert.doesNotMatch(signup, /setSessionCookies/);
   assert.match(authForm, /Continue to your account/);
   assert.match(authForm, /Reset password/);

@@ -214,6 +214,13 @@ export async function assertPublicSourceResolution(
   return url.toString();
 }
 
+function safeNumericEntity(raw: string, radix: number) {
+  const codepoint = Number.parseInt(raw, radix);
+  // Invalid numeric HTML entities must not terminate inspection.
+  return Number.isInteger(codepoint) && codepoint >= 0 && codepoint <= 0x10ffff
+    && !(codepoint >= 0xd800 && codepoint <= 0xdfff)
+    ? String.fromCodePoint(codepoint) : "\uFFFD";
+}
 function decodeTitle(value: string) {
   return value
     .replace(/&amp;/gi, "&")
@@ -221,8 +228,8 @@ function decodeTitle(value: string) {
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, "\"")
     .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&#(\d+);/g, (_, code: string) => safeNumericEntity(code, 10))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => safeNumericEntity(code, 16))
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 300);
@@ -255,8 +262,8 @@ function extractVisibleText(body: string, limit: number) {
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, "\"")
     .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&#(\d+);/g, (_, code: string) => safeNumericEntity(code, 10))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => safeNumericEntity(code, 16))
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, limit);

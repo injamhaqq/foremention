@@ -23,12 +23,20 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     { serviceRole: true },
   );
   if (!rows[0]) return NextResponse.json({ error: "Pending invitation not found." }, { status: 404 });
-  await supabaseRest(`invitations?id=eq.${id}&organization_id=eq.${context.organizationId}&status=eq.pending`, {
-    method: "PATCH",
-    serviceRole: true,
-    prefer: "return=minimal",
-    body: { status: "revoked" },
-  });
+  // A prior GET cannot attest revocation: acceptance may win the race
+  // before this conditional PATCH. Record success only for a changed row.
+  const revoked = await supabaseRest<Array<{ id: string }>>(
+    `invitations?select=id&id=eq.${id}&organization_id=eq.${context.organizationId}&status=eq.pending`,
+    {
+      method: "PATCH",
+      serviceRole: true,
+      prefer: "return=representation",
+      body: { status: "revoked" },
+    },
+  );
+  if (revoked.length !== 1) {
+    return NextResponse.json({ error: "This invitation was accepted or revoked before your request finished." }, { status: 409 });
+  }
   await supabaseRest("audit_logs", {
     method: "POST",
     serviceRole: true,
