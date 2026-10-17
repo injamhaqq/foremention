@@ -4,6 +4,7 @@ import { getPrimaryWorkspaceRole, loadPrompts, loadProviderStatuses, loadWorkspa
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
 import { nextScheduleAt, validateMeasurementSchedule, type MeasurementCadence } from "@/lib/measurement-schedules";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
+import { admitManualScheduleAuthorization, type ManualAuthorizationPin } from "@/lib/trial-repeat-policy";
 import { isMissingRelationError, supabaseRest } from "@/lib/supabase-rest";
 
 type ScheduleRow = {
@@ -17,6 +18,9 @@ type ScheduleRow = {
   locale: string;
   market: string;
   enabled: boolean;
+  schedule_origin?: "trial" | "paid" | "manual" | "legacy_unknown";
+  trial_ends_at?: string | null;
+  baseline_contract_json?: unknown;
   next_run_at: string;
   last_run_at: string | null;
   last_run_id: string | null;
@@ -31,8 +35,51 @@ export async function GET() {
   const context = await loadWorkspaceContext(viewer);
   if (!context) return NextResponse.json({ data: [] });
   try {
-    const data = await supabaseRest<ScheduleRow[]>(`measurement_schedules?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`, { token: viewer.accessToken });
-    return NextResponse.json({ data });
+    const [data, entitlements] = await Promise.all([
+      supabaseRest<ScheduleRow[]>(
+        `measurement_schedules?select=id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,enabled,next_run_at,last_run_at,last_run_id,schedule_origin,trial_ends_at,baseline_contract_json&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc`,
+        { token: viewer.accessToken },
+      ),
+      supabaseRest<Array<{ status: string; billing_source: string | null; package_key: string | null; expires_at: string | null }>>(
+        `organization_entitlements?select=status,billing_source,package_key,expires_at&organization_id=eq.${context.organizationId}&limit=1`,
+        { token: viewer.accessToken },
+      ),
+    ]);
+    const entitlement = entitlements[0];
+    const now = Date.now();
+    const view = data.map((schedule) => {
+      const origin = schedule.schedule_origin || "legacy_unknown";
+      let dispatchState: "paused" | "needs_review" | "trial_expired" | "plan_changed" | "model_changed" | "configured" = "configured";
+      if (!schedule.enabled) dispatchState = "paused";
+      else if (origin === "legacy_unknown" || !schedule.model_snapshot?.trim()) dispatchState = "needs_review";
+      else if (!entitlement || entitlement.status !== "active" ||
+        (entitlement.expires_at && new Date(entitlement.expires_at).getTime() <= now)) dispatchState = "plan_changed";
+      else if (origin === "trial" && (
+        entitlement?.billing_source !== "trial" || entitlement.status !== "active" ||
+        !schedule.trial_ends_at || !entitlement.expires_at ||
+        Math.min(new Date(schedule.trial_ends_at).getTime(), new Date(entitlement.expires_at).getTime()) <= now + 2 * 3_600_000
+      )) dispatchState = "trial_expired";
+      else if (origin === "paid" && (
+        entitlement?.status !== "active" ||
+        !["paddle", "stripe", "creem"].includes(entitlement.billing_source || "") ||
+        (entitlement.expires_at && new Date(entitlement.expires_at).getTime() <= now)
+      )) dispatchState = "plan_changed";
+      else if (origin === "manual" && !admitManualScheduleAuthorization({
+        pin: schedule.baseline_contract_json && typeof schedule.baseline_contract_json === "object"
+          ? schedule.baseline_contract_json as ManualAuthorizationPin : null,
+        currentBillingSource: entitlement?.billing_source ?? null,
+        currentPackageKey: entitlement?.package_key ?? null,
+        currentExpiresAt: entitlement?.expires_at ?? null,
+        currentStatus: entitlement?.status ?? null,
+        at: new Date(),
+      }).eligible) dispatchState = "plan_changed";
+      else if (!schedule.provider_ids?.length || schedule.model_snapshot !== String(process.env[`${schedule.provider_ids[0].toUpperCase()}_MODEL`] || "").trim())
+        dispatchState = "model_changed";
+      const publicSchedule = { ...schedule };
+      delete publicSchedule.baseline_contract_json;
+      return { ...publicSchedule, dispatch_state: dispatchState };
+    });
+    return NextResponse.json({ data: view });
   } catch (error) {
     if (isMissingRelationError(error)) return NextResponse.json({ data: [], migrationPending: true });
     throw error;
@@ -64,6 +111,10 @@ export async function POST(request: Request) {
   const providerIds = Array.isArray(body.providerIds) && body.providerIds.length ? body.providerIds : configuredProviders.slice(0, 1).map((provider) => provider.id);
   if (questionIds.some((id) => !approved.has(id))) return NextResponse.json({ error: "Schedules can use only approved workspace buyer questions." }, { status: 400 });
   if (providerIds.length !== 1 || providerIds.some((id) => !configured.has(id))) return NextResponse.json({ error: "Choose exactly one connected provider so repeat measurements stay interpretable." }, { status: 400 });
+  // Saving this form is an explicit manual authorization, not a claim that
+  // an earlier run was comparable. Require a resolved model before dispatch.
+  const configuredModel = viewer.mode === "demo" ? "fictional-demo-model" : String(process.env[(providerIds[0] || "").toUpperCase() + "_MODEL"] || "").trim();
+  if (!configuredModel) return NextResponse.json({ error: "The exact provider model is unavailable. Configure and verify it before saving a repeat." }, { status: 409 });
   let schedule;
   try {
     schedule = validateMeasurementSchedule({
@@ -71,7 +122,7 @@ export async function POST(request: Request) {
       timezone: body.timezone || "UTC",
       questionIds,
       providerIds,
-      modelSnapshot: null,
+      modelSnapshot: configuredModel,
       methodologySnapshot: currentObservationMethodologyVersion(),
       locale: body.locale || "en-US",
       market: body.market || "global",
@@ -82,9 +133,38 @@ export async function POST(request: Request) {
   }
   const nextRunAt = nextScheduleAt(new Date(), schedule.cadence, schedule.timezone).toISOString();
   if (viewer.mode === "demo") return NextResponse.json({ data: { id: "demo-measurement-schedule", ...schedule, next_run_at: nextRunAt }, mode: "demo" });
-  const rows = await supabaseRest<ScheduleRow[]>("measurement_schedules", {
+  // The user's explicit schedule authorization is valid only for the
+  // currently confirmed entitlement. The original expiry may not be renewed
+  // implicitly or downgraded to Free capacity.
+  const authorizedEntitlements = await supabaseRest<Array<{
+    status: string; billing_source: string | null; package_key: string | null; expires_at: string | null;
+  }>>(`organization_entitlements?select=status,billing_source,package_key,expires_at&organization_id=eq.${context.organizationId}&limit=1`,
+  { token: viewer.accessToken });
+  const authorized = authorizedEntitlements[0];
+  const authorizationPin: ManualAuthorizationPin | null = authorized?.billing_source ? {
+    authorizationBillingSource: authorized.billing_source,
+    authorizationPackageKey: authorized.package_key,
+    authorizationExpiresAt: authorized.expires_at,
+  } : null;
+  const manualAdmission = admitManualScheduleAuthorization({
+    pin: authorizationPin, currentBillingSource: authorized?.billing_source ?? null,
+    currentPackageKey: authorized?.package_key ?? null, currentExpiresAt: authorized?.expires_at ?? null,
+    currentStatus: authorized?.status ?? null, at: nextRunAt,
+  });
+  if (!manualAdmission.eligible) return NextResponse.json({
+    error: "The first recurring date is not authorized by the current plan or trial. Start a manual collection or review your plan rather than scheduling a run after expiry.",
+    reason: manualAdmission.reason,
+  }, { status: 409 });
+  const modernSchedules = await supabaseRest<Array<{ id: string }>>(
+    `measurement_schedules?select=id&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&schedule_origin=in.(trial,paid,manual)&limit=1`,
+    { token: viewer.accessToken },
+  );
+  if (modernSchedules.length) return NextResponse.json({ error: "A verified schedule already exists for this project. Pause or review it rather than creating a duplicate." }, { status: 409 });
+  let rows: ScheduleRow[];
+  try {
+    rows = await supabaseRest<ScheduleRow[]>("measurement_schedules", {
     method: "POST",
-    token: viewer.accessToken,
+    serviceRole: true,
     prefer: "return=representation",
     body: {
       organization_id: context.organizationId,
@@ -101,8 +181,13 @@ export async function POST(request: Request) {
       enabled: schedule.enabled,
       next_run_at: nextRunAt,
       created_by: viewer.id,
+      schedule_origin: "manual",
+      baseline_contract_json: { type: "manual", confirmed_by: viewer.id, confirmed_at: new Date().toISOString(), provider: providerIds[0], model: configuredModel, question_ids: questionIds, ...authorizationPin },
     },
-  });
+    });
+  } catch {
+    return NextResponse.json({ error: "A schedule already exists or could not be saved. Refresh to review the current schedule." }, { status: 409 });
+  }
   return NextResponse.json({ data: rows[0] }, { status: 201 });
 }
 
