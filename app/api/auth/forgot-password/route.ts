@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   if (!body) return NextResponse.json({ error: "Send a valid recovery form." }, { status: 400 });
   const email = cleanText(body.email, 254).toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
-  const genericMessage = "If an account exists for that email, a recovery link is on its way.";
+  const genericMessage = "If an account exists and delivery is available, a recovery link may arrive. If none arrives, try again later or contact support.";
   if (supabaseConfigured() && authEmailDeliveryAvailable()) {
     const incomingOrigin = new URL(request.url).origin;
     const origin = /localhost|127\.0\.0\.1|\[::1\]/.test(incomingOrigin)
@@ -20,12 +20,13 @@ export async function POST(request: Request) {
       const { actionLink } = await generateAuthLink({ type: "recovery", email, redirectTo: `${origin}/auth/callback` });
       await sendRecoveryEmail(email, actionLink);
     } catch (error) {
-      // Never reveal whether the account exists.
-      if (error instanceof AuthLinkError && error.userMissing) return NextResponse.json({ message: genericMessage });
-      if (error instanceof AuthLinkError && error.status === 429) {
-        return NextResponse.json({ error: "Email delivery is temporarily busy. Wait a few minutes, then request one new link." }, { status: 429 });
+      // Never expose account existence through provider error/status differences.
+      if (!(error instanceof AuthLinkError && error.userMissing)) {
+        console.warn("Recovery delivery failed.", {
+          category: error instanceof AuthLinkError && error.status === 429 ? "rate_limited" : "provider_unavailable",
+        });
       }
-      return NextResponse.json({ error: "The email provider is temporarily unavailable. Please try again shortly." }, { status: 503 });
+      return NextResponse.json({ message: genericMessage });
     }
     return NextResponse.json({ message: genericMessage });
   }
@@ -37,12 +38,9 @@ export async function POST(request: Request) {
       ? incomingOrigin
       : (process.env.NEXT_PUBLIC_SITE_URL || incomingOrigin).replace(/\/$/, "");
     const delivery = await fetch(`${url}/auth/v1/recover?redirect_to=${encodeURIComponent(`${origin}/auth/callback`)}`, { method: "POST", headers: { apikey: anon, "content-type": "application/json" }, body: JSON.stringify({ email }) });
-    if (!delivery.ok && delivery.status === 429) {
-      return NextResponse.json({ error: "Email delivery is temporarily busy. Wait a few minutes, then request one new link." }, { status: 429 });
-    }
-    if (!delivery.ok && delivery.status >= 500) {
-      return NextResponse.json({ error: "The email provider is temporarily unavailable. Please try again shortly." }, { status: 503 });
+    if (!delivery.ok) {
+      console.warn("Recovery fallback transport failed.", { statusClass: Math.floor(delivery.status / 100) * 100 });
     }
   }
-  return NextResponse.json({ message: "If an account exists for that email, a recovery link is on its way." });
+  return NextResponse.json({ message: genericMessage });
 }

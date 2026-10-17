@@ -105,7 +105,7 @@ test("paid period lookup is after verified checkout/renewal correlation and befo
   const route = await readFile(new URL("../app/api/billing/webhook/route.ts", import.meta.url), "utf8");
   const checked = route.indexOf("paddlePaidTransactionAdmitted(parsed, organizationId)");
   const resolved = route.indexOf("await reconcilePaddlePaidPeriod({");
-  const applied = route.indexOf("return billingMutationResponse(event, provider.id, settlement)");
+  const applied = route.indexOf("return billingMutationResponse(event, provider.id, settlement, fromVerifiedInbox)");
   assert.ok(checked > -1 && resolved > checked && applied > resolved);
   assert.match(route, /if \(parsed\.externalTransactionId && !parsed\.accessUntil\)/);
   assert.match(route, /\? \{ accessUntil: reconciledPaidThrough \} : \{\}/);

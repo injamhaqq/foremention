@@ -8,6 +8,7 @@ import { getProvider } from "@/lib/providers";
 import type { ProviderId } from "@/lib/providers/types";
 import { supabaseRest } from "@/lib/supabase-rest";
 import { inngest } from "@/lib/jobs/inngest";
+import { admitRepeatDispatch, admitManualScheduleAuthorization, TRIAL_COMPLETION_BUFFER_MS, type ManualAuthorizationPin } from "@/lib/trial-repeat-policy";
 
 type LiveProviderId = Exclude<ProviderId, "mock">;
 type DueSchedule = {
@@ -25,9 +26,12 @@ type DueSchedule = {
   market: string;
   next_run_at: string;
   created_by: string | null;
+  schedule_origin: "trial" | "paid" | "manual" | "legacy_unknown";
+  trial_ends_at: string | null;
+  baseline_contract_json: unknown;
 };
 type PromptRow = { id: string; prompt_key: string; prompt_text: string; locale: string; market?: string | null };
-type EntitlementRow = { status: string; expires_at: string | null };
+type EntitlementRow = { status: string; expires_at: string | null; billing_source: string | null; package_key: string | null; monthly_run_units: number | null };
 type OperatorRow = { role: string };
 type ExistingRunRow = { id: string; status: string; estimated_max_cost_usd: number | string; requested_units: number };
 
@@ -55,15 +59,9 @@ async function releaseScheduledCandidate(schedule: DueSchedule, runId: string, r
       p_actor_id: schedule.created_by,
     },
   }).catch(() => undefined);
-  // Scheduled idempotency keys represent a cadence occurrence. A pre-dispatch
-  // failure must be retryable on the next dispatcher pass, so the failed audit
-  // row is preserved while its uniqueness keys are released.
-  await supabaseRest(`runs?id=eq.${runId}&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&status=in.(failed,cancelled)`, {
-    method: "PATCH",
-    serviceRole: true,
-    prefer: "return=minimal",
-    body: { idempotency_key: null, active_request_key: null },
-  }).catch(() => undefined);
+  // Preserve the occurrence's idempotency key and failed audit row.
+  // In particular, a provider-started failed/cancelled observation can never
+  // silently run again because another dispatcher pass cleared its key.
 }
 
 async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<PreparedRun | null> {
@@ -71,6 +69,25 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   // customer re-approval instead of silently generating incomparable observations.
   if (schedule.methodology_snapshot !== currentObservationMethodologyVersion()) return null;
   if (!schedule.created_by) return null;
+  // Legacy null pins and unverified origin must remain visible but cannot
+  // create a new paid observation under guessed or downgraded entitlements.
+  if (!schedule.model_snapshot?.trim() || !["trial", "paid", "manual"].includes(schedule.schedule_origin)) {
+    logOperationalEvent("measurement_schedule_contract_hold", { scheduleId: schedule.id, reason: "CONTRACT_NOT_PINNED" });
+    return null;
+  }
+  const savedContract = schedule.baseline_contract_json;
+  if (!savedContract || typeof savedContract !== "object" || Array.isArray(savedContract)) return null;
+  const contract = savedContract as Record<string, unknown>;
+  if (schedule.schedule_origin === "manual") {
+    if (contract.type !== "manual" || contract.provider !== schedule.provider_ids[0] || contract.model !== schedule.model_snapshot) return null;
+  } else if (
+    contract.baselineRunId === undefined ||
+    contract.provider !== schedule.provider_ids[0] ||
+    contract.model !== schedule.model_snapshot ||
+    contract.methodologyVersion !== schedule.methodology_snapshot ||
+    !Array.isArray(contract.questionPins) ||
+    contract.questionPins.length !== schedule.question_ids.length
+  ) return null;
   const providerId = schedule.provider_ids[0];
   if (!providerId || schedule.provider_ids.length !== 1 || !schedule.project_id || !schedule.category_id) return null;
   // A schedule persisted before the creation-time capacity check (#472) could hold
@@ -106,7 +123,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
   }
   const [operatorRows, entitlementRows, existingRuns, projects, categories] = await Promise.all([
     supabaseRest<OperatorRow[]>(`organization_members?select=role&organization_id=eq.${schedule.organization_id}&user_id=eq.${schedule.created_by}&limit=1`, { serviceRole: true }),
-    supabaseRest<EntitlementRow[]>(`organization_entitlements?select=status,expires_at&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
+    supabaseRest<EntitlementRow[]>(`organization_entitlements?select=status,expires_at,billing_source,package_key,monthly_run_units&organization_id=eq.${schedule.organization_id}&limit=1`, { serviceRole: true }),
     supabaseRest<ExistingRunRow[]>(`runs?select=id,status,estimated_max_cost_usd,requested_units&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}&idempotency_key=eq.${encodeURIComponent(key)}&limit=1`, { serviceRole: true }),
     supabaseRest<Array<{ id: string }>>(`projects?select=id&id=eq.${schedule.project_id}&organization_id=eq.${schedule.organization_id}&status=eq.active&limit=1`, { serviceRole: true }),
     supabaseRest<Array<{ id: string }>>(`categories?select=id&id=eq.${schedule.category_id}&organization_id=eq.${schedule.organization_id}&active=eq.true&limit=1`, { serviceRole: true }),
@@ -124,7 +141,47 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     || (entitlementExpiry && (!Number.isFinite(entitlementExpiry.getTime()) || entitlementExpiry <= new Date()))
   ) return null;
 
+  if (schedule.schedule_origin === "manual") {
+    const manualAdmitted = admitManualScheduleAuthorization({
+      pin: contract as ManualAuthorizationPin,
+      currentBillingSource: entitlement.billing_source,
+      currentPackageKey: entitlement.package_key,
+      currentExpiresAt: entitlement.expires_at,
+      currentStatus: entitlement.status,
+      at: dispatchNow,
+    });
+    if (!manualAdmitted.eligible) {
+      logOperationalEvent("measurement_schedule_entitlement_hold", { scheduleId: schedule.id, reason: manualAdmitted.reason });
+      return null;
+    }
+  }
+  const admission = admitRepeatDispatch({
+    enabled: true,
+    origin: schedule.schedule_origin === "legacy_unknown" ? null : schedule.schedule_origin,
+    pinned: Boolean(schedule.model_snapshot),
+    now: dispatchNow,
+    trialExpiresAt: schedule.trial_ends_at,
+    currentBillingSource: entitlement.billing_source,
+    currentEntitlementStatus: entitlement.status,
+    // This is the plan ceiling only; the actual remaining units and spend are
+    // fenced atomically by reserve_run_quota_server/budget_server below.
+    remainingObservationUnits: entitlement.monthly_run_units,
+    requestedObservationUnits: questionIds.length,
+  });
+  if (!admission.eligible) {
+    logOperationalEvent("measurement_schedule_entitlement_hold", { scheduleId: schedule.id, reason: admission.reason });
+    return null;
+  }
+  if (schedule.schedule_origin === "trial" &&
+      (!entitlement.expires_at || new Date(entitlement.expires_at).getTime() - dispatchNow.getTime() <= TRIAL_COMPLETION_BUFFER_MS)) {
+    logOperationalEvent("measurement_schedule_entitlement_hold", { scheduleId: schedule.id, reason: "TRIAL_WINDOW_EXPIRED" });
+    return null;
+  }
   const existing = existingRuns[0];
+  if (existing && ["failed", "cancelled"].includes(existing.status)) {
+    logOperationalEvent("measurement_schedule_failed_occurrence_hold", { scheduleId: schedule.id, runId: existing.id });
+    return null;
+  }
   if (existing && !["failed", "cancelled"].includes(existing.status)) {
     if (existing.status !== "queued" || Number(existing.estimated_max_cost_usd) > 0) {
       return {
@@ -139,13 +196,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     }
     // A previous attempt may have stopped after creating the zero-cost candidate.
     // Rebuild the immutable prompt snapshot, then re-run idempotent reservations.
-  } else if (existing) {
-    await supabaseRest(`runs?id=eq.${existing.id}&organization_id=eq.${schedule.organization_id}&project_id=eq.${schedule.project_id}`, {
-      method: "PATCH",
-      serviceRole: true,
-      prefer: "return=minimal",
-      body: { idempotency_key: null, active_request_key: null },
-    });
+
   }
 
   const promptFilter = schedule.question_ids.map((id) => `"${id.replace(/"/g, "")}"`).join(",");
@@ -154,6 +205,23 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
     { serviceRole: true },
   );
   if (prompts.length !== schedule.question_ids.length) return null;
+  // New automatic repeats cannot silently substitute edited buyer questions,
+  // markets or locale for the baseline facts. Unknown pins are ineligible.
+  if (schedule.schedule_origin !== "manual") {
+    const pins = contract.questionPins as Array<Record<string, unknown>>;
+    if (pins.some((pin) => {
+      const prompt = prompts.find((row) => row.id === pin.promptId);
+      const context = pin.context;
+      return !prompt || typeof pin.promptText !== "string" ||
+        prompt.prompt_text.replace(/\s+/g, " ").trim() !== pin.promptText ||
+        !context || typeof context !== "object" ||
+        prompt.locale !== (context as Record<string, unknown>).locale ||
+        prompt.market !== (context as Record<string, unknown>).market;
+    })) {
+      logOperationalEvent("measurement_schedule_contract_hold", { scheduleId: schedule.id, reason: "QUESTION_CONTEXT_CHANGED" });
+      return null;
+    }
+  }
 
   const requestedUnits = prompts.length;
   const reservedCost = estimateReservedRunCost(providerId, requestedUnits, rates);
@@ -175,6 +243,7 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
           requested_units: requestedUnits,
           estimated_max_cost_usd: 0,
           idempotency_key: key,
+          originating_schedule_id: schedule.id,
           active_request_key: activeRequestKey,
           methodology_version: schedule.methodology_snapshot,
           created_by: schedule.created_by,
@@ -192,7 +261,8 @@ async function prepareMeasurementSchedule(schedule: DueSchedule): Promise<Prepar
         organization_id: schedule.organization_id,
         run_id: runId,
         prompt_id: prompt.id,
-        prompt_key: prompt.prompt_key,
+        prompt_key: schedule.schedule_origin === "manual" ? prompt.prompt_key
+          : (contract.questionPins as Array<{ promptId: string; promptKey: string }>).find((pin) => pin.promptId === prompt.id)!.promptKey,
         prompt_text: prompt.prompt_text,
         locale: prompt.locale || schedule.locale,
         market: prompt.market || schedule.market,
@@ -255,7 +325,7 @@ export type MeasurementDispatchSteps = {
 export async function runMeasurementScheduleDispatchPass(step: MeasurementDispatchSteps) {
   const now = new Date().toISOString();
   const schedules = await step.run("load-due-measurement-schedules", () =>
-    supabaseRest<DueSchedule[]>(`measurement_schedules?select=id,organization_id,project_id,category_id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,next_run_at,created_by&enabled=eq.true&project_id=not.is.null&category_id=not.is.null&created_by=not.is.null&next_run_at=lte.${encodeURIComponent(now)}&order=next_run_at.asc&limit=100`, { serviceRole: true }),
+    supabaseRest<DueSchedule[]>(`measurement_schedules?select=id,organization_id,project_id,category_id,cadence,timezone,question_ids,provider_ids,model_snapshot,methodology_snapshot,locale,market,next_run_at,created_by,schedule_origin,trial_ends_at,baseline_contract_json&enabled=eq.true&project_id=not.is.null&category_id=not.is.null&created_by=not.is.null&next_run_at=lte.${encodeURIComponent(now)}&order=next_run_at.asc&limit=100`, { serviceRole: true }),
   );
   const preparedRuns: PreparedRun[] = [];
   for (const schedule of schedules) {

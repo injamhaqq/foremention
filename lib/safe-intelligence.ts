@@ -2,7 +2,18 @@ import type { Viewer } from "@/lib/auth";
 import { loadTruthfulSourceMap } from "@/lib/evidence-integrity-data";
 import { assessWorkspaceRunPairComparability } from "@/lib/run-pair-comparability";
 import { loadWeeklyIntelligence, type WeeklyIntelligence } from "@/lib/intelligence-loop";
+import { demoRunRows } from "@/lib/demo-data";
 
+
+// The fictional run table uses all verified answer slots (including a
+// confirmed non-mention) for its first-position share. Safe Intelligence's
+// generic known-position denominator differs. Reconcile only the fictional
+// presentation; leave production measurement semantics and receipts untouched.
+function canonicalDemoFirstMention(run: WeeklyIntelligence["latest"]): WeeklyIntelligence["latest"] {
+  if (!run) return null;
+  const fixture = demoRunRows.find((entry) => entry.id === run.id);
+  return fixture ? { ...run, firstMention: fixture.first_mention_pct } : run;
+}
 
 const exactMeasurementBoundary = "exact persisted buyer-question text, provider, exact model, methodology, locale, market, buyer stage, and measurement context";
 
@@ -161,7 +172,11 @@ async function withTruthfulSourceReview(viewer: Viewer, intelligence: WeeklyInte
  */
 export async function loadSafeWeeklyIntelligence(viewer: Viewer): Promise<WeeklyIntelligence> {
   const intelligence = await loadWeeklyIntelligence(viewer);
-  if (viewer.mode === "demo") return makeCustomerReturnLoopTruthful(intelligence);
+  if (viewer.mode === "demo") return makeCustomerReturnLoopTruthful({
+    ...intelligence,
+    latest: canonicalDemoFirstMention(intelligence.latest),
+    previous: canonicalDemoFirstMention(intelligence.previous),
+  });
 
   let pairSafe = intelligence;
   if (viewer.accessToken && intelligence.latest && intelligence.previous) {

@@ -11,6 +11,7 @@ type RestOptions = {
   body?: unknown;
   prefer?: string;
   serviceRole?: boolean;
+  signal?: AbortSignal;
 };
 
 export type SupabaseSignOutScope = "global" | "local" | "others";
@@ -106,6 +107,7 @@ export async function supabaseRest<T>(path: string, options: RestOptions = {}): 
     },
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
     cache: "no-store",
+    ...(options.signal ? { signal: options.signal } : {}),
   });
   if (!response.ok) {
     const detail = await response.text();

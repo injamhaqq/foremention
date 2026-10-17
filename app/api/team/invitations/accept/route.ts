@@ -45,69 +45,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "This invitation has expired. Ask the workspace owner for a new link." }, { status: 410 });
   }
   if (invitation.email.toLowerCase() !== viewer.email.toLowerCase()) {
-    return NextResponse.json({ error: `Sign in as ${invitation.email} to accept this invitation.` }, { status: 403 });
+    return NextResponse.json({ error: "Sign in with the email address that received the invitation." }, { status: 403 });
   }
   // Invitation possession is bound to the invited mailbox. Never grant
   // membership to an account whose matching email address is unconfirmed.
   if (viewer.emailVerified !== true) {
     return NextResponse.json({ error: "Confirm your email address before accepting this invitation." }, { status: 403 });
   }
-  // Accepting an invitation must never downgrade an existing membership
-  // (for example an owner opening a stale viewer invite to the same workspace).
-  const existing = await supabaseRest<Array<{ role: string }>>(
-    `organization_members?select=role&organization_id=eq.${invitation.organization_id}&user_id=eq.${viewer.id}&limit=1`,
-    { serviceRole: true },
-  );
-  const roleRank: Record<string, number> = { viewer: 1, analyst: 2, admin: 3, owner: 4 };
-  const currentRole = existing[0]?.role;
-  const grantedRole = currentRole && (roleRank[currentRole] || 0) >= (roleRank[invitation.role] || 0) ? currentRole : invitation.role;
-
-  await supabaseRest("organization_members?on_conflict=organization_id,user_id", {
-    method: "POST",
-    serviceRole: true,
-    prefer: "resolution=merge-duplicates,return=minimal",
-    body: {
-      organization_id: invitation.organization_id,
-      user_id: viewer.id,
-      member_email: viewer.email.toLowerCase(),
-      role: grantedRole,
-      invited_by: invitation.invited_by,
-    },
-  });
-  await supabaseRest(`invitations?id=eq.${invitation.id}&status=eq.pending`, {
-    method: "PATCH",
-    serviceRole: true,
-    prefer: "return=minimal",
-    body: { status: "accepted", accepted_at: new Date().toISOString() },
-  });
-  await Promise.all([
-    supabaseRest("audit_logs", {
-      method: "POST",
-      serviceRole: true,
-      prefer: "return=minimal",
-      body: {
-        organization_id: invitation.organization_id,
-        actor_id: viewer.id,
-        action: "team.invitation.accepted",
-        entity_type: "invitation",
-        entity_id: invitation.id,
-        after_state: { role: grantedRole, invited_role: invitation.role, email: invitation.email },
-      },
-    }),
-    supabaseRest("notifications?on_conflict=organization_id,event_key,user_id", {
-      method: "POST",
-      serviceRole: true,
-      prefer: "resolution=ignore-duplicates,return=minimal",
-      body: {
-        organization_id: invitation.organization_id,
-        user_id: viewer.id,
-        event_key: `workspace-joined:${invitation.id}`,
-        kind: "workspace",
-        title: "Workspace access confirmed",
-        body: `You joined the workspace with ${grantedRole} access.`,
-        href: "/app",
-      },
-    }),
-  ]);
+  // Chat 01: the preflight above only selects a friendly refusal. The
+  // database is the single authority: accept_foremention_invitation row-locks
+  // the invitation, re-verifies the confirmed mailbox in auth.users, checks
+  // expiry, grants membership without downgrading a higher role, and writes
+  // the audit + notification in ONE transaction. Any failure rolls back all
+  // of it, so a racing revoke/replay or a late write error can never leave a
+  // consumed invite without membership (or membership without consumption).
+  // The organization and role are never taken from the request.
+  let receipt: Array<{ invitation_id: string; organization_id: string; granted_role: string }>;
+  try {
+    receipt = await supabaseRest<Array<{ invitation_id: string; organization_id: string; granted_role: string }>>(
+      "rpc/accept_foremention_invitation",
+      { method: "POST", serviceRole: true, body: { p_token_hash: tokenHash, p_user_id: viewer.id } },
+    );
+  } catch (error) {
+    // The RPC raises SQLSTATE PT409 (PostgREST -> HTTP 409) for every refusal,
+    // without saying which check failed or naming the invited mailbox.
+    if ((error as { status?: number } | null)?.status === 409) {
+      return NextResponse.json({
+        error: "This invitation was used, revoked, or has expired. Ask the workspace owner for a new link.",
+      }, { status: 409 });
+    }
+    return NextResponse.json({ error: "We could not confirm this invitation right now. Please try again." }, { status: 503 });
+  }
+  if (!Array.isArray(receipt) || receipt.length !== 1 || receipt[0].organization_id !== invitation.organization_id) {
+    return NextResponse.json({ error: "We could not confirm this invitation. Please try again." }, { status: 503 });
+  }
   return NextResponse.json({ ok: true, next: "/app" });
 }

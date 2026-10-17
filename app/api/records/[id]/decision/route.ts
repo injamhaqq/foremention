@@ -61,7 +61,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!context || !role) return NextResponse.json({ error: "Workspace not found.", code: "workspace_setup_required" }, { status: 404 });
   if (!canDecide(role)) return NextResponse.json({ error: "Only owners, admins and analysts can save decisions." }, { status: 403 });
   if (parsed.value.approve && !canApprove(role)) return NextResponse.json({ error: "Only owners and admins can approve decisions." }, { status: 403 });
-  const scope = { organizationId: context.organizationId, projectId: context.projectId };
+  const scope = { organizationId: context.organizationId, projectId: context.projectId, actorId: viewer.id };
   const result = await saveRecordDecision({
     rpc: (body) => supabaseRest("rpc/save_record_decision", { method: "POST", token: viewer.accessToken, body }),
     readBySaveKey: (saveKey) => supabaseRest<RecordDecisionRow[]>(

@@ -62,10 +62,17 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
         return;
       }
       if (data.session === false) {
-        if (!isLogin) captureProductEvent("signup_completed", { confirmation_required: true });
-        setAccountHelp(Boolean(data.account_help));
-        setNotice(data.message || "Check your inbox to confirm your account.");
-        setNoticeEmail(data.email || String(formData.get("email") || ""));
+        // Registration request receipt, not verified account creation or mail delivery.
+        // Keep unknown/new/existing address presentation identical.
+        if (mode === "signup") {
+          setAccountHelp(false);
+          setNoticeEmail("");
+          setNotice(data.message || "If this email can be registered, a confirmation link will be sent. If you already have an account, sign in or reset your password.");
+        } else {
+          setAccountHelp(Boolean(data.account_help));
+          setNoticeEmail("");
+          setNotice(data.message || "Follow the instructions from the authentication service.");
+        }
         return;
       }
       if (!isLogin) captureProductEvent("signup_completed", { confirmation_required: false });
@@ -98,17 +105,13 @@ export function AuthForm({ mode, next = "/app", statusMessage = "", googleEnable
     }
     return (
       <div className="auth-card auth-card--status" data-evidence-record="auth">
-        <span className="auth-record-index">AUTH / VERIFY</span>
-        <span className="eyebrow">Check your inbox</span>
-        <h1>Confirm your email.</h1>
+        <span className="auth-record-index">AUTH / REQUEST</span>
+        <span className="eyebrow">Registration request</span>
+        <h1>Request received.</h1>
         <p role="status" aria-live="polite">{notice}</p>
-        {noticeEmail && <p className="auth-email-receipt">Sent to <strong>{noticeEmail}</strong></p>}
-        <ol className="auth-steps">
-          <li>Open the newest email from <strong>Foremention</strong>.</li>
-          <li>Select <strong>Confirm my email</strong>.</li>
-          <li>The verified link opens guided workspace setup automatically.</li>
-        </ol>
-        <a className="button button--ink button--wide" href={loginHref}>Already confirmed? Sign in</a>
+        <p>You can sign in if your account is already active. If you need access restored, request a password reset.</p>
+        <a className="button button--ink button--wide" href={loginHref}>Go to sign in</a>
+        <a className="auth-recovery" href="/forgot-password">Reset password</a>
         <button className="text-button" type="button" onClick={() => { setNotice(""); setNoticeEmail(""); setAccountHelp(false); }}>Use a different email</button>
       </div>
     );

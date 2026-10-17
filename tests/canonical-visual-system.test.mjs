@@ -87,7 +87,9 @@ test("homepage uses the approved cinematic evidence composition without heavy vi
   assert.match(home, /Track recommendations, inspect supporting sources, and decide what to improve\./);
   assert.match(home, /Explore a sample/);
   assert.match(home, /Request a pilot/);
-  assert.match(home, /fm-recommendation-graph/);
+  const interactiveGraph = await text("components/illustrative-recommendation-graph.tsx");
+  assert.match(home, /IllustrativeRecommendationGraph/);
+  assert.match(interactiveGraph, /fm-recommendation-graph/);
   assert.match(home, /Company Truth/);
   assert.match(home, /Eligibility/);
   assert.match(home, /Change Specification/);
