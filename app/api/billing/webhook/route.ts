@@ -285,6 +285,67 @@ async function paddleCatalogIndependentLifecycleResponse(
   }, "paddle", null, fromVerifiedInbox);
 }
 
+const PACKAGE_RANK: Record<"core" | "signal", number> = { core: 1, signal: 2 };
+
+/**
+ * subscription.updated may only REDUCE access (Oct 18). Admit by exact stored
+ * subscription + customer identity; apply only when the subscription's single
+ * configured price is a strictly lower package than the persisted verified
+ * Paddle entitlement. Everything else (renewal, same plan, scheduled change,
+ * upgrade, a subscription Foremention never verified) is acknowledged without
+ * writes: upgrades need a paid transaction.completed, status changes arrive as
+ * their own events.
+ */
+async function paddleSubscriptionDowngradeResponse(
+  downgrade: NonNullable<ReturnType<NonNullable<BillingProviderAdapter["parseSubscriptionDowngrade"]>>>,
+  fromVerifiedInbox = false,
+) {
+  let organizationId: string | null = null;
+  let storedPackage: "core" | "signal" | null = null;
+  try {
+    const rows = await supabaseRest<BillingAccountIdentityRow[]>(
+      "billing_accounts?select=organization_id,external_customer_id,external_subscription_id"
+      + "&provider=eq.paddle"
+      + "&external_subscription_id=eq." + encodeURIComponent(downgrade.externalSubscriptionId)
+      + "&limit=2",
+      { serviceRole: true },
+    );
+    if (rows.length === 0) return NextResponse.json({ received: true, ignored: true });
+    if (rows.length !== 1 || !paddleSubscriptionIdentityMatches(
+      rows, rows[0].organization_id, downgrade.externalCustomerId, downgrade.externalSubscriptionId,
+    )) {
+      return NextResponse.json({
+        error: "Paddle subscription identity could not be verified. Provider retry required.",
+      }, { status: 503 });
+    }
+    organizationId = rows[0].organization_id;
+    const entitlements = await supabaseRest<StoredPaddleEntitlementRow[]>(
+      "organization_entitlements?select=package_key,billing_source&organization_id=eq."
+        + encodeURIComponent(organizationId) + "&limit=1",
+      { serviceRole: true },
+    );
+    const stored = entitlements[0];
+    if (stored?.billing_source === "paddle" && (stored.package_key === "core" || stored.package_key === "signal")) {
+      storedPackage = stored.package_key;
+    }
+  } catch {
+    return NextResponse.json({ error: "Paddle subscription identity could not be verified. Provider retry required." }, { status: 503 });
+  }
+  if (!organizationId || !storedPackage || PACKAGE_RANK[downgrade.packageKey] >= PACKAGE_RANK[storedPackage]) {
+    return NextResponse.json({ received: true, ignored: true });
+  }
+  return billingMutationResponse({
+    organizationId,
+    packageKey: downgrade.packageKey,
+    state: "active",
+    externalCustomerId: downgrade.externalCustomerId,
+    externalSubscriptionId: downgrade.externalSubscriptionId,
+    accessUntil: downgrade.accessUntil,
+    eventId: downgrade.eventId,
+    occurredAt: downgrade.occurredAt,
+  }, "paddle", null, fromVerifiedInbox);
+}
+
 export async function POST(request: Request) {
   const provider = billingProvider();
   if (!provider?.configured()) {
@@ -398,6 +459,8 @@ export async function processVerifiedBillingWebhookRawBody(rawBody: string, from
     }
     const lifecycle = provider.parseCatalogIndependentLifecycle?.(rawBody) ?? null;
     if (lifecycle) return paddleCatalogIndependentLifecycleResponse(lifecycle, fromVerifiedInbox);
+    const downgrade = provider.parseSubscriptionDowngrade?.(rawBody) ?? null;
+    if (downgrade) return paddleSubscriptionDowngradeResponse(downgrade, fromVerifiedInbox);
   }
   if (!parsed) return NextResponse.json({ received: true, ignored: true });
 
