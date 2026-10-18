@@ -323,3 +323,94 @@ test("unsigned, stale or tampered deliveries are rejected before any database ac
     assert.deepEqual(db.calls, []);
   } finally { db.restore(); }
 });
+
+// Oct 18: subscription.updated may only reduce access (strict downgrade).
+function updated({ price = CORE, status = "active", customer = CTM, endsInDays = 20 } = {}) {
+  const now = Date.now();
+  return {
+    event_id: eventId(),
+    event_type: "subscription.updated",
+    occurred_at: new Date(now - 1000).toISOString(),
+    data: {
+      id: SUB, status, customer_id: customer, custom_data: null,
+      items: [{ quantity: 1, price: { id: price } }],
+      current_billing_period: { starts_at: new Date(now - 10 * 864e5).toISOString(), ends_at: new Date(now + endsInDays * 864e5).toISOString() },
+    },
+  };
+}
+
+function downgradeDb(storedPackage, accounts = [{ organization_id: ORG, external_customer_id: CTM, external_subscription_id: SUB }]) {
+  return database({
+    "billing_accounts": () => accounts,
+    "organization_entitlements": () => [{ package_key: storedPackage, billing_source: "paddle" }],
+    "billing_webhook_events": () => [{ provider: "paddle", event_id: "x", processed_at: null }],
+    "rpc/apply_billing_event_atomic_v2": () => true,
+  });
+}
+
+test("subscription.updated Signal -> Core downgrade applies Core, bounded by the current billing period", async () => {
+  const db = downgradeDb("signal");
+  try {
+    const payload = updated({ price: CORE });
+    const response = await POST(signed(payload));
+    assert.equal(response.status, 200);
+    const apply = db.calls.find((c) => c.path === "rpc/apply_billing_event_atomic_v2").body;
+    assert.equal(apply.p_package_key, "core");
+    assert.equal(apply.p_state, "active");
+    assert.equal(apply.p_organization_id, ORG);
+    assert.equal(apply.p_external_subscription_id, SUB);
+    assert.ok(apply.p_entitlement_expires_at, "a downgrade must never produce unbounded access");
+    assert.ok(new Date(apply.p_entitlement_expires_at) > new Date(payload.data.current_billing_period.ends_at) - 1);
+    assert.ok(!rpcNames(db.calls).includes("rpc/settle_paddle_checkout_reservation"));
+  } finally { db.restore(); }
+});
+
+test("subscription.updated never grants: upgrade, same plan or renewal is acknowledged without writes", async () => {
+  for (const [stored, price] of [["core", SIGNAL], ["core", CORE], ["signal", SIGNAL]]) {
+    const db = downgradeDb(stored);
+    try {
+      const response = await POST(signed(updated({ price })));
+      assert.equal(response.status, 200);
+      assert.equal((await response.json()).ignored, true);
+      assert.deepEqual(rpcNames(db.calls), []);
+    } finally { db.restore(); }
+  }
+});
+
+test("subscription.updated for a non-active, foreign, period-less or unverified subscription changes nothing", async () => {
+  // Non-active status, foreign price, missing/expired period: parser declines, no database access.
+  for (const payload of [updated({ status: "past_due" }), updated({ status: "paused" }), updated({ price: FOREIGN }), updated({ endsInDays: -1 })]) {
+    const db = downgradeDb("signal");
+    try {
+      const response = await POST(signed(payload));
+      assert.equal(response.status, 200);
+      assert.deepEqual(rpcNames(db.calls), []);
+    } finally { db.restore(); }
+  }
+  // Subscription Foremention never verified: ignored without writes.
+  const none = downgradeDb("signal", []);
+  try {
+    const response = await POST(signed(updated()));
+    assert.equal(response.status, 200);
+    assert.deepEqual(rpcNames(none.calls), []);
+  } finally { none.restore(); }
+  // Stored identity with a different customer: fail closed (retryable), no writes.
+  const mismatch = downgradeDb("signal");
+  try {
+    const response = await POST(signed(updated({ customer: "ctm_" + "x".repeat(26) })));
+    assert.equal(response.status, 503);
+    assert.deepEqual(rpcNames(mismatch.calls), []);
+  } finally { mismatch.restore(); }
+});
+
+test("subscription.updated against a non-Paddle (founder) entitlement is ignored", async () => {
+  const db = database({
+    "billing_accounts": () => [{ organization_id: ORG, external_customer_id: CTM, external_subscription_id: SUB }],
+    "organization_entitlements": () => [{ package_key: "signal", billing_source: "founder" }],
+  });
+  try {
+    const response = await POST(signed(updated()));
+    assert.equal(response.status, 200);
+    assert.deepEqual(rpcNames(db.calls), []);
+  } finally { db.restore(); }
+});

@@ -581,3 +581,55 @@ export async function findPaddleTransactionsForReservation(
   if (next) return null;
   return matches;
 }
+
+export type PaddleSubscriptionDowngrade = {
+  eventId: string;
+  occurredAt: string;
+  packageKey: "core" | "signal";
+  billingInterval: PaddleInterval;
+  externalSubscriptionId: string;
+  externalCustomerId: string;
+  accessUntil: string;
+};
+
+/**
+ * subscription.updated (Oct 18): the only entitlement change this event may
+ * cause is a REDUCTION. A plan change made in the Paddle dashboard or API from
+ * Signal to Core produces no positive transaction.completed, so without this
+ * the workspace would keep Signal capacity until its paid period lapsed.
+ *
+ * This parser returns the target package and the subscription's current
+ * billing-period end only for an active subscription with exactly one
+ * configured price. The route compares it with the persisted verified
+ * entitlement and applies it only when it is a strict downgrade for the exact
+ * stored subscription + customer identity. Upgrades, renewals, scheduled
+ * changes, resumes and status changes are never applied from this event:
+ * upgrades require a paid transaction.completed, and status changes arrive as
+ * their own subscription.past_due / paused / canceled events.
+ */
+export function parsePaddleSubscriptionDowngrade(rawBody: string): PaddleSubscriptionDowngrade | null {
+  let event: Json | null;
+  try { event = object(JSON.parse(rawBody)); } catch { return null; }
+  if (!event || event.event_type !== "subscription.updated") return null;
+  const eventId = idFrom(event.event_id);
+  const effectiveAt = occurredAt(event.occurred_at);
+  const data = object(event.data);
+  if (!eventId || !/^evt_[a-z0-9]{26}$/.test(eventId) || !effectiveAt || !data) return null;
+  if (data.status !== "active") return null;
+  const subscriptionId = idFrom(data.id);
+  const customerId = idFrom(data.customer_id);
+  if (!subscriptionId || !SUBSCRIPTION_ID.test(subscriptionId) || !customerId || !CUSTOMER_ID.test(customerId)) return null;
+  const offer = singleConfiguredPackage(data);
+  if (!offer || (offer.packageKey !== "core" && offer.packageKey !== "signal")) return null;
+  const periodEnd = occurredAt(object(data.current_billing_period)?.ends_at);
+  if (!periodEnd || new Date(periodEnd).getTime() <= new Date(effectiveAt).getTime()) return null;
+  return {
+    eventId,
+    occurredAt: effectiveAt,
+    packageKey: offer.packageKey,
+    billingInterval: offer.billingInterval,
+    externalSubscriptionId: subscriptionId,
+    externalCustomerId: customerId,
+    accessUntil: periodEnd,
+  };
+}

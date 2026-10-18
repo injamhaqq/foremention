@@ -28,6 +28,8 @@ import {
   paddleUnmappedForementionPayment,
   parsePaddleCatalogIndependentLifecycle,
   type PaddleCatalogIndependentLifecycle,
+  parsePaddleSubscriptionDowngrade,
+  type PaddleSubscriptionDowngrade,
   createPaddleCandidateCheckout,
   createPaddleCandidatePortal,
   paddleCandidateConfigured,
@@ -81,6 +83,8 @@ export interface BillingProviderAdapter {
   unmappedPaidTransaction?(rawBody: string): { eventId: string; transactionId: string } | null;
   /** Chat03: subscription state change whose price left the configured catalog. */
   parseCatalogIndependentLifecycle?(rawBody: string): PaddleCatalogIndependentLifecycle | null;
+  /** Oct 18: subscription.updated candidate for a strict plan downgrade (never a grant). */
+  parseSubscriptionDowngrade?(rawBody: string): PaddleSubscriptionDowngrade | null;
   /** Chat03: exact-ID read of a checkout transaction (null on 404). */
   getCheckoutTransaction?(transactionId: string): Promise<Record<string, unknown> | null>;
   /** Chat03: cancel an abandoned never-paid checkout; returns provider status. */
@@ -173,6 +177,10 @@ function paddleAdapter(isConfigured: () => boolean, label: string): BillingProvi
   parseCatalogIndependentLifecycle(rawBody) {
     if (!isConfigured()) throw new Error(label + " is not enabled.");
     return parsePaddleCatalogIndependentLifecycle(rawBody);
+  },
+  parseSubscriptionDowngrade(rawBody) {
+    if (!isConfigured()) throw new Error(label + " is not enabled.");
+    return parsePaddleSubscriptionDowngrade(rawBody);
   },
   async getCheckoutTransaction(transactionId) {
     if (!isConfigured()) throw new Error(label + " is not enabled.");
