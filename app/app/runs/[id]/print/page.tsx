@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Wordmark } from "@/components/brand";
+import { ReportPrintToolbar } from "@/components/report-print-toolbar";
 import { requireViewer } from "@/lib/auth";
 import { loadRunAnswers, loadRuns, loadWorkspaceContext } from "@/lib/data";
 import { loadRecordIntegrity, type RecordIntegrityAnswer } from "@/lib/record-integrity";
@@ -19,13 +20,13 @@ export default async function PrintableRecommendationRecord({ params }: { params
     const run = (await loadRuns(viewer)).find((item) => item.id === id);
     if (!run) notFound();
     const answers = await loadRunAnswers(viewer, id);
-    return <main className="print-record">
+    return <><ReportPrintToolbar backHref={`/app/runs/${encodeURIComponent(id)}`} backLabel="Back to Record" /><main className="print-record">
       <header><Wordmark /><div><span>Board-ready Recommendation Record</span><strong>{run.id.slice(0, 8).toUpperCase()}</strong></div></header>
       <section className="print-record__hero"><span className="eyebrow">Recommendation Intelligence</span><h1>Recommendation Record</h1><p>{run.date} · {run.answers} recorded answer{run.answers === 1 ? "" : "s"} · {run.citations} returned citation observation{run.citations === 1 ? "" : "s"}</p><p>This fictional demo does not establish a safe customer conclusion.</p></section>
       <section className="print-record__states"><div><span>Returned</span><strong>{run.citations}</strong></div><div><span>Retrieved</span><strong>Demo only</strong></div><div><span>Observed</span><strong>{run.answers}</strong></div><div><span>Reviewed</span><strong>0</strong></div><div><span>Safe conclusion</span><strong>Withheld</strong></div></section>
       <section className="print-record__answers">{answers.map((answer, index) => <article key={answer.id}><span className="eyebrow">Question {index + 1} · {answer.provider}</span><h2>{answer.prompt}</h2><p>{answer.answer}</p></article>)}</section>
       <footer className="print-record__footer">Fictional demonstration only. Returned references are provider observations, not causal proof.</footer>
-    </main>;
+    </main></>;
   }
 
   const context = await loadWorkspaceContext(viewer);
@@ -41,7 +42,7 @@ export default async function PrintableRecommendationRecord({ params }: { params
   const run = record.run;
   const answers: RecordIntegrityAnswer[] = record.completeObservationCoverage ? record.answers : [];
 
-  return <main className="print-record">
+  return <><ReportPrintToolbar backHref={`/app/runs/${encodeURIComponent(id)}`} backLabel="Back to Record" /><main className="print-record">
     <header><Wordmark /><div><span>Board-ready Recommendation Record</span><strong>{run.id.slice(0, 8).toUpperCase()}</strong></div></header>
     <section className="print-record__hero">
       <span className="eyebrow">Recommendation Intelligence</span>
@@ -67,5 +68,5 @@ export default async function PrintableRecommendationRecord({ params }: { params
       </article>)}</section>}
     {!record.safeConclusion && record.completeObservationCoverage && <section className="print-record__answers"><article><span className="eyebrow">Interpretation boundary</span><h2>Safe conclusion withheld.</h2><p>{record.reason || "The complete Record is inspectable, but its review or failure state does not support a safe conclusion."}</p><footer><span>Failed slots: {record.failedSlots}</span><span>Excluded answers: {record.excludedAnswers}</span></footer></article></section>}
     <footer className="print-record__footer">Returned references are provider observations. Chronology and correlation are not proof of causation.</footer>
-  </main>;
+  </main></>;
 }

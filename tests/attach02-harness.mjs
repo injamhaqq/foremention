@@ -30,6 +30,7 @@ const REAL_LIBS = new Set([
   "@/lib/google-auth",
   "@/lib/csv",
   "@/lib/record-sharing",
+  "@/lib/billing-portal-notice",
 ]);
 
 export const SITE = "https://foremention.com";

@@ -710,12 +710,15 @@ export async function loadRunCostEvents(viewer: Viewer, runId: string): Promise<
   return rows.map((row) => ({ provider: row.provider, model: row.model, inputTokens: row.input_tokens, outputTokens: row.output_tokens, totalTokens: row.total_tokens, costUsd: Number(row.estimated_cost_usd), costSource: row.cost_source }));
 }
 
-export async function loadRunConfiguration(viewer: Viewer, runId: string): Promise<{ promptIds: string[]; provider: string } | null> {
+export async function loadRunConfiguration(viewer: Viewer, runId: string, options: { includeFailed?: boolean } = {}): Promise<{ promptIds: string[]; provider: string } | null> {
   if (viewer.mode === "demo") return demoRuns.some((run) => run.id === runId && run.status === "complete") ? { promptIds: demoPrompts.filter((prompt) => prompt.approved).map((prompt) => prompt.id), provider: "mock" } : null;
   const context = await loadWorkspaceContext(viewer);
   if (!context) return null;
+  // Failed records expose the same configuration so "Retry" can resend it
+  // through POST /api/runs; every creation check is re-applied there.
+  const statusFilter = options.includeFailed ? "status=in.(complete,partial,failed)" : "status=in.(complete,partial)";
   const runs = await supabaseRest<Array<{ provider_ids: string[] }>>(
-    `runs?select=provider_ids&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&status=in.(complete,partial)&limit=1`,
+    `runs?select=provider_ids&id=eq.${encodeURIComponent(runId)}&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&${statusFilter}&limit=1`,
     { token: viewer.accessToken },
   );
   if (!runs[0]?.provider_ids?.[0]) return null;

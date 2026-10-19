@@ -1,4 +1,5 @@
 import { Wordmark } from "@/components/brand";
+import { ReportPrintToolbar } from "@/components/report-print-toolbar";
 import { requireViewer } from "@/lib/auth";
 import { loadWorkspaceContext } from "@/lib/data";
 import {
@@ -30,10 +31,10 @@ type ChangeSpecificationRow = { id: string; title: string };
 export default async function PrintableOutcomeValueReport() {
   const viewer = await requireViewer("/app/outcomes");
   if (viewer.mode === "demo") {
-    return <main className="print-record"><header><Wordmark /><div><span>Board-ready Business Value Review</span><strong>DEMO</strong></div></header><section className="print-record__hero"><span className="eyebrow">Outcome Intelligence</span><h1>No customer outcome record in demo mode.</h1><p>The fictional demo does not create approvals, applied actions, customer-success facts, or ROI.</p></section></main>;
+    return <><ReportPrintToolbar backHref="/app/outcomes" backLabel="Back to Outcome Ledger" /><main className="print-record"><header><Wordmark /><div><span>Board-ready Business Value Review</span><strong>DEMO</strong></div></header><section className="print-record__hero"><span className="eyebrow">Outcome Intelligence</span><h1>No customer outcome record in demo mode.</h1><p>The fictional demo does not create approvals, applied actions, customer-success facts, or ROI.</p></section></main></>;
   }
   const context = await loadWorkspaceContext(viewer);
-  if (!context) return <main className="print-record"><header><Wordmark /></header><section className="print-record__hero"><h1>Outcome report unavailable.</h1><p>Complete workspace onboarding before creating a customer outcome report.</p></section></main>;
+  if (!context) return <><ReportPrintToolbar backHref="/app/outcomes" backLabel="Back to Outcome Ledger" /><main className="print-record"><header><Wordmark /></header><section className="print-record__hero"><h1>Outcome report unavailable.</h1><p>Complete workspace onboarding before creating a customer outcome report.</p></section></main></>;
 
   const assets = await safeRead(supabaseRest<OutcomeLedgerAssetRow[]>(
     `resolution_assets?select=id,opportunity_id,source_id,baseline_run_id,asset_type,title,problem_statement,limitations,status,review_decision,created_by,submitted_by,submitted_at,approved_by,approved_at,decision_by,decision_at,approval_note,applied_by,applied_at,application_reference,application_note,created_at,updated_at&organization_id=eq.${context.organizationId}&project_id=eq.${context.projectId}&order=created_at.desc&limit=100`,
@@ -63,7 +64,7 @@ export default async function PrintableOutcomeValueReport() {
   const digest = buildExecutiveDigest(records);
   const periods = buildPeriodSummaries(records);
 
-  return <main className="print-record">
+  return <><ReportPrintToolbar backHref="/app/outcomes" backLabel="Back to Outcome Ledger" /><main className="print-record">
     <header><Wordmark /><div><span>Board-ready Business Value Review</span><strong>{new Date().toLocaleDateString("en-GB")}</strong></div></header>
     <section className="print-record__hero"><span className="eyebrow">Recommendation Intelligence · Outcome Intelligence</span><h1>Business Value Review</h1><p>Operational evidence from persisted Recommendation Records, human decisions, completed actions, and eligible later measurements.</p><p><strong>Economic ROI is not demonstrated.</strong> {report.economicValue.basis}</p></section>
     <section className="print-record__states"><div><span>Issues</span><strong>{report.issuesIdentified}</strong></div><div><span>Approved</span><strong>{report.actionsApproved}</strong></div><div><span>Completed</span><strong>{report.actionsCompleted}</strong></div><div><span>Remeasured</span><strong>{report.itemsRemeasured}</strong></div><div><span>Higher-direction observations</span><strong>{report.higherObserved}</strong></div></section>
@@ -80,5 +81,5 @@ export default async function PrintableOutcomeValueReport() {
       </article>)}
     </section>
     <footer className="print-record__footer">Foremention reports chronology and eligible observed association, not causal attribution. Directional movement is not automatically business value, and operational value is not automatically economic ROI.</footer>
-  </main>;
+  </main></>;
 }

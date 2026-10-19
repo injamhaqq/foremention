@@ -1,8 +1,9 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { supabaseConfigured } from "@/lib/supabase-rest";
 import { DEMO_COOKIE, REFRESH_COOKIE, SESSION_COOKIE } from "@/lib/session-cookies";
+import { REQUEST_PATH_HEADER, returnPathFromRequestPath } from "@/lib/auth-return-path";
 
 export { DEMO_COOKIE, REFRESH_COOKIE, SESSION_COOKIE };
 
@@ -36,9 +37,24 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer | null
   }
 });
 
-export async function requireViewer(returnTo = "/app") {
+/**
+ * The exact in-app URL the visitor asked for, so sign-in returns there (the
+ * protected layout runs before the page and cannot see its own URL). Falls
+ * back to the caller's static `returnTo`. Only same-origin /app paths survive.
+ */
+async function requestedReturnPath(returnTo: string) {
+  try {
+    const requested = (await headers()).get(REQUEST_PATH_HEADER);
+    return returnPathFromRequestPath(requested, returnTo);
+  } catch {
+    return returnPathFromRequestPath(null, returnTo);
+  }
+}
+
+export async function requireViewer(fallbackReturnTo = "/app") {
   const viewer = await getViewer();
   if (!viewer) {
+    const returnTo = await requestedReturnPath(fallbackReturnTo);
     const store = await cookies();
     if (store.get(REFRESH_COOKIE)?.value) {
       redirect(`/api/auth/refresh?next=${encodeURIComponent(returnTo)}`);

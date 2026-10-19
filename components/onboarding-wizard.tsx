@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { WORKSPACE_CREATED_EVENT } from "@/lib/workspace-setup-status";
 import { captureProductEvent } from "@/lib/product-analytics";
@@ -340,7 +341,7 @@ export function OnboardingWizard({ demo, draftKey, firstAuditProvider }: { demo:
     <span className="eyebrow">Workspace ready</span>
     <h2>Your evidence boundary is saved.</h2>
     <p>{demo ? "This was a demo walkthrough; no customer data was saved." : "Your workspace, category, competitors, and approved buyer questions are saved. No initial provider collection was requested."}</p>
-    <div className="settings-actions"><a className="button button--ink" href="/app/settings#providers">Connect a provider &rarr;</a><a className="button button--outline" href="/app/prompts">Review questions</a></div>
+    <div className="settings-actions"><Link className="button button--ink" href="/app/settings#providers">Connect a provider &rarr;</Link><Link className="button button--outline" href="/app/prompts">Review questions</Link></div>
   </div>;
 
   if (!hydrated) return <div className="empty-state" role="status"><h2>Restoring your setup…</h2><p>Your saved progress stays on this device until the workspace is created.</p></div>;

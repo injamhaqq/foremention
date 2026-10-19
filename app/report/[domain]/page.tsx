@@ -1,3 +1,4 @@
+import "../../report-print.css";
 import { cache } from "react"; import type { Metadata } from "next"; import Link from "next/link"; import { PublicShell } from "@/components/public-shell"; import { canonicalReportDomain, loadPublicVisibilityReport } from "@/lib/public-visibility-report"; import { pageMetadata } from "@/lib/seo";
 export const revalidate = 604800;
 // A21 (Chat05): an unavailable or withheld report is a thin placeholder; keep it out of search indexes.

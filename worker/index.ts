@@ -12,6 +12,7 @@ import { MEASUREMENT_BACKUP_CRON, INNGEST_SELF_SYNC_CRON, scheduledBackupPlan } 
 import { scrubSentryEvent } from "../lib/sentry-privacy";
 import { parsePublicScoreAnswers, PUBLIC_SCORE_ANSWER_FORMAT_INSTRUCTIONS } from "../lib/public-score-answers.mjs";
 import { logOperationalEvent } from "../lib/structured-logger";
+import { REQUEST_PATH_HEADER, requestPathHeaderValue } from "../lib/auth-return-path";
 
 interface D1Result<T = unknown> {
   results?: T[];
@@ -488,6 +489,9 @@ const worker = {
     const startedAt = Date.now();
     const headers = new Headers(request.headers);
     headers.set("x-correlation-id", correlationId);
+    // Always overwrite: lets requireViewer() send signed-out visitors back to the
+    // exact in-app URL after sign-in. A client-supplied value never survives.
+    headers.set(REQUEST_PATH_HEADER, requestPathHeaderValue(url));
     const correlatedRequest = new Request(request, { headers });
     const complete = (response: Response) => {
       const secured = secureResponse(response, url, correlationId);

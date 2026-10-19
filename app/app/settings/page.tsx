@@ -16,6 +16,9 @@ import { supabaseRest } from "@/lib/supabase-rest";
 import { FOUNDATION_ACCESS_LIMITS } from "@/lib/product-limits";
 import { planCardView, type PlanBillingRow, type PlanEntitlementRow } from "@/lib/plan-card";
 import { getSecretRotationStatuses, MAX_SECRET_AGE_DAYS } from "@/lib/secret-rotation";
+import { billingProviderConfigured } from "@/lib/billing-provider";
+import { billingPortalNotice } from "@/lib/billing-portal-notice";
+import { SUPPORT_EMAIL, supportMailtoHref } from "@/lib/support-contact";
 
 /** The server-enforced observation quota for this workspace, never the code default. */
 /** The stored entitlement and billing rows behind the Plan card (RLS-scoped). */
@@ -51,7 +54,7 @@ async function loadEnforcedObservationQuota(viewer: Viewer): Promise<number | nu
   }
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ session_action?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ session_action?: string; billing_portal?: string }> }) {
   const [viewer, query] = await Promise.all([
     requireViewer("/app/settings"),
     searchParams,
@@ -72,6 +75,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const monitoringReady = Boolean(process.env.SENTRY_DSN);
   const webhooksReady = Boolean(process.env.WEBHOOK_SIGNING_SECRET && process.env.INNGEST_EVENT_KEY);
   const secretRotation = getSecretRotationStatuses();
+  const portalNotice = billingPortalNotice(query.billing_portal);
+  const billingConfigured = viewer.mode !== "demo" && billingProviderConfigured();
   const connectedProviders = viewer.mode === "demo" ? providers.length : providers.filter((provider) => provider.configured).length;
   const provenProviders = viewer.mode === "demo" ? providers.length : providers.filter((provider) => provider.health === "available").length;
 
@@ -157,7 +162,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <span className="eyebrow">Support</span>
         <h2>Need help with your workspace?</h2>
         <p>Submit an account, collection, evidence, integration, or billing question with workspace context attached. Any AI-assisted reply is reviewed by a human before it is sent.</p>
-        <div className="settings-actions"><Link className="button button--outline" href="/app/support">Open Support</Link></div>
+        <p>Prefer email? Write to <a className="text-link" href={supportMailtoHref("Foremention workspace support")}>{SUPPORT_EMAIL}</a> from the address you sign in with. Never send passwords, API keys, or tokens.</p>
+        <div className="settings-actions"><Link className="button button--outline" href="/app/support">Open Support</Link><a className="button button--outline" href={supportMailtoHref("Foremention workspace support")}>Email support</a></div>
       </section>
 
       <section className="panel">
@@ -178,6 +184,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <div><dt>History</dt><dd>{FOUNDATION_ACCESS_LIMITS.historyDays} days</dd></div>
         </dl>
         <p className="table-caption">{plan.note}</p>
+        <div className="settings-billing-portal" id="billing-portal">
+          {portalNotice && <p className="inline-notice" role="status">{portalNotice}</p>}
+          {viewer.mode === "demo"
+            ? <p className="table-caption">The fictional demo workspace has no billing portal.</p>
+            : team.role !== "owner"
+              ? <p className="table-caption">Only the workspace owner can open the billing portal for invoices, payment methods, and plan changes.</p>
+              : billingConfigured
+                ? <form action="/api/billing/portal" method="post" className="settings-actions"><button className="button button--outline" type="submit">Open billing portal</button><span className="table-caption">Invoices, payment method, and plan changes are managed securely by our billing provider.</span></form>
+                : <p className="table-caption">Self-serve billing is not configured for this workspace. For invoices or plan changes, email <a className="text-link" href={supportMailtoHref("Foremention billing")}>{SUPPORT_EMAIL}</a>.</p>}
+        </div>
       </section>
 
       <section className="panel">

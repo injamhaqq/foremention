@@ -9,6 +9,7 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 import type { Viewer } from "@/lib/auth";
 import type { WorkspaceProject } from "@/lib/data";
 import { resetProductAnalytics } from "@/lib/product-analytics";
+import { primaryDestinationForPath } from "@/lib/workspace-nav-section";
 
 const primaryNav = [
   ["/app", "Overview"],
@@ -28,7 +29,6 @@ export const CONTEXTUAL_WORKSPACE_ROUTES = [
   ["/app/team", "Team"],
   ["/app/settings#integrations", "Integrations"],
   ["/app/competitors", "Competitors"],
-  ["/app/opportunities", "Opportunities"],
   ["/app/placements", "Actions"],
   ["/app/resolutions", "Resolution Center"],
   ["/app/outcomes", "Outcome Ledger"],
@@ -40,8 +40,10 @@ export const CONTEXTUAL_WORKSPACE_ROUTES = [
   ["/app/evidence", "Evidence Vault"],
 ] as const;
 
+// Exactly one primary destination reads as current on every signed-in page,
+// including specialist tools (they belong to "All tools" or their parent area).
 function isCurrent(pathname: string, href: string) {
-  return href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  return primaryDestinationForPath(pathname) === href;
 }
 
 function WorkspaceIdentity({
