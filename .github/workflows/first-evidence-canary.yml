@@ -1,9 +1,8 @@
 name: Authenticated First-Evidence Canary
 
+# Dispatched by production-deploy.yml after the exact SHA is deployed and
+# verified (FM-06). A push trigger would race the CI-gated deploy.
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
