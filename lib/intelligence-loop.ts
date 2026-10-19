@@ -103,6 +103,9 @@ type AnswerRow = {
   usage_total_tokens: number | null;
   review_status: string;
   collected_at: string;
+  /** Evidence trust: retrieval method identity; differing values are never compared. */
+  retrieval_version?: string | null;
+  retrieval_provider?: string | null;
 };
 
 type CostRow = {
@@ -192,7 +195,10 @@ function answerView(row: AnswerRow): ComparableAnswer {
   })));
   const model = row.model || "model-not-recorded";
   return {
-    key: `${row.prompt_key}\u0000${row.provider}\u0000${model}`,
+    // Evidence trust: the retrieval method (Bing RSS vs Brave Search, and the
+    // retrieval/sanitisation version) is part of the comparable identity, so a
+    // Brave-grounded answer is never silently compared with a Bing-grounded one.
+    key: `${row.prompt_key}\u0000${row.provider}\u0000${model}\u0000${row.retrieval_provider || "retrieval-not-recorded"}\u0000${row.retrieval_version || "retrieval-version-not-recorded"}`,
     prompt: row.prompt_text || row.prompt_key,
     provider: row.provider,
     model: row.model,
@@ -568,7 +574,7 @@ export async function loadWeeklyIntelligence(viewer: Viewer): Promise<WeeklyInte
   const runIds = readableRuns.map((run) => run.id);
   const [candidateAnswers, sourceRows] = await Promise.all([
     runIds.length ? supabaseRest<AnswerRow[]>(
-      `run_answers?select=id,run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present,brand_position,estimated_cost_usd,cost_source,usage_total_tokens,review_status,collected_at&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.desc&limit=${MAX_COMPLETE_RUN_HISTORY_ANSWERS}`,
+      `run_answers?select=id,run_id,prompt_key,prompt_text,provider,model,answer_text,citations_json,brand_present,brand_position,estimated_cost_usd,cost_source,usage_total_tokens,review_status,collected_at,retrieval_version:measurement_context_json->>retrievalVersion,retrieval_provider:raw_json->>retrievalProvider&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&review_status=eq.verified&order=collected_at.desc&limit=${MAX_COMPLETE_RUN_HISTORY_ANSWERS}`,
       { token: viewer.accessToken },
     ) : Promise.resolve([]),
     map ? supabaseRest<SourceEntryRow[]>(

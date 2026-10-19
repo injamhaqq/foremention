@@ -10,6 +10,7 @@ import { finalizeResolutionFollowUpsForRun } from "@/lib/resolution-follow-ups";
 import { generateReviewedSourceMap } from "@/lib/source-map-generation";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { partitionOfficialSourceReview } from "@/lib/official-source-relevance.mjs";
+import { isVerificationBlockedSupport } from "@/lib/evidence-trust.mjs";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -28,10 +29,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const run = runs[0];
   if (!run) return NextResponse.json({ error: "Run not found." }, { status: 404 });
   if (run.status !== "review") return NextResponse.json({ error: "Only a run waiting for review can be approved." }, { status: 409 });
-  const answerRows = await supabaseRest<Array<{ id: string; prompt_text: string | null; answer_text: string | null; citations_json: unknown }>>(
-    `run_answers?select=id,prompt_text,answer_text,citations_json&run_id=eq.${run.id}&organization_id=eq.${context.organizationId}`,
+  const storedAnswers = await supabaseRest<Array<{ id: string; prompt_text: string | null; answer_text: string | null; citations_json: unknown; evidence_support: unknown }>>(
+    `run_answers?select=id,prompt_text,answer_text,citations_json,evidence_support:raw_json->evidenceSupport&run_id=eq.${run.id}&organization_id=eq.${context.organizationId}`,
     { token: viewer.accessToken },
   );
+  // Evidence trust: a refusal/"cannot verify" answer flagged at collection time
+  // is withheld from VERIFIED (the database guard refuses it as well).
+  const answerRows = storedAnswers.map((row) => ({ ...row, verification_blocked: isVerificationBlockedSupport(row.evidence_support) }));
   if (!answerRows.length) return NextResponse.json({ error: "This run has no collected answers to review." }, { status: 409 });
 
   // #345/A08: a returned URL is not proof of support. An answer to a question
@@ -42,7 +46,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { verifiable: answerIds, withheld } = partitionOfficialSourceReview(answerRows);
   if (!answerIds.length) {
     return NextResponse.json({
-      error: "No collected answer has qualifying evidence: a required official-source answer cited off-domain pages or abstained. Inspect the results; they cannot be marked verified.",
+      error: "No collected answer has qualifying evidence: a required official-source answer cited off-domain pages, or the answer refused or said it cannot verify. Inspect the results; they cannot be marked verified.",
     }, { status: 422 });
   }
   const withheldIds = withheld.map((entry) => entry.id);
@@ -149,7 +153,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         event_key: `source_map_published:${run.id}`,
         kind: "source_map_published",
         title: "Source Map created from approved collection",
-        body: `${sourceCount} cited page record${sourceCount === 1 ? "" : "s"} were mapped from provider-returned citations. Page-level review is still required before any record becomes a confirmed gap.`,
+        body: `${sourceCount} cited page record${sourceCount === 1 ? "" : "s"} were mapped from recorded references (provider-returned citations, or search results Foremention retrieved itself and gave to the model). Page-level review is still required before any record becomes a confirmed gap.`,
         href: "/app/source-map",
       },
     }),

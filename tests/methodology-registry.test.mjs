@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { CURRENT_OBSERVATION_METHODOLOGY, currentObservationMethodologyVersion } from "../lib/methodology-registry.ts";
+import { LEGACY_RETRIEVAL_VERSION, RETRIEVAL_VERSIONS } from "../lib/evidence-trust.mjs";
 
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
@@ -12,7 +13,12 @@ test("the observation methodology registry describes the evidence boundary expli
   assert.equal(CURRENT_OBSERVATION_METHODOLOGY.promptSnapshot, "persisted-run-selection");
   assert.equal(CURRENT_OBSERVATION_METHODOLOGY.providerIdentity, "exact-provider");
   assert.equal(CURRENT_OBSERVATION_METHODOLOGY.modelIdentity, "exact-returned-or-configured-model");
-  assert.equal(CURRENT_OBSERVATION_METHODOLOGY.citationHandling, "provider-returned-only");
+  // Evidence trust: independent retrieval is labelled, never passed off as provider citations.
+  assert.equal(CURRENT_OBSERVATION_METHODOLOGY.citationHandling, "provider-returned-or-labelled-independent-retrieval");
+  assert.equal(CURRENT_OBSERVATION_METHODOLOGY.retrieval.activeProvider, "brave-search-api-when-configured");
+  assert.equal(CURRENT_OBSERVATION_METHODOLOGY.retrieval.retrievalVersions["brave-search"], "independent-retrieval.brave-search.2026-10-19.1");
+  assert.deepEqual({ ...CURRENT_OBSERVATION_METHODOLOGY.retrieval.retrievalVersions }, { ...RETRIEVAL_VERSIONS });
+  assert.equal(CURRENT_OBSERVATION_METHODOLOGY.retrieval.legacyRetrievalVersion, LEGACY_RETRIEVAL_VERSION);
   assert.equal(CURRENT_OBSERVATION_METHODOLOGY.humanReview, "required-before-trend-analytics");
   assert.equal(CURRENT_OBSERVATION_METHODOLOGY.comparisonBoundary, "exact-question-provider-model-methodology");
 });

@@ -4,6 +4,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, publicToolRateLimitsTable, publicVisibilityScoresTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
 import { runGroundedCloudflareWithBinding, setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
+import { RETRIEVAL_PROVIDER_LABELS, retrievalLabel } from "../lib/evidence-trust.mjs";
 import { ProviderRequestError } from "../lib/providers/types";
 import { setEvidenceCapacityStore } from "../lib/evidence-capacity";
 import { runMeasurementScheduleBackupPass } from "../lib/jobs/measurement-schedule-dispatcher";
@@ -280,6 +281,10 @@ function scoreQuestions(category: string) {
   ];
 }
 
+function publicGroundedProviderLabel(retrievalProvider: string) {
+  return `Cloudflare Workers AI + ${RETRIEVAL_PROVIDER_LABELS[retrievalProvider as keyof typeof RETRIEVAL_PROVIDER_LABELS] || "web search"} (retrieved by Foremention)`;
+}
+
 async function runPublicGroundedCloudflare(env: Env, prompt: string, maxOutputTokens: number, searchQuery?: string) {
   if (!freeOnlyWorkerMode(env) || !env.AI || !env.CLOUDFLARE_MODEL) return null;
   try {
@@ -361,7 +366,12 @@ async function handleVisibilityScore(request: Request, env: Env) {
     appearedIn: observations.filter((item) => item.appeared).length,
     questions: observations,
     citations: grounded.citations.map((citation) => citation.url),
-    provider: "Cloudflare Workers AI + Bing Search RSS",
+    // Evidence trust: name the retrieval that actually ran; its results are
+    // Foremention's own search results, not citations returned by the model.
+    provider: publicGroundedProviderLabel(grounded.retrievalProvider),
+    retrievalProvider: grounded.retrievalProvider,
+    referenceOrigin: "independent_retrieval",
+    referenceLabel: retrievalLabel(grounded.retrievalProvider),
     model: grounded.model,
     observedAt: createdAt,
     methodology: "One dated grounded provider collection across five deterministic category questions. This is not a market-wide rank or outcome guarantee.",
@@ -401,7 +411,11 @@ async function handlePromptCoverage(request: Request, env: Env) {
       appeared,
       answer: grounded.answer,
       citations: grounded.citations,
-      provider: "Cloudflare Workers AI + Bing Search RSS",
+      provider: publicGroundedProviderLabel(grounded.retrievalProvider),
+      retrievalProvider: grounded.retrievalProvider,
+      referenceOrigin: "independent_retrieval",
+      referenceLabel: retrievalLabel(grounded.retrievalProvider),
+      claimCheck: { status: grounded.evidenceSupport.status, claimCount: grounded.evidenceSupport.claimCount, unsupportedCount: grounded.evidenceSupport.unsupportedCount },
       model: grounded.model,
       observedAt: new Date().toISOString(),
       methodology: "One dated grounded provider answer. Presence does not establish ranking, buyer behavior, or future visibility.",

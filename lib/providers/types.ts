@@ -13,6 +13,16 @@ export type ProviderCitation = {
   title?: string;
   startIndex?: number;
   endIndex?: number;
+  /**
+   * Evidence trust: where this reference came from. "independent_retrieval"
+   * means Foremention ran the web search itself (Brave Search / Bing RSS) and
+   * the model selected the result; it is NEVER the model's own citation.
+   * Absent on adapters that only emit provider-returned structured citations.
+   */
+  origin?: "native_citation" | "independent_retrieval";
+  retrievedBy?: "foremention";
+  retrievalProvider?: "brave-search" | "bing-rss";
+  countsAsModelCitation?: false;
 };
 
 /**
