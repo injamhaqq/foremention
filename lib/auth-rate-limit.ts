@@ -55,17 +55,24 @@ export interface WindowedLimitStore {
  * One statement: start a new window when the previous one has elapsed,
  * otherwise increment. SQLite evaluates every SET expression against the old
  * row, so the window check and the count stay consistent.
+ *
+ * Placeholders are anonymous `?` bound in order (now and windowMs repeated)
+ * rather than numbered `?NNN`: Node 22.13's node:sqlite (the CI runtime) cannot
+ * bind positional values to numbered parameters ("column index out of range"),
+ * while plain `?` behaves the same in D1, node:sqlite and every SQLite driver.
  */
-export const ATOMIC_WINDOW_SQL = "INSERT INTO public_tool_rate_limits (endpoint, fingerprint_hash, window_started_at, request_count) VALUES (?1, ?2, ?3, 1) "
+export const ATOMIC_WINDOW_SQL = "INSERT INTO public_tool_rate_limits (endpoint, fingerprint_hash, window_started_at, request_count) VALUES (?, ?, ?, 1) "
   + "ON CONFLICT(endpoint, fingerprint_hash) DO UPDATE SET "
-  + "window_started_at = CASE WHEN ?3 - window_started_at >= ?4 THEN ?3 ELSE window_started_at END, "
-  + "request_count = CASE WHEN ?3 - window_started_at >= ?4 THEN 1 ELSE request_count + 1 END "
+  + "window_started_at = CASE WHEN ? - window_started_at >= ? THEN ? ELSE window_started_at END, "
+  + "request_count = CASE WHEN ? - window_started_at >= ? THEN 1 ELSE request_count + 1 END "
   + "RETURNING request_count";
 
 /** Count one attempt; true while the attempt is within the limit. */
 export async function admitWindowedAttempt(store: WindowedLimitStore, input: { endpoint: string; fingerprint: string; limit: number; windowMs: number; now?: number }) {
   const now = input.now ?? Date.now();
-  const row = await store.prepare(ATOMIC_WINDOW_SQL).bind(input.endpoint, input.fingerprint, now, input.windowMs).first<{ request_count: number }>();
+  const row = await store.prepare(ATOMIC_WINDOW_SQL)
+    .bind(input.endpoint, input.fingerprint, now, now, input.windowMs, now, now, input.windowMs)
+    .first<{ request_count: number }>();
   return Boolean(row && typeof row.request_count === "number" && row.request_count <= input.limit);
 }
 

@@ -333,6 +333,9 @@ test("FM-01: the auth limiter is atomic: N concurrent attempts admit exactly the
   const store = sqliteStore();
   store.db.exec((await import("../db/schema.ts")).publicToolRateLimitsTable);
   const input = { endpoint: "auth-login", fingerprint: "f".repeat(64), limit: 5, windowMs: 15 * 60 * 1000, now: 1_000_000 };
+  // Node 22.13 (CI) node:sqlite cannot bind positional values to numbered ?NNN parameters.
+  assert.doesNotMatch(authLimits.ATOMIC_WINDOW_SQL, /\?\d/, "anonymous placeholders only");
+  assert.equal((authLimits.ATOMIC_WINDOW_SQL.match(/\?/g) || []).length, 8, "eight bound values");
   const results = await Promise.all(Array.from({ length: 12 }, () => authLimits.admitWindowedAttempt(store, input)));
   assert.equal(results.filter(Boolean).length, 5);
   assert.equal(await authLimits.admitWindowedAttempt(store, { ...input, now: input.now + input.windowMs - 1 }), false, "still inside the window");
