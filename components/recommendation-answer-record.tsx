@@ -4,6 +4,7 @@ import type { WorkspaceRunAnswer } from "@/lib/data";
 import { extractBrandMentionContexts } from "@/lib/mention-context";
 import type { ProviderRunDiagnostics } from "@/lib/provider-run-diagnostics";
 import { findSourceXrayTarget } from "@/lib/source-xray-link";
+import { sourceEvidenceAnchor } from "@/lib/source-record-location";
 import type { SourceMapEntry } from "@/lib/types";
 
 export function RecommendationAnswerRecord({
@@ -15,6 +16,8 @@ export function RecommendationAnswerRecord({
   reviewMode,
   demo,
   canInspectSources,
+  focusSourceId,
+  focusAnchorIndex,
 }: {
   viewer: Viewer;
   answer: WorkspaceRunAnswer;
@@ -24,6 +27,10 @@ export function RecommendationAnswerRecord({
   reviewMode: boolean;
   demo: boolean;
   canInspectSources: boolean;
+  /** Source-map entry requested via /app/sources/[id]; its evidence opens in place. */
+  focusSourceId?: string;
+  /** Citation index that receives the stable #source-<entry id> anchor (first match in the record). */
+  focusAnchorIndex?: number;
 }) {
   const mentionContexts = extractBrandMentionContexts(answer.answer, organizationName);
   const searchMetadataLabel = diagnostics?.searchUsed === true
@@ -60,9 +67,10 @@ export function RecommendationAnswerRecord({
       <strong>References returned by the AI system</strong>
       {answer.citations.length ? answer.citations.map((citation, index) => {
         const sourceTarget = reviewMode ? null : findSourceXrayTarget(citation.url, sourceMap);
-        return <div className="canonical-citation-record" key={`${citation.url}-${index}`}>
+        const focused = Boolean(sourceTarget && focusSourceId && sourceTarget.id === focusSourceId);
+        return <div className="canonical-citation-record" key={`${citation.url}-${index}`} id={focused && focusAnchorIndex === index ? sourceEvidenceAnchor(sourceTarget!.id) : undefined} data-source-focus={focused ? "true" : undefined}>
           <a href={citation.url} target="_blank" rel="noreferrer">{citation.title || citation.url} &nearr;</a>
-          {sourceTarget ? <details className="canonical-contained-evidence">
+          {sourceTarget ? <details className="canonical-contained-evidence" open={focused || undefined}>
             <summary>
               <span>Evidence inspection</span>
               <strong>{sourceTarget.domain}</strong>
