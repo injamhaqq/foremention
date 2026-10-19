@@ -54,11 +54,11 @@ test("only grounded Cloudflare may create customer evidence while free-only mode
   assert.match(policy, /FREE_ONLY_COLLECTION_PROVIDER[^\n]*"cloudflare"/);
   assert.match(policy, /process\.env\.FOREMENTION_FREE_ONLY_MODE !== "0"/);
   for (const source of [route, jobs, schedules]) assert.match(source, /providerAllowedForLiveCollection/);
-  assert.match(route, /Grounded Cloudflare Workers AI with Bing Search RSS/);
-  assert.match(data, /Cloudflare Workers AI \+ Bing Search RSS/);
+  assert.match(route, /Grounded Cloudflare Workers AI with Brave Search/);
+  assert.match(data, /Cloudflare Workers AI \+ Brave Search/);
   assert.match(data, /id: "cloudflare"[\s\S]*supportsCitations: true/);
   assert.match(outreach, /DEFAULT_PROVIDER_ORDER[^\n]*\["cloudflare"/);
-  assert.match(outreach, /free-only mode permits only grounded Cloudflare Workers AI with Bing Search RSS/);
+  assert.match(outreach, /free-only mode permits only grounded Cloudflare Workers AI with Brave Search/);
 });
 
 test("public score and prompt-check use the same free grounded Cloudflare plus Bing RSS path", async () => {
@@ -70,7 +70,7 @@ test("public score and prompt-check use the same free grounded Cloudflare plus B
   assert.match(publicAi, /runGroundedCloudflareWithBinding/);
   assert.match(publicAi, /env\.AI/);
   assert.match(publicAi, /env\.CLOUDFLARE_MODEL/);
-  assert.match(publicAi, /provider: "Cloudflare Workers AI \+ Bing Search RSS"/);
+  assert.match(publicAi, /provider: groundedCollectionLabel\(grounded\.retrievalProvider\)/);
   assert.doesNotMatch(publicAi, /runPublicGroundedGemini|google_search|api\.groq\.com/);
 });
 

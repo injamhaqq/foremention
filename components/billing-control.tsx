@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { billingReturnNotice } from "@/lib/billing-return-notice";
+import { CHECKOUT_TERMS_LINE } from "@/lib/public-offer-prices";
 
 type CheckoutOffer = { packageKey: "core" | "signal"; billingInterval: "monthly" | "annual" };
 type BillingStatus = {
@@ -128,6 +129,7 @@ export function BillingControl() {
       <form action="/api/billing/portal" method="post"><button className="button button--outline" type="submit">Manage billing</button></form>
     </> : <>
       <p>Hosted subscription checkout is available only for package and billing intervals explicitly configured with the active billing provider. Intelligence remains custom-scoped.</p>
+      <p className="table-caption">{CHECKOUT_TERMS_LINE} <Link href="/refund-policy">Refund policy</Link></p>
       <div className="settings-actions">
         {status.checkoutOffers.map((offer) => <form action="/api/billing/checkout" method="post" key={`${offer.packageKey}:${offer.billingInterval}`}>
           <input type="hidden" name="packageKey" value={offer.packageKey} />

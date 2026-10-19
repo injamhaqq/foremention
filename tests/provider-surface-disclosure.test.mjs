@@ -9,7 +9,7 @@ test("public product and methodology HTML explicitly identify free-only measurem
   const [product, method] = await Promise.all([read("app/product/page.tsx"), read("app/methodology/page.tsx")]);
   for (const page of [product, method]) {
     assert.match(page, /Cloudflare Workers AI/);
-    assert.match(page, /Bing Search RSS/);
+    assert.match(page, /Brave Search/);
     assert.match(page, /grounded\s+synthesis/);
     assert.match(page, /not\s+(?:a\s+native\s+|directly\s+monitor\s+)?ChatGPT|not directly monitor ChatGPT|not a\s+native ChatGPT/i);
     assert.match(page, /Gemini/);
@@ -25,7 +25,7 @@ test("public Markdown mirrors disclose the exact same provider-surface boundarie
   const [product, method] = await Promise.all([read("public/product.md"), read("public/methodology.md")]);
   for (const page of [product, method]) {
     assert.match(page, /Cloudflare Workers AI/);
-    assert.match(page, /Bing Search RSS/);
+    assert.match(page, /Brave Search/);
     assert.match(page, /grounded synthesis/);
     assert.match(page, /consumer-app/);
     assert.match(page, /Gemini/);
@@ -47,7 +47,7 @@ test("claims track the configured free-only provider rather than treating config
   assert.match(mode, /FOREMENTION_FREE_ONLY_MODE !== "0"/);
   assert.match(provider, /retrieveFreeWebEvidence/);
   assert.match(provider, /source_numbers/);
-  assert.match(optionList, /label: "Cloudflare Workers AI \+ Bing Search RSS"/);
+  assert.match(optionList, /label: "Cloudflare Workers AI \+ Brave Search"/);
   for (const phrase of ["direct provider API", "consumer application", "20", "10", "citation"]) {
     assert.ok(readme.includes(phrase), `missing provider-surface qualification boundary: ${phrase}`);
   }

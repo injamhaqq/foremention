@@ -2,6 +2,14 @@ import type { Metadata } from "next";
 
 export const SITE_URL = "https://foremention.com";
 export const SITE_NAME = "Foremention";
+/** Static 1200x630 share image built from the approved white wordmark (public/social/foremention-share-1200x630.png). */
+export const OG_IMAGE_PATH = "/social/foremention-share-1200x630.png";
+export const OG_IMAGE = {
+  url: `${SITE_URL}${OG_IMAGE_PATH}`,
+  width: 1200,
+  height: 630,
+  alt: "Foremention: recommendation intelligence for B2B software",
+} as const;
 
 type PageMetadataInput = {
   title: string;
@@ -42,8 +50,8 @@ export function pageMetadata({ title, description, path, noIndex = false, markdo
     robots: noIndex
       ? { index: false, follow: false }
       : "index, follow, max-snippet:-1, max-image-preview:large",
-    openGraph: { title: `${title} | ${SITE_NAME}`, description, url: canonical, type: "website", siteName: SITE_NAME },
-    twitter: { card: "summary", title: `${title} | ${SITE_NAME}`, description },
+    openGraph: { title: `${title} | ${SITE_NAME}`, description, url: canonical, type: "website", siteName: SITE_NAME, images: [OG_IMAGE] },
+    twitter: { card: "summary_large_image", title: `${title} | ${SITE_NAME}`, description, images: [OG_IMAGE.url] },
   };
 }
 

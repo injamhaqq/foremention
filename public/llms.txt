@@ -11,7 +11,12 @@
 - [Methodology](https://foremention.com/methodology): Measurement, evidence, review, and comparability methodology.
 - [Glossary](https://foremention.com/glossary): Canonical product and evidence terminology.
 - [Trust Center](https://foremention.com/trust): Security, privacy, reliability, and evidence boundaries.
-- [Design Partner Application](https://foremention.com/contact): Founder-led design-partner application.
+- [Pricing](https://foremention.com/pricing): Plans and prices: free plan, Core, Signal, and custom Intelligence.
+- [Request a pilot](https://foremention.com/contact): Founder-led pilot (design-partner) application.
+
+## Measurement method
+
+- Live collection: Cloudflare Workers AI answers buyer questions only from web sources retrieved with one provider, the Brave Search API. It does not monitor ChatGPT, Gemini, or Perplexity consumer apps. See [Methodology](https://foremention.com/methodology).
 
 ## Research
 
@@ -24,7 +29,9 @@
 - [About](https://foremention.com/about): Company and product purpose.
 - [Privacy](https://foremention.com/privacy): Privacy practices.
 - [Subprocessors](https://foremention.com/subprocessors): Subprocessor information.
-- [Terms](https://foremention.com/terms): Terms of use.
+- [Terms](https://foremention.com/terms): Terms of service.
+- [Refund policy](https://foremention.com/refund-policy): 7-day money-back guarantee, refunds and cancellations.
+- [Data Processing Addendum](https://foremention.com/dpa): How Foremention processes customer personal data.
 
 ## Optional
 

@@ -11,7 +11,7 @@ test("FM-03 hero communicates the actual buyer and founder-led pilot scope", asy
   assert.match(hero, /Five buyer questions/);
   assert.match(hero, /Inspectable evidence/);
   assert.match(hero, /One approved change to test/);
-  assert.match(hero, /Workers AI \+ Bing RSS grounded synthesis, not direct ChatGPT, Gemini, or Perplexity application monitoring/);
+  assert.match(hero, /Workers AI \+ Brave Search grounded synthesis, not direct ChatGPT, Gemini, or Perplexity application monitoring/);
   assert.match(hero, /href="#sample-recommendation-graph">Explore a sample/);
   assert.match(hero, /href="\/contact">Request a pilot/);
   assert.doesNotMatch(hero, /(?:OPENAI_API_KEY|GEMINI_API_KEY|PERPLEXITY_API_KEY)/);

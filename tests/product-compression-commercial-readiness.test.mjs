@@ -47,9 +47,9 @@ test("legacy capability routes stay available after navigation compression", () 
 });
 
 test("public sitemap stays focused on canonical evergreen and trust routes", () => {
-  const expected = ["", "/product", "/recommendation-intelligence", "/recommendation-record", "/methodology", "/insights", "/about", "/contact", "/privacy", "/subprocessors", "/terms"];
+  const expected = ["", "/pricing", "/product", "/recommendation-intelligence", "/recommendation-record", "/methodology", "/insights", "/about", "/contact", "/privacy", "/subprocessors", "/terms"];
   for (const route of expected) assert.match(sitemap, new RegExp(`path: \\"${route.replaceAll("/", "\\/")}\\"`));
-  for (const excluded of ["/pricing", "/signup", "/login", "/api-docs", "/ai-mediated-buying"]) assert.doesNotMatch(sitemap, new RegExp(`path: \\"${excluded.replaceAll("/", "\\/")}\\"`));
+  for (const excluded of ["/signup", "/login", "/api-docs", "/ai-mediated-buying"]) assert.doesNotMatch(sitemap, new RegExp(`path: \\"${excluded.replaceAll("/", "\\/")}\\"`));
 });
 
 test("pricing leads with coverage value while preserving commercial truth", () => {
