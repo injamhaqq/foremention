@@ -40,6 +40,13 @@ config.compatibility_date = "2026-05-15";
 config.compatibility_flags = ["nodejs_compat"];
 config.keep_vars = true;
 config.ai = { binding: "AI" };
+// FM-10: Workers Logs (console output + invocation logs) are retained in the
+// Cloudflare dashboard. Keep in sync with wrangler.jsonc `observability`.
+config.observability = {
+  enabled: true,
+  head_sampling_rate: 1,
+  logs: { enabled: true, invocation_logs: true },
+};
 // Cloudflare cron backup for repeat measurement; see lib/jobs/schedule-backup-plan.mjs.
 config.triggers = { ...(config.triggers || {}), crons: [...WORKER_CRONS] };
 config.vars = {
