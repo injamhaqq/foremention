@@ -12,6 +12,8 @@ import { MEASUREMENT_BACKUP_CRON, INNGEST_SELF_SYNC_CRON, scheduledBackupPlan } 
 import { scrubSentryEvent } from "../lib/sentry-privacy";
 import { parsePublicScoreAnswers, PUBLIC_SCORE_ANSWER_FORMAT_INSTRUCTIONS } from "../lib/public-score-answers.mjs";
 import { logOperationalEvent } from "../lib/structured-logger";
+import { demoCostBearingRefusal } from "../lib/demo-cost-guard";
+import { admitWindowedAttempt, AUTH_RATE_LIMIT_MESSAGE, authRateLimitRule, loginAccountIdentifier } from "../lib/auth-rate-limit";
 
 interface D1Result<T = unknown> {
   results?: T[];
@@ -232,6 +234,48 @@ async function enforcePublicRouteLimit(request: Request, env: Env, pathname: str
   return Response.json({ error: "This public tool has reached its temporary request limit. Please try again later." }, { status: 429 });
 }
 
+/**
+ * FM-01: atomic per-network (and, for password sign-in, per-account) limits on
+ * auth routes. Like the public page limits, an unconfigured limiter (no D1 or
+ * no PUBLIC_RATE_LIMIT_SECRET) does not lock everyone out of sign-in; a D1
+ * error is logged and the request proceeds to Supabase's own limits.
+ */
+async function enforceAuthRateLimit(request: Request, env: Env, pathname: string) {
+  const rule = authRateLimitRule(pathname, request.method);
+  if (!rule || !env.DB || !env.PUBLIC_RATE_LIMIT_SECRET) return null;
+  const db = env.DB;
+  const secret = env.PUBLIC_RATE_LIMIT_SECRET;
+  try {
+    await initializeD1(db);
+    const address = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
+    const networkAllowed = await admitWindowedAttempt(db, {
+      endpoint: rule.endpoint,
+      fingerprint: await sha256(`${secret}:${rule.endpoint}:${address}`),
+      limit: rule.limit,
+      windowMs: rule.windowMs,
+    });
+    let accountAllowed = true;
+    if (networkAllowed && rule.perAccountLimit) {
+      const account = loginAccountIdentifier(await request.clone().json().catch(() => null));
+      if (account) {
+        accountAllowed = await admitWindowedAttempt(db, {
+          endpoint: `${rule.endpoint}-account`,
+          fingerprint: await sha256(`${secret}:${rule.endpoint}-account:${account}`),
+          limit: rule.perAccountLimit,
+          windowMs: rule.windowMs,
+        });
+      }
+    }
+    if (networkAllowed && accountAllowed) return null;
+    // Deliberately contains no IP address, email, fingerprint or credential.
+    console.warn(JSON.stringify({ event: "auth_rate_limit_hit", endpoint: rule.endpoint, scope: networkAllowed ? "account" : "network" }));
+    return Response.json({ error: AUTH_RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(Math.ceil(rule.windowMs / 1000)), "Cache-Control": "private, no-store" } });
+  } catch {
+    logOperationalEvent("auth_rate_limit_unavailable", { route: pathname });
+    return null;
+  }
+}
+
 async function handleHealth(env: Env) {
   const d1 = env.DB
     ? env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>().then((row) => row?.ok === 1 ? "reachable" : "unavailable").catch(() => "unavailable")
@@ -280,7 +324,7 @@ function scoreQuestions(category: string) {
   ];
 }
 
-async function runPublicGroundedCloudflare(env: Env, prompt: string, maxOutputTokens: number, searchQuery?: string) {
+async function runPublicGroundedCloudflare(env: Env, prompt: string, maxOutputTokens: number, searchQuery: string | undefined, tool: "score" | "prompt-check") {
   if (!freeOnlyWorkerMode(env) || !env.AI || !env.CLOUDFLARE_MODEL) return null;
   try {
     return await runGroundedCloudflareWithBinding({
@@ -290,6 +334,8 @@ async function runPublicGroundedCloudflare(env: Env, prompt: string, maxOutputTo
       searchQuery,
       maxOutputTokens,
       signal: AbortSignal.timeout(40_000),
+      // FM-01: free public tools spend only the separate public pool, never customer capacity.
+      capacity: { pool: "public", label: tool },
     });
   } catch (error) {
     // A18: a capacity refusal is reported plainly instead of as a provider failure.
@@ -343,6 +389,7 @@ async function handleVisibilityScore(request: Request, env: Env) {
     ].join("\n"),
     1800,
     `${category} tools platforms vendors comparison independent evidence growing team`,
+    "score",
   );
   if (!grounded) return Response.json({ error: "The live provider did not complete the score. No result was invented." }, { status: 502 });
   const answers = parsePublicScoreAnswers(grounded.answer);
@@ -390,6 +437,7 @@ async function handlePromptCoverage(request: Request, env: Env) {
     `Answer this buyer question directly using only the current retrieved web evidence, preserve uncertainty, and do not invent companies, claims, sources, or URLs.\n\n${question}`,
     1000,
     question,
+    "prompt-check",
   );
   if (!grounded) return Response.json({ error: "The live provider did not complete the check. No result was invented." }, { status: 502 });
   const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -541,8 +589,17 @@ const worker = {
       return complete(new Response("Declared Markdown mirror unavailable.", { status: 503 }));
     }
 
+    // FM-01: the demo cookie can never reach an endpoint that searches or calls a model.
+    const demoRefused = demoCostBearingRefusal(correlatedRequest);
+    if (demoRefused) {
+      logOperationalEvent("demo_cost_endpoint_refused", { route: url.pathname, method: request.method });
+      return complete(demoRefused);
+    }
+
     const publicRateLimited = await enforcePublicRouteLimit(correlatedRequest, env, url.pathname);
     if (publicRateLimited) return complete(publicRateLimited);
+    const authRateLimited = await enforceAuthRateLimit(correlatedRequest, env, url.pathname);
+    if (authRateLimited) return complete(authRateLimited);
 
     if (url.pathname === "/api/leads/source-gap" && request.method === "POST") {
       const response = await handleSourceGapRequest(correlatedRequest, env);

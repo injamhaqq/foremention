@@ -1,4 +1,5 @@
 import { redactOperationalText } from "../operational-error.js";
+import type { EvidenceCapacityContext } from "../evidence-capacity.ts";
 
 export type ProviderId = "openai" | "gemini" | "anthropic" | "perplexity" | "groq" | "cloudflare" | "openrouter" | "zenmux" | "omnirouters" | "mock";
 
@@ -61,6 +62,8 @@ export type ProviderRunOptions = {
   signal?: AbortSignal;
   maxOutputTokens: number;
   budget?: ProviderSpendBudget;
+  /** FM-01: capacity pool / workspace this call is admitted against (grounded Cloudflare only). */
+  capacity?: EvidenceCapacityContext;
 };
 
 export interface AnswerProviderAdapter {

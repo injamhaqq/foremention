@@ -18,6 +18,7 @@ import * as providerTypes from "../lib/providers/types.ts";
 import * as evidenceReceipt from "../lib/evidence-receipt.ts";
 import { firstBoundedNameIndex } from "../lib/source-page-presence.ts";
 import * as trialRepeatPolicy from "../lib/trial-repeat-policy.ts";
+import * as evidenceCapacity from "../lib/evidence-capacity.ts";
 import { createFakePostgrest } from "./06-support/fake-postgrest.mjs";
 import { runWithReplay } from "./06-support/inngest-replay.mjs";
 
@@ -90,6 +91,8 @@ function loadJobs({ tables, env = {}, adapterRun } = {}) {
     "@/lib/hubspot-connector": { deliverHubSpotCompletedAction: async () => undefined },
     "@/lib/notion-connector": { exportWeeklyDigestToNotion: async () => undefined },
     "@/lib/structured-logger": { logOperationalEvent: () => undefined },
+    // FM-01: the run resolves its per-workspace capacity context from the real module.
+    "@/lib/evidence-capacity": evidenceCapacity,
   };
   const exports = {};
   runInNewContext(compiled, {
@@ -260,4 +263,27 @@ test("evidence receipts: every persisted answer stores its text and a write-time
     assert.equal(row.answer_text_sha256, createHash("sha256").update(normalized, "utf8").digest("hex"));
   }
   assert.notEqual(answers[0].answer_text_sha256, answers[1].answer_text_sha256, "distinct texts get distinct receipts");
+});
+
+test("FM-01: every provider call of a run carries the workspace's own capacity context (plan tier from its entitlement)", async () => {
+  const seen = [];
+  const h = loadJobs({
+    tables: {
+      runs: [baseRun()], run_prompt_selections: prompts(2), usage_events: usage(),
+      projects: [{ id: PROJECT, organization_id: ORG, status: "active", client_brand: "Acme" }], competitors: [],
+      run_attempts: [], ai_cost_events: [], run_answers: [], notifications: [],
+      organization_entitlements: [{ organization_id: ORG, status: "active", package_key: "core", billing_source: "paddle", expires_at: null }],
+    },
+    adapterRun: (prompt, options, env) => {
+      seen.push(options.capacity);
+      return {
+        provider: "groq", model: env.GROQ_MODEL, answer: `Synthetic answer for ${prompt.promptId}`,
+        citations: [], raw: {}, collectedAt: new Date().toISOString(), latencyMs: 5,
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 }, requestId: "req-synthetic", finishReason: "stop",
+      };
+    },
+  });
+  await runWithReplay(h.functions["run-multi-engine-scan"].handler, { event });
+  assert.equal(seen.length, 2);
+  for (const context of seen) assert.deepEqual(context, { pool: "customer", organizationId: ORG, tier: "core", runId: RUN });
 });
