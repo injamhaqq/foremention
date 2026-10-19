@@ -63,8 +63,12 @@ test('26 September pinned stored SQL receipt snapshot reproduces measured eviden
   // migrations must not be mistaken for members of its original 93-file set.
   // Still fail if any original file changes or disappears: the digest and
   // unmatched-count assertions below must remain identical.
+  // These three were production-only migrations adopted into the repo on
+  // 2026-10-19; they are not part of the 26 September snapshot set.
+  const adoptedProductionOnly = new Set(['20260814002421', '20260915185110', '20260915185158']);
   const files = (await readdir(root)).filter(name =>
     /^\d{14}_[a-z0-9_]+\.sql$/.test(name) && name.slice(0, 14) <= '20260926090000'
+      && !adoptedProductionOnly.has(name.slice(0, 14))
   );
   assert.equal(files.length, 93, 'historical 26 September migration set was changed');
   const sources = await Promise.all(files.map(async name => ({

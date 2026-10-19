@@ -12,7 +12,6 @@
   "ai": {
     "binding": "AI"
   },
-  // FM-10: Workers Logs. Mirrored in scripts/prepare-worker-config.mjs.
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
