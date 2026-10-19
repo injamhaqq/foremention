@@ -113,7 +113,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.posthog.com https://*.contentsquare.net https://*.contentsquare.com https://*.clarity.ms https://c.bing.com https://cloudflareinsights.com",
+  "connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://*.posthog.com https://*.contentsquare.net https://*.contentsquare.com https://*.clarity.ms https://c.bing.com https://cloudflareinsights.com",
   "frame-src 'self' https://csxd.contentsquare.net",
   "manifest-src 'self'",
   "worker-src 'self' blob:",

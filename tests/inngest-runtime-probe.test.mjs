@@ -66,8 +66,10 @@ test("production sync asks only the deployed serve endpoint to register its curr
   assert.doesNotMatch(sync, /console\.log\([^\n]*response|console\.log\([^\n]*body/);
 });
 
-test("main CI requires exact release, Inngest sync, and durable execution in order", async () => {
-  const workflow = await text(".github/workflows/ci.yml");
+test("production deploy requires exact release, Inngest sync, and durable execution in order", async () => {
+  // FM-06: these production checks moved from CI into production-deploy.yml,
+  // which only runs after CI concluded success on the exact SHA.
+  const workflow = await text(".github/workflows/production-deploy.yml");
   const releaseIndex = workflow.indexOf("name: Verify exact Cloudflare production release");
   const syncIndex = workflow.indexOf("name: Sync live Inngest functions");
   const probeIndex = workflow.indexOf("name: Probe live Inngest execution");
@@ -80,5 +82,6 @@ test("main CI requires exact release, Inngest sync, and durable execution in ord
   assert.match(syncBlock, /node scripts\/production-inngest-sync\.mjs/);
   assert.match(probeBlock, /node scripts\/production-inngest-smoke\.mjs/);
   assert.match(probeBlock, /FOREMENTION_INNGEST_WAIT_SECONDS: '150'/);
-  assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ needs\.gate\.outputs\.sha \}\}/);
+  assert.ok(workflow.indexOf("name: Deploy\n") < releaseIndex, "production checks run after the deploy");
 });

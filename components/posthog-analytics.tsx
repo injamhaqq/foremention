@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
+import { readStoredAnalyticsConsent, subscribeToAnalyticsConsent } from "@/lib/analytics-consent";
 import { captureProductEvent, identifyProductAnalyticsUser, initializeProductAnalytics } from "@/lib/product-analytics";
 import { httpStatusClass, latencyBucket } from "@/lib/product-analytics-contract";
 
@@ -40,18 +41,22 @@ function isFirstPartyApiRequest(input: Parameters<typeof fetch>[0]) {
 export function PostHogAnalytics() {
   const pathname = usePathname();
   const initialized = useRef(false);
+  // Cookie consent gate: PostHog initialises only once consent is "accepted",
+  // including when the visitor accepts later in the same page view.
+  const consent = useSyncExternalStore(subscribeToAnalyticsConsent, readStoredAnalyticsConsent, () => null);
 
   useEffect(() => {
+    if (consent !== "accepted") return;
     initialized.current = initializeProductAnalytics();
-  }, []);
+  }, [consent]);
 
   useEffect(() => {
-    if (!initialized.current) return;
+    if (consent !== "accepted" || !initialized.current) return;
     captureProductEvent("$pageview", { surface: productSurface(pathname) });
-  }, [pathname]);
+  }, [consent, pathname]);
 
   useEffect(() => {
-    if (!initialized.current) return;
+    if (consent !== "accepted" || !initialized.current) return;
     const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
     if (navigation?.duration) {
       captureProductEvent("performance_observed", {
@@ -90,16 +95,17 @@ export function PostHogAnalytics() {
       }
     };
     return () => { window.fetch = originalFetch; };
-  }, []);
+  }, [consent]);
 
   return null;
 }
 
 export function PostHogIdentity({ viewerId, organizationId, demo }: { viewerId: string; organizationId?: string; demo: boolean }) {
+  const consent = useSyncExternalStore(subscribeToAnalyticsConsent, readStoredAnalyticsConsent, () => null);
   useEffect(() => {
-    if (demo) return;
+    if (demo || consent !== "accepted") return;
     identifyProductAnalyticsUser(viewerId, organizationId);
-  }, [demo, organizationId, viewerId]);
+  }, [consent, demo, organizationId, viewerId]);
 
   return null;
 }

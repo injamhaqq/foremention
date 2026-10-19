@@ -1,0 +1,95 @@
+name: nightly-db-backup
+
+# FM-02: nightly encrypted logical backup of the production Supabase Postgres
+# database (free tier has no PITR and no listed backups).
+#
+# * READ-ONLY against production: pg_dump plus SELECT count(*) in a
+#   default_transaction_read_only session (scripts/backup/create-encrypted-backup.sh).
+# * The dump is streamed straight into age public-key encryption; no plaintext
+#   ever touches the runner disk. Only the holder of the age PRIVATE key (kept
+#   by Injam, never in GitHub) can decrypt.
+# * This repository is public, so workflow artifacts are downloadable by any
+#   signed-in GitHub user: that is why everything uploaded is ciphertext, the
+#   row-count manifest included, and nothing sensitive is printed to the log.
+# * Short retention (7 days). Restore drill: scripts/backup/restore-test.sh and
+#   docs/operations/BACKUP-AND-RESTORE.md.
+#
+# Repository secrets (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_DB_URL       Supabase "Session pooler" connection string (port 5432).
+#   BACKUP_AGE_RECIPIENT  age public key(s), "age1..." (public; secret only to
+#                         keep it from being swapped by a PR).
+on:
+  schedule:
+    - cron: '23 19 * * *' # 19:23 UTC = 01:23 Asia/Dhaka
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Encrypted pg_dump
+    if: github.repository == 'injamhaqq/foremention' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout backup scripts
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/backup
+
+      - name: Require backup secrets
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          missing=""
+          [ -n "${SUPABASE_DB_URL}" ] || missing="${missing} SUPABASE_DB_URL"
+          [ -n "${BACKUP_AGE_RECIPIENT}" ] || missing="${missing} BACKUP_AGE_RECIPIENT"
+          if [ -n "${missing}" ]; then
+            echo "::error title=Backup not configured::Missing repository secret(s):${missing}. See docs/operations/BACKUP-AND-RESTORE.md."
+            exit 1
+          fi
+
+      - name: Install PostgreSQL 17 client and age
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor --yes -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends postgresql-client-17 age
+          /usr/lib/postgresql/17/bin/pg_dump --version
+          age --version
+
+      - name: Create encrypted backup
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+          BACKUP_OUT_DIR: backup-out
+          PG_DUMP: /usr/lib/postgresql/17/bin/pg_dump
+          PSQL: /usr/lib/postgresql/17/bin/psql
+        run: bash scripts/backup/create-encrypted-backup.sh
+
+      - name: Upload encrypted backup (7-day retention)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: foremention-db-backup-${{ github.run_id }}
+          path: |
+            backup-out/*.age
+            backup-out/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

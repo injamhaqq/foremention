@@ -1,6 +1,7 @@
 "use client";
 
 import posthog from "posthog-js";
+import { hasAnalyticsConsent } from "@/lib/analytics-consent";
 import { isServerVerifiedProductEvent } from "@/lib/product-analytics-authority";
 import {
   normalizeInternalAnalyticsId,
@@ -106,6 +107,11 @@ function sanitizePostHogPayload(event: PostHogCapturePayload | null): PostHogCap
 export function initializeProductAnalytics() {
   if (initialized || typeof window === "undefined") return initialized;
   if (!shouldEnableProductAnalytics(process.env.NODE_ENV, window.location.hostname)) return false;
+  // PostHog sets a cookie and local storage, so it never initialises (and no
+  // event is queued) before the visitor accepts analytics. See
+  // lib/analytics-consent.ts; visitors choose via "Analytics settings" in the
+  // public footer (components/contentsquare-analytics.tsx).
+  if (!hasAnalyticsConsent()) return false;
 
   posthog.init(PRODUCTION_POSTHOG_PROJECT_TOKEN, {
     api_host: PRODUCTION_POSTHOG_HOST,
@@ -156,4 +162,27 @@ export function resetProductAnalytics() {
   currentOrganizationId = null;
   if (!initialized) return;
   posthog.reset();
+}
+
+/**
+ * Removes PostHog's first-party persistence (cookie + local storage, keys
+ * prefixed "ph_") after a visitor declines or revokes analytics consent.
+ */
+export function clearProductAnalyticsStorage() {
+  if (typeof window === "undefined") return;
+  if (initialized) {
+    posthog.opt_out_capturing();
+    posthog.reset();
+  }
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith("ph_") || key.startsWith("__ph_")) window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Storage unavailable: nothing persisted there.
+  }
+  for (const cookie of document.cookie.split(";")) {
+    const name = cookie.split("=")[0]?.trim();
+    if (name && name.startsWith("ph_")) document.cookie = `${name}=; Max-Age=0; path=/`;
+  }
 }

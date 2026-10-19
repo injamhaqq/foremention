@@ -5,6 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const scriptPath = new URL("scripts/production-auth-smoke.mjs", root);
 const workflowPath = new URL(".github/workflows/ci.yml", root);
+const deployWorkflowPath = new URL(".github/workflows/production-deploy.yml", root);
 
 async function scriptSource() {
   return readFile(scriptPath, "utf8");
@@ -49,10 +50,14 @@ test("recovery email is opt-in and never requested by the default smoke", async 
 
 test("main CI verifies the exact Cloudflare release instead of calling artifact upload a deployment", async () => {
   const workflow = await readFile(workflowPath, "utf8");
+  const deploy = await readFile(deployWorkflowPath, "utf8");
 
   assert.match(workflow, /Archive verified build/);
-  assert.match(workflow, /Verify exact Cloudflare production release/);
-  assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ github\.sha \}\}/);
-  assert.match(workflow, /node scripts\/production-auth-smoke\.mjs/);
   assert.doesNotMatch(workflow, /name: Upload production build/);
+  // FM-06: CI no longer waits on production (that would deadlock a CI-gated
+  // deploy); the exact-release smoke runs in production-deploy.yml after deploy.
+  assert.doesNotMatch(workflow, /node scripts\/production-auth-smoke\.mjs/);
+  assert.match(deploy, /Verify exact Cloudflare production release/);
+  assert.match(deploy, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ needs\.gate\.outputs\.sha \}\}/);
+  assert.match(deploy, /node scripts\/production-auth-smoke\.mjs/);
 });

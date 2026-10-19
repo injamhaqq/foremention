@@ -12,6 +12,14 @@
   "ai": {
     "binding": "AI"
   },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  },
   "triggers": {
     "crons": ["47 * * * *", "13 */6 * * *"]
   },

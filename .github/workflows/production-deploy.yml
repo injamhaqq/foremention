@@ -1,11 +1,27 @@
 name: production-deploy
 
-# Manual production deploy of the exact main commit to the foremention-mvp Worker.
+# Production deploy of the exact main commit to the foremention-mvp Worker.
+#
+# FM-06: production deploys stay MANUAL (workflow_dispatch from main only).
+# There is deliberately no workflow_run / push trigger: a green CI never ships
+# to production on its own, and no untrusted workflow_run payload, inputs or
+# artifacts are ever read. A dispatch deploys only if
+#   * the CI workflow concluded `success` on the exact commit SHA, and
+#   * that SHA is still the tip of main,
+# checked by scripts/release-gates/require-ci-success.mjs (read-only GitHub
+# API) in the gate job and again immediately before `wrangler deploy`.
+# Production verification (exact buildCommit, auth smoke, Inngest sync/probe)
+# runs here after the deploy instead of inside CI, so CI's own result never
+# depends on production and cannot deadlock the gate.
+#
 # Workers Builds (git auto-deploy) has failed since a188082, and Hark's sandbox
 # cannot upload static assets (asset-upload JWT is replaced by the injected API
 # token). Requires repository secret CLOUDFLARE_API_TOKEN ("Edit Cloudflare
 # Workers" template). Plain-text Worker vars set in the dashboard are kept
 # (wrangler.jsonc keep_vars: true); secrets are never touched.
+#
+# Optional repository variable NEXT_PUBLIC_SENTRY_DSN (public browser DSN) is
+# inlined into the browser bundle at build time. Unset = browser Sentry off.
 on:
   workflow_dispatch:
 
@@ -17,15 +33,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    if: github.ref == 'refs/heads/main'
+  gate:
+    name: Require green CI on the exact SHA
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.ci.outputs.sha }}
     steps:
-      - name: Checkout
+      - name: Checkout gate script
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          sparse-checkout: scripts/release-gates
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # current v6
+        with:
+          node-version: 22.13.0
+
+      - name: Refuse unless CI concluded success on this exact commit
+        id: ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # The dispatched commit (main's tip at dispatch time). The gate also
+          # refuses if main has moved since.
+          RELEASE_SHA: ${{ github.sha }}
+        run: node scripts/release-gates/require-ci-success.mjs
+
+  deploy:
+    name: Deploy verified SHA
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    env:
+      RELEASE_SHA: ${{ needs.gate.outputs.sha }}
+    steps:
+      - name: Checkout exact release
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+
+      - name: Confirm checkout matches the gated SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "${RELEASE_SHA}" || { echo "Checked-out HEAD is not ${RELEASE_SHA}" >&2; exit 1; }
 
       - name: Setup pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # current v6
@@ -42,7 +100,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        env:
+          FOREMENTION_RELEASE_SHA: ${{ needs.gate.outputs.sha }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: production
         run: pnpm run build
+
+      - name: Re-check CI gate immediately before deploy
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/release-gates/require-ci-success.mjs
 
       - name: Deploy
         env:
@@ -54,9 +121,50 @@ jobs:
 
       - name: Verify exact release
         run: |
-          for _ in $(seq 1 12); do
+          for _ in $(seq 1 18); do
             got="$(curl -fsS https://foremention.com/api/health | python3 -c 'import json,sys;print(json.load(sys.stdin).get("buildCommit",""))' || true)"
-            if [ "${got}" = "${GITHUB_SHA}" ]; then echo "Production serves ${GITHUB_SHA}"; exit 0; fi
+            if [ "${got}" = "${RELEASE_SHA}" ]; then echo "Production serves ${RELEASE_SHA}"; exit 0; fi
             sleep 10
           done
-          echo "Production buildCommit ${got} != ${GITHUB_SHA}" >&2; exit 1
+          echo "Production buildCommit ${got} != ${RELEASE_SHA}" >&2; exit 1
+
+      - name: Verify exact Cloudflare production release
+        env:
+          FOREMENTION_BASE_URL: https://foremention.com
+          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ needs.gate.outputs.sha }}
+          FOREMENTION_RELEASE_WAIT_SECONDS: '300'
+        run: node scripts/production-auth-smoke.mjs
+
+      - name: Sync live Inngest functions
+        env:
+          FOREMENTION_BASE_URL: https://foremention.com
+          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ needs.gate.outputs.sha }}
+        run: node scripts/production-inngest-sync.mjs
+
+      - name: Probe live Inngest execution
+        env:
+          FOREMENTION_BASE_URL: https://foremention.com
+          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ needs.gate.outputs.sha }}
+          FOREMENTION_INNGEST_WAIT_SECONDS: '150'
+        run: node scripts/production-inngest-smoke.mjs
+
+  trusted-release-acceptance:
+    name: Start exact-release acceptance
+    needs: [gate, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch browser acceptance and first-evidence canary against production
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_SHA: ${{ needs.gate.outputs.sha }}
+        run: |
+          # Both workflows verify production serves github.sha (main's tip) before
+          # running, so a newer push in between fails them safely instead of
+          # testing the wrong release.
+          gh workflow run browser-acceptance.yml --ref main
+          gh workflow run first-evidence-canary.yml --ref main
+          echo "Dispatched exact-release acceptance for ${RELEASE_SHA}"

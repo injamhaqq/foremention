@@ -32,7 +32,8 @@ test("optional experience analytics stays off by default without an automatic ov
   assert.match(publicShell, /<ExperienceAnalyticsPreferences \/>/);
   assert.match(analytics, /Microsoft Clarity/);
   assert.match(analytics, /Contentsquare/);
-  assert.match(analytics, /This preference controls optional experience analytics only/);
+  assert.match(analytics, /This preference controls all optional analytics that use cookies or browser storage/);
+  assert.match(analytics, /PostHog product analytics, Microsoft Clarity and Contentsquare stay off/);
 });
 
 test("authenticated navigation avoids automatic route-prefetch bursts", async () => {
