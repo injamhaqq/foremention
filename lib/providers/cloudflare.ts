@@ -1,4 +1,5 @@
-import { admitEvidenceCall, EvidenceCapacityExhaustedError } from "@/lib/evidence-capacity";
+import { admitEvidenceCall, EvidenceCapacityExhaustedError, PUBLIC_EVIDENCE_CONTEXT, type EvidenceCapacityContext } from "@/lib/evidence-capacity";
+import { recordSearchCost, searchCostEvent } from "@/lib/search-cost-ledger";
 import { RetrievedTopicUnavailableError } from "@/lib/retrieval-topic-relevance.mjs";
 import {
   assertAuthorizedIndependentRetrieval,
@@ -170,28 +171,35 @@ export async function runGroundedCloudflareWithBinding(input: {
   searchQuery?: string;
   maxOutputTokens: number;
   signal?: AbortSignal;
+  /** FM-01: who this call is for. Omitted = public pool, never customer capacity. */
+  capacity?: EvidenceCapacityContext;
 }) {
+  const capacity = input.capacity || PUBLIC_EVIDENCE_CONTEXT;
   // #345: an explicit official-domain requirement scopes retrieval to that
   // domain and never passes off-domain results to the model as support.
   const scope = sourceDomainScopeFromPrompt(input.prompt);
   const query = scope ? domainScopedQuery(input.searchQuery || input.prompt, scope) : input.searchQuery || input.prompt;
   // A07: prevent counting a capacity unit before a missing rights grant
   // or removed search provider is detected. This makes no external calls.
-  assertAuthorizedIndependentRetrieval();
-  // A18: admit against the platform-wide daily (and Brave monthly) cap
-  // BEFORE any search request or model call is made. Fails closed.
+  const searchProvider = assertAuthorizedIndependentRetrieval();
+  // A18 + FM-01: admit against the workspace's plan allowance and its pool's
+  // share of the global daily (and Brave monthly) ceiling BEFORE any search
+  // request or model call is made. Fails closed. The demo is always refused.
   try {
-    await admitEvidenceCall({ brave: Boolean(braveSearchApiKey()) });
+    await admitEvidenceCall({ brave: Boolean(braveSearchApiKey()), context: capacity });
   } catch (error) {
     if (error instanceof EvidenceCapacityExhaustedError) {
-      throw new ProviderRequestError("Foremention live-evidence capacity", 429, error.message);
+      throw new ProviderRequestError("Foremention live-evidence capacity", error.scope === "demo" ? 403 : 429, error.message);
     }
     throw error;
   }
   let evidence: Awaited<ReturnType<typeof retrieveFreeWebEvidence>>;
   try {
     evidence = await retrieveFreeWebEvidence(query, input.signal, scope);
+    await recordSearchCost(searchCostEvent({ provider: evidence.retrievalProvider, context: capacity, outcome: "completed" }));
   } catch (error) {
+    // FM-01: a search request that was attempted is costed even when it failed.
+    await recordSearchCost(searchCostEvent({ provider: searchProvider, context: capacity, outcome: "failed" }));
     if (error instanceof SourceScopeUnavailableError || error instanceof RetrievedTopicUnavailableError) {
       throw new ProviderRequestError(GROUNDED_PROVIDER_LABEL, 422, `Evidence unavailable: ${error.message}`);
     }
@@ -277,6 +285,7 @@ export const cloudflareAdapter: AnswerProviderAdapter = {
         prompt: prompt.text,
         maxOutputTokens: options.maxOutputTokens,
         signal: options.signal,
+        capacity: options.capacity,
       });
       return {
         provider: "cloudflare",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
+import { DEMO_COST_REFUSAL_MESSAGE } from "@/lib/demo-cost-guard";
 import { enrichOnboardingDraft } from "@/lib/onboarding-enrichment";
 import { createOnboardingDraft } from "@/lib/onboarding-profile";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
@@ -11,6 +12,8 @@ export async function POST(request: Request) {
   if (!isTrustedMutationOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // FM-01: the fictional demo never inspects live sites or calls an enrichment model.
+  if (viewer.mode === "demo") return NextResponse.json({ error: DEMO_COST_REFUSAL_MESSAGE }, { status: 403 });
 
   const body = await request.json().catch(() => null) as { website?: string } | null;
   const website = clean(body?.website, 500);

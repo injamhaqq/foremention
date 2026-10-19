@@ -23,20 +23,25 @@ function sqliteStore() {
 }
 
 const now = new Date(Date.UTC(2026, 9, 12, 10));
+// FM-01: the global ceiling is now split into pools and admitted per workspace.
+// These A18 cases keep their original assertions by giving the whole ceiling to
+// the customer pool (zero public/canary reserve) and a roomy workspace plan.
+const noReserves = JSON.stringify({ public: { dailyCalls: 0, monthlyBraveCalls: 0 }, canary: { dailyCalls: 0, monthlyBraveCalls: 0 } });
+const customer = { pool: "customer", organizationId: "11111111-1111-4111-8111-111111111111", tier: "signal" };
 
 test.afterEach(() => { delete globalThis.__FOREMENTION_EVIDENCE_CAPACITY__; });
 
 test("A18: daily cap admits exactly N calls, then fails closed with a clear message", async () => {
   const store = sqliteStore();
   capacity.setEvidenceCapacityStore(store, true);
-  const env = { FOREMENTION_DAILY_EVIDENCE_CALL_CAP: "3" };
-  const results = await Promise.allSettled(Array.from({ length: 8 }, () => capacity.admitEvidenceCall({ brave: false, now, env })));
+  const env = { FOREMENTION_DAILY_EVIDENCE_CALL_CAP: "3", FOREMENTION_EVIDENCE_POOLS: noReserves };
+  const results = await Promise.allSettled(Array.from({ length: 8 }, () => capacity.admitEvidenceCall({ brave: false, now, env, context: customer })));
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 3);
   const refused = results.find((r) => r.status === "rejected");
   assert.equal(refused.reason.scope, "daily");
   assert.match(refused.reason.message, /00:00 UTC/);
   // Next UTC day starts fresh.
-  await capacity.admitEvidenceCall({ brave: false, now: new Date(Date.UTC(2026, 9, 13, 0, 1)), env });
+  await capacity.admitEvidenceCall({ brave: false, now: new Date(Date.UTC(2026, 9, 13, 0, 1)), env, context: customer });
   const snap = await capacity.readEvidenceCapacity({ brave: false, now, env });
   assert.equal(snap.enforced, true);
   assert.equal(snap.dailyUsed, 3);
@@ -46,13 +51,13 @@ test("A18: daily cap admits exactly N calls, then fails closed with a clear mess
 test("A18: Brave monthly cap stops before the paid search tier and releases on daily refusal", async () => {
   const store = sqliteStore();
   capacity.setEvidenceCapacityStore(store, true);
-  const env = { FOREMENTION_DAILY_EVIDENCE_CALL_CAP: "1", FOREMENTION_MONTHLY_BRAVE_CALL_CAP: "2" };
-  await capacity.admitEvidenceCall({ brave: true, now, env });
-  await assert.rejects(capacity.admitEvidenceCall({ brave: true, now, env }), (e) => e.scope === "daily");
+  const env = { FOREMENTION_DAILY_EVIDENCE_CALL_CAP: "1", FOREMENTION_MONTHLY_BRAVE_CALL_CAP: "2", FOREMENTION_EVIDENCE_POOLS: noReserves };
+  await capacity.admitEvidenceCall({ brave: true, now, env, context: customer });
+  await assert.rejects(capacity.admitEvidenceCall({ brave: true, now, env, context: customer }), (e) => e.scope === "daily");
   let snap = await capacity.readEvidenceCapacity({ brave: true, now, env });
   assert.equal(snap.monthlyBraveUsed, 1, "daily refusal must not consume monthly Brave allowance");
-  await capacity.admitEvidenceCall({ brave: true, now: new Date(Date.UTC(2026, 9, 14)), env });
-  await assert.rejects(capacity.admitEvidenceCall({ brave: true, now: new Date(Date.UTC(2026, 9, 15)), env }), (e) => e.scope === "monthly" && /before any paid search charge/.test(e.message));
+  await capacity.admitEvidenceCall({ brave: true, now: new Date(Date.UTC(2026, 9, 14)), env, context: customer });
+  await assert.rejects(capacity.admitEvidenceCall({ brave: true, now: new Date(Date.UTC(2026, 9, 15)), env, context: customer }), (e) => e.scope === "monthly" && /before any paid search charge/.test(e.message));
   snap = await capacity.readEvidenceCapacity({ brave: true, now: new Date(Date.UTC(2026, 9, 15)), env });
   assert.equal(snap.monthlyBraveRemaining, 0);
 });

@@ -33,6 +33,7 @@ import { deliverWorkspaceWebhooks, type DeliveryEvent } from "@/lib/workspace-we
 import { deliverHubSpotCompletedAction } from "@/lib/hubspot-connector";
 import { exportWeeklyDigestToNotion } from "@/lib/notion-connector";
 import { logOperationalEvent } from "@/lib/structured-logger";
+import { customerEvidenceContext, type EvidenceCapacityContext } from "@/lib/evidence-capacity";
 
 export const inngest = new Inngest({ id: "foremention" });
 
@@ -265,6 +266,20 @@ async function scheduledRunMayCallProvider(run: RunRow): Promise<boolean> {
       !schedule.trial_ends_at || !entitlement.expires_at) return false;
   const safeUntil = Math.min(new Date(schedule.trial_ends_at).getTime(), new Date(entitlement.expires_at).getTime());
   return Number.isFinite(safeUntil) && safeUntil - Date.now() > 2 * 60 * 60 * 1000;
+}
+
+/**
+ * FM-01: the capacity context every provider call of this run is admitted
+ * against: the workspace's own plan allowance inside the customer pool, or the
+ * canary pool for the configured canary workspace. A read failure throws (the
+ * step retries) rather than guessing a larger allowance.
+ */
+async function resolveRunCapacityContext(run: RunRow): Promise<EvidenceCapacityContext> {
+  const rows = await supabaseRest<Array<{ status: string | null; package_key: string | null; billing_source: string | null; expires_at: string | null }>>(
+    `organization_entitlements?select=status,package_key,billing_source,expires_at&organization_id=eq.${run.organization_id}&limit=1`,
+    { serviceRole: true },
+  );
+  return customerEvidenceContext({ organizationId: run.organization_id, entitlement: rows[0] || null, runId: run.id });
 }
 
 async function persistFailureAttempt(
@@ -597,6 +612,8 @@ export const runMultiEngineScan = inngest.createFunction(
     // across replays and function-level retries, so a deployment that changes
     // the configured model mid-run cannot split one run across two models.
     const model = await step.run("pin-provider-model", () => String(process.env[`${providerId.toUpperCase()}_MODEL`] || ""));
+    // FM-01: resolve the per-workspace capacity context once per run (memoized).
+    const capacityContext = await step.run("resolve-evidence-capacity", () => resolveRunCapacityContext(run)) as EvidenceCapacityContext;
     // Adapters read the model from configuration at call time, so the pin is
     // enforced by refusing further provider calls once configuration drifts.
     const modelPinHolds = () => model === String(process.env[`${providerId.toUpperCase()}_MODEL`] || "");
@@ -723,7 +740,7 @@ export const runMultiEngineScan = inngest.createFunction(
               : undefined;
             const answer = await adapter.run(
               { promptId: prompt.prompt_id, text: prompt.prompt_text, locale: prompt.locale },
-              { signal: controller.signal, maxOutputTokens: LIVE_COLLECTION_LIMITS.maxOutputTokensPerAnswer, budget },
+              { signal: controller.signal, maxOutputTokens: LIVE_COLLECTION_LIMITS.maxOutputTokensPerAnswer, budget, capacity: capacityContext },
             );
             if (!answer.answer.trim()) throw new Error("The provider returned an empty answer.");
             logOperationalEvent("provider_request_completed", { runId: run.id, provider: providerId, attempt: recordedAttemptNumber, status: 200, durationMs: answer.latencyMs });
