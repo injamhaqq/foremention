@@ -110,3 +110,11 @@ test("print view strips app/public chrome and prints reports black on white", as
   assert.match(toolbar, /window\.print\(\)/);
   assert.match(toolbar, /data-print="hide"/);
 });
+
+test("run-list failure reason respects the 12px legibility floor", async () => {
+  const css = await readFile(new URL("../app/app/workspace-accessibility.css", import.meta.url), "utf8");
+  const rule = css.match(/\.app-frame \.run-row__failure\s*\{([^}]*)\}/);
+  assert.ok(rule, "run-row__failure rule present");
+  const size = Number(rule[1].match(/font-size:\s*(\d+)px/)?.[1]);
+  assert.ok(size >= 12, `font-size ${size}px is below 12px`);
+});

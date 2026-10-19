@@ -47,4 +47,4 @@
 .app-frame .run-failure p { margin: 0; color: #D7DBD5; } /* 12.8:1 */
 .app-frame .run-failure__technical summary { cursor: pointer; color: #9EA69E; }
 .app-frame .run-failure__technical code { overflow-wrap: anywhere; color: #D7DBD5; }
-.app-frame .run-row__failure { display: block; margin-top: 2px; color: #F0A49F; font-size: 11px; }
+.app-frame .run-row__failure { display: block; margin-top: 2px; color: #F0A49F; font-size: 12px; } /* 12px legibility floor */

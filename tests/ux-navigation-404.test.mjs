@@ -58,3 +58,17 @@ test("the public 404 explains itself and offers real recovery links", async () =
   assert.doesNotMatch(notFound, /source not found/, "no product jargon on a generic 404");
   for (const href of ["/", "/product", "/contact", "/login"]) assert.ok(notFound.includes(`href="${href}"`), href);
 });
+
+test("with the /app catch-all, in-app links to /app/* use next/link (CI lint: @next/next/no-html-link-for-pages)", async () => {
+  // app/app/[...missing]/page.tsx makes every /app/* path a known page, so a raw
+  // <a href="/app..."> is a full-page reload and fails the repo's CI lint.
+  const { readdir } = await import("node:fs/promises");
+  const walk = async (dir) => (await Promise.all((await readdir(new URL(`../${dir}`, import.meta.url), { withFileTypes: true }))
+    .map((entry) => entry.isDirectory() ? walk(`${dir}/${entry.name}`) : entry.name.endsWith(".tsx") ? [`${dir}/${entry.name}`] : []))).flat();
+  const files = [...await walk("app"), ...await walk("components")];
+  const offenders = [];
+  for (const file of files) if (/<a\s[^>]*href="\/app(?:[/?#"])/.test(await text(file))) offenders.push(file);
+  assert.deepEqual(offenders, []);
+  assert.match(await text("app/error.tsx"), /<Link className="button button--outline" href="\/app">Go to Overview<\/Link>/);
+  assert.match(await text("components/onboarding-wizard.tsx"), /<Link className="button button--ink" href="\/app\/settings#providers">/);
+});
