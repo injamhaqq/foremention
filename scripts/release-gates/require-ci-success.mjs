@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // FM-06: production deploys are refused unless the CI workflow concluded
 // `success` on the exact commit being released, and that commit is still the
-// tip of main. Used by .github/workflows/production-deploy.yml for both the
-// automatic (workflow_run after CI) and the manual (workflow_dispatch) path.
+// tip of main. Used by .github/workflows/production-deploy.yml, which is
+// manual-only (workflow_dispatch from main), in its gate job and again right
+// before `wrangler deploy`.
 //
 // The decision is a pure function so it can be unit-tested without network.
 // The CLI only reads the GitHub REST API with the job's read-only token.

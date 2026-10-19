@@ -61,15 +61,23 @@ test("FM-06 gate uses the latest run/attempt and refuses superseded or malformed
   assert.equal(evaluateCiGate({ sha: SHA, mainSha: "", runs: [ciRun()] }).ok, false);
 });
 
-test("FM-06 production deploy is triggered by CI completion and gated before any build or deploy", async () => {
+test("FM-06 production deploy stays manual-only and is gated before any build or deploy", async () => {
   const wf = await text(".github/workflows/production-deploy.yml");
-  assert.match(wf, /workflow_run:\s*\n\s*workflows: \[CI\]\s*\n\s*types: \[completed\]\s*\n\s*branches: \[main\]/);
-  assert.match(wf, /workflow_dispatch:/);
-  assert.doesNotMatch(wf, /^\s*push:/m);
+  const on = block(wf, "\non:\n", "\npermissions:");
+  // Manual dispatch is the only trigger: a green CI never deploys production on
+  // its own, and no untrusted workflow_run payload or artifact is ever read.
+  assert.match(on, /^\s+workflow_dispatch:\s*$/m);
+  assert.deepEqual(on.match(/^ {2}[a-z_]+:/gm), ["  workflow_dispatch:"]);
+  assert.doesNotMatch(wf, /^\s*(workflow_run|push|pull_request_target|schedule):/m);
+  assert.doesNotMatch(wf, /github\.event\.workflow_run/);
+  assert.doesNotMatch(wf, /actions\/download-artifact|dawidd6\/action-download-artifact/);
+  assert.match(wf, /^permissions:\n  contents: read\n/m);
   const gate = block(wf, "  gate:", "  deploy:");
   assert.match(gate, /node scripts\/release-gates\/require-ci-success\.mjs/);
-  assert.match(gate, /github\.event\.workflow_run\.head_sha \|\| github\.sha/);
+  assert.match(gate, /if: github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(gate, /RELEASE_SHA: \$\{\{ github\.sha \}\}/);
   assert.match(gate, /actions: read/);
+  assert.doesNotMatch(gate, /write/);
   const deploy = block(wf, "  deploy:", "  trusted-release-acceptance:");
   assert.match(deploy, /needs: gate/);
   assert.match(deploy, /ref: \$\{\{ needs\.gate\.outputs\.sha \}\}/);
@@ -80,7 +88,10 @@ test("FM-06 production deploy is triggered by CI completion and gated before any
   const verify = deploy.indexOf("Verify exact Cloudflare production release");
   assert.ok(deploy.indexOf("- name: Build") < recheck && recheck < deployStep && deployStep < verify);
   assert.match(block(deploy, "Re-check CI gate", "- name: Deploy\n"), /require-ci-success\.mjs/);
-  assert.doesNotMatch(wf, /\$\{\{ github\.event\.workflow_run\.head_sha \}\}[^\n]*run:/);
+  assert.doesNotMatch(deploy, /: write/);
+  const acceptance = block(wf, "  trusted-release-acceptance:");
+  assert.match(acceptance, /permissions:\n\s+actions: write\n\s+steps:/, "only the dispatch job may write, and only actions");
+  for (const uses of wf.match(/uses: \S+/g) || []) assert.match(uses, /@[0-9a-f]{40}$/, `${uses} must be pinned to a full commit SHA`);
 });
 
 test("FM-06 CI no longer waits on production; exact-release acceptance is dispatched after deploy", async () => {
@@ -99,7 +110,7 @@ test("FM-06 CI no longer waits on production; exact-release acceptance is dispat
   assert.doesNotMatch(canary, /^\s*push:/m);
   assert.match(deploy, /gh workflow run browser-acceptance\.yml --ref main/);
   assert.match(deploy, /gh workflow run first-evidence-canary\.yml --ref main/);
-  // Under workflow_run GITHUB_SHA is main's tip, so the gated SHA wins.
+  // The CI-gated SHA wins over GITHUB_SHA for the served buildCommit.
   assert.ok(prepare.indexOf("FOREMENTION_RELEASE_SHA") < prepare.indexOf("process.env.GITHUB_SHA"));
 });
 

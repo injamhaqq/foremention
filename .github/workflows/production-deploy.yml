@@ -2,11 +2,14 @@ name: production-deploy
 
 # Production deploy of the exact main commit to the foremention-mvp Worker.
 #
-# FM-06: a deploy only happens after the CI workflow concluded `success` on that
-# exact commit SHA, and only while that commit is still the tip of main.
-#   * Automatic: runs when CI completes for a push to main (workflow_run).
-#   * Manual: workflow_dispatch from main is kept, but passes the same gate
-#     (scripts/release-gates/require-ci-success.mjs reads the GitHub API).
+# FM-06: production deploys stay MANUAL (workflow_dispatch from main only).
+# There is deliberately no workflow_run / push trigger: a green CI never ships
+# to production on its own, and no untrusted workflow_run payload, inputs or
+# artifacts are ever read. A dispatch deploys only if
+#   * the CI workflow concluded `success` on the exact commit SHA, and
+#   * that SHA is still the tip of main,
+# checked by scripts/release-gates/require-ci-success.mjs (read-only GitHub
+# API) in the gate job and again immediately before `wrangler deploy`.
 # Production verification (exact buildCommit, auth smoke, Inngest sync/probe)
 # runs here after the deploy instead of inside CI, so CI's own result never
 # depends on production and cannot deadlock the gate.
@@ -20,10 +23,6 @@ name: production-deploy
 # Optional repository variable NEXT_PUBLIC_SENTRY_DSN (public browser DSN) is
 # inlined into the browser bundle at build time. Unset = browser Sentry off.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -36,12 +35,7 @@ concurrency:
 jobs:
   gate:
     name: Require green CI on the exact SHA
-    if: >-
-      github.ref == 'refs/heads/main'
-      && (github.event_name == 'workflow_dispatch'
-          || (github.event.workflow_run.event == 'push'
-              && github.event.workflow_run.head_branch == 'main'
-              && github.event.workflow_run.head_repository.full_name == github.repository))
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -65,8 +59,9 @@ jobs:
         id: ci
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          # workflow_run: the commit CI just tested. workflow_dispatch: main's tip.
-          RELEASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          # The dispatched commit (main's tip at dispatch time). The gate also
+          # refuses if main has moved since.
+          RELEASE_SHA: ${{ github.sha }}
         run: node scripts/release-gates/require-ci-success.mjs
 
   deploy:

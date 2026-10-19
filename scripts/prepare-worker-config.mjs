@@ -22,8 +22,8 @@ function gitValue(args) {
 // `git rev-parse HEAD` is the provider-independent fallback. Cloudflare's
 // direct build environment checks out the release commit even when it does
 // not populate a provider-specific commit environment variable.
-// FOREMENTION_RELEASE_SHA is set by production-deploy.yml to the CI-gated SHA;
-// under a workflow_run trigger GITHUB_SHA is main's tip, not the tested commit.
+// FOREMENTION_RELEASE_SHA is set by production-deploy.yml to the CI-gated SHA,
+// so the served buildCommit is always the exact commit the gate verified.
 const buildCommitCandidates = [
   process.env.FOREMENTION_RELEASE_SHA,
   process.env.WORKERS_CI_COMMIT_SHA,
