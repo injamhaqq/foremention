@@ -1,9 +1,12 @@
+/* The setup-complete banner sits on the dark signed-in surface (#0D0F0E/#151817).
+ * #1f6b49 (2.8:1) and #455a55 (2.6:1) failed WCAG AA there; use the canonical
+ * light signal (7.3:1) and muted (7.2:1) tokens instead. */
 .workspace .setup-complete > strong {
-  color: #1f6b49;
+  color: #65B58E;
 }
 
 .workspace .setup-complete > span {
-  color: #455a55;
+  color: #9EA69E;
 }
 
 .workspace .data-row--head {
@@ -24,3 +27,24 @@
 .app-frame .run-estimate p {
   color: #455a55;
 }
+
+/* Fix track "ux" (2026-10-19): WCAG AA (4.5:1) text contrast on the dark
+ * signed-in shell. Each value is checked against its real background in
+ * tests/ux-contrast-print.test.mjs.
+ *   sidebar background #090B0A, app background #0D0F0E, surface #151817 */
+.app-frame .sidebar-nav a span,
+.app-frame .sidebar-advanced summary small { color: #8D968F; } /* was #59645D, 3.2:1 -> 6.5:1 on #090B0A */
+.app-frame .sidebar-company span,
+.app-frame .sidebar-company small { color: #8D968F; } /* was #69736C, 4.0:1 */
+.app-frame .app-user small { color: #9EA69E; } /* was #68736B, 3.9:1 -> 7.2:1 on #151817 */
+.app-frame :where(input, textarea, select)::placeholder { color: #8D968F; opacity: 1; } /* was #667068, 3.7:1 -> 5.9:1 on #151817 */
+.app-frame .canonical-contained-evidence .source-inspector__result dt { color: #9EA69E; } /* was #727c74, 4.4:1 */
+
+/* Failed-collection reason and Retry (app/app/runs/[id]/page.tsx). */
+.app-frame .run-failure { display: grid; gap: 10px; margin: 0 0 20px; padding: 20px 24px; border: 1px solid #A33A34; border-left-width: 4px; background: #151817; color: #FFFDF9; }
+.app-frame .run-failure .eyebrow { color: #F0A49F; } /* 9.0:1 on #151817 */
+.app-frame .run-failure h2 { margin: 0; }
+.app-frame .run-failure p { margin: 0; color: #D7DBD5; } /* 12.8:1 */
+.app-frame .run-failure__technical summary { cursor: pointer; color: #9EA69E; }
+.app-frame .run-failure__technical code { overflow-wrap: anywhere; color: #D7DBD5; }
+.app-frame .run-row__failure { display: block; margin-top: 2px; color: #F0A49F; font-size: 11px; }

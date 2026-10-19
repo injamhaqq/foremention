@@ -4,8 +4,10 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const text = (path) => readFile(new URL(path, root), "utf8");
-const [globalCss, workspaceCss, layout, dashboard] = await Promise.all([
+const [globalCss, canonicalCss, rootLayout, workspaceCss, layout, dashboard] = await Promise.all([
   text("app/globals.css"),
+  text("app/canonical-system.css"),
+  text("app/layout.tsx"),
   text("app/app/workspace-accessibility.css"),
   text("app/app/layout.tsx"),
   text("app/app/page.tsx"),
@@ -47,7 +49,16 @@ test("completed dashboard setup text meets WCAG AA contrast on the authenticated
   assert.match(dashboard, /<main className="workspace"/);
   assert.match(dashboard, /<section className="setup-complete"/);
 
-  const background = resolveColor(declaration(globalCss, ".app-frame", "background"));
+  // Fix track "ux" (2026-10-19): the canonical visual system (2026-08-28,
+  // loaded after globals.css) repaints the authenticated shell dark, so the
+  // legacy light globals.css value is no longer the background users see.
+  // Resolve the background that actually wins the cascade.
+  assert.ok(rootLayout.indexOf('import "./canonical-system.css";') > rootLayout.indexOf('import "./globals.css";'), "canonical system loads after globals");
+  const canonicalBackground = declaration(canonicalCss, ".app-frame", "background");
+  const tokenMatch = canonicalBackground.match(/^var\((--[a-z0-9-]+)\)$/i);
+  const background = tokenMatch
+    ? resolveColor(declaration(canonicalCss, ":root", tokenMatch[1]))
+    : resolveColor(canonicalBackground || declaration(globalCss, ".app-frame", "background"));
   const selectors = [
     ".workspace .setup-complete > strong",
     ".workspace .setup-complete > span",

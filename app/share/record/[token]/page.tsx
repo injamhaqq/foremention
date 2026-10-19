@@ -1,3 +1,4 @@
+import "../../../report-print.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Wordmark } from "@/components/brand";

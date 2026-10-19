@@ -7,6 +7,7 @@ import { PostHogIdentity } from "@/components/posthog-analytics";
 import { RetentionSurfaceBridge } from "@/components/retention-surface-bridge";
 import { WorkspaceActivationAnalytics } from "@/components/workspace-activation-analytics";
 import "./workspace-accessibility.css";
+import "../report-print.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
