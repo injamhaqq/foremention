@@ -1020,6 +1020,13 @@ textarea { resize: vertical; }
 .answer-stack article > small { display: block; margin-top: 18px; color: var(--muted); font-size: 8px; }
 .answer-citations { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 9px; }
 .answer-citations a { color: var(--xray-dark); font-weight: 700; word-break: break-all; }
+.answer-citations > small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.canonical-citation-record__snippet { margin: 6px 0 0; padding: 8px 10px; border-left: 2px solid var(--line); color: var(--ink); font-size: 12px; line-height: 1.5; }
+.canonical-citation-record__snippet p { margin: 2px 0 0; }
+.answer-support-check { display: grid; gap: 6px; margin-top: 14px; padding: 12px; border: 1px solid var(--line); font-size: 13px; }
+.answer-support-check ul { margin: 0; padding-left: 18px; }
+.answer-support-check mark { background: var(--marker); color: var(--ink); padding: 0 4px; font-weight: 700; }
+.answer-support-check small { color: var(--muted); }
 .record-grid { display: grid; grid-template-columns: 1.3fr .7fr; gap: 20px; }
 .record-url { padding-bottom: 20px; margin-bottom: 22px; border-bottom: 1px solid var(--ink); }
 .record-url span, .record-url a { display: block; }

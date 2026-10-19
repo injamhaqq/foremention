@@ -26,6 +26,9 @@ export const AI_MEASUREMENT_CONTEXT_VERSIONS = {
   promptVersion: "provider-prompts.2026-08-30.1",
   parserVersion: "provider-adapters.2026-08-30.1",
   modelVersion: "unreported",
+  // Legacy/native-citation value. Since 2026-10-19 answers grounded on
+  // Foremention's own retrieval are stamped per provider; see
+  // retrievalVersionFor() in lib/evidence-trust.mjs and migration 20261019173100.
   retrievalVersion: "returned-references.2026-08-30.1",
   policyVersion: "recommendation-quality.2026-08-30.1",
   schemaVersion: "recommendation-record.2026-08-30.1",

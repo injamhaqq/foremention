@@ -1,3 +1,4 @@
+import { evidenceTrustFromRaw } from "@/lib/evidence-trust.mjs";
 import type { Viewer } from "@/lib/auth";
 import { collectingRunIds, withLiveCollectionCounts, type PersistedAnswerRow } from "@/lib/live-collection-counts";
 import {
@@ -116,9 +117,19 @@ export type WorkspaceRunAnswer = {
   provider: string;
   model: string | null;
   answer: string;
-  citations: Array<{ url: string; title?: string }>;
+  citations: Array<{ url: string; title?: string; origin?: string; retrievedBy?: string; retrievalProvider?: string }>;
   status: "unreviewed" | "verified" | "excluded";
   collectedAt: string;
+  /** Evidence trust: recorded reference origin, retrieval provider, saved snippets and claim check (null when not recorded). */
+  evidenceTrust?: AnswerEvidenceTrust;
+};
+export type AnswerEvidenceTrust = {
+  origin: string | null;
+  retrievalProvider: string | null;
+  retrievalVersion: string | null;
+  snapshot: Array<{ ordinal: number; url: string; title: string | null; snippet: string; injectionSuspected?: boolean; injectionFlags?: string[] }> | null;
+  support: { status?: string; claimCount?: number; supportedCount?: number; unsupportedCount?: number; verificationBlocked?: boolean; note?: string; claims?: Array<{ text: string; supported: boolean; reason: string | null; sourceOrdinals: number[] }>; citationsNotInSnapshot?: string[] } | null;
+  verificationBlocked: boolean;
 };
 export type SourceEvidenceContext = {
   sourceId: string;
@@ -681,11 +692,20 @@ export async function loadRunAnswers(viewer: Viewer, runId: string): Promise<Wor
   if (viewer.mode === "demo") return getDemoRunAnswers(runId);
   const context = await loadWorkspaceContext(viewer);
   if (!context) return [];
-  const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string; run: { project_id: string } | null }>>(
-    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run_id=eq.${encodeURIComponent(runId)}&run.project_id=eq.${context.projectId}&order=collected_at.asc`,
+  const rows = await supabaseRest<Array<{ id: string; prompt_key: string; prompt_text: string | null; provider: string; model: string | null; answer_text: string; citations_json: WorkspaceRunAnswer["citations"]; review_status: WorkspaceRunAnswer["status"]; collected_at: string; run: { project_id: string } | null; reference_provenance?: unknown; retrieval_provider?: unknown; retrieval_version?: unknown; retrieved_sources?: unknown; evidence_support?: unknown }>>(
+    `run_answers?select=id,prompt_key,prompt_text,provider,model,answer_text,citations_json,review_status,collected_at,reference_provenance:raw_json->referenceProvenance,retrieval_provider:raw_json->retrievalProvider,retrieval_version:raw_json->retrievalVersion,retrieved_sources:raw_json->retrievedSources,evidence_support:raw_json->evidenceSupport,run:runs!inner(project_id)&organization_id=eq.${context.organizationId}&run_id=eq.${encodeURIComponent(runId)}&run.project_id=eq.${context.projectId}&order=collected_at.asc`,
     { token: viewer.accessToken },
   );
-  return rows.map((row) => ({ id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at) }));
+  return rows.map((row) => ({
+    id: row.id, prompt: row.prompt_text || row.prompt_key, provider: row.provider, model: row.model, answer: row.answer_text, citations: row.citations_json || [], status: row.review_status, collectedAt: dateLabel(row.collected_at),
+    evidenceTrust: evidenceTrustFromRaw({
+      referenceProvenance: row.reference_provenance ?? (row.provider === "cloudflare" ? "independent_retrieval" : undefined),
+      retrievalProvider: row.retrieval_provider,
+      retrievalVersion: row.retrieval_version,
+      retrievedSources: row.retrieved_sources,
+      evidenceSupport: row.evidence_support,
+    }) as AnswerEvidenceTrust,
+  }));
 }
 
 export type RunCostEvent = {
@@ -1008,7 +1028,7 @@ export async function loadNotifications(viewer: Viewer): Promise<WorkspaceNotifi
     const mappedCount = row.kind === "source_map_published" ? Number(row.body.match(/\d+/)?.[0] || 0) : 0;
     const title = row.kind === "source_map_published" ? "Source Map created from approved collection" : row.title;
     const body = row.kind === "source_map_published"
-      ? `${mappedCount || "Cited"} page record${mappedCount === 1 ? "" : "s"} were mapped from provider-returned citations. Page-level review is still required before any record becomes a confirmed gap.`
+      ? `${mappedCount || "Cited"} page record${mappedCount === 1 ? "" : "s"} were mapped from recorded references (provider-returned citations, or search results Foremention retrieved itself). Page-level review is still required before any record becomes a confirmed gap.`
       : row.body;
     const key = `${row.kind}\u0000${title}\u0000${body}`;
     const current = groups.get(key);

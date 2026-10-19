@@ -106,7 +106,7 @@ export default async function AnalyticsPage() {
     productTruthForRunMetric({
       id: "analytics-citation-observations",
       label: "Citation observations",
-      source: "Provider-returned citations preserved on verified AI answers",
+      source: "Provider-returned citations, or search results Foremention retrieved and gave to the model, preserved on verified AI answers",
       sample: `${latest.citations} returned citation observation${latest.citations === 1 ? "" : "s"}`,
       denominator: `${latest.answers} verified answer${latest.answers === 1 ? "" : "s"} in the current baseline; ${sources.length} unique mapped source record${sources.length === 1 ? "" : "s"} tied to that same run`,
       collectedAt: latest.date,

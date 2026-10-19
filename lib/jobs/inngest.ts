@@ -319,6 +319,17 @@ async function persistFailureAttempt(
     });
   }
 }
+// Evidence trust: a Foremention-retrieved search result (Brave Search / Bing
+// RSS given to a hosted model) is never stored as a provider-returned citation.
+// Kept dependency-free here; the values mirror SOURCE_TYPE_* in
+// lib/evidence-trust.mjs (asserted by tests/evidence-trust.test.mjs).
+function sourceTypeForAnswer(answer: ProviderAnswer) {
+  const raw = answer.raw && typeof answer.raw === "object" ? answer.raw as Record<string, unknown> : {};
+  const independent = raw.referenceProvenance === "independent_retrieval"
+    || answer.citations.some((citation) => citation.origin === "independent_retrieval" || citation.retrievedBy === "foremention");
+  return independent ? "foremention-retrieved search result" : "provider-returned citation";
+}
+
 async function persistAnswer(
   run: RunRow,
   prompt: PromptSelection,
@@ -460,7 +471,9 @@ const providerReportedCost = typeof answer.billedCostUsd === "number" && Number.
         canonical_url: citation.canonicalUrl,
         domain: hostnameFromUrl(citation.canonicalUrl),
         page_title: citation.title,
-        source_type: "provider-returned citation",
+        // Evidence trust: a Foremention-retrieved search result is never
+        // labelled as a provider/model citation.
+        source_type: sourceTypeForAnswer(answer),
         last_observed_at: answer.collectedAt,
       })),
     });

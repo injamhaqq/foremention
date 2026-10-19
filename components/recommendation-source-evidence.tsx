@@ -55,7 +55,7 @@ export async function RecommendationSourceEvidence({
     <section className="canonical-observed-evidence" aria-labelledby={`evidence-chain-${evidenceId}`}>
       <span className="eyebrow">Observed evidence chain</span>
       <h3 id={`evidence-chain-${evidenceId}`}>{source.domain}</h3>
-      <p>{source.evidenceCount} provider-returned citation observation{source.evidenceCount === 1 ? "" : "s"} across {new Set(source.engines).size} observed AI system{new Set(source.engines).size === 1 ? "" : "s"}. Citation recurrence is observed evidence; it does not prove authority, influence, or that this page caused a recommendation.</p>
+      <p>{source.evidenceCount} recorded reference observation{source.evidenceCount === 1 ? "" : "s"} (provider citations or Foremention-retrieved search results) across {new Set(source.engines).size} observed AI system{new Set(source.engines).size === 1 ? "" : "s"}. Citation recurrence is observed evidence; it does not prove authority, influence, or that this page caused a recommendation.</p>
     </section>
 
     <section className="canonical-source-credibility source-credibility" aria-labelledby={`credibility-${evidenceId}`}>

@@ -61,7 +61,7 @@ test("only grounded Cloudflare may create customer evidence while free-only mode
   assert.match(outreach, /free-only mode permits only grounded Cloudflare Workers AI with Bing Search RSS/);
 });
 
-test("public score and prompt-check use the same free grounded Cloudflare plus Bing RSS path", async () => {
+test("public score and prompt-check use the same free grounded Cloudflare plus independent-retrieval path", async () => {
   const worker = await text("worker/index.ts");
   const start = worker.indexOf("async function runPublicGroundedCloudflare");
   const end = worker.indexOf("async function handleSourceGapRequest", start);
@@ -70,7 +70,11 @@ test("public score and prompt-check use the same free grounded Cloudflare plus B
   assert.match(publicAi, /runGroundedCloudflareWithBinding/);
   assert.match(publicAi, /env\.AI/);
   assert.match(publicAi, /env\.CLOUDFLARE_MODEL/);
-  assert.match(publicAi, /provider: "Cloudflare Workers AI \+ Bing Search RSS"/);
+  // Evidence trust: the public label names the retrieval that actually ran
+  // (Brave Search or Bing RSS), never a hard-coded provider.
+  assert.match(publicAi, /provider: publicGroundedProviderLabel\(grounded\.retrievalProvider\)/);
+  assert.match(publicAi, /referenceOrigin: "independent_retrieval"/);
+  assert.doesNotMatch(publicAi, /provider: "Cloudflare Workers AI \+ Bing Search RSS"/);
   assert.doesNotMatch(publicAi, /runPublicGroundedGemini|google_search|api\.groq\.com/);
 });
 

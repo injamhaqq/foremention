@@ -4,6 +4,7 @@ import {
   sourceDomainScopeFromPrompt as sharedSourceDomainScopeFromPrompt,
 } from "./official-source-relevance.mjs";
 import { assessRetrievedTopicRelevance, RetrievedTopicUnavailableError } from "./retrieval-topic-relevance.mjs";
+import { buildRetrievedSourceSnapshot, sanitizeRetrievedText } from "./evidence-trust.mjs";
 
 const BING_SEARCH_ENDPOINT = "https://www.bing.com/search";
 // A07: Bing RSS output is licensed for personal, non-commercial use only. When a
@@ -162,6 +163,14 @@ export type FreeWebEvidence = {
   relevanceRejectedCount: number;
   /** True only when the exact page named by a path-scoped request was read and its metadata attached. */
   scopedPageRead?: boolean;
+  /**
+   * Evidence trust: the exact sanitised title/snippet each model-facing source
+   * contributed, labelled as Foremention's own retrieval. Persisted with the
+   * observation so claims can be checked against what the model actually read.
+   */
+  retrievedSources: ReturnType<typeof buildRetrievedSourceSnapshot>;
+  /** Number of instruction-like / prompt-structure fragments removed from retrieved text. */
+  injectionFlagCount: number;
 };
 
 /**
@@ -450,26 +459,51 @@ export async function retrieveFreeWebEvidence(query: string, signal?: AbortSigna
   const pageTarget = scope?.pathPrefix ? results.find((result) => exactScopedPage(result.url, scope)) : undefined;
   const pageFacts = pageTarget ? namedPageFacts : null;
 
-  const evidenceText = results.map((result, index) => [
-    `SOURCE [${index + 1}]`,
-    `Title: ${result.title || new URL(result.url).hostname}`,
-    `URL: ${result.url}`,
-    result.snippet ? `Snippet: ${result.snippet}` : "",
-    result === pageTarget && pageFacts ? [
-      "Publisher page metadata (read directly from this exact URL):",
-      pageFacts.title ? `Page title: ${pageFacts.title}` : "",
-      pageFacts.published ? `Page publication timestamp (ISO 8601, as published): ${pageFacts.published}` : "",
-      pageFacts.description ? `Page description: ${pageFacts.description}` : "",
-    ].filter(Boolean).join("\n") : "",
-  ].filter(Boolean).join("\n")).join("\n\n").slice(0, MAX_RETRIEVAL_CHARS);
+  // Evidence trust: retrieved page text is data. Titles, snippets and page
+  // metadata are sanitised (instruction-like sentences and prompt-structure
+  // spoofing removed and flagged) BEFORE the model sees them, and the same
+  // sanitised text is what gets saved as the observation's snapshot.
+  const retrievedSources = buildRetrievedSourceSnapshot(results, retrievalProvider);
+  const facts = pageFacts ? {
+    title: sanitizeRetrievedText(pageFacts.title || ""),
+    description: sanitizeRetrievedText(pageFacts.description || ""),
+  } : null;
+  const pageIndex = pageTarget ? results.indexOf(pageTarget) : -1;
+  if (pageIndex >= 0 && pageFacts && facts) {
+    // The publisher metadata the model read is part of the saved evidence too.
+    Object.assign(retrievedSources[pageIndex], {
+      pageMetadata: { title: facts.title.text || null, published: pageFacts.published, description: facts.description.text || null },
+    });
+  }
+  const injectionFlagCount = retrievedSources.reduce((sum, entry) => sum + entry.injectionFlags.length, 0)
+    + (facts ? facts.title.flags.length + facts.description.flags.length : 0);
+
+  const evidenceText = results.map((result, index) => {
+    const saved = retrievedSources[index];
+    return [
+      `SOURCE [${index + 1}]`,
+      `Title: ${saved.title || new URL(result.url).hostname}`,
+      `URL: ${result.url}`,
+      saved.snippet ? `Snippet: ${saved.snippet}` : "",
+      result === pageTarget && pageFacts && facts ? [
+        "Publisher page metadata (read directly from this exact URL):",
+        facts.title.text ? `Page title: ${facts.title.text}` : "",
+        pageFacts.published ? `Page publication timestamp (ISO 8601, as published): ${pageFacts.published}` : "",
+        facts.description.text ? `Page description: ${facts.description.text}` : "",
+      ].filter(Boolean).join("\n") : "",
+    ].filter(Boolean).join("\n");
+  }).join("\n\n").slice(0, MAX_RETRIEVAL_CHARS);
 
   return {
     content: evidenceText,
-    citations: results.map(({ url: sourceUrl, title }) => ({ url: sourceUrl, title })),
+    // Sanitised titles only: the source index shown to the model is page data too.
+    citations: retrievedSources.map((entry) => ({ url: entry.url, title: entry.title || undefined })),
     retrievalProvider,
     retrievalQuery: normalized,
     retrievedCandidateCount: parsed.length,
     relevanceRejectedCount: topical?.rejected.length || 0,
     scopedPageRead: Boolean(pageFacts),
+    retrievedSources,
+    injectionFlagCount,
   };
 }

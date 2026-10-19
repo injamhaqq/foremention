@@ -16,6 +16,7 @@
         "test": "node --experimental-strip-types --test tests/*.test.mjs",
         "eval:ai": "node scripts/run-ai-evaluation.mjs",
         "eval:gate": "node scripts/verify-ai-evaluation-gate.mjs",
+        "eval:evidence": "node --experimental-strip-types scripts/run-evidence-trust-eval.mjs",
         "typecheck": "tsc --noEmit",
         "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .wrangler-dry-run --ignore-pattern scripts/codex-*"
     },

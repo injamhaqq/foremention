@@ -30,7 +30,10 @@ test("a nontechnical customer can follow website to question to collection to Re
   assert.match(questions, /Buyer/);
   assert.match(runs, /AI Results/);
   assert.match(runDetail, /Recommendation Record/);
-  assert.match(answerRecord, /References returned by the AI system/);
+  // Evidence trust: the reference heading comes from the recorded origin; a
+  // Foremention-retrieved search result is never headed as the model's citation.
+  assert.match(answerRecord, /referenceListHeading\(/);
+  assert.doesNotMatch(answerRecord, /References returned by the AI system/);
   assert.match(answerRecord, /Evidence inspection/);
   assert.match(sourceEvidence, /SourceReviewForm/);
   assert.match(sourceEvidence, /Saved page observations/);
