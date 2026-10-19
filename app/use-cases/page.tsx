@@ -120,7 +120,7 @@ export default function UseCasesPage() {
           </div>
           <div>
             <p>
-              Current free-only collection uses Cloudflare Workers AI with independently retrieved Bing Search RSS sources
+              Current free-only collection uses Cloudflare Workers AI with independently retrieved Brave Search sources
               and grounded synthesis. That is a specific measurement surface; it is not direct monitoring of ChatGPT,
               Gemini, or Perplexity consumer applications.
             </p>

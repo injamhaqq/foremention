@@ -5,6 +5,8 @@ import handler from "vinext/server/app-router-entry";
 import { intakeRateLimitsTable, publicToolRateLimitsTable, publicVisibilityScoresTable, sourceGapRequestsIndex, sourceGapRequestsTable } from "../db/schema";
 import { runGroundedCloudflareWithBinding, setCloudflareAiBinding, type CloudflareAiBinding } from "../lib/providers/cloudflare";
 import { ProviderRequestError } from "../lib/providers/types";
+import { groundedCollectionLabel } from "../lib/public-claims";
+import { DESIGN_PARTNER_RATE_LIMIT } from "../lib/design-partner-spam";
 import { setEvidenceCapacityStore } from "../lib/evidence-capacity";
 import { runMeasurementScheduleBackupPass } from "../lib/jobs/measurement-schedule-dispatcher";
 import { expireCoreTrials } from "../lib/jobs/expire-core-trials";
@@ -214,7 +216,20 @@ function publicRouteLimit(pathname: string): PublicRouteLimit | null {
   // Supabase Auth's own rate-limited mailer, so cap mail-triggering routes here.
   if (pathname === "/api/auth/signup") return { endpoint: "auth-signup", limit: 10, windowMs: 60 * 60 * 1000 };
   if (pathname === "/api/auth/forgot-password") return { endpoint: "auth-recovery", limit: 10, windowMs: 60 * 60 * 1000 };
+  // Pilot form spam protection (lib/design-partner-spam.ts): per-network cap before the route runs.
+  if (pathname === "/api/design-partner") return DESIGN_PARTNER_RATE_LIMIT;
   return null;
+}
+
+// A form post goes back to /contact with the same rate-limit notice the route uses.
+function designPartnerLimitedResponse(request: Request) {
+  const contentType = request.headers.get("content-type") || "";
+  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+    const target = new URL("/contact", request.url);
+    target.searchParams.set("error", "rate-limit");
+    return Response.redirect(target.toString(), 303);
+  }
+  return Response.json({ error: "Too many recent applications. Please try again later." }, { status: 429 });
 }
 
 async function enforcePublicRouteLimit(request: Request, env: Env, pathname: string) {
@@ -228,6 +243,7 @@ async function enforcePublicRouteLimit(request: Request, env: Env, pathname: str
   if (result.allowed) return null;
   // Deliberately contains no IP address, fingerprint, prompt, brand, or other customer input.
   console.warn(JSON.stringify({ event: "public_rate_limit_hit", endpoint: rule.endpoint }));
+  if (rule.endpoint === DESIGN_PARTNER_RATE_LIMIT.endpoint) return designPartnerLimitedResponse(request);
   if (rule.endpoint.startsWith("auth-")) return Response.json({ error: "Too many attempts from this network. Please wait a while before trying again." }, { status: 429 });
   return Response.json({ error: "This public tool has reached its temporary request limit. Please try again later." }, { status: 429 });
 }
@@ -361,7 +377,7 @@ async function handleVisibilityScore(request: Request, env: Env) {
     appearedIn: observations.filter((item) => item.appeared).length,
     questions: observations,
     citations: grounded.citations.map((citation) => citation.url),
-    provider: "Cloudflare Workers AI + Bing Search RSS",
+    provider: groundedCollectionLabel(grounded.retrievalProvider),
     model: grounded.model,
     observedAt: createdAt,
     methodology: "One dated grounded provider collection across five deterministic category questions. This is not a market-wide rank or outcome guarantee.",
@@ -401,7 +417,7 @@ async function handlePromptCoverage(request: Request, env: Env) {
       appeared,
       answer: grounded.answer,
       citations: grounded.citations,
-      provider: "Cloudflare Workers AI + Bing Search RSS",
+      provider: groundedCollectionLabel(grounded.retrievalProvider),
       model: grounded.model,
       observedAt: new Date().toISOString(),
       methodology: "One dated grounded provider answer. Presence does not establish ranking, buyer behavior, or future visibility.",

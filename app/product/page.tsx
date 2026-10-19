@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
+import { OFFER_SUMMARY, PILOT_CTA_LABEL, PRICING_CTA_LABEL } from "@/lib/public-offer";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -42,11 +43,11 @@ export default function ProductPage() {
             into an exact company change your team can approve, execute, and verify.
           </p>
           <p>
-            Current free-only live collection uses Cloudflare Workers AI with Bing Search RSS and grounded
+            Current free-only live collection uses Cloudflare Workers AI with Brave Search API retrieval and grounded
             synthesis. It does not directly monitor ChatGPT, Gemini, or Perplexity consumer-app responses.
           </p>
           <div className="page-hero__actions">
-            <Link data-design-partner-cta="product_hero" className="button" href="/contact">Apply as Design Partner <Arrow /></Link>
+            <Link data-design-partner-cta="product_hero" className="button" href="/contact">{PILOT_CTA_LABEL} <Arrow /></Link>
             <Link className="text-link text-link--inverse" href="/#how-it-works">See how it works <Arrow /></Link>
           </div>
         </div>
@@ -92,7 +93,7 @@ export default function ProductPage() {
         <div className="shell narrow-heading">
           <h2>Know exactly which AI surface was observed.</h2>
           <p>
-            A Cloudflare-hosted grounded answer with independently retrieved Bing RSS sources is a specific
+            A Cloudflare-hosted grounded answer with independently retrieved Brave Search sources is a specific
             measurement, not a native observation of a competing AI assistant&apos;s consumer interface. A separate
             provider API may also behave differently from its consumer application.
           </p>
@@ -106,8 +107,11 @@ export default function ProductPage() {
 
       <section className="cta-band outreach-product-cta">
         <div className="shell cta-band__inner">
-          <div><span className="eyebrow">Founder-led design partner</span><h2>Bring five buyer questions. Test one real company-change cycle.</h2></div>
-          <Link data-design-partner-cta="product_bottom" className="button button--ink button--large" href="/contact">Apply as Design Partner <Arrow /></Link>
+          <div><span className="eyebrow">Founder-led pilot</span><h2>Bring five buyer questions. Test one real company-change cycle.</h2><p className="claims-offer-summary">{OFFER_SUMMARY}</p></div>
+          <div className="claims-cta-actions">
+            <Link data-design-partner-cta="product_bottom" className="button button--ink button--large" href="/contact">{PILOT_CTA_LABEL} <Arrow /></Link>
+            <Link className="text-link" href="/pricing">{PRICING_CTA_LABEL} <Arrow /></Link>
+          </div>
         </div>
       </section>
     </PublicShell>

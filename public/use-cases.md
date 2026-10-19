@@ -42,7 +42,7 @@ Repeat the observation only when the buyer-question version, provider/model cont
 
 ## Current live measurement surface
 
-The current free-only collection path uses **Cloudflare Workers AI with independently retrieved Bing Search RSS sources and grounded synthesis**. It is not direct monitoring of ChatGPT, Gemini, or Perplexity consumer applications. Broader provider surfaces require separate provenance, rights, cost-control, and comparability validation before coverage is claimed.
+The current free-only collection path uses **Cloudflare Workers AI with independently retrieved Brave Search sources and grounded synthesis**. It is not direct monitoring of ChatGPT, Gemini, or Perplexity consumer applications. Broader provider surfaces require separate provenance, rights, cost-control, and comparability validation before coverage is claimed.
 
 ## Continue
 

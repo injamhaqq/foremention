@@ -12,7 +12,7 @@ test("public prompt checker exposes one real Cloudflare plus Bing RSS answer wit
   const end = worker.indexOf("async function handleSourceGapRequest", start);
   const promptCheck = worker.slice(start, end);
   assert.match(promptCheck, /runPublicGroundedCloudflare/);
-  assert.match(promptCheck, /provider: "Cloudflare Workers AI \+ Bing Search RSS"/);
+  assert.match(promptCheck, /provider: groundedCollectionLabel\(grounded\.retrievalProvider\)/);
   assert.match(retrieval, /parseBingSearchRss/);
   assert.match(retrieval, /Bing RSS returned no verifiable source URLs/);
   assert.match(promptCheck, /No result was invented/);

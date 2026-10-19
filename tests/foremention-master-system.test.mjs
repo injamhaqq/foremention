@@ -53,7 +53,7 @@ test("methodology, research, and design-partner intake reinforce the same catego
 
 test("commercial packaging remains truthful and out of the search acquisition architecture", () => {
   const pricing = read("app/pricing/page.tsx");
-  assert.match(pricing, /noIndex:\s*true/);
+  assert.doesNotMatch(pricing, /noIndex:\s*true/);
   assert.match(pricing, /Founder-led design-partner pricing is being validated with real teams/i);
   assert.match(pricing, /Self-serve paid checkout is shown[\s\S]*only when billing is configured/i);
   assert.match(pricing, /Recommendation Records/);
@@ -73,7 +73,6 @@ test("sitemap promotes the canonical category and product objects instead of sec
   ]) assert.match(sitemap, new RegExp(route.replaceAll("/", "\\/")));
 
   for (const secondary of [
-    "/pricing",
     "/ai-mediated-buying",
     "/source-x-ray",
     "/source-map",

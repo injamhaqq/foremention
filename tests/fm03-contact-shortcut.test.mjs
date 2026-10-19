@@ -8,7 +8,7 @@ test("pilot request has an explicit keyboard-friendly in-page application shortc
   const source = await read("../app/contact/page.tsx");
   assert.match(source, /href="#design-partner-application"/);
   assert.match(source, /Go to pilot application/);
-  assert.match(source, /<h2 id="design-partner-application" tabIndex=\{-1\}>Apply as Design Partner\.<\/h2>/);
+  assert.match(source, /<h2 id="design-partner-application" tabIndex=\{-1\}>\{PILOT_CTA_LABEL\}\.<\/h2>/);
   assert.ok(source.indexOf('href="#design-partner-application"') < source.indexOf('<h2 id="design-partner-application"'));
   assert.match(source, /action="\/api\/design-partner" method="post"/);
   assert.match(source, /name="email" type="email"/);

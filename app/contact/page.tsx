@@ -3,11 +3,13 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
+import { PILOT_CTA_LABEL } from "@/lib/public-offer";
+import { HONEYPOT_FIELD, STARTED_AT_FIELD, formStartedAtStamp } from "@/lib/design-partner-spam";
 import { hasPersistedDesignPartnerReceipt } from "@/lib/design-partner-receipt";
 import { contactIntakeNotice, type ContactIntakeNotice } from "@/lib/public-intake-state";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Apply as a Foremention Design Partner",
+  title: "Request a Foremention Pilot",
   description:
     "Bring five priority buyer questions, establish a Recommendation Intelligence baseline, review one decision-relevant gap, implement one approved company change, and return for comparable remeasurement.",
   path: "/contact",
@@ -72,12 +74,13 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
 
           <article>
             <span>Design partner</span>
-            <h2 id="design-partner-application" tabIndex={-1}>Apply as Design Partner.</h2>
+            <h2 id="design-partner-application" tabIndex={-1}>{PILOT_CTA_LABEL}.</h2>
             {submitted ? <div className="inline-notice"><strong>Application received.</strong><p>Your application has been saved. Founder review target: one business day. If the application fits the current design-partner scope, the reply will include scheduling instructions for the working session.</p>{intakeId ? <p><strong>Application reference:</strong> <code>{intakeId}</code></p> : null}</div> : <>
               {notice !== "none" && <p className="inline-error" role="alert">{CONTACT_INTAKE_COPY[notice]}</p>}
               <form className="intake-form" data-design-partner-form action="/api/design-partner" method="post">
                 {plan && <input type="hidden" name="planInterest" value={plan} />}
-                <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" hidden />
+                <input type="text" name={HONEYPOT_FIELD} tabIndex={-1} autoComplete="off" aria-hidden="true" hidden />
+                <input type="hidden" name={STARTED_AT_FIELD} value={formStartedAtStamp()} />
                 <label>Work email<input name="email" type="email" autoComplete="email" required maxLength={320} /></label>
                 <label>Company<input name="company" autoComplete="organization" required maxLength={160} /></label>
                 <label>Role<input name="role" autoComplete="organization-title" required maxLength={120} /></label>
@@ -89,8 +92,8 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
                     <label>Current decision or recommendation problem<textarea name="currentProblem" rows={4} maxLength={2000} placeholder="What are you trying to understand or change?" /></label>
                   </div>
                 </details>
-                <button className="button button--ink" type="submit">Apply as Design Partner <Arrow /></button>
-                <p className="form-fineprint">Applying does not create a paid subscription, authorize automated collection, or approve a company change. Scope and commercial terms are confirmed separately.</p>
+                <button className="button button--ink" type="submit">{PILOT_CTA_LABEL} <Arrow /></button>
+                <p className="form-fineprint">Applying does not create a paid subscription, authorize automated collection, or approve a company change. Scope and commercial terms are confirmed separately. Prefer self-serve? <Link href="/pricing">See pricing</Link>.</p>
               </form>
             </>}
             <p className="table-caption">Prefer email? <a href="mailto:hello@foremention.com?subject=Foremention%20design%20partner">hello@foremention.com</a></p>

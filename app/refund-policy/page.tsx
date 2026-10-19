@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
+import { sellerSentence } from "@/lib/legal-entity";
 
 export const metadata: Metadata = pageMetadata({
   title: "Refunds and Cancellations",
@@ -25,6 +26,9 @@ export default function RefundPolicyPage() {
           <p><strong>7-day money-back guarantee.</strong> If Foremention isn&apos;t right for your team, email <a href="mailto:hello@foremention.com">hello@foremention.com</a> within 7 days of your first Core or Signal payment and we will refund that payment in full. No questions asked, once per company.</p>
           <p>Foremention Core and Signal subscriptions are sold and billed by Paddle, our Merchant of Record. Paddle issues your receipt and invoice, handles refunds under its published policy, and lets you cancel at any time; cancellation stops future renewals at the end of the current billing period.</p>
         </div>
+
+        <h2>Who sells the subscription</h2>
+        <p>{sellerSentence()} Online orders are sold by Paddle.com as merchant of record and reseller. The 7-day money-back guarantee below is our promise; Paddle processes the refund.</p>
 
         <h2>7-day money-back guarantee</h2>
         <p>Your first payment for Core or Signal is covered for 7 days. Email <a href="mailto:hello@foremention.com">hello@foremention.com</a> from the workspace owner&apos;s address within 7 days of that payment, say you would like a refund, and we will refund it in full and cancel the subscription. You do not need to give a reason.</p>

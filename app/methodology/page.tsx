@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
+import { LIVE_RETRIEVAL_PROVIDER } from "@/lib/public-claims";
 
 export const metadata: Metadata = pageMetadata({
   title: "Recommendation Intelligence Methodology",
@@ -68,8 +69,14 @@ export default function MethodologyPage() {
         <h2>A provider name does not prove consumer-app coverage.</h2>
         <p>
           In the current free-only live collection path, the observed surface is Cloudflare Workers AI
-          using independently retrieved Bing Search RSS sources and grounded synthesis. It is not a
+          using independently retrieved Brave Search sources and grounded synthesis. It is not a
           native ChatGPT, Gemini, or Perplexity consumer-app observation.
+        </p>
+        <p>
+          Web retrieval uses one provider: the {LIVE_RETRIEVAL_PROVIDER} API. Foremention sends the buyer
+          question as a search query, screens the returned results for relevance, passes at most eight of
+          them to the model, and the model answers only from those retrieved sources. Each record stores the retrieval provider it
+          actually used, so the method behind any observation can be checked.
         </p>
         <p>
           Direct provider API observations, where separately authorized and validated, must retain
