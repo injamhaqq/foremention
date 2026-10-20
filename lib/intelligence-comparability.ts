@@ -8,6 +8,9 @@ export type ComparableMeasurementContext = {
   policyVersion: string | null;
   schemaVersion: string | null;
   evaluationVersion: string | null;
+  modelVersion: string | null;
+  observationMethod: string | null;
+  retrievalProvider: string | null;
 };
 
 export type ComparableQuestionSlot = {
@@ -35,13 +38,32 @@ const measurementKeys: Array<keyof ComparableMeasurementContext> = [
   "policyVersion",
   "schemaVersion",
   "evaluationVersion",
+  "modelVersion",
+  "observationMethod",
+  "retrievalProvider",
 ];
 
 function nullableString(value: unknown) {
-  return typeof value === "string" && normalize(value) ? normalize(value) : null;
+  return typeof value === "string" && value.length <= 1000
+    && !/[\u0000-\u001f\u007f]/.test(value) && normalize(value) ? normalize(value) : null;
 }
 
-export function coerceComparableMeasurementContext(value: unknown): ComparableMeasurementContext | null {
+const protocolKeys = ["modelVersion", "observationMethod", "retrievalProvider"] as const;
+function knownProtocolIdentity(value: unknown) {
+  const identity = nullableString(value);
+  return identity && !/^(unknown|unreported|unspecified|unavailable|n\/a)$/i.test(identity) ? identity : null;
+}
+
+/** Read recorded adapter fields, never infer a method from a provider name. */
+function recordedAdapterIdentity(record: Record<string, unknown>, raw: unknown, key: "observationMethod" | "retrievalProvider") {
+  const contextValue = knownProtocolIdentity(record[key]);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw) || !Object.hasOwn(raw, key)) return contextValue;
+  const adapterValue = knownProtocolIdentity((raw as Record<string, unknown>)[key]);
+  if (!adapterValue || (contextValue && contextValue !== adapterValue)) return null;
+  return adapterValue;
+}
+
+export function coerceComparableMeasurementContext(value: unknown, raw?: unknown): ComparableMeasurementContext | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
   return {
@@ -54,22 +76,39 @@ export function coerceComparableMeasurementContext(value: unknown): ComparableMe
     policyVersion: nullableString(record.policyVersion),
     schemaVersion: nullableString(record.schemaVersion),
     evaluationVersion: nullableString(record.evaluationVersion),
+    modelVersion: knownProtocolIdentity(record.modelVersion),
+    observationMethod: recordedAdapterIdentity(record, raw, "observationMethod"),
+    retrievalProvider: recordedAdapterIdentity(record, raw, "retrievalProvider"),
   };
 }
 
+/** Only these two JSON subfields need to be read; do not fetch full provider bodies. */
+export function coerceStoredComparableMeasurementContext(row: {
+  measurement_context_json: unknown;
+  protocol_observation_method?: unknown;
+  protocol_retrieval_provider?: unknown;
+  raw_json?: unknown;
+}): ComparableMeasurementContext | null {
+  const raw = Object.hasOwn(row, "protocol_observation_method") || Object.hasOwn(row, "protocol_retrieval_provider")
+    ? { observationMethod: row.protocol_observation_method, retrievalProvider: row.protocol_retrieval_provider }
+    : row.raw_json;
+  return coerceComparableMeasurementContext(row.measurement_context_json, raw);
+}
+
 function hasCompleteMeasurementContext(context: ComparableMeasurementContext | null) {
-  return Boolean(context && measurementKeys.every((key) => Boolean(context[key] && normalize(context[key] || ""))));
+  return Boolean(context && measurementKeys.every((key) => nullableString(context[key]))
+    && protocolKeys.every((key) => knownProtocolIdentity(context[key])));
 }
 
 function slotIdentity(slot: ComparableQuestionSlot) {
   const context = slot.measurementContext as ComparableMeasurementContext;
-  return [
+  return JSON.stringify([
     slot.promptKey,
     normalize(slot.promptText || ""),
     normalize(slot.provider),
     normalize(slot.model || ""),
     ...measurementKeys.map((key) => normalize(context[key] || "")),
-  ].join("\u0000");
+  ]);
 }
 
 export function assessExactQuestionComparability(
@@ -94,14 +133,14 @@ export function assessExactQuestionComparability(
     return { comparable: false, reason: "Exact model provenance is missing from at least one verified answer." };
   }
   if (scoped.some((slot) => !hasCompleteMeasurementContext(slot.measurementContext))) {
-    return { comparable: false, reason: "Verified measurement context is unavailable for one or more answers, including locale, market, buyer stage, or version identity." };
+    return { comparable: false, reason: "Verified measurement context is unavailable for one or more answers, including locale, market, buyer stage, recorded model revision, observation method, retrieval provider, or version identity. Unknown protocol values cannot establish a comparable change." };
   }
 
   const latestSlots = scoped.filter((slot) => slot.runId === latestRunId);
   const previousSlots = scoped.filter((slot) => slot.runId === previousRunId);
   const hasDuplicateSlots = (rows: ComparableQuestionSlot[]) =>
     new Set(rows.map((row) =>
-      [normalize(row.promptKey), normalize(row.provider)].join("\u0000"))).size !== rows.length;
+      JSON.stringify([normalize(row.promptKey), normalize(row.provider)]))).size !== rows.length;
   if (hasDuplicateSlots(latestSlots) || hasDuplicateSlots(previousSlots)) {
     return { comparable: false, reason: "Duplicate buyer-question/provider observation slots prevent comparable measurement." };
   }

@@ -1,3 +1,4 @@
+// Positive fixtures declare synthetic protocol identities; these are not historical provider receipts.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -15,6 +16,7 @@ const context = {
   retrievalVersion: "r1",
   policyVersion: "q1",
   schemaVersion: "s1",
+  modelVersion: "synthetic-revision-1", observationMethod: "provider_api", retrievalProvider: "synthetic-search-1",
   evaluationVersion: "e1",
 };
 const run = (id, answer_count = 1) => ({ id, answer_count });
