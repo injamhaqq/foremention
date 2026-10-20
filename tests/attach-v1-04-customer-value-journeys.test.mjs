@@ -1,3 +1,4 @@
+// Positive fixtures declare synthetic protocol identities; these are not historical provider receipts.
 // Chat04 (attach-v1/04) behavioural journeys over the pure customer value loop
 // contract. These are LOCAL FIXTURE journeys: an in-memory, tenant-scoped
 // store stands in for Supabase. They prove the contract's state transitions,
@@ -12,7 +13,8 @@ const setup = await import("../lib/workspace-setup-state.ts");
 
 const context = (overrides = {}) => ({
   locale: "en-US", market: "US", buyerStage: "evaluation", promptVersion: "p1", parserVersion: "x1",
-  retrievalVersion: "r1", policyVersion: "c1", schemaVersion: "s1", evaluationVersion: "e1", ...overrides,
+  retrievalVersion: "r1", policyVersion: "c1", schemaVersion: "s1", modelVersion: "synthetic-revision-1", observationMethod: "provider_api", retrievalProvider: "synthetic-search-1",
+  evaluationVersion: "e1", ...overrides,
 });
 
 /** Minimal tenant-scoped fixture store with idempotent writes and injectable ACK loss. */

@@ -1,0 +1,182 @@
+{
+  "as_of": "2026-10-20",
+  "baseline": "991606c531b1ee6bf4c89779969ae23937fb5b1d",
+  "production_ready": false,
+  "missions": [
+    {
+      "id": "FTR-01",
+      "title": "Release qualification tied to a useful customer surface",
+      "priority": "P0",
+      "dependencies": "",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-02",
+      "title": "Truthful collection protocol and coverage registry",
+      "priority": "P0",
+      "dependencies": "FTR-01",
+      "status": "PARTIAL_LOCAL_IMPLEMENTATION_PROTOCOL_COMPARISON"
+    },
+    {
+      "id": "FTR-03",
+      "title": "One comparison gate with honest denominators",
+      "priority": "P0",
+      "dependencies": "FTR-02",
+      "status": "PARTIAL_LOCAL_IMPLEMENTATION_PROTOCOL_COMPARISON"
+    },
+    {
+      "id": "FTR-04",
+      "title": "One bounded public-source network boundary",
+      "priority": "P0",
+      "dependencies": "FTR-02",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-05",
+      "title": "Real tenant, session and migration verification",
+      "priority": "P0",
+      "dependencies": "FTR-01",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-06",
+      "title": "One entity matcher for every mention and movement view",
+      "priority": "P0",
+      "dependencies": "FTR-03",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-07",
+      "title": "Citation explorer with qualification and source review",
+      "priority": "P0",
+      "dependencies": "FTR-02;FTR-04;FTR-05;FTR-06",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-08",
+      "title": "Buyer-question origins, versions and demand labels",
+      "priority": "P1",
+      "dependencies": "FTR-02;FTR-05;FTR-07",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-09",
+      "title": "Approved brand facts and expiring proof",
+      "priority": "P1",
+      "dependencies": "FTR-05;FTR-07",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-10",
+      "title": "Decision saving, replay and approval integrity",
+      "priority": "P1",
+      "dependencies": "FTR-03;FTR-05;FTR-09",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-11",
+      "title": "Comparable follow-up with expiry-safe scheduling",
+      "priority": "P1",
+      "dependencies": "FTR-03;FTR-05;FTR-10",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-12",
+      "title": "Atomic connector effects and uncertain delivery receipts",
+      "priority": "P0",
+      "dependencies": "FTR-05;FTR-10",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-13",
+      "title": "Private decision dossier with portable evidence",
+      "priority": "P1",
+      "dependencies": "FTR-07;FTR-09;FTR-10;FTR-11",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-14",
+      "title": "Evidence change alerts and decision invalidation",
+      "priority": "P1",
+      "dependencies": "FTR-04;FTR-09;FTR-10",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-15",
+      "title": "Competitor profiles and pricing chronology",
+      "priority": "P1",
+      "dependencies": "FTR-04;FTR-06;FTR-07;FTR-14",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-16",
+      "title": "Question clusters and source-backed opportunity board",
+      "priority": "P1",
+      "dependencies": "FTR-03;FTR-07;FTR-08;FTR-15",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-17",
+      "title": "Calibrated brand attributes and misconception review",
+      "priority": "P1",
+      "dependencies": "FTR-06;FTR-07;FTR-09",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-18",
+      "title": "Bounded technical website and AI-crawler audit",
+      "priority": "P1",
+      "dependencies": "FTR-04;FTR-05",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-19",
+      "title": "Evidence-backed comparison content work pack",
+      "priority": "P1",
+      "dependencies": "FTR-09;FTR-10;FTR-15;FTR-16",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-20",
+      "title": "One version-bound approval inbox",
+      "priority": "P1",
+      "dependencies": "FTR-05;FTR-09;FTR-10;FTR-12;FTR-19",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-21",
+      "title": "Read-only API and MCP research tools",
+      "priority": "P1",
+      "dependencies": "FTR-05;FTR-07;FTR-09;FTR-13",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-22",
+      "title": "Authorized search and analytics context",
+      "priority": "P1",
+      "dependencies": "FTR-05;FTR-08;FTR-12",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-23",
+      "title": "One bounded customer research mission",
+      "priority": "P1",
+      "dependencies": "FTR-02;FTR-05;FTR-07;FTR-08;FTR-09;FTR-10;FTR-13;FTR-21",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-24",
+      "title": "Approved CMS draft with preview and recovery",
+      "priority": "P2",
+      "dependencies": "FTR-12;FTR-19;FTR-20",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    },
+    {
+      "id": "FTR-25",
+      "title": "Outcome review and versioned decision learning",
+      "priority": "P1",
+      "dependencies": "FTR-03;FTR-10;FTR-11;FTR-13;FTR-20",
+      "status": "NOT_COMPLETED_BY_THIS_BRANCH"
+    }
+  ]
+}

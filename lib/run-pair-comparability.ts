@@ -1,7 +1,7 @@
 import type { Viewer } from "@/lib/auth";
 import { canonicalizeEvidenceUrl } from "@/lib/collection-policy";
 import { loadWorkspaceContext } from "@/lib/data";
-import { coerceComparableMeasurementContext } from "@/lib/intelligence-comparability";
+import { coerceComparableMeasurementContext, coerceStoredComparableMeasurementContext } from "@/lib/intelligence-comparability";
 import {
   assessCompleteVerifiedRunPair,
   MAX_VERIFIED_RUN_PAIR_ANSWERS,
@@ -24,6 +24,8 @@ type VerifiedAnswerRow = {
   provider: string;
   model: string | null;
   measurement_context_json: unknown;
+  protocol_observation_method: unknown;
+  protocol_retrieval_provider: unknown;
   answer_text: string;
   citations_json: Array<{ url?: string; title?: string }> | null;
   brand_present: boolean | null;
@@ -56,7 +58,8 @@ function withheld(reason: string): RunPairComparability {
 function answerView(row: VerifiedAnswerRow): VerifiedRunComparisonAnswer | null {
   const promptText = (row.prompt_text || "").replace(/\s+/g, " ").trim();
   const model = (row.model || "").trim();
-  if (!promptText || !model || !coerceComparableMeasurementContext(row.measurement_context_json)) return null;
+  const measurementContext = coerceStoredComparableMeasurementContext(row);
+  if (!promptText || !model || !measurementContext) return null;
   const citations = (row.citations_json || []).flatMap((citation) => {
     if (!citation.url) return [];
     const canonical = canonicalizeEvidenceUrl(citation.url);
@@ -71,7 +74,7 @@ function answerView(row: VerifiedAnswerRow): VerifiedRunComparisonAnswer | null 
     citations,
     brandPresent: row.brand_present,
     answerText: row.answer_text,
-    measurementContext: coerceComparableMeasurementContext(row.measurement_context_json),
+    measurementContext,
   };
 }
 
@@ -125,7 +128,7 @@ export async function assessWorkspaceRunPairComparability(
   if (!budget.comparable) return withheld(budget.reason || "The reviewed collections exceed the bounded comparison evidence budget.");
 
   const rows = await supabaseRest<VerifiedAnswerRow[]>(
-    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=${MAX_VERIFIED_RUN_PAIR_ANSWERS}`,
+    `run_answers?select=run_id,prompt_key,prompt_text,provider,model,measurement_context_json,protocol_observation_method:raw_json->observationMethod,protocol_retrieval_provider:raw_json->retrievalProvider,answer_text,citations_json,brand_present&organization_id=eq.${context.organizationId}&run_id=in.(${earlierRunId},${laterRunId})&review_status=eq.verified&order=collected_at.asc&limit=${MAX_VERIFIED_RUN_PAIR_ANSWERS}`,
     { token: viewer.accessToken },
   );
   const assessment = assessCompleteVerifiedRunPair(earlier, later, rows);

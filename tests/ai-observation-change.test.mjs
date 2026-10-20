@@ -1,3 +1,4 @@
+// Positive fixtures declare synthetic protocol identities; these are not historical provider receipts.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -14,6 +15,7 @@ const measurementContext = {
   retrievalVersion: "returned-references.2026-08-30.1",
   policyVersion: "recommendation-quality.2026-08-30.1",
   schemaVersion: "recommendation-record.2026-08-30.1",
+  modelVersion: "synthetic-revision-1", observationMethod: "provider_api", retrievalProvider: "synthetic-search-1",
   evaluationVersion: "ai-evaluation.2026-08-30.1",
 };
 const answer = (overrides = {}) => ({
