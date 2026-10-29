@@ -116,6 +116,43 @@ export type CapacityEntitlementRow = {
 const BILLING_PROVIDER_SOURCES = new Set(["stripe", "creem", "paddle"]);
 
 /**
+ * Customer-facing explanation when a workspace reaches its buyer-question
+ * ceiling. A paying customer must never be told that "paid capacity is enabled
+ * only after verified billing activation" — their capacity is already active;
+ * what they need is the next step for their actual plan.
+ */
+export function buyerQuestionCeilingMessage(row: CapacityEntitlementRow | null | undefined, limit: number, now = new Date()): string {
+  const active = row?.status === "active" && (!row.expires_at || new Date(row.expires_at) > now);
+  const paid = active && Boolean(row?.billing_source && BILLING_PROVIDER_SOURCES.has(row.billing_source));
+  if (paid && (row?.package_key === "core" || row?.package_key === "signal")) {
+    const name = row.package_key === "signal" ? "Signal" : "Core";
+    const nextStep = row.package_key === "core"
+      ? "Upgrade to Signal for up to 100 buyer questions, or deactivate a question you no longer need."
+      : "Deactivate a question you no longer need.";
+    return `Your ${name} plan includes ${limit} buyer questions. ${nextStep}`;
+  }
+  if (active && row?.billing_source === "trial") {
+    return `Your Core trial includes ${limit} buyer questions. Choose Core or Signal in Billing to keep this capacity.`;
+  }
+  return `The free plan allows ${limit} buyer questions. Start the 7-day Core trial or choose a plan in Billing to add more.`;
+}
+
+/**
+ * Rewrites the raw run-quota refusal into accurate customer copy. The database
+ * message says "Free beta limit reached: N of M provider-prompt observations",
+ * which is wrong for a paying Core/Signal workspace that simply reached its
+ * purchased monthly allowance. The counts are already the workspace's real
+ * entitlement values, so only the framing is corrected.
+ */
+export function collectionCapacityMessage(rawMessage: string): string {
+  const quota = rawMessage.match(/free beta limit reached:\s*(\d+)\s*of\s*(\d+)\s*provider-prompt observations/i);
+  if (quota) {
+    return `This workspace has used ${quota[1]} of ${quota[2]} provider-prompt observations this month. The allowance resets at the start of next month, or choose a higher plan in Settings → Billing.`;
+  }
+  return rawMessage;
+}
+
+/**
  * Server-side buyer-question ceiling for an organization. Fails closed to
  * Foundation access unless the entitlement is active, unexpired, and either a
  * verified-billing paid package or an explicit founder/manual grant. Never

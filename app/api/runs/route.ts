@@ -13,7 +13,7 @@ import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
 import { inngest } from "@/lib/jobs/inngest";
 import { currentObservationMethodologyVersion } from "@/lib/methodology-registry";
-import { runUnits } from "@/lib/product-limits";
+import { collectionCapacityMessage, runUnits } from "@/lib/product-limits";
 import { EVIDENCE_CAPACITY_DAILY_MESSAGE, EVIDENCE_CAPACITY_MONTHLY_MESSAGE, readEvidenceCapacity } from "@/lib/evidence-capacity";
 import { braveSearchApiKey } from "@/lib/free-web-retrieval";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
@@ -294,7 +294,7 @@ export async function POST(request: Request) {
       }).catch(() => undefined);
     }
     return NextResponse.json({
-      error: error instanceof Error ? error.message : "Could not reserve this workspace's collection capacity.",
+      error: error instanceof Error ? collectionCapacityMessage(error.message) : "Could not reserve this workspace's collection capacity.",
     }, { status: 429 });
   }
 

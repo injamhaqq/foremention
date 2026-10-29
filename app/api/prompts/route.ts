@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { getPrimaryWorkspaceRole, loadPrompts, loadWorkspaceContext } from "@/lib/data";
-import { buyerQuestionLimit, type CapacityEntitlementRow } from "@/lib/product-limits";
+import { buyerQuestionCeilingMessage, buyerQuestionLimit, type CapacityEntitlementRow } from "@/lib/product-limits";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
-import { supabaseRest } from "@/lib/supabase-rest";
+import { SupabaseRequestError, supabaseRest } from "@/lib/supabase-rest";
 import { cleanText, readJsonObject } from "@/lib/input-validation";
 import { exceedsBuyerQuestionLength } from "@/lib/approved-buyer-questions";
 import { updatePromptInProject } from "@/lib/buyer-question-edit";
+
+/**
+ * The database RPC/trigger raises PT429 when its atomic, advisory-locked
+ * admission rejects the question (a concurrent request won the last slot, or
+ * the read-side count was stale). PostgREST returns that as HTTP 429 with code
+ * "PT429", but an uncaught throw becomes an opaque Next.js 500 here — so map it
+ * back to the same capacity 429 the ordinary read-side guard returns. Any other
+ * failure is rethrown unchanged.
+ */
+function isAtomicCapacityRefusal(error: unknown): boolean {
+  if (!(error instanceof SupabaseRequestError)) return false;
+  return error.code === "PT429" || (error.code === "P0001" && /prompt limit exceeded/i.test(error.message));
+}
 
 export async function GET() {
   const viewer = await getViewer();
@@ -50,7 +63,7 @@ export async function POST(request: Request) {
     "prompts?select=id&organization_id=eq." + encodeURIComponent(context.organizationId) + "&active=eq.true&limit=" + (questionLimit + 1),
     { token: viewer.accessToken },
   );
-  if (activeQuestions.length >= questionLimit) return NextResponse.json({ error: `This access level allows ${questionLimit} buyer questions. Paid capacity is enabled only after verified billing activation.` }, { status: 429 });
+  if (activeQuestions.length >= questionLimit) return NextResponse.json({ error: buyerQuestionCeilingMessage(entitlementRows[0], questionLimit) }, { status: 429 });
 
   let clusterId = context.clusterId;
   if (!clusterId) {
@@ -62,18 +75,29 @@ export async function POST(request: Request) {
   }
   // The database RPC inserts the question and immutable version 1 in one
   // transaction. A failed RPC must never leave a question without its history.
-  const created = await supabaseRest<{ id: string; version: number }>("rpc/create_prompt_versioned", {
-    method: "POST",
-    token: viewer.accessToken,
-    body: {
-      p_organization_id: context.organizationId,
-      p_project_id: context.projectId,
-      p_category_id: context.categoryId,
-      p_cluster_id: clusterId,
-      p_prompt_key: `customer-${crypto.randomUUID()}`,
-      p_prompt_text: text,
-    },
-  });
+  let created: { id: string; version: number };
+  try {
+    created = await supabaseRest<{ id: string; version: number }>("rpc/create_prompt_versioned", {
+      method: "POST",
+      token: viewer.accessToken,
+      body: {
+        p_organization_id: context.organizationId,
+        p_project_id: context.projectId,
+        p_category_id: context.categoryId,
+        p_cluster_id: clusterId,
+        p_prompt_key: `customer-${crypto.randomUUID()}`,
+        p_prompt_text: text,
+      },
+    });
+  } catch (error) {
+    // A concurrent request can win the last slot between the read-side count
+    // above and the atomic admission inside the RPC. Report that as the same
+    // capacity 429 rather than an opaque 500.
+    if (isAtomicCapacityRefusal(error)) {
+      return NextResponse.json({ error: buyerQuestionCeilingMessage(entitlementRows[0], questionLimit) }, { status: 429 });
+    }
+    throw error;
+  }
   return NextResponse.json({ data: { id: created.id, text, cluster: clusterName, approved: true } }, { status: 201 });
 }
 
@@ -130,7 +154,7 @@ export async function PATCH(request: Request) {
     );
     if (activeQuestions.length >= questionLimit) {
       return NextResponse.json({
-        error: `This workspace has reached its ${questionLimit}-question entitlement. Additional capacity requires verified plan activation.`,
+        error: buyerQuestionCeilingMessage(entitlementRows[0], questionLimit),
       }, { status: 429 });
     }
   }
