@@ -19,7 +19,11 @@ overrides:
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
   nanoid@<3.3.17: ^3.3.17
   undici@>=7.0.0 <7.30.1: ^7.30.1
-  fast-uri@>=3.0.0 <3.1.8: 3.1.8
+  fast-uri@>=3.0.0 <3.1.9: 3.1.9
+  # Satori-generated SVG improper escaping (dev-only, via @vercel/og).
+  satori@<0.33.5: ^0.33.5
+  # fflate infinite loop on malformed ZIP64; scoped so posthog-js (0.4.9) is untouched.
+  fflate@>=0.7.0 <0.7.5: ^0.7.5
   # Transitive production advisories: prototype pollution and command injection.
   systeminformation@<5.33.16: ^5.33.16
   # Zod memory exhaustion while validating oversized constrained strings.
