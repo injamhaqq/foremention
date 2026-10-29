@@ -138,6 +138,21 @@ export function buyerQuestionCeilingMessage(row: CapacityEntitlementRow | null |
 }
 
 /**
+ * Rewrites the raw run-quota refusal into accurate customer copy. The database
+ * message says "Free beta limit reached: N of M provider-prompt observations",
+ * which is wrong for a paying Core/Signal workspace that simply reached its
+ * purchased monthly allowance. The counts are already the workspace's real
+ * entitlement values, so only the framing is corrected.
+ */
+export function collectionCapacityMessage(rawMessage: string): string {
+  const quota = rawMessage.match(/free beta limit reached:\s*(\d+)\s*of\s*(\d+)\s*provider-prompt observations/i);
+  if (quota) {
+    return `This workspace has used ${quota[1]} of ${quota[2]} provider-prompt observations this month. The allowance resets at the start of next month, or choose a higher plan in Settings → Billing.`;
+  }
+  return rawMessage;
+}
+
+/**
  * Server-side buyer-question ceiling for an organization. Fails closed to
  * Foundation access unless the entitlement is active, unexpired, and either a
  * verified-billing paid package or an explicit founder/manual grant. Never

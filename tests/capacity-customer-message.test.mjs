@@ -119,3 +119,15 @@ test("a genuine database failure is still surfaced, not masked as capacity", asy
     (error) => error instanceof SupabaseRequestError && error.code === "XX000",
   );
 });
+
+test("a paying workspace that reaches its monthly allowance is not told 'Free beta'", () => {
+  const message = productLimits.collectionCapacityMessage("Free beta limit reached: 20 of 20 provider-prompt observations used this month");
+  assert.doesNotMatch(message, /free beta/i);
+  assert.match(message, /used 20 of 20 provider-prompt observations this month/);
+  assert.match(message, /Settings → Billing/);
+});
+
+test("an unrelated run failure is passed through unchanged", () => {
+  const raw = "maximum number of active collection runs reached";
+  assert.equal(productLimits.collectionCapacityMessage(raw), raw);
+});
