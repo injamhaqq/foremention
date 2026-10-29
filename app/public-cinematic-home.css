@@ -162,6 +162,7 @@
   border-radius: 10px;
   background: rgba(12,17,14,.92);
   box-shadow: 0 12px 34px rgba(0,0,0,.22);
+  transition: border-color 220ms ease, box-shadow 220ms ease, opacity 220ms ease;
 }
 
 .fm-graph-node::before {
@@ -548,6 +549,13 @@ button.fm-graph-node:disabled {
 .fm-graph-node.is-selected {
   border-color: rgba(101,181,142,.92);
   box-shadow: 0 0 0 1px rgba(101,181,142,.18), 0 14px 42px rgba(0,0,0,.3);
+}
+
+/* When the sample autoplays, the active node is the only one at full contrast
+   so the eye follows question → answer → brand → source without extra chrome.
+   The buyer question stays prominent because it anchors the whole chain. */
+.fm-recommendation-graph.is-autoplaying .fm-graph-node:not(.is-selected):not(.fm-graph-node--question) {
+  opacity: .58;
 }
 
 .fm-graph-node--source-a {
