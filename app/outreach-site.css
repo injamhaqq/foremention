@@ -487,12 +487,14 @@
   counter-reset: none;
 }
 
-/* Public shell simplification. */
+/* Public shell simplification. Padding is stated here so the header CTA never
+   inherits a zero horizontal inset and renders flush against its text. */
 .canonical-public-header .canonical-header__demo,
 .canonical-public-header .registered-header__demo {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+  padding: 0 22px;
 }
 
 /* The screenshot complaint: footer should support the decision, not become a sitemap. */
