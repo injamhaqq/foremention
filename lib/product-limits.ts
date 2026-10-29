@@ -116,6 +116,28 @@ export type CapacityEntitlementRow = {
 const BILLING_PROVIDER_SOURCES = new Set(["stripe", "creem", "paddle"]);
 
 /**
+ * Customer-facing explanation when a workspace reaches its buyer-question
+ * ceiling. A paying customer must never be told that "paid capacity is enabled
+ * only after verified billing activation" — their capacity is already active;
+ * what they need is the next step for their actual plan.
+ */
+export function buyerQuestionCeilingMessage(row: CapacityEntitlementRow | null | undefined, limit: number, now = new Date()): string {
+  const active = row?.status === "active" && (!row.expires_at || new Date(row.expires_at) > now);
+  const paid = active && Boolean(row?.billing_source && BILLING_PROVIDER_SOURCES.has(row.billing_source));
+  if (paid && (row?.package_key === "core" || row?.package_key === "signal")) {
+    const name = row.package_key === "signal" ? "Signal" : "Core";
+    const nextStep = row.package_key === "core"
+      ? "Upgrade to Signal for up to 100 buyer questions, or deactivate a question you no longer need."
+      : "Deactivate a question you no longer need.";
+    return `Your ${name} plan includes ${limit} buyer questions. ${nextStep}`;
+  }
+  if (active && row?.billing_source === "trial") {
+    return `Your Core trial includes ${limit} buyer questions. Choose Core or Signal in Billing to keep this capacity.`;
+  }
+  return `The free plan allows ${limit} buyer questions. Start the 7-day Core trial or choose a plan in Billing to add more.`;
+}
+
+/**
  * Server-side buyer-question ceiling for an organization. Fails closed to
  * Foundation access unless the entitlement is active, unexpired, and either a
  * verified-billing paid package or an explicit founder/manual grant. Never
