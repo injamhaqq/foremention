@@ -11,6 +11,7 @@ import {
 } from "@/lib/agent-control-plane";
 import { estimateReservedRunCost, getProviderCostRates } from "@/lib/collection-policy";
 import { providerAllowedForMeasurementLane } from "@/lib/measurement-lane.mjs";
+import { answerMentionsName } from "@/lib/competitor-evidence-gate.mjs";
 import { providerAllowedForLiveCollection } from "@/lib/free-provider-mode";
 import { cloudflareAiConfigured } from "@/lib/providers/cloudflare";
 import { cache } from "react";
@@ -784,10 +785,10 @@ export async function loadCompetitorTracking(viewer: Viewer): Promise<Competitor
   const answers = runIds.length ? await supabaseRest<Array<{ run_id: string; answer_text: string }>>(`run_answers?select=run_id,answer_text&organization_id=eq.${context.organizationId}&run_id=in.(${runIds.join(",")})&limit=2000`, { token: viewer.accessToken }) : [];
   return competitors.map((competitor) => {
     const normalizedName = competitor.name.toLocaleLowerCase();
-    const mentions = answers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(normalizedName));
+    const mentions = answers.filter((answer) => answerMentionsName(answer.answer_text, competitor.name));
     const trendPoints = runs.map((run) => {
       const runAnswers = answers.filter((answer) => answer.run_id === run.id);
-      const runMentions = runAnswers.filter((answer) => answer.answer_text.toLocaleLowerCase().includes(normalizedName)).length;
+      const runMentions = runAnswers.filter((answer) => answerMentionsName(answer.answer_text, competitor.name)).length;
       return { runId: run.id, date: dateLabel(run.created_at), frequencyPct: runAnswers.length ? Math.round((runMentions / runAnswers.length) * 100) : 0 };
     });
     const reviewedPages = entries.filter((entry) => entry.crawlerAccess !== "unknown" && entry.competitors.some((name) => name.toLocaleLowerCase() === normalizedName));
