@@ -1,3 +1,4 @@
+// Positive fixtures declare synthetic protocol identities; these are not historical provider receipts.
 // Chat04 (attach-v1/04): A11 project-bound prompt edit caller + CV-05/A15
 // decision persistence callers + A14 comparison-context mapping.
 // RPCs are MOCKED here (no Supabase): these prove the caller contracts. The
@@ -240,7 +241,8 @@ test("A15: unconfirmed save asks for a same-key retry; key reuse for another Rec
   assert.equal(notInProject.status, 404);
 });
 
-const ctx = { locale: "en-US", market: "US", buyerStage: "evaluation", promptVersion: "p1", parserVersion: "x1", retrievalVersion: "r1", policyVersion: "c1", schemaVersion: "s1", evaluationVersion: "e1", provider: "ignored", modelVersion: "unreported" };
+const ctx = { locale: "en-US", market: "US", buyerStage: "evaluation", promptVersion: "p1", parserVersion: "x1", retrievalVersion: "r1", policyVersion: "c1", schemaVersion: "s1", modelVersion: "synthetic-revision-1", observationMethod: "api_hosted_model_with_independent_retrieval", retrievalProvider: "synthetic-search-1",
+  evaluationVersion: "e1", provider: "ignored" };
 const runRow = (id, createdAt, overrides = {}) => ({ id, organization_id: ORG_A, project_id: PROJECT_A1, status: "complete", created_at: createdAt, methodology_version: "m-2026-10", question_set_version: 3, cycle_origin: "customer_cycle", ...overrides });
 const answerRow = (runId, overrides = {}) => ({ run_id: runId, organization_id: ORG_A, prompt_key: "k1", prompt_text: "Which HR platform?", provider: "cloudflare", model: "m1", review_status: "verified", observation_method: "api_hosted_model_with_independent_retrieval", sampling_json: { temperature: 0.1, samples: 1 }, measurement_context_json: ctx, ...overrides });
 

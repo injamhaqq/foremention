@@ -1,6 +1,6 @@
 import {
   assessExactQuestionComparability,
-  coerceComparableMeasurementContext,
+  coerceStoredComparableMeasurementContext,
   type ComparableQuestionSlot,
   type ExactComparability,
 } from "./intelligence-comparability.ts";
@@ -17,6 +17,9 @@ export type ComparableStoredAnswer = {
   provider: string;
   model: string | null;
   measurement_context_json: unknown;
+  raw_json?: unknown;
+  protocol_observation_method?: unknown;
+  protocol_retrieval_provider?: unknown;
 };
 
 export function validPairedRunAnswerBudget(
@@ -65,7 +68,7 @@ export function assessCompleteVerifiedRunPair(
     promptText: answer.prompt_text,
     provider: answer.provider,
     model: answer.model,
-    measurementContext: coerceComparableMeasurementContext(answer.measurement_context_json),
+    measurementContext: coerceStoredComparableMeasurementContext(answer),
   }));
   return assessExactQuestionComparability(later.id, earlier.id, slots);
 }

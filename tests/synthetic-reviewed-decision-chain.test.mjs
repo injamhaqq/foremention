@@ -1,3 +1,4 @@
+// Positive fixtures declare synthetic protocol identities; these are not historical provider receipts.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { assessExactQuestionComparability } from "../lib/intelligence-comparability.ts";
@@ -30,6 +31,7 @@ const context = Object.freeze({
   retrievalVersion: "1.0",
   policyVersion: "1.0",
   schemaVersion: "1.0",
+  modelVersion: "synthetic-revision-1", observationMethod: "provider_api", retrievalProvider: "synthetic-search-1",
   evaluationVersion: "1.0",
 });
 const slot = (runId, promptText, index, changes = {}) => ({

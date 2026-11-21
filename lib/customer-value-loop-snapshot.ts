@@ -6,15 +6,15 @@
  * Columns come from the Chat04 proposal migration
  * (04-proposals/migrations/20261013140000_chat04_customer_value_loop_persistence.proposal.sql):
  * runs.question_set_version, runs.cycle_origin, run_answers.observation_method,
- * run_answers.sampling_json; and the existing nine-field
- * run_answers.measurement_context_json. Absent values stay null/unknown so
+ * run_answers.sampling_json; the persisted measurement context and adapter
+ * metadata in raw_json. Absent values stay null/unknown so
  * the loop reports "not comparable" rather than guessing.
  */
-import type { ComparableMeasurementContext } from "./intelligence-comparability.ts";
+import { coerceComparableMeasurementContext, coerceStoredComparableMeasurementContext, type ComparableMeasurementContext } from "./intelligence-comparability.ts";
 import type { LoopAnswerSlot, LoopDecision, LoopProjectSnapshot, LoopRun, LoopRunStatus } from "./customer-value-loop.ts";
 
 export const LOOP_RUN_COLUMNS = "id,organization_id,project_id,status,created_at,methodology_version,question_set_version,cycle_origin";
-export const LOOP_ANSWER_COLUMNS = "run_id,organization_id,prompt_key,prompt_text,provider,model,review_status,observation_method,sampling_json,measurement_context_json";
+export const LOOP_ANSWER_COLUMNS = "run_id,organization_id,prompt_key,prompt_text,provider,model,review_status,observation_method,sampling_json,measurement_context_json,protocol_observation_method:raw_json->observationMethod,protocol_retrieval_provider:raw_json->retrievalProvider";
 export const LOOP_RUN_LIMIT = 20;
 export const LOOP_ANSWER_LIMIT = 1000;
 
@@ -40,13 +40,12 @@ export type LoopAnswerRow = {
   observation_method: string | null;
   sampling_json: Record<string, unknown> | null;
   measurement_context_json: Record<string, unknown> | null;
+  raw_json?: unknown;
+  protocol_observation_method?: unknown;
+  protocol_retrieval_provider?: unknown;
 };
 
 const runStatuses: LoopRunStatus[] = ["queued", "running", "review", "partial", "complete", "failed", "cancelled", "interrupted"];
-const contextKeys: Array<keyof ComparableMeasurementContext> = [
-  "locale", "market", "buyerStage", "promptVersion", "parserVersion", "retrievalVersion", "policyVersion", "schemaVersion", "evaluationVersion",
-];
-
 /** Stable, key-sorted identity for a sampling object; null when unavailable. */
 export function samplingIdentity(value: unknown): string | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -55,26 +54,24 @@ export function samplingIdentity(value: unknown): string | null {
   return JSON.stringify(Object.fromEntries(entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))));
 }
 
-export function measurementContextFrom(value: unknown): ComparableMeasurementContext | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const source = value as Record<string, unknown>;
-  const context = {} as ComparableMeasurementContext;
-  for (const key of contextKeys) {
-    const raw = source[key];
-    context[key] = typeof raw === "string" && raw.trim() ? raw.trim() : null;
-  }
-  return context;
+export function measurementContextFrom(value: unknown, raw?: unknown): ComparableMeasurementContext | null {
+  return coerceComparableMeasurementContext(value, raw);
 }
 
 export function answerRowToSlot(row: LoopAnswerRow): LoopAnswerSlot {
+  const method = typeof row.observation_method === "string" && row.observation_method.trim() ? row.observation_method.trim() : null;
+  const measurementContext = coerceStoredComparableMeasurementContext(row);
+  if (measurementContext?.observationMethod && method && measurementContext.observationMethod !== method) {
+    measurementContext.observationMethod = null;
+  }
   return {
     promptKey: row.prompt_key,
     promptText: row.prompt_text,
     provider: row.provider,
     model: row.model,
     sampling: samplingIdentity(row.sampling_json),
-    method: typeof row.observation_method === "string" && row.observation_method.trim() ? row.observation_method.trim() : null,
-    measurementContext: measurementContextFrom(row.measurement_context_json),
+    method,
+    measurementContext,
     // The database enum calls a rejected answer "excluded".
     reviewStatus: row.review_status === "verified" ? "verified" : row.review_status === "excluded" ? "rejected" : "unreviewed",
   };
