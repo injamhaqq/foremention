@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Browser-only state for the illustrative graph. All static homepage content renders on the server. */
 export function IllustrativeRecommendationGraph() {
@@ -9,6 +9,40 @@ export function IllustrativeRecommendationGraph() {
   const [selectedBrand, setSelectedBrand] = useState<"competitor" | "brand" | null>(null);
   const [selectedEvidence, setSelectedEvidence] = useState<"source-01" | "source-02" | null>(null);
   const sampleSurfaceReady = sampleSurface === "workers-ai-bing-rss";
+
+  // The sample walks itself through the evidence chain once the visitor is
+  // looking at it, then stops the moment they take over. It never fabricates a
+  // new question or a provider surface: it only cycles the states a visitor can
+  // already reach by hand.
+  const [autoPlaying, setAutoPlaying] = useState(false);
+  const autoStopped = useRef(false);
+  const stopAuto = () => { autoStopped.current = true; setAutoPlaying(false); };
+
+  useEffect(() => {
+    const reduceMotion = typeof window.matchMedia === "function"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let cancelled = false;
+    let timer = 0;
+    if (reduceMotion) {
+      // No animation: reveal the answered state so nothing is hidden behind motion.
+      timer = window.setTimeout(() => setSampleSurface("workers-ai-bing-rss"), 0);
+      return () => window.clearTimeout(timer);
+    }
+    const steps = ["answer", "competitor", "source", "reset"] as const;
+    let index = 0;
+    const tick = () => {
+      if (cancelled || autoStopped.current) return;
+      const step = steps[index % steps.length];
+      if (step === "answer") { setAutoPlaying(true); setSampleSurface("workers-ai-bing-rss"); setSelectedBrand(null); setSelectedEvidence(null); }
+      else if (step === "competitor") { setSelectedBrand("competitor"); setSelectedEvidence(null); }
+      else if (step === "source") { setSelectedEvidence("source-01"); setSelectedBrand(null); }
+      else { setSelectedBrand(null); setSelectedEvidence(null); }
+      index += 1;
+      timer = window.setTimeout(tick, step === "reset" ? 2600 : 2400);
+    };
+    timer = window.setTimeout(tick, 900);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, []);
 
   const inspector = !sampleSurfaceReady
     ? {
@@ -41,7 +75,7 @@ export function IllustrativeRecommendationGraph() {
             };
 
   return <>
-        <div id="sample-recommendation-graph" className="fm-recommendation-graph" role="group" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
+        <div id="sample-recommendation-graph" className={`fm-recommendation-graph${autoPlaying ? " is-autoplaying" : ""}`} role="group" aria-label="Illustrative recommendation graph connecting one buyer question to an observed answer, recommended brands, returned sources, and an inspectable Recommendation Record">
           <div className="fm-recommendation-graph__label"><span>ILLUSTRATIVE SIGNAL MAP</span><strong>Question → answer → brands → sources</strong></div>
           <label className="fm-recommendation-graph__surface">
             <span>EXAMPLE MEASUREMENT SURFACE</span>
@@ -49,6 +83,7 @@ export function IllustrativeRecommendationGraph() {
               aria-label="Choose the supported example measurement surface"
               value={sampleSurface}
               onChange={(event) => {
+                stopAuto();
                 setSampleSurface(event.target.value);
                 setSelectedBrand(null);
                 setSelectedEvidence(null);
@@ -83,6 +118,7 @@ export function IllustrativeRecommendationGraph() {
             aria-pressed={selectedBrand === "competitor"}
             className={`fm-graph-node fm-graph-node--brand${selectedBrand === "competitor" ? " is-selected" : ""}`}
             onClick={() => {
+              stopAuto();
               setSelectedBrand("competitor");
               setSelectedEvidence(null);
             }}
@@ -97,6 +133,7 @@ export function IllustrativeRecommendationGraph() {
             aria-pressed={selectedBrand === "brand"}
             className={`fm-graph-node fm-graph-node--brand-secondary${selectedBrand === "brand" ? " is-selected" : ""}`}
             onClick={() => {
+              stopAuto();
               setSelectedBrand("brand");
               setSelectedEvidence(null);
             }}
@@ -111,6 +148,7 @@ export function IllustrativeRecommendationGraph() {
             aria-pressed={selectedEvidence === "source-01"}
             className={`fm-graph-node fm-graph-node--source-a${selectedEvidence === "source-01" ? " is-selected" : ""}`}
             onClick={() => {
+              stopAuto();
               setSelectedEvidence("source-01");
               setSelectedBrand(null);
             }}
@@ -125,6 +163,7 @@ export function IllustrativeRecommendationGraph() {
             aria-pressed={selectedEvidence === "source-02"}
             className={`fm-graph-node fm-graph-node--source-b${selectedEvidence === "source-02" ? " is-selected" : ""}`}
             onClick={() => {
+              stopAuto();
               setSelectedEvidence("source-02");
               setSelectedBrand(null);
             }}
@@ -139,6 +178,7 @@ export function IllustrativeRecommendationGraph() {
             className="fm-graph-record"
             href="#recommendation-record"
             aria-live="polite"
+            onClick={stopAuto}
           >
             <span>{inspector.label}</span>
             <strong>{inspector.title}</strong>
