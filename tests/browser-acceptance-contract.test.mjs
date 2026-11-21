@@ -15,7 +15,10 @@ const [workflow, runner, hardening, demoBaseline, lighthouse] = await Promise.al
 
 test("browser acceptance is permanent on pull requests and exact main releases", () => {
   assert.match(workflow, /pull_request:/);
-  assert.match(workflow, /branches:\s*\n\s*- main/);
+  // FM-06: exact main releases are dispatched by production-deploy.yml after
+  // the CI-gated deploy is verified (a push trigger would race the deploy).
+  assert.doesNotMatch(workflow, /^\s*push:/m);
+  assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /production-auth-smoke\.mjs/);
   assert.match(workflow, /FOREMENTION_EXPECTED_BUILD_COMMIT: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /wrangler dev --local --config dist\/server\/wrangler\.json --ip 127\.0\.0\.1 --port 4173/);

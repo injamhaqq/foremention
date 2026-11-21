@@ -11,7 +11,10 @@ const [workflow, canary] = await Promise.all([
 ]);
 
 test("the production canary is trusted-main only and exact releases require explicit enablement plus spend approval", () => {
-  assert.match(workflow, /push:\s*\n\s*branches:\s*\n\s*- main/);
+  // FM-06: exact main releases dispatch this canary from production-deploy.yml
+  // after the CI-gated deploy; a push trigger would race the deploy.
+  assert.doesNotMatch(workflow, /^\s*push:/m);
+  assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /pull_request:/);
   assert.match(canary, /FOREMENTION_ACCEPTANCE_CANARY_ENABLED/);
   assert.match(canary, /FOREMENTION_ACCEPTANCE_PROVIDER_SPEND_APPROVED/);

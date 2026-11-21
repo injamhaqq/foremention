@@ -27,12 +27,15 @@ test("public analytics disclosure matches production PostHog behavior", async ()
       "disclosure must state that PostHog uses a cookie");
   }
 
+  // Ops track: PostHog is now consent-gated by the same Analytics settings choice.
+  assert.match(analytics, /if \(!hasAnalyticsConsent\(\)\) return false;/);
   assert.ok(
-    privacy.includes("The Analytics settings link in the footer controls the optional Microsoft Clarity and Contentsquare experience-analytics choice;"),
-    "privacy notice must name the optional tools controlled by Analytics settings",
+    privacy.includes("The Analytics settings link in the footer controls one choice for PostHog product analytics and the optional Microsoft Clarity and Contentsquare experience analytics;"),
+    "privacy notice must name every tool controlled by Analytics settings",
   );
   assert.ok(
-    privacy.includes("it does not toggle the separate limited PostHog product analytics described above."),
-    "privacy notice must distinguish optional experience analytics from limited PostHog product analytics",
+    privacy.includes("PostHog does not load, and sets no cookie or local storage, until a visitor allows analytics"),
+    "privacy notice must state that PostHog waits for consent",
   );
+  assert.match(subprocessors, /loads only after a visitor allows analytics/);
 });

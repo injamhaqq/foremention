@@ -87,6 +87,8 @@ jobs:
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-terminal-attempt-ledger.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-workspace-export-delete-restore.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-isolated-reviewed-second-cycle.sql
+          # FM-08 / #351: follow-up comparability includes material measurement context.
+          docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-351-follow-up-measurement-context.sql
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-run-answer-evidence-receipts.sql
           # Chat06: real SQL behavior in disposable local Supabase, never production.
           docker exec -i supabase_db_foremention-mvp psql -v ON_ERROR_STOP=1 -U postgres -d postgres < scripts/verify-chat06-billing-inbox.sql
@@ -157,28 +159,9 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: Verify exact Cloudflare production release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          FOREMENTION_BASE_URL: https://foremention.com
-          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
-          FOREMENTION_RELEASE_WAIT_SECONDS: '300'
-        run: node scripts/production-auth-smoke.mjs
-
-      - name: Sync live Inngest functions
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          FOREMENTION_BASE_URL: https://foremention.com
-          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
-        run: node scripts/production-inngest-sync.mjs
-
-      - name: Probe live Inngest execution
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          FOREMENTION_BASE_URL: https://foremention.com
-          FOREMENTION_EXPECTED_BUILD_COMMIT: ${{ github.sha }}
-          FOREMENTION_INNGEST_WAIT_SECONDS: '150'
-        run: node scripts/production-inngest-smoke.mjs
+      # Production verification (exact buildCommit, auth smoke, Inngest sync and
+      # probe) runs in production-deploy.yml AFTER this workflow succeeds on the
+      # same SHA (FM-06), so CI's result never depends on production.
 
   attest-release:
     name: Attest verified release

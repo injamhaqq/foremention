@@ -1,3 +1,10 @@
+# Content-hashed build output (Vite/vinext `assets/` directory). File names
+# change whenever content changes, so browsers and Cloudflare may cache them for
+# a year without revalidation. vinext only generates this rule when no
+# public/_headers exists, so it must be declared here explicitly.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
 /index.md
   Link: <https://foremention.com/>; rel="canonical"
 

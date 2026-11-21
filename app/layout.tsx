@@ -29,6 +29,7 @@ import { PostHogAnalytics } from "../components/posthog-analytics";
 import { PublicActivationAnalytics } from "../components/public-activation-analytics";
 import { ContentsquareAnalytics } from "../components/contentsquare-analytics";
 import { SITE_URL } from "../lib/seo";
+import { CANONICAL_FONT_STYLESHEET_URL } from "../lib/font-stylesheet";
 
 const publicDescription = "See where AI recommends your brand. Track recommendations, inspect supporting sources, and decide what to improve with Recommendation Intelligence for B2B software.";
 
@@ -62,5 +63,5 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       "https://www.instagram.com/forementionhq/",
     ],
   };
-  return <html lang="en" data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /><link rel="describedby" href="/llms.txt" /></head><body><AuthHashRedirect /><SentryClient /><PostHogAnalytics /><PublicActivationAnalytics /><ContentsquareAnalytics />{children}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></body></html>;
+  return <html lang="en" data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /><link rel="stylesheet" href={CANONICAL_FONT_STYLESHEET_URL} /><link rel="describedby" href="/llms.txt" /></head><body><AuthHashRedirect /><SentryClient /><PostHogAnalytics /><PublicActivationAnalytics /><ContentsquareAnalytics />{children}<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></body></html>;
 }

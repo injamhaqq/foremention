@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  readStoredAnalyticsConsent,
+  subscribeToAnalyticsConsent,
+  writeStoredAnalyticsConsent,
+  type AnalyticsConsent,
+} from "@/lib/analytics-consent";
+import { clearProductAnalyticsStorage } from "@/lib/product-analytics";
 
-const CONSENT_KEY = "foremention:experience-analytics-consent";
-const LEGACY_CONSENT_KEY = "foremention:contentsquare-consent";
-const CONSENT_EVENT = "foremention:experience-analytics-consent-changed";
+// Consent state is shared with PostHog product analytics (lib/analytics-consent.ts,
+// key "foremention:experience-analytics-consent").
 const SCRIPT_ID = "foremention-contentsquare";
 const CLARITY_SCRIPT_ID = "foremention-clarity";
 
-type Consent = "accepted" | "declined" | null;
+type Consent = AnalyticsConsent;
 
 function configuredTagUrl() {
   const value = process.env.NEXT_PUBLIC_CONTENTSQUARE_TAG_URL?.trim();
@@ -24,35 +30,11 @@ function configuredClarityProjectId() {
   return value?.match(/^[a-z0-9]{6,32}$/i) ? value : null;
 }
 
-function readStoredConsent(): Consent {
-  if (typeof window === "undefined") return null;
-  const stored = window.localStorage.getItem(CONSENT_KEY)
-    ?? window.localStorage.getItem(LEGACY_CONSENT_KEY);
-  return stored === "accepted" || stored === "declined" ? stored : null;
-}
+const readStoredConsent = readStoredAnalyticsConsent;
+const writeStoredConsent = writeStoredAnalyticsConsent;
 
-function subscribeToConsent(callback: () => void) {
-  if (typeof window === "undefined") return () => {};
-  const handleStorage = (event: StorageEvent) => {
-    if (!event.key || event.key === CONSENT_KEY || event.key === LEGACY_CONSENT_KEY) callback();
-  };
-  const handleCustom = () => callback();
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener(CONSENT_EVENT, handleCustom);
-  return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener(CONSENT_EVENT, handleCustom);
-  };
-}
-
-function writeStoredConsent(next: Exclude<Consent, null>) {
-  window.localStorage.setItem(CONSENT_KEY, next);
-  window.localStorage.removeItem(LEGACY_CONSENT_KEY);
-  window.dispatchEvent(new Event(CONSENT_EVENT));
-}
-
-function useExperienceAnalyticsConsent() {
-  return useSyncExternalStore(subscribeToConsent, readStoredConsent, () => null);
+export function useExperienceAnalyticsConsent() {
+  return useSyncExternalStore(subscribeToAnalyticsConsent, readStoredConsent, () => null);
 }
 
 export function ContentsquareAnalytics() {
@@ -142,6 +124,7 @@ export function ExperienceAnalyticsPreferences() {
   function choose(next: Exclude<Consent, null>) {
     const previous = readStoredConsent();
     writeStoredConsent(next);
+    if (next === "declined") clearProductAnalyticsStorage();
     // Once a third-party script has executed, removing its script tag cannot
     // guarantee the already-loaded runtime has stopped. Reload after revoking
     // an existing opt-in so the new privacy-off state is applied cleanly.
@@ -176,12 +159,12 @@ export function ExperienceAnalyticsPreferences() {
         aria-describedby="analytics-settings-description"
       >
         <div className="analytics-settings-dialog__head">
-          <span className="eyebrow">Optional experience analytics</span>
+          <span className="eyebrow">Optional analytics</span>
           <button type="button" className="analytics-settings-dialog__close" aria-label="Close analytics settings" onClick={closeDialog}>Close</button>
         </div>
         <h2 id="analytics-settings-title">Analytics settings</h2>
-        <p id="analytics-settings-description">Microsoft Clarity and Contentsquare stay off unless you allow them. They are not used for AI answers, evidence, passwords, or form content.</p>
-        <p className="analytics-settings-dialog__note">This preference controls optional experience analytics only. Foremention&apos;s privacy-limited product telemetry is described separately in the Privacy notice.</p>
+        <p id="analytics-settings-description">PostHog product analytics, Microsoft Clarity and Contentsquare stay off, and set no analytics cookies, unless you allow them. They are not used for AI answers, evidence, passwords, or form content.</p>
+        <p className="analytics-settings-dialog__note">This preference controls all optional analytics that use cookies or browser storage. Cookie-free Cloudflare performance measurement is described separately in the Privacy notice.</p>
         <div className="analytics-settings-actions">
           <button type="button" className="button button--outline" aria-pressed={!enabled} onClick={() => choose("declined")}>Keep off</button>
           <button type="button" className="button" aria-pressed={enabled} onClick={() => choose("accepted")}>Allow analytics</button>
