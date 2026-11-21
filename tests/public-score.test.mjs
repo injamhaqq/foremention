@@ -13,7 +13,7 @@ test("public visibility score uses five grounded Cloudflare plus Bing RSS answer
   assert.match(worker, /No result was invented/);
   assert.match(worker, /runPublicGroundedCloudflare/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
-  assert.match(worker, /provider: "Cloudflare Workers AI \+ Bing Search RSS"/);
+  assert.match(worker, /provider: groundedCollectionLabel\(grounded\.retrievalProvider\)/);
   assert.match(retrieval, /https:\/\/www\.bing\.com\/search/);
   assert.match(retrieval, /Bing RSS returned no verifiable source URLs/);
   assert.match(worker, /appearedIn/);

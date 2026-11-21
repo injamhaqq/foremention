@@ -1,0 +1,59 @@
+/* Claims / legal / SEO fix track (2026-10-19).
+ * Pricing comparison table and billing FAQ, legal-page readability, and
+ * mobile layout fixes for the public marketing pages at 780 / 420 px.
+ * Uses existing tokens only; no new colours or identity assets. */
+
+/* Pricing: comparison table and billing FAQ */
+.claims-pricing-compare h2 { margin: 0 0 22px; font-size: clamp(30px, 4vw, 44px); letter-spacing: -.05em; line-height: 1.05; }
+.claims-table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--ink); background: #fff; }
+.claims-table-scroll:focus-visible { outline: 3px solid var(--marker, currentColor); outline-offset: 3px; }
+.claims-compare-table { width: 100%; min-width: 640px; border-collapse: collapse; color: #111; font-size: 14px; line-height: 1.45; }
+.claims-compare-table th,
+.claims-compare-table td { padding: 14px 16px; border-bottom: 1px solid #d9d6cf; text-align: left; vertical-align: top; }
+.claims-compare-table thead th { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.claims-compare-table tbody th { font-weight: 700; }
+.claims-compare-table tr:last-child > * { border-bottom: 0; }
+.claims-pricing-faq__title { margin-top: 64px !important; }
+.claims-pricing-faq { display: grid; gap: 10px; max-width: 860px; }
+.claims-pricing-faq details { padding: 16px 18px; border: 1px solid var(--ink); background: #fff; color: #111; }
+.claims-pricing-faq summary { min-height: 28px; cursor: pointer; font-weight: 700; }
+.claims-pricing-faq details p { margin: 10px 0 0; font-size: 15px; line-height: 1.6; }
+.claims-pricing-pilot { margin-top: 32px; }
+.claims-pricing-lede { margin-top: 18px; }
+.claims-cta-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
+.claims-offer-summary { max-width: 720px; margin-top: 14px; font-size: 15px; line-height: 1.6; }
+
+/* Legal pages: long emails, URLs and placeholders must wrap instead of overflowing. */
+.legal-copy a,
+.legal-copy code,
+.legal-copy li,
+.legal-copy p { overflow-wrap: anywhere; }
+.legal-copy ul { padding-left: 1.2em; line-height: 1.7; }
+
+/* Mobile: public marketing pages */
+@media (max-width: 780px) {
+  .pricing-card { min-height: 0; }
+  .legal-copy { padding-top: 48px; padding-bottom: 72px; }
+  .legal-copy h2 { margin-top: 40px; font-size: 24px; }
+  .contact-grid article { padding: 26px 20px; }
+  .contact-grid h2 { font-size: 30px; }
+  .intake-form button[type="submit"] { width: 100%; min-height: 48px; justify-content: center; }
+  .page-hero__actions .button,
+  .cta-band__inner .button,
+  .claims-pricing-pilot .button { width: 100%; min-height: 48px; justify-content: center; }
+  .claims-cta-actions { width: 100%; }
+}
+
+@media (max-width: 420px) {
+  /* Long single words ("Recommendation") at 46px exceed a 290px shell. */
+  .page-hero h1,
+  .narrow-heading h1,
+  .section-heading h2,
+  .cta-band h2,
+  .contact-grid h2 { overflow-wrap: anywhere; hyphens: auto; }
+  .contact-grid article { padding: 22px 14px; }
+  .intake-form { padding: 18px; box-shadow: 4px 4px 0 var(--ink); }
+  .claims-compare-table { font-size: 13px; }
+  .claims-compare-table th,
+  .claims-compare-table td { padding: 12px; }
+}

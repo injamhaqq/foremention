@@ -4,6 +4,8 @@ import { capturePersistedDesignPartnerSubmission } from "@/lib/design-partner-se
 import { designPartnerSubmissionKey, normalizeDesignPartnerApplication, type DesignPartnerApplication } from "@/lib/design-partner";
 import { isTrustedMutationOrigin } from "@/lib/request-security";
 import { supabaseRest } from "@/lib/supabase-rest";
+import { designPartnerSpamVerdict, operatorAlertOutcome } from "@/lib/design-partner-spam";
+import { logOperationalEvent } from "@/lib/structured-logger";
 
 type IntakeReceipt = {
   intakeId?: string;
@@ -50,9 +52,15 @@ async function notifyDesignPartnerOperators(
   application: DesignPartnerApplication,
   keyHash: string,
 ) {
-  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return;
-  const recipients = operatorRecipients();
-  if (!recipients.length) return;
+  // Alert path: the existing service-only product-alert email (Resend) to
+  // FOREMENTION_COMPANY_OPERATOR_EMAILS. Every outcome is logged without
+  // personal data so a misconfigured alert is visible instead of silent.
+  const configured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+  const recipients = configured ? operatorRecipients() : [];
+  if (!configured || !recipients.length) {
+    logOperationalEvent("design_partner_alert", { route: "/api/design-partner", status: operatorAlertOutcome(configured, recipients.length, []) });
+    return;
+  }
 
   const questionSummary = application.buyerQuestions.length
     ? application.buyerQuestions.map((question, index) => `${index + 1}. ${question}`).join("\n")
@@ -74,12 +82,15 @@ async function notifyDesignPartnerOperators(
     "Stage-0 operating target: review within one business day. This application is not a customer, paid pilot, or traction claim until first-party commercial evidence supports that state.",
   ].join("\n");
 
-  await Promise.allSettled(recipients.map((to, index) => sendProductAlertEmail({
+  const results = await Promise.allSettled(recipients.map((to, index) => sendProductAlertEmail({
     to,
     subject: `Foremention design-partner application — ${application.company}`,
     text,
     idempotencyKey: `design-partner-application-${keyHash}-${index}`,
   })));
+  const outcome = operatorAlertOutcome(true, recipients.length, results);
+  if (outcome === "sent") logOperationalEvent("design_partner_alert", { route: "/api/design-partner", status: outcome, count: recipients.length });
+  else console.warn(JSON.stringify({ event: "design_partner_alert", route: "/api/design-partner", status: outcome, count: recipients.length }));
 }
 
 export async function POST(request: Request) {
@@ -98,8 +109,13 @@ export async function POST(request: Request) {
     return responseFor(request, 400, "The application could not be read.");
   }
 
-  // Silent honeypot success keeps obvious form bots from learning the filter.
-  if (typeof input.website === "string" && input.website.trim()) return responseFor(request, 201, "Application received.");
+  // Honeypot and time trap: a silent "received" keeps bots from learning the
+  // filter. Nothing is stored or emailed for a trapped submission.
+  const spam = designPartnerSpamVerdict(input);
+  if (spam.trapped) {
+    logOperationalEvent("design_partner_spam_trapped", { route: "/api/design-partner", reason: spam.reason });
+    return responseFor(request, 201, "Application received.");
+  }
 
   const normalized = normalizeDesignPartnerApplication(input);
   if (!normalized.ok) return responseFor(request, 400, normalized.error);

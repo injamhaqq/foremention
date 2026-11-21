@@ -75,7 +75,7 @@ export async function POST(request: Request) {
   const providerId = providers[0] as LiveProviderId;
   if (!providerAllowedForLiveCollection(providerId)) {
     return NextResponse.json({
-      error: "Production is in free-only mode. Grounded Cloudflare Workers AI with Bing Search RSS is the only live customer-evidence provider enabled.",
+      error: "Production is in free-only mode. Grounded Cloudflare Workers AI with Brave Search is the only live customer-evidence provider enabled.",
     }, { status: 403 });
   }
   if (!providerAllowedForMeasurementLane(providerId)) {

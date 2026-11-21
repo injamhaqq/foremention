@@ -17,7 +17,7 @@ test("homepage explains the founder-led pilot without replacing the approved her
   assert.match(hero, /<ol className="fm-cinematic-hero__steps">/);
   assert.match(hero, /href="#sample-recommendation-graph">Explore a sample/);
   assert.match(hero, /href="\/contact">Request a pilot/);
-  assert.match(hero, /The example uses Workers AI \+ Bing RSS grounded synthesis, not direct ChatGPT, Gemini, or Perplexity application monitoring/);
+  assert.match(hero, /The example uses Workers AI \+ Brave Search grounded synthesis, not direct ChatGPT, Gemini, or Perplexity application monitoring/);
   assert.match(hero, /Opening this page does not trigger paid research or expose customer records/);
 });
 

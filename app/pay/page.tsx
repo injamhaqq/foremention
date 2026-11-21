@@ -8,6 +8,7 @@ import { PaddleSandboxPayment } from "@/components/paddle-sandbox-payment";
 import { paddleSandboxRequestAllowed } from "@/lib/paddle-sandbox-staging";
 import { paddleLiveCheckoutClientToken } from "@/lib/paddle-payment-page";
 import { getSiteHeaderAccount } from "@/lib/auth";
+import { PUBLIC_PLANS } from "@/lib/public-offer";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = pageMetadata({
@@ -44,6 +45,7 @@ export default async function PaymentPage() {
             <span className="eyebrow">Secure payment</span>
             <h1>Foremention checkout</h1>
             <p>Payment is processed by Paddle, our merchant of record. Access starts only after Paddle confirms the payment to Foremention.</p>
+            <p>Monthly prices: Core {PUBLIC_PLANS.core.price.replace(" / month", "")}, Signal {PUBLIC_PLANS.signal.price.replace(" / month", "")} (USD). Paddle shows the final price, billing interval and any tax before you pay. Cancel anytime.</p>
             <p><strong>7-day money-back guarantee.</strong> Not the right fit? Email hello@foremention.com within 7 days of your first payment for a full refund. Once per company. <a href="/refund-policy">Refund policy</a></p>
           </div>
         </section>

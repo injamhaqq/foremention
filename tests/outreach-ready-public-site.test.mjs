@@ -85,7 +85,7 @@ test("design-partner conversion is the primary contact flow and is measured with
     read("app/api/design-partner/route.ts"),
   ]);
 
-  assert.match(contact, /Apply as Design Partner/);
+  assert.match(contact, /\{PILOT_CTA_LABEL\}/);
   assert.match(contact, /Bring five buyer questions\. Review the evidence and choose a change worth testing\./);
   assert.match(contact, /We could not verify a saved application/);
   assert.match(contact, /comparable remeasurement/);

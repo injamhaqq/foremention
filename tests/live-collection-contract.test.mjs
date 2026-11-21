@@ -207,12 +207,12 @@ test("Cloudflare Workers AI uses keyless Bing RSS web retrieval and persists onl
   assert.match(retrieval, /Bing RSS returned no verifiable source URLs/);
   assert.doesNotMatch(adapter, /CLOUDFLARE_API_(?:KEY|TOKEN)/);
   assert.match(registry, /cloudflareAdapter/);
-  assert.match(data, /Cloudflare Workers AI \+ Bing Search RSS/);
+  assert.match(data, /Cloudflare Workers AI \+ Brave Search/);
   assert.match(data, /id: "cloudflare"[\s\S]*supportsCitations: true/);
   assert.match(route, /"cloudflare"/);
   assert.match(worker, /setCloudflareAiBinding\(env\.AI\)/);
   assert.match(worker, /runGroundedCloudflareWithBinding/);
-  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI \+ Bing Search RSS"/);
+  assert.match(sourceMap, /cloudflare: "Cloudflare Workers AI \+ Brave Search"/);
   assert.match(config, /"binding": "AI"/);
   assert.match(config, /@cf\/google\/gemma-4-26b-a4b-it/);
   assert.match(prepare, /config\.ai = \{ binding: "AI" \}/);

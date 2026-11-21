@@ -172,9 +172,9 @@ test("A21: token lifecycle, unavailable report and not-found pages are explicitl
   assert.match(report, /const loadReport = cache\(loadPublicVisibilityReport\)/);
   assert.match(notFound, /robots: \{ index: false, follow: false \}/);
   const pricing = await read("app/pricing/page.tsx");
-  assert.match(pricing, /noIndex: true/, "pricing stays noindex until the commercial truth gate");
+  assert.doesNotMatch(pricing, /noIndex: true/, "pricing is indexable now that self-serve checkout is live (claims track, FM-24)");
   const sitemap = await read("app/sitemap.ts");
-  for (const privatePath of ["/pricing", "/pay", "/unsubscribe", "/invite", "/share", "/report/", "/app"]) {
+  for (const privatePath of ["/pay", "/unsubscribe", "/invite", "/share", "/report/", "/app"]) {
     assert.doesNotMatch(sitemap, new RegExp(`["'\`]${escapeRegExp(privatePath)}["'\`/]`), `sitemap must not list ${privatePath}`);
   }
 });

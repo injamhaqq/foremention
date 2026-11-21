@@ -80,7 +80,8 @@ test("server emits conversion only after successful new database persistence, no
   assert.ok(claim >= 0 && claim < persisted);
   assert.ok(persisted < receipt && receipt < capture && capture < response);
   assert.equal((route.match(/capturePersistedDesignPartnerSubmission\(intakeId\)/g) || []).length, 1);
-  assert.match(route, /input\.website.*return responseFor\(request, 201/);
+  assert.match(route, /designPartnerSpamVerdict\(input\)/);
+  assert.match(route, /if \(spam\.trapped\) \{[\s\S]*?return responseFor\(request, 201/);
   assert.match(route, /if \(claim === "limited"\) return limitedResponse\(request\)/);
   assert.match(route, /serviceRole: true/);
   assert.doesNotMatch(route, /captureProductEvent|posthog-js/);

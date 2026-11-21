@@ -20,7 +20,8 @@
 
 ## Company and commercial
 
-- [Design Partner Application](https://foremention.com/contact) — founder-led design-partner application.
+- [Pricing](https://foremention.com/pricing) — plans and monthly prices.
+- [Request a pilot](https://foremention.com/contact) — founder-led pilot (design-partner) application.
 - [Partners](https://foremention.com/partners) — partner information.
 - [About](https://foremention.com/about) — company and product purpose.
 
@@ -29,7 +30,9 @@
 - [Trust Center](https://foremention.com/trust) — security, privacy, reliability, and evidence boundaries.
 - [Privacy](https://foremention.com/privacy) — privacy practices.
 - [Subprocessors](https://foremention.com/subprocessors) — subprocessor information.
-- [Terms](https://foremention.com/terms) — terms of use.
+- [Terms](https://foremention.com/terms) — terms of service.
+- [Refund policy](https://foremention.com/refund-policy) — 7-day money-back guarantee, refunds and cancellations.
+- [Data Processing Addendum](https://foremention.com/dpa) — customer personal-data processing terms.
 
 ## Agent-readable resources
 

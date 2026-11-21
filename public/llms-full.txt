@@ -21,6 +21,10 @@ The canonical measurement object is the Recommendation Record. The canonical dec
 9. Comparable remeasurement — measure later only when the buyer question and relevant conditions remain comparable.
 10. Learning — record observed association and business outcome without manufacturing causality.
 
+## Measurement method
+
+The current live collection path is Cloudflare Workers AI with grounded synthesis. Web retrieval uses one provider: the Brave Search API. The model answers only from the retrieved sources, and each record stores the retrieval provider it actually used. This is not direct monitoring of ChatGPT, Gemini, or Perplexity consumer applications.
+
 ## Evidence boundaries
 
 Foremention does not promise rankings, fabricate review evidence, hide promotion, or claim causal impact from a simple before-and-after observation. A returned source does not by itself prove that it caused an AI recommendation. A later movement does not by itself prove that a customer action caused the movement. Public illustrative records are labeled as illustrative rather than customer evidence.
@@ -28,6 +32,10 @@ Foremention does not promise rankings, fabricate review evidence, hide promotion
 ## Design-partner scope
 
 The current public motion is founder-led and deliberately narrow: one real B2B software category, up to five priority buyer questions, a baseline, evidence review, one customer-owned Change Specification, and comparable remeasurement. Applying does not create a paid subscription or authorize an automated company change.
+
+## Plans
+
+Prices are monthly, in USD, and listed on https://foremention.com/pricing. Free plan: 5 buyer questions and 10 answers a month. Core: $99 per month, up to 25 buyer questions, monthly re-measurement, with a one-time 7-day free trial that needs no card. Signal: $299 per month, up to 100 buyer questions and three brands, weekly re-measurement. Intelligence: custom scope. Paid checkout is handled by Paddle, the merchant of record. A company's first Core or Signal payment has a 7-day money-back guarantee, once per company. List prices are not evidence of customers or revenue.
 
 ## Public category
 
@@ -43,10 +51,13 @@ Foremention publicly uses the category Recommendation Intelligence. Broader cate
 - Glossary: https://foremention.com/glossary
 - Research: https://foremention.com/insights
 - Trust Center: https://foremention.com/trust
-- Design Partner Application: https://foremention.com/contact
+- Pricing: https://foremention.com/pricing
+- Request a pilot (design-partner application): https://foremention.com/contact
 - Privacy: https://foremention.com/privacy
 - Subprocessors: https://foremention.com/subprocessors
 - Terms: https://foremention.com/terms
+- Refund policy: https://foremention.com/refund-policy
+- Data Processing Addendum: https://foremention.com/dpa
 
 ## Agent discovery
 

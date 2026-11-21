@@ -16,7 +16,7 @@ No fake reviews. No hidden promotion. No ranking guarantees. No fabricated score
 
 ## Current live measurement surface
 
-The current free-only collection path observes **Cloudflare Workers AI + independently retrieved Bing Search RSS grounded synthesis**. It does **not** directly monitor ChatGPT, Gemini, or Perplexity consumer-app responses, and a hosted or model-vendor API cannot be assumed equivalent to its consumer application. Each observation must retain its actual provider, model, question version, retrieval method, citation provenance and comparison limits. Broader native surfaces require separate verification before any coverage claim. See the [measurement methodology](https://foremention.com/methodology).
+The current free-only collection path observes **Cloudflare Workers AI + independently retrieved Brave Search grounded synthesis**. It does **not** directly monitor ChatGPT, Gemini, or Perplexity consumer-app responses, and a hosted or model-vendor API cannot be assumed equivalent to its consumer application. Each observation must retain its actual provider, model, question version, retrieval method, citation provenance and comparison limits. Broader native surfaces require separate verification before any coverage claim. See the [measurement methodology](https://foremention.com/methodology).
 
 ## Recommendation Record
 

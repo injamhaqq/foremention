@@ -1,5 +1,8 @@
 # Provider-surface coverage and claims boundary
 
+> **Update 2026-10-19 (FM-04).** Production retrieval now uses one provider, the Brave Search API (every answer since 14 Oct 2026 records `retrievalProvider = brave-search`). Bing Search RSS is only reachable behind the explicit `FOREMENTION_BING_RSS_COLLECTION_AUTHORIZED` flag, which production does not set. Public copy says Brave Search; the Bing references below are historical.
+
+
 **Operational evidence status (2026-09-26).** The current production free-only live collection route is one controlled observation surface: **Cloudflare Workers AI hosted inference with independent Bing Search RSS retrieval and grounded synthesis**. The trusted canary pins the hosted model `@cf/google/gemma-4-26b-a4b-it`; each persisted observation retains its recorded provider/model. Provider search-result source numbers used in synthesis are checked against the retrieved URL set. Neither this hosted model nor its independent search retrieval is a native consumer ChatGPT, Gemini, or Perplexity observation.
 
 A configured optional provider adapter is not a certified production surface. In particular, prior Gemini failures were 404 for the earlier deployed model setting and 429 at the account quota boundary; repository defaults do not prove current deployed account configuration or grounded success. A direct provider API may be materially different from the consumer application, and neither is presumed representative of personal or private conversations.

@@ -55,7 +55,9 @@ test("approved canonical Foremention identity artwork stays locked while legacy 
   assert.doesNotMatch(brand, /wordmark--text-only|wordmark__text|source-eclipse\.svg/);
   assert.match(publicShell, /Wordmark/);
   assert.match(workspaceNav, /Wordmark|ForementionMark/);
-  assert.doesNotMatch(`${layout}\n${seo}`, /og\.png|og-platform\.png|SOCIAL_IMAGE/);
+  assert.doesNotMatch(`${layout}\n${seo}`, /\/og\.png|og-platform\.png|SOCIAL_IMAGE/);
+  // The share image is a 1200x630 composition of the approved white wordmark, kept outside public/brand.
+  assert.match(seo, /OG_IMAGE_PATH = "\/social\/foremention-share-1200x630\.png"/);
 
   for (const path of [
     "public/brand/foremention-logo-white.svg",

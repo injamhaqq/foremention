@@ -394,8 +394,8 @@ test("SEO, neutral social metadata, and accessibility states are bundled", async
   assert.match(layout, /"@type":\s*"Organization"/);
   assert.doesNotMatch(layout, /"@type":\s*"SoftwareApplication"/);
   assert.doesNotMatch(layout, /SOCIAL_IMAGE/);
-  assert.doesNotMatch(seo, /og\.png|SOCIAL_IMAGE/);
-  assert.match(seo, /card: "summary"/);
+  assert.doesNotMatch(seo, /\/og\.png|SOCIAL_IMAGE/);
+  assert.match(seo, /card: "summary_large_image"/);
   assert.match(seo, /https:\/\/foremention\.com/);
   assert.match(seo, /alternates:\s*\{/);
   assert.match(seo, /canonical,/);

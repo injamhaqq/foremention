@@ -4,6 +4,10 @@ import { SITE_URL } from "@/lib/seo";
 const baselineUpdated = new Date("2026-08-30T00:00:00Z");
 const websiteUpdated = new Date("2026-10-05T00:00:00Z");
 const websiteUpdatedPaths = new Set(["", "/use-cases", "/contact"]);
+// Claims/legal/SEO fix track: pricing became indexable and the legal set was
+// revised (Terms, Privacy, Refunds, Subprocessors, new DPA).
+const claimsTrackUpdated = new Date("2026-10-19T00:00:00Z");
+const claimsTrackPaths = new Set(["/pricing", "/methodology", "/product", "/privacy", "/subprocessors", "/terms", "/refund-policy", "/dpa"]);
 
 const routes = [
   { path: "", frequency: "weekly", priority: 1 },
@@ -18,18 +22,20 @@ const routes = [
   { path: "/glossary", frequency: "monthly", priority: 0.7 },
   { path: "/partners", frequency: "monthly", priority: 0.6 },
   { path: "/about", frequency: "monthly", priority: 0.6 },
+  { path: "/pricing", frequency: "monthly", priority: 0.8 },
   { path: "/contact", frequency: "yearly", priority: 0.5 },
   { path: "/trust", frequency: "monthly", priority: 0.4 },
   { path: "/privacy", frequency: "yearly", priority: 0.3 },
   { path: "/subprocessors", frequency: "monthly", priority: 0.3 },
   { path: "/terms", frequency: "yearly", priority: 0.3 },
   { path: "/refund-policy", frequency: "yearly", priority: 0.3 },
+  { path: "/dpa", frequency: "yearly", priority: 0.3 },
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return routes.map((route) => ({
     url: `${SITE_URL}${route.path}`,
-    lastModified: websiteUpdatedPaths.has(route.path) ? websiteUpdated : baselineUpdated,
+    lastModified: claimsTrackPaths.has(route.path) ? claimsTrackUpdated : websiteUpdatedPaths.has(route.path) ? websiteUpdated : baselineUpdated,
     changeFrequency: route.frequency,
     priority: route.priority,
   }));

@@ -40,10 +40,22 @@ const providers = [
     boundary: "Receives the buyer question and request context required for that call. This is API-surface measurement, not observation of consumer ChatGPT, Gemini or Copilot sessions.",
   },
   {
+    name: "Brave Search",
+    status: "Retrieval provider for live evidence collection",
+    purpose: "Web search for buyer-question observations. Brave Search API is Foremention's one retrieval provider: the model answers only from the web sources Brave returns.",
+    boundary: "Receives the buyer question (or a short search query derived from it) and the request metadata needed for an API call. It does not receive account details, workspace records or customer evidence. Customers should not put personal data in buyer questions.",
+  },
+  {
     name: "Paddle",
     status: "Merchant of record when paid checkout is enabled",
     purpose: "Checkout, payment processing, invoicing, sales tax handling, subscription management, cancellation and refunds for paid plans.",
     boundary: "Receives the buyer's billing name, email, address, payment details and purchase records directly. Foremention receives subscription status and identifiers, never full card numbers. Not active until paid activation is announced.",
+  },
+  {
+    name: "Zoho Mail",
+    status: "Core business email",
+    purpose: "Hosts Foremention's business mailbox (hello@foremention.com), including support, privacy, refund and security requests, and is the email transport for founder-approved outreach, and replies to it, when that transport is selected.",
+    boundary: "Receives the content, sender and recipients of emails exchanged with Foremention. It does not receive workspace records, provider answers or customer evidence unless someone puts them in an email.",
   },
   {
     name: "Groq",
@@ -98,7 +110,7 @@ export default function SubprocessorsPage() {
         <h2>AI provider changes</h2>
         <p>Additional AI providers may be supported by the product, but a provider should be treated as active for a customer only when it is configured and actually used for that workspace. Provider and model labels shown in Foremention come from the recorded collection boundary rather than a generic marketing claim.</p>
         <h2>Questions or enterprise review</h2>
-        <p>For a customer-specific processor list, DPA discussion, or material provider question, contact <a href="mailto:hello@foremention.com">hello@foremention.com</a> before paid activation.</p>
+        <p>Our <a href="/dpa">Data Processing Addendum</a> explains how subprocessors are engaged and how changes are announced. For a customer-specific processor list, DPA discussion, or material provider question, contact <a href="mailto:hello@foremention.com">hello@foremention.com</a> before paid activation.</p>
       </div>
     </section>
   </PublicShell>;

@@ -55,7 +55,7 @@ export function IllustrativeRecommendationGraph() {
               }}
             >
               <option value="">Choose a surface</option>
-              <option value="workers-ai-bing-rss">Workers AI + Bing RSS grounded synthesis</option>
+              <option value="workers-ai-bing-rss">Workers AI + Brave Search grounded synthesis</option>
             </select>
           </label>
           <svg className="fm-recommendation-graph__lines" viewBox="0 0 760 620" aria-hidden="true" preserveAspectRatio="none">
@@ -147,7 +147,7 @@ export function IllustrativeRecommendationGraph() {
 
           <ol className="sr-only">
             <li>One illustrative buyer question is shown before any measurement surface is selected.</li>
-            <li>The visitor can select the currently supported example surface: Cloudflare Workers AI with independently retrieved Bing Search RSS grounded synthesis.</li>
+            <li>The visitor can select the currently supported example surface: Cloudflare Workers AI with independently retrieved Brave Search grounded synthesis.</li>
             <li>The provider answer is preserved with provenance.</li>
             <li>Observed brand recommendations remain attached to that answer.</li>
             <li>Returned sources remain distinct and inspectable.</li>

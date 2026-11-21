@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Arrow } from "@/components/brand";
 import { IllustrativeRecommendationGraph } from "@/components/illustrative-recommendation-graph";
+import { OFFER_SUMMARY, PRICING_CTA_LABEL } from "@/lib/public-offer";
 
 const workflow = [
   ["01", "Buyer question", "Start with a real question that can determine the shortlist."],
@@ -61,7 +62,7 @@ export function MissingAnswerExperience() {
             <Link data-public-sample-open className="canonical-button canonical-button--primary" href="#sample-recommendation-graph">Explore a sample <Arrow /></Link>
             <Link data-design-partner-cta="home_hero" className="canonical-button canonical-button--secondary" href="/contact">Request a pilot <Arrow /></Link>
           </div>
-          <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records. The example uses Workers AI + Bing RSS grounded synthesis, not direct ChatGPT, Gemini, or Perplexity application monitoring.</p>
+          <p className="fm-cinematic-hero__boundary">Illustrative, versioned sample data. Opening this page does not trigger paid research or expose customer records. The example uses Workers AI + Brave Search grounded synthesis, not direct ChatGPT, Gemini, or Perplexity application monitoring.</p>
         </div>
 
         <IllustrativeRecommendationGraph />
@@ -222,7 +223,7 @@ export function MissingAnswerExperience() {
           </details>
           <details>
             <summary>Which AI surface is measured today?</summary>
-            <p>Current free-only live collection uses Cloudflare Workers AI with independently retrieved Bing Search RSS sources and grounded synthesis. That is not direct monitoring of ChatGPT, Gemini, or Perplexity consumer applications.</p>
+            <p>Current free-only live collection uses Cloudflare Workers AI with independently retrieved Brave Search sources and grounded synthesis. That is not direct monitoring of ChatGPT, Gemini, or Perplexity consumer applications.</p>
           </details>
           <details>
             <summary>Does opening the homepage run paid AI research?</summary>
@@ -235,6 +236,10 @@ export function MissingAnswerExperience() {
           <details>
             <summary>What happens in the founder-led pilot?</summary>
             <p>Bring up to five priority buyer questions, establish a baseline, review the evidence, choose one customer-owned company change worth testing, implement only what your team approves, and return for comparable remeasurement.</p>
+          </details>
+          <details>
+            <summary>What does Foremention cost?</summary>
+            <p>{OFFER_SUMMARY} <Link href="/pricing">{PRICING_CTA_LABEL}</Link>.</p>
           </details>
           <details>
             <summary>What happens to the information I submit?</summary>
@@ -256,7 +261,7 @@ export function MissingAnswerExperience() {
         <ol className="outreach-partner__steps">
           {partnerSteps.map(([number, title, body]) => <li key={number}><span>{number}</span><strong>{title}</strong><p>{body}</p></li>)}
         </ol>
-        <p className="outreach-partner__fineprint">Founder-led. Limited scope. Applying does not create a paid subscription, guarantee an outcome, or authorize a company change.</p>
+        <p className="outreach-partner__fineprint">Founder-led. Limited scope. Applying does not create a paid subscription, guarantee an outcome, or authorize a company change. Prefer self-serve? <Link href="/pricing">{PRICING_CTA_LABEL}</Link>.</p>
       </div>
     </section>
   </div>;

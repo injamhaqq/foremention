@@ -5,6 +5,7 @@ import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
 import { billingProviderId, paddleLiveConfigured } from "@/lib/billing-provider";
 import { getSiteHeaderAccount } from "@/lib/auth";
+import { CORE_TRIAL, MONEY_BACK_DAYS, PILOT_CTA_LABEL, PUBLIC_PLANS } from "@/lib/public-offer";
 
 // Purchasability is read from live billing configuration at request time.
 export const dynamic = "force-dynamic";
@@ -29,13 +30,13 @@ const PRICING_FOUNDER_LED_DESCRIPTION =
   "Foremention Core and Signal plans by buyer-question coverage, re-measurement cadence, and brands. Commercial terms are arranged with the Foremention team; Intelligence is custom-scoped.";
 
 // Read at request time so the description never claims self-serve checkout
-// when live billing is not configured for this deployment.
+// when live billing is not configured for this deployment. /pricing is
+// indexable and listed in the sitemap (FM-24); /pay stays noindex.
 export function generateMetadata(): Metadata {
   return pageMetadata({
     title: "Recommendation Intelligence Plans",
     description: selfServeCheckoutLive() ? PRICING_LIVE_DESCRIPTION : PRICING_FOUNDER_LED_DESCRIPTION,
     path: "/pricing",
-    noIndex: true,
   });
 }
 
@@ -94,6 +95,24 @@ const plans = [
   },
 ];
 
+// One row per question a buyer asks when comparing plans. Values come from
+// lib/public-offer.ts, which reads lib/product-limits.ts.
+const comparisonRows: Array<[string, string, string, string, string]> = [
+  ["Price", PUBLIC_PLANS.free.price, PUBLIC_PLANS.core.price, PUBLIC_PLANS.signal.price, PUBLIC_PLANS.intelligence.price],
+  ["Approved buyer questions", String(PUBLIC_PLANS.free.buyerQuestions), `Up to ${PUBLIC_PLANS.core.buyerQuestions}`, `Up to ${PUBLIC_PLANS.signal.buyerQuestions}`, "Custom"],
+  ["Brands", String(PUBLIC_PLANS.free.brands), String(PUBLIC_PLANS.core.brands), `Up to ${PUBLIC_PLANS.signal.brands}`, "Multi-brand"],
+  ["Re-measurement", PUBLIC_PLANS.free.cadence, PUBLIC_PLANS.core.cadence, PUBLIC_PLANS.signal.cadence, PUBLIC_PLANS.intelligence.cadence],
+  ["Free trial", "Not needed", `${CORE_TRIAL.days} days, no card`, "No", "No"],
+];
+
+const billingFaq: Array<[string, string]> = [
+  ["What happens when the Core trial ends?", `The ${CORE_TRIAL.days}-day trial takes no card. When it ends, the workspace returns to the free plan unless you choose Core or Signal. Nothing is charged automatically.`],
+  ["Who bills me?", "Paddle, our merchant of record, runs checkout, issues your receipt and invoice, and handles sales tax or VAT. Foremention never sees your full card number."],
+  ["Can I get my money back?", `Yes. Email hello@foremention.com within ${MONEY_BACK_DAYS} days of your company's first Core or Signal payment for a full refund. This applies once per company and not to renewals.`],
+  ["How do I cancel?", "Open Settings → Billing → Manage billing at any time. Cancelling stops future renewals at the end of the current billing period."],
+  ["Prefer to talk first?", "Request a founder-led pilot: bring five buyer questions and we review one real evidence cycle with you. Applying does not charge a card."],
+];
+
 const shared = [
   [
     "Dated Recommendation Records",
@@ -129,6 +148,11 @@ export default async function PricingPage() {
             buyer-question coverage, measurement frequency, brands, collaboration, integrations, and governance.
             Every plan keeps the same inspectable evidence standard.
           </p>
+          {live ? (
+            <p className="claims-pricing-lede">
+              <strong>Start free, try Core for {CORE_TRIAL.days} days with no card, then pay monthly.</strong> Your first payment has a {MONEY_BACK_DAYS}-day money-back guarantee. Cancel anytime.
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -168,6 +192,35 @@ export default async function PricingPage() {
               not charge a card. Intelligence remains sales-led and custom-scoped.
             </p>
           )}
+        </div>
+      </section>
+
+      <section className="section section--paper claims-pricing-compare" aria-labelledby="pricing-compare-title">
+        <div className="shell">
+          <h2 id="pricing-compare-title">Compare plans</h2>
+          <div className="claims-table-scroll" role="region" aria-labelledby="pricing-compare-title" tabIndex={0}>
+            <table className="claims-compare-table">
+              <thead>
+                <tr><th scope="col">Plan</th><th scope="col">Free</th><th scope="col">Core</th><th scope="col">Signal</th><th scope="col">Intelligence</th></tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map(([label, ...cells]) => (
+                  <tr key={label}><th scope="row">{label}</th>{cells.map((cell, index) => <td key={index}>{cell}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="table-caption">Prices are monthly, in US dollars, before any sales tax or VAT that Paddle adds at checkout.</p>
+
+          <h2 className="claims-pricing-faq__title">Billing questions</h2>
+          <div className="claims-pricing-faq">
+            {billingFaq.map(([question, answer]) => (
+              <details key={question}><summary>{question}</summary><p>{answer}</p></details>
+            ))}
+          </div>
+          <p className="claims-pricing-pilot">
+            <Link className="button button--outline" href="/contact">{PILOT_CTA_LABEL} <Arrow /></Link>
+          </p>
         </div>
       </section>
 

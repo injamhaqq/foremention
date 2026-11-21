@@ -1,22 +1,27 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public-shell";
 import { pageMetadata } from "@/lib/seo";
+import { GOVERNING_LAW, LEGAL_CONTACT_EMAIL, legalValue, sellerSentence } from "@/lib/legal-entity";
+import { CORE_TRIAL } from "@/lib/public-offer";
 
 export const metadata: Metadata = pageMetadata({
   title: "Terms",
-  description: "The Foremention platform terms covering accounts, customer responsibilities, AI evidence limits, integrations, plans, acceptable use, and external systems.",
+  description: "The Foremention terms of service: who sells the service, accounts, customer responsibilities, AI evidence limits, integrations, plans, Paddle as merchant of record, customer responsibilities, AI evidence limits, integrations, plans, acceptable use, and external systems.",
   path: "/terms",
 });
 
 export default function TermsPage() {
   return <PublicShell>
-    <section className="page-hero"><div className="shell narrow-heading"><span className="eyebrow">Effective July 27, 2026</span><h1>Terms</h1><p>These terms set the operating boundaries for using the Foremention recommendation intelligence platform.</p></div></section>
+    <section className="page-hero"><div className="shell narrow-heading"><span className="eyebrow">Effective October 19, 2026</span><h1>Terms of service</h1><p>These terms set the operating boundaries for using the Foremention recommendation intelligence platform.</p></div></section>
     <article className="legal-copy shell">
       <div className="legal-summary"><strong>Plain-language summary</strong><p>Foremention provides evidence and workflow software. Customers control their questions, claims, integrations, and actions. Independent AI systems and publishers control their own outputs and decisions.</p></div>
+      <h2>Who we are</h2>
+      <p>{sellerSentence()} These terms are an agreement between us and you, or the organization you represent, for use of the Foremention service at foremention.com. Contact: <a href={`mailto:${LEGAL_CONTACT_EMAIL}`}>{LEGAL_CONTACT_EMAIL}</a>.</p>
+      <p>Online orders are sold by Paddle.com, which is the merchant of record and reseller for those orders (see &ldquo;Payment reseller, cancellations, and refunds&rdquo; below). We provide the service itself.</p>
       <h2>Agreement and account authority</h2>
       <p>By creating or using an account, you confirm that you can accept these terms for yourself or the organization you represent. You are responsible for accurate registration information, authorized users, and account security.</p>
       <h2>Platform access</h2>
-      <p>Foremention provides software access for defining buyer questions, collecting connected AI-provider observations, reviewing answers, mapping public sources, evaluating reliability, organizing evidence, and tracking actions. Self-serve access may begin as a controlled free beta. Available features, providers, capacity, retention, support, and any future paid subscription terms may vary by plan or order form.</p>
+      <p>Foremention provides software access for defining buyer questions, collecting connected AI-provider observations, reviewing answers, mapping public sources, evaluating reliability, organizing evidence, and tracking actions. Access starts on a free plan. A workspace can start one {CORE_TRIAL.days}-day Core trial without a card. Available features, providers, capacity, retention, support, and any future paid subscription terms may vary by plan or order form.</p>
       <h2>Evidence and outcome limits</h2>
       <p>AI answers are variable, probabilistic observations. Foremention does not guarantee publisher acceptance, placement, indexing, recommendation, citation, rank, traffic, leads, pipeline, or revenue. Metrics describe reviewed records within their stated collection boundary.</p>
       <h2>Acceptable use</h2>
@@ -38,8 +43,12 @@ export default function TermsPage() {
       <p>Foremention and its licensors retain rights in the platform, software, product design, documentation, and aggregated or de-identified learnings. These terms do not transfer ownership of customer data or third-party materials.</p>
       <h2>Service changes and availability</h2>
       <p>The service will evolve, and no uninterrupted or error-free operation is promised. Foremention will use reasonable care to protect customer records and communicate material changes, but early or unconnected features may remain unavailable until their stated dependencies are active.</p>
+      <h2>Personal data</h2>
+      <p>Our <a href="/privacy">Privacy notice</a> explains how we handle personal data. When we process personal data on your behalf as part of the service, the <a href="/dpa">Data Processing Addendum</a> forms part of these terms. Our current service providers are listed on the <a href="/subprocessors">Subprocessors</a> page.</p>
+      <h2>Governing law</h2>
+      <p>These terms are governed by {legalValue(GOVERNING_LAW)}. Nothing in this section removes consumer or buyer rights that cannot lawfully be excluded where you live.</p>
       <h2>Order of documents</h2>
-      <p>If a signed order form or written enterprise agreement conflicts with these terms, that signed document controls for the conflicting subject. Additional legal-entity, tax, or jurisdiction details may be stated in the applicable order form.</p>
+      <p>If a signed order form or written enterprise agreement conflicts with these terms, that signed document controls for the conflicting subject. For an online order, Paddle&apos;s buyer terms govern the purchase itself.</p>
       <h2>Contact</h2>
       <p>Questions about these terms may be sent to <a href="mailto:hello@foremention.com">hello@foremention.com</a>.</p>
     </article>

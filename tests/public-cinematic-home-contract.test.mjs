@@ -58,7 +58,7 @@ test("public sample graph is progressively inspectable without inventing extra p
   assert.match(source, /useState\(""/);
   assert.match(source, /Choose the supported example measurement surface/);
   assert.match(source, /workers-ai-bing-rss/);
-  assert.match(source, /Workers AI \+ Bing RSS grounded synthesis/);
+  assert.match(source, /Workers AI \+ Brave Search grounded synthesis/);
   assert.match(source, /aria-pressed=\{selectedBrand === "competitor"\}/);
   assert.match(source, /aria-pressed=\{selectedEvidence === "source-01"\}/);
   assert.match(source, /does not invent a causal explanation/i);
