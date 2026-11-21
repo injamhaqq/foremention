@@ -14,7 +14,11 @@ test("www host permanently redirects safe navigations to the canonical apex doma
 test("a favicon is shipped and declared so /favicon.ico no longer 404s", async () => {
   assert.ok((await stat(new URL("../public/favicon.ico", import.meta.url))).size > 0);
   assert.match(await read("public/icon.svg"), /<svg[^>]+viewBox="0 0 32 32"/);
-  assert.match(await read("app/layout.tsx"), /icons: \{ icon: \[\{ url: "\/icon\.svg"/);
+  const layout = await read("app/layout.tsx");
+  assert.match(layout, /icons: \{\s*icon: \[\s*\{ url: "\/icon\.svg"/);
+  assert.match(layout, /url: "\/favicon\.ico"/);
+  assert.match(layout, /apple: \[\{ url: "\/apple-touch-icon\.png"/);
+  assert.match(layout, /manifest: "\/manifest\.webmanifest"/);
 });
 
 test("contrast repair layer loads last and covers every light surface axe flagged on production", async () => {
